@@ -10,6 +10,8 @@
 
 ## What is Rask?
 
+*Rask* is the Norwegian/Danish/Swedish word for **fast** or **quick**.
+
 Rask is a component framework for .NET. You write components as plain C# classes, return a tree of HTML from `Render()`, and host the result one of three ways: server-rendered with live updates over a WebSocket, fully client-side in the browser via WebAssembly, or an ASP.NET app that serves a published WASM bundle. The **same component code runs under either host** — only the hosting glue changes.
 
 What makes it different from other component frameworks:
