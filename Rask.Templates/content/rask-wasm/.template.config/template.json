@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Tamás Pál",
+  "classifications": [ "Web", "Rask", "WebAssembly", "SPA" ],
+  "identity": "Rask.Templates.Wasm",
+  "name": "Rask Browser-WASM SPA",
+  "description": "A standalone Rask app running entirely in the browser via WebAssembly.",
+  "shortName": [ "rask-wasm" ],
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Company.RaskWasm",
+  "preferNameDirectory": true,
+  "defaultName": "RaskApp"
+}

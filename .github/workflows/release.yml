@@ -54,6 +54,9 @@ jobs:
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Templates
+        run: dotnet pack Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
+
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Rask.Wasm.Hosting" Version="RASK_PKG_VERSION"/>
+    <!--
+      Cross-TFM reference: a net10.0 host pointing at a net10.0-browser WASM project.
+      ReferenceOutputAssembly=false + SkipGetTargetFrameworkProperties=true are both
+      required (NU1201 otherwise). The Rask.Wasm.Hosting MSBuild targets that ship in
+      the NuGet auto-discover this ProjectReference, publish the WASM AppBundle, and
+      bake the bundle directory into the host assembly so `app.UseRask()` resolves it.
+    -->
+    <ProjectReference Include="..\Company.RaskWasmHosted.Wasm\Company.RaskWasmHosted.Wasm.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"/>
+  </ItemGroup>
+
+</Project>

@@ -5,6 +5,7 @@
 [![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
 [![NuGet Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=Rask.Wasm.Hosting)](https://www.nuget.org/packages/Rask.Wasm.Hosting)
+[![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -23,6 +24,24 @@ What makes it different from other component frameworks:
 - **Constructor DI in components.** `class Weather(IWeatherForecastService svc) : Component` works directly — no `[Inject]` properties, no boilerplate.
 
 ## Install
+
+### Scaffold a new project with `dotnet new` (recommended)
+
+The fastest way to start. `Rask.Templates` ships three project templates — one per host model — already wired up to the matching framework package:
+
+```bash
+dotnet new install Rask.Templates
+
+dotnet new rask-server       -n MyApp    # ASP.NET live-server app
+dotnet new rask-wasm         -n MyApp    # standalone browser-WASM SPA
+dotnet new rask-wasm-hosted  -n MyApp    # browser-WASM client + ASP.NET host
+```
+
+Each template emits a runnable solution with `App` + `HomePage` + `Counter` + `Weather` (async DI demo). `rask-server` and `rask-wasm` are single-project; `rask-wasm-hosted` is a two-project solution (`MyApp.Wasm/` + `MyApp.Host/`) pre-wired with the cross-TFM ProjectReference and a sample `/api/weatherforecast` endpoint.
+
+`cd MyApp && dotnet run` — that's it.
+
+### Add packages to an existing project
 
 Three NuGet packages, one per host model. Pick the one that matches the project you're authoring:
 
