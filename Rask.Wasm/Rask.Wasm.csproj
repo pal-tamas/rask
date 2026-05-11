@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Wasm</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <PackageId>Rask.Wasm</PackageId>
+    <Description>Rask browser-WASM runtime. Boots a Rask App in the browser via dotnet WASM. Ships the JS boot scripts, the framework page shell, and an MSBuild integration that wires them into a WasmGenerateAppBundle project. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
@@ -14,9 +17,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0"/>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0"/>
+    <!--
+      Rask.Core uses Microsoft.AspNetCore.Authorization (in RouteAuthorizationGuard).
+      On the WASM track there's no Microsoft.AspNetCore.App framework reference, so we
+      surface this dep at the package boundary so consumers can restore it.
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.0"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -24,14 +33,44 @@
   </ItemGroup>
 
   <!--
-    Browser-shipped assets (main.js + rask.wasm.js) live under Browser/ and are wired into
-    a consumer's WASM build via build/Rask.Wasm.targets, which sets WasmMainJSPath and
-    appends to WasmExtraFilesToDeploy. Both paths and the targets file get packed for NuGet
-    consumers via the Pack metadata below.
+    Browser-shipped assets (main.js + rask.wasm.js + index.html) live under Browser/ and are
+    wired into a consumer's WASM build via build/Rask.Wasm.targets, which sets WasmMainJSPath
+    and appends to WasmExtraFilesToDeploy. Browser/ and build/ are packed at the package root
+    so the auto-import in the consumer's project sees them under the package's top-level
+    folders, matching the in-repo layout that Directory.Build.targets imports from.
   -->
   <ItemGroup>
     <None Include="Browser\**" Pack="true" PackagePath="Browser\"/>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
+
+  <!--
+    Bundle Rask.Core.dll into each lib/{TFM}/ folder alongside Rask.Wasm.dll. NuGet's TFM
+    folder convention writes net10.0-browser1.0 (with the explicit platform version) for
+    the browser TFM, matching where it places Rask.Wasm.dll itself. PrivateAssets="all" on
+    the Core ProjectReference keeps the Rask.Core "package" out of the nuspec dependency
+    list — we pack its DLL explicitly here. The source generator goes at
+    analyzers/dotnet/cs/ (the generator project sets IncludeBuildOutput=false so it does
+    not flow with the consumer's build output).
+  -->
+  <ItemGroup>
+    <None Include="..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="_RaskAddCoreToLib">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+    </ItemGroup>
+  </Target>
 
 </Project>

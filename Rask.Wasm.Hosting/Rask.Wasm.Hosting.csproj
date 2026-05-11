@@ -5,10 +5,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Wasm.Hosting</RootNamespace>
+
+    <PackageId>Rask.Wasm.Hosting</PackageId>
+    <Description>ASP.NET helper for serving a Rask WASM AppBundle as a SPA. `app.UseRask()` mounts the published bundle with the right MIME types, no-cache revalidation, and a SPA fallback so client-side routes resolve. Depends on Rask.Wasm.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

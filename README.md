@@ -2,7 +2,9 @@
 
 > A C# component framework for building live web apps — server-rendered over WebSockets, or fully client-side in the browser via WebAssembly.
 
-[![NuGet](https://img.shields.io/nuget/v/Rask.svg)](https://www.nuget.org/packages/Rask)
+[![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
+[![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
+[![NuGet Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=Rask.Wasm.Hosting)](https://www.nuget.org/packages/Rask.Wasm.Hosting)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -20,19 +22,21 @@ What makes it different from other component frameworks:
 
 ## Install
 
-A single NuGet package ships everything — the core library, both runtime hosts, and the source generators:
+Three NuGet packages, one per host model. Pick the one that matches the project you're authoring:
+
+| Host model | Package | Project type | Entry-point API |
+|---|---|---|---|
+| Server live (WebSockets) | `Rask.Server` | `net10.0` ASP.NET | `services.AddRask()` + `app.UseRask<TApp>()` |
+| Browser WASM | `Rask.Wasm` | `net10.0-browser` | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
+| WASM bundle host | `Rask.Wasm.Hosting` | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()` |
 
 ```bash
-dotnet add package Rask
+dotnet add package Rask.Server        # server live host
+dotnet add package Rask.Wasm          # browser WASM client
+dotnet add package Rask.Wasm.Hosting  # ASP.NET host serving a WASM bundle
 ```
 
-Which host you get is determined by *what you call*, not what you install:
-
-| Host model | Project type | Entry-point API |
-|---|---|---|
-| Server live (WebSockets) | `net10.0` ASP.NET | `services.AddRask()` + `app.UseRask<TApp>()` |
-| Browser WASM | `net10.0-browser` | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
-| WASM bundle host | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()` |
+`Rask.Server` and `Rask.Wasm` each bundle the core component types and source generators. `Rask.Wasm.Hosting` depends on `Rask.Wasm` and pulls those in transitively.
 
 ## Quick Start — Server
 

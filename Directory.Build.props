@@ -1,0 +1,31 @@
+<Project>
+
+  <PropertyGroup>
+    <Authors>Tamás Pál</Authors>
+    <Company>Tamás Pál</Company>
+    <Copyright>© Tamás Pál</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/pal-tamas/rask</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/pal-tamas/rask.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>web component framework wasm net10</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</ContinuousIntegrationBuild>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false"/>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all"/>
+  </ItemGroup>
+
+</Project>
