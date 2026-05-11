@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Wasm.Hosting.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 

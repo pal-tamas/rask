@@ -515,4 +515,112 @@ public class ComponentFactoryGeneratorTests
         // Trailing assignment refresh still happens.
         Assert.Contains("__c.Value = Value;", output);
     }
+
+    [Fact]
+    public void BaseClassProperty_NotFlattenedIntoDerivedFactory()
+    {
+        // GetMembers() returns only directly-declared members; base properties stay on the base's factory.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public abstract class BasePage : Component
+                  {
+                      public string? BaseProp { get; set; }
+                  }
+                  public sealed class Widget : BasePage
+                  {
+                      public string? DerivedProp { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains("Widget(string? DerivedProp = null)", output);
+        Assert.DoesNotContain("BaseProp", output);
+    }
+
+    [Fact]
+    public void AbstractPropertyOverriddenInDerived_AppearsOnceInDerivedFactory()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public abstract class BasePage : Component
+                  {
+                      public abstract string? Title { get; set; }
+                  }
+                  public sealed class Widget : BasePage
+                  {
+                      public override string? Title { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains("Widget(string? Title = null)", output);
+        // No duplicate assignment.
+        var firstAssign = output.IndexOf("__c.Title = Title;", StringComparison.Ordinal);
+        Assert.True(firstAssign > 0);
+        var nextAssign = output.IndexOf("__c.Title = Title;", firstAssign + 1, StringComparison.Ordinal);
+        Assert.Equal(-1, nextAssign);
+    }
+
+    [Fact]
+    public void NullableDisableContext_StringProperty_TreatedAsNonNullable()
+    {
+        // Under `#nullable disable` a `string` property has no Annotated marker, so the factory
+        // treats it as required (no default value).
+        var src = """
+                  using Rask.Core;
+                  #nullable disable
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public string Name { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains("Widget(string Name)", output);
+        Assert.DoesNotContain("Name = null", output);
+    }
+
+    [Fact]
+    public void TenProperties_FactoryParameterOrderMatchesDeclaration()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public string? P00 { get; set; }
+                      public string? P01 { get; set; }
+                      public string? P02 { get; set; }
+                      public string? P03 { get; set; }
+                      public string? P04 { get; set; }
+                      public string? P05 { get; set; }
+                      public string? P06 { get; set; }
+                      public string? P07 { get; set; }
+                      public string? P08 { get; set; }
+                      public string? P09 { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains(
+            "Widget(string? P00 = null, string? P01 = null, string? P02 = null, string? P03 = null, " +
+            "string? P04 = null, string? P05 = null, string? P06 = null, string? P07 = null, " +
+            "string? P08 = null, string? P09 = null)",
+            output);
+    }
 }

@@ -125,6 +125,51 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
     });
 
+    [Fact]
+    public Task BackForwardNavigation_PreservesSpaState() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/");
+        await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
+
+        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Counter" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
+
+        await Page.GoBackAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/$"));
+        await Expect(Page.Locator("h1")).ToHaveTextAsync("Hello, world!");
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+
+        await Page.GoForwardAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
+        await Expect(Page.Locator("h1")).ToHaveTextAsync("Counter");
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+    });
+
+    [Fact]
+    public Task UnknownRoute_LoadsWithoutNetworkError() => RunAsync(async () =>
+    {
+        var response = await Page.GotoAsync("/this-route-definitely-does-not-exist");
+        Assert.NotNull(response);
+        // Either 200 (SPA fallback) or 404 — both are non-5xx, the page should still mount.
+        Assert.True((int)response!.Status < 500, $"unexpected status {response.Status}");
+        // The nav bar / app shell is still present, proving the app loaded.
+        await Expect(Page.Locator("a.navbar-brand")).ToHaveTextAsync("Rask",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task RapidClick_TenClicksInSuccession_FinalCountIsTen() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/counter");
+        await Expect(Page.Locator("p.fs-5")).ToHaveTextAsync("Current count: 0");
+
+        var btn = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Click me" });
+        for (var i = 0; i < 10; i++) await btn.ClickAsync();
+
+        await Expect(Page.Locator("p.fs-5"))
+            .ToHaveTextAsync("Current count: 10", new LocatorAssertionsToHaveTextOptions { Timeout = 8_000 });
+    });
+
     private async Task SignInAsync(string username = "alice", string password = "password")
     {
         await Page.GotoAsync("/login");
