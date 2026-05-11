@@ -8,6 +8,8 @@ builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>
 
 var app = builder.Build();
 
+app.MapStaticAssets();
+
 app.UseRask<App>();
 
 app.Run();

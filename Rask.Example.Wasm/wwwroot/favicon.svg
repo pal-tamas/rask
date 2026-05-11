@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Rask logo / favicon — canonical source.
+
+  The mark is "R()", pairing the project's name with its signature C# DSL:
+  every Rask component is invoked as a call — Counter(), Div(), HomePage().
+  Colour is Scandinavian blue (#0066B3), nodding to the Norwegian/Danish/
+  Swedish origin of the word "rask" (= fast).
+
+  Every example and template references *this* file. The three template
+  copies under Rask.Templates/content/**/wwwroot/favicon.svg must mirror it
+  byte-for-byte (templates are self-contained at scaffold time, so they
+  cannot reach back into ../assets/).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#0066B3" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 56 V8 H15 A6 10 0 0 1 15 28 H5"/>
+  <path d="M13 28 L22 56"/>
+  <path d="M38 8 A10 24 0 0 0 38 56"/>
+  <path d="M50 8 A10 24 0 0 1 50 56"/>
+</svg>

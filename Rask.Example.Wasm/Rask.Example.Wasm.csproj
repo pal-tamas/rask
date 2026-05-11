@@ -25,4 +25,8 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <WasmExtraFilesToDeploy Include="wwwroot\favicon.svg"/>
+  </ItemGroup>
+
 </Project>

@@ -16,6 +16,7 @@ public sealed class App : Component
                     Meta("utf-8"),
                     Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
                     Title(Children: ["Rask Example"]),
+                    Link(Rel: "icon", Href: "/favicon.svg", Type: "image/svg+xml"),
                     Link(Rel: "stylesheet",
                         Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
                         CrossOrigin: "anonymous"),

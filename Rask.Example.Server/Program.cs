@@ -18,6 +18,8 @@ builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>
 
 var app = builder.Build();
 
+app.MapStaticAssets();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
