@@ -1,0 +1,667 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+
+namespace Rask.Generators;
+
+[Generator(LanguageNames.CSharp)]
+public sealed class ComponentFactoryGenerator : IIncrementalGenerator
+{
+    private const string ComponentFullName = "Rask.Core.Component";
+    private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
+    private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
+
+    private static readonly DiagnosticDescriptor Rask001 = new(
+        "RASK001",
+        "Property is treated as a required factory parameter",
+        "Property '{0}.{1}' is treated as a required factory parameter; consider also marking it 'required' for language-level enforcement",
+        "Rask.Generators",
+        DiagnosticSeverity.Hidden,
+        true);
+
+    private static readonly DiagnosticDescriptor Rask002 = new(
+        "RASK002",
+        "'required' property is incompatible with DI constructor",
+        "Property '{0}.{1}' is marked 'required', but '{0}' has dependency-injected constructor parameters; the generated factory cannot honor 'required' through ActivatorUtilities.CreateInstance. Remove 'required' or remove DI parameters.",
+        "Rask.Generators",
+        DiagnosticSeverity.Warning,
+        true);
+
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var candidates = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                static (node, _) => node is ClassDeclarationSyntax c && c.BaseList is { Types.Count: > 0 } &&
+                                    !c.Modifiers.Any(m => m.IsKind(SyntaxKind.AbstractKeyword)),
+                static (ctx, _) => GetCandidate(ctx))
+            .Where(static c => c is not null)
+            .Select(static (c, _) => c!);
+
+        var grouped = candidates.Collect();
+
+        context.RegisterSourceOutput(grouped, static (spc, list) => Emit(spc, list));
+    }
+
+    private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
+    {
+        if (ctx.Node is not ClassDeclarationSyntax classDecl)
+        {
+            return null;
+        }
+
+        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        {
+            return null;
+        }
+
+        if (symbol.IsAbstract)
+        {
+            return null;
+        }
+
+        if (symbol.IsUnboundGenericType)
+        {
+            return null;
+        }
+
+        if (symbol.DeclaredAccessibility != Accessibility.Public &&
+            symbol.DeclaredAccessibility != Accessibility.Internal)
+        {
+            return null;
+        }
+
+        if (!InheritsFromComponent(symbol))
+        {
+            return null;
+        }
+
+        if (IsInRaskCoreNamespace(symbol))
+        {
+            return null;
+        }
+
+        if (HasSkipFactoryAttribute(symbol))
+        {
+            return null;
+        }
+
+        var ns = symbol.ContainingNamespace.IsGlobalNamespace
+            ? string.Empty
+            : symbol.ContainingNamespace.ToDisplayString();
+        var hasParameterlessCtor = HasPublicParameterlessConstructor(symbol);
+        var hasDICtor = HasDIConstructor(symbol);
+        var isPublic = IsExternallyVisible(symbol);
+        var properties = GetFactoryProperties(symbol);
+        var typeParams = symbol.IsGenericType
+            ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
+            : string.Empty;
+        var constraints = BuildConstraintsClause(symbol.TypeParameters);
+        return new Candidate(
+            ns,
+            symbol.Name,
+            symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            typeParams,
+            constraints,
+            hasParameterlessCtor,
+            hasDICtor,
+            isPublic,
+            new EquatableArray<PropInfo>(properties));
+    }
+
+    private static string BuildConstraintsClause(ImmutableArray<ITypeParameterSymbol> typeParameters)
+    {
+        if (typeParameters.IsDefaultOrEmpty)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        foreach (var tp in typeParameters)
+        {
+            var clauses = new List<string>();
+            if (tp.HasReferenceTypeConstraint)
+            {
+                clauses.Add("class");
+            }
+
+            if (tp.HasValueTypeConstraint && !tp.HasUnmanagedTypeConstraint)
+            {
+                clauses.Add("struct");
+            }
+
+            if (tp.HasUnmanagedTypeConstraint)
+            {
+                clauses.Add("unmanaged");
+            }
+
+            if (tp.HasNotNullConstraint)
+            {
+                clauses.Add("notnull");
+            }
+
+            foreach (var ct in tp.ConstraintTypes)
+            {
+                clauses.Add(ct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            }
+
+            if (tp.HasConstructorConstraint)
+            {
+                clauses.Add("new()");
+            }
+
+            if (clauses.Count == 0)
+            {
+                continue;
+            }
+
+            sb.Append(" where ").Append(tp.Name).Append(" : ").Append(string.Join(", ", clauses));
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsExternallyVisible(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol; t is not null; t = t.ContainingType)
+        {
+            if (t.DeclaredAccessibility != Accessibility.Public)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool InheritsFromComponent(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
+        {
+            var name = t.OriginalDefinition.ToDisplayString();
+            if (name == ComponentFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
+    {
+        var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+        if (ns == "Rask.Core")
+        {
+            return true;
+        }
+
+        if (ns == "Rask.Core.Components" || ns.StartsWith("Rask.Core.Components.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (ns == "Rask.Core.Live" || ns.StartsWith("Rask.Core.Live.", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasSkipFactoryAttribute(ISymbol symbol)
+    {
+        foreach (var attr in symbol.GetAttributes())
+        {
+            if (attr.AttributeClass?.ToDisplayString() == SkipFactoryFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasPublicParameterlessConstructor(INamedTypeSymbol symbol)
+    {
+        foreach (var ctor in symbol.InstanceConstructors)
+        {
+            if (ctor.DeclaredAccessibility == Accessibility.Public && ctor.Parameters.Length == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasDIConstructor(INamedTypeSymbol symbol)
+    {
+        foreach (var ctor in symbol.InstanceConstructors)
+        {
+            if (ctor.DeclaredAccessibility == Accessibility.Public && ctor.Parameters.Length > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol)
+    {
+        var result = new List<PropInfo>();
+        foreach (var member in symbol.GetMembers())
+        {
+            if (member is not IPropertySymbol prop)
+            {
+                continue;
+            }
+
+            if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
+            {
+                continue;
+            }
+
+            if (prop.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            if (prop.SetMethod is null)
+            {
+                continue;
+            }
+
+            if (prop.SetMethod.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            if (HasSkipFactoryAttribute(prop))
+            {
+                continue;
+            }
+
+            if (IsOverrideOfRaskCoreMember(prop))
+            {
+                continue;
+            }
+
+            var filePath = string.Empty;
+            var spanStart = 0;
+            var spanLength = 0;
+            var hasInitializer = false;
+            if (prop.DeclaringSyntaxReferences.Length > 0)
+            {
+                var syntaxRef = prop.DeclaringSyntaxReferences[0];
+                filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
+                spanStart = syntaxRef.Span.Start;
+                spanLength = syntaxRef.Span.Length;
+                if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
+                {
+                    hasInitializer = pds.Initializer is not null;
+                }
+            }
+
+            var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
+                             || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
+                                 SpecialType.System_Nullable_T);
+
+            var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                          | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+
+            result.Add(new PropInfo(
+                prop.Name,
+                typeFqn,
+                isNullable,
+                hasInitializer,
+                prop.IsRequired,
+                filePath,
+                spanStart,
+                spanLength));
+        }
+
+        result.Sort(static (a, b) =>
+        {
+            var c = string.CompareOrdinal(a.DeclaringFilePath, b.DeclaringFilePath);
+            return c != 0 ? c : a.DeclaringSpanStart.CompareTo(b.DeclaringSpanStart);
+        });
+        return result;
+    }
+
+    private static bool IsOverrideOfRaskCoreMember(IPropertySymbol prop)
+    {
+        if (!prop.IsOverride)
+        {
+            return false;
+        }
+
+        var overridden = prop.OverriddenProperty;
+        while (overridden is not null)
+        {
+            var ns = overridden.ContainingType.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            if (ns == "Rask.Core" || ns.StartsWith("Rask.Core.", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            overridden = overridden.OverriddenProperty;
+        }
+
+        return false;
+    }
+
+    private static string DefaultLiteralFor(string typeFqn, bool isNullable)
+    {
+        if (isNullable)
+        {
+            return "null";
+        }
+
+        // Defensive: should not be called for non-nullable properties (they're required).
+        return "default";
+    }
+
+    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    {
+        if (candidates.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        // Report per-property diagnostics first.
+        foreach (var c in candidates)
+        {
+            foreach (var p in c.Properties)
+            {
+                var location = MakeLocation(p);
+                if (p.UserMarkedRequired && c.HasDIConstructor)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask002, location, c.FullyQualifiedName, p.Name));
+                }
+                else if (IsRequiredFactoryParam(p) && !p.UserMarkedRequired)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask001, location, c.FullyQualifiedName, p.Name));
+                }
+            }
+        }
+
+        var byNamespace = candidates
+            .GroupBy(c => c.Namespace)
+            .OrderBy(g => g.Key, StringComparer.Ordinal);
+
+        foreach (var group in byNamespace)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine("#nullable enable");
+            sb.AppendLine();
+
+            var hasNs = !string.IsNullOrEmpty(group.Key);
+            if (hasNs)
+            {
+                sb.Append("namespace ").Append(group.Key).AppendLine(";");
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("public static partial class Components");
+            sb.AppendLine("{");
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var c in group.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+            {
+                if (!seen.Add(c.TypeName))
+                {
+                    continue;
+                }
+
+                EmitFactory(sb, c);
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("}");
+
+            var hint = hasNs ? $"{group.Key}.Components.g.cs" : "Components.g.cs";
+            spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
+        }
+    }
+
+    private static bool IsRequiredFactoryParam(PropInfo p) => !p.IsNullable && !p.HasInitializer;
+
+    private static bool IsParamProperty(PropInfo p) =>
+        !p.HasInitializer; // properties with initializers are excluded entirely
+
+    private static void EmitFactory(StringBuilder sb, Candidate c)
+    {
+        var visibility = c.IsPublic ? "public" : "internal";
+        var paramProps = c.Properties.Where(IsParamProperty).ToList();
+        var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
+        var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
+        var canUseObjectInit = !c.HasDIConstructor;
+
+        // Signature.
+        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
+            .Append(c.TypeName).Append(c.TypeParameters).Append('(');
+        var first = true;
+        foreach (var p in requiredProps)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+        }
+
+        foreach (var p in optionalProps)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            first = false;
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Name).Append(" = ")
+                .Append(DefaultLiteralFor(p.TypeFqn, p.IsNullable));
+        }
+
+        sb.Append(')').AppendLine(c.TypeParameterConstraints);
+        sb.AppendLine("    {");
+
+        if (paramProps.Count == 0)
+        {
+            // Legacy parameterless factory shape preserved.
+            sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
+            sb.AppendLine("        {");
+            sb.Append("            var __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append(
+                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
+                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
+            sb.AppendLine("            __ctx.NotifyParameters(__c);");
+            sb.AppendLine("            return __c;");
+            sb.AppendLine("        }");
+            if (c.HasParameterlessCtor)
+            {
+                sb.Append("        return new ").Append(c.FullyQualifiedName).AppendLine("();");
+            }
+            else
+            {
+                sb.Append("        throw new global::System.InvalidOperationException(\"Component '")
+                    .Append(c.FullyQualifiedName)
+                    .AppendLine(
+                        "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
+            }
+
+            sb.AppendLine("    }");
+            return;
+        }
+
+        // Has factory-param properties. Construct, then re-apply props every render so cached instances get fresh values.
+        sb.Append("        ").Append(c.FullyQualifiedName).AppendLine(" __c;");
+        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
+        if (canUseObjectInit)
+        {
+            // No DI ctor: closure captures args and seeds via object initializer (also satisfies `required`).
+            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append("                __sp => new ").Append(c.FullyQualifiedName).Append("()");
+            EmitInitializerBody(sb, paramProps);
+            sb.AppendLine(");");
+        }
+        else
+        {
+            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append(
+                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
+                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
+        }
+
+        sb.AppendLine("        else");
+        if (canUseObjectInit)
+        {
+            sb.Append("            __c = new ").Append(c.FullyQualifiedName).Append("()");
+            EmitInitializerBody(sb, paramProps);
+            sb.AppendLine(";");
+        }
+        else
+        {
+            sb.Append("            throw new global::System.InvalidOperationException(\"Component '")
+                .Append(c.FullyQualifiedName)
+                .AppendLine(
+                    "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
+        }
+
+        EmitTrailingAssignments(sb, paramProps);
+        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
+        sb.AppendLine("            __ctx2.NotifyParameters(__c);");
+        sb.AppendLine("        return __c;");
+        sb.AppendLine("    }");
+    }
+
+    private static void EmitInitializerBody(StringBuilder sb, IEnumerable<PropInfo> props)
+    {
+        sb.AppendLine();
+        sb.AppendLine("            {");
+        var entries = props.ToList();
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var p = entries[i];
+            sb.Append("                ").Append(p.Name).Append(" = ").Append(p.Name);
+            if (i < entries.Count - 1)
+            {
+                sb.Append(',');
+            }
+
+            sb.AppendLine();
+        }
+
+        sb.Append("            }");
+    }
+
+    private static void EmitTrailingAssignments(StringBuilder sb, IEnumerable<PropInfo> props)
+    {
+        foreach (var p in props)
+        {
+            sb.Append("        __c.").Append(p.Name).Append(" = ").Append(p.Name).AppendLine(";");
+        }
+    }
+
+    private static Location MakeLocation(PropInfo p)
+    {
+        if (string.IsNullOrEmpty(p.DeclaringFilePath))
+        {
+            return Location.None;
+        }
+
+        return Location.Create(
+            p.DeclaringFilePath,
+            new TextSpan(p.DeclaringSpanStart, p.DeclaringSpanLength),
+            new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
+    }
+
+    private sealed record Candidate(
+        string Namespace,
+        string TypeName,
+        string FullyQualifiedName,
+        string TypeParameters,
+        string TypeParameterConstraints,
+        bool HasParameterlessCtor,
+        bool HasDIConstructor,
+        bool IsPublic,
+        EquatableArray<PropInfo> Properties);
+
+    private readonly record struct PropInfo(
+        string Name,
+        string TypeFqn,
+        bool IsNullable,
+        bool HasInitializer,
+        bool UserMarkedRequired,
+        string DeclaringFilePath,
+        int DeclaringSpanStart,
+        int DeclaringSpanLength);
+}
+
+internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
+    where T : IEquatable<T>
+{
+    private readonly T[] _items;
+
+    public EquatableArray(IEnumerable<T> items) => _items = items?.ToArray() ?? Array.Empty<T>();
+
+    public int Count => _items?.Length ?? 0;
+
+    public T this[int index] => _items[index];
+
+    public bool Equals(EquatableArray<T> other)
+    {
+        var a = _items ?? Array.Empty<T>();
+        var b = other._items ?? Array.Empty<T>();
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < a.Length; i++)
+        {
+            if (!a[i].Equals(b[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public override bool Equals(object? obj) => obj is EquatableArray<T> other && Equals(other);
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hash = 17;
+            var arr = _items ?? Array.Empty<T>();
+            foreach (var item in arr)
+            {
+                hash = (hash * 31) + item.GetHashCode();
+            }
+
+            return hash;
+        }
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        var arr = _items ?? Array.Empty<T>();
+        return ((IEnumerable<T>)arr).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}

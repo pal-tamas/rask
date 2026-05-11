@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Wasm</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+    <IsTrimmable>true</IsTrimmable>
+    <DefineConstants>$(DefineConstants);RASK_BROWSER</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
+  </ItemGroup>
+
+  <!--
+    Browser-shipped assets (main.js + rask.wasm.js) live under Browser/ and are wired into
+    a consumer's WASM build via build/Rask.Wasm.targets, which sets WasmMainJSPath and
+    appends to WasmExtraFilesToDeploy. Both paths and the targets file get packed for NuGet
+    consumers via the Pack metadata below.
+  -->
+  <ItemGroup>
+    <None Include="Browser\**" Pack="true" PackagePath="Browser\"/>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

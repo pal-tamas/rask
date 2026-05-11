@@ -1,0 +1,35 @@
+<Project>
+
+  <!--
+    Rask.Wasm build integration.
+
+    A consuming WASM project (any Microsoft.NET.Sdk project that sets
+    <WasmGenerateAppBundle>true</WasmGenerateAppBundle> and references
+    Rask.Wasm) gets two things wired in here:
+      1. <WasmMainJSPath> set to the framework's main.js (unless the
+         consumer has explicitly overridden it).
+      2. <WasmExtraFilesToDeploy> appended with the framework's
+         rask.wasm.js so it lands in the AppBundle alongside main.js.
+
+    This removes the per-app wwwroot/ + CopyRaskWasmJs boilerplate that
+    earlier consumers had to maintain by hand.
+
+    Auto-imported in this repo via Directory.Build.targets at the repo root.
+    Downstream NuGet consumers get the same auto-import via the build/ folder
+    packed into the .nupkg. Both paths import unconditionally; the items are
+    gated by <WasmGenerateAppBundle> so non-WASM consumers pay nothing.
+  -->
+
+  <PropertyGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' AND '$(WasmMainJSPath)' == '' ">
+    <WasmMainJSPath>$(MSBuildThisFileDirectory)..\Browser\main.js</WasmMainJSPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
+    <WasmExtraFilesToDeploy Include="$(MSBuildThisFileDirectory)..\Browser\rask.wasm.js"/>
+    <!-- Default page shell for standalone `dotnet run` on a Rask WASM project (WasmAppHost
+         opens index.html). When served via Rask.Wasm.Hosting, this file is never used
+         because UseRask<TApp>() prerenders the App component for every GET via MapFallback. -->
+    <WasmExtraFilesToDeploy Include="$(MSBuildThisFileDirectory)..\Browser\index.html"/>
+  </ItemGroup>
+
+</Project>

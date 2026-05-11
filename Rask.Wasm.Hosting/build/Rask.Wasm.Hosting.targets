@@ -1,0 +1,89 @@
+<Project>
+
+  <!--
+    Rask.Wasm.Hosting build integration.
+
+    A consuming host adds a ProjectReference to a Rask WASM project (any
+    browser-wasm SDK project that sets <WasmGenerateAppBundle>true</...>),
+    along with the two cross-TFM metadata flags NuGet/MSBuild require for
+    referencing a browser-wasm project from a net10.0 host without linking
+    its output:
+
+        <ProjectReference Include="..\MyApp.Wasm\MyApp.Wasm.csproj"
+                          ReferenceOutputAssembly="false"
+                          SkipGetTargetFrameworkProperties="true"/>
+
+    This file then, at build time:
+      1. Finds the WASM ProjectReference by reading WasmGenerateAppBundle
+         out of each referenced csproj via XmlPeek.
+      2. Validates exactly one match.
+      3. Runs `dotnet publish` on it before BeforeBuild.
+      4. Bakes [assembly: AssemblyMetadata("Rask.WasmAppBundleDir", "...")]
+         into the host so `app.UseRask()` resolves no-args at runtime.
+
+    Auto-imported in this repo via Directory.Build.targets at the repo root.
+    Downstream NuGet consumers get the same auto-import via the build/ folder
+    packed into the .nupkg. Both paths import unconditionally; the targets
+    gate themselves by checking @(ProjectReference) for Rask.Wasm.Hosting.
+  -->
+
+  <Target Name="_RaskProbeWasmProjectRef"
+          Outputs="%(ProjectReference.Identity)">
+    <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
+             Query="/Project/PropertyGroup/WasmGenerateAppBundle/text()">
+      <Output TaskParameter="Result" PropertyName="_RaskWasmBundleProbe"/>
+    </XmlPeek>
+    <ItemGroup>
+      <_RaskWasmRef Include="%(ProjectReference.FullPath)"
+                     Condition=" '$(_RaskWasmBundleProbe)' == 'true' "/>
+    </ItemGroup>
+    <PropertyGroup>
+      <_RaskWasmBundleProbe></_RaskWasmBundleProbe>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskValidateWasmRef"
+          DependsOnTargets="_RaskProbeWasmProjectRef"
+          Condition=" '@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm.Hosting'))' != '' ">
+    <Error
+      Condition=" '@(_RaskWasmRef->Count())' == '0' "
+      Text="Rask.Wasm.Hosting: no &lt;ProjectReference&gt; was found whose target project sets &lt;WasmGenerateAppBundle&gt;true&lt;/WasmGenerateAppBundle&gt;. Add a ProjectReference to your Rask WASM project (with ReferenceOutputAssembly=&quot;false&quot; SkipGetTargetFrameworkProperties=&quot;true&quot;)."/>
+    <Error
+      Condition=" '@(_RaskWasmRef->Count())' &gt; '1' "
+      Text="Rask.Wasm.Hosting: only one Rask WASM ProjectReference is supported per host (found @(_RaskWasmRef->Count()): @(_RaskWasmRef))."/>
+  </Target>
+
+  <Target Name="_RaskComputeWasmBundleDir"
+          DependsOnTargets="_RaskValidateWasmRef">
+    <PropertyGroup>
+      <_RaskWasmProjectDir>$([System.IO.Path]::GetDirectoryName('%(_RaskWasmRef.FullPath)'))</_RaskWasmProjectDir>
+      <_RaskWasmAppBundleDir>$(_RaskWasmProjectDir)$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)net10.0-browser$([System.IO.Path]::DirectorySeparatorChar)browser-wasm$([System.IO.Path]::DirectorySeparatorChar)AppBundle</_RaskWasmAppBundleDir>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskPublishWasmBundle"
+          BeforeTargets="BeforeBuild"
+          DependsOnTargets="_RaskComputeWasmBundleDir"
+          Condition=" '@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm.Hosting'))' != '' ">
+    <Message Importance="high" Text="Rask.Wasm.Hosting: publishing %(_RaskWasmRef.FullPath) ($(Configuration))"/>
+    <!--
+      -nodeReuse:false on the nested publish — without this, its MSBuild workers stick around
+      with the default nodeReuse=true, reparent to init when the publish process exits, and
+      keep the outer build's inherited stdout pipe open. A `dotnet test` parent then hangs
+      after the build phase waiting on those workers (Bash wrappers and CI see this as a
+      ~15-minute hang).
+    -->
+    <Exec Command="dotnet publish &quot;%(_RaskWasmRef.FullPath)&quot; -c $(Configuration) --nologo -v:quiet -nodeReuse:false"
+          ContinueOnError="WarnAndContinue"/>
+  </Target>
+
+  <Target Name="_RaskSetWasmBundleMetadata"
+          BeforeTargets="GetAssemblyAttributes"
+          DependsOnTargets="_RaskComputeWasmBundleDir"
+          Condition=" '@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm.Hosting'))' != '' ">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.WasmAppBundleDir" Value="$(_RaskWasmAppBundleDir)"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

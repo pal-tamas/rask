@@ -1,0 +1,26 @@
+<!--
+  Default Rask WASM page shell. Served as the SPA entry point under both run
+  modes: the standalone `dotnet run` on the browser-wasm project (which boots
+  WasmAppHost) and `Rask.Wasm.Hosting`'s `app.UseRask()` (UseDefaultFiles +
+  UseStaticFiles + a MapFallback that sends this file). The browser parses
+  this HTML, the runtime imports main.js, dotnet boots, and the App's
+  rendered HTML morphs onto document.documentElement — so the App's <head>
+  (title, stylesheet links, scoped-css link) ends up in the browser's head
+  on first paint, replacing the placeholders below.
+
+  Keep this shell minimal. The App component is the source of truth for the
+  page's real <head>; this file only has to give the runtime a place to mount.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Rask WASM</title>
+    <style id="rask-scoped"></style>
+</head>
+<body data-rask-root>
+<div>Loading…</div>
+<script src="main.js" type="module"></script>
+</body>
+</html>

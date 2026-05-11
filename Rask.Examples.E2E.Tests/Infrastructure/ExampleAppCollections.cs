@@ -1,0 +1,15 @@
+namespace Rask.Examples.E2E.Tests.Infrastructure;
+
+[CollectionDefinition(Name)]
+public sealed class ServerExampleCollection
+    : ICollectionFixture<ServerExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "ServerExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class WasmExampleCollection
+    : ICollectionFixture<WasmExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "WasmExample";
+}

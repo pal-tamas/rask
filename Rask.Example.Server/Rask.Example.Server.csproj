@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Components\Rask.Example.Components.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

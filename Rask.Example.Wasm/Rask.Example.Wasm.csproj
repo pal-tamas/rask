@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- Routing + the source-generated factories use reflection/ActivatorUtilities to
+         instantiate page types and bind route params. The trimmer can't see those use
+         sites, so disable trimming for v0. Proper fix: DynamicallyAccessedMembers
+         annotations on Type parameters in RouteChainRenderer/PageBinder/RouteValueParser. -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Components\Rask.Example.Components.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

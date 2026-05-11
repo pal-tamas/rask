@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <InternalsVisibleTo Include="Rask.Server.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\rask.js"/>
+  </ItemGroup>
+
+</Project>

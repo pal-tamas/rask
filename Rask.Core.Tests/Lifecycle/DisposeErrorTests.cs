@@ -1,0 +1,114 @@
+using Rask.Core.Components;
+using Rask.Core.Live;
+using Rask.Server;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Rask.Core.Tests.Lifecycle;
+
+public class DisposeErrorTests
+{
+    [Fact]
+    public void DisposeComponentTree_ChildThrows_LogsAndContinues()
+    {
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        var faulty = new FaultingDisposable();
+        var ok = new RecordingDisposable();
+        var root = new TwoChildHost(faulty, ok) { Include = true };
+        var session = new LiveSession("test", root, scope);
+        session.View.RenderAsLiveRoot(scope.ServiceProvider);
+
+        using var stderr = new StringWriter();
+        var prev = Console.Error;
+        Console.SetError(stderr);
+        try { session.Dispose(); }
+        finally { Console.SetError(prev); }
+
+        Assert.Equal(1, faulty.Attempts);
+        Assert.Equal(1, ok.Disposes);
+        Assert.Contains("FaultingDisposable", stderr.ToString());
+    }
+
+    [Fact]
+    public async Task DisposeComponentTreeAsync_AsyncDisposeFaults_LogsAndContinues()
+    {
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        var faulty = new FaultingAsyncDisposable();
+        var ok = new RecordingDisposable();
+        var root = new TwoChildHost(faulty, ok) { Include = true };
+        var session = new LiveSession("test", root, scope);
+        session.View.RenderAsLiveRoot(scope.ServiceProvider);
+
+        using var stderr = new StringWriter();
+        var prev = Console.Error;
+        Console.SetError(stderr);
+        try { await session.DisposeAsync(); }
+        finally { Console.SetError(prev); }
+
+        Assert.Equal(1, faulty.Attempts);
+        Assert.Equal(1, ok.Disposes);
+        Assert.Contains("FaultingAsyncDisposable", stderr.ToString());
+    }
+
+    private sealed class FaultingDisposable : Component, IDisposable
+    {
+        public int Attempts;
+
+        public void Dispose()
+        {
+            Attempts++;
+            throw new InvalidOperationException("boom");
+        }
+
+        public override Component Render() => new Span(null);
+    }
+
+    private sealed class FaultingAsyncDisposable : Component, IAsyncDisposable
+    {
+        public int Attempts;
+
+        public ValueTask DisposeAsync()
+        {
+            Attempts++;
+            throw new InvalidOperationException("boom-async");
+        }
+
+        public override Component Render() => new Span(null);
+    }
+
+    private sealed class RecordingDisposable : Component, IDisposable
+    {
+        public int Disposes;
+        public void Dispose() => Disposes++;
+        public override Component Render() => new Span(null);
+    }
+
+    private sealed class TwoChildHost : Component
+    {
+        private readonly Component _a;
+        private readonly Component _b;
+        public bool Include;
+
+        public TwoChildHost(Component a, Component b)
+        {
+            _a = a;
+            _b = b;
+        }
+
+        public override Component Render()
+        {
+            if (!Include)
+            {
+                return new Span(null);
+            }
+
+            var ctx = LiveRenderContext.Current!;
+            var first = ctx.GetOrCreate(_a.GetType(), _ => _a);
+            ctx.NotifyParameters(first);
+            var second = ctx.GetOrCreate(_b.GetType(), _ => _b);
+            ctx.NotifyParameters(second);
+            return new Div(null, first, second);
+        }
+    }
+}

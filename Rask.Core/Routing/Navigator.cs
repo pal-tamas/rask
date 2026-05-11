@@ -1,0 +1,174 @@
+using Microsoft.Extensions.Primitives;
+
+namespace Rask.Core.Routing;
+
+public sealed class Navigator(RouteState routeState)
+{
+    private bool _dirty;
+    private bool _inHandler;
+    private bool _replace;
+
+    public void Navigate(RouteUrl url, bool replace = false)
+    {
+        EnsureInHandler();
+        routeState.Path = url.Path;
+        routeState.Query = string.IsNullOrEmpty(url.QueryString)
+            ? QueryCollection.Empty
+            : QueryString.Parse(url.QueryString);
+        _replace = replace;
+        _dirty = true;
+    }
+
+    public void Navigate(string path, bool replace = false)
+    {
+        EnsureInHandler();
+        ArgumentNullException.ThrowIfNull(path);
+        routeState.Path = path;
+        routeState.Query = QueryCollection.Empty;
+        _replace = replace;
+        _dirty = true;
+    }
+
+    public void Navigate(string path, IEnumerable<KeyValuePair<string, string?>> query, bool replace = false)
+    {
+        EnsureInHandler();
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(query);
+        routeState.Path = path;
+        routeState.Query = BuildCollection(query);
+        _replace = replace;
+        _dirty = true;
+    }
+
+    public void SetQuery(string key, string? value)
+    {
+        EnsureInHandler();
+        ArgumentNullException.ThrowIfNull(key);
+        var dict = ToDictionary(routeState.Query);
+        if (value is null)
+        {
+            dict.Remove(key);
+        }
+        else
+        {
+            dict[key] = value;
+        }
+
+        routeState.Query = new QueryCollection(dict);
+        _dirty = true;
+    }
+
+    public void SetQuery(params KeyValuePair<string, string?>[] values)
+    {
+        EnsureInHandler();
+        ArgumentNullException.ThrowIfNull(values);
+        var dict = ToDictionary(routeState.Query);
+        foreach (var kv in values)
+        {
+            if (kv.Value is null)
+            {
+                dict.Remove(kv.Key);
+            }
+            else
+            {
+                dict[kv.Key] = kv.Value;
+            }
+        }
+
+        routeState.Query = new QueryCollection(dict);
+        _dirty = true;
+    }
+
+    public void RemoveQuery(string key)
+    {
+        EnsureInHandler();
+        ArgumentNullException.ThrowIfNull(key);
+        var dict = ToDictionary(routeState.Query);
+        dict.Remove(key);
+        routeState.Query = new QueryCollection(dict);
+        _dirty = true;
+    }
+
+    public void ClearQuery()
+    {
+        EnsureInHandler();
+        routeState.Query = QueryCollection.Empty;
+        _dirty = true;
+    }
+
+    internal IDisposable EnterHandler()
+    {
+        _inHandler = true;
+        return new HandlerScope(this);
+    }
+
+    internal bool TryConsumeHistory(out string url, out bool replace)
+    {
+        if (!_dirty)
+        {
+            url = string.Empty;
+            replace = false;
+            return false;
+        }
+
+        url = BuildUrl(routeState);
+        replace = _replace;
+        _dirty = false;
+        _replace = false;
+        return true;
+    }
+
+    private void EnsureInHandler()
+    {
+        if (!_inHandler)
+        {
+            throw new InvalidOperationException(
+                "Navigator can only be used from event handlers. " +
+                "Calling it during component Render() or initial GET is not supported.");
+        }
+    }
+
+    private static Dictionary<string, StringValues> ToDictionary(IQueryCollection query)
+    {
+        var d = new Dictionary<string, StringValues>(query.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in query)
+        {
+            d[kv.Key] = kv.Value;
+        }
+
+        return d;
+    }
+
+    private static QueryCollection BuildCollection(IEnumerable<KeyValuePair<string, string?>> query)
+    {
+        var d = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in query)
+        {
+            if (kv.Value is null)
+            {
+                continue;
+            }
+
+            d[kv.Key] = d.TryGetValue(kv.Key, out var existing)
+                ? StringValues.Concat(existing, kv.Value)
+                : kv.Value;
+        }
+
+        return new QueryCollection(d);
+    }
+
+    private static string BuildUrl(RouteState rs)
+    {
+        if (rs.Query.Count == 0)
+        {
+            return rs.Path;
+        }
+
+        return QueryString.Build(rs.Path, rs.Query);
+    }
+
+    private sealed class HandlerScope(Navigator nav) : IDisposable
+    {
+        public void Dispose() => nav._inHandler = false;
+    }
+}

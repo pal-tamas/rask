@@ -1,0 +1,105 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.tlog
+*.swp
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+node_modules/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio
+.vs/
+*.VisualState.xml
+TestResult.xml
+TestResults/
+nunit-*.xml
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+BenchmarkDotNet.Artifacts/
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+.idea.*/
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+riderModule.iml
+
+# ReSharper
+_ReSharper.Caches/
+*.[Rr]e[Ss]harper
+
+# Visual Studio Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Coverage
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Claude Code
+CLAUDE.md
+
+# Other
+*.swp
+*.bak
+*.cache
+*.dbmdl
+*.dbproj.schemaview
+*.publishsettings
+publish/
+PublishProfiles/
+*.[Pp]ublish.xml

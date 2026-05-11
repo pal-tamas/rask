@@ -1,0 +1,557 @@
+using Microsoft.CodeAnalysis;
+
+namespace Rask.Generators.Tests;
+
+public class RoutesGeneratorTests
+{
+    [Fact]
+    public void RootTemplate_NoParams_EmitsZeroArgFactory()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/")]
+                  public sealed class HomePage : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("public static partial class Routes", output);
+        Assert.Contains("public static global::Rask.Core.Routing.RouteUrl HomePage()", output);
+        Assert.Contains("typeof(global::Demo.HomePage)", output);
+        Assert.Contains("__path = \"/\"", output);
+    }
+
+    [Fact]
+    public void TypedIntPathParam_EmitsTypedParameter()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public int Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("UserPage(int Id)", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Id)", output);
+        Assert.DoesNotContain("Id.ToString(", output);
+    }
+
+    [Fact]
+    public void OptionalStringPathParam_EmitsNullableWithGuard()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/counter/{name?}")]
+                  public sealed class CounterPage : Component
+                  {
+                      [RouteParam] public string? Name { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("CounterPage(string? Name = null)", output);
+        Assert.Contains("Name is null ? \"\" : \"/\" + global::Rask.Core.Routing.RouteValueFormatter.Format(Name)",
+            output);
+    }
+
+    [Fact]
+    public void TypeMismatch_RaisesRask005()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public string Id { get; set; } = "";
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK005");
+    }
+
+    [Fact]
+    public void MissingProperty_RaisesRask004()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK004");
+    }
+
+    [Fact]
+    public void QueryParam_EmitsOptionalParameter()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/counter/{name?}")]
+                  public sealed class CounterPage : Component
+                  {
+                      [RouteParam] public string? Name { get; set; }
+                      [QueryParam] public string? Greeting { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("CounterPage(string? Name = null, string? Greeting = null)", output);
+        Assert.Contains("Greeting=", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Greeting)", output);
+    }
+
+    [Fact]
+    public void QueryParam_ExplicitName_OverridesPropertyName()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/")]
+                  public sealed class HomePage : Component
+                  {
+                      [QueryParam("q")] public string? Search { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("\"q=\"", output);
+        Assert.DoesNotContain("\"Search=\"", output);
+    }
+
+    [Fact]
+    public void ParentRoute_PrefixesTemplateWithParentTemplate()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/dashboard")]
+                  public sealed class DashboardPage : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  [Route("overview")]
+                  [ParentRoute(typeof(DashboardPage))]
+                  public sealed class DashOverview : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("DashOverview()", output);
+        Assert.Contains("\"/dashboard/overview\"", output);
+    }
+
+    [Fact]
+    public void ParentRouteCycle_RaisesRask007()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/a")]
+                  [ParentRoute(typeof(B))]
+                  public sealed class A : Component { public override Component Render() => this; }
+
+                  [Route("/b")]
+                  [ParentRoute(typeof(A))]
+                  public sealed class B : Component { public override Component Render() => this; }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK007");
+    }
+
+    [Fact]
+    public void GuidConstraint_EmitsGuidParameterType()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/orders/{id:guid}")]
+                  public sealed class OrderPage : Component
+                  {
+                      [RouteParam] public System.Guid Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("OrderPage(global::System.Guid Id)", output);
+    }
+
+    [Fact]
+    public void UnconstrainedSegment_TreatedAsString()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/blog/{slug}")]
+                  public sealed class BlogPostPage : Component
+                  {
+                      [RouteParam] public string Slug { get; set; } = "";
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("BlogPostPage(string Slug)", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Slug)", output);
+    }
+
+    [Fact]
+    public void NoRouteAttribute_EmitsNothing()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Plain : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var hasRoutesFile = run.RunResult.Results
+            .SelectMany(r => r.GeneratedSources)
+            .Any(s => s.HintName.Contains("Routes.g.cs"));
+        Assert.False(hasRoutesFile);
+    }
+
+    [Fact]
+    public void RegistryInitializer_EmitsModuleInitializerAndRegistrations()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/")] public sealed class HomePage : Component { public override Component Render() => this; }
+                  [Route("/dashboard")] public sealed class DashPage : Component { public override Component Render() => this; }
+                  [Route("overview")] [ParentRoute(typeof(DashPage))]
+                  public sealed class DashOverview : Component { public override Component Render() => this; }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
+
+        Assert.Contains("internal static class __RaskRoutesRegistry", output);
+        Assert.Contains("[global::System.Runtime.CompilerServices.ModuleInitializer]", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteRegistry.Add", output);
+        Assert.Contains("new(typeof(global::Demo.HomePage), \"/\", null)", output);
+        Assert.Contains("new(typeof(global::Demo.DashPage), \"/dashboard\", null)", output);
+        Assert.Contains("new(typeof(global::Demo.DashOverview), \"overview\", typeof(global::Demo.DashPage))", output);
+    }
+
+    [Fact]
+    public void OrphanRouteParam_RaisesRask008()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public string? Stray { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK008");
+    }
+
+    [Fact]
+    public void RouteParamWithExplicitName_MatchesSegmentByOverride()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam("id")] public int UserId { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("UserPage(int UserId)", output);
+        Assert.DoesNotContain("RASK004", output);
+    }
+
+    [Fact]
+    public void PathSegmentWithoutRouteParamProperty_RaisesRask004()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      public int Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK004");
+    }
+
+    [Fact]
+    public void RouteParamOnNonRouteClass_RaisesRask009()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  public sealed class Stray : Component
+                  {
+                      [RouteParam] public int Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK009");
+        Assert.NotNull(diag);
+        Assert.Contains("not marked [Route]", diag!.GetMessage());
+    }
+
+    [Fact]
+    public void QueryParamOnNonRouteClass_RaisesRask010()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  public sealed class Stray : Component
+                  {
+                      [QueryParam] public string? Q { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK010");
+        Assert.NotNull(diag);
+        Assert.Contains("not marked [Route]", diag!.GetMessage());
+    }
+
+    [Fact]
+    public void RouteParamOnNonComponentClass_RaisesRask009()
+    {
+        var src = """
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  public sealed class Poco
+                  {
+                      [RouteParam] public int Id { get; set; }
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK009");
+        Assert.NotNull(diag);
+        Assert.Contains("does not inherit from Component", diag!.GetMessage());
+    }
+
+    [Fact]
+    public void QueryParamOnAbstractComponent_RaisesRask010()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/base")]
+                  public abstract class BasePage : Component
+                  {
+                      [QueryParam] public string? Q { get; set; }
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK010");
+        Assert.NotNull(diag);
+        Assert.Contains("class is abstract", diag!.GetMessage());
+    }
+
+    [Fact]
+    public void ValidRouteClass_NoOrphanDiagnostic()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public int Id { get; set; }
+                      [QueryParam] public string? Q { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK009" || d.Id == "RASK010");
+    }
+
+    [Fact]
+    public void NonParsableType_RaisesRask011()
+    {
+        var src = """
+                  using System.Collections.Generic;
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/x")]
+                  public sealed class XPage : Component
+                  {
+                      [QueryParam] public List<int>? Bad { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK011");
+    }
+
+    [Fact]
+    public void CustomIParsable_PathParam_EmitsPropertyType()
+    {
+        var src = """
+                  using System;
+                  using System.Globalization;
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  public readonly record struct CustomerId(int Value) : IParsable<CustomerId>
+                  {
+                      public static CustomerId Parse(string s, IFormatProvider? p) => new(int.Parse(s, p));
+                      public static bool TryParse(string? s, IFormatProvider? p, out CustomerId result)
+                      {
+                          if (int.TryParse(s, NumberStyles.Integer, p, out var v)) { result = new(v); return true; }
+                          result = default; return false;
+                      }
+                  }
+                  [Route("/customers/{id}")]
+                  public sealed class CustomerPage : Component
+                  {
+                      [RouteParam] public CustomerId Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("CustomerPage(global::Demo.CustomerId Id)", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Id)", output);
+    }
+
+    [Fact]
+    public void CustomIParsable_QueryParam_EmitsPropertyType()
+    {
+        var src = """
+                  using System;
+                  using System.Globalization;
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  public readonly record struct PageNumber(int N) : IParsable<PageNumber>
+                  {
+                      public static PageNumber Parse(string s, IFormatProvider? p) => new(int.Parse(s, p));
+                      public static bool TryParse(string? s, IFormatProvider? p, out PageNumber result)
+                      {
+                          if (int.TryParse(s, NumberStyles.Integer, p, out var v)) { result = new(v); return true; }
+                          result = default; return false;
+                      }
+                  }
+                  [Route("/list")]
+                  public sealed class ListPage : Component
+                  {
+                      [QueryParam] public PageNumber? Page { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("ListPage(global::Demo.PageNumber? Page = null)", output);
+        Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Page)", output);
+    }
+
+    [Fact]
+    public void IdenticalSource_ProducesByteIdenticalOutput()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public int Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var a = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
+        var b = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
+        Assert.Equal(a, b);
+    }
+}

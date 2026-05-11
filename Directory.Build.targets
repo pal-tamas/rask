@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    In-repo auto-import for Rask build integration.
+    Imports unconditionally; each targets file gates its own work
+    (Rask.Wasm.Hosting checks @(ProjectReference); Rask.Wasm gates
+    on $(WasmGenerateAppBundle)). Downstream NuGet consumers get the
+    same auto-import via build/ in each .nupkg.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets') "/>
+
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets') "/>
+
+</Project>
