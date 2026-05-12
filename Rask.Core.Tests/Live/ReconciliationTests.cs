@@ -132,6 +132,11 @@ internal static class LiveRenderContextFactoryAccess
         new ServiceCollection().BuildServiceProvider();
 
     // Mirrors the internal Begin overload for tests. Internals are visible to the test project.
-    public static LiveRenderContext Begin(Component root, Dictionary<(Type, int), Component> previousChildren) =>
-        LiveRenderContext.Begin(root, previousChildren, EmptyServices);
+    // After the per-parent refactor, "previous children" lives on the parent component itself,
+    // so we seed the root's previous-children dict before opening the context.
+    public static LiveRenderContext Begin(Component root, Dictionary<(Type, int), Component> previousChildren)
+    {
+        root.SeedPreviousChildren(previousChildren);
+        return LiveRenderContext.Begin(root, EmptyServices);
+    }
 }

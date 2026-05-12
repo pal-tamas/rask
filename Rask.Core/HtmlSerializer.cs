@@ -80,7 +80,13 @@ internal static class HtmlSerializer
                 break;
 
             default:
-                using (LiveRenderContext.Current?.PushScope(component))
+                // Push the parent scope for the entire duration of serialising this user
+                // component — including the walk of its rendered subtree. That way
+                // factories called from inside its Render AND handlers registered on
+                // elements deep in its rendered tree both attribute back to this component.
+                var live = LiveRenderContext.Current;
+                using (live?.PushScope(component))
+                using (live?.EnterParentScope(component))
                 {
                     Serialize(component.RenderForLive(), sb);
                 }

@@ -87,15 +87,17 @@ public class RouterTests
         var (view, state, sp) = BuildView(routes);
 
         state.Path = "/c/x";
-        Render(view, sp);
-        state.Path = "/c/x";
-        var second = Render(view, sp);
-        Assert.Equal("<span>x:2</span>", second);
+        var first = Render(view, sp);
+        Assert.Equal("<span>x:1</span>", first);
 
+        // Swap to a different page type — the previous CounterPage instance is no longer
+        // referenced anywhere and is disposed at end of render.
         state.Path = "/h";
         var swapped = Render(view, sp);
         Assert.Equal("<span>home</span>", swapped);
 
+        // Revisit /c/x — a fresh CounterPage is created (old one was disposed). Bumps starts
+        // at 0 again and the render bumps it to 1.
         state.Path = "/c/x";
         var revisited = Render(view, sp);
         Assert.Equal("<span>x:1</span>", revisited);

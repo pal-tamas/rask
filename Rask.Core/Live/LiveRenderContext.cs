@@ -8,25 +8,21 @@ namespace Rask.Core.Live;
 public sealed class LiveRenderContext : IDisposable
 {
     private static readonly AsyncLocal<LiveRenderContext?> _current = new();
-    private readonly Dictionary<(Type, int), Component> _currentChildren = new();
     private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts = new();
     private readonly IRenderHandle? _handle;
+    private readonly Stack<Component> _parentStack = new();
     private readonly LiveRenderContext? _previous;
-    private readonly Dictionary<(Type, int), Component> _previousChildren;
     private readonly Dictionary<ObjectKey, EditContext> _previousEditContexts;
 
     private readonly Component _root;
     private readonly Stack<string> _scopeStack = new();
-    private int _position;
 
     private LiveRenderContext(
         Component root,
-        Dictionary<(Type, int), Component> previousChildren,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
         IServiceProvider? services)
     {
         _root = root;
-        _previousChildren = previousChildren;
         _previousEditContexts = previousEditContexts;
         Services = services;
         _handle = root.RenderHandle;
@@ -42,8 +38,6 @@ public sealed class LiveRenderContext : IDisposable
 
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;
 
-    internal IEnumerable<Component> RenderedComponents => _currentChildren.Values;
-
     public void Dispose() => _current.Value = _previous;
 
     internal IDisposable? PushScope(Component instance)
@@ -57,78 +51,43 @@ public sealed class LiveRenderContext : IDisposable
         return new ScopePopper(this);
     }
 
+    internal IDisposable EnterParentScope(Component parent)
+    {
+        _parentStack.Push(parent);
+        return new ParentPopper(this);
+    }
+
     public static LiveRenderContext Begin(Component root) =>
-        new(root, new Dictionary<(Type, int), Component>(), new Dictionary<ObjectKey, EditContext>(), null);
+        new(root, new Dictionary<ObjectKey, EditContext>(), null);
 
     public static LiveRenderContext Begin(Component root, IServiceProvider? services) =>
-        new(root, new Dictionary<(Type, int), Component>(), new Dictionary<ObjectKey, EditContext>(), services);
+        new(root, new Dictionary<ObjectKey, EditContext>(), services);
 
     internal static LiveRenderContext Begin(
         Component root,
-        Dictionary<(Type, int), Component> previousChildren,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
         IServiceProvider? services) =>
-        new(root, previousChildren, previousEditContexts, services);
+        new(root, previousEditContexts, services);
 
-    internal static LiveRenderContext Begin(
-        Component root,
-        Dictionary<(Type, int), Component> previousChildren,
-        IServiceProvider? services) =>
-        new(root, previousChildren, new Dictionary<ObjectKey, EditContext>(), services);
-
-    public string RegisterHandler(Delegate handler) => _root.RegisterHandler(handler);
+    public string RegisterHandler(Delegate handler) =>
+        // Owner = the component currently rendering (top of parent stack). The root stores
+        // every handler in its dictionary (TryInvokeHandlerAsync runs on the root), but the
+        // owner association is what lets the post-handler dirty-mark land on the right node.
+        _root.RegisterHandler(handler, CurrentParent);
 
     public T GetOrCreate<T>(Func<IServiceProvider, T> factory) where T : Component
     {
-        var key = (typeof(T), _position++);
-        T instance;
-        if (_previousChildren.TryGetValue(key, out var prev) && prev is T t)
-        {
-            instance = t;
-        }
-        else
-        {
-            if (Services is null)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot create component '{typeof(T).Name}': LiveRenderContext has no IServiceProvider. " +
-                    "Render through MapRask<TApp> or pass a service provider to LiveRenderContext.Begin.");
-            }
-
-            instance = factory(Services);
-        }
-
-        instance.RenderHandle ??= _handle;
-        _currentChildren[key] = instance;
-        return instance;
+        var parent = CurrentParent;
+        return parent.GetOrCreateChild(factory, Services, _handle);
     }
 
     public Component GetOrCreate(Type type, Func<IServiceProvider, Component> factory)
     {
-        var key = (type, _position++);
-        Component instance;
-        if (_previousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
-        {
-            instance = prev;
-        }
-        else
-        {
-            if (Services is null)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot create component '{type.Name}': LiveRenderContext has no IServiceProvider. " +
-                    "Render through MapRask<TApp> or pass a service provider to LiveRenderContext.Begin.");
-            }
-
-            instance = factory(Services);
-        }
-
-        instance.RenderHandle ??= _handle;
-        _currentChildren[key] = instance;
-        return instance;
+        var parent = CurrentParent;
+        return parent.GetOrCreateChild(type, factory, Services, _handle);
     }
 
-    internal Dictionary<(Type, int), Component> SnapshotChildren() => _currentChildren;
+    private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
     public void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);
@@ -164,6 +123,20 @@ public sealed class LiveRenderContext : IDisposable
             if (_ctx._scopeStack.Count > 0)
             {
                 _ctx._scopeStack.Pop();
+            }
+        }
+    }
+
+    private sealed class ParentPopper : IDisposable
+    {
+        private readonly LiveRenderContext _ctx;
+        public ParentPopper(LiveRenderContext ctx) => _ctx = ctx;
+
+        public void Dispose()
+        {
+            if (_ctx._parentStack.Count > 0)
+            {
+                _ctx._parentStack.Pop();
             }
         }
     }

@@ -11,6 +11,10 @@ public sealed class Router : Component
 
     public Router(RouteState state) => _state = state;
 
+    // Router reads RouteState, which the framework can't observe — opt out of the render
+    // cache so route changes always reach the chain.
+    protected internal override bool BypassRenderCache => true;
+
     internal void SetRoutes(IReadOnlyList<Route> routes)
     {
         if (ReferenceEquals(_routes, routes))
