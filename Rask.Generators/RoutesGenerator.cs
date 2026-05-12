@@ -15,11 +15,13 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string RouteAttrFullName = "Rask.Core.Routing.RouteAttribute";
+    private const string NotFoundAttrFullName = "Rask.Core.Routing.NotFoundAttribute";
     private const string ParentRouteAttrFullName = "Rask.Core.Routing.ParentRouteAttribute";
     private const string QueryParamAttrFullName = "Rask.Core.Routing.QueryParamAttribute";
     private const string RouteParamAttrFullName = "Rask.Core.Routing.RouteParamAttribute";
     private const string SkipFactoryAttrFullName = "Rask.Core.SkipFactoryAttribute";
     private const string RouteUrlFullName = "global::Rask.Core.Routing.RouteUrl";
+    private const string NotFoundTemplate = "{**__rask_notfound}";
 
     private const string FormatterFullName = "global::Rask.Core.Routing.RouteValueFormatter";
 
@@ -95,6 +97,22 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         true);
 
+    private static readonly DiagnosticDescriptor Rask012 = new(
+        "RASK012",
+        "Multiple [NotFound] components",
+        "Multiple [NotFound] components found in this assembly; only one is allowed ('{0}' is a duplicate)",
+        "Rask.Generators",
+        DiagnosticSeverity.Error,
+        true);
+
+    private static readonly DiagnosticDescriptor Rask013 = new(
+        "RASK013",
+        "[NotFound] cannot be combined with [Route]",
+        "Class '{0}' has both [NotFound] and [Route]; remove [Route] (NotFound is the catch-all)",
+        "Rask.Generators",
+        DiagnosticSeverity.Error,
+        true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var candidates = context.SyntaxProvider
@@ -146,7 +164,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         string? template = null;
         Location? routeAttrLocation = null;
+        Location? notFoundAttrLocation = null;
         string? parentTypeFqn = null;
+        var hasNotFound = false;
 
         foreach (var attr in symbol.GetAttributes())
         {
@@ -160,6 +180,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
                 routeAttrLocation = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
             }
+            else if (name == NotFoundAttrFullName)
+            {
+                hasNotFound = true;
+                notFoundAttrLocation = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+            }
             else if (name == ParentRouteAttrFullName)
             {
                 if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is INamedTypeSymbol p)
@@ -169,15 +194,29 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
-        if (template is null)
-        {
-            return null;
-        }
-
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
         var properties = GetPageProperties(symbol);
+
+        if (hasNotFound)
+        {
+            return new Candidate(
+                ns,
+                symbol.Name,
+                symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                NotFoundTemplate,
+                parentTypeFqn,
+                new EquatableArray<RoutePropInfo>(properties),
+                new LocationInfo(notFoundAttrLocation),
+                IsNotFound: true,
+                HasRouteAttr: template is not null);
+        }
+
+        if (template is null)
+        {
+            return null;
+        }
 
         return new Candidate(
             ns,
@@ -186,7 +225,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             template,
             parentTypeFqn,
             new EquatableArray<RoutePropInfo>(properties),
-            new LocationInfo(routeAttrLocation));
+            new LocationInfo(routeAttrLocation),
+            IsNotFound: false,
+            HasRouteAttr: true);
     }
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
@@ -440,16 +481,67 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return;
         }
 
-        var byFqn = candidates
+        // RASK013: a class with both [NotFound] and [Route] is ambiguous — drop those
+        // candidates from registry emission so neither catch-all nor typed route gets
+        // registered for a misconfigured type.
+        var filtered = new List<Candidate>(candidates.Length);
+        foreach (var c in candidates)
+        {
+            if (c.IsNotFound && c.HasRouteAttr)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask013, c.RouteAttrLocation.ToLocation(),
+                    c.FullyQualifiedName));
+                continue;
+            }
+
+            filtered.Add(c);
+        }
+
+        // RASK012: only one [NotFound] per assembly. Report on every duplicate after the
+        // first (sorted by FQN for stable diagnostics).
+        var notFoundCandidates = filtered.Where(c => c.IsNotFound)
+            .OrderBy(c => c.FullyQualifiedName, StringComparer.Ordinal)
+            .ToList();
+        if (notFoundCandidates.Count > 1)
+        {
+            foreach (var dup in notFoundCandidates.Skip(1))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask012, dup.RouteAttrLocation.ToLocation(),
+                    dup.FullyQualifiedName));
+            }
+
+            // Keep only the first NotFound in downstream emission so duplicates don't
+            // create competing catch-all registrations.
+            var keepFqn = notFoundCandidates[0].FullyQualifiedName;
+            filtered = filtered
+                .Where(c => !c.IsNotFound || c.FullyQualifiedName == keepFqn)
+                .ToList();
+        }
+
+        if (filtered.Count == 0)
+        {
+            return;
+        }
+
+        var byFqn = filtered
             .GroupBy(c => c.FullyQualifiedName, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
-        var byNamespace = candidates
+        var byNamespace = filtered
             .GroupBy(c => c.Namespace, StringComparer.Ordinal)
             .OrderBy(g => g.Key, StringComparer.Ordinal);
 
         foreach (var group in byNamespace)
         {
+            // NotFound pages don't get Routes.X() factories — nobody navigates to NotFound
+            // by name. Skip emitting a Routes partial entirely when the namespace has only
+            // NotFound candidates.
+            var routedInGroup = group.Where(c => !c.IsNotFound).ToList();
+            if (routedInGroup.Count == 0)
+            {
+                continue;
+            }
+
             var sb = new StringBuilder();
             sb.AppendLine("// <auto-generated />");
             sb.AppendLine("#nullable enable");
@@ -466,7 +558,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             sb.AppendLine("{");
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var c in group.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+            foreach (var c in routedInGroup.OrderBy(c => c.TypeName, StringComparer.Ordinal))
             {
                 if (!seen.Add(c.TypeName))
                 {
@@ -483,10 +575,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        EmitRegistryInitializer(spc, candidates);
+        EmitRegistryInitializer(spc, filtered);
     }
 
-    private static void EmitRegistryInitializer(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    private static void EmitRegistryInitializer(SourceProductionContext spc, IReadOnlyList<Candidate> candidates)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -985,7 +1077,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         string Template,
         string? ParentTypeFqn,
         EquatableArray<RoutePropInfo> Properties,
-        LocationInfo RouteAttrLocation);
+        LocationInfo RouteAttrLocation,
+        bool IsNotFound,
+        bool HasRouteAttr);
 
     private readonly record struct RoutePropInfo(
         string Name,

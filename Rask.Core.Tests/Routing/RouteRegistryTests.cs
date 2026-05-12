@@ -2,6 +2,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 
+[Collection("RouteRegistry")]
 public class RouteRegistryTests : IDisposable
 {
     public RouteRegistryTests() => RouteRegistry.Reset();

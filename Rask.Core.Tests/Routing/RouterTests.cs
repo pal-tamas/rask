@@ -7,6 +7,7 @@ using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Routing;
 
+[Collection("RouteRegistry")]
 public class RouterTests
 {
     private static (StubComponent view, RouteState state, IServiceProvider sp) BuildView(IReadOnlyList<Route> routes)

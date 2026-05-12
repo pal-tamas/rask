@@ -191,7 +191,7 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
 
     [Fact]
-    public Task UnknownRoute_DoesNotErrorOut() => RunAsync(async () =>
+    public Task UnknownRoute_RendersNotFoundPage() => RunAsync(async () =>
     {
         var response = await Page.GotoAsync("/this-route-definitely-does-not-exist");
         Assert.NotNull(response);
@@ -199,6 +199,13 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         // The navbar (which sits outside Outlet) is still rendered.
         await Expect(Page.Locator(".navbar .navbar-brand"))
             .ToContainTextAsync("Rask", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        // The [NotFound]-decorated page renders inside ShowcaseLayout's Outlet.
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Page not found",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("main p.lead"))
+            .ToContainTextAsync("/this-route-definitely-does-not-exist",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]

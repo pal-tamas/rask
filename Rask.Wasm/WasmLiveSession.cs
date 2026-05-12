@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
@@ -231,7 +232,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         var routeState = Services.GetRequiredService<RouteState>();
         if (RouteResolver.TryResolve(routeState.Path, out var chain))
         {
-            var user = Services.GetRequiredService<IUserProvider>().Current;
+            var user = Services.GetService<IUserProvider>()?.Current
+                       ?? new ClaimsPrincipal(new ClaimsIdentity());
             var authResult = await RouteAuthorizationGuard
                 .EvaluateAsync(Services, chain, user)
                 .ConfigureAwait(false);

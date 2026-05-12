@@ -1,15 +1,9 @@
-using System.Runtime.CompilerServices;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Shared;
 
-// Catch-all under the showcase layout: any path that doesn't match a more
-// specific route lands here, so the navbar and sidebar still render.
-//
-// The source generator rejects '{**rest}' templates at compile time
-// (RASK003), so we leave [Route] off and register this route manually in
-// a module initializer. RouteRegistry.Add appends to the same list the
-// generator emits to.
+[NotFound]
+[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
 {
     protected override Component Render() =>
@@ -25,11 +19,4 @@ public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
                     Children: [I(Class: "bi bi-house me-2"), "Back to welcome"])
             ])
         );
-}
-
-internal static class NotFoundRouteRegistrar
-{
-    [ModuleInitializer]
-    internal static void Register() =>
-        RouteRegistry.Add([new RouteRegistration(typeof(NotFoundPage), "{**rest}", typeof(ShowcaseLayout))]);
 }
