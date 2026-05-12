@@ -130,7 +130,8 @@ public sealed class LiveRenderContext : IDisposable
 
     internal Dictionary<(Type, int), Component> SnapshotChildren() => _currentChildren;
 
-    public void NotifyParameters(Component component) => component.RaiseLifecycleBeforeRender();
+    public void NotifyParameters(Component component, bool propsChanged) =>
+        component.RaiseLifecycleBeforeRender(propsChanged);
 
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {

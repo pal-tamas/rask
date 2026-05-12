@@ -76,7 +76,7 @@ public class ScopedCssRenderTests
     {
         private readonly Component _body;
         public NoCssWrapper(Component body) => _body = body;
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 
     private sealed class CssWrapper : Component
@@ -84,7 +84,7 @@ public class ScopedCssRenderTests
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
         protected internal override string? Css => ".tag { color: red; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 
     private sealed class OtherCssWrapper : Component
@@ -92,6 +92,6 @@ public class ScopedCssRenderTests
         private readonly Component _body;
         public OtherCssWrapper(Component body) => _body = body;
         protected internal override string? Css => ".inner { color: blue; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 }

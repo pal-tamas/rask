@@ -17,7 +17,7 @@ public sealed class HttpPage(HttpClient http) : Component
         catch (Exception ex) { _error = ex.Message; }
     }
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "HttpClient + DI",

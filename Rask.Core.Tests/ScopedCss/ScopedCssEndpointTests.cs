@@ -97,12 +97,12 @@ public class ScopedCssEndpointTests
     private sealed class WithCss : Component
     {
         protected internal override string? Css => ".endpoint { color: red; }";
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class EndpointSecond : Component
     {
         protected internal override string? Css => ".second { color: blue; }";
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 }

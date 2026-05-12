@@ -22,7 +22,7 @@ public sealed class ScopedBlue : Component
                                       }
                                       """;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Div(Class: "box", Children:
         [
             Span(Class: "dot"),

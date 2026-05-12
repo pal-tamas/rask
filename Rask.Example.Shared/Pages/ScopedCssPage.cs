@@ -6,7 +6,7 @@ namespace Rask.Example.Shared;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ScopedCssPage : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "Scoped CSS",

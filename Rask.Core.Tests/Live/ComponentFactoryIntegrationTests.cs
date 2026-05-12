@@ -63,7 +63,7 @@ public class ComponentFactoryIntegrationTests
         public string Name { get; set; }
         public string? Subtitle { get; set; }
 
-        public override Component Render() =>
+        protected override Component Render() =>
             new Span(null, new Text(Subtitle is null ? Name : $"{Name}: {Subtitle}"));
     }
 }

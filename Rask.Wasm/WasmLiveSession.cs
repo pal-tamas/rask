@@ -18,6 +18,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
     // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
     private string? _lastCssHashSent;
+    private string? _lastAppliedPayload;
 
     public WasmLiveSession(Component view, IServiceProvider services)
     {
@@ -56,8 +57,16 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         try
         {
             var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            // Skip the JS interop call when nothing changed since the last apply. Catches
+            // StateHasChanged calls that didn't ultimately modify any visible output.
+            if (string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             var extracted = PayloadExtractor.Extract(payload);
             JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson);
+            _lastAppliedPayload = payload;
         }
         finally
         {
@@ -82,6 +91,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         try
         {
             var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            _lastAppliedPayload = payload;
             return payload;
         }
         finally
@@ -141,7 +151,16 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                         historyReplace = replace;
                     }
 
-                    return await BuildPayloadAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    var payload = await BuildPayloadAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
+                    // The JS host treats an empty string as "no-op." Always send when historyUrl is set.
+                    if (historyUrl is null && string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+                    {
+                        return string.Empty;
+                    }
+
+                    _lastAppliedPayload = payload;
+                    return payload;
                 }
             }
             catch (Exception ex)
@@ -188,7 +207,9 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             try
             {
-                return await BuildPayloadAsync(fullUrl, replace).ConfigureAwait(false);
+                var payload = await BuildPayloadAsync(fullUrl, replace).ConfigureAwait(false);
+                _lastAppliedPayload = payload;
+                return payload;
             }
             catch (Exception ex)
             {

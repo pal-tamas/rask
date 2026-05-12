@@ -1,9 +1,8 @@
 namespace Rask.Core;
 
-public sealed class Raw : Component
+public sealed class Raw(string html) : Component
 {
-    public Raw(string html) => Value = html;
-    internal string Value { get; }
+    internal string Value { get; } = html;
 
-    public override Component Render() => this;
+    protected override Component Render() => this;
 }

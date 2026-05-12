@@ -81,36 +81,36 @@ public class RouteMatcherTests
 
     private sealed class HomePage : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class UserPage : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class UserNew : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class OrgUserPage : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class DashPage : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class DashHome : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class DashOverview : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 }

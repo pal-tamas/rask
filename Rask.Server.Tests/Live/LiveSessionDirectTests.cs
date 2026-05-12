@@ -61,14 +61,14 @@ public class LiveSessionDirectTests
 
     private sealed class BasicComponent : Component
     {
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class TrackingDisposable : Component, IDisposable
     {
         public int Disposes;
         public void Dispose() => Disposes++;
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class TrackingAsyncDisposable : Component, IAsyncDisposable
@@ -81,6 +81,6 @@ public class LiveSessionDirectTests
             return ValueTask.CompletedTask;
         }
 
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 }

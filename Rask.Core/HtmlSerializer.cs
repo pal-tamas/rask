@@ -7,7 +7,7 @@ namespace Rask.Core;
 
 internal static class HtmlSerializer
 {
-    private static readonly HashSet<string> ShellTags = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
     {
         "html",
         "head",
@@ -56,7 +56,7 @@ internal static class HtmlSerializer
                 }
 
                 var scopeId = LiveRenderContext.Current?.CurrentScopeId;
-                if (scopeId is not null && !ShellTags.Contains(el.TagNameInternal))
+                if (scopeId is not null && !_shellTags.Contains(el.TagNameInternal))
                 {
                     sb.Append(" data-").Append(scopeId);
                 }

@@ -486,7 +486,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(
                     "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
                 .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
-            sb.AppendLine("            __ctx.NotifyParameters(__c);");
+            sb.AppendLine("            __ctx.NotifyParameters(__c, propsChanged: false);");
             sb.AppendLine("            return __c;");
             sb.AppendLine("        }");
             if (c.HasParameterlessCtor)
@@ -539,9 +539,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
         }
 
-        EmitTrailingAssignments(sb, paramProps);
+        EmitSnapshotsAndAssignments(sb, paramProps);
         sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
-        sb.AppendLine("            __ctx2.NotifyParameters(__c);");
+        sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
         sb.AppendLine("        return __c;");
         sb.AppendLine("    }");
     }
@@ -566,11 +566,39 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("            }");
     }
 
-    private static void EmitTrailingAssignments(StringBuilder sb, IEnumerable<PropInfo> props)
+    private static void EmitSnapshotsAndAssignments(StringBuilder sb, IReadOnlyList<PropInfo> props)
     {
+        // Snapshot prior values (typed via the property's FQN so nullable annotations round-trip).
+        foreach (var p in props)
+        {
+            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Name).AppendLine(";");
+        }
+
+        // Re-apply props so cached instances see fresh values.
         foreach (var p in props)
         {
             sb.Append("        __c.").Append(p.Name).Append(" = ").Append(p.Name).AppendLine(";");
+        }
+
+        // Fold per-prop equality into a single __propsChanged bool. EqualityComparer<T>.Default
+        // gives ref-equality for ref types unless the type overrides Equals, and structural for
+        // primitives — same semantics Blazor uses for [Parameter] equality.
+        if (props.Count == 1)
+        {
+            var p = props[0];
+            sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
+                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name)
+                .AppendLine(");");
+            return;
+        }
+
+        sb.AppendLine("        var __propsChanged =");
+        for (var i = 0; i < props.Count; i++)
+        {
+            var p = props[i];
+            sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
+                .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name).Append(')');
+            sb.AppendLine(i < props.Count - 1 ? " ||" : ";");
         }
     }
 

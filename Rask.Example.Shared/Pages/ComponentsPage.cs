@@ -6,7 +6,7 @@ namespace Rask.Example.Shared;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ComponentsPage : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "User components",
@@ -99,7 +99,7 @@ public sealed class Greeting : Component
     public required string Name { get; set; }
     public string? Title { get; set; }
 
-    public override Component Render() =>
+    protected override Component Render() =>
         P(Class: "mb-0", Children:
         [
             Title is null ? "" : $"{Title} ",

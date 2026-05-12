@@ -61,7 +61,7 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom");
         }
 
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class FaultingAsyncDisposable : Component, IAsyncDisposable
@@ -74,14 +74,14 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom-async");
         }
 
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class RecordingDisposable : Component, IDisposable
     {
         public int Disposes;
         public void Dispose() => Disposes++;
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class TwoChildHost : Component
@@ -96,7 +96,7 @@ public class DisposeErrorTests
             _b = b;
         }
 
-        public override Component Render()
+        protected override Component Render()
         {
             if (!Include)
             {
@@ -105,9 +105,9 @@ public class DisposeErrorTests
 
             var ctx = LiveRenderContext.Current!;
             var first = ctx.GetOrCreate(_a.GetType(), _ => _a);
-            ctx.NotifyParameters(first);
+            ctx.NotifyParameters(first, true);
             var second = ctx.GetOrCreate(_b.GetType(), _ => _b);
-            ctx.NotifyParameters(second);
+            ctx.NotifyParameters(second, true);
             return new Div(null, first, second);
         }
     }

@@ -12,7 +12,7 @@ namespace Rask.Example.Shared;
 // generator emits to.
 public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "Page not found",

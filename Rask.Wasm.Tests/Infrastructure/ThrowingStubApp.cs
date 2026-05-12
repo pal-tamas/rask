@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 
 internal sealed class ThrowingStubApp : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Doctype(),
             new Html(null,

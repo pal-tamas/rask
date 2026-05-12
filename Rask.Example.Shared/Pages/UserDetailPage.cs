@@ -9,7 +9,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
     [RouteParam] public string Id { get; set; } = string.Empty;
     [QueryParam("tab")] public string? Tab { get; set; }
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 $"User #{Id}",

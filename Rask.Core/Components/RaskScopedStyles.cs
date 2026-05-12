@@ -7,7 +7,7 @@ public sealed class RaskScopedStyles : Component
     private static readonly IReadOnlyDictionary<string, string?> _marker =
         new Dictionary<string, string?> { ["rask-scoped"] = "" };
 
-    public override Component Render()
+    protected override Component Render()
     {
         var hash = ScopedCssRegistry.CurrentHash;
         if (hash is null)

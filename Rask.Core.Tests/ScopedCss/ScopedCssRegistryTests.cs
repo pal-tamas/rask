@@ -104,18 +104,18 @@ public class ScopedCssRegistryTests
 
     private sealed class NoCss : Component
     {
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class HasCss : Component
     {
         protected internal override string? Css => ".x { color: red; }";
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class OtherCss : Component
     {
         protected internal override string? Css => ".y { color: blue; }";
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 }

@@ -83,7 +83,7 @@ public class DisposeTests
     {
         public int DisposeCount;
         public void Dispose() => DisposeCount++;
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class AsyncDisposableLeaf : Component, IAsyncDisposable
@@ -96,7 +96,7 @@ public class DisposeTests
             return ValueTask.CompletedTask;
         }
 
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     private sealed class DisposableMiddle : Component, IDisposable
@@ -107,11 +107,11 @@ public class DisposeTests
 
         public void Dispose() => DisposeCount++;
 
-        public override Component Render()
+        protected override Component Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _grandchild);
-            ctx.NotifyParameters(c);
+            ctx.NotifyParameters(c, true);
             return c;
         }
     }
@@ -122,7 +122,7 @@ public class DisposeTests
         public bool IncludeChild;
         public SwitchableHost(Component child) => _child = child;
 
-        public override Component Render()
+        protected override Component Render()
         {
             if (!IncludeChild)
             {
@@ -131,7 +131,7 @@ public class DisposeTests
 
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c);
+            ctx.NotifyParameters(c, true);
             return c;
         }
     }
@@ -141,11 +141,11 @@ public class DisposeTests
         private readonly Component _child;
         public AsyncSwitchableHost(Component child) => _child = child;
 
-        public override Component Render()
+        protected override Component Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c);
+            ctx.NotifyParameters(c, true);
             return c;
         }
     }

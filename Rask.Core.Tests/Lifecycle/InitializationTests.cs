@@ -15,7 +15,7 @@ public class InitializationTests
         {
             using var ctx = LiveRenderContext.Begin(c, sp);
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         Assert.Equal(1, c.InitializedCount);
@@ -23,7 +23,7 @@ public class InitializationTests
     }
 
     [Fact]
-    public void OnParametersSet_FiresEveryRender()
+    public void OnParametersSet_FiresEveryRenderWhenPropsChange()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -32,11 +32,28 @@ public class InitializationTests
         {
             using var ctx = LiveRenderContext.Begin(c, sp);
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         Assert.Equal(3, c.ParametersSetCount);
         Assert.Equal(3, c.ParametersSetAsyncCount);
+    }
+
+    [Fact]
+    public void OnParametersSet_FiresOnceWhenPropsUnchanged()
+    {
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var c = new LifecycleTrackingComponent();
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var ctx = LiveRenderContext.Begin(c, sp);
+            var resolved = ctx.GetOrCreate(_ => c);
+            ctx.NotifyParameters(resolved, false);
+        }
+
+        Assert.Equal(1, c.ParametersSetCount);
+        Assert.Equal(1, c.ParametersSetAsyncCount);
     }
 
     [Fact]
@@ -49,7 +66,7 @@ public class InitializationTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         Assert.Equal(new[] { "init", "params" }, order);
@@ -66,7 +83,7 @@ public class InitializationTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         Assert.Equal(0, handle.RequestRenderCount);
@@ -81,7 +98,7 @@ public class InitializationTests
         public OrderRecorder(List<string> order) => _order = order;
         protected override void OnInitialized() => _order.Add("init");
         protected override void OnParametersSet() => _order.Add("params");
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class RecordingRenderHandle : IRenderHandle

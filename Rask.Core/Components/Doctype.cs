@@ -2,5 +2,5 @@ namespace Rask.Core.Components;
 
 public sealed class Doctype : Component
 {
-    public override Component Render() => this;
+    protected override Component Render() => this;
 }

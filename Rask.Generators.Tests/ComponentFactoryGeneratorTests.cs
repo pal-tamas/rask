@@ -453,7 +453,7 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
-    public void ParameterlessFactory_CallsNotifyParameters_InsideContextBranch()
+    public void ParameterlessFactory_CallsNotifyParameters_WithPropsChangedFalse()
     {
         var src = """
                   using Rask.Core;
@@ -467,11 +467,11 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
-        Assert.Contains("__ctx.NotifyParameters(__c);", output);
+        Assert.Contains("__ctx.NotifyParameters(__c, propsChanged: false);", output);
     }
 
     [Fact]
-    public void FactoryWithProps_CallsNotifyParametersAfterTrailingAssignments()
+    public void FactoryWithProps_CallsNotifyParametersWithComputedFlag()
     {
         var src = """
                   using Rask.Core;
@@ -487,10 +487,76 @@ public class ComponentFactoryGeneratorTests
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
         var titleIdx = output.IndexOf("__c.Title = Title;", StringComparison.Ordinal);
-        var notifyIdx = output.IndexOf("NotifyParameters(__c)", StringComparison.Ordinal);
+        var notifyIdx = output.IndexOf("NotifyParameters(__c, __propsChanged)", StringComparison.Ordinal);
         Assert.True(titleIdx > 0);
         Assert.True(notifyIdx > 0);
         Assert.True(notifyIdx > titleIdx, "NotifyParameters must follow trailing property assignments");
+    }
+
+    [Fact]
+    public void FactoryWithProps_EmitsSnapshotBeforeAssignment()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public string? Title { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        var snapshotIdx = output.IndexOf("var __old_Title = __c.Title;", StringComparison.Ordinal);
+        var assignmentIdx = output.IndexOf("__c.Title = Title;", StringComparison.Ordinal);
+        Assert.True(snapshotIdx > 0, "snapshot of old value must be emitted");
+        Assert.True(snapshotIdx < assignmentIdx, "snapshot must appear before the assignment");
+    }
+
+    [Fact]
+    public void FactoryWithProps_EmitsEqualityComparerDiff()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public string? Title { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains(
+            "!global::System.Collections.Generic.EqualityComparer<string?>.Default.Equals(__old_Title, Title)",
+            output);
+        Assert.Contains("var __propsChanged", output);
+    }
+
+    [Fact]
+    public void FactoryWithMultipleProps_FoldsDiffWithOr()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public string? A { get; set; }
+                      public string? B { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Components.g.cs");
+
+        Assert.Contains("__old_A, A)", output);
+        Assert.Contains("__old_B, B)", output);
+        Assert.Contains(" ||", output);
     }
 
     [Fact]

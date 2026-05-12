@@ -8,7 +8,7 @@ public sealed class ThrowingApp : Component
 {
     public int Counter;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Doctype(),
             new Html(null,

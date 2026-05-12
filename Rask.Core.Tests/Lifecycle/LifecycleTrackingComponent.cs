@@ -11,7 +11,6 @@ internal sealed class LifecycleTrackingComponent : Component
     public int ParametersSetAsyncCount;
     public int ParametersSetCount;
     public int RenderCount;
-    public Func<bool>? ShouldRenderFunc;
     public List<bool> AfterRenderFlags { get; } = new();
 
     protected override void OnInitialized() => InitializedCount++;
@@ -36,9 +35,7 @@ internal sealed class LifecycleTrackingComponent : Component
         AfterRenderFlags.Add(firstRender);
     }
 
-    protected override bool ShouldRender() => ShouldRenderFunc?.Invoke() ?? true;
-
-    public override Component Render()
+    protected override Component Render()
     {
         RenderCount++;
         return new Span(null, new Text($"r{RenderCount}"));

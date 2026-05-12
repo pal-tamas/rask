@@ -57,7 +57,7 @@ public sealed class App : Component
 
     protected override string? Css => GlobalCss;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Doctype(),
             Html("en", Children:

@@ -30,7 +30,7 @@ public sealed class HomePage(Navigator nav) : Component
                                       }
                                       """;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card", Children:
             [

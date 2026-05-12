@@ -25,7 +25,7 @@ public sealed class LifecycleProbe : Component
     protected override void OnAfterRender(bool firstRender) =>
         _log.Add($"OnAfterRender(firstRender: {firstRender})");
 
-    public override Component Render()
+    protected override Component Render()
     {
         _renderCount++;
         return Fragment(

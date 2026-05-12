@@ -117,12 +117,12 @@ public class ReconciliationTests
     private sealed class CounterStub : Component
     {
         public int Value;
-        public override Component Render() => new Raw($"<x>{Value}</x>");
+        protected override Component Render() => new Raw($"<x>{Value}</x>");
     }
 
     private sealed class OtherStub : Component
     {
-        public override Component Render() => new Raw("<y/>");
+        protected override Component Render() => new Raw("<y/>");
     }
 }
 

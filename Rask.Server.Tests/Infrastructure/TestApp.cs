@@ -12,7 +12,7 @@ public sealed class TestApp : Component
 
     public TestApp(RouteState routeState) => _routeState = routeState;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Doctype(),
             new Html(null,

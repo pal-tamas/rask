@@ -7,18 +7,29 @@ internal static class PageBinder
 {
     private static readonly ConcurrentDictionary<Type, BindablePropertyInfo[]> _propertyCache = new();
 
-    public static void Bind(Component page, IReadOnlyDictionary<string, string?> values, IQueryCollection query)
+    public static bool Bind(Component page, IReadOnlyDictionary<string, string?> values, IQueryCollection query)
     {
         var properties = _propertyCache.GetOrAdd(page.GetType(), DiscoverProperties);
+        var anyChanged = false;
 
         foreach (var property in properties)
         {
-            if (TryGetRawValue(property, values, query, out var raw))
+            if (!TryGetRawValue(property, values, query, out var raw))
             {
-                var converted = ConvertValue(raw, property.Property.PropertyType, property.Property.Name);
-                property.Property.SetValue(page, converted);
+                continue;
             }
+
+            var converted = ConvertValue(raw, property.Property.PropertyType, property.Property.Name);
+            var previous = property.Property.GetValue(page);
+            if (!Equals(previous, converted))
+            {
+                anyChanged = true;
+            }
+
+            property.Property.SetValue(page, converted);
         }
+
+        return anyChanged;
     }
 
     private static BindablePropertyInfo[] DiscoverProperties(Type type)

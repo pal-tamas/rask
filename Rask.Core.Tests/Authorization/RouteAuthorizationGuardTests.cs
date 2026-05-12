@@ -107,25 +107,25 @@ public class RouteAuthorizationGuardTests
 
     private sealed class PublicPage : Component
     {
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     [Authorize]
     private sealed class ProtectedPage : Component
     {
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     [Authorize(Roles = "Admin")]
     private sealed class AdminOnlyPage : Component
     {
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     [AllowAnonymous]
     [Authorize]
     private sealed class OpenPage : Component
     {
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 }

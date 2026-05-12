@@ -15,7 +15,7 @@ public class AsyncLifecycleRenderingTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         await c.Started.Task;
@@ -39,7 +39,7 @@ public class AsyncLifecycleRenderingTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved);
+            ctx.NotifyParameters(resolved, true);
         }
 
         await Task.Delay(20);
@@ -63,13 +63,13 @@ public class AsyncLifecycleRenderingTests
             Done.TrySetResult();
         }
 
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class SyncCompletingComponent : Component
     {
         protected override Task OnInitializedAsync() => Task.CompletedTask;
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 
     private sealed class RecordingHandle : IRenderHandle

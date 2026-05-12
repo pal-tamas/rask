@@ -78,6 +78,6 @@ public class ScopedCssHotReloadTests
     private sealed class Reloadable : Component
     {
         protected internal override string? Css => ".rl { color: red; }";
-        public override Component Render() => this;
+        protected override Component Render() => this;
     }
 }

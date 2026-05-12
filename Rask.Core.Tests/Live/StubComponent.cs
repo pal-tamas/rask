@@ -7,5 +7,5 @@ internal sealed class StubComponent : Component
     public StubComponent(Component root) : this(() => root) { }
     public StubComponent(Func<Component> factory) => _factory = factory;
 
-    public override Component Render() => _factory();
+    protected override Component Render() => _factory();
 }

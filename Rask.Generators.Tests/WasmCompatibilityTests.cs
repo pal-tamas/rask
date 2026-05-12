@@ -42,7 +42,7 @@ public class WasmCompatibilityTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      protected override Component Render() => this;
                   }
                   """;
 

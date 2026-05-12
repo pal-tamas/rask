@@ -4,7 +4,7 @@ namespace Rask.Core.Routing;
 
 public sealed class Outlet : Component
 {
-    public override Component Render()
+    protected override Component Render()
     {
         var ctx = LiveRenderContext.Current
                   ?? throw new InvalidOperationException(

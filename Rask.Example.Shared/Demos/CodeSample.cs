@@ -74,7 +74,7 @@ public sealed class CodeSample : Component
 
     protected override string? Css => CssText;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Div(Class: "card shadow-sm border-0 mb-4 sample-card", Children:
         [
             Title is null && Notes is null

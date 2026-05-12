@@ -12,7 +12,7 @@ public sealed class EventsPage : Component
     private string _submitted = "(none yet)";
     private string _typed = string.Empty;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "Events",

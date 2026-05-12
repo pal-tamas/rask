@@ -152,7 +152,7 @@ public class FormBindingTests
 
     private sealed class ContextCapture(Action<EditContext> capture) : Component
     {
-        public override Component Render()
+        protected override Component Render()
         {
             if (EditContextScope.Current is { } c)
             {

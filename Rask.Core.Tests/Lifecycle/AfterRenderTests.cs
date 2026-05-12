@@ -41,11 +41,11 @@ public class AfterRenderTests
         public ChildHostingRoot(LifecycleTrackingComponent child) => Child = child;
         public LifecycleTrackingComponent Child { get; }
 
-        public override Component Render()
+        protected override Component Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Child);
-            ctx.NotifyParameters(c);
+            ctx.NotifyParameters(c, true);
             return c;
         }
     }

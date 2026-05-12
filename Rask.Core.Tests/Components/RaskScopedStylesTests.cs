@@ -53,7 +53,7 @@ public class RaskScopedStylesTests
         private readonly Component _body;
         public RedWrapper(Component body) => _body = body;
         protected internal override string? Css => ".red { color: red; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 
     private sealed class BlueWrapper : Component
@@ -61,6 +61,6 @@ public class RaskScopedStylesTests
         private readonly Component _body;
         public BlueWrapper(Component body) => _body = body;
         protected internal override string? Css => ".blue { color: blue; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 }

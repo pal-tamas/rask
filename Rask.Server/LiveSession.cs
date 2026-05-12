@@ -11,6 +11,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
     private static readonly AsyncLocal<bool> _inHandlerScope = new();
 
+    private string? _lastSentPayload;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -83,6 +84,10 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         _socket = socket;
         _socketCt = ct;
         SuppressEventsUntilReconnect = false;
+        // A reconnect — possibly a different browser tab/window — needs the current HTML
+        // even when it byte-matches the prior socket's last frame. Reset the dedup baseline
+        // so the recovery render reliably emits.
+        _lastSentPayload = null;
     }
 
     public void DetachSocket()
@@ -102,7 +107,17 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         var withRoot = LivePayload.InjectRootAttr(html, Id);
         var body = LivePayload.ExtractBody(withRoot);
         var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth);
+
+        // Skip the frame when the payload is byte-identical to the previous one AND nothing
+        // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
+        // that ended up not modifying tracked state.
+        if (historyUrl is null && auth is null && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, _socketCt)
             .ConfigureAwait(false);
+        _lastSentPayload = payload;
     }
 }

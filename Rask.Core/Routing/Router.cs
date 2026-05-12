@@ -22,7 +22,7 @@ public sealed class Router : Component
         _leaves = RouteFlattener.Flatten(routes);
     }
 
-    public override Component Render()
+    protected override Component Render()
     {
         if (!RouteMatcher.TryMatch(_leaves, _state.Path, out var chain, out var values))
         {

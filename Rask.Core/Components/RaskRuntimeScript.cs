@@ -16,7 +16,7 @@ public interface IRaskRuntimeScript
 
 public sealed class RaskRuntimeScript : Component
 {
-    public override Component Render()
+    protected override Component Render()
     {
         var services = LiveRenderContext.Current?.Services;
         var provider = services?.GetService<IRaskRuntimeScript>();

@@ -6,7 +6,7 @@ namespace Rask.Example.Shared;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class RoutingPage(Navigator nav) : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             PageHeader.Render(
                 "Routing",

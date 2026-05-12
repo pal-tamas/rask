@@ -15,7 +15,7 @@ public sealed class ValidationMessage : Component
         _class = @class;
     }
 
-    public override Component Render()
+    protected override Component Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null || _for is null)
@@ -41,7 +41,7 @@ public sealed class ValidationSummary : Component
 
     public ValidationSummary(string? @class = null) => _class = @class;
 
-    public override Component Render()
+    protected override Component Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null)

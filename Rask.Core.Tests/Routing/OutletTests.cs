@@ -70,13 +70,13 @@ public class OutletTests
     [SkipFactory]
     public sealed class Layout : Component
     {
-        public override Component Render() => Div(Children: ["layout:", Outlet()]);
+        protected override Component Render() => Div(Children: ["layout:", Outlet()]);
     }
 
     [SkipFactory]
     public sealed class Section : Component
     {
-        public override Component Render() =>
+        protected override Component Render() =>
             Section(Children: ["section:", Outlet()]);
     }
 
@@ -84,24 +84,24 @@ public class OutletTests
     public sealed class Leaf : Component
     {
         [RouteParam] public string? Tag { get; set; }
-        public override Component Render() => Span(Children: [$"leaf:{Tag}"]);
+        protected override Component Render() => Span(Children: [$"leaf:{Tag}"]);
     }
 
     [SkipFactory]
     public sealed class LeafWithOutlet : Component
     {
-        public override Component Render() => Div(Children: ["leaf:", Outlet()]);
+        protected override Component Render() => Div(Children: ["leaf:", Outlet()]);
     }
 
     [SkipFactory]
     public sealed class DoubleOutletLayout : Component
     {
-        public override Component Render() => Div(Children: ["first:", Outlet(), "second:", Outlet()]);
+        protected override Component Render() => Div(Children: ["first:", Outlet(), "second:", Outlet()]);
     }
 
     [SkipFactory]
     public sealed class LeafText : Component
     {
-        public override Component Render() => Span(Children: ["leaf"]);
+        protected override Component Render() => Span(Children: ["leaf"]);
     }
 }

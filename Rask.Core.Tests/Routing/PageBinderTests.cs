@@ -158,6 +158,49 @@ public class PageBinderTests
         Assert.Null(page.Name);
     }
 
+    [Fact]
+    public void Bind_FirstAssignmentFromUnsetProperty_ReportsChanged()
+    {
+        var page = new StringPage();
+
+        var changed = PageBinder.Bind(page, Values(("name", "alice")), new QueryCollection());
+
+        Assert.True(changed);
+        Assert.Equal("alice", page.Name);
+    }
+
+    [Fact]
+    public void Bind_SecondAssignmentWithSameValue_ReportsUnchanged()
+    {
+        var page = new StringPage { Name = "alice" };
+
+        var changed = PageBinder.Bind(page, Values(("name", "alice")), new QueryCollection());
+
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void Bind_DifferentValue_ReportsChanged()
+    {
+        var page = new StringPage { Name = "alice" };
+
+        var changed = PageBinder.Bind(page, Values(("name", "bob")), new QueryCollection());
+
+        Assert.True(changed);
+        Assert.Equal("bob", page.Name);
+    }
+
+    [Fact]
+    public void Bind_NoParamsResolved_ReportsUnchanged()
+    {
+        var page = new StringPage { Name = "alice" };
+
+        var changed = PageBinder.Bind(page, Values(), new QueryCollection());
+
+        Assert.False(changed);
+        Assert.Equal("alice", page.Name);
+    }
+
     public readonly record struct CustomerId(int Value) : IParsable<CustomerId>
     {
         public static CustomerId Parse(string s, IFormatProvider? provider)
@@ -188,21 +231,21 @@ public class PageBinderTests
     private sealed class CustomerPage : Component
     {
         [RouteParam] public CustomerId Id { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     [SkipFactory]
     private sealed class DoublePage : Component
     {
         [QueryParam] public double? Ratio { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     [SkipFactory]
     private sealed class StringPage : Component
     {
         [RouteParam] public string? Name { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     [SkipFactory]
@@ -210,7 +253,7 @@ public class PageBinderTests
     {
         [RouteParam] public int Id { get; set; }
         [QueryParam] public int? Maybe { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     [SkipFactory]
@@ -219,13 +262,13 @@ public class PageBinderTests
         [RouteParam] public Guid Token { get; set; }
         [RouteParam] public DateTime Cutoff { get; set; }
         [RouteParam] public bool Active { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 
     [SkipFactory]
     private sealed class UnannotatedPage : Component
     {
         public string? Name { get; set; }
-        public override Component Render() => new Span(null);
+        protected override Component Render() => new Span(null);
     }
 }

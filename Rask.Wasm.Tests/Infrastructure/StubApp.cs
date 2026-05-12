@@ -12,7 +12,7 @@ internal sealed class StubApp : Component
 
     public StubApp(RouteState routeState) => _routeState = routeState;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Doctype(),
             new Html(null,

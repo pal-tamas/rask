@@ -153,7 +153,7 @@ public class HtmlSerializerTests
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
         protected internal override string? Css => ".x { color: red; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 
     private sealed class ScopedWrapper : Component
@@ -161,6 +161,6 @@ public class HtmlSerializerTests
         private readonly Component _body;
         public ScopedWrapper(Component body) => _body = body;
         protected internal override string? Css => ".y { color: blue; }";
-        public override Component Render() => _body;
+        protected override Component Render() => _body;
     }
 }

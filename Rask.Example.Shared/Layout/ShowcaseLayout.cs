@@ -63,7 +63,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 
     protected override string? Css => LayoutCss;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment(
             Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top", Children:
             [

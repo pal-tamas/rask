@@ -10,8 +10,6 @@ namespace Rask.Core;
 
 public abstract class Component
 {
-    private Component? _cachedRenderResult;
-
     private Dictionary<string, Delegate>? _handlers;
     private bool _hasInitialized;
     private bool _hasRenderedOnce;
@@ -32,7 +30,7 @@ public abstract class Component
     internal IRenderHandle? RenderHandle { get; set; }
 
     internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _persistedChildren;
-    public abstract Component Render();
+    protected abstract Component Render();
 
     public string ToHtml()
     {
@@ -47,22 +45,25 @@ public abstract class Component
     protected virtual Task OnParametersSetAsync() => Task.CompletedTask;
     protected virtual void OnAfterRender(bool firstRender) { }
     protected virtual Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
-    protected virtual bool ShouldRender() => true;
 
-    internal void RaiseLifecycleBeforeRender()
+    internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
-        if (!_hasInitialized)
+        var firstRender = !_hasInitialized;
+        if (firstRender)
         {
             _hasInitialized = true;
             OnInitialized();
             InvokeAsyncLifecycleWithRendering(OnInitializedAsync);
         }
 
-        OnParametersSet();
-        InvokeAsyncLifecycleWithRendering(OnParametersSetAsync);
+        if (firstRender || propsChanged)
+        {
+            OnParametersSet();
+            InvokeAsyncLifecycleWithRendering(OnParametersSetAsync);
+        }
     }
 
-    internal void RaiseLifecycleAfterRender()
+    private void RaiseLifecycleAfterRender()
     {
         var firstRender = !_hasRenderedOnce;
         _hasRenderedOnce = true;
@@ -109,17 +110,7 @@ public abstract class Component
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
 
-    internal Component RenderForLive()
-    {
-        if (_cachedRenderResult is not null && !ShouldRender())
-        {
-            return _cachedRenderResult;
-        }
-
-        var result = Render();
-        _cachedRenderResult = result;
-        return result;
-    }
+    internal Component RenderForLive() => Render();
 
     private static void ScheduleAsyncContinuation(Component c, Task t, bool rerender)
     {
@@ -223,10 +214,9 @@ public abstract class Component
         var prev = SynchronizationContext.Current;
         var ctx = new HandlerSyncContext(handle.RenderInScopeAsync);
         SynchronizationContext.SetSynchronizationContext(ctx);
-        Task? userTask = null;
         try
         {
-            userTask = invoke();
+            var userTask = invoke();
             if (!userTask.IsCompleted)
             {
                 await handle.RenderInScopeAsync().ConfigureAwait(false);
@@ -252,7 +242,7 @@ public abstract class Component
         var previousChildren = _persistedChildren;
         var previousEditContexts = _persistedEditContexts;
         using var ctx = LiveRenderContext.Begin(this, previousChildren, previousEditContexts, services);
-        RaiseLifecycleBeforeRender();
+        RaiseLifecycleBeforeRender(propsChanged: true);
         var html = ToHtml();
         var snapshot = ctx.SnapshotChildren();
         foreach (var child in ctx.RenderedComponents)
@@ -307,12 +297,14 @@ public abstract class Component
                 yield return new KeyValuePair<string, string?>("style", Style);
             }
 
-            if (Data is not null)
+            if (Data is null)
             {
-                foreach (var kv in Data)
-                {
-                    yield return new KeyValuePair<string, string?>($"data-{kv.Key}", kv.Value);
-                }
+                yield break;
+            }
+
+            foreach (var kv in Data)
+            {
+                yield return new KeyValuePair<string, string?>($"data-{kv.Key}", kv.Value);
             }
         }
     }
@@ -347,7 +339,7 @@ public abstract class Component<TProps>(TProps? props, IEnumerable<Child>? child
 
     protected virtual IDisposable? EnterChildrenScope() => null;
 
-    protected internal virtual IEnumerable<Child> RenderChildren() => ChildrenInternal;
+    protected virtual IEnumerable<Child> RenderChildren() => ChildrenInternal;
 
-    public override Component Render() => this;
+    protected override Component Render() => this;
 }

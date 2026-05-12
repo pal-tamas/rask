@@ -20,8 +20,8 @@ internal static class RouteChainRenderer
 
         var type = route.Chain[route.Cursor++];
         var page = ctx.GetOrCreate(type, sp => (Component)ActivatorUtilities.CreateInstance(sp, type));
-        PageBinder.Bind(page, route.Values, route.Query);
-        ctx.NotifyParameters(page);
+        var propsChanged = PageBinder.Bind(page, route.Values, route.Query);
+        ctx.NotifyParameters(page, propsChanged);
         return page;
     }
 }

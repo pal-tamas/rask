@@ -1,9 +1,8 @@
 namespace Rask.Core;
 
-public sealed class Text : Component
+public sealed class Text(string value) : Component
 {
-    public Text(string value) => Value = value;
-    internal string Value { get; }
+    internal string Value { get; } = value;
 
-    public override Component Render() => this;
+    protected override Component Render() => this;
 }

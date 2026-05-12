@@ -7,5 +7,5 @@ public sealed class Fragment : Component
 
     internal IEnumerable<Child> Children { get; }
 
-    public override Component Render() => this;
+    protected override Component Render() => this;
 }
