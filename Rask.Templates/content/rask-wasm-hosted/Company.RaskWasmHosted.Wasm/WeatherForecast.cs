@@ -7,5 +7,5 @@ public sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Su
 
 public interface IWeatherForecastService
 {
-    Task<WeatherForecast[]> GetForecastsAsync();
+    Task<WeatherForecast[]> GetForecastsAsync(CancellationToken cancellationToken = default);
 }

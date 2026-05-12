@@ -410,6 +410,126 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
     });
 
+    [Fact]
+    public Task Props_RendersDataAttributeBareForm() => RunAsync(async () =>
+    {
+        // The "Data — dictionary expands as data-*" demo asserts a null value renders
+        // as a bare attribute (data-new). If a future refactor breaks the null-value
+        // path, this test would catch the regression in the rendered DOM.
+        await Page.GotoAsync("/props");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Universal props",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var dataDiv = Page.Locator(".sample-result-body div[data-role='card']").First;
+        await Expect(dataDiv).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
+        // Bare attribute: present, value empty.
+        await Expect(dataDiv).ToHaveAttributeAsync("data-new", "");
+    });
+
+    [Fact]
+    public Task Components_GeneratedFactory_RendersGreeting() => RunAsync(async () =>
+    {
+        // Exercises the generated factory pipeline end-to-end: the Greeting user
+        // component is invoked via its source-generated factory inside ComponentsPage's
+        // CodeSample, and the rendered <p> should contain the props that flowed through.
+        await Page.GotoAsync("/components");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("User components",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var greeting = Page.Locator(".sample-result-body p").Filter(
+            new LocatorFilterOptions { HasText = "Hello," }).First;
+        await Expect(greeting).ToContainTextAsync("Dr.",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(greeting.Locator("strong")).ToHaveTextAsync("Ada");
+    });
+
+    [Fact]
+    public Task Tags_RendersBlockquote() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/tags");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Tag factories",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator(".sample-result-body blockquote").First)
+            .ToContainTextAsync("A small DSL",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Routing_NavigatorButton_NavigatesToUserDetail() => RunAsync(async () =>
+    {
+        // The /routing page hosts buttons that call Navigator.Navigate("/users/137").
+        // Validates that an in-handler Navigator call resolves through the same code
+        // path as a sidebar click — including parent-route + outlet rendering.
+        await Page.GotoAsync("/routing");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Routing",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.GetByRole(AriaRole.Button,
+                new PageGetByRoleOptions { Name = "/users/137" })
+            .ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/users/137$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("User #137",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task ViewTransitions_NavigateButton_LandsOnTarget() => RunAsync(async () =>
+    {
+        // Smoke for the view-transitions demo: Navigator.Navigate in a handler must
+        // still reach its destination on browsers without startViewTransition (the
+        // runtime should fall back to a direct morph) — Chromium-with-it is the
+        // happy path, but the assertion only cares about the final URL + DOM.
+        await Page.GotoAsync("/view-transitions");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("View transitions",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.GetByRole(AriaRole.Button,
+                new PageGetByRoleOptions { Name = "Go to /binding" })
+            .ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/binding$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Two-way binding",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Http_NavigateAwayBeforeLoad_NoLifecycleFault() => RunAsync(async () =>
+    {
+        // Validates Component.CancellationToken: visiting /http kicks off
+        // HttpPage.OnMountAsync's HttpClient.GetFromJsonAsync(..., CancellationToken).
+        // Navigating away before the fetch settles must cancel the in-flight
+        // request and avoid logging "lifecycle hook on HttpPage faulted" — the
+        // signal the framework prints when an unhandled exception bubbles out of
+        // an async hook.
+        await Page.GotoAsync("/http");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("HttpClient + DI",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Don't wait for the article — navigate away as soon as the page header
+        // appears, while OnMountAsync's HTTP request is still in flight.
+        await ClickSidebar("Welcome");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // Give any erroring continuation a moment to flush to stderr.
+        await Page.WaitForTimeoutAsync(500);
+
+        Assert.DoesNotContain("lifecycle hook on HttpPage faulted", ServerLog);
+    });
+
     protected Task ClickSidebar(string label) =>
         Page.Locator("aside.side-nav button.nav-item-btn:has-text(\"" + label + "\")").ClickAsync();
 

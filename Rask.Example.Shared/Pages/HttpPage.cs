@@ -15,7 +15,8 @@ public sealed class HttpPage(HttpClient http) : Component
 
     protected override async Task OnMountAsync()
     {
-        try { _post = await http.GetFromJsonAsync<Post>("posts/1"); }
+        try { _post = await http.GetFromJsonAsync<Post>("posts/1", CancellationToken); }
+        catch (OperationCanceledException) { }
         catch (Exception ex) { _error = ex.Message; }
     }
 
@@ -46,7 +47,7 @@ public sealed class HttpPage(HttpClient http) : Component
                     private Post? _post;
 
                     protected override async Task OnMountAsync() =>
-                        _post = await http.GetFromJsonAsync<Post>("posts/1");
+                        _post = await http.GetFromJsonAsync<Post>("posts/1", CancellationToken);
 
                     public override Component Render() =>
                         _post is null
@@ -58,7 +59,7 @@ public sealed class HttpPage(HttpClient http) : Component
                 }
                 """,
                 Notes:
-                "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a re-render when the awaited task completes.",
+                "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a re-render when the awaited task completes. Component.CancellationToken cancels on unmount — navigate away mid-fetch and the in-flight request aborts.",
                 Result: RenderResult()),
             Div(Class: "alert alert-info d-flex align-items-start mt-4", Children:
             [

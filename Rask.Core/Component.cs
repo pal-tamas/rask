@@ -26,6 +26,7 @@ public abstract class Component
     private Dictionary<(Type, int), Component> _previousChildren = new();
     private bool _propsDirty;
     private bool _stateDirty;
+    private CancellationTokenSource? _lifetimeCts;
 
     // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
     // default branch). Async lifecycle continuations + dispatcher catch sites consult this
@@ -47,6 +48,16 @@ public abstract class Component
     protected ClaimsPrincipal User =>
         LiveRenderContext.Current?.Services?.GetService<IUserProvider>()?.Current
         ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+    /// <summary>
+    ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
+    ///     Cancelled exactly once when the component is unmounted (navigation away, parent
+    ///     removed, or session teardown). Pass into <c>HttpClient</c> calls, <c>Task.Delay</c>,
+    ///     or any other cancellable async work started inside a lifecycle hook so it aborts
+    ///     cleanly when the component goes away.
+    /// </summary>
+    protected CancellationToken CancellationToken =>
+        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
 
     internal IRenderHandle? RenderHandle { get; set; }
 
@@ -97,6 +108,20 @@ public abstract class Component
         _hasRenderedOnce = true;
         OnRendered(firstRender);
         ScheduleAsyncContinuation(this, OnRenderedAsync(firstRender), false);
+    }
+
+    internal void CancelLifetimeToken()
+    {
+        var cts = Volatile.Read(ref _lifetimeCts);
+        if (cts is null) return;
+        try { cts.Cancel(); }
+        catch (ObjectDisposedException) { }
+    }
+
+    internal void DisposeLifetimeToken()
+    {
+        var cts = Interlocked.Exchange(ref _lifetimeCts, null);
+        cts?.Dispose();
     }
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)

@@ -9,17 +9,23 @@ internal static class ComponentLifecycle
             DisposeComponentTree(child);
         }
 
+        component.CancelLifetimeToken();
+
         switch (component)
         {
             case IAsyncDisposable ad:
+                // CTS disposal rides along inside DisposeAsyncSafe so the user's async dispose
+                // body can still observe the (already-cancelled) token before it is torn down.
                 _ = DisposeAsyncSafe(ad, component);
-                break;
+                return;
             case IDisposable d:
                 try { d.Dispose(); }
                 catch (Exception ex) { LogDisposeError(component, ex); }
 
                 break;
         }
+
+        component.DisposeLifetimeToken();
     }
 
     internal static async Task DisposeComponentTreeAsync(Component component)
@@ -28,6 +34,8 @@ internal static class ComponentLifecycle
         {
             await DisposeComponentTreeAsync(child).ConfigureAwait(false);
         }
+
+        component.CancelLifetimeToken();
 
         switch (component)
         {
@@ -42,12 +50,15 @@ internal static class ComponentLifecycle
 
                 break;
         }
+
+        component.DisposeLifetimeToken();
     }
 
     private static async Task DisposeAsyncSafe(IAsyncDisposable ad, Component component)
     {
         try { await ad.DisposeAsync().ConfigureAwait(false); }
         catch (Exception ex) { LogDisposeError(component, ex); }
+        component.DisposeLifetimeToken();
     }
 
     private static void LogDisposeError(Component component, Exception ex) =>
