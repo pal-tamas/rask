@@ -31,6 +31,10 @@ What makes it different from other component frameworks:
   to that type and hot-reloaded.
 - **Constructor DI in components.** `class Weather(IWeatherForecastService svc) : Component` works directly — no
   `[Inject]` properties, no boilerplate.
+- **Error boundaries.** `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree
+  and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.
+- **Animated route transitions.** `Navigator.Navigate(...)` wraps the next morph in the browser's View Transitions
+  API, so route changes crossfade by default (customisable per-element via the CSS `view-transition-name` property).
 
 ## Install
 
@@ -90,12 +94,11 @@ app.UseRask<App>();
 app.Run();
 ```
 
-**`App.cs`** — the page root.
+**`App.cs`** — the page root. The `Rask.Server` and `Rask.Wasm` packages auto-import `Rask.Core` and
+`using static Rask.Core.Tags`, so `Component`, `Div(...)`, `H1(...)` etc. are in scope project-wide with no `using`
+lines.
 
 ```csharp
-using Rask.Core;
-using static Rask.Core.Tags;
-
 namespace MyApp;
 
 public sealed class App : Component
@@ -121,12 +124,11 @@ public sealed class App : Component
 }
 ```
 
-**`HomePage.cs`** — your first route.
+**`HomePage.cs`** — your first route. `Rask.Core.Routing` (for `[Route]`, `[RouteParam]`, `Navigator`, …) is the one
+namespace you still bring in explicitly.
 
 ```csharp
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace MyApp;
 
@@ -267,7 +269,31 @@ NavLink(UserPage(id: 42), Children: ["View user"]);
 ```
 
 Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigate(HomePage())`,
-`nav.SetQuery("tab", "settings")`, etc. Inject it through the constructor like any other service.
+`nav.SetQuery("tab", "settings")`, etc. Inject it through the constructor like any other service. Navigations
+animate by default — the morph is wrapped in `document.startViewTransition()` when the browser supports it.
+
+Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal
+built-in page if no app-defined one exists.
+
+### Error boundaries
+
+Wrap any subtree in `ErrorBoundary(...)` to catch render-time, sync/async lifecycle, and event-handler exceptions
+thrown by descendants. The fallback receives the exception plus a `recover` callback so the boundary can be reset.
+
+```csharp
+ErrorBoundary(
+    Fallback: (ex, recover) => Div(Children: [
+        Strong(Children: ["Something went wrong: "]), ex.Message,
+        Button(OnClick: recover, Children: ["Try again"])
+    ]),
+    Children: [
+        // any subtree — render, lifecycle, or handler faults all bubble here
+        RiskyChild()
+    ])
+```
+
+Pass `ResetKeys: [someId]` to auto-clear the error when the keys change (React `useEffect`-deps semantics). Without
+a `Fallback`, the boundary renders a built-in default error page.
 
 ### Scoped CSS
 
