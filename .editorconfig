@@ -28,6 +28,13 @@ end_of_line = crlf
 resharper_unused_auto_property_accessor_local_highlighting = none
 resharper_unused_auto_property_accessor_global_highlighting = none
 
+# The JSImport source generator (Rask.Wasm/JSInterop.cs) implements partial
+# methods in a generated file Rider doesn't always see, so its "redundant
+# partial modifier" cleanup would strip `partial` and break the WASM build
+# with CS0751. Suppress repo-wide.
+resharper_partial_type_with_single_part_highlighting = none
+resharper_partial_method_with_single_part_highlighting = none
+
 # Sort using directives
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false

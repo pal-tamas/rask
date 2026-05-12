@@ -4,7 +4,12 @@ using System.Runtime.InteropServices.JavaScript;
 
 namespace Rask.Wasm;
 
-internal static class JSInterop
+// `partial` is required by the JSImport source generator (it emits the
+// `[JSImport]` method bodies into a second partial declaration). Rider's
+// non-browser view doesn't see the generated counterpart and would otherwise
+// flag the modifier as redundant — see .editorconfig for the inspection
+// suppression. Removing `partial` breaks the WASM build with CS0751.
+internal static partial class JSInterop
 {
     private const string ModuleName = "rask";
     private static WasmLiveSession? _session;
