@@ -1,4 +1,4 @@
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Demos;
 
 // Each live demo is its own user component so the bound input's auto-registered
 // handler owner resolves to *this* demo (the structural CurrentParent at handler

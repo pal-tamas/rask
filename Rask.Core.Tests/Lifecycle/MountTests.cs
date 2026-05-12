@@ -3,10 +3,10 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class InitializationTests
+public class MountTests
 {
     [Fact]
-    public void OnInitialized_FiresOnce_AcrossManyRenders()
+    public void OnMount_FiresOnce_AcrossManyRenders()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -18,12 +18,12 @@ public class InitializationTests
             ctx.NotifyParameters(resolved, true);
         }
 
-        Assert.Equal(1, c.InitializedCount);
-        Assert.Equal(1, c.InitializedAsyncCount);
+        Assert.Equal(1, c.MountCount);
+        Assert.Equal(1, c.MountAsyncCount);
     }
 
     [Fact]
-    public void OnParametersSet_FiresEveryRenderWhenPropsChange()
+    public void OnPropsChanged_FiresEveryRenderWhenPropsChange()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -35,12 +35,12 @@ public class InitializationTests
             ctx.NotifyParameters(resolved, true);
         }
 
-        Assert.Equal(3, c.ParametersSetCount);
-        Assert.Equal(3, c.ParametersSetAsyncCount);
+        Assert.Equal(3, c.PropsChangedCount);
+        Assert.Equal(3, c.PropsChangedAsyncCount);
     }
 
     [Fact]
-    public void OnParametersSet_FiresOnceWhenPropsUnchanged()
+    public void OnPropsChanged_FiresOnceWhenPropsUnchanged()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -52,12 +52,12 @@ public class InitializationTests
             ctx.NotifyParameters(resolved, false);
         }
 
-        Assert.Equal(1, c.ParametersSetCount);
-        Assert.Equal(1, c.ParametersSetAsyncCount);
+        Assert.Equal(1, c.PropsChangedCount);
+        Assert.Equal(1, c.PropsChangedAsyncCount);
     }
 
     [Fact]
-    public void OnInitialized_FiresBeforeOnParametersSet()
+    public void OnMount_FiresBeforeOnPropsChanged()
     {
         var order = new List<string>();
         var c = new OrderRecorder(order);
@@ -69,15 +69,15 @@ public class InitializationTests
             ctx.NotifyParameters(resolved, true);
         }
 
-        Assert.Equal(new[] { "init", "params" }, order);
+        Assert.Equal(new[] { "mount", "props" }, order);
     }
 
     [Fact]
-    public async Task OnInitializedAsync_IncompleteTask_TriggersRerenderOnCompletion()
+    public async Task OnMountAsync_IncompleteTask_TriggersRerenderOnCompletion()
     {
         var handle = new RecordingRenderHandle();
         var tcs = new TaskCompletionSource();
-        var c = new LifecycleTrackingComponent { RenderHandle = handle, OnInitializedAsyncImpl = () => tcs.Task };
+        var c = new LifecycleTrackingComponent { RenderHandle = handle, OnMountAsyncImpl = () => tcs.Task };
         var sp = new ServiceCollection().BuildServiceProvider();
 
         using (var ctx = LiveRenderContext.Begin(c, sp))
@@ -96,8 +96,8 @@ public class InitializationTests
     {
         private readonly List<string> _order;
         public OrderRecorder(List<string> order) => _order = order;
-        protected override void OnInitialized() => _order.Add("init");
-        protected override void OnParametersSet() => _order.Add("params");
+        protected override void OnMount() => _order.Add("mount");
+        protected override void OnPropsChanged() => _order.Add("props");
         protected override Component Render() => this;
     }
 

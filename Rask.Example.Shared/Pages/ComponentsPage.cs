@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("components")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -12,7 +14,7 @@ public sealed class ComponentsPage : Component
                 "User components",
                 "Subclass Component, override Render. The Rask source generator emits a Namespace.Components.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
             H2(Class: "h4 mt-4 mb-3", Children: ["A component and its generated factory"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 public sealed class Greeting : Component
                 {
@@ -33,7 +35,7 @@ public sealed class ComponentsPage : Component
                 "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
                 Result: Components.Greeting("Ada", "Dr.")),
             H2(Class: "h4 mt-5 mb-3", Children: ["DI via constructor"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // Inject services like HttpClient/Navigator/RouteState through the
                 // primary constructor — never as a public settable property:
@@ -49,13 +51,13 @@ public sealed class ComponentsPage : Component
                 Notes:
                 "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),
             H2(Class: "h4 mt-5 mb-3", Children: ["[SkipFactory] hides a property"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 public sealed class Counter : Component
                 {
                     [SkipFactory] public int Initial { get; set; }
                     private int _count;
-                    protected override void OnInitialized() => _count = Initial;
+                    protected override void OnMount() => _count = Initial;
                     // ... renders _count
                 }
 

@@ -7,7 +7,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
 {
     private WeatherForecast[]? _forecasts;
 
-    protected override async Task OnInitializedAsync() =>
+    protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
     public override Component Render() =>

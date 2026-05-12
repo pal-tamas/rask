@@ -163,7 +163,7 @@ public class RouterTests
     }
 
     [Fact]
-    public void Router_FiresOnInitialized_OnRoutedPage()
+    public void Router_FiresOnMount_OnRoutedPage()
     {
         var gate = new AsyncInitGate();
         var state = new RouteState();
@@ -180,7 +180,7 @@ public class RouterTests
     }
 
     [Fact]
-    public async Task Router_AsyncOnInitialized_RequestsRerenderAfterCompletion()
+    public async Task Router_AsyncOnMount_RequestsRerenderAfterCompletion()
     {
         var gate = new AsyncInitGate();
         var state = new RouteState();
@@ -217,7 +217,7 @@ public class RouterTests
     public sealed class SyncInitPage : Component
     {
         public int InitCount;
-        protected override void OnInitialized() => InitCount++;
+        protected override void OnMount() => InitCount++;
         protected override Component Render() => Span(Children: [$"init:{InitCount}"]);
     }
 
@@ -228,7 +228,7 @@ public class RouterTests
         public bool Loaded;
         public AsyncInitPage(AsyncInitGate gate) => _gate = gate;
 
-        protected override async Task OnInitializedAsync()
+        protected override async Task OnMountAsync()
         {
             _gate.Started.TrySetResult();
             await _gate.Complete.Task;

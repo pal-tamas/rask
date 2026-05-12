@@ -4,10 +4,10 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Lifecycle;
 
-public class AfterRenderTests
+public class RenderedTests
 {
     [Fact]
-    public void OnAfterRender_FiresFirstTrue_ThenFalse()
+    public void OnRendered_FiresFirstTrue_ThenFalse()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -18,12 +18,12 @@ public class AfterRenderTests
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 
-        Assert.Equal(new[] { true, false, false }, root.Child.AfterRenderFlags);
-        Assert.Equal(3, root.Child.AfterRenderCount);
+        Assert.Equal(new[] { true, false, false }, root.Child.RenderedFlags);
+        Assert.Equal(3, root.Child.RenderedCount);
     }
 
     [Fact]
-    public void OnAfterRender_FiresOnRoot()
+    public void OnRendered_FiresOnRoot()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -33,7 +33,7 @@ public class AfterRenderTests
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 
-        Assert.Equal(new[] { true, false }, root.AfterRenderFlags);
+        Assert.Equal(new[] { true, false }, root.RenderedFlags);
     }
 
     private sealed class ChildHostingRoot : Component

@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("primitives")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -12,7 +14,7 @@ public sealed class PrimitivesPage : Component
                 "Primitives",
                 "Four primitives sit beneath every Rask page: Text, Raw, Fragment, and Doctype. Everything else is built out of them."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Text — auto-escaped strings"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // Strings implicitly convert to Child (wrapped as Text):
                 P(Children: ["1 < 2 && \"safe\""])
@@ -21,7 +23,7 @@ public sealed class PrimitivesPage : Component
                 "Text HTML-encodes its value. The < and & above render as literal characters, not parsed as markup.",
                 Result: P(Class: "mb-0", Children: ["1 < 2 && \"safe\""])),
             H2(Class: "h4 mt-5 mb-3", Children: ["Raw — verbatim HTML"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // new Raw(...) bypasses encoding. Use deliberately.
                 P(Children: [new Raw("Already <strong>safe</strong> HTML")])
@@ -41,7 +43,7 @@ public sealed class PrimitivesPage : Component
                 ])
             ]),
             H2(Class: "h4 mt-5 mb-3", Children: ["Fragment — siblings without a wrapper"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Fragment(
                     H3(Children: ["A heading"]),
@@ -55,7 +57,7 @@ public sealed class PrimitivesPage : Component
                     P(Class: "mb-0", Children: ["A paragraph"])
                 )),
             H2(Class: "h4 mt-5 mb-3", Children: ["Doctype"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // The recommended page-root pattern:
                 Fragment(
@@ -67,7 +69,7 @@ public sealed class PrimitivesPage : Component
                 "Doctype() emits exactly <!DOCTYPE html>. Special-cased — no attributes, no children, no wrapping tag.",
                 Result: Span(Class: "text-secondary", Children: ["(emits ", Code(Children: ["<!DOCTYPE html>"]), ")"])),
             H2(Class: "h4 mt-5 mb-3", Children: ["Children from strings"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // Child has implicit conversions from string and Component:
                 Div(Children: [

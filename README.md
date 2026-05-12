@@ -227,7 +227,7 @@ public sealed class Counter : Component
 
 ### Async data
 
-Override `OnInitializedAsync` (runs once per instance) or `OnParametersSetAsync` (runs every render). Each `await`
+Override `OnMountAsync` (runs once per instance) or `OnPropsChangedAsync` (runs every render). Each `await`
 triggers an automatic re-render after the continuation, so a loading placeholder turns into real data with no manual
 `StateHasChanged()`.
 
@@ -237,7 +237,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
 {
     private WeatherForecast[]? _forecasts;
 
-    protected override async Task OnInitializedAsync() =>
+    protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
     public override Component Render() =>
@@ -293,8 +293,9 @@ Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quic
 
 | Hook                                       | When                                               |
 |--------------------------------------------|----------------------------------------------------|
-| `OnInitialized` / `OnInitializedAsync`     | Once, on first instance creation                   |
-| `OnParametersSet` / `OnParametersSetAsync` | Every render after props are applied               |
+| `OnMount` / `OnMountAsync`                 | Once, on first instance creation                   |
+| `OnPropsChanged` / `OnPropsChangedAsync`   | Every render after props are applied               |
+| `OnRendered` / `OnRenderedAsync`           | After every render, with a `firstRender` flag      |
 | `StateHasChanged()`                        | Call to force a re-render outside an event handler |
 
 ## Status

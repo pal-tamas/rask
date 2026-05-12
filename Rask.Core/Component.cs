@@ -59,12 +59,12 @@ public abstract class Component
         return sb.ToString();
     }
 
-    protected virtual void OnInitialized() { }
-    protected virtual Task OnInitializedAsync() => Task.CompletedTask;
-    protected virtual void OnParametersSet() { }
-    protected virtual Task OnParametersSetAsync() => Task.CompletedTask;
-    protected virtual void OnAfterRender(bool firstRender) { }
-    protected virtual Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
+    protected virtual void OnMount() { }
+    protected virtual Task OnMountAsync() => Task.CompletedTask;
+    protected virtual void OnPropsChanged() { }
+    protected virtual Task OnPropsChangedAsync() => Task.CompletedTask;
+    protected virtual void OnRendered(bool firstRender) { }
+    protected virtual Task OnRenderedAsync(bool firstRender) => Task.CompletedTask;
 
     internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
@@ -72,15 +72,15 @@ public abstract class Component
         if (firstRender)
         {
             _hasInitialized = true;
-            OnInitialized();
-            InvokeAsyncLifecycleWithRendering(OnInitializedAsync);
+            OnMount();
+            InvokeAsyncLifecycleWithRendering(OnMountAsync);
         }
 
         if (firstRender || propsChanged)
         {
             _propsDirty = true;
-            OnParametersSet();
-            InvokeAsyncLifecycleWithRendering(OnParametersSetAsync);
+            OnPropsChanged();
+            InvokeAsyncLifecycleWithRendering(OnPropsChangedAsync);
         }
     }
 
@@ -88,8 +88,8 @@ public abstract class Component
     {
         var firstRender = !_hasRenderedOnce;
         _hasRenderedOnce = true;
-        OnAfterRender(firstRender);
-        ScheduleAsyncContinuation(this, OnAfterRenderAsync(firstRender), false);
+        OnRendered(firstRender);
+        ScheduleAsyncContinuation(this, OnRenderedAsync(firstRender), false);
     }
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)

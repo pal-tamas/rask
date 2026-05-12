@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [NotFound]
 [ParentRoute(typeof(ShowcaseLayout))]

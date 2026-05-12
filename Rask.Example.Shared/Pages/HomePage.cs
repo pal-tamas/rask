@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -60,7 +62,7 @@ public sealed class HomePage(Navigator nav) : Component
                     ])
                 ])
             ]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 using static Rask.Core.Tags;
 
@@ -94,13 +96,13 @@ public sealed class HomePage(Navigator nav) : Component
                 FeatureCard("bi-signpost-2", "Routing",
                     "[Route], [ParentRoute], [RouteParam], [QueryParam]. Nested layouts via Outlet().", "/routing"),
                 FeatureCard("bi-arrow-repeat", "Lifecycle",
-                    "OnInitialized, OnParametersSet, OnAfterRender — sync and async, with auto re-render after each await.",
+                    "OnMount, OnPropsChanged, OnRendered — sync and async, with auto re-render after each await.",
                     "/lifecycle"),
                 FeatureCard("bi-palette", "Scoped CSS",
                     "Co-locate styles on the component. Rask hashes the type name and rewrites selectors so two components can share .box.",
                     "/scoped-css"),
                 FeatureCard("bi-cloud-arrow-down", "HttpClient + DI",
-                    "Standard ServiceCollection. Inject HttpClient via the primary constructor and fetch in OnInitializedAsync.",
+                    "Standard ServiceCollection. Inject HttpClient via the primary constructor and fetch in OnMountAsync.",
                     "/http")
             ]),
             Div(Class: "alert alert-info d-flex align-items-start", Children:

@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("navigator")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -77,7 +79,7 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                     " Navigator mutates RouteState and asks the dispatcher to push history. Doing that during Render() would mid-render the page out from under itself. Use it from button clicks, form submits, or lifecycle hooks that ran in response to an event."
                 ])
             ]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Button(
                     OnClick: () => nav.Navigate("/dashboard"),

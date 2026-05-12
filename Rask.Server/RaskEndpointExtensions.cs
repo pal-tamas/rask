@@ -299,7 +299,7 @@ public static class RaskEndpointExtensions
                     session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
                     // Push a fresh render now that the socket is live: between the initial
                     // HTTP GET and this hello, the page may have completed an async
-                    // OnInitializedAsync — that StateHasChanged fired with no socket
+                    // OnMountAsync — that StateHasChanged fired with no socket
                     // attached and was silently dropped. Re-render so the client picks up
                     // the latest state. If the lifecycle is still in flight, this just
                     // re-emits the Loading view; the lifecycle's terminal StateHasChanged

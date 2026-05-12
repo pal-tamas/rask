@@ -1,4 +1,4 @@
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Demos;
 
 internal static class PageHeader
 {

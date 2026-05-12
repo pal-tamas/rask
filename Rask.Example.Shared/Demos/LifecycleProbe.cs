@@ -1,29 +1,29 @@
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Demos;
 
 public sealed class LifecycleProbe : Component
 {
     private readonly List<string> _log = new();
     private int _renderCount;
 
-    protected override void OnInitialized() => _log.Add("OnInitialized");
+    protected override void OnMount() => _log.Add("OnMount");
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnMountAsync()
     {
-        _log.Add("OnInitializedAsync (start)");
+        _log.Add("OnMountAsync (start)");
         await Task.Delay(450);
-        _log.Add("OnInitializedAsync (after 450ms await)");
+        _log.Add("OnMountAsync (after 450ms await)");
     }
 
-    protected override void OnParametersSet() => _log.Add($"OnParametersSet (render #{_renderCount + 1})");
+    protected override void OnPropsChanged() => _log.Add($"OnPropsChanged (render #{_renderCount + 1})");
 
-    protected override Task OnParametersSetAsync()
+    protected override Task OnPropsChangedAsync()
     {
-        _log.Add("OnParametersSetAsync");
+        _log.Add("OnPropsChangedAsync");
         return Task.CompletedTask;
     }
 
-    protected override void OnAfterRender(bool firstRender) =>
-        _log.Add($"OnAfterRender(firstRender: {firstRender})");
+    protected override void OnRendered(bool firstRender) =>
+        _log.Add($"OnRendered(firstRender: {firstRender})");
 
     protected override Component Render()
     {

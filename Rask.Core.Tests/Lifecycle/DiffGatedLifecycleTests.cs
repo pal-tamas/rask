@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public class DiffGatedLifecycleTests
 {
     [Fact]
-    public void CachedChild_UnchangedProps_FiresOnParametersSetOnceOnFirstRenderOnly()
+    public void CachedChild_UnchangedProps_FiresOnPropsChangedOnceOnFirstRenderOnly()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -18,12 +18,12 @@ public class DiffGatedLifecycleTests
             ctx.NotifyParameters(resolved, propsChanged: false);
         }
 
-        Assert.Equal(1, c.ParametersSetCount);
-        Assert.Equal(1, c.ParametersSetAsyncCount);
+        Assert.Equal(1, c.PropsChangedCount);
+        Assert.Equal(1, c.PropsChangedAsyncCount);
     }
 
     [Fact]
-    public void CachedChild_ChangedProps_FiresOnParametersSetEachTime()
+    public void CachedChild_ChangedProps_FiresOnPropsChangedEachTime()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -35,14 +35,14 @@ public class DiffGatedLifecycleTests
             ctx.NotifyParameters(resolved, propsChanged: true);
         }
 
-        Assert.Equal(3, c.ParametersSetCount);
-        Assert.Equal(3, c.ParametersSetAsyncCount);
+        Assert.Equal(3, c.PropsChangedCount);
+        Assert.Equal(3, c.PropsChangedAsyncCount);
     }
 
     [Fact]
-    public void FirstRender_FiresOnParametersSet_EvenWhenPropsChangedFlagIsFalse()
+    public void FirstRender_FiresOnPropsChanged_EvenWhenPropsChangedFlagIsFalse()
     {
-        // A first-time render is always lifecycle-driven: OnInitialized + OnParametersSet must
+        // A first-time render is always lifecycle-driven: OnMount + OnPropsChanged must
         // fire regardless of the diff flag, because the component has never seen its initial values.
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -51,12 +51,12 @@ public class DiffGatedLifecycleTests
         var resolved = ctx.GetOrCreate(_ => c);
         ctx.NotifyParameters(resolved, propsChanged: false);
 
-        Assert.Equal(1, c.InitializedCount);
-        Assert.Equal(1, c.ParametersSetCount);
+        Assert.Equal(1, c.MountCount);
+        Assert.Equal(1, c.PropsChangedCount);
     }
 
     [Fact]
-    public void MixedRenders_OnParametersSetFiresOnlyOnChangeOrFirst()
+    public void MixedRenders_OnPropsChangedFiresOnlyOnChangeOrFirst()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var c = new LifecycleTrackingComponent();
@@ -74,6 +74,6 @@ public class DiffGatedLifecycleTests
             ctx.NotifyParameters(resolved, propsChanged);
         }
 
-        Assert.Equal(3, c.ParametersSetCount);
+        Assert.Equal(3, c.PropsChangedCount);
     }
 }

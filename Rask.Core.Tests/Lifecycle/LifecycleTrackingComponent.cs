@@ -4,35 +4,35 @@ namespace Rask.Core.Tests.Lifecycle;
 
 internal sealed class LifecycleTrackingComponent : Component
 {
-    public int AfterRenderCount;
-    public int InitializedAsyncCount;
-    public int InitializedCount;
-    public Func<Task>? OnInitializedAsyncImpl;
-    public int ParametersSetAsyncCount;
-    public int ParametersSetCount;
+    public int MountCount;
+    public int MountAsyncCount;
+    public Func<Task>? OnMountAsyncImpl;
+    public int PropsChangedCount;
+    public int PropsChangedAsyncCount;
+    public int RenderedCount;
     public int RenderCount;
-    public List<bool> AfterRenderFlags { get; } = new();
+    public List<bool> RenderedFlags { get; } = new();
 
-    protected override void OnInitialized() => InitializedCount++;
+    protected override void OnMount() => MountCount++;
 
-    protected override Task OnInitializedAsync()
+    protected override Task OnMountAsync()
     {
-        InitializedAsyncCount++;
-        return OnInitializedAsyncImpl?.Invoke() ?? Task.CompletedTask;
+        MountAsyncCount++;
+        return OnMountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }
 
-    protected override void OnParametersSet() => ParametersSetCount++;
+    protected override void OnPropsChanged() => PropsChangedCount++;
 
-    protected override Task OnParametersSetAsync()
+    protected override Task OnPropsChangedAsync()
     {
-        ParametersSetAsyncCount++;
+        PropsChangedAsyncCount++;
         return Task.CompletedTask;
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override void OnRendered(bool firstRender)
     {
-        AfterRenderCount++;
-        AfterRenderFlags.Add(firstRender);
+        RenderedCount++;
+        RenderedFlags.Add(firstRender);
     }
 
     protected override Component Render()

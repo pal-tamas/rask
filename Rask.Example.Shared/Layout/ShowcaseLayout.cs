@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Layout;
 
 [Route("/")]
 public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component

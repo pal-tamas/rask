@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("validation")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -12,7 +14,7 @@ public sealed class ValidationPage : Component
                 "Validation",
                 "Set Form.Model to a class decorated with DataAnnotations. Rask auto-attaches a DataAnnotationsValidator and routes the submit through OnValidSubmit / OnInvalidSubmit. Per-field errors render through ValidationMessage; a top-of-form digest renders through ValidationSummary."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Per-field — ValidationMessage"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) =>
@@ -27,9 +29,9 @@ public sealed class ValidationPage : Component
                      ])
                 """,
                 Notes: "OnValidSubmit fires only after every [Required]/[EmailAddress]/[Range]/[StringLength] check passes. ValidationMessage subscribes to a single field via the same Bind-style expression.",
-                Result: Components.ValidationFieldsDemo()),
+                Result: Demos.Components.ValidationFieldsDemo()),
             H2(Class: "h4 mt-5 mb-3", Children: ["Top-of-form — ValidationSummary"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) => /* ... */,
@@ -40,6 +42,6 @@ public sealed class ValidationPage : Component
                      ])
                 """,
                 Notes: "ValidationSummary renders a <ul> of every current message in the form's EditContext. Pair it with novalidate-style inputs when you want a single error block instead of inline hints.",
-                Result: Components.ValidationSummaryDemo())
+                Result: Demos.Components.ValidationSummaryDemo())
         );
 }

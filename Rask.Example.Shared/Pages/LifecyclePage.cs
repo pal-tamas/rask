@@ -1,6 +1,9 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
+using static Rask.Example.Shared.Demos.Components;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("lifecycle")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -19,37 +22,37 @@ public sealed class LifecyclePage : Component
                 ]),
             Div(Class: "card shadow-sm border-0 mb-4", Children:
             [
-                Div(Class: "card-body", Children: [Components.LifecycleProbe()])
+                Div(Class: "card-body", Children: [LifecycleProbe()])
             ]),
             H2(Class: "h4 mt-4 mb-3", Children: ["Source"]),
-            Components.CodeSample(
+            CodeSample(
                 """
                 public sealed class LifecycleProbe : Component
                 {
                     private readonly List<string> _log = new();
                     private int _renderCount;
 
-                    protected override void OnInitialized() =>
-                        _log.Add("OnInitialized");
+                    protected override void OnMount() =>
+                        _log.Add("OnMount");
 
-                    protected override async Task OnInitializedAsync()
+                    protected override async Task OnMountAsync()
                     {
-                        _log.Add("OnInitializedAsync (start)");
+                        _log.Add("OnMountAsync (start)");
                         await Task.Delay(450);
-                        _log.Add("OnInitializedAsync (after 450ms await)");
+                        _log.Add("OnMountAsync (after 450ms await)");
                     }
 
-                    protected override void OnParametersSet() =>
-                        _log.Add($"OnParametersSet (render #{_renderCount + 1})");
+                    protected override void OnPropsChanged() =>
+                        _log.Add($"OnPropsChanged (render #{_renderCount + 1})");
 
-                    protected override Task OnParametersSetAsync()
+                    protected override Task OnPropsChangedAsync()
                     {
-                        _log.Add("OnParametersSetAsync");
+                        _log.Add("OnPropsChangedAsync");
                         return Task.CompletedTask;
                     }
 
-                    protected override void OnAfterRender(bool firstRender) =>
-                        _log.Add($"OnAfterRender(firstRender: {firstRender})");
+                    protected override void OnRendered(bool firstRender) =>
+                        _log.Add($"OnRendered(firstRender: {firstRender})");
 
                     public override Component Render()
                     {
@@ -59,7 +62,7 @@ public sealed class LifecyclePage : Component
                 }
                 """,
                 Notes:
-                "OnInitialized* fires once; OnParametersSet* fires on every render; OnAfterRender* fires after the render commits. StateHasChanged() asks the live render handle for a re-render."),
+                "OnMount* fires once; OnPropsChanged* fires on every render; OnRendered* fires after the render commits. StateHasChanged() asks the live render handle for a re-render."),
             Div(Class: "alert alert-danger d-flex align-items-start mt-3", Children:
             [
                 I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),

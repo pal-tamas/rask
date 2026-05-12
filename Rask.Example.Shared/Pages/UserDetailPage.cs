@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("users/{id}")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -34,7 +36,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
                     ])
                 ])
             ]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 [Route("users/{id}")]
                 public sealed class UserDetailPage : Component

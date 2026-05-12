@@ -246,12 +246,12 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
             .ToHaveTextAsync("Lifecycle hooks",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        // OnInitializedAsync awaits 450ms and triggers a re-render, OnParametersSetAsync
+        // OnMountAsync awaits 450ms and triggers a re-render, OnPropsChangedAsync
         // fires for every render — so the page settles at some N >= 2 before we click.
         // Wait for the async log line that proves the awaited continuation ran, then
         // verify the click bumps the counter strictly higher.
         var badge = Page.Locator(".badge:has-text('Render #')").First;
-        await Expect(Page.Locator("li code:has-text('OnInitializedAsync (after')"))
+        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Server fixture keeps emitting extra renders for a moment; let the dust settle.

@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("tags")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -13,7 +15,7 @@ public sealed class TagsPage : Component
                 "Every standard HTML element has a static factory method on Rask.Core.Tags. " +
                 "Tag-specific attributes come first; the universal Id/Class/Style/Data trail at the end."),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-fonts text-accent me-2"), "Text & semantic"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Article(Children: [
                     H1(Children: ["Tags are just methods."]),
@@ -35,7 +37,7 @@ public sealed class TagsPage : Component
                     Blockquote(Class: "blockquote fs-6", Children: ["A small DSL, an honest day's HTML."])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-input-cursor-text text-accent me-2"), "Forms"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Form(Children: [
                     Label(For: "n", Children: ["Name"]),
@@ -53,7 +55,7 @@ public sealed class TagsPage : Component
                     Button("submit", Class: "btn btn-primary btn-sm", Children: ["Submit"])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-table text-accent me-2"), "Tables"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Table(Children: [
                     Thead(Children: [Tr(Children: [
@@ -76,7 +78,7 @@ public sealed class TagsPage : Component
                     ])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-image text-accent me-2"), "Media"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Img(Src: "https://placehold.co/120x60/0066B3/ffffff?text=Rask",
                     Alt: "Rask")
@@ -86,7 +88,7 @@ public sealed class TagsPage : Component
                     "Rask",
                     Class: "rounded shadow-sm")),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-dash-circle text-accent me-2"), "Void elements"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Fragment(
                     P(Children: ["Above the rule"]),

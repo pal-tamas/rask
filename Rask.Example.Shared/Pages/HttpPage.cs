@@ -1,8 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("http")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -11,7 +13,7 @@ public sealed class HttpPage(HttpClient http) : Component
     private string? _error;
     private Post? _post;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnMountAsync()
     {
         try { _post = await http.GetFromJsonAsync<Post>("posts/1"); }
         catch (Exception ex) { _error = ex.Message; }
@@ -23,7 +25,7 @@ public sealed class HttpPage(HttpClient http) : Component
                 "HttpClient + DI",
                 "HttpClient is registered as a service in Program.cs and injected into pages through their primary constructor. This demo fetches from jsonplaceholder.typicode.com — a public CORS-friendly API."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Register"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // Program.cs
                 var host = WasmHostBuilder.CreateDefault();
@@ -36,14 +38,14 @@ public sealed class HttpPage(HttpClient http) : Component
                 Notes:
                 "Relative URLs require BaseAddress. For relative-to-page-origin, use new Uri(WasmHostBuilder.BaseAddress) — read lazily inside the factory so it fires after the JS module imports."),
             H2(Class: "h4 mt-5 mb-3", Children: ["Inject and fetch"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 [Route("/http")]
                 public sealed class HttpPage(HttpClient http) : Component
                 {
                     private Post? _post;
 
-                    protected override async Task OnInitializedAsync() =>
+                    protected override async Task OnMountAsync() =>
                         _post = await http.GetFromJsonAsync<Post>("posts/1");
 
                     public override Component Render() =>
@@ -56,7 +58,7 @@ public sealed class HttpPage(HttpClient http) : Component
                 }
                 """,
                 Notes:
-                "OnInitializedAsync runs once on first render. The framework's async lifecycle handler triggers a re-render when the awaited task completes.",
+                "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a re-render when the awaited task completes.",
                 Result: RenderResult()),
             Div(Class: "alert alert-info d-flex align-items-start mt-4", Children:
             [

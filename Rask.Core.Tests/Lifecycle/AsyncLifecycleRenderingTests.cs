@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public class AsyncLifecycleRenderingTests
 {
     [Fact]
-    public async Task OnInitializedAsync_TriggersStateHasChanged_AfterEachAwait()
+    public async Task OnMountAsync_TriggersStateHasChanged_AfterEachAwait()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var handle = new RecordingHandle();
@@ -30,7 +30,7 @@ public class AsyncLifecycleRenderingTests
     }
 
     [Fact]
-    public async Task OnInitializedAsync_NoAwaits_DoesNotTriggerExtraRender()
+    public async Task OnMountAsync_NoAwaits_DoesNotTriggerExtraRender()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var handle = new RecordingHandle();
@@ -53,7 +53,7 @@ public class AsyncLifecycleRenderingTests
         public TaskCompletionSource Step2 { get; } = new();
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task OnInitializedAsync()
+        protected override async Task OnMountAsync()
         {
             Started.TrySetResult();
             await Task.Yield();
@@ -68,7 +68,7 @@ public class AsyncLifecycleRenderingTests
 
     private sealed class SyncCompletingComponent : Component
     {
-        protected override Task OnInitializedAsync() => Task.CompletedTask;
+        protected override Task OnMountAsync() => Task.CompletedTask;
         protected override Component Render() => this;
     }
 

@@ -1,6 +1,8 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
+using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Pages;
 
 [Route("props")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -12,7 +14,7 @@ public sealed class PropsPage : Component
                 "Universal props",
                 "Every tag accepts Id, Class, Style, and Data. They render in that exact order, ahead of any tag-specific attributes."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Id, Class, Style"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Div(
                     Id: "card-1",
@@ -26,7 +28,7 @@ public sealed class PropsPage : Component
                     "padding: 0.6rem 0.8rem;",
                     Children: ["Three attributes — id then class then style."])),
             H2(Class: "h4 mt-5 mb-3", Children: ["Data — dictionary expands as data-*"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 Div(
                     Data: new Dictionary<string, string?> {
@@ -43,7 +45,7 @@ public sealed class PropsPage : Component
                     Data: new Dictionary<string, string?> { ["role"] = "card", ["index"] = "7", ["new"] = null },
                     Children: ["Inspect the rendered HTML — data-role, data-index, and a bare data-new."])),
             H2(Class: "h4 mt-5 mb-3", Children: ["Attribute order"]),
-            Components.CodeSample(
+            Demos.Components.CodeSample(
                 """
                 // Tag-specific (Href) renders AFTER id/class/style/data-*, even though
                 // the factory signature lists Href first.

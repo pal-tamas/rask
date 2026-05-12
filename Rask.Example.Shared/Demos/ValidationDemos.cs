@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Rask.Example.Shared;
+namespace Rask.Example.Shared.Demos;
 
 public sealed class ValidationFieldsDemo : Component
 {
