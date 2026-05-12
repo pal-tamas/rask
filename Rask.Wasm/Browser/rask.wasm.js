@@ -100,6 +100,7 @@ function applyHistory(history) {
 
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
         const doc = new DOMParser().parseFromString(reply.html, "text/html");
         // Morph the whole <html> element so head changes (title, stylesheet links,
@@ -107,15 +108,25 @@ function handle(reply) {
         // not just <body>. The bootstrap <script src="main.js"> in the original
         // index.html may get removed by morph if the App's body doesn't include
         // an equivalent; that's harmless because the module is already running.
-        const freshHtml = doc.documentElement;
+        freshHtml = doc.documentElement;
+    }
+    const applyDom = () => {
         if (freshHtml) {
             morph(document.documentElement, freshHtml);
             root = document.querySelector("[data-rask-root]") || document.body;
         }
+        applyHistory(reply.history);
+    };
+    // Animate navigations (renders carrying a history block) with the View
+    // Transitions API when the browser supports it. State-only re-renders skip
+    // the wrap so event-handler latency stays tight.
+    if (reply.history && typeof document.startViewTransition === "function") {
+        document.startViewTransition(applyDom);
+    } else {
+        applyDom();
     }
     if (typeof reply.cssHash === "string" || reply.cssHash === null)
         applyScopedCss(reply.cssHash, reply.cssText);
-    applyHistory(reply.history);
 }
 
 async function send(payload) {

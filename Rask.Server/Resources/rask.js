@@ -42,22 +42,33 @@
                 location.reload();
                 return;
             }
+            var fresh = null;
             if (typeof data.html === "string") {
                 var doc = new DOMParser().parseFromString(data.html, "text/html");
-                var fresh = doc.body;
+                fresh = doc.body;
+            }
+            function applyDom() {
                 if (fresh) {
                     morph(root, fresh);
                     root = document.querySelector("[data-rask-root]") || root;
                 }
-            }
-            if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
-            if (data.history && typeof data.history.url === "string") {
-                if (data.history.action === "replace") {
-                    history.replaceState({rask: true}, "", data.history.url);
-                } else {
-                    history.pushState({rask: true}, "", data.history.url);
+                if (data.history && typeof data.history.url === "string") {
+                    if (data.history.action === "replace") {
+                        history.replaceState({rask: true}, "", data.history.url);
+                    } else {
+                        history.pushState({rask: true}, "", data.history.url);
+                    }
                 }
             }
+            // Animate navigations (renders carrying a history block) with the View
+            // Transitions API when the browser supports it. State-only re-renders
+            // (no history) skip the wrap to keep event-handler latency tight.
+            if (data.history && typeof document.startViewTransition === "function") {
+                document.startViewTransition(applyDom);
+            } else {
+                applyDom();
+            }
+            if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }
