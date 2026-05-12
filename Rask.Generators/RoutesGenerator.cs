@@ -209,8 +209,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 parentTypeFqn,
                 new EquatableArray<RoutePropInfo>(properties),
                 new LocationInfo(notFoundAttrLocation),
-                IsNotFound: true,
-                HasRouteAttr: template is not null);
+                true,
+                template is not null);
         }
 
         if (template is null)
@@ -226,8 +226,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             parentTypeFqn,
             new EquatableArray<RoutePropInfo>(properties),
             new LocationInfo(routeAttrLocation),
-            IsNotFound: false,
-            HasRouteAttr: true);
+            false,
+            true);
     }
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)

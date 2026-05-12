@@ -1,7 +1,6 @@
 using Rask.Core.Routing;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
-using static Rask.Example.Shared.Demos.Components;
 
 namespace Rask.Example.Shared.Pages;
 

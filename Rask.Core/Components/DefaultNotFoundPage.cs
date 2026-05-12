@@ -28,8 +28,9 @@ public sealed class DefaultNotFoundPage : Component
                     ]),
                     "."
                 ]),
-                A(Href: "/",
-                    Style: "display:inline-block;padding:0.5rem 0.9rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.375rem;",
+                A("/",
+                    Style:
+                    "display:inline-block;padding:0.5rem 0.9rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.375rem;",
                     Children: ["Back to home"])
             ]);
     }

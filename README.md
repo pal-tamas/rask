@@ -291,12 +291,12 @@ Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quic
 
 ### Lifecycle reference
 
-| Hook                                       | When                                               |
-|--------------------------------------------|----------------------------------------------------|
-| `OnMount` / `OnMountAsync`                 | Once, on first instance creation                   |
-| `OnPropsChanged` / `OnPropsChangedAsync`   | Every render after props are applied               |
-| `OnRendered` / `OnRenderedAsync`           | After every render, with a `firstRender` flag      |
-| `StateHasChanged()`                        | Call to force a re-render outside an event handler |
+| Hook                                     | When                                               |
+|------------------------------------------|----------------------------------------------------|
+| `OnMount` / `OnMountAsync`               | Once, on first instance creation                   |
+| `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied               |
+| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag      |
+| `StateHasChanged()`                      | Call to force a re-render outside an event handler |
 
 ## Status
 

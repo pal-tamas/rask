@@ -31,7 +31,7 @@ public sealed class BindingTypedDemo : Component
     protected override Component Render() =>
         Fragment(
             Input(
-                Bind: () => _model.Name,
+                () => _model.Name,
                 Class: "form-control mb-2",
                 Placeholder: "Your name"),
             P(Class: "small mb-0", Children:
@@ -43,12 +43,14 @@ public sealed class BindingTypedDemo : Component
 
     private sealed class Holder
     {
-        public string Name { get; set; } = "";
+        public string Name { get; } = "";
     }
 }
 
 public sealed class BindingMultiDemo : Component
 {
+    public enum Color { Red, Green, Blue }
+
     private readonly Holder _model = new();
 
     protected override Component Render() =>
@@ -56,18 +58,18 @@ public sealed class BindingMultiDemo : Component
             Div(Class: "mb-3 form-check", Children:
             [
                 Input(
-                    Bind: () => _model.Subscribe,
+                    () => _model.Subscribe,
                     Id: "bind-subscribe",
                     Class: "form-check-input"),
-                Label(For: "bind-subscribe", Class: "form-check-label ms-1",
+                Label("bind-subscribe", Class: "form-check-label ms-1",
                     Children: ["Subscribe to the newsletter"])
             ]),
             Div(Class: "mb-3", Children:
             [
-                Label(For: "bind-age", Class: "form-label small",
+                Label("bind-age", Class: "form-label small",
                     Children: ["Age"]),
                 Input(
-                    Bind: () => _model.Age,
+                    () => _model.Age,
                     Id: "bind-age",
                     Class: "form-control",
                     Min: "0",
@@ -75,19 +77,19 @@ public sealed class BindingMultiDemo : Component
             ]),
             Div(Class: "mb-3", Children:
             [
-                Label(For: "bind-start", Class: "form-label small",
+                Label("bind-start", Class: "form-label small",
                     Children: ["Start date"]),
                 Input(
-                    Bind: () => _model.StartDate,
+                    () => _model.StartDate,
                     Id: "bind-start",
                     Class: "form-control")
             ]),
             Div(Class: "mb-3", Children:
             [
-                Label(For: "bind-favorite", Class: "form-label small",
+                Label("bind-favorite", Class: "form-label small",
                     Children: ["Favourite colour"]),
                 Select(
-                    Bind: () => _model.Favorite,
+                    () => _model.Favorite,
                     Id: "bind-favorite",
                     Class: "form-select",
                     Children:
@@ -111,10 +113,8 @@ public sealed class BindingMultiDemo : Component
     private sealed class Holder
     {
         public bool Subscribe { get; set; }
-        public int Age { get; set; } = 30;
-        public DateOnly StartDate { get; set; } = new(2026, 1, 1);
-        public Color Favorite { get; set; } = Color.Blue;
+        public int Age { get; } = 30;
+        public DateOnly StartDate { get; } = new(2026, 1, 1);
+        public Color Favorite { get; } = Color.Blue;
     }
-
-    public enum Color { Red, Green, Blue }
 }

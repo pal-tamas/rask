@@ -1,5 +1,3 @@
-using Microsoft.CodeAnalysis;
-
 namespace Rask.Generators.Tests;
 
 public class NotFoundGeneratorTests

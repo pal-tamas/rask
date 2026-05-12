@@ -13,13 +13,13 @@ namespace Rask.Wasm;
 internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private string? _lastAppliedPayload;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
     // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
     // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
     private string? _lastCssHashSent;
-    private string? _lastAppliedPayload;
 
     public WasmLiveSession(Component view, IServiceProvider services)
     {

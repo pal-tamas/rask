@@ -4,13 +4,13 @@ namespace Rask.Core.Tests.Lifecycle;
 
 internal sealed class LifecycleTrackingComponent : Component
 {
-    public int MountCount;
     public int MountAsyncCount;
+    public int MountCount;
     public Func<Task>? OnMountAsyncImpl;
-    public int PropsChangedCount;
     public int PropsChangedAsyncCount;
-    public int RenderedCount;
+    public int PropsChangedCount;
     public int RenderCount;
+    public int RenderedCount;
     public List<bool> RenderedFlags { get; } = new();
 
     protected override void OnMount() => MountCount++;

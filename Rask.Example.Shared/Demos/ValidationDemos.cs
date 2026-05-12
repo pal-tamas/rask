@@ -11,37 +11,37 @@ public sealed class ValidationFieldsDemo : Component
         Fragment(
             Form<RegistrationModel>(
                 _model,
-                OnValidSubmit: m => _submission = $"Registered: {m.Name} <{m.Email}>",
+                m => _submission = $"Registered: {m.Name} <{m.Email}>",
                 Class: "vstack gap-3",
                 Children:
                 [
                     Div(Children:
                     [
-                        Label(For: "v1-name", Class: "form-label small mb-1",
+                        Label("v1-name", Class: "form-label small mb-1",
                             Children: ["Name"]),
-                        Input(Bind: () => _model.Name, Id: "v1-name", Class: "form-control"),
-                        ValidationMessage(For: () => _model.Name, Class: "text-danger small mt-1")
+                        Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
+                        ValidationMessage(() => _model.Name, "text-danger small mt-1")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v1-email", Class: "form-label small mb-1",
+                        Label("v1-email", Class: "form-label small mb-1",
                             Children: ["Email"]),
-                        Input(Bind: () => _model.Email, Id: "v1-email", Type: "email",
+                        Input(() => _model.Email, Id: "v1-email", Type: "email",
                             Class: "form-control"),
-                        ValidationMessage(For: () => _model.Email, Class: "text-danger small mt-1")
+                        ValidationMessage(() => _model.Email, "text-danger small mt-1")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v1-age", Class: "form-label small mb-1",
+                        Label("v1-age", Class: "form-label small mb-1",
                             Children: ["Age"]),
-                        Input(Bind: () => _model.Age, Id: "v1-age", Class: "form-control"),
-                        ValidationMessage(For: () => _model.Age, Class: "text-danger small mt-1")
+                        Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
+                        ValidationMessage(() => _model.Age, "text-danger small mt-1")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v1-plan", Class: "form-label small mb-1",
+                        Label("v1-plan", Class: "form-label small mb-1",
                             Children: ["Plan"]),
-                        Select(Bind: () => _model.Plan, Id: "v1-plan", Class: "form-select",
+                        Select(() => _model.Plan, Id: "v1-plan", Class: "form-select",
                             Children:
                             [
                                 Option("", Children: ["— choose —"]),
@@ -49,7 +49,7 @@ public sealed class ValidationFieldsDemo : Component
                                 Option("pro", Children: ["Pro"]),
                                 Option("team", Children: ["Team"])
                             ]),
-                        ValidationMessage(For: () => _model.Plan, Class: "text-danger small mt-1")
+                        ValidationMessage(() => _model.Plan, "text-danger small mt-1")
                     ]),
                     Div(Children:
                     [
@@ -72,35 +72,35 @@ public sealed class ValidationSummaryDemo : Component
         Fragment(
             Form<RegistrationModel>(
                 _model,
-                OnValidSubmit: m => _submission = $"Registered: {m.Name} <{m.Email}>",
+                m => _submission = $"Registered: {m.Name} <{m.Email}>",
                 Class: "vstack gap-3",
                 Children:
                 [
-                    ValidationSummary(Class: "alert alert-danger small mb-0"),
+                    ValidationSummary("alert alert-danger small mb-0"),
                     Div(Children:
                     [
-                        Label(For: "v2-name", Class: "form-label small mb-1",
+                        Label("v2-name", Class: "form-label small mb-1",
                             Children: ["Name"]),
-                        Input(Bind: () => _model.Name, Id: "v2-name", Class: "form-control")
+                        Input(() => _model.Name, Id: "v2-name", Class: "form-control")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v2-email", Class: "form-label small mb-1",
+                        Label("v2-email", Class: "form-label small mb-1",
                             Children: ["Email"]),
-                        Input(Bind: () => _model.Email, Id: "v2-email", Type: "email",
+                        Input(() => _model.Email, Id: "v2-email", Type: "email",
                             Class: "form-control")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v2-age", Class: "form-label small mb-1",
+                        Label("v2-age", Class: "form-label small mb-1",
                             Children: ["Age"]),
-                        Input(Bind: () => _model.Age, Id: "v2-age", Class: "form-control")
+                        Input(() => _model.Age, Id: "v2-age", Class: "form-control")
                     ]),
                     Div(Children:
                     [
-                        Label(For: "v2-plan", Class: "form-label small mb-1",
+                        Label("v2-plan", Class: "form-label small mb-1",
                             Children: ["Plan"]),
-                        Select(Bind: () => _model.Plan, Id: "v2-plan", Class: "form-select",
+                        Select(() => _model.Plan, Id: "v2-plan", Class: "form-select",
                             Children:
                             [
                                 Option("", Children: ["— choose —"]),

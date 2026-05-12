@@ -14,7 +14,7 @@ public sealed class ValidationPage : Component
                 "Validation",
                 "Set Form.Model to a class decorated with DataAnnotations. Rask auto-attaches a DataAnnotationsValidator and routes the submit through OnValidSubmit / OnInvalidSubmit. Per-field errors render through ValidationMessage; a top-of-form digest renders through ValidationSummary."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Per-field — ValidationMessage"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) =>
@@ -28,10 +28,11 @@ public sealed class ValidationPage : Component
                         Button(Type: "submit", Children: ["Register"])
                      ])
                 """,
-                Notes: "OnValidSubmit fires only after every [Required]/[EmailAddress]/[Range]/[StringLength] check passes. ValidationMessage subscribes to a single field via the same Bind-style expression.",
-                Result: Demos.Components.ValidationFieldsDemo()),
+                Notes:
+                "OnValidSubmit fires only after every [Required]/[EmailAddress]/[Range]/[StringLength] check passes. ValidationMessage subscribes to a single field via the same Bind-style expression.",
+                Result: ValidationFieldsDemo()),
             H2(Class: "h4 mt-5 mb-3", Children: ["Top-of-form — ValidationSummary"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) => /* ... */,
@@ -41,7 +42,8 @@ public sealed class ValidationPage : Component
                         Button(Type: "submit", Children: ["Register"])
                      ])
                 """,
-                Notes: "ValidationSummary renders a <ul> of every current message in the form's EditContext. Pair it with novalidate-style inputs when you want a single error block instead of inline hints.",
-                Result: Demos.Components.ValidationSummaryDemo())
+                Notes:
+                "ValidationSummary renders a <ul> of every current message in the form's EditContext. Pair it with novalidate-style inputs when you want a single error block instead of inline hints.",
+                Result: ValidationSummaryDemo())
         );
 }

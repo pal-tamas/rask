@@ -79,7 +79,7 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                     " Navigator mutates RouteState and asks the dispatcher to push history. Doing that during Render() would mid-render the page out from under itself. Use it from button clicks, form submits, or lifecycle hooks that ran in response to an event."
                 ])
             ]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Button(
                     OnClick: () => nav.Navigate("/dashboard"),

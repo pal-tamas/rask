@@ -36,7 +36,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
                     ])
                 ])
             ]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 [Route("users/{id}")]
                 public sealed class UserDetailPage : Component

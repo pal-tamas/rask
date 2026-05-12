@@ -1,5 +1,4 @@
 using Rask.Core.Routing;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
 
 namespace Rask.Example.Shared.Pages;
@@ -62,7 +61,7 @@ public sealed class HomePage(Navigator nav) : Component
                     ])
                 ])
             ]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 using static Rask.Core.Tags;
 

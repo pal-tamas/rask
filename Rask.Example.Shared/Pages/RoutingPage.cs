@@ -14,7 +14,7 @@ public sealed class RoutingPage(Navigator nav) : Component
                 "Routing",
                 "Annotate a component with [Route(\"/path\")]. A module initializer registers it; Router() in your App tree matches the current URL and renders the page."),
             H2(Class: "h4 mt-4 mb-3", Children: ["A page is a routed component"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 [Route("/about")]
                 public sealed class AboutPage : Component
@@ -26,7 +26,7 @@ public sealed class RoutingPage(Navigator nav) : Component
                 Notes:
                 "Routes use Blazor-style {param} placeholders. Optional, catch-all (**rest), and type-constrained variants are all supported."),
             H2(Class: "h4 mt-5 mb-3", Children: ["Nested layouts with [ParentRoute] + Outlet"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 [Route("/")]
                 public sealed class Layout : Component

@@ -122,11 +122,8 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
 
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
-            .ToContainTextAsync("required", new LocatorAssertionsToContainTextOptions
-            {
-                Timeout = 10_000,
-                IgnoreCase = true
-            });
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
     });
 
     [Fact]

@@ -48,7 +48,7 @@ public class RenderSkipTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, propsChanged: false);
+            ctx.NotifyParameters(resolved, false);
             c.ToHtml();
         }
 
@@ -57,7 +57,7 @@ public class RenderSkipTests
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, propsChanged: true);
+            ctx.NotifyParameters(resolved, true);
             c.ToHtml();
         }
 
@@ -114,7 +114,7 @@ public class RenderSkipTests
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, propsChanged: false);
+            ctx.NotifyParameters(c, false);
             return c;
         }
     }
@@ -128,7 +128,7 @@ public class RenderSkipTests
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, propsChanged: false);
+            ctx.NotifyParameters(c, false);
             return new Span(null, c);
         }
     }

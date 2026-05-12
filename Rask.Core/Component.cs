@@ -10,18 +10,20 @@ namespace Rask.Core;
 
 public abstract class Component
 {
+    private Component? _cachedRenderResult;
+
+    private int _childPositions;
+
     // Per-component direct children (this component's GetOrCreate calls in its own Render()).
     // Keys are local — position N is the Nth GetOrCreate call inside this component's Render,
     // not the Nth call across the whole tree — so a sibling skipping its render never collides.
     private Dictionary<(Type, int), Component> _children = new();
-    private Dictionary<(Type, int), Component> _previousChildren = new();
-    private int _childPositions;
-    private Component? _cachedRenderResult;
     private Dictionary<string, (Component Owner, Delegate Handler)>? _handlers;
     private bool _hasInitialized;
     private bool _hasRenderedOnce;
     private int _nextHandlerId;
     private Dictionary<LiveRenderContext.ObjectKey, EditContext> _persistedEditContexts = new();
+    private Dictionary<(Type, int), Component> _previousChildren = new();
     private bool _propsDirty;
     private bool _stateDirty;
 
@@ -267,7 +269,7 @@ public abstract class Component
     }
 
     internal string RegisterHandler(Delegate handler) =>
-        RegisterHandler(handler, owner: this);
+        RegisterHandler(handler, this);
 
     internal string RegisterHandler(Delegate handler, Component owner)
     {
@@ -380,7 +382,7 @@ public abstract class Component
         // this, a second RenderAsLiveRoot call with no descendant marked dirty would skip the
         // root, never re-binding closure-captured state or reading external mutable state.
         _stateDirty = true;
-        RaiseLifecycleBeforeRender(propsChanged: false);
+        RaiseLifecycleBeforeRender(false);
         var html = ToHtml();
 
         // Post-render alive set: union of _children across the whole tree, reachable from root.

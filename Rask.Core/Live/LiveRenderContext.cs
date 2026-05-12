@@ -38,6 +38,8 @@ public sealed class LiveRenderContext : IDisposable
 
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;
 
+    private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
+
     public void Dispose() => _current.Value = _previous;
 
     internal IDisposable? PushScope(Component instance)
@@ -86,8 +88,6 @@ public sealed class LiveRenderContext : IDisposable
         var parent = CurrentParent;
         return parent.GetOrCreateChild(type, factory, Services, _handle);
     }
-
-    private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
     public void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);

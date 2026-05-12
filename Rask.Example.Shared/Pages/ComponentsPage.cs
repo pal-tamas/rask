@@ -14,7 +14,7 @@ public sealed class ComponentsPage : Component
                 "User components",
                 "Subclass Component, override Render. The Rask source generator emits a Namespace.Components.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
             H2(Class: "h4 mt-4 mb-3", Children: ["A component and its generated factory"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 public sealed class Greeting : Component
                 {
@@ -33,9 +33,9 @@ public sealed class ComponentsPage : Component
                 """,
                 Notes:
                 "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
-                Result: Components.Greeting("Ada", "Dr.")),
+                Result: Greeting("Ada", "Dr.")),
             H2(Class: "h4 mt-5 mb-3", Children: ["DI via constructor"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 // Inject services like HttpClient/Navigator/RouteState through the
                 // primary constructor — never as a public settable property:
@@ -51,7 +51,7 @@ public sealed class ComponentsPage : Component
                 Notes:
                 "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),
             H2(Class: "h4 mt-5 mb-3", Children: ["[SkipFactory] hides a property"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 public sealed class Counter : Component
                 {

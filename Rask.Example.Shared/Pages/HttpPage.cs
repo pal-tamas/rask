@@ -25,7 +25,7 @@ public sealed class HttpPage(HttpClient http) : Component
                 "HttpClient + DI",
                 "HttpClient is registered as a service in Program.cs and injected into pages through their primary constructor. This demo fetches from jsonplaceholder.typicode.com — a public CORS-friendly API."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Register"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 // Program.cs
                 var host = WasmHostBuilder.CreateDefault();
@@ -38,7 +38,7 @@ public sealed class HttpPage(HttpClient http) : Component
                 Notes:
                 "Relative URLs require BaseAddress. For relative-to-page-origin, use new Uri(WasmHostBuilder.BaseAddress) — read lazily inside the factory so it fires after the JS module imports."),
             H2(Class: "h4 mt-5 mb-3", Children: ["Inject and fetch"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 [Route("/http")]
                 public sealed class HttpPage(HttpClient http) : Component

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices.JavaScript;
 
 namespace Rask.Wasm;
 
-internal static partial class JSInterop
+internal static class JSInterop
 {
     private const string ModuleName = "rask";
     private static WasmLiveSession? _session;

@@ -20,7 +20,7 @@ public sealed class EventsPage : Component
                 "Events",
                 "Event handlers are plain delegates on the factory call site — OnClick, OnInput, OnChange, OnSubmit. Each handler triggers a re-render after it runs."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Click"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Button(OnClick: () => _clicks++, Children: [$"Clicks: {_clicks}"])
                 """,
@@ -29,7 +29,7 @@ public sealed class EventsPage : Component
                     OnClick: () => _clicks++,
                     Children: [I(Class: "bi bi-hand-index me-2"), $"Clicks: {_clicks}"])),
             H2(Class: "h4 mt-5 mb-3", Children: ["Input — onInput"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Input(Type: "text",
                       Placeholder: "Type something",
@@ -49,7 +49,7 @@ public sealed class EventsPage : Component
                         Code(Children: [string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""])
                     ]))),
             H2(Class: "h4 mt-5 mb-3", Children: ["Select — onChange"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Select(OnChange: v => _pick = v, Children: [
                     Option(Value: "rask",   Children: ["Rask"]),
@@ -69,7 +69,7 @@ public sealed class EventsPage : Component
                         ]),
                     P(Class: "small mb-0", Children: ["Picked: ", Strong(Children: [_pick])]))),
             H2(Class: "h4 mt-5 mb-3", Children: ["Form — onSubmit"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Form(OnSubmit: fd => _submitted = fd.Get("name"),
                      Children: [

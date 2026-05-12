@@ -15,7 +15,7 @@ public sealed class TagsPage : Component
                 "Every standard HTML element has a static factory method on Rask.Core.Tags. " +
                 "Tag-specific attributes come first; the universal Id/Class/Style/Data trail at the end."),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-fonts text-accent me-2"), "Text & semantic"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Article(Children: [
                     H1(Children: ["Tags are just methods."]),
@@ -37,7 +37,7 @@ public sealed class TagsPage : Component
                     Blockquote(Class: "blockquote fs-6", Children: ["A small DSL, an honest day's HTML."])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-input-cursor-text text-accent me-2"), "Forms"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Form(Children: [
                     Label(For: "n", Children: ["Name"]),
@@ -55,7 +55,7 @@ public sealed class TagsPage : Component
                     Button("submit", Class: "btn btn-primary btn-sm", Children: ["Submit"])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-table text-accent me-2"), "Tables"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Table(Children: [
                     Thead(Children: [Tr(Children: [
@@ -78,7 +78,7 @@ public sealed class TagsPage : Component
                     ])
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-image text-accent me-2"), "Media"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Img(Src: "https://placehold.co/120x60/0066B3/ffffff?text=Rask",
                     Alt: "Rask")
@@ -88,7 +88,7 @@ public sealed class TagsPage : Component
                     "Rask",
                     Class: "rounded shadow-sm")),
             H2(Class: "h4 mt-5 mb-3", Children: [I(Class: "bi bi-dash-circle text-accent me-2"), "Void elements"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """
                 Fragment(
                     P(Children: ["Above the rule"]),

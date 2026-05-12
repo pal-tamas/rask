@@ -14,7 +14,7 @@ public sealed class ScopedCssPage : Component
                 "Scoped CSS",
                 "Override protected override string? Css on your component to colocate styles. Rask hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component."),
             H2(Class: "h4 mt-4 mb-3", Children: ["Two components, same selector, no conflict"]),
-            Demos.Components.CodeSample(
+            CodeSample(
                 """""
                 public sealed class ScopedRed : Component
                 {
@@ -38,8 +38,8 @@ public sealed class ScopedCssPage : Component
                 "The framework stamps every rendered body element with data-{scopeId}, then rewrites \".box\" to \".box[data-{scopeId}]\". Same source CSS, isolated outputs.",
                 Result: Div(Class: "d-flex flex-column gap-2", Children:
                 [
-                    Demos.Components.ScopedRed(),
-                    Demos.Components.ScopedBlue()
+                    ScopedRed(),
+                    ScopedBlue()
                 ])),
             H2(Class: "h4 mt-5 mb-3", Children: ["How it ships"]),
             P(Children:
