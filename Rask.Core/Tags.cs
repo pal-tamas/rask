@@ -32,6 +32,10 @@ public static partial class Tags
         return ctx.GetOrCreate<Outlet>(_ => new Outlet());
     }
 
+    public static Text Text(string value) => new(value);
+
+    public static Raw Raw(string html) => new(html);
+
     public static F.NavLink NavLink(
         RouteUrl Href,
         string? Id = null,

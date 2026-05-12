@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Rask.Core build integration.
+
+    Exposes the RaskGlobalUsings MSBuild property to the Rask.Generators
+    source generator so it can decide whether to emit RaskGlobalUsings.g.cs
+    (the file with `global using static Rask.Core.Tags;` plus per-namespace
+    `global using static {Ns}.Components;` lines).
+
+    Defaults to true. Consumers that prefer explicit imports can set
+    <RaskGlobalUsings>false</RaskGlobalUsings> in their csproj.
+
+    Auto-imported in this repo via Directory.Build.targets at the repo root.
+    Downstream NuGet consumers get the same auto-import via the build/ folder
+    packed into the .nupkg.
+  -->
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskGlobalUsings"/>
+  </ItemGroup>
+
+</Project>

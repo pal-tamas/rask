@@ -13,4 +13,7 @@
   <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets') "/>
 
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Core\build\Rask.Core.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core\build\Rask.Core.targets') "/>
+
 </Project>

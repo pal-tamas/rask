@@ -25,4 +25,8 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="build\Rask.Core.targets" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
 </Project>

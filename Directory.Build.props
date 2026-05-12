@@ -41,6 +41,18 @@
     <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
     <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) ">true</_RaskInRepoImplicitUsings>
   </PropertyGroup>
+
+  <!--
+    Mirrors the framework-vs-consumer split above for the global static usings
+    the source generator emits (Rask.Core.Tags + per-namespace Components).
+    Framework and in-repo test projects opt out — they reference the Component
+    classes by type and would see method/type ambiguity if `Tags` were globally
+    imported. Rask.Example.* and downstream NuGet consumers get the default
+    (true), so writing Div(...)/Counter(...) in the render tree just works.
+  -->
+  <PropertyGroup>
+    <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
+  </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props"
