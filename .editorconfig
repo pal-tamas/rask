@@ -20,6 +20,14 @@ indent_style = tab
 end_of_line = crlf
 
 [*.cs]
+# Rask's input/form binding goes through expression trees + reflection (see
+# Tags.Input / Tags.Select / EditContext), so Rider can't see the setter being
+# called and would otherwise flag bound `{ get; set; }` properties as unused
+# and silently strip the setter on Code Cleanup. Disable the inspection
+# repo-wide — the framework cannot work without these setters.
+resharper_unused_auto_property_accessor_local_highlighting = none
+resharper_unused_auto_property_accessor_global_highlighting = none
+
 # Sort using directives
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false

@@ -43,7 +43,7 @@ public sealed class BindingTypedDemo : Component
 
     private sealed class Holder
     {
-        public string Name { get; } = "";
+        public string Name { get; set; } = "";
     }
 }
 
@@ -110,11 +110,14 @@ public sealed class BindingMultiDemo : Component
                 ])
             ]));
 
+    // Bound by Input/Select via expression trees; Rider doesn't see the setter
+    // path so its "unused setter" cleanup will silently strip these — keep
+    // {get;set;} explicit and don't let the IDE downgrade them.
     private sealed class Holder
     {
         public bool Subscribe { get; set; }
-        public int Age { get; } = 30;
-        public DateOnly StartDate { get; } = new(2026, 1, 1);
-        public Color Favorite { get; } = Color.Blue;
+        public int Age { get; set; } = 30;
+        public DateOnly StartDate { get; set; } = new(2026, 1, 1);
+        public Color Favorite { get; set; } = Color.Blue;
     }
 }
