@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Rask.Examples.E2E.Tests.Infrastructure;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -13,22 +12,24 @@ public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFi
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public async Task WebSocket_AfterContextOfflineThenOnline_PreservesCounterState()
+    public async Task WebSocket_AfterOfflineOnline_PreservesEventsClickState()
     {
-        await Page.GotoAsync("/counter");
-        await Expect(Page.Locator("p.fs-5")).ToHaveTextAsync("Current count: 0");
+        await Page.GotoAsync("/events");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        var btn = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Click me" });
-        await btn.ClickAsync();
-        await btn.ClickAsync();
-        await Expect(Page.Locator("p.fs-5")).ToHaveTextAsync("Current count: 2");
+        var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+        await clickButton.ClickAsync();
+        await clickButton.ClickAsync();
+        await Expect(clickButton).ToContainTextAsync("Clicks: 2",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         await Page.Context.SetOfflineAsync(true);
         await Page.Context.SetOfflineAsync(false);
 
         // Click once after reconnect; the server-held state should still be 2 → 3.
-        await btn.ClickAsync();
-        await Expect(Page.Locator("p.fs-5"))
-            .ToHaveTextAsync("Current count: 3", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await clickButton.ClickAsync();
+        await Expect(clickButton).ToContainTextAsync("Clicks: 3",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     }
 }

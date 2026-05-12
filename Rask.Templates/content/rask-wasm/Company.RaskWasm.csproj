@@ -17,8 +17,4 @@
     <PackageReference Include="Rask.Wasm" Version="RASK_PKG_VERSION"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <WasmExtraFilesToDeploy Include="wwwroot\favicon.svg"/>
-  </ItemGroup>
-
 </Project>

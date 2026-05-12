@@ -103,3 +103,7 @@ CLAUDE.md
 publish/
 PublishProfiles/
 *.[Pp]ublish.xml
+
+# Derived favicon — copied from assets/favicon.svg by example csproj targets.
+Rask.Example.Server/wwwroot/favicon.svg
+Rask.Example.Wasm.Host/wwwroot/

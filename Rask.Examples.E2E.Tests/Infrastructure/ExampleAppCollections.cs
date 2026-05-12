@@ -13,3 +13,10 @@ public sealed class WasmExampleCollection
 {
     public const string Name = "WasmExample";
 }
+
+[CollectionDefinition(Name)]
+public sealed class StandaloneWasmExampleCollection
+    : ICollectionFixture<StandaloneWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "StandaloneWasmExample";
+}

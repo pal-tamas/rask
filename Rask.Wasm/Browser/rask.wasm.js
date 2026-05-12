@@ -5,6 +5,32 @@
 let dotnetExports = null;
 let root = null;
 let lastCssHash = null;
+let basePath = null;
+
+// Read once from <base href> (or the page URL if no <base> is set) so the
+// runtime can host under a sub-path like /Rask/ on GitHub Pages without the
+// .NET side ever seeing the prefix. Resolves to the directory portion so a
+// page URL like /index.html yields "/" (not "/index.html/").
+function getBasePath() {
+    if (basePath !== null) return basePath;
+    const p = new URL(document.baseURI).pathname;
+    const last = p.lastIndexOf("/");
+    basePath = last < 0 ? "/" : p.slice(0, last + 1);
+    return basePath;
+}
+
+function stripBase(pathname) {
+    const b = getBasePath();
+    if (b === "/" || !pathname) return pathname;
+    if (pathname === b.slice(0, -1) || pathname === b) return "/";
+    return pathname.startsWith(b) ? "/" + pathname.slice(b.length) : pathname;
+}
+
+function prependBase(url) {
+    const b = getBasePath();
+    if (b === "/" || typeof url !== "string" || !url.startsWith("/") || url.startsWith(b)) return url;
+    return b + url.slice(1);
+}
 
 // Called from main.js once `getAssemblyExports` is available so the JS event
 // handlers below can dispatch into .NET via the JSExport surface.
@@ -30,16 +56,17 @@ export function applyRender(html, cssHash, cssText, historyJson) {
 }
 
 export function getLocation() {
-    return location.pathname + location.search;
+    return stripBase(location.pathname) + location.search;
 }
 
 export function getBaseAddress() {
-    return location.origin + "/";
+    return new URL(document.baseURI).href;
 }
 
 export function pushHistory(url, replace) {
-    if (replace) window.history.replaceState({rask: true}, "", url);
-    else window.history.pushState({rask: true}, "", url);
+    const target = prependBase(url);
+    if (replace) window.history.replaceState({rask: true}, "", target);
+    else window.history.pushState({rask: true}, "", target);
 }
 
 function inRoot(el) {
@@ -53,6 +80,10 @@ function applyScopedCss(hash, cssText) {
     if (!style) {
         style = document.createElement("style");
         style.id = "rask-scoped";
+        // Marker so morph() leaves this element alone — it's owned by JS, not
+        // by the .NET render tree, and would otherwise get trimmed off when
+        // the head's last child slot doesn't match between renders.
+        style.setAttribute("data-rask-managed", "");
         document.head.appendChild(style);
     }
     if (typeof cssText === "string") style.textContent = cssText;
@@ -60,10 +91,11 @@ function applyScopedCss(hash, cssText) {
 
 function applyHistory(history) {
     if (!history || typeof history.url !== "string") return;
+    const target = prependBase(history.url);
     if (history.action === "replace")
-        window.history.replaceState({rask: true}, "", history.url);
+        window.history.replaceState({rask: true}, "", target);
     else
-        window.history.pushState({rask: true}, "", history.url);
+        window.history.pushState({rask: true}, "", target);
 }
 
 function handle(reply) {
@@ -138,8 +170,14 @@ function morph(from, to) {
         const checked = to.hasAttribute("checked");
         if (from.checked !== checked) from.checked = checked;
     }
+    // Skip JS-owned elements (marked data-rask-managed) — they're not part of the
+    // .NET render tree, so pairing them against the incoming children would either
+    // trim them off or replace them with something unrelated.
     const fc = [], tc = [];
-    for (let n = from.firstChild; n; n = n.nextSibling) fc.push(n);
+    for (let n = from.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
+        fc.push(n);
+    }
     for (let m = to.firstChild; m; m = m.nextSibling) tc.push(m);
     const max = Math.max(fc.length, tc.length);
     for (let k = 0; k < max; k++) {
@@ -168,11 +206,11 @@ document.addEventListener("click", (e) => {
     }
     if (url.origin !== location.origin) return;
     e.preventDefault();
-    send({type: "navigate", path: url.pathname, query: url.search});
+    send({type: "navigate", path: stripBase(url.pathname), query: url.search});
 });
 
 window.addEventListener("popstate", () => {
-    send({type: "navigate", path: location.pathname, query: location.search, replace: true});
+    send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
 });
 
 document.addEventListener("click", (e) => {

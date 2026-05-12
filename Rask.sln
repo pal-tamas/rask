@@ -12,7 +12,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rask.Server", "Rask.Server\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rask.Example.Server", "Rask.Example.Server\Rask.Example.Server.csproj", "{76BB22C2-39C9-4312-B56C-1F51B548F80A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rask.Example.Components", "Rask.Example.Components\Rask.Example.Components.csproj", "{A1AA5C04-43EB-4504-8E6D-AE17DC3D4D57}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rask.Example.Shared", "Rask.Example.Shared\Rask.Example.Shared.csproj", "{A1AA5C04-43EB-4504-8E6D-AE17DC3D4D57}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rask.Wasm", "Rask.Wasm\Rask.Wasm.csproj", "{44867CD1-4052-4B03-BAA0-EED8BABB3454}"
 EndProject

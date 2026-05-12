@@ -13,15 +13,18 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public async Task PageReload_AtNestedRoute_StillResolvesToNestedRoute()
+    public async Task PageReload_AtShowcaseRoute_StillResolvesToRoute()
     {
-        await Page.GotoAsync("/counter");
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Counter");
+        await Page.GotoAsync("/scoped-css");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Scoped CSS",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         await Page.ReloadAsync();
 
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
-        await Expect(Page.Locator("h1"))
-            .ToHaveTextAsync("Counter", new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/scoped-css$"));
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Scoped CSS",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
     }
 }

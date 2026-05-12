@@ -15,9 +15,16 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
+    <!--
+      <base href="/"> forces relative URLs (main.js, _framework/*) to resolve
+      from the origin root regardless of the current document path. Without it,
+      a deep-link reload at /users/42 would resolve main.js to /users/main.js
+      and the WASM bundle never boots. GH Pages deploys rewrite this href to
+      /<repo>/ in CI.
+    -->
+    <base href="/"/>
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
     <title>Rask WASM</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
     <style id="rask-scoped"></style>
 </head>
 <body data-rask-root>

@@ -8,12 +8,14 @@ internal sealed class RouteLeaf
         Chain = chain;
         Pattern = pattern;
         LiteralSegmentCount = literalSegmentCount;
+        HasCatchAll = pattern.Segments.Any(s => s.Kind == SegmentKind.CatchAll);
     }
 
     public string FullTemplate { get; }
     public IReadOnlyList<Type> Chain { get; }
     public RoutePattern Pattern { get; }
     public int LiteralSegmentCount { get; }
+    public bool HasCatchAll { get; }
 }
 
 internal static class RouteFlattener
@@ -28,6 +30,15 @@ internal static class RouteFlattener
 
         leaves.Sort((a, b) =>
         {
+            // Catch-all leaves (e.g. "{**rest}") always rank LAST so explicit routes
+            // win even when literal-segment count ties — otherwise a "/" + "/{**rest}"
+            // pair would put the catch-all ahead of the home page via the length tie-break.
+            var byCatchAll = a.HasCatchAll.CompareTo(b.HasCatchAll);
+            if (byCatchAll != 0)
+            {
+                return byCatchAll;
+            }
+
             var byLiteral = b.LiteralSegmentCount.CompareTo(a.LiteralSegmentCount);
             if (byLiteral != 0)
             {

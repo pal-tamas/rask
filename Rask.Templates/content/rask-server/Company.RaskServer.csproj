@@ -10,8 +10,4 @@
     <PackageReference Include="Rask.Server" Version="RASK_PKG_VERSION"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="wwwroot\favicon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
-  </ItemGroup>
-
 </Project>

@@ -28,100 +28,189 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
     [Fact]
-    public Task Home_LoadsAndShowsHelloWorld() => RunAsync(async () =>
+    public Task Home_RendersHero() => RunAsync(async () =>
     {
         await Page.GotoAsync("/");
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Hello, world!");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToContainTextAsync("The Rask framework",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
 
     [Fact]
-    public Task Counter_ClicksThreeTimes_ReachesThree() => RunAsync(async () =>
+    public Task Sidebar_NavigatesToTagsPage() => RunAsync(async () =>
     {
-        await Page.GotoAsync("/counter");
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Counter");
-        await Expect(Page.Locator("p.fs-5")).ToHaveTextAsync("Current count: 0");
+        await Page.GotoAsync("/");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
-        var btn = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Click me" });
-        for (var i = 0; i < 3; i++) await btn.ClickAsync();
-
-        await Expect(Page.Locator("p.fs-5"))
-            .ToHaveTextAsync("Current count: 3", new LocatorAssertionsToHaveTextOptions { Timeout = 5_000 });
+        await ClickSidebar("Tag factories");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/tags$"));
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Tag factories");
     });
 
     [Fact]
-    public Task Weather_AnonymousUser_RedirectsToLogin() => RunAsync(async () =>
+    public Task Events_ClickCounter_IncrementsThreeTimes() => RunAsync(async () =>
     {
-        await Page.GotoAsync("/weather");
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/login\\?.*[Rr]eturn[Uu]rl=.*"),
+        await Page.GotoAsync("/events");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+        for (var i = 0; i < 3; i++) await clickButton.ClickAsync();
+
+        await Expect(clickButton)
+            .ToContainTextAsync("Clicks: 3", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Events_InputChange_UpdatesEcho() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/events");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var input = Page.Locator(".sample-result-body input[type=text]:not([name])").First;
+        await input.FillAsync("Hello Rask");
+
+        await Expect(Page.Locator(".sample-result-body").Filter(new() { HasText = "You typed:" }))
+            .ToContainTextAsync("Hello Rask", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Events_FormSubmit_DisplaysSubmittedName() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/events");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("input[name=name]").FillAsync("Ada");
+        await Page.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(Page.Locator(".sample-result-body").Filter(new() { HasText = "Last submitted:" }))
+            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Http_LoadsPostFromJsonPlaceholder() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/http");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("HttpClient + DI",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var article = Page.Locator(".sample-result-body article.card");
+        await Expect(article).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(article.Locator("h3")).Not.ToBeEmptyAsync();
+        await Expect(article.Locator("p")).Not.ToBeEmptyAsync();
+    });
+
+    [Fact]
+    public Task ScopedCss_TwoComponents_RenderDifferentColors() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/scoped-css");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Scoped CSS",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var boxes = Page.Locator(".sample-result-body .box");
+        await Expect(boxes).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        var firstBg = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        var secondBg = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        Assert.NotEqual(firstBg, secondBg);
+    });
+
+    [Fact]
+    public Task Routing_UserDetail_BindsRouteParamAndQuery() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/users/42?tab=profile");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("User #42",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("li:has-text('Id')").Locator("strong"))
+            .ToHaveTextAsync("42");
+        await Expect(Page.Locator("li:has-text('Tab')").Locator("strong"))
+            .ToHaveTextAsync("profile");
+    });
+
+    [Fact]
+    public Task Navigator_SetQuery_ReflectsInUrl() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/navigator");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Navigator",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.GetByRole(AriaRole.Button,
+                new PageGetByRoleOptions { Name = "SetQuery sort=asc" })
+            .ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new Regex(".*\\?sort=asc.*"),
             new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Sign in");
+        await Expect(Page.Locator("main").Filter(new() { HasText = "Query" }))
+            .ToContainTextAsync("sort=asc",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]
-    public Task Weather_AnonymousLogin_LandsBackOnWeather() => RunAsync(async () =>
+    public Task Lifecycle_TriggerReRender_IncrementsCounter() => RunAsync(async () =>
     {
-        await Page.GotoAsync("/weather");
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/login\\?.*[Rr]eturn[Uu]rl=.*"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Page.Locator("input[name=username]").FillAsync("alice");
-        await Page.Locator("input[name=password]").FillAsync("password");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Sign in" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/weather$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
-        await Expect(Page.Locator("h1"))
-            .ToHaveTextAsync("Weather", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-    });
+        await Page.GotoAsync("/lifecycle");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Lifecycle hooks",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-    [Fact]
-    public Task Login_WithInvalidCredentials_ShowsError() => RunAsync(async () =>
-    {
-        await Page.GotoAsync("/login");
-        await Page.Locator("input[name=username]").FillAsync("alice");
-        await Page.Locator("input[name=password]").FillAsync("wrong");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Sign in" }).ClickAsync();
-
-        await Expect(Page.Locator(".alert-danger"))
+        // OnInitializedAsync awaits 450ms and triggers a re-render, OnParametersSetAsync
+        // fires for every render — so the page settles at some N >= 2 before we click.
+        // Wait for the async log line that proves the awaited continuation ran, then
+        // verify the click bumps the counter strictly higher.
+        var badge = Page.Locator(".badge:has-text('Render #')").First;
+        await Expect(Page.Locator("li code:has-text('OnInitializedAsync (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/login(\\?.*)?$"));
+
+        // Server fixture keeps emitting extra renders for a moment; let the dust settle.
+        await Page.WaitForTimeoutAsync(500);
+
+        var before = ExtractRenderCount(await badge.TextContentAsync());
+        await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
+
+        await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        var after = ExtractRenderCount(await badge.TextContentAsync());
+        Assert.True(after > before, $"expected render counter to increase from {before}, was {after}");
+    });
+
+    private static int ExtractRenderCount(string? text) =>
+        int.Parse(System.Text.RegularExpressions.Regex.Match(text ?? "0", @"\d+").Value);
+
+    [Fact]
+    public Task UnknownRoute_DoesNotErrorOut() => RunAsync(async () =>
+    {
+        var response = await Page.GotoAsync("/this-route-definitely-does-not-exist");
+        Assert.NotNull(response);
+        Assert.True((int)response!.Status < 500, $"unexpected status {response.Status}");
+        // The navbar (which sits outside Outlet) is still rendered.
+        await Expect(Page.Locator(".navbar .navbar-brand"))
+            .ToContainTextAsync("Rask", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
 
     [Fact]
-    public Task Weather_LoadsFiveRows() => RunAsync(async () =>
+    public Task Navigation_PreservesSpaContext() => RunAsync(async () =>
     {
-        await SignInAsync();
-        await Page.GotoAsync("/weather");
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Weather");
-        await Expect(Page.Locator("table.table tbody tr"))
-            .ToHaveCountAsync(5, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task Logout_ClearsSession() => RunAsync(async () =>
-    {
-        await SignInAsync();
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Sign out" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/$"), new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-
-        await Page.GotoAsync("/weather");
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/login(\\?.*)?$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task Navigation_BetweenPages_PreservesSpaContext() => RunAsync(async () =>
-    {
-        await SignInAsync();
         await Page.GotoAsync("/");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Counter" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Counter");
+        await ClickSidebar("Tag factories");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/tags$"));
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
 
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Weather" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/weather$"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Weather");
+        await ClickSidebar("Events");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/events$"));
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
     });
 
@@ -129,56 +218,26 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     public Task BackForwardNavigation_PreservesSpaState() => RunAsync(async () =>
     {
         await Page.GotoAsync("/");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Counter" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
+        await ClickSidebar("Tag factories");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/tags$"));
 
         await Page.GoBackAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/$"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Hello, world!");
+        await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
 
         await Page.GoForwardAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/counter$"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Counter");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/tags$"));
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Tag factories");
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
     });
 
-    [Fact]
-    public Task UnknownRoute_LoadsWithoutNetworkError() => RunAsync(async () =>
-    {
-        var response = await Page.GotoAsync("/this-route-definitely-does-not-exist");
-        Assert.NotNull(response);
-        // Either 200 (SPA fallback) or 404 — both are non-5xx, the page should still mount.
-        Assert.True((int)response!.Status < 500, $"unexpected status {response.Status}");
-        // The nav bar / app shell is still present, proving the app loaded.
-        await Expect(Page.Locator("a.navbar-brand")).ToHaveTextAsync("Rask",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
-    public Task RapidClick_TenClicksInSuccession_FinalCountIsTen() => RunAsync(async () =>
-    {
-        await Page.GotoAsync("/counter");
-        await Expect(Page.Locator("p.fs-5")).ToHaveTextAsync("Current count: 0");
-
-        var btn = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Click me" });
-        for (var i = 0; i < 10; i++) await btn.ClickAsync();
-
-        await Expect(Page.Locator("p.fs-5"))
-            .ToHaveTextAsync("Current count: 10", new LocatorAssertionsToHaveTextOptions { Timeout = 8_000 });
-    });
-
-    private async Task SignInAsync(string username = "alice", string password = "password")
-    {
-        await Page.GotoAsync("/login");
-        await Page.Locator("input[name=username]").FillAsync(username);
-        await Page.Locator("input[name=password]").FillAsync(password);
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Sign in" }).ClickAsync();
-        await Expect(Page.Locator("text=Signed in as"))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-    }
+    protected Task ClickSidebar(string label) =>
+        Page.Locator("aside.side-nav button.nav-item-btn:has-text(\"" + label + "\")").ClickAsync();
 
     private async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")
     {

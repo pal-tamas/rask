@@ -1,28 +1,15 @@
-using Rask.Example.Components;
+using Rask.Example.Shared;
 using Rask.Server;
-using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
-builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o =>
-    {
-        o.LoginPath = "/login";
-        o.AccessDeniedPath = "/forbidden";
-    });
-builder.Services.AddAuthorization();
-
-builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>();
+builder.Services.AddSingleton(_ =>
+    new HttpClient { BaseAddress = new Uri("https://jsonplaceholder.typicode.com/") });
 
 var app = builder.Build();
 
-app.MapStaticAssets();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
+app.UseStaticFiles();
 app.UseRask<App>();
 
 app.Run();
