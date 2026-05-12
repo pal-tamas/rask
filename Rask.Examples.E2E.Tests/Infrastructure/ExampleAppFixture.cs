@@ -5,10 +5,10 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 public abstract class ExampleAppFixture : IAsyncLifetime
 {
-    private Process? _process;
-    private readonly StringBuilder _stdout = new();
-    private readonly StringBuilder _stderr = new();
     private readonly Lock _logLock = new();
+    private readonly StringBuilder _stderr = new();
+    private readonly StringBuilder _stdout = new();
+    private Process? _process;
 
     protected abstract string ProjectRelativePath { get; }
     protected abstract int Port { get; }
@@ -20,7 +20,10 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     {
         get
         {
-            lock (_logLock) return $"{_stdout}\n--- STDERR ---\n{_stderr}";
+            lock (_logLock)
+            {
+                return $"{_stdout}\n--- STDERR ---\n{_stderr}";
+            }
         }
     }
 
@@ -33,10 +36,15 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         {
             ArgumentList =
             {
-                "run", "--project", projectPath,
+                "run",
+                "--project",
+                projectPath,
                 "--no-launch-profile",
-                "-c", "Debug",
-                "--", "--urls", BaseUrl
+                "-c",
+                "Debug",
+                "--",
+                "--urls",
+                BaseUrl
             },
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -47,7 +55,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
 
         _process = Process.Start(psi)
-            ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
+                   ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
 
         _ = Task.Run(() => DrainAsync(_process.StandardOutput, _stdout));
         _ = Task.Run(() => DrainAsync(_process.StandardError, _stderr));
@@ -57,12 +65,18 @@ public abstract class ExampleAppFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_process is null) return;
+        if (_process is null)
+        {
+            return;
+        }
 
         if (!_process.HasExited)
         {
-            try { _process.Kill(entireProcessTree: true); }
-            catch { /* race: already exited */ }
+            try { _process.Kill(true); }
+            catch
+            {
+                /* race: already exited */
+            }
         }
 
         try
@@ -94,10 +108,19 @@ public abstract class ExampleAppFixture : IAsyncLifetime
             try
             {
                 using var resp = await http.GetAsync(BaseUrl);
-                if ((int)resp.StatusCode < 500) return;
+                if ((int)resp.StatusCode < 500)
+                {
+                    return;
+                }
             }
-            catch (HttpRequestException) { /* not yet listening */ }
-            catch (TaskCanceledException) { /* per-request timeout */ }
+            catch (HttpRequestException)
+            {
+                /* not yet listening */
+            }
+            catch (TaskCanceledException)
+            {
+                /* per-request timeout */
+            }
 
             await Task.Delay(250);
         }
@@ -110,7 +133,10 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     {
         while (await reader.ReadLineAsync() is { } line)
         {
-            lock (_logLock) buffer.AppendLine(line);
+            lock (_logLock)
+            {
+                buffer.AppendLine(line);
+            }
         }
     }
 
@@ -119,9 +145,14 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.sln"))) return dir.FullName;
+            if (File.Exists(Path.Combine(dir.FullName, "Rask.sln")))
+            {
+                return dir.FullName;
+            }
+
             dir = dir.Parent;
         }
+
         throw new InvalidOperationException(
             $"Could not locate Rask.sln walking up from {AppContext.BaseDirectory}");
     }

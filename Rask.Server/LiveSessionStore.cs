@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using Rask.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Core;
 
 namespace Rask.Server;
 

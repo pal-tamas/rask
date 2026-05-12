@@ -1,5 +1,5 @@
-using Rask.Core.Live;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 

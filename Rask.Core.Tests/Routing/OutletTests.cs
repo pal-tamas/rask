@@ -1,6 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
-using Microsoft.Extensions.DependencyInjection;
 using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Routing;
@@ -77,7 +77,7 @@ public class OutletTests
     public sealed class Section : Component
     {
         public override Component Render() =>
-            Tags.Section(Children: ["section:", Outlet()]);
+            Section(Children: ["section:", Outlet()]);
     }
 
     [SkipFactory]

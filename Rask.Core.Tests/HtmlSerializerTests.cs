@@ -1,8 +1,6 @@
 using System.Text;
 using Rask.Core.Components;
-using Rask.Core.Live;
 using Rask.Core.ScopedCss;
-using Rask.Core.Tests.Live;
 
 namespace Rask.Core.Tests;
 
@@ -54,7 +52,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_AttributeWithStringValue_HtmlEncodesValue()
     {
-        var html = new Block(new BlockProps(Class: "a\"b<c")).ToHtml();
+        var html = new Block(new BlockProps("a\"b<c")).ToHtml();
         Assert.Equal("<block class=\"a&quot;b&lt;c\"></block>", html);
     }
 
@@ -89,15 +87,13 @@ public class HtmlSerializerTests
     public void Serialize_ScopeIdNull_NoStamping()
     {
         // No LiveRenderContext / no scope id → element has only its own attrs.
-        var html = new Block(new BlockProps(Class: "tag")).ToHtml();
+        var html = new Block(new BlockProps("tag")).ToHtml();
         Assert.Equal("<block class=\"tag\"></block>", html);
     }
 
     [Fact]
-    public void Serialize_VoidElement_NoChildren_EmitsSelfClose()
-    {
+    public void Serialize_VoidElement_NoChildren_EmitsSelfClose() =>
         Assert.Equal("<void />", new VoidEl(null).ToHtml());
-    }
 
     [Fact]
     public void Serialize_VoidElement_WithChildren_StillSelfCloses()
@@ -107,10 +103,8 @@ public class HtmlSerializerTests
     }
 
     [Fact]
-    public void Serialize_VoidElement_WithAttrs_AttrsBeforeSelfCloser()
-    {
-        Assert.Equal("<void class=\"a\" />", new VoidEl(new BlockProps(Class: "a")).ToHtml());
-    }
+    public void Serialize_VoidElement_WithAttrs_AttrsBeforeSelfCloser() =>
+        Assert.Equal("<void class=\"a\" />", new VoidEl(new BlockProps("a")).ToHtml());
 
     [Fact]
     public void Serialize_FallthroughBranch_PushesScope_AndRecurses()

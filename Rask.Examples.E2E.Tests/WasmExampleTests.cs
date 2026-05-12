@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
-using Rask.Examples.E2E.Tests.Infrastructure;
 using Microsoft.Playwright;
+using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;

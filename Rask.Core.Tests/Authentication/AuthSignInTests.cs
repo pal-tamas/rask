@@ -9,8 +9,8 @@ public class AuthSignInTests
     public async Task SignInAsync_OutsideHandler_Throws()
     {
         var auth = new AuthSignIn();
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class AuthSignInTests
             await auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
     }
 }

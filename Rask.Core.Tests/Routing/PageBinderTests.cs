@@ -1,7 +1,7 @@
 using System.Globalization;
+using Microsoft.Extensions.Primitives;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Microsoft.Extensions.Primitives;
 
 namespace Rask.Core.Tests.Routing;
 

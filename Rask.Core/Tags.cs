@@ -1,7 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using F = Rask.Core.Components;
 
 namespace Rask.Core;

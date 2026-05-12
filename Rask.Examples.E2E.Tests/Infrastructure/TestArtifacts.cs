@@ -16,17 +16,22 @@ internal static class TestArtifacts
         {
             await page.ScreenshotAsync(new PageScreenshotOptions
             {
-                Path = Path.Combine(dir, "page.png"),
-                FullPage = true
+                Path = Path.Combine(dir, "page.png"), FullPage = true
             });
         }
-        catch { /* page may already be closed */ }
+        catch
+        {
+            /* page may already be closed */
+        }
 
         try
         {
             await File.WriteAllTextAsync(Path.Combine(dir, "page.html"), await page.ContentAsync());
         }
-        catch { /* page may already be closed */ }
+        catch
+        {
+            /* page may already be closed */
+        }
 
         await File.WriteAllTextAsync(Path.Combine(dir, "server.log"), serverLog);
     }
@@ -36,9 +41,14 @@ internal static class TestArtifacts
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.sln"))) return dir.FullName;
+            if (File.Exists(Path.Combine(dir.FullName, "Rask.sln")))
+            {
+                return dir.FullName;
+            }
+
             dir = dir.Parent;
         }
+
         return AppContext.BaseDirectory;
     }
 }

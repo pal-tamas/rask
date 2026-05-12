@@ -1,9 +1,9 @@
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Server.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Server.Tests.WebSockets;
 

@@ -1,6 +1,3 @@
-using Rask.Core;
-using static Rask.Core.Tags;
-
 namespace Rask.Example.Shared;
 
 internal static class PageHeader

@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using Rask.Wasm.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Wasm.Tests.Session;
 

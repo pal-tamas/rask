@@ -1,6 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Example.Shared;
 using Rask.Wasm;
-using Microsoft.Extensions.DependencyInjection;
 
 var host = WasmHostBuilder.CreateDefault();
 

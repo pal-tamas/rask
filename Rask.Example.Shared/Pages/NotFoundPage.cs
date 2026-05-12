@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Example.Shared;
 
@@ -19,7 +17,6 @@ public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
             PageHeader.Render(
                 "Page not found",
                 $"No route is registered for {route.Path}. Pick a section from the sidebar — every showcase page is reachable from there."),
-
             Div(Class: "d-flex gap-2 mt-3", Children:
             [
                 Button(

@@ -9,9 +9,11 @@ public sealed class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var exitCode = Microsoft.Playwright.Program.Main(["install", "chromium"]);
+        var exitCode = Program.Main(["install", "chromium"]);
         if (exitCode != 0)
+        {
             throw new InvalidOperationException($"playwright install chromium exited with code {exitCode}");
+        }
 
         Playwright = await Microsoft.Playwright.Playwright.CreateAsync();
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
@@ -19,7 +21,11 @@ public sealed class PlaywrightFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (Browser is not null) await Browser.CloseAsync();
+        if (Browser is not null)
+        {
+            await Browser.CloseAsync();
+        }
+
         Playwright?.Dispose();
     }
 }

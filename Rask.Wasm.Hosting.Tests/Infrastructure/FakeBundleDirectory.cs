@@ -24,7 +24,10 @@ internal sealed class FakeBundleDirectory : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(Path, recursive: true); }
-        catch { /* best effort */ }
+        try { Directory.Delete(Path, true); }
+        catch
+        {
+            /* best effort */
+        }
     }
 }

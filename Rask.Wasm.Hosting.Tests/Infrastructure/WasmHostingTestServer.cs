@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 
 namespace Rask.Wasm.Hosting.Tests.Infrastructure;
@@ -19,6 +17,13 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
     public TestServer Server { get; }
     public HttpClient Http { get; }
 
+    public async ValueTask DisposeAsync()
+    {
+        Http.Dispose();
+        await _app.StopAsync();
+        await _app.DisposeAsync();
+    }
+
     public static async Task<WasmHostingTestServer> CreateAsync(string? bundlePath)
     {
         var builder = WebApplication.CreateBuilder();
@@ -26,16 +31,9 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
 
         var app = builder.Build();
         app.UseRouting();
-        ((IEndpointRouteBuilder)app).UseRask(bundlePath);
+        app.UseRask(bundlePath);
 
         await app.StartAsync();
         return new WasmHostingTestServer(app);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        Http.Dispose();
-        await _app.StopAsync();
-        await _app.DisposeAsync();
     }
 }

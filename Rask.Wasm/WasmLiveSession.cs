@@ -1,11 +1,11 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Wasm;
 
@@ -30,8 +30,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             userProvider.Changed += OnUserChanged;
         }
     }
-
-    private void OnUserChanged() => _ = RequestRenderAsync();
 
     public Component View { get; }
     public IServiceProvider Services { get; }
@@ -74,6 +72,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // returns one final payload after the handler completes, intermediate scope renders are no-ops here.
         return Task.CompletedTask;
     }
+
+    private void OnUserChanged() => _ = RequestRenderAsync();
 
     public async Task<string> InitialRenderAsync()
     {

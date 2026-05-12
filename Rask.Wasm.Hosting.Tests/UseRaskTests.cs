@@ -129,7 +129,9 @@ public class UseRaskTests
     {
         public IServiceProvider ServiceProvider { get; } =
             new ServiceCollection().BuildServiceProvider();
+
         public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
+
         public IApplicationBuilder CreateApplicationBuilder() =>
             throw new NotSupportedException("test stub does not build apps");
     }

@@ -1,10 +1,9 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Example.Shared;
 
-[Route("navigator"), ParentRoute(typeof(ShowcaseLayout))]
+[Route("navigator")]
+[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
 {
     public override Component Render() =>
@@ -12,7 +11,6 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
             PageHeader.Render(
                 "Navigator",
                 "A scoped service that lets event-handler code change the route. It throws if you call it from Render() or during an initial GET — navigation belongs in event handlers."),
-
             H2(Class: "h4 mt-4 mb-3", Children: ["Current location"]),
             Div(Class: "card shadow-sm border-0 mb-4", Children:
             [
@@ -28,15 +26,17 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                         Div(Class: "col-md-6", Children:
                         [
                             Span(Class: "text-secondary small text-uppercase", Children: ["Query"]),
-                            Div(Children: [Code(Class: "fs-6", Children:
+                            Div(Children:
                             [
-                                route.Query.Count == 0 ? "(empty)" : BuildQuery(route)
-                            ])])
+                                Code(Class: "fs-6", Children:
+                                [
+                                    route.Query.Count == 0 ? "(empty)" : BuildQuery(route)
+                                ])
+                            ])
                         ])
                     ])
                 ])
             ]),
-
             H2(Class: "h4 mt-4 mb-3", Children: ["Query mutators"]),
             P(Class: "text-secondary", Children:
             [
@@ -44,13 +44,17 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
             ]),
             Div(Class: "btn-group flex-wrap mb-3", Children:
             [
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "1"), Children: ["SetQuery page=1"]),
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "2"), Children: ["SetQuery page=2"]),
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("sort", "asc"), Children: ["SetQuery sort=asc"]),
-                Button(Class: "btn btn-outline-secondary btn-sm", OnClick: () => nav.RemoveQuery("page"), Children: ["RemoveQuery page"]),
-                Button(Class: "btn btn-outline-danger btn-sm", OnClick: () => nav.ClearQuery(), Children: ["ClearQuery"])
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "1"),
+                    Children: ["SetQuery page=1"]),
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "2"),
+                    Children: ["SetQuery page=2"]),
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("sort", "asc"),
+                    Children: ["SetQuery sort=asc"]),
+                Button(Class: "btn btn-outline-secondary btn-sm", OnClick: () => nav.RemoveQuery("page"),
+                    Children: ["RemoveQuery page"]),
+                Button(Class: "btn btn-outline-danger btn-sm", OnClick: () => nav.ClearQuery(),
+                    Children: ["ClearQuery"])
             ]),
-
             H2(Class: "h4 mt-4 mb-3", Children: ["Path navigation"]),
             Div(Class: "d-flex flex-wrap gap-2 mb-4", Children:
             [
@@ -60,10 +64,10 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                     Children: [I(Class: "bi bi-arrow-counterclockwise me-1"), "Navigate(\"/navigator\")"]),
                 Button(
                     Class: "btn btn-outline-primary btn-sm",
-                    OnClick: () => nav.Navigate("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }),
+                    OnClick: () =>
+                        nav.Navigate("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }),
                     Children: [I(Class: "bi bi-arrow-up-right me-1"), "Navigate(path, query)"])
             ]),
-
             Div(Class: "alert alert-info d-flex align-items-start", Children:
             [
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
@@ -73,26 +77,28 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                     " Navigator mutates RouteState and asks the dispatcher to push history. Doing that during Render() would mid-render the page out from under itself. Use it from button clicks, form submits, or lifecycle hooks that ran in response to an event."
                 ])
             ]),
-
             Components.CodeSample(
-                Source: """
-                    Button(
-                        OnClick: () => nav.Navigate("/dashboard"),
-                        Children: ["Open dashboard"])
+                """
+                Button(
+                    OnClick: () => nav.Navigate("/dashboard"),
+                    Children: ["Open dashboard"])
 
-                    // Or update just the query, keeping the same path:
-                    Select(
-                        OnChange: v => nav.SetQuery("sort", v),
-                        Children: [...])
-                    """)
+                // Or update just the query, keeping the same path:
+                Select(
+                    OnChange: v => nav.SetQuery("sort", v),
+                    Children: [...])
+                """)
         );
 
     private static string BuildQuery(RouteState route)
     {
         var parts = new List<string>();
         foreach (var kv in route.Query)
-            foreach (var v in kv.Value)
-                parts.Add($"{kv.Key}={v}");
+        foreach (var v in kv.Value)
+        {
+            parts.Add($"{kv.Key}={v}");
+        }
+
         return string.Join("&", parts);
     }
 }

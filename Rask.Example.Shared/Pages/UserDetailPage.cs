@@ -1,10 +1,9 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Example.Shared;
 
-[Route("users/{id}"), ParentRoute(typeof(ShowcaseLayout))]
+[Route("users/{id}")]
+[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class UserDetailPage(Navigator nav) : Component
 {
     [RouteParam] public string Id { get; set; } = string.Empty;
@@ -15,7 +14,6 @@ public sealed class UserDetailPage(Navigator nav) : Component
             PageHeader.Render(
                 $"User #{Id}",
                 "This page lives at /users/{id}. The Id property is bound from the URL segment and Tab from the ?tab= query string."),
-
             H2(Class: "h4 mt-4 mb-3", Children: ["Current binding"]),
             Div(Class: "card mb-3 shadow-sm border-0", Children:
             [
@@ -36,20 +34,19 @@ public sealed class UserDetailPage(Navigator nav) : Component
                     ])
                 ])
             ]),
-
             Components.CodeSample(
-                Source: """
-                    [Route("users/{id}")]
-                    public sealed class UserDetailPage : Component
-                    {
-                        [RouteParam] public string Id { get; set; } = string.Empty;
-                        [QueryParam("tab")] public string? Tab { get; set; }
+                """
+                [Route("users/{id}")]
+                public sealed class UserDetailPage : Component
+                {
+                    [RouteParam] public string Id { get; set; } = string.Empty;
+                    [QueryParam("tab")] public string? Tab { get; set; }
 
-                        public override Component Render() => /* uses Id and Tab */;
-                    }
-                    """,
-                Notes: "Route templates use {name} for segments. Add a type constraint with {name:int}, optional with {name?}, or a catch-all with {**rest}. [RouteParam] without an argument matches by property name; pass a string to alias."),
-
+                    public override Component Render() => /* uses Id and Tab */;
+                }
+                """,
+                Notes:
+                "Route templates use {name} for segments. Add a type constraint with {name:int}, optional with {name?}, or a catch-all with {**rest}. [RouteParam] without an argument matches by property name; pass a string to alias."),
             H2(Class: "h4 mt-5 mb-3", Children: ["Switch user"]),
             Div(Class: "btn-group mb-3", Children:
             [

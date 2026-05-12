@@ -1,6 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Server.Tests.Live;
 

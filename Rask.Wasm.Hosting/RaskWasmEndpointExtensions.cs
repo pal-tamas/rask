@@ -59,8 +59,7 @@ public static class RaskWasmEndpointExtensions
 
         app.UseDefaultFiles(new DefaultFilesOptions
         {
-            FileProvider = fileProvider,
-            DefaultFileNames = new[] { "index.html" }
+            FileProvider = fileProvider, DefaultFileNames = new[] { "index.html" }
         });
 
         app.UseStaticFiles(new StaticFileOptions

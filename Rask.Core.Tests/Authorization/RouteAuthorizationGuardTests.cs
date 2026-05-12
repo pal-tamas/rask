@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using Rask.Core.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authorization;
 
 namespace Rask.Core.Tests.Authorization;
 

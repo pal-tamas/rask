@@ -2,14 +2,6 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Rask.Core;
-using Rask.Core.Authentication;
-using Rask.Core.Authorization;
-using Rask.Core.Components;
-using Rask.Core.Live;
-using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
-using Rask.Server.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +11,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
+using Rask.Core;
+using Rask.Core.Authentication;
+using Rask.Core.Authorization;
+using Rask.Core.Components;
+using Rask.Core.Live;
+using Rask.Core.Routing;
+using Rask.Core.ScopedCss;
+using Rask.Server.Authentication;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -64,12 +64,7 @@ public static class RaskEndpointExtensions
         var options = new RaskAuthorizationOptions();
         configure(options);
         services.AddSingleton(options);
-        return AddRask(services);
-    }
-
-    private sealed class ServerRuntimeScript : IRaskRuntimeScript
-    {
-        public Component Render() => Tags.Script(RuntimePath);
+        return services.AddRask();
     }
 
     public static WebApplication UseRask<TApp>(
@@ -646,6 +641,11 @@ public static class RaskEndpointExtensions
         using var stream = asm.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
+    }
+
+    private sealed class ServerRuntimeScript : IRaskRuntimeScript
+    {
+        public Component Render() => Tags.Script(RuntimePath);
     }
 
     internal sealed class RaskLiveMarker

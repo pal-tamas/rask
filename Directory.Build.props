@@ -28,4 +28,22 @@
     <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    In-repo auto-import for Rask implicit-usings props. Only the Rask.Example.*
+    and Rask.Examples.* projects opt in — they're the in-repo stand-ins for
+    downstream consumers, who pick up the same <Using> items via NuGet's auto-
+    import of build/$(PackageId).props. Framework projects (Rask.Core, Rask.Server,
+    Rask.Wasm, etc.) deliberately don't get the implicit using static Rask.Core.Tags
+    because method-group names like Doctype()/Div()/Span() clash with the like-named
+    classes they define.
+  -->
+  <PropertyGroup>
+    <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
+    <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) ">true</_RaskInRepoImplicitUsings>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props') "/>
+
 </Project>

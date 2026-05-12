@@ -1,6 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Wasm.Tests.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Wasm.Tests.Session;
 

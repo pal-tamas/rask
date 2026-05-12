@@ -5,17 +5,15 @@ namespace Rask.Server.Authentication;
 
 public sealed class SessionUserProvider : IUserProvider
 {
-    private ClaimsPrincipal _current = new(new ClaimsIdentity());
-
-    public ClaimsPrincipal Current => _current;
+    public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());
 
     public event Action? Changed;
 
     public void Set(ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        var prev = _current;
-        _current = user;
+        var prev = Current;
+        Current = user;
         if (!ReferenceEquals(prev, user))
         {
             Changed?.Invoke();

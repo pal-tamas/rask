@@ -1,5 +1,5 @@
-using Rask.Core.Routing;
 using Microsoft.Extensions.Primitives;
+using Rask.Core.Routing;
 
 namespace Rask.Core.Tests.Routing;
 

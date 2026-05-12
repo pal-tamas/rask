@@ -40,7 +40,7 @@
     </XmlPeek>
     <ItemGroup>
       <_RaskWasmRef Include="%(ProjectReference.FullPath)"
-                     Condition=" '$(_RaskWasmBundleProbe)' == 'true' "/>
+                    Condition=" '$(_RaskWasmBundleProbe)' == 'true' "/>
     </ItemGroup>
     <PropertyGroup>
       <_RaskWasmBundleProbe></_RaskWasmBundleProbe>

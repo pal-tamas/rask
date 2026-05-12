@@ -150,9 +150,15 @@
             body: JSON.stringify({ticket: auth.ticket, session: sessionId}),
             credentials: "same-origin"
         }).then(function () {
-            try { if (ws) ws.close(1000, "auth-refresh"); } catch (e) {}
+            try {
+                if (ws) ws.close(1000, "auth-refresh");
+            } catch (e) {
+            }
         }).catch(function (err) {
-            try { console.error("Rask auth redeem failed:", err); } catch (e) {}
+            try {
+                console.error("Rask auth redeem failed:", err);
+            } catch (e) {
+            }
             // Fallback: a full reload picks up whatever cookie state is current.
             location.reload();
         });

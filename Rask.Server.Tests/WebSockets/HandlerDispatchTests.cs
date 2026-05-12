@@ -1,4 +1,5 @@
 using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Server.Tests.Infrastructure;
@@ -79,8 +80,8 @@ public class HandlerDispatchTests
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
             Assert.Equal(1, host.Store.Count);
 
-            var bytes = System.Text.Encoding.UTF8.GetBytes("{not-json");
-            await ws.SendAsync(bytes, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None);
+            var bytes = Encoding.UTF8.GetBytes("{not-json");
+            await ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
 
             // Socket loop tears down on JsonException; the session is then scheduled for removal.
             var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
@@ -111,7 +112,7 @@ public class HandlerDispatchTests
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(text);
-        Assert.Equal(System.Net.WebSockets.WebSocketState.Open, ws.State);
+        Assert.Equal(WebSocketState.Open, ws.State);
     }
 
     [Fact]
@@ -176,7 +177,7 @@ public class HandlerDispatchTests
         var afterBump = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(afterBump);
         Assert.Contains("count=1", afterBump);
-        Assert.Equal(System.Net.WebSockets.WebSocketState.Open, ws.State);
+        Assert.Equal(WebSocketState.Open, ws.State);
     }
 
     private static string ExtractSessionId(string html) =>

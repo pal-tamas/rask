@@ -1,10 +1,9 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Example.Shared;
 
-[Route("components"), ParentRoute(typeof(ShowcaseLayout))]
+[Route("components")]
+[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ComponentsPage : Component
 {
     public override Component Render() =>
@@ -12,60 +11,59 @@ public sealed class ComponentsPage : Component
             PageHeader.Render(
                 "User components",
                 "Subclass Component, override Render. The Rask source generator emits a Namespace.Components.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
-
             H2(Class: "h4 mt-4 mb-3", Children: ["A component and its generated factory"]),
             Components.CodeSample(
-                Source: """
-                    public sealed class Greeting : Component
-                    {
-                        public required string Name { get; set; }
-                        public string? Title { get; set; }
+                """
+                public sealed class Greeting : Component
+                {
+                    public required string Name { get; set; }
+                    public string? Title { get; set; }
 
-                        public override Component Render() =>
-                            P(Children: [
-                                Title is null ? "" : $"{Title} ",
-                                "Hello, ", Strong(Children: [Name]), "!"
-                            ]);
-                    }
+                    public override Component Render() =>
+                        P(Children: [
+                            Title is null ? "" : $"{Title} ",
+                            "Hello, ", Strong(Children: [Name]), "!"
+                        ]);
+                }
 
-                    // call site (generated factory):
-                    Components.Greeting(Name: "Ada", Title: "Dr.")
-                    """,
-                Notes: "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
-                Result: Components.Greeting(Name: "Ada", Title: "Dr.")),
-
+                // call site (generated factory):
+                Components.Greeting(Name: "Ada", Title: "Dr.")
+                """,
+                Notes:
+                "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
+                Result: Components.Greeting("Ada", "Dr.")),
             H2(Class: "h4 mt-5 mb-3", Children: ["DI via constructor"]),
             Components.CodeSample(
-                Source: """
-                    // Inject services like HttpClient/Navigator/RouteState through the
-                    // primary constructor — never as a public settable property:
-                    public sealed class WeatherCard(HttpClient http) : Component
-                    {
-                        public required string City { get; set; }
-                        // ... uses `http` to fetch
-                    }
+                """
+                // Inject services like HttpClient/Navigator/RouteState through the
+                // primary constructor — never as a public settable property:
+                public sealed class WeatherCard(HttpClient http) : Component
+                {
+                    public required string City { get; set; }
+                    // ... uses `http` to fetch
+                }
 
-                    // call site is unchanged — ActivatorUtilities resolves `http`:
-                    Components.WeatherCard(City: "Helsinki")
-                    """,
-                Notes: "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),
-
+                // call site is unchanged — ActivatorUtilities resolves `http`:
+                Components.WeatherCard(City: "Helsinki")
+                """,
+                Notes:
+                "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),
             H2(Class: "h4 mt-5 mb-3", Children: ["[SkipFactory] hides a property"]),
             Components.CodeSample(
-                Source: """
-                    public sealed class Counter : Component
-                    {
-                        [SkipFactory] public int Initial { get; set; }
-                        private int _count;
-                        protected override void OnInitialized() => _count = Initial;
-                        // ... renders _count
-                    }
+                """
+                public sealed class Counter : Component
+                {
+                    [SkipFactory] public int Initial { get; set; }
+                    private int _count;
+                    protected override void OnInitialized() => _count = Initial;
+                    // ... renders _count
+                }
 
-                    // Initial is excluded from the factory; assign it directly:
-                    var c = new Counter { Initial = 7 };
-                    """,
-                Notes: "[SkipFactory] keeps a property settable in code while removing it from the generated factory signature."),
-
+                // Initial is excluded from the factory; assign it directly:
+                var c = new Counter { Initial = 7 };
+                """,
+                Notes:
+                "[SkipFactory] keeps a property settable in code while removing it from the generated factory signature."),
             H2(Class: "h4 mt-5 mb-3", Children: ["Diagnostics"]),
             Div(Class: "list-group mb-3", Children:
             [

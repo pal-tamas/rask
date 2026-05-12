@@ -16,7 +16,7 @@ public class AnonymousUserProviderTests
     public void Changed_DoesNotThrowWhenSubscribedAndUnsubscribed()
     {
         var provider = new AnonymousUserProvider();
-        Action handler = () => { };
+        var handler = () => { };
         provider.Changed += handler;
         provider.Changed -= handler;
     }

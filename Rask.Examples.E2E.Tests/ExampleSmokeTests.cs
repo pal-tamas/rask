@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using Rask.Examples.E2E.Tests.Infrastructure;
 using Microsoft.Playwright;
+using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -56,7 +56,10 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
-        for (var i = 0; i < 3; i++) await clickButton.ClickAsync();
+        for (var i = 0; i < 3; i++)
+        {
+            await clickButton.ClickAsync();
+        }
 
         await Expect(clickButton)
             .ToContainTextAsync("Clicks: 3", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -72,7 +75,7 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         var input = Page.Locator(".sample-result-body input[type=text]:not([name])").First;
         await input.FillAsync("Hello Rask");
 
-        await Expect(Page.Locator(".sample-result-body").Filter(new() { HasText = "You typed:" }))
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "You typed:" }))
             .ToContainTextAsync("Hello Rask", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
@@ -86,7 +89,8 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Page.Locator("input[name=name]").FillAsync("Ada");
         await Page.Locator("button[type=submit]").ClickAsync();
 
-        await Expect(Page.Locator(".sample-result-body").Filter(new() { HasText = "Last submitted:" }))
+        await Expect(Page.Locator(".sample-result-body")
+                .Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
@@ -149,7 +153,7 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
 
         await Expect(Page).ToHaveURLAsync(new Regex(".*\\?sort=asc.*"),
             new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("main").Filter(new() { HasText = "Query" }))
+        await Expect(Page.Locator("main").Filter(new LocatorFilterOptions { HasText = "Query" }))
             .ToContainTextAsync("sort=asc",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
@@ -184,14 +188,14 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     private static int ExtractRenderCount(string? text) =>
-        int.Parse(System.Text.RegularExpressions.Regex.Match(text ?? "0", @"\d+").Value);
+        int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
 
     [Fact]
     public Task UnknownRoute_DoesNotErrorOut() => RunAsync(async () =>
     {
         var response = await Page.GotoAsync("/this-route-definitely-does-not-exist");
         Assert.NotNull(response);
-        Assert.True((int)response!.Status < 500, $"unexpected status {response.Status}");
+        Assert.True(response!.Status < 500, $"unexpected status {response.Status}");
         // The navbar (which sits outside Outlet) is still rendered.
         await Expect(Page.Locator(".navbar .navbar-brand"))
             .ToContainTextAsync("Rask", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });

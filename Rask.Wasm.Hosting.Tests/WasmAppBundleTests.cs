@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Rask.Wasm.Hosting.Tests;
 
@@ -37,12 +38,12 @@ public class WasmAppBundleTests
         public Assembly AssemblyWithMetadata(string value)
         {
             var asmName = new AssemblyName("DynamicMetadataTest-" + Guid.NewGuid().ToString("N"));
-            var asmBuilder = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(
-                asmName, System.Reflection.Emit.AssemblyBuilderAccess.Run);
+            var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(
+                asmName, AssemblyBuilderAccess.Run);
             var ctor = typeof(AssemblyMetadataAttribute)
                 .GetConstructor(new[] { typeof(string), typeof(string) })!;
             asmBuilder.SetCustomAttribute(
-                new System.Reflection.Emit.CustomAttributeBuilder(ctor, new object[] { WasmAppBundle.MetadataKey, value }));
+                new CustomAttributeBuilder(ctor, new object[] { WasmAppBundle.MetadataKey, value }));
             return asmBuilder;
         }
     }

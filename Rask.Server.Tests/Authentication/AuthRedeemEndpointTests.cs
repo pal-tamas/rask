@@ -1,12 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Server.Tests.Authentication;
 

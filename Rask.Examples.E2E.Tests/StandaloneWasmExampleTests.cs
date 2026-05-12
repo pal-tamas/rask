@@ -1,15 +1,15 @@
 using System.Text.RegularExpressions;
-using Rask.Examples.E2E.Tests.Infrastructure;
 using Microsoft.Playwright;
+using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-/// Smoke tests for the standalone <c>Rask.Example.Wasm</c> example, served by
-/// WasmAppHost (the dev launcher used by <c>dotnet run</c>). WasmAppHost has no
-/// SPA fallback for unknown paths, so every test starts at <c>/</c> and uses the
-/// sidebar to reach the section under test — never <c>Page.GotoAsync("/deep")</c>.
+///     Smoke tests for the standalone <c>Rask.Example.Wasm</c> example, served by
+///     WasmAppHost (the dev launcher used by <c>dotnet run</c>). WasmAppHost has no
+///     SPA fallback for unknown paths, so every test starts at <c>/</c> and uses the
+///     sidebar to reach the section under test — never <c>Page.GotoAsync("/deep")</c>.
 /// </summary>
 [Collection(StandaloneWasmExampleCollection.Name)]
 public sealed class StandaloneWasmExampleTests : IAsyncLifetime

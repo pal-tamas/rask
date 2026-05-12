@@ -1,29 +1,67 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Example.Shared;
 
 [Route("/")]
 public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 {
-    protected override string? Css => LayoutCss;
+    private const string LayoutCss = """
+                                     .side-nav {
+                                         min-height: calc(100vh - 56px);
+                                     }
+                                     .nav-item-btn {
+                                         display: flex;
+                                         align-items: center;
+                                         width: 100%;
+                                         padding: 0.42rem 0.7rem;
+                                         border: 1px solid transparent;
+                                         border-radius: 0.5rem;
+                                         background: transparent;
+                                         color: #333;
+                                         font-size: 0.92rem;
+                                         text-align: left;
+                                         margin-bottom: 0.15rem;
+                                         transition: background-color 120ms ease, color 120ms ease;
+                                     }
+                                     .nav-item-btn:hover {
+                                         background: var(--rask-accent-soft);
+                                         color: var(--rask-accent-strong);
+                                     }
+                                     .nav-item-btn-active {
+                                         background: var(--rask-accent-soft);
+                                         color: var(--rask-accent);
+                                         font-weight: 600;
+                                     }
+                                     .nav-item-btn .bi {
+                                         font-size: 1rem;
+                                         opacity: 0.85;
+                                     }
+                                     @media (max-width: 767.98px) {
+                                         .side-nav {
+                                             min-height: auto;
+                                             border-right: none !important;
+                                             border-bottom: 1px solid var(--bs-border-color);
+                                         }
+                                     }
+                                     """;
 
     private static readonly (string Path, string Label, string Icon, string Group)[] Links =
     [
-        ("/",           "Welcome",              "bi-house",        "Start"),
-        ("/tags",       "Tag factories",        "bi-code-slash",   "DSL"),
-        ("/primitives", "Primitives",           "bi-asterisk",     "DSL"),
-        ("/props",      "Universal props",      "bi-gear",         "DSL"),
-        ("/components", "User components",      "bi-boxes",        "Components"),
-        ("/routing",    "Routing",              "bi-signpost-2",   "Components"),
-        ("/users/42",   "Route + query params", "bi-link-45deg",   "Components"),
-        ("/navigator",  "Navigator",            "bi-compass",      "Components"),
-        ("/lifecycle",  "Lifecycle",            "bi-arrow-repeat", "Components"),
-        ("/events",     "Events",               "bi-mouse",        "Components"),
-        ("/scoped-css", "Scoped CSS",           "bi-palette",      "Styling"),
-        ("/http",       "HttpClient + DI",      "bi-cloud-arrow-down", "Data"),
+        ("/", "Welcome", "bi-house", "Start"),
+        ("/tags", "Tag factories", "bi-code-slash", "DSL"),
+        ("/primitives", "Primitives", "bi-asterisk", "DSL"),
+        ("/props", "Universal props", "bi-gear", "DSL"),
+        ("/components", "User components", "bi-boxes", "Components"),
+        ("/routing", "Routing", "bi-signpost-2", "Components"),
+        ("/users/42", "Route + query params", "bi-link-45deg", "Components"),
+        ("/navigator", "Navigator", "bi-compass", "Components"),
+        ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components"),
+        ("/events", "Events", "bi-mouse", "Components"),
+        ("/scoped-css", "Scoped CSS", "bi-palette", "Styling"),
+        ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data")
     ];
+
+    protected override string? Css => LayoutCss;
 
     public override Component Render() =>
         Fragment(
@@ -43,17 +81,16 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     [
                         Span(Class: "text-secondary small d-none d-md-inline", Children:
                         [
-                            $"path: ",
+                            "path: ",
                             Code(Class: "text-info", Children: [route.Path])
                         ]),
-                        A(Href: "https://github.com/pal-tamas/rask",
-                          Target: "_blank",
-                          Class: "btn btn-outline-light btn-sm",
-                          Children: [I(Class: "bi bi-github me-1"), "GitHub"])
+                        A("https://github.com/pal-tamas/rask",
+                            "_blank",
+                            Class: "btn btn-outline-light btn-sm",
+                            Children: [I(Class: "bi bi-github me-1"), "GitHub"])
                     ])
                 ])
             ]),
-
             Div(Class: "container-fluid", Children:
             [
                 Div(Class: "row", Children:
@@ -82,6 +119,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     Children: [group]));
                 currentGroup = group;
             }
+
             var active = IsActive(path);
             children.Add(Button(
                 Class: active
@@ -94,53 +132,18 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     Span(Children: [label])
                 ]));
         }
+
         return children;
     }
 
     private bool IsActive(string href)
     {
-        if (href == "/") return route.Path == "/" || string.IsNullOrEmpty(route.Path);
+        if (href == "/")
+        {
+            return route.Path == "/" || string.IsNullOrEmpty(route.Path);
+        }
+
         var trimmed = route.Path.TrimEnd('/');
         return string.Equals(trimmed, href, StringComparison.OrdinalIgnoreCase);
     }
-
-    private const string LayoutCss = """
-        .side-nav {
-            min-height: calc(100vh - 56px);
-        }
-        .nav-item-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            padding: 0.42rem 0.7rem;
-            border: 1px solid transparent;
-            border-radius: 0.5rem;
-            background: transparent;
-            color: #333;
-            font-size: 0.92rem;
-            text-align: left;
-            margin-bottom: 0.15rem;
-            transition: background-color 120ms ease, color 120ms ease;
-        }
-        .nav-item-btn:hover {
-            background: var(--rask-accent-soft);
-            color: var(--rask-accent-strong);
-        }
-        .nav-item-btn-active {
-            background: var(--rask-accent-soft);
-            color: var(--rask-accent);
-            font-weight: 600;
-        }
-        .nav-item-btn .bi {
-            font-size: 1rem;
-            opacity: 0.85;
-        }
-        @media (max-width: 767.98px) {
-            .side-nav {
-                min-height: auto;
-                border-right: none !important;
-                border-bottom: 1px solid var(--bs-border-color);
-            }
-        }
-        """;
 }

@@ -3,9 +3,10 @@ using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Rask.Server.Tests.Infrastructure;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Authentication;
 
@@ -128,7 +129,7 @@ public class AuthSignInDispatchTests
                     .AddCookie("TestCookie", o =>
                     {
                         o.Cookie.Name = "TestCookie";
-                        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                        o.Cookie.SameSite = SameSiteMode.Lax;
                     });
                 services.AddAuthorization();
             },
@@ -147,7 +148,11 @@ public class AuthSignInDispatchTests
                         var jar = ctx.RequestServices.GetRequiredService<TestCookieJar>();
                         foreach (var v in values)
                         {
-                            if (v is null) continue;
+                            if (v is null)
+                            {
+                                continue;
+                            }
+
                             var semi = v.IndexOf(';');
                             jar.Cookie = semi < 0 ? v : v[..semi];
                         }

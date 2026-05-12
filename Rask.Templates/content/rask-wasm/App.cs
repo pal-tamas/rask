@@ -1,5 +1,3 @@
-using Rask.Core;
-using static Rask.Core.Tags;
 using static Company.RaskWasm.Routes;
 
 namespace Company.RaskWasm;

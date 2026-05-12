@@ -1,9 +1,9 @@
 using System.Net.WebSockets;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Live;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Server;
 
@@ -14,8 +14,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
-    public bool SuppressEventsUntilReconnect { get; set; }
-
     public LiveSession(string id, Component view, IServiceScope scope)
     {
         Id = id;
@@ -23,6 +21,8 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         Scope = scope;
         view.RenderHandle = this;
     }
+
+    public bool SuppressEventsUntilReconnect { get; set; }
 
     public string Id { get; }
     public Component View { get; }
@@ -101,7 +101,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         var html = View.RenderAsLiveRoot(Services);
         var withRoot = LivePayload.InjectRootAttr(html, Id);
         var body = LivePayload.ExtractBody(withRoot);
-        var payload = LivePayload.BuildPayload(body, historyUrl, replace, cssText: null, auth: auth);
+        var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth);
         await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, _socketCt)
             .ConfigureAwait(false);
     }

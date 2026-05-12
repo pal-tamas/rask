@@ -1,9 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 
 namespace Rask.Core.Tests.Components;
 

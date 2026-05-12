@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Core;
 

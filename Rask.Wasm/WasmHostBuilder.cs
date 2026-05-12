@@ -1,12 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 
 namespace Rask.Wasm;
 

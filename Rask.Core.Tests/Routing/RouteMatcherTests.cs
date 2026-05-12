@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Microsoft.AspNetCore.Http;
 
 namespace Rask.Core.Tests.Routing;
 
