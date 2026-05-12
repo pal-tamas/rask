@@ -79,6 +79,64 @@ public class GlobalUsingsEmissionTests
         Assert.DoesNotContain(generated, s => s.HintName.Contains("RaskGlobalUsings.g.cs", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void DeeplyNestedNamespace_EmitsFullyQualifiedImport()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo.App.Pages.Account;
+                  public sealed class Widget : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains("global using static global::Demo.App.Pages.Account.Components;", output);
+    }
+
+    [Fact]
+    public void ComponentInGlobalNamespace_NoExtraImport()
+    {
+        // A user component in the global namespace has no namespace prefix to attach,
+        // and `Components` (a free static class) cannot reach it via `using static`.
+        // The Tags line must still emit; no extra `using static .Components;` line.
+        var src = """
+                  using Rask.Core;
+                  public sealed class Widget : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains("global using static global::Rask.Core.Tags;", output);
+        Assert.DoesNotContain("global using static global::.Components;", output);
+        Assert.DoesNotContain("global using static global::Components;", output);
+    }
+
+    [Fact]
+    public void InternalUserComponent_IncludedInImport()
+    {
+        // Internal components still emit a {Ns}.Components factory; the global
+        // using must cover them so users can call them from the same assembly
+        // without a manual import.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  internal sealed class Widget : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains("global using static global::Demo.Components;", output);
+    }
+
     private static string Run(string source) => Run(source, null);
 
     private static string Run(string source, Dictionary<string, string>? buildProps)

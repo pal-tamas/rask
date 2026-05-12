@@ -148,6 +148,63 @@ public class ComponentConstructionAnalyzerTests
         Assert.Empty(diagnostics);
     }
 
+    [Fact]
+    public async Task NewInsideUserRenderOverride_ReportsRask014()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Components;
+                  namespace Demo;
+                  public sealed class Page : Component
+                  {
+                      protected override Component Render() => new Div(null);
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src);
+
+        var d = Assert.Single(diagnostics);
+        Assert.Equal("RASK014", d.Id);
+    }
+
+    [Fact]
+    public async Task NewInsideArrayInitializer_ReportsRask014ForEachElement()
+    {
+        var src = """
+                  using Rask.Core.Components;
+                  class C
+                  {
+                      void M() { var arr = new[] { new Div(null), new Span(null) }; }
+                  }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src);
+
+        // The implicit `new[]` is not a Component (array creation), so only the
+        // two inner Component constructors should be flagged.
+        Assert.Equal(2, diagnostics.Length);
+        Assert.All(diagnostics, d => Assert.Equal("RASK014", d.Id));
+    }
+
+    [Fact]
+    public async Task NewInternalUserComponent_ReportsRask014()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  internal sealed class Hidden : Component
+                  {
+                      public override Component Render() => this;
+                  }
+                  class Caller { void M() { var x = new Hidden(); } }
+                  """;
+
+        var diagnostics = await GetDiagnosticsAsync(src);
+
+        var d = Assert.Single(diagnostics);
+        Assert.Equal("RASK014", d.Id);
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source,
         string assemblyName = "TestAssembly")
     {

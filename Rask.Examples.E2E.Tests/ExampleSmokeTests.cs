@@ -172,6 +172,25 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Primitives_RawFactory_RendersVerbatimHtml() => RunAsync(async () =>
+    {
+        // Proves the Tags.Raw(string) factory (added alongside the RASK014 ban
+        // on `new`) reaches the browser as actual markup: a Text component
+        // would HTML-encode the angle brackets and no <strong> element would
+        // appear in the DOM.
+        await Page.GotoAsync("/primitives");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Primitives",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var rawResult = Page.Locator(".sample-result-body p")
+            .Filter(new LocatorFilterOptions { HasText = "Already" }).First;
+        await Expect(rawResult.Locator("strong"))
+            .ToHaveTextAsync("safe",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Http_LoadsPostFromJsonPlaceholder() => RunAsync(async () =>
     {
         await Page.GotoAsync("/http");
