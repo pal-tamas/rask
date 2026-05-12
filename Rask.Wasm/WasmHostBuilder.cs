@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
 
@@ -44,6 +45,10 @@ public sealed class WasmHostBuilder
         var provider = Services.BuildServiceProvider();
 
         var app = ActivatorUtilities.CreateInstance<TApp>(provider);
+        // Wrap the App in an implicit RootErrorBoundary so an uncaught render / lifecycle /
+        // event-handler exception anywhere in the user's tree renders a styled fallback
+        // page instead of leaving the browser on a blank screen.
+        var root = new RootErrorBoundary(app);
 
         var routeState = provider.GetRequiredService<RouteState>();
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);
@@ -58,7 +63,7 @@ public sealed class WasmHostBuilder
             }
         }
 
-        var session = new WasmLiveSession(app, provider);
+        var session = new WasmLiveSession(root, provider);
         JSInterop.Init(session);
 
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);

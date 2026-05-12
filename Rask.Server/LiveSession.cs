@@ -21,6 +21,13 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         View = view;
         Scope = scope;
         view.RenderHandle = this;
+        // RootErrorBoundary wraps the user's App; forward the handle to the inner so its
+        // StateHasChanged() still reaches the session even before the first GetOrCreate
+        // (which would otherwise be where the handle gets lazily attached).
+        if (view is RootErrorBoundary root)
+        {
+            root.Inner.RenderHandle = this;
+        }
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }

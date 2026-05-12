@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
@@ -8,6 +9,7 @@ namespace Rask.Core.Live;
 public sealed class LiveRenderContext : IDisposable
 {
     private static readonly AsyncLocal<LiveRenderContext?> _current = new();
+    private readonly Stack<ErrorBoundary> _boundaryStack = new();
     private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts = new();
     private readonly IRenderHandle? _handle;
     private readonly Stack<Component> _parentStack = new();
@@ -38,6 +40,8 @@ public sealed class LiveRenderContext : IDisposable
 
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;
 
+    internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
+
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
     public void Dispose() => _current.Value = _previous;
@@ -57,6 +61,15 @@ public sealed class LiveRenderContext : IDisposable
     {
         _parentStack.Push(parent);
         return new ParentPopper(this);
+    }
+
+    internal IDisposable PushBoundary(ErrorBoundary boundary)
+    {
+        // Stamp the boundary's own ancestor on first push, so an error in the boundary's
+        // *fallback* (or its own async lifecycle) can still propagate to an outer boundary.
+        boundary.SetParentBoundary(CurrentBoundary);
+        _boundaryStack.Push(boundary);
+        return new BoundaryPopper(this);
     }
 
     public static LiveRenderContext Begin(Component root) =>
@@ -137,6 +150,20 @@ public sealed class LiveRenderContext : IDisposable
             if (_ctx._parentStack.Count > 0)
             {
                 _ctx._parentStack.Pop();
+            }
+        }
+    }
+
+    private sealed class BoundaryPopper : IDisposable
+    {
+        private readonly LiveRenderContext _ctx;
+        public BoundaryPopper(LiveRenderContext ctx) => _ctx = ctx;
+
+        public void Dispose()
+        {
+            if (_ctx._boundaryStack.Count > 0)
+            {
+                _ctx._boundaryStack.Pop();
             }
         }
     }

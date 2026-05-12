@@ -106,7 +106,14 @@ public static class RaskEndpointExtensions
                 }
             }
 
-            var session = store.Create(sp => ActivatorUtilities.CreateInstance<TApp>(sp));
+            var session = store.Create(sp =>
+            {
+                // Wrap the App in an implicit RootErrorBoundary so an uncaught render /
+                // lifecycle / event-handler exception anywhere in the user's tree renders a
+                // styled fallback page instead of an HTTP 500.
+                var app = ActivatorUtilities.CreateInstance<TApp>(sp);
+                return new RootErrorBoundary(app);
+            });
             session.Services.GetRequiredService<SessionUserProvider>().Set(user);
             var routeState = session.Services.GetRequiredService<RouteState>();
             routeState.Path = path;

@@ -32,6 +32,20 @@ public static partial class Tags
         return ctx.GetOrCreate<Outlet>(_ => new Outlet());
     }
 
+    public static F.ErrorBoundary ErrorBoundary(
+        IEnumerable<Child>? Children = null,
+        Func<Exception, Action, Child>? Fallback = null,
+        IReadOnlyList<object?>? ResetKeys = null)
+    {
+        // GetOrCreate (rather than `new` each render) is what lets the boundary keep its
+        // tripped state — _error survives renders the same way Router holds onto _leaves.
+        var ctx = LiveRenderContext.Current
+                  ?? throw new InvalidOperationException("ErrorBoundary() must be called inside a Rask render tree.");
+        var boundary = ctx.GetOrCreate<F.ErrorBoundary>(_ => new F.ErrorBoundary());
+        boundary.SetProps(Children, Fallback, ResetKeys);
+        return boundary;
+    }
+
     public static Text Text(string value) => new(value);
 
     public static Raw Raw(string html) => new(html);

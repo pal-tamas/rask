@@ -27,6 +27,11 @@ public abstract class Component
     private bool _propsDirty;
     private bool _stateDirty;
 
+    // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
+    // default branch). Async lifecycle continuations + dispatcher catch sites consult this
+    // pointer to trip the right boundary; null means no ancestor boundary registered.
+    internal Components.ErrorBoundary? Boundary { get; set; }
+
     protected internal virtual string? Css => null;
 
     // Components that read mutable state the framework doesn't observe (e.g. RouteState in
@@ -107,7 +112,7 @@ public abstract class Component
         {
             if (task.IsFaulted)
             {
-                Console.Error.WriteLine($"Rask lifecycle hook on {GetType().Name} faulted: {task.Exception}");
+                ReportLifecycleFault(this, task.Exception);
             }
 
             return;
@@ -120,7 +125,7 @@ public abstract class Component
             var comp = (Component)state!;
             if (t.IsFaulted)
             {
-                Console.Error.WriteLine($"Rask lifecycle hook on {comp.GetType().Name} faulted: {t.Exception}");
+                ReportLifecycleFault(comp, t.Exception);
                 return;
             }
 
@@ -131,6 +136,29 @@ public abstract class Component
 
             comp.StateHasChanged();
         }, this, TaskContinuationOptions.ExecuteSynchronously);
+    }
+
+    private static Components.ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
+        owner as Components.ErrorBoundary ?? owner.Boundary;
+
+    private static void ReportLifecycleFault(Component comp, AggregateException? ex)
+    {
+        var actual = (Exception?)ex?.InnerException ?? ex;
+        if (actual is null)
+        {
+            return;
+        }
+
+        // Prefer the boundary: it'll re-render with the fallback. Fall back to Console.Error
+        // logging only when there is no ancestor boundary, so a faulting hook is never silent.
+        var boundary = comp.Boundary;
+        if (boundary is not null)
+        {
+            boundary.Trip(actual);
+            return;
+        }
+
+        Console.Error.WriteLine($"Rask lifecycle hook on {comp.GetType().Name} faulted: {actual}");
     }
 
     internal Component RenderForLive()
@@ -223,7 +251,7 @@ public abstract class Component
         {
             if (t.IsFaulted)
             {
-                Console.Error.WriteLine($"Rask lifecycle hook on {c.GetType().Name} faulted: {t.Exception}");
+                ReportLifecycleFault(c, t.Exception);
             }
 
             return;
@@ -234,7 +262,7 @@ public abstract class Component
             var (comp, doRerender) = ((Component, bool))state!;
             if (task.IsFaulted)
             {
-                Console.Error.WriteLine($"Rask lifecycle hook on {comp.GetType().Name} faulted: {task.Exception}");
+                ReportLifecycleFault(comp, task.Exception);
                 return;
             }
 
@@ -261,6 +289,12 @@ public abstract class Component
 
         _ = handle.RequestRenderAsync();
     }
+
+    // Internal-only equivalent of StateHasChanged that flips the dirty flag without
+    // scheduling a render. RootErrorBoundary uses this to propagate "force the inner
+    // root to re-execute Render() this frame" semantics — the same behavior
+    // RenderAsLiveRootCore applies to its own root.
+    internal void MarkDirtyForFrame() => _stateDirty = true;
 
     public Task StateHasChangedAsync()
     {
@@ -301,31 +335,46 @@ public abstract class Component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.
         owner._stateDirty = true;
-        switch (handler)
+        try
         {
-            case Action a:
-                a();
-                return true;
-            case Func<Task> f:
-                await InvokeWithRenderingAsync(f).ConfigureAwait(false);
-                return true;
-            case Action<string> a:
-                a(ExtractString(payload, "value"));
-                return true;
-            case Func<string, Task> f:
-                var s = ExtractString(payload, "value");
-                await InvokeWithRenderingAsync(() => f(s)).ConfigureAwait(false);
-                return true;
-            case Action<FormData> a:
-                a(FormData.FromJson(payload));
-                return true;
-            case Func<FormData, Task> f:
-                var data = FormData.FromJson(payload);
-                await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
-                return true;
-            default:
-                handler.DynamicInvoke();
-                return true;
+            switch (handler)
+            {
+                case Action a:
+                    a();
+                    return true;
+                case Func<Task> f:
+                    await InvokeWithRenderingAsync(f).ConfigureAwait(false);
+                    return true;
+                case Action<string> a:
+                    a(ExtractString(payload, "value"));
+                    return true;
+                case Func<string, Task> f:
+                    var s = ExtractString(payload, "value");
+                    await InvokeWithRenderingAsync(() => f(s)).ConfigureAwait(false);
+                    return true;
+                case Action<FormData> a:
+                    a(FormData.FromJson(payload));
+                    return true;
+                case Func<FormData, Task> f:
+                    var data = FormData.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
+                    return true;
+                default:
+                    handler.DynamicInvoke();
+                    return true;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is not null)
+        {
+            // Route handler exceptions to the boundary that logically contains the handler.
+            // When the owner is itself an ErrorBoundary (the common case: a button rendered
+            // directly inside ErrorBoundary's Children — CurrentParent at registration time
+            // is the boundary), THAT boundary catches. owner.Boundary would route one level
+            // higher. For non-boundary owners (regular components), fall back to their
+            // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
+            // catch-and-log still fires.
+            ResolveHandlerBoundary(owner)!.Trip(ex);
+            return true;
         }
     }
 

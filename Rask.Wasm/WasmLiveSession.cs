@@ -26,6 +26,13 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         View = view;
         Services = services;
         view.RenderHandle = this;
+        // Forward the handle to the inner App when wrapped in a RootErrorBoundary so its
+        // StateHasChanged() reaches the session even before the first GetOrCreate would
+        // otherwise lazily attach it.
+        if (view is RootErrorBoundary root)
+        {
+            root.Inner.RenderHandle = this;
+        }
 
         if (services.GetService<IUserProvider>() is { } userProvider)
         {

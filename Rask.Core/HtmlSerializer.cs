@@ -44,6 +44,10 @@ internal static class HtmlSerializer
 
                 break;
 
+            case ErrorBoundary boundary:
+                SerializeErrorBoundary(boundary, sb);
+                break;
+
             case IElement el:
                 sb.Append('<').Append(el.TagNameInternal);
                 foreach (var (name, value) in el.AttributesInternal())
@@ -85,6 +89,13 @@ internal static class HtmlSerializer
                 // factories called from inside its Render AND handlers registered on
                 // elements deep in its rendered tree both attribute back to this component.
                 var live = LiveRenderContext.Current;
+                if (live is not null && component.Boundary is null)
+                {
+                    // Stamp the nearest enclosing boundary on first traversal so async
+                    // lifecycle and event-handler catch sites can find it later.
+                    component.Boundary = live.CurrentBoundary;
+                }
+
                 using (live?.PushScope(component))
                 using (live?.EnterParentScope(component))
                 {
@@ -92,6 +103,30 @@ internal static class HtmlSerializer
                 }
 
                 break;
+        }
+    }
+
+    private static void SerializeErrorBoundary(ErrorBoundary boundary, StringBuilder sb)
+    {
+        var live = LiveRenderContext.Current;
+        using (live?.PushScope(boundary))
+        using (live?.EnterParentScope(boundary))
+        using (live?.PushBoundary(boundary))
+        {
+            var saved = sb.Length;
+            try
+            {
+                Serialize(boundary.RenderForLive(), sb);
+            }
+            catch (Exception ex) when (boundary.Error is null)
+            {
+                // Rewind anything the failing subtree wrote so the fallback replaces it
+                // cleanly. The guard prevents recursive catching of a fallback that itself
+                // throws — that escape bubbles to the next outer boundary instead.
+                sb.Length = saved;
+                boundary.Trip(ex);
+                Serialize(boundary.RenderForLive(), sb);
+            }
         }
     }
 }

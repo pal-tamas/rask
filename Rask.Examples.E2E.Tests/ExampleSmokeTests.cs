@@ -322,6 +322,73 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Boom_HandlerThrow_RendersBoundaryFallback_AndRecoverRestores() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/boom");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Error boundary",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Initial state: the healthy "Throw a handler exception" button is visible inside
+        // its boundary's children — no fallback shown yet.
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback")).ToHaveCountAsync(0);
+
+        // Click the throwing button → ErrorBoundary catches the handler exception and
+        // replaces the subtree with its fallback. The healthy button must be gone.
+        await Page.Locator("#boom-throw").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback").First)
+            .ToContainTextAsync("kaboom — handler boundary demo");
+        await Expect(Page.Locator("#boom-throw")).ToHaveCountAsync(0);
+
+        // The implicit root boundary should NOT be tripped — the navbar (which lives
+        // outside the user boundary in ShowcaseLayout) is still visible.
+        await Expect(Page.Locator(".navbar .navbar-brand"))
+            .ToContainTextAsync("Rask");
+
+        // Click "Recover" → boundary._error cleared, next render walks Children again
+        // and the original button reappears.
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
+    public Task Boom_RenderThrow_RendersBoundaryFallback() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/boom");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Error boundary",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Flipping the flag inserts a RenderThrower into the second boundary's children.
+        // Its Render() throws synchronously, the HtmlSerializer rewinds the partial output,
+        // the boundary trips, and the fallback replaces the subtree. Only that boundary
+        // trips — so #boom-fallback should appear exactly once with the render-time message.
+        await Page.Locator("#boom-render-trigger").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First)
+            .ToContainTextAsync("kaboom — render-time boundary demo",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback")).ToHaveCountAsync(1);
+
+        // Clicking Recover must ALSO reset _throwOnRender — otherwise the boundary clears
+        // its error, re-walks Children, hits the same RenderThrower, and trips again. The
+        // demo's fallback combines boundary.Recover() with resetting the flag, so the
+        // healthy trigger button should reappear.
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback")).ToHaveCountAsync(0);
+    });
+
+    [Fact]
     public Task BackForwardNavigation_PreservesSpaState() => RunAsync(async () =>
     {
         await Page.GotoAsync("/");

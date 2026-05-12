@@ -148,7 +148,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task HandlerThatThrows_DispatcherKeepsRunning_AndNextHandlerStillWorks()
+    public async Task HandlerThatThrows_TripsImplicitRootBoundary_AndDispatcherKeepsRunning()
     {
         using var host = RaskTestHost.Create<ThrowingApp>();
         var initial = await host.Http.GetAsync("/start");
@@ -160,23 +160,25 @@ public class HandlerDispatchTests
             .ToList();
         Assert.Equal(2, handlerIds.Count);
         var throwingId = handlerIds[0];
-        var bumpingId = handlerIds[1];
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
+        // Now that UseRask<TApp> wraps the App in an implicit RootErrorBoundary, a handler
+        // throw trips the boundary and the next render replaces the App's tree with the
+        // built-in DefaultErrorPage. The dispatcher must remain open afterwards.
         await ws.SendJsonAsync(new { id = throwingId });
-        // Handler exception is logged and swallowed; no render payload is sent on the
-        // throw path (the catch happens before RenderAndSendAsync). The dispatcher
-        // must remain alive for the next message.
-        var afterThrow = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
-        Assert.Null(afterThrow);
+        var afterThrow = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        Assert.NotNull(afterThrow);
+        Assert.Contains("rask-error-boundary", afterThrow);
+        Assert.Contains("Something went wrong", afterThrow);
+        Assert.DoesNotContain("count=", afterThrow);
 
-        await ws.SendJsonAsync(new { id = bumpingId });
-        var afterBump = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(afterBump);
-        Assert.Contains("count=1", afterBump);
+        // Unknown id post-trip still gets handled gracefully (no payload, socket alive).
+        await ws.SendJsonAsync(new { id = "h999" });
+        var unknown = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+        Assert.Null(unknown);
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
