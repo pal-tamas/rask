@@ -15,4 +15,14 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <!--
+    The ASP.NET Web SDK's static-web-assets loader instantiates a
+    PhysicalFileProvider over the project's source wwwroot/ at startup, and throws
+    DirectoryNotFoundException if the directory is missing. This example has no
+    static files of its own — but the directory must exist for the SDK to be happy.
+  -->
+  <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="wwwroot"/>
+  </Target>
+
 </Project>
