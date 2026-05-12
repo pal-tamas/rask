@@ -57,6 +57,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/navigator", "Navigator", "bi-compass", "Components"),
         ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components"),
         ("/events", "Events", "bi-mouse", "Components"),
+        ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms"),
+        ("/validation", "Validation", "bi-shield-check", "Forms"),
         ("/scoped-css", "Scoped CSS", "bi-palette", "Styling"),
         ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data")
     ];

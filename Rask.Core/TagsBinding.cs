@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using F = Rask.Core.Components;
 
@@ -32,7 +33,7 @@ public static partial class Tags
         IReadOnlyDictionary<string, string?>? Data = null)
     {
         var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = EditContextScope.Current;
+        var ctx = ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var resolvedType = Type ?? DefaultInputType(acc.PropertyType);
         var name = Name ?? acc.PropertyName;
@@ -87,7 +88,7 @@ public static partial class Tags
         IReadOnlyDictionary<string, string?>? Data = null)
     {
         var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = EditContextScope.Current;
+        var ctx = ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
         var stringValue = FormatValue(acc.Getter());
@@ -118,7 +119,7 @@ public static partial class Tags
         IEnumerable<Child>? Children = null)
     {
         var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = EditContextScope.Current;
+        var ctx = ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
         var current = FormatValue(acc.Getter());
@@ -137,6 +138,18 @@ public static partial class Tags
         string? Class = null) => new(For, Class);
 
     public static F.ValidationSummary ValidationSummary(string? Class = null) => new(Class);
+
+    // Form pushes its EditContext onto EditContextScope only during *serialization* of
+    // its children (HtmlSerializer enters Form.EnterChildrenScope after Render returns).
+    // Input<TProp>/Textarea<TProp>/Select<TProp> factories, however, run during the
+    // parent's Render() — before serialization — so EditContextScope.Current is still
+    // null at that point. Falling back to LiveRenderContext.GetOrCreateEditContext
+    // (the same lookup Form.ResolveContext uses, keyed by model reference) yields the
+    // identical EditContext instance Form will later receive, so per-field
+    // NotifyFieldChanged / ValidateField calls from the input's handlers land in the
+    // right context.
+    private static EditContext? ResolveBindingContext(object model) =>
+        EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
 
     private static string DefaultInputType(Type propType)
     {
@@ -197,13 +210,18 @@ public static partial class Tags
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet) =>
         raw =>
         {
-            if (TrySetTyped(acc, raw))
+            if (!TrySetTyped(acc, raw))
             {
-                ctx?.NotifyFieldChanged(fid);
-                if (validateOnSet)
-                {
-                    ctx?.ValidateField(fid);
-                }
+                return;
+            }
+
+            ctx?.NotifyFieldChanged(fid);
+            // Blazor parity: stay quiet until the user (or a submit) has touched the field,
+            // then re-validate on every keystroke so a correction clears the message
+            // without needing a blur to trigger the change event.
+            if (ctx is not null && (validateOnSet || ctx.IsTouched(fid)))
+            {
+                ctx.ValidateField(fid);
             }
         };
 

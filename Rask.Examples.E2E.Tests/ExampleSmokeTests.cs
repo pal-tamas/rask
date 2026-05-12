@@ -95,6 +95,86 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Binding_TypedBindUpdatesEcho() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // The Bind helper derives the input's name attribute from the expression's
+        // property — `() => _model.Name` produces <input name="Name">, which the
+        // manual Value+OnInput section does not emit, so the locator is unique.
+        var bound = Page.Locator("input[name=Name]").First;
+        await bound.FillAsync("Ada");
+
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
+            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_InvalidSubmit_ShowsRequiredMessages() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // The per-field demo's form is the one containing #v1-name.
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+
+        await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
+            .ToContainTextAsync("required", new LocatorAssertionsToContainTextOptions
+            {
+                Timeout = 10_000,
+                IgnoreCase = true
+            });
+    });
+
+    [Fact]
+    public Task Validation_ValidSubmit_RendersSuccessBanner() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("#v1-name").FillAsync("Ada Lovelace");
+        await Page.Locator("#v1-email").FillAsync("ada@example.com");
+        await Page.Locator("#v1-age").FillAsync("28");
+        await Page.Locator("#v1-plan").SelectOptionAsync("pro");
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+
+        await Expect(Page.Locator(".alert-success").First)
+            .ToContainTextAsync("Ada Lovelace", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_FixingInvalidField_HidesItsMessage() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // 1. Submit empty → every field reports an error.
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+        var nameField = Page.Locator("form:has(#v1-name) div:has(> #v1-name)");
+        await Expect(nameField.Locator(".text-danger"))
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+
+        // 2. Fill a valid value into Name.
+        await Page.Locator("#v1-name").FillAsync("Ada Lovelace");
+
+        // 3. The Name field's error message must disappear once it becomes valid,
+        //    even though focus hasn't left the input (only the input event has fired).
+        await Expect(nameField.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // 4. Other fields still report their own errors — only Name cleared.
+        await Expect(Page.Locator("form:has(#v1-name) div:has(> #v1-email) .text-danger"))
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+    });
+
+    [Fact]
     public Task Http_LoadsPostFromJsonPlaceholder() => RunAsync(async () =>
     {
         await Page.GotoAsync("/http");
