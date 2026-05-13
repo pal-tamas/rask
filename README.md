@@ -21,8 +21,9 @@ either host** — only the hosting glue changes.
 
 What makes it different from other component frameworks:
 
-- **Text-first DSL.** No `.razor`, no JSX. You call `Div(...)`, `Button(...)`, `H1(...)` from C# — type-checked,
-  refactor-safe, and IDE-friendly.
+- **Text-first DSL.** No `.razor`, no JSX. You call `Div(...)[Span(...), "hi"]`, `Button(...)["click"]`, `H1()["title"]`
+  from C# — children attach through an indexer on every component, so the tree reads top-down like HTML and stays
+  type-checked, refactor-safe, and IDE-friendly.
 - **Source-generated factories.** Define `class Counter : Component` and a `Counter()` factory is generated for you.
   Required vs. optional parameters fall out of property nullability automatically.
 - **Type-safe URLs.** Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"`
@@ -105,23 +106,20 @@ namespace MyApp;
 public sealed class App : Component
 {
     public override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            Html("en", Children:
-            [
-                Head(Children:
-                [
+            Html("en")[
+                Head()[
                     Meta("utf-8"),
-                    Title(Children: ["My Rask App"]),
+                    Title()["My Rask App"],
                     RaskScopedStyles()
-                ]),
-                Body(Children:
-                [
+                ],
+                Body()[
                     Router(),
                     RaskRuntimeScript()
-                ])
-            ])
-        );
+                ]
+            ]
+        ];
 }
 ```
 
@@ -137,10 +135,10 @@ namespace MyApp;
 public sealed class HomePage : Component
 {
     public override Component Render() =>
-        Fragment(
-            H1(Children: ["Hello, world!"]),
-            P(Children: ["Welcome to your new Rask app."])
-        );
+        Fragment()[
+            H1()["Hello, world!"],
+            P()["Welcome to your new Rask app."]
+        ];
 }
 ```
 
@@ -182,14 +180,15 @@ a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alon
 
 ### Components
 
-Every component is a `sealed class : Component` (or `: Component<TProps>` for tag-shaped wrappers). Override `Render()`
-and return a tree.
+Every component is a `sealed class : Component`. Override `Render()` and return a tree. Children attach via the
+`Component this[params IEnumerable<Child>]` indexer — strings and `Component`s convert implicitly to `Child`, so
+`H1()["Hello"]` and `Div()[Span(...), "text"]` both work.
 
 ```csharp
 public sealed class Greeting : Component
 {
     public string? Name { get; set; }
-    public override Component Render() => H1(Children: [$"Hello, {Name ?? "world"}!"]);
+    public override Component Render() => H1()[$"Hello, {Name ?? "world"}!"];
 }
 ```
 
@@ -218,13 +217,11 @@ public sealed class Counter : Component
     private int _count;
 
     public override Component Render() =>
-        Fragment(
-            H1(Children: ["Counter"]),
-            P(Children: [$"Current count: {_count}"]),
-            Button(
-                OnClick: () => _count++,
-                Children: ["Click me"])
-        );
+        Fragment()[
+            H1()["Counter"],
+            P()[$"Current count: {_count}"],
+            Button(OnClick: () => _count++)["Click me"]
+        ];
 }
 ```
 
@@ -245,8 +242,8 @@ public sealed class Weather(IWeatherForecastService service) : Component
 
     public override Component Render() =>
         _forecasts is null
-            ? P(Children: [Em(Children: ["Loading..."])])
-            : Table(Children: [/* render rows */]);
+            ? P()[Em()["Loading..."]]
+            : Table()[/* render rows */];
 }
 ```
 
@@ -262,11 +259,11 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
-    public override Component Render() => Span(Children: [$"User #{Id} — {Tab ?? "overview"}"]);
+    public override Component Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere:
-NavLink(UserPage(id: 42), Children: ["View user"]);
+NavLink(UserPage(id: 42))["View user"];
 ```
 
 Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigate(HomePage())`,
@@ -283,14 +280,13 @@ thrown by descendants. The fallback receives the exception plus a `recover` call
 
 ```csharp
 ErrorBoundary(
-    Fallback: (ex, recover) => Div(Children: [
-        Strong(Children: ["Something went wrong: "]), ex.Message,
-        Button(OnClick: recover, Children: ["Try again"])
-    ]),
-    Children: [
-        // any subtree — render, lifecycle, or handler faults all bubble here
-        RiskyChild()
-    ])
+    Fallback: (ex, recover) => Div()[
+        Strong()["Something went wrong: "], ex.Message,
+        Button(OnClick: recover)["Try again"]
+    ])[
+    // any subtree — render, lifecycle, or handler faults all bubble here
+    RiskyChild()
+]
 ```
 
 Pass `ResetKeys: [someId]` to auto-clear the error when the keys change (React `useEffect`-deps semantics). Without
@@ -310,7 +306,7 @@ public sealed class Card : Component
     """;
 
     public override Component Render() =>
-        Div(Class: "card", Children: ["..."]);
+        Div(Class: "card")["..."];
 }
 ```
 
