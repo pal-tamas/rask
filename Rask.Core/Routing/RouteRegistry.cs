@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Rask.Core.Routing;
 
 public static class RouteRegistry
@@ -6,7 +8,11 @@ public static class RouteRegistry
 
     private static readonly object _lock = new();
     private static readonly List<RouteRegistration> _registrations = new();
+
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors |
+                                DynamicallyAccessedMemberTypes.PublicProperties)]
     private static Type? _defaultFallback;
+
     private static IReadOnlyList<Route>? _treeCache;
 
     public static void Add(IEnumerable<RouteRegistration> registrations)
@@ -19,7 +25,10 @@ public static class RouteRegistry
         }
     }
 
-    public static void SetDefaultFallback(Type pageType)
+    public static void SetDefaultFallback(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors |
+                                    DynamicallyAccessedMemberTypes.PublicProperties)]
+        Type pageType)
     {
         ArgumentNullException.ThrowIfNull(pageType);
         lock (_lock)

@@ -168,12 +168,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine("public static partial class Components");
         sb.AppendLine("{");
         sb.AppendLine(
-            "    public static global::Rask.Core.Routing.Route Route<T>(string template, global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Routing.Route>? SubRoutes = null)");
+            "    public static global::Rask.Core.Routing.Route Route<[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(string template, global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Routing.Route>? SubRoutes = null)");
         sb.AppendLine("        where T : global::Rask.Core.Component");
         sb.AppendLine("        => new(typeof(T), template, SubRoutes);");
         sb.AppendLine();
         sb.AppendLine(
-            "    public static global::Rask.Core.Routing.Route Route<T>(global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Routing.Route>? SubRoutes = null)");
+            "    public static global::Rask.Core.Routing.Route Route<[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Routing.Route>? SubRoutes = null)");
         sb.AppendLine("        where T : global::Rask.Core.Component");
         sb.AppendLine(
             "        => new(typeof(T), global::Rask.Core.Routing.RouteTemplateResolver.GetLocalTemplate(typeof(T)), SubRoutes);");
@@ -629,6 +629,23 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("internal static class __RaskRoutesRegistry");
         sb.AppendLine("{");
+        // Per-page [DynamicDependency] tells the trimmer to keep public ctors and properties on
+        // every routed page type. Pages are instantiated via ActivatorUtilities.CreateInstance
+        // (needs ctors) and bound via reflection over [RouteParam]/[QueryParam] properties
+        // (needs property accessors). Custom attributes on the type — [Route], [Authorize],
+        // [AllowAnonymous] — are preserved by the trimmer whenever the type metadata is kept,
+        // so the auth guard and template resolver work transparently.
+        foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
+        {
+            sb.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(")
+                .Append(
+                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | " +
+                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties")
+                .Append(", typeof(")
+                .Append(c.FullyQualifiedName)
+                .AppendLine("))]");
+        }
+
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("    internal static void Init()");
         sb.AppendLine("    {");

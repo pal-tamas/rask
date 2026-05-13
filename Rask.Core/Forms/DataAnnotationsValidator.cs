@@ -1,9 +1,16 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Core.Forms;
 
 public sealed class DataAnnotationsValidator : IFieldValidator
 {
+    // DataAnnotationsValidator reflects over the form model — when trimming, users must preserve
+    // the model's properties (typically via `[DynamicallyAccessedMembers]` on the binding source,
+    // or by referencing the model from a [Route]'d page, which roots it via DynamicDependency).
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "ValidationContext/Validator reflect over the model. The user-owned model type is " +
+                        "preserved through binding annotations on their app, not Rask.Core itself.")]
     public void Validate(EditContext context)
     {
         var results = new List<ValidationResult>();
@@ -30,6 +37,10 @@ public sealed class DataAnnotationsValidator : IFieldValidator
         }
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "Same as Validate(): user-owned model preservation is the caller's responsibility.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "GetProperty on the model's runtime type — preserved by the user's binding setup.")]
     public void ValidateField(EditContext context, FieldIdentifier field)
     {
         if (!ReferenceEquals(field.Model, context.Model))

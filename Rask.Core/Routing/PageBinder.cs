@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Rask.Core.Routing;
@@ -7,6 +8,14 @@ internal static class PageBinder
 {
     private static readonly ConcurrentDictionary<Type, BindablePropertyInfo[]> _propertyCache = new();
 
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "Page concrete type's public properties are preserved via the [DynamicDependency] entries " +
+                        "emitted by RoutesGenerator into __RaskRoutesRegistry.Init().")]
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "PropertyType flows into RouteValueParser.TryParse, which expects Interfaces|PublicMethods. " +
+                        "PropertyInfo.PropertyType does not carry that DAM annotation by default, but the Roslyn " +
+                        "analyser (RASK011) statically guarantees every [RouteParam]/[QueryParam] property type is " +
+                        "either string or IParsable<T> — both have their TryParse paths covered by the runtime.")]
     public static bool Bind(Component page, IReadOnlyDictionary<string, string?> values, IQueryCollection query)
     {
         var properties = _propertyCache.GetOrAdd(page.GetType(), DiscoverProperties);
@@ -32,6 +41,9 @@ internal static class PageBinder
         return anyChanged;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "Page concrete type's public properties are preserved via the [DynamicDependency] entries " +
+                        "emitted by RoutesGenerator into __RaskRoutesRegistry.Init().")]
     private static BindablePropertyInfo[] DiscoverProperties(Type type)
     {
         var result = new List<BindablePropertyInfo>();
@@ -91,6 +103,10 @@ internal static class PageBinder
         return false;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2067",
+        Justification = "targetType originates from PropertyInfo.PropertyType on a [RouteParam]/[QueryParam] " +
+                        "property; RASK011 statically requires those types to be string or IParsable<T>, so " +
+                        "RouteValueParser.TryParse's IL2060/IL2070 demands are met at runtime.")]
     private static object? ConvertValue(object? raw, Type targetType, string propertyName)
     {
         if (raw is null)

@@ -15,7 +15,7 @@ public sealed class HttpPage(HttpClient http) : Component
 
     protected override async Task OnMountAsync()
     {
-        try { _post = await http.GetFromJsonAsync<Post>("posts/1", CancellationToken); }
+        try { _post = await http.GetFromJsonAsync("posts/1", HttpJsonContext.Default.Post, CancellationToken); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { _error = ex.Message; }
     }
@@ -105,3 +105,6 @@ public sealed class HttpPage(HttpClient http) : Component
         [property: JsonPropertyName("title")] string Title,
         [property: JsonPropertyName("body")] string Body);
 }
+
+[JsonSerializable(typeof(HttpPage.Post))]
+internal sealed partial class HttpJsonContext : JsonSerializerContext;

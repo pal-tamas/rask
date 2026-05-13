@@ -10,11 +10,15 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
     <RunAOTCompilation>false</RunAOTCompilation>
-    <!-- Routing + the source-generated factories use reflection/ActivatorUtilities to
-         instantiate page types and bind route params. The trimmer can't see those use
-         sites, so disable trimming for v0. Proper fix: DynamicallyAccessedMembers
-         annotations on Type parameters in RouteChainRenderer/PageBinder/RouteValueParser. -->
-    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Trimming is safe: page types reach the runtime via the route registry's generated
+         module initialiser, which emits [DynamicDependency] per registered page; the reflection
+         sites in RouteChainRenderer / PageBinder / RouteValueParser are either DAM-annotated or
+         carry a documented suppression. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <!-- The showcase doesn't format culture-sensitive values, so drop the ~2.6 MB of ICU data
+         shipped under _framework/icudt*.dat. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
