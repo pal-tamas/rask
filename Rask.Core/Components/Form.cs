@@ -61,7 +61,7 @@ public sealed class Form : Component
     private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
         async formData =>
         {
-            ctx.Validate();
+            await ctx.ValidateAsync().ConfigureAwait(false);
             ctx.TouchAllRegisteredFields();
             var isValid = !ctx.HasValidationMessages();
             var handler = isValid ? OnValidSubmit : OnInvalidSubmit;

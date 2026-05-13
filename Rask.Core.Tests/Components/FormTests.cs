@@ -1,4 +1,7 @@
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Rask.Core.Components;
+using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -45,5 +48,58 @@ public class FormTests
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
+    }
+
+    [Fact]
+    public async Task SubmitBridge_AwaitsAsyncValidation_BeforeRouting()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        var validCalled = 0;
+        var invalidCalled = 0;
+
+        var ctx = new EditContext(p);
+        ctx.AddValidator(new RejectingAsyncValidator());
+
+        var view = new StubComponent(() => Form(
+            p,
+            (Action<Person>)(_ => validCalled++),
+            (Action<Person>)(_ => invalidCalled++),
+            Context: ctx)[Input(() => p.Name), Input(() => p.Age)]);
+        var html = view.RenderAsLiveRoot();
+
+        var submitId = ExtractAttr(html, "data-rask-on-submit");
+        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+
+        Assert.Equal(0, validCalled);
+        Assert.Equal(1, invalidCalled);
+    }
+
+    private static string? ExtractAttr(string html, string attr)
+    {
+        var marker = attr + "=\"";
+        var i = html.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return null;
+        var start = i + marker.Length;
+        var end = html.IndexOf('"', start);
+        return end < 0 ? null : html.Substring(start, end - start);
+    }
+
+    private sealed class Person
+    {
+        [Required] public string Name { get; set; } = "";
+        [Range(1, 120)] public int Age { get; set; }
+    }
+
+    private sealed class RejectingAsyncValidator : IAsyncFieldValidator
+    {
+        public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        {
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "remote check failed");
+        }
+
+        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken) =>
+            ValueTask.CompletedTask;
     }
 }

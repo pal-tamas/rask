@@ -125,7 +125,8 @@ public class EditContextEdgeTests
     public void AddValidator_Null_Throws()
     {
         var ctx = new EditContext(new Model());
-        Assert.Throws<ArgumentNullException>(() => ctx.AddValidator(null!));
+        Assert.Throws<ArgumentNullException>(() => ctx.AddValidator((IFieldValidator)null!));
+        Assert.Throws<ArgumentNullException>(() => ctx.AddValidator((IAsyncFieldValidator)null!));
     }
 
     private sealed class Model

@@ -55,7 +55,7 @@ public sealed class Input : Component
                 Min: Min, Max: Max, Step: Step, Pattern: Pattern,
                 Size: Size, MaxLength: MaxLength, MinLength: MinLength,
                 Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-                OnChange: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked),
+                OnChangeAsync: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked),
                 Id: Id, Class: Class, Style: Style, Data: Data);
         }
 
@@ -68,8 +68,8 @@ public sealed class Input : Component
             Min: Min, Max: Max, Step: Step, Pattern: Pattern,
             Size: Size, MaxLength: MaxLength, MinLength: MinLength,
             Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-            OnInput: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false) : null,
-            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate),
+            OnInputAsync: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false) : null,
+            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate),
             Id: Id, Class: Class, Style: Style, Data: Data);
     }
 

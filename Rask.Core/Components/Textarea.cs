@@ -41,8 +41,8 @@ public sealed class Textarea : Component
             Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
             MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
-            OnInput: BindingHelpers.StringSetHandler(acc, ctx, fid, false),
-            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
+            OnInputAsync: BindingHelpers.StringSetHandler(acc, ctx, fid, false),
+            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
             Id: Id, Class: Class, Style: Style, Data: Data)[stringValue];
     }
 

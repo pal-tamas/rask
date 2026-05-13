@@ -35,7 +35,7 @@ public sealed class Select : Component
         return (Select)C.Select(
             Name: name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
-            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true),
+            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true),
             Id: Id, Class: Class, Style: Style, Data: Data)[preselected];
     }
 

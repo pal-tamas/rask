@@ -60,3 +60,30 @@ public sealed class ValidationSummary : Component
         return Components.Ul(Class: Class ?? "validation-summary")[items];
     }
 }
+
+public sealed class ValidatingIndicator : Component
+{
+    public LambdaExpression? For { get; set; }
+
+    [GenerateForwarderFactory]
+    public static ValidatingIndicator Bound<TProp>(
+        Expression<Func<TProp>> For,
+        string? Class = null) => new() { For = For, Class = Class };
+
+    protected override Component Render()
+    {
+        var ctx = EditContextScope.Current;
+        if (ctx is null || For is null)
+        {
+            return new Fragment();
+        }
+
+        var acc = ExpressionAccessor.Parse(For);
+        if (!ctx.IsValidating(acc.Field))
+        {
+            return new Fragment();
+        }
+
+        return Components.Span(Class: Class ?? "validating-indicator")[Children ?? Array.Empty<Child>()];
+    }
+}

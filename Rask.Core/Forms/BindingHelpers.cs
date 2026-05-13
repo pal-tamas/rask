@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -71,9 +72,9 @@ internal static class BindingHelpers
         };
     }
 
-    public static Action<string> StringSetHandler(
+    public static Func<string, Task> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet) =>
-        raw =>
+        async raw =>
         {
             if (!TrySetTyped(acc, raw))
             {
@@ -86,13 +87,20 @@ internal static class BindingHelpers
             // without needing a blur to trigger the change event.
             if (ctx is not null && (validateOnSet || ctx.IsTouched(fid)))
             {
-                ctx.ValidateField(fid);
+                if (ctx.HasAsyncValidators)
+                {
+                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
+                }
+                else
+                {
+                    ctx.ValidateField(fid);
+                }
             }
         };
 
-    public static Action<string> TouchAndValidateHandler(
+    public static Func<string, Task> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange) =>
-        raw =>
+        async raw =>
         {
             if (setOnChange)
             {
@@ -103,19 +111,44 @@ internal static class BindingHelpers
             }
 
             ctx?.NotifyFieldTouched(fid);
-            ctx?.ValidateField(fid);
+            if (ctx is not null)
+            {
+                if (ctx.HasAsyncValidators)
+                {
+                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
+                }
+                else
+                {
+                    ctx.ValidateField(fid);
+                }
+            }
         };
 
-    public static Action<string> BoolToggleHandler(
+    public static Func<string, Task> BoolToggleHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool wasChecked) =>
-        _ =>
+        async _ =>
         {
             acc.Setter(!wasChecked);
             ctx?.NotifyFieldChanged(fid);
             ctx?.NotifyFieldTouched(fid);
-            ctx?.ValidateField(fid);
+            if (ctx is not null)
+            {
+                if (ctx.HasAsyncValidators)
+                {
+                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
+                }
+                else
+                {
+                    ctx.ValidateField(fid);
+                }
+            }
         };
 
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "acc.PropertyType is the model property's static type; if the user marks the [RouteParam]/" +
+                        "[QueryParam] / form-bound property correctly (RASK011 enforces IParsable<T> or string), " +
+                        "TryParse's IL2060/IL2070 demands are met by the same DynamicDependency that preserves " +
+                        "the page/model's public members.")]
     private static bool TrySetTyped(ExpressionAccessor.Accessor acc, string raw)
     {
         var t = acc.PropertyType;
