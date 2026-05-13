@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class AsyncLifecycleErrorBoundaryTests
@@ -11,7 +13,7 @@ public class AsyncLifecycleErrorBoundaryTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var child = new FaultingComponent(faultOn: FaultPoint.MountAsync);
-        var boundary = new ErrorBoundary();
+        var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
@@ -33,7 +35,7 @@ public class AsyncLifecycleErrorBoundaryTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var child = new FaultingComponent(faultOn: FaultPoint.PropsAsync);
-        var boundary = new ErrorBoundary();
+        var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
 
         using (LiveRenderContext.Begin(boundary, sp))
@@ -83,7 +85,7 @@ public class AsyncLifecycleErrorBoundaryTests
         // Without a render request, the live root would never re-render with the fallback.
         var sp = new ServiceCollection().BuildServiceProvider();
         var child = new FaultingComponent(faultOn: FaultPoint.MountAsync);
-        var boundary = new ErrorBoundary();
+        var boundary = ErrorBoundary();
         var handle = new RecordingHandle();
         boundary.RenderHandle = handle;
         boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
@@ -141,7 +143,7 @@ public class AsyncLifecycleErrorBoundaryTests
             throw new InvalidOperationException("props-async");
         }
 
-        protected override Component Render() => new Span { Children = [new Text("loading")] };
+        protected override Component Render() => Span()[Text("loading")];
     }
 
     private sealed class RecordingHandle : IRenderHandle

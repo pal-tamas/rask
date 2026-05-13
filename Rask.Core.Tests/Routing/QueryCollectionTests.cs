@@ -30,8 +30,7 @@ public class QueryCollectionTests
     [Fact]
     public void ContainsKey_TryGetValue_AreCaseInsensitive_WhenStoreUsesIgnoreCase()
     {
-        var qc = new QueryCollection(
-            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["A"] = "1" });
+        var qc = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["A"] = "1" });
 
         Assert.True(qc.ContainsKey("a"));
         Assert.True(qc.TryGetValue("a", out var v));
@@ -42,8 +41,7 @@ public class QueryCollectionTests
     [Fact]
     public void Indexer_MissingKey_ReturnsStringValuesEmpty()
     {
-        var qc = new QueryCollection(
-            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["A"] = "1" });
+        var qc = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["A"] = "1" });
 
         Assert.Equal(StringValues.Empty, qc["missing"]);
     }

@@ -28,19 +28,15 @@ public sealed class LifecycleProbe : Component
     protected override Component Render()
     {
         _renderCount++;
-        return Fragment(
-            Div(Class: "d-flex align-items-center gap-3 mb-3", Children:
-            [
-                Span(Class: "badge text-bg-primary fs-6", Children: [$"Render #{_renderCount}"]),
+        return Fragment()[
+            Div(Class: "d-flex align-items-center gap-3 mb-3")[
+                Span(Class: "badge text-bg-primary fs-6")[$"Render #{_renderCount}"],
                 Button(
                     Class: "btn btn-primary btn-sm",
-                    OnClick: () => StateHasChanged(),
-                    Children: [I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"])
-            ]),
-            H3(Class: "h6 text-secondary text-uppercase small", Children: ["Hook log"]),
-            Ol(Class: "list-group list-group-numbered list-group-flush", Children:
-                _log.Select(l => (Child)Li(Class: "list-group-item ps-2 small",
-                    Children: [Code(Class: "small", Children: [l])])).ToArray())
-        );
+                    OnClick: () => StateHasChanged())[I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"]
+            ],
+            H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
+            Ol(Class: "list-group list-group-numbered list-group-flush")[_log.Select(l => (Child)Li(Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+        ];
     }
 }

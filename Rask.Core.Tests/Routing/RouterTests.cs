@@ -4,6 +4,8 @@ using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Routing;
 
 [Collection("RouteRegistry")]
@@ -217,7 +219,7 @@ public class RouterTests
     {
         public int InitCount;
         protected override void OnMount() => InitCount++;
-        protected override Component Render() => Span(Children: [$"init:{InitCount}"]);
+        protected override Component Render() => Span()[$"init:{InitCount}"];
     }
 
     [SkipFactory]
@@ -234,7 +236,7 @@ public class RouterTests
             Loaded = true;
         }
 
-        protected override Component Render() => Span(Children: [Loaded ? "ready" : "loading"]);
+        protected override Component Render() => Span()[Loaded ? "ready" : "loading"];
     }
 
     private sealed class RecordingRenderHandle : IRenderHandle
@@ -251,14 +253,14 @@ public class RouterTests
     [SkipFactory]
     public sealed class HomePage : Component
     {
-        protected override Component Render() => Span(Children: ["home"]);
+        protected override Component Render() => Span()["home"];
     }
 
     [SkipFactory]
     public sealed class UserPage : Component
     {
         [RouteParam] public int Id { get; set; }
-        protected override Component Render() => Span(Children: [$"user:{Id}"]);
+        protected override Component Render() => Span()[$"user:{Id}"];
     }
 
     [SkipFactory]
@@ -270,26 +272,26 @@ public class RouterTests
         protected override Component Render()
         {
             Bumps++;
-            return Span(Children: [$"{Label ?? "x"}:{Bumps}"]);
+            return Span()[$"{Label ?? "x"}:{Bumps}"];
         }
     }
 
     [SkipFactory]
     public sealed class DashboardPage : Component
     {
-        protected override Component Render() => Div(Children: [Span(Children: ["dash:"]), Outlet()]);
+        protected override Component Render() => Div()[Span()["dash:"], Outlet()];
     }
 
     [SkipFactory]
     public sealed class DashOverview : Component
     {
-        protected override Component Render() => Span(Children: ["overview"]);
+        protected override Component Render() => Span()["overview"];
     }
 
     [SkipFactory]
     public sealed class DashSettings : Component
     {
         [RouteParam] public string? Tab { get; set; }
-        protected override Component Render() => Span(Children: [$"settings:{Tab}"]);
+        protected override Component Render() => Span()[$"settings:{Tab}"];
     }
 }

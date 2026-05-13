@@ -6,16 +6,16 @@ public class SmallTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<small></small>", new Small().ToHtml());
+        Assert.Equal("<small></small>", Small().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
                 Assert.Equal("<small id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></small>",
-            new Small { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
+            Small(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<small>&lt;x&gt;</small>", new Small { Children = ["<x>"] }.ToHtml());
+        Assert.Equal("<small>&lt;x&gt;</small>", Small()["<x>"].ToHtml());
 }

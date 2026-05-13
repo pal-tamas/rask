@@ -3,15 +3,14 @@ namespace Rask.Generators.Tests;
 public class FactoryAttributeTests
 {
     [Fact]
-    public void FactoryPositionalChildren_EmitsOnlyParamsChildrenOverload()
+    public void Factory_DoesNotEmit_ChildrenParameter()
     {
-        // [FactoryPositionalChildren] strips the inherited Id/Class/Style/Data params so
-        // `Wrap(c1, c2)` resolves cleanly — without the attribute, the standard factory's
-        // universal-attr params would shadow positional children calls.
+        // Children is delivered via the `Component this[params Child[]]` indexer on Component,
+        // not as a factory parameter. The generator must filter Children out of the signature
+        // even though it's a public settable property on the base class.
         var src = """
                   using Rask.Core;
                   namespace Demo;
-                  [FactoryPositionalChildren]
                   public sealed class Wrap : Component
                   {
                       public override Component Render() => this;
@@ -21,12 +20,10 @@ public class FactoryAttributeTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
-        Assert.Contains(
-            "Wrap(params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children)",
-            output);
-        // No universal-attribute overload alongside.
-        Assert.DoesNotContain("string? Id = null", output);
-        Assert.DoesNotContain("string? Class = null", output);
+        Assert.Contains("public static global::Demo.Wrap Wrap(", output);
+        // No Children parameter — neither named, nor as the trailing params slot.
+        Assert.DoesNotContain("Children", output);
+        Assert.DoesNotContain("params ", output);
     }
 
     [Fact]

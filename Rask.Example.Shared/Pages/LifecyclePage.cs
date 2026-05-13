@@ -9,21 +9,18 @@ namespace Rask.Example.Shared.Pages;
 public sealed class LifecyclePage : Component
 {
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             PageHeader.Render(
                 "Lifecycle hooks",
                 "Every Component can override five virtual lifecycle methods. Async hooks install a synchronization context that triggers a re-render after each in-method await, plus one terminal render on completion."),
-            H2(Class: "h4 mt-4 mb-3", Children: ["Live probe"]),
-            P(Class: "text-secondary",
-                Children:
-                [
+            H2(Class: "h4 mt-4 mb-3")["Live probe"],
+            P(Class: "text-secondary")[
                     "The component below records every hook invocation into a list and re-renders so you can watch the order."
-                ]),
-            Div(Class: "card shadow-sm border-0 mb-4", Children:
-            [
-                Div(Class: "card-body", Children: [LifecycleProbe()])
-            ]),
-            H2(Class: "h4 mt-4 mb-3", Children: ["Source"]),
+                ],
+            Div(Class: "card shadow-sm border-0 mb-4")[
+                Div(Class: "card-body")[LifecycleProbe()]
+            ],
+            H2(Class: "h4 mt-4 mb-3")["Source"],
             CodeSample(
                 """
                 public sealed class LifecycleProbe : Component
@@ -62,16 +59,14 @@ public sealed class LifecyclePage : Component
                 """,
                 Notes:
                 "OnMount* fires once; OnPropsChanged* fires on every render; OnRendered* fires after the render commits. StateHasChanged() asks the live render handle for a re-render."),
-            Div(Class: "alert alert-danger d-flex align-items-start mt-3", Children:
-            [
+            Div(Class: "alert alert-danger d-flex align-items-start mt-3")[
                 I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
-                Div(Children:
-                [
-                    Strong(Children: ["Failure model:"]),
+                Div()[
+                    Strong()["Failure model:"],
                     " if an async hook faults, the framework logs the exception to ",
-                    Code(Children: ["Console.Error"]),
+                    Code()["Console.Error"],
                     " and does NOT trigger a re-render — so a component stuck on a loading placeholder is usually a hook that threw."
-                ])
-            ])
-        );
+                ]
+            ]
+        ];
 }

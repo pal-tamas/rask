@@ -15,74 +15,67 @@ public sealed class EventsPage : Component
     private string _typed = string.Empty;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             PageHeader.Render(
                 "Events",
                 "Event handlers are plain delegates on the factory call site — OnClick, OnInput, OnChange, OnSubmit. Each handler triggers a re-render after it runs."),
-            H2(Class: "h4 mt-4 mb-3", Children: ["Click"]),
+            H2(Class: "h4 mt-4 mb-3")["Click"],
             CodeSample(
                 """
-                Button(OnClick: () => _clicks++, Children: [$"Clicks: {_clicks}"])
+                Button(OnClick: () => _clicks++)[$"Clicks: {_clicks}"]
                 """,
                 Result: Button(
                     Class: "btn btn-primary",
-                    OnClick: () => _clicks++,
-                    Children: [I(Class: "bi bi-hand-index me-2"), $"Clicks: {_clicks}"])),
-            H2(Class: "h4 mt-5 mb-3", Children: ["Input — onInput"]),
+                    OnClick: () => _clicks++)[I(Class: "bi bi-hand-index me-2"), $"Clicks: {_clicks}"]),
+            H2(Class: "h4 mt-5 mb-3")["Input — onInput"],
             CodeSample(
                 """
                 Input(Type: "text",
                       Placeholder: "Type something",
                       OnInput: v => _typed = v)
-                P(Children: [$"You typed: {_typed}"])
+                P()[$"You typed: {_typed}"]
                 """,
-                Result: Fragment(
+                Result: Fragment()[
                     Input(
                         "text",
                         Class: "form-control mb-2",
                         Placeholder: "Type something",
                         Value: _typed,
                         OnInput: v => _typed = v),
-                    P(Class: "small mb-0", Children:
-                    [
+                    P(Class: "small mb-0")[
                         "You typed: ",
-                        Code(Children: [string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""])
-                    ]))),
-            H2(Class: "h4 mt-5 mb-3", Children: ["Select — onChange"]),
+                        Code()[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
+                    ]]),
+            H2(Class: "h4 mt-5 mb-3")["Select — onChange"],
             CodeSample(
                 """
-                Select(OnChange: v => _pick = v, Children: [
-                    Option(Value: "rask",   Children: ["Rask"]),
-                    Option(Value: "blazor", Children: ["Blazor"]),
-                    Option(Value: "htmx",   Children: ["htmx"])
-                ])
+                Select(OnChange: v => _pick = v)[
+                    Option(Value: "rask")["Rask"],
+                    Option(Value: "blazor")["Blazor"],
+                    Option(Value: "htmx")["htmx"]
+                ]
                 """,
-                Result: Fragment(
+                Result: Fragment()[
                     Select(
                         Class: "form-select mb-2",
-                        OnChange: v => _pick = v,
-                        Children:
-                        [
-                            Option("rask", _pick == "rask", Children: ["Rask"]),
-                            Option("blazor", _pick == "blazor", Children: ["Blazor"]),
-                            Option("htmx", _pick == "htmx", Children: ["htmx"])
-                        ]),
-                    P(Class: "small mb-0", Children: ["Picked: ", Strong(Children: [_pick])]))),
-            H2(Class: "h4 mt-5 mb-3", Children: ["Form — onSubmit"]),
+                        OnChange: v => _pick = v)[
+                            Option("rask", _pick == "rask")["Rask"],
+                            Option("blazor", _pick == "blazor")["Blazor"],
+                            Option("htmx", _pick == "htmx")["htmx"]
+                        ],
+                    P(Class: "small mb-0")["Picked: ", Strong()[_pick]]]),
+            H2(Class: "h4 mt-5 mb-3")["Form — onSubmit"],
             CodeSample(
                 """
-                Form(OnSubmit: fd => _submitted = fd.Get("name"),
-                     Children: [
+                Form(OnSubmit: fd => _submitted = fd.Get("name"))[
                          Input(Type: "text", Name: "name", Placeholder: "Your name"),
-                         Button(Type: "submit", Children: ["Send"])
-                     ])
+                         Button(Type: "submit")["Send"]
+                     ]
                 """,
                 Notes: "OnSubmit receives a FormData object collected from all named form fields.",
-                Result: Fragment(
-                    Form(OnSubmit: OnSubmit, Class: "mb-2", Children:
-                    [
-                        Div(Class: "input-group", Children:
-                        [
+                Result: Fragment()[
+                    Form(OnSubmit: OnSubmit, Class: "mb-2")[
+                        Div(Class: "input-group")[
                             Input(
                                 "text",
                                 "name",
@@ -90,12 +83,11 @@ public sealed class EventsPage : Component
                                 Placeholder: "Your name"),
                             Button(
                                 "submit",
-                                Class: "btn btn-primary",
-                                Children: [I(Class: "bi bi-send me-1"), "Send"])
-                        ])
-                    ]),
-                    P(Class: "small mb-0", Children: ["Last submitted: ", Strong(Children: [_submitted])])))
-        );
+                                Class: "btn btn-primary")[I(Class: "bi bi-send me-1"), "Send"]
+                        ]
+                    ],
+                    P(Class: "small mb-0")["Last submitted: ", Strong()[_submitted]]])
+        ];
 
     private void OnSubmit(FormData fd)
     {

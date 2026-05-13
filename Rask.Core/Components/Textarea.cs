@@ -36,15 +36,14 @@ public sealed class Textarea : Component
         var name = Name ?? acc.PropertyName;
         var stringValue = BindingHelpers.FormatValue(acc.Getter());
 
-        return C.Textarea(
+        return (Textarea)C.Textarea(
             Name: name, Rows: Rows, Cols: Cols, Placeholder: Placeholder,
             Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
             MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnInput: BindingHelpers.StringSetHandler(acc, ctx, fid, false),
             OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
-            Id: Id, Class: Class, Style: Style, Data: Data,
-            Children: [stringValue]);
+            Id: Id, Class: Class, Style: Style, Data: Data)[stringValue];
     }
 
     protected override string TagName => "textarea";

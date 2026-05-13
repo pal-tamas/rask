@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class EventHandlerErrorBoundaryTests
@@ -12,7 +14,7 @@ public class EventHandlerErrorBoundaryTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var handlerOwner = new HandlerOwner(throwsSync: true);
-        var boundary = new ErrorBoundary();
+        var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { handlerOwner }, fallback: null, resetKeys: null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
@@ -36,7 +38,7 @@ public class EventHandlerErrorBoundaryTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var handlerOwner = new HandlerOwner(throwsSync: false);
-        var boundary = new ErrorBoundary();
+        var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { handlerOwner }, fallback: null, resetKeys: null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
@@ -93,7 +95,7 @@ public class EventHandlerErrorBoundaryTests
                     throw new InvalidOperationException("handler-async")));
             }
 
-            return new Span { Children = [new Text("owner")] };
+            return Span()[Text("owner")];
         }
     }
 }

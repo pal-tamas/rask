@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class AsyncLifecycleRenderingTests

@@ -10,18 +10,17 @@ public sealed class BindingManualDemo : Component
     private string _typed = "";
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Input(
                 "text",
                 Class: "form-control mb-2",
                 Placeholder: "Type something",
                 Value: _typed,
                 OnInput: v => _typed = v),
-            P(Class: "small mb-0", Children:
-            [
+            P(Class: "small mb-0")[
                 "Echo: ",
-                Code(Children: [string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""])
-            ]));
+                Code()[string.IsNullOrEmpty(_typed) ? "\"\"" : $"\"{_typed}\""]
+            ]];
 }
 
 public sealed class BindingTypedDemo : Component
@@ -29,17 +28,16 @@ public sealed class BindingTypedDemo : Component
     private readonly Holder _model = new();
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Input(
                 () => _model.Name,
                 Class: "form-control mb-2",
                 Placeholder: "Your name"),
-            P(Class: "small mb-0", Children:
-            [
+            P(Class: "small mb-0")[
                 "Hello, ",
-                Strong(Children: [string.IsNullOrEmpty(_model.Name) ? "stranger" : _model.Name]),
+                Strong()[string.IsNullOrEmpty(_model.Name) ? "stranger" : _model.Name],
                 "!"
-            ]));
+            ]];
 
     private sealed class Holder
     {
@@ -54,61 +52,49 @@ public sealed class BindingMultiDemo : Component
     private readonly Holder _model = new();
 
     protected override Component Render() =>
-        Fragment(
-            Div(Class: "mb-3 form-check", Children:
-            [
+        Fragment()[
+            Div(Class: "mb-3 form-check")[
                 Input(
                     () => _model.Subscribe,
                     Id: "bind-subscribe",
                     Class: "form-check-input"),
-                Label("bind-subscribe", Class: "form-check-label ms-1",
-                    Children: ["Subscribe to the newsletter"])
-            ]),
-            Div(Class: "mb-3", Children:
-            [
-                Label("bind-age", Class: "form-label small",
-                    Children: ["Age"]),
+                Label("bind-subscribe", Class: "form-check-label ms-1")["Subscribe to the newsletter"]
+            ],
+            Div(Class: "mb-3")[
+                Label("bind-age", Class: "form-label small")["Age"],
                 Input(
                     () => _model.Age,
                     Id: "bind-age",
                     Class: "form-control",
                     Min: "0",
                     Max: "120")
-            ]),
-            Div(Class: "mb-3", Children:
-            [
-                Label("bind-start", Class: "form-label small",
-                    Children: ["Start date"]),
+            ],
+            Div(Class: "mb-3")[
+                Label("bind-start", Class: "form-label small")["Start date"],
                 Input(
                     () => _model.StartDate,
                     Id: "bind-start",
                     Class: "form-control")
-            ]),
-            Div(Class: "mb-3", Children:
-            [
-                Label("bind-favorite", Class: "form-label small",
-                    Children: ["Favourite colour"]),
+            ],
+            Div(Class: "mb-3")[
+                Label("bind-favorite", Class: "form-label small")["Favourite colour"],
                 Select(
                     () => _model.Favorite,
                     Id: "bind-favorite",
-                    Class: "form-select",
-                    Children:
-                    [
-                        Option("Red", Children: ["Red"]),
-                        Option("Green", Children: ["Green"]),
-                        Option("Blue", Children: ["Blue"])
-                    ])
-            ]),
-            Pre(Class: "small mb-0 p-3 bg-light border rounded", Children:
-            [
-                Code(Children:
-                [
+                    Class: "form-select")[
+                        Option("Red")["Red"],
+                        Option("Green")["Green"],
+                        Option("Blue")["Blue"]
+                    ]
+            ],
+            Pre(Class: "small mb-0 p-3 bg-light border rounded")[
+                Code()[
                     $"Subscribe = {(_model.Subscribe ? "true" : "false")}\n" +
                     $"Age       = {_model.Age}\n" +
                     $"StartDate = {_model.StartDate:yyyy-MM-dd}\n" +
                     $"Favorite  = {_model.Favorite}"
-                ])
-            ]));
+                ]
+            ]];
 
     // Bound by Input/Select via expression trees; Rider doesn't see the setter
     // path so its "unused setter" cleanup will silently strip these — keep

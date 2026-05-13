@@ -36,9 +36,21 @@ public abstract class Component
     public string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
-    // The factory generator binds a trailing `params IEnumerable<Child>` slot to this
-    // property when the component renders as an HTML element.
+    // Set by the children indexer below. Factories no longer expose Children as a
+    // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
     public IEnumerable<Child>? Children { get; set; }
+
+    // `Div()[Span(...), "hi"]` is the only call-site syntax for children. The indexer
+    // mutates Children and returns `this` so chained nesting works. The setter remains
+    // public so object initializers and direct construction still compile, but every
+    // factory call site uses this indexer. Using `params IEnumerable<Child>` so both
+    // `Foo()[a, b]` and `Foo()[someEnumerable]` work — the spread operator `..` doesn't
+    // apply inside an indexer (parses as `Range`), but a pre-built collection just slots
+    // in directly.
+    public Component this[params IEnumerable<Child> children]
+    {
+        get { Children = children; return this; }
+    }
 
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
     // components). When non-null, HtmlSerializer wraps BuildAttributes()/RenderChildren()

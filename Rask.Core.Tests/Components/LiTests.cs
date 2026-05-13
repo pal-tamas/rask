@@ -6,16 +6,16 @@ public class LiTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<li></li>", new Li().ToHtml());
+        Assert.Equal("<li></li>", Li().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
                 Assert.Equal("<li id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"42\"></li>",
-            new Li { Value = 42, Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
+            Li(Value: 42, Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<li>&lt;x&gt;</li>", new Li { Children = ["<x>"] }.ToHtml());
+        Assert.Equal("<li>&lt;x&gt;</li>", Li()["<x>"].ToHtml());
 }

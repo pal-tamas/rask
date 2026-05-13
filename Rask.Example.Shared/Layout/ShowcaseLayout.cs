@@ -70,48 +70,37 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
     protected override string? Css => LayoutCss;
 
     protected override Component Render() =>
-        Fragment(
-            Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top", Children:
-            [
-                Div(Class: "container-fluid", Children:
-                [
+        Fragment()[
+            Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top")[
+                Div(Class: "container-fluid")[
                     Button(
                         Class: "navbar-brand fw-semibold border-0 bg-transparent",
-                        OnClick: () => nav.Navigate("/"),
-                        Children:
-                        [
+                        OnClick: () => nav.Navigate("/"))[
                             "Rask ",
-                            Span(Class: "badge rounded-pill rask-badge ms-1", Children: ["showcase"])
-                        ]),
-                    Div(Class: "d-flex align-items-center gap-2", Children:
-                    [
-                        Span(Class: "text-secondary small d-none d-md-inline", Children:
-                        [
+                            Span(Class: "badge rounded-pill rask-badge ms-1")["showcase"]
+                        ],
+                    Div(Class: "d-flex align-items-center gap-2")[
+                        Span(Class: "text-secondary small d-none d-md-inline")[
                             "path: ",
-                            Code(Class: "text-info", Children: [route.Path])
-                        ]),
+                            Code(Class: "text-info")[route.Path]
+                        ],
                         A("https://github.com/pal-tamas/rask",
                             "_blank",
-                            Class: "btn btn-outline-light btn-sm",
-                            Children: [I(Class: "bi bi-github me-1"), "GitHub"])
-                    ])
-                ])
-            ]),
-            Div(Class: "container-fluid", Children:
-            [
-                Div(Class: "row", Children:
-                [
-                    Aside(Class: "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav", Children:
-                    [
-                        Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;", Children: BuildGroups())
-                    ]),
-                    Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5", Children:
-                    [
-                        Div(Class: "mx-auto", Style: "max-width: 920px;", Children: [Outlet()])
-                    ])
-                ])
-            ])
-        );
+                            Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
+                    ]
+                ]
+            ],
+            Div(Class: "container-fluid")[
+                Div(Class: "row")[
+                    Aside(Class: "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav")[
+                        Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;")[BuildGroups()]
+                    ],
+                    Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
+                        Div(Class: "mx-auto", Style: "max-width: 920px;")[Outlet()]
+                    ]
+                ]
+            ]
+        ];
 
     private List<Child> BuildGroups()
     {
@@ -121,8 +110,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         {
             if (group != currentGroup)
             {
-                children.Add(H6(Class: "text-uppercase text-secondary small fw-bold mt-3 mb-2 px-2",
-                    Children: [group]));
+                children.Add(H6(Class: "text-uppercase text-secondary small fw-bold mt-3 mb-2 px-2")[group]);
                 currentGroup = group;
             }
 
@@ -131,12 +119,10 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                 Class: active
                     ? "nav-item-btn nav-item-btn-active"
                     : "nav-item-btn",
-                OnClick: () => nav.Navigate(path),
-                Children:
-                [
+                OnClick: () => nav.Navigate(path))[
                     I(Class: $"bi {icon} me-2"),
-                    Span(Children: [label])
-                ]));
+                    Span()[label]
+                ]);
         }
 
         return children;

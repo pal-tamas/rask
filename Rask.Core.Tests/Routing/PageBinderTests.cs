@@ -3,6 +3,8 @@ using Microsoft.Extensions.Primitives;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Routing;
 
 public class PageBinderTests
@@ -231,21 +233,21 @@ public class PageBinderTests
     private sealed class CustomerPage : Component
     {
         [RouteParam] public CustomerId Id { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     [SkipFactory]
     private sealed class DoublePage : Component
     {
         [QueryParam] public double? Ratio { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     [SkipFactory]
     private sealed class StringPage : Component
     {
         [RouteParam] public string? Name { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     [SkipFactory]
@@ -253,7 +255,7 @@ public class PageBinderTests
     {
         [RouteParam] public int Id { get; set; }
         [QueryParam] public int? Maybe { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     [SkipFactory]
@@ -262,13 +264,13 @@ public class PageBinderTests
         [RouteParam] public Guid Token { get; set; }
         [RouteParam] public DateTime Cutoff { get; set; }
         [RouteParam] public bool Active { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     [SkipFactory]
     private sealed class UnannotatedPage : Component
     {
         public string? Name { get; set; }
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 }

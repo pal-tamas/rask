@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class ReconciliationTests
@@ -12,7 +14,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_FreshContext_AllocatesAndStores()
     {
-        var root = new StubComponent(new Span());
+        var root = new StubComponent(Span());
         var factoryCalls = 0;
         using var ctx = LiveRenderContext.Begin(root, EmptyServices);
 
@@ -29,7 +31,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_ReusesPreviousInstance_AtSamePosition()
     {
-        var root = new StubComponent(new Span());
+        var root = new StubComponent(Span());
         var prev = new CounterStub { Value = 7 };
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -50,7 +52,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_TypeMismatch_AllocatesFresh()
     {
-        var root = new StubComponent(new Span());
+        var root = new StubComponent(Span());
         var prev = new OtherStub();
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -64,7 +66,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_SequentialPositions_GetDistinctKeys()
     {
-        var root = new StubComponent(new Span());
+        var root = new StubComponent(Span());
         var p0 = new CounterStub { Value = 1 };
         var p1 = new CounterStub { Value = 2 };
         var previousChildren = new Dictionary<(Type, int), Component>
@@ -117,12 +119,12 @@ public class ReconciliationTests
     private sealed class CounterStub : Component
     {
         public int Value;
-        protected override Component Render() => new Raw($"<x>{Value}</x>");
+        protected override Component Render() => Raw($"<x>{Value}</x>");
     }
 
     private sealed class OtherStub : Component
     {
-        protected override Component Render() => new Raw("<y/>");
+        protected override Component Render() => Raw("<y/>");
     }
 }
 

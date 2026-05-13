@@ -16,7 +16,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
-    private const string FactoryPositionalChildrenFullName = "Rask.Core.FactoryPositionalChildrenAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
@@ -114,16 +113,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
-        var positionalChildrenOnly = false;
         GenericFactoryConfig? genericFactory = null;
         foreach (var attr in symbol.GetAttributes())
         {
-            var attrName = attr.AttributeClass?.ToDisplayString();
-            if (attrName == FactoryPositionalChildrenFullName)
-            {
-                positionalChildrenOnly = true;
-            }
-            else if (attrName == FactoryGenericFullName)
+            if (attr.AttributeClass?.ToDisplayString() == FactoryGenericFullName)
             {
                 genericFactory = ParseGenericFactoryConfig(attr);
             }
@@ -139,7 +132,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             hasParameterlessCtor,
             hasDICtor,
             isPublic,
-            positionalChildrenOnly,
             genericFactory,
             new EquatableArray<PropInfo>(properties),
             new EquatableArray<ForwarderInfo>(forwarders));
@@ -434,8 +426,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // shadow same-name properties on a base — the `seen` set enforces "first wins" so
         // user shadows beat Component's defaults. `depth` records each property's distance
         // from the most-derived type so the final sort can keep derived-class properties
-        // ahead of inherited ones (tag-specific first, then Id/Class/Style/Data, then
-        // Children).
+        // ahead of inherited ones (tag-specific first, then Id/Class/Style/Data). The
+        // Children property is filtered out below — it's reached via the indexer, not a
+        // factory parameter.
         var depth = 0;
         for (var current = symbol; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType, depth++)
         {
@@ -478,6 +471,17 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             if (IsOverrideOfRaskCoreMember(prop))
+            {
+                continue;
+            }
+
+            // Children is exposed via the `Component this[params Child[]]` indexer, not as
+            // a factory parameter. Skip any property that matches the standard Children shape
+            // so subclasses can't accidentally bring it back into the factory signature.
+            if (prop.Name == "Children" && IsChildCollectionType(
+                    prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                        .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                                  | SymbolDisplayMiscellaneousOptions.UseSpecialTypes))))
             {
                 continue;
             }
@@ -659,13 +663,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
-    // A `Children` property whose type matches one of the standard Child-collection shapes is
-    // emitted as the trailing `params IEnumerable<Child>` slot so callers can write
-    //   MyComponent(Class: "x", childA, childB)
-    // instead of  MyComponent(Class: "x", Children: [childA, childB]).
-    private static bool IsParamsChildrenProp(PropInfo p) =>
-        p.Name == "Children" && IsChildCollectionType(p.TypeFqn);
-
+    // Children is delivered via the `Component this[params Child[]]` indexer on Component
+    // itself — the factory has no Children parameter. This helper exists only to recognize
+    // the standard Children collection shapes while filtering them out in GetFactoryProperties.
     private static bool IsChildCollectionType(string typeFqn)
     {
         var t = StripNullable(typeFqn);
@@ -684,7 +684,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             : typeFqn;
 
     private static bool IsRequiredFactoryParam(PropInfo p) =>
-        !p.IsNullable && !p.HasInitializer && !p.HasImplicitDefault && !IsParamsChildrenProp(p);
+        !p.IsNullable && !p.HasInitializer && !p.HasImplicitDefault;
 
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely
@@ -693,21 +693,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
-        if (c.PositionalChildrenOnly)
-        {
-            // The user opted into a `Type(params IEnumerable<Child> Children)` shape with no
-            // universal-attribute params. Useful for tagless containers (Fragment) where
-            // Id/Class/Style/Data have no rendering effect anyway and would block positional
-            // children calls like `Fragment(c1, c2)`.
-            paramProps = paramProps.Where(IsParamsChildrenProp).ToList();
-        }
-
-        var paramsChildren = paramProps.FirstOrDefault(IsParamsChildrenProp);
-        var hasParamsChildren = paramsChildren.Name == "Children";
         var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
-        var optionalProps = paramProps
-            .Where(p => !IsRequiredFactoryParam(p) && !IsParamsChildrenProp(p))
-            .ToList();
+        var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
 
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
@@ -740,19 +727,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             first = false;
             sb.Append(p.TypeFqn).Append(' ').Append(p.Name).Append(" = ")
                 .Append(DefaultLiteralFor(p));
-        }
-
-        if (hasParamsChildren)
-        {
-            if (!first)
-            {
-                sb.Append(", ");
-            }
-
-            // `params` parameters cannot be nullable — strip `?` so the signature compiles even
-            // when the property itself was declared `IEnumerable<Child>?`. The non-null param
-            // value implicitly converts back to the nullable property type at assignment time.
-            sb.Append("params ").Append(StripNullable(paramsChildren.TypeFqn)).Append(' ').Append(paramsChildren.Name);
         }
 
         sb.Append(')').AppendLine(c.TypeParameterConstraints);
@@ -889,8 +863,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         var modelProperty = gf.ModelProperty;
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
-        var children = paramProps.FirstOrDefault(IsParamsChildrenProp);
-        var hasParamsChildren = children.Name == "Children";
 
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append('<').Append(gf.TypeParameter).Append(">(");
@@ -923,11 +895,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 .Append(", global::System.Threading.Tasks.Task>? ").Append(dp).Append("Async = null");
         }
 
-        // Remaining props in declaration order, skipping the Model/typed-delegate/Children
-        // names already covered above.
+        // Remaining props in declaration order, skipping the Model and typed-delegate names
+        // already covered above. Children is excluded by GetFactoryProperties.
         foreach (var p in paramProps)
         {
-            if (p.Name == modelProperty || typedSet.Contains(p.Name) || IsParamsChildrenProp(p))
+            if (p.Name == modelProperty || typedSet.Contains(p.Name))
             {
                 continue;
             }
@@ -939,12 +911,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 sb.Append(" = ").Append(DefaultLiteralFor(p));
             }
-        }
-
-        if (hasParamsChildren)
-        {
-            if (!first) sb.Append(", ");
-            sb.Append("params ").Append(StripNullable(children.TypeFqn)).Append(' ').Append(children.Name);
         }
 
         sb.Append(") where ").Append(gf.TypeParameter).Append(" : ").AppendLine(gf.Constraint);
@@ -1109,7 +1075,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool HasParameterlessCtor,
         bool HasDIConstructor,
         bool IsPublic,
-        bool PositionalChildrenOnly,
         GenericFactoryConfig? GenericFactory,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders);

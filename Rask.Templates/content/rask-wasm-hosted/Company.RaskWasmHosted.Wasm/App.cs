@@ -5,31 +5,27 @@ namespace Company.RaskWasmHosted.Wasm;
 public sealed class App : Component
 {
     public override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            Html("en", Children:
-            [
-                Head(Children:
-                [
+            Html("en")[
+                Head()[
                     Meta("utf-8"),
                     Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                    Title(Children: ["Company.RaskWasmHosted"]),
+                    Title()["Company.RaskWasmHosted"],
                     RaskScopedStyles()
-                ]),
-                Body(Children:
-                [
-                    Nav(Children:
-                    [
-                        NavLink(HomePage(), Children: ["Home"]),
+                ],
+                Body()[
+                    Nav()[
+                        NavLink(HomePage())["Home"],
                         " | ",
-                        NavLink(Counter(), Children: ["Counter"]),
+                        NavLink(Counter())["Counter"],
                         " | ",
-                        NavLink(Weather(), Children: ["Weather"])
-                    ]),
+                        NavLink(Weather())["Weather"]
+                    ],
                     Hr(),
                     Router(),
                     RaskRuntimeScript()
-                ])
-            ])
-        );
+                ]
+            ]
+        ];
 }

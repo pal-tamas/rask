@@ -13,52 +13,42 @@ public sealed class CancellationPage : Component
     private int _nextInstance;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             PageHeader.Render(
                 "Cancellation",
                 "Every Component exposes a protected CancellationToken that fires exactly once when the component is unmounted. Pass it into HttpClient calls, Task.Delay, or any other cancellable async work started inside a lifecycle hook."),
-            H2(Class: "h4 mt-4 mb-3", Children: ["Live probe"]),
-            P(Class: "text-secondary", Children:
-            [
+            H2(Class: "h4 mt-4 mb-3")["Live probe"],
+            P(Class: "text-secondary")[
                 "Mount the probe to start a 2.5-second ",
-                Code(Children: ["Task.Delay"]),
-                " inside ", Code(Children: ["OnMountAsync"]),
+                Code()["Task.Delay"],
+                " inside ", Code()["OnMountAsync"],
                 ". Click Unmount before it settles to cancel — the probe records what happened into the log below."
-            ]),
-            Div(Class: "card shadow-sm border-0 mb-4", Children:
-            [
-                Div(Class: "card-body", Children:
-                [
-                    Div(Class: "d-flex gap-2 mb-3", Children:
-                    [
+            ],
+            Div(Class: "card shadow-sm border-0 mb-4")[
+                Div(Class: "card-body")[
+                    Div(Class: "d-flex gap-2 mb-3")[
                         Button(
                             Class: "btn btn-primary btn-sm",
                             Id: "cancel-mount",
                             Disabled: _mounted,
-                            OnClick: Mount,
-                            Children: [I(Class: "bi bi-play-circle me-1"), "Mount probe"]),
+                            OnClick: Mount)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
                         Button(
                             Class: "btn btn-outline-secondary btn-sm",
                             Id: "cancel-unmount",
                             Disabled: !_mounted,
-                            OnClick: Unmount,
-                            Children: [I(Class: "bi bi-stop-circle me-1"), "Unmount probe"])
-                    ]),
+                            OnClick: Unmount)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
+                    ],
                     _mounted
                         ? CancellationProbe(Log: AppendLog, InstanceId: _nextInstance)
-                        : P(Class: "text-secondary fst-italic mb-0",
-                            Children: ["Probe is not mounted."]),
-                    H3(Class: "h6 text-secondary text-uppercase small mt-4", Children: ["Log"]),
+                        : P(Class: "text-secondary fst-italic mb-0")["Probe is not mounted."],
+                    H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
                     _log.Count == 0
-                        ? P(Class: "text-secondary small mb-0",
-                            Children: ["Mount and unmount the probe to populate this log."])
-                        : Ol(Class: "list-group list-group-numbered list-group-flush cancel-log",
-                            Children: _log.Select(line => (Child)Li(
-                                Class: "list-group-item ps-2 small",
-                                Children: [Code(Class: "small", Children: [line])])).ToArray())
-                ])
-            ]),
-            H2(Class: "h4 mt-4 mb-3", Children: ["Source"]),
+                        ? P(Class: "text-secondary small mb-0")["Mount and unmount the probe to populate this log."]
+                        : Ol(Class: "list-group list-group-numbered list-group-flush cancel-log")[_log.Select(line => (Child)Li(
+                                Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]
+                ]
+            ],
+            H2(Class: "h4 mt-4 mb-3")["Source"],
             CodeSample(
                 """
                 public sealed class CancellationProbe : Component
@@ -82,18 +72,16 @@ public sealed class CancellationPage : Component
                 """,
                 Notes:
                 "Component.CancellationToken is allocated lazily — components that don't read it never pay the CTS cost. The framework cancels the token before disposing the subtree, so awaits unwind via OperationCanceledException before Dispose runs."),
-            Div(Class: "alert alert-info d-flex align-items-start mt-3", Children:
-            [
+            Div(Class: "alert alert-info d-flex align-items-start mt-3")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
-                Div(Children:
-                [
-                    Strong(Children: ["Cooperation required:"]),
+                Div()[
+                    Strong()["Cooperation required:"],
                     " the framework does not abort blocking calls — it only signals the token. Pass it into ",
-                    Code(Children: ["HttpClient"]), ", ", Code(Children: ["Task.Delay"]),
+                    Code()["HttpClient"], ", ", Code()["Task.Delay"],
                     ", and any cancellable API you call from a lifecycle hook so they unwind cleanly when the user navigates away."
-                ])
-            ])
-        );
+                ]
+            ]
+        ];
 
     private void Mount()
     {

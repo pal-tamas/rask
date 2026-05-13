@@ -9,13 +9,13 @@ namespace Rask.Server.Tests.Authentication;
 public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState) : Component
 {
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            new Html { Children = [new Head { Children = [new Title { Children = ["auth-test"] }] },
-                new Body { Children = [new H1 { Children = [$"path={routeState.Path}"] },
-                    new P { Children = [$"user={(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "anon")}"] },
-                    Button(OnClickAsync: SignInAsync, Children: ["sign-in"]),
-                    Button(OnClickAsync: SignOutAsync, Children: ["sign-out"])] }] });
+            new Html()[new Head()[new Title()["auth-test"]],
+                new Body()[new H1()[$"path={routeState.Path}"],
+                    new P()[$"user={(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "anon")}"],
+                    Button(OnClickAsync: SignInAsync)["sign-in"],
+                    Button(OnClickAsync: SignOutAsync)["sign-out"]]]];
 
     private Task SignInAsync()
     {

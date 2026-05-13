@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Components;
 
 public class RaskRuntimeScriptTests
@@ -10,7 +12,7 @@ public class RaskRuntimeScriptTests
     public void Render_NoProviderRegistered_EmitsEmptyRaw()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
-        var view = new StubComponent(() => new RaskRuntimeScript());
+        var view = new StubComponent(() => RaskRuntimeScript());
 
         var html = view.RenderAsLiveRoot(sp);
 
@@ -22,9 +24,9 @@ public class RaskRuntimeScriptTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<IRaskRuntimeScript>(
-            new MockRuntimeScriptProvider(new Raw("<script src=\"/x.js\"></script>")));
+            new MockRuntimeScriptProvider(Raw("<script src=\"/x.js\"></script>")));
         var sp = services.BuildServiceProvider();
-        var view = new StubComponent(() => new RaskRuntimeScript());
+        var view = new StubComponent(() => RaskRuntimeScript());
 
         var html = view.RenderAsLiveRoot(sp);
 
@@ -36,7 +38,7 @@ public class RaskRuntimeScriptTests
     {
         // Direct ToHtml() call without a LiveRenderContext exercises the
         // `LiveRenderContext.Current?.Services` null-conditional branch.
-        var html = new RaskRuntimeScript().ToHtml();
+        var html = RaskRuntimeScript().ToHtml();
 
         Assert.Equal(string.Empty, html);
     }

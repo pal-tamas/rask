@@ -8,11 +8,10 @@ public sealed class Counter : Component
     private int _count;
 
     public override Component Render() =>
-        Fragment(
-            H1(Children: ["Counter"]),
-            P(Children: [$"Current count: {_count}"]),
+        Fragment()[
+            H1()["Counter"],
+            P()[$"Current count: {_count}"],
             Button(
-                OnClick: () => _count++,
-                Children: ["Click me"])
-        );
+                OnClick: () => _count++)["Click me"]
+        ];
 }

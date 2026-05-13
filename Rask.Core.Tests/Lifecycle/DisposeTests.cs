@@ -3,6 +3,8 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Server;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class DisposeTests
@@ -83,7 +85,7 @@ public class DisposeTests
     {
         public int DisposeCount;
         public void Dispose() => DisposeCount++;
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class AsyncDisposableLeaf : Component, IAsyncDisposable
@@ -96,7 +98,7 @@ public class DisposeTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class DisposableMiddle : Component, IDisposable
@@ -126,7 +128,7 @@ public class DisposeTests
         {
             if (!IncludeChild)
             {
-                return new Span();
+                return Span();
             }
 
             var ctx = LiveRenderContext.Current!;

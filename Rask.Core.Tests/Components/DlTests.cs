@@ -6,16 +6,16 @@ public class DlTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<dl></dl>", new Dl().ToHtml());
+        Assert.Equal("<dl></dl>", Dl().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
                 Assert.Equal("<dl id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></dl>",
-            new Dl { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
+            Dl(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<dl>&lt;x&gt;</dl>", new Dl { Children = ["<x>"] }.ToHtml());
+        Assert.Equal("<dl>&lt;x&gt;</dl>", Dl()["<x>"].ToHtml());
 }

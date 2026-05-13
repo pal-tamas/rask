@@ -3,6 +3,8 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Server;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class DisposeErrorTests
@@ -61,7 +63,7 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom");
         }
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class FaultingAsyncDisposable : Component, IAsyncDisposable
@@ -74,14 +76,14 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom-async");
         }
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class RecordingDisposable : Component, IDisposable
     {
         public int Disposes;
         public void Dispose() => Disposes++;
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class TwoChildHost : Component
@@ -100,7 +102,7 @@ public class DisposeErrorTests
         {
             if (!Include)
             {
-                return new Span();
+                return Span();
             }
 
             var ctx = LiveRenderContext.Current!;
@@ -108,7 +110,7 @@ public class DisposeErrorTests
             ctx.NotifyParameters(first, true);
             var second = ctx.GetOrCreate(_b.GetType(), _ => _b);
             ctx.NotifyParameters(second, true);
-            return new Div { Children = [first, second] };
+            return Div()[first, second];
         }
     }
 }

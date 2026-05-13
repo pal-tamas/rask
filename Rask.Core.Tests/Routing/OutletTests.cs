@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Routing;
 
 public class OutletTests
@@ -69,38 +71,38 @@ public class OutletTests
     [SkipFactory]
     public sealed class Layout : Component
     {
-        protected override Component Render() => Div(Children: ["layout:", Outlet()]);
+        protected override Component Render() => Div()["layout:", Outlet()];
     }
 
     [SkipFactory]
     public sealed class Section : Component
     {
         protected override Component Render() =>
-            Section(Children: ["section:", Outlet()]);
+            Section()["section:", Outlet()];
     }
 
     [SkipFactory]
     public sealed class Leaf : Component
     {
         [RouteParam] public string? Tag { get; set; }
-        protected override Component Render() => Span(Children: [$"leaf:{Tag}"]);
+        protected override Component Render() => Span()[$"leaf:{Tag}"];
     }
 
     [SkipFactory]
     public sealed class LeafWithOutlet : Component
     {
-        protected override Component Render() => Div(Children: ["leaf:", Outlet()]);
+        protected override Component Render() => Div()["leaf:", Outlet()];
     }
 
     [SkipFactory]
     public sealed class DoubleOutletLayout : Component
     {
-        protected override Component Render() => Div(Children: ["first:", Outlet(), "second:", Outlet()]);
+        protected override Component Render() => Div()["first:", Outlet(), "second:", Outlet()];
     }
 
     [SkipFactory]
     public sealed class LeafText : Component
     {
-        protected override Component Render() => Span(Children: ["leaf"]);
+        protected override Component Render() => Span()["leaf"];
     }
 }

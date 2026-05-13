@@ -32,12 +32,11 @@ public sealed class Select : Component
         var current = BindingHelpers.FormatValue(acc.Getter());
         var preselected = MarkSelected(Children, current);
 
-        return C.Select(
+        return (Select)C.Select(
             Name: name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true),
-            Id: Id, Class: Class, Style: Style, Data: Data,
-            Children: preselected);
+            Id: Id, Class: Class, Style: Style, Data: Data)[preselected];
     }
 
     private static IEnumerable<Child> MarkSelected(IEnumerable<Child> children, string current)

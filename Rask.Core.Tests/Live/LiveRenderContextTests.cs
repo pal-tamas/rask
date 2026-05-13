@@ -1,6 +1,8 @@
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class LiveRenderContextTests
@@ -11,7 +13,7 @@ public class LiveRenderContextTests
     [Fact]
     public void Current_InsideBegin_IsNonNull_AndDispose_RestoresPrevious()
     {
-        var view = new StubComponent(new Span());
+        var view = new StubComponent(Span());
         Assert.Null(LiveRenderContext.Current);
         using (LiveRenderContext.Begin(view))
         {
@@ -24,7 +26,7 @@ public class LiveRenderContextTests
     [Fact]
     public void RegisterHandler_YieldsSequentialIds()
     {
-        var view = new StubComponent(new Span());
+        var view = new StubComponent(Span());
         using var ctx = LiveRenderContext.Begin(view);
         var a = () => { };
         var b = () => { };

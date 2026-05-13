@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class RenderSkipTests
@@ -129,7 +131,7 @@ public class RenderSkipTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
             ctx.NotifyParameters(c, false);
-            return new Span { Children = [c] };
+            return Span()[c];
         }
     }
 }

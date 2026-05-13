@@ -2,6 +2,8 @@ using System.Text;
 using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests;
 
 [Collection("ScopedCss")]
@@ -13,7 +15,7 @@ public class HtmlSerializerTests
     public void Serialize_Text_EncodesValue()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(new Text("<x>&"), sb);
+        HtmlSerializer.Serialize(Text("<x>&"), sb);
         Assert.Equal("&lt;x&gt;&amp;", sb.ToString());
     }
 
@@ -21,7 +23,7 @@ public class HtmlSerializerTests
     public void Serialize_Raw_EmitsValueVerbatim()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(new Raw("<i>raw</i>"), sb);
+        HtmlSerializer.Serialize(Raw("<i>raw</i>"), sb);
         Assert.Equal("<i>raw</i>", sb.ToString());
     }
 
@@ -29,7 +31,7 @@ public class HtmlSerializerTests
     public void Serialize_Doctype_EmitsDoctypeLiteral()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(new Doctype(), sb);
+        HtmlSerializer.Serialize(Doctype(), sb);
         Assert.Equal("<!DOCTYPE html>", sb.ToString());
     }
 
@@ -37,7 +39,7 @@ public class HtmlSerializerTests
     public void Serialize_Fragment_RendersChildrenInOrder()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(new Fragment(new Text("a"), new Raw("<i>"), new Text("b")), sb);
+        HtmlSerializer.Serialize(Fragment()[Text("a"), Raw("<i>"), Text("b")], sb);
         Assert.Equal("a<i>b", sb.ToString());
     }
 
@@ -59,7 +61,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_ScopeIdSet_NonShellTag_StampsDataAttribute()
     {
-        var view = new CssWrapper(new Div { Children = [new Text("hi")] });
+        var view = new CssWrapper(Div()[Text("hi")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         Assert.Contains($"<div data-{scopeId}>hi</div>", html);
@@ -98,7 +100,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_VoidElement_WithChildren_StillSelfCloses()
     {
-        var html = new VoidEl(null, new Child[] { new Text("ignored") }).ToHtml();
+        var html = new VoidEl(null, new Child[] { Text("ignored") }).ToHtml();
         Assert.Equal("<void />", html);
     }
 
@@ -109,7 +111,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_FallthroughBranch_PushesScope_AndRecurses()
     {
-        var view = new ScopedWrapper(new Div { Children = [new Text("inner")] });
+        var view = new ScopedWrapper(Div()[Text("inner")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(ScopedWrapper));
         Assert.Contains($"<div data-{scopeId}>inner</div>", html);
@@ -117,15 +119,15 @@ public class HtmlSerializerTests
 
     private static Component ShellOf(string tag) => tag switch
     {
-        "head" => new Head { Children = [new Text("x")] },
-        "body" => new Body { Children = [new Text("x")] },
-        "html" => new Html { Children = [new Text("x")] },
-        "title" => new Title { Children = [new Text("x")] },
-        "meta" => new Meta {  },
-        "link" => new Link {  },
-        "script" => new Script { Children = [new Text("x")] },
-        "style" => new Style { Children = [new Text("x")] },
-        "base" => new Base {  },
+        "head" => Head()[Text("x")],
+        "body" => Body()[Text("x")],
+        "html" => Html()[Text("x")],
+        "title" => Title()[Text("x")],
+        "meta" => Meta(),
+        "link" => Link(),
+        "script" => Script()[Text("x")],
+        "style" => Style()[Text("x")],
+        "base" => Base(),
         _ => throw new ArgumentOutOfRangeException(nameof(tag))
     };
 

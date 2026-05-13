@@ -4,6 +4,8 @@ using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Forms;
 
 public class FormBindingTests
@@ -12,12 +14,11 @@ public class FormBindingTests
     public void BoundInput_RendersValueFromGetter_AndAutoNamesField()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p, Children:
-        [
+        var view = new StubComponent(() => Form(p)[
             Input(() => p.Name),
             Input(() => p.Age),
             Input(() => p.Subscribed)
-        ]));
+        ]);
 
         var html = view.RenderAsLiveRoot();
 
@@ -33,10 +34,9 @@ public class FormBindingTests
     public async Task OnInput_UpdatesBoundStringField_DuringInputEvent()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p, Children:
-        [
+        var view = new StubComponent(() => Form(p)[
             Input(() => p.Name)
-        ]));
+        ]);
         var html = view.RenderAsLiveRoot();
 
         var inputId = ExtractAttr(html, "data-rask-on-input");
@@ -53,10 +53,9 @@ public class FormBindingTests
     public async Task OnChange_UpdatesNumericBoundField_AndMarksTouched()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var view = new StubComponent(() => Form(p, Children:
-        [
+        var view = new StubComponent(() => Form(p)[
             Input(() => p.Age)
-        ]));
+        ]);
         var html = view.RenderAsLiveRoot();
 
         var changeId = ExtractAttr(html, "data-rask-on-change");
@@ -79,8 +78,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(
             p,
             (Action<Person>)(_ => validCalled++),
-            (Action<Person>)(_ => invalidCalled++),
-            Children: [Input(() => p.Name), Input(() => p.Age)]));
+            (Action<Person>)(_ => invalidCalled++))[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = ExtractAttr(html, "data-rask-on-submit");
@@ -99,8 +97,7 @@ public class FormBindingTests
 
         var view = new StubComponent(() => Form(
             p,
-            (Action<Person>)(m => captured = m),
-            Children: [Input(() => p.Name), Input(() => p.Age)]));
+            (Action<Person>)(m => captured = m))[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = ExtractAttr(html, "data-rask-on-submit");
@@ -117,10 +114,9 @@ public class FormBindingTests
         var p = new Person { Name = "", Age = 30 };
         var captures = new List<EditContext>();
 
-        var view = new StubComponent(() => Form(p, Children:
-        [
+        var view = new StubComponent(() => Form(p)[
             new ContextCapture(captures.Add)
-        ]));
+        ]);
         view.RenderAsLiveRoot();
         view.RenderAsLiveRoot();
 
@@ -158,7 +154,7 @@ public class FormBindingTests
                 capture(c);
             }
 
-            return new Fragment();
+            return Fragment();
         }
     }
 }

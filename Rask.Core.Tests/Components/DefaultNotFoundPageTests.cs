@@ -4,6 +4,8 @@ using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Components;
 
 public class DefaultNotFoundPageTests
@@ -13,7 +15,7 @@ public class DefaultNotFoundPageTests
     {
         using var _ = BeginRoute("/missing");
 
-        var html = new DefaultNotFoundPage().RenderForLive().ToHtml();
+        var html = DefaultNotFoundPage().RenderForLive().ToHtml();
 
         Assert.Contains("Page not found", html);
     }
@@ -23,7 +25,7 @@ public class DefaultNotFoundPageTests
     {
         using var _ = BeginRoute("/does/not/exist");
 
-        var html = new DefaultNotFoundPage().RenderForLive().ToHtml();
+        var html = DefaultNotFoundPage().RenderForLive().ToHtml();
 
         Assert.Contains("/does/not/exist", html);
     }
@@ -33,7 +35,7 @@ public class DefaultNotFoundPageTests
     {
         using var _ = BeginRoute("/anywhere");
 
-        var html = new DefaultNotFoundPage().RenderForLive().ToHtml();
+        var html = DefaultNotFoundPage().RenderForLive().ToHtml();
 
         Assert.Contains("href=\"/\"", html);
     }
@@ -42,9 +44,9 @@ public class DefaultNotFoundPageTests
     public void Render_NoRouteStateRegistered_FallsBackToRoot()
     {
         var services = new ServiceCollection().BuildServiceProvider();
-        using var _ = LiveRenderContext.Begin(new StubComponent(new Span()), services);
+        using var _ = LiveRenderContext.Begin(new StubComponent(Span()), services);
 
-        var html = new DefaultNotFoundPage().RenderForLive().ToHtml();
+        var html = DefaultNotFoundPage().RenderForLive().ToHtml();
 
         Assert.Contains("Page not found", html);
         Assert.Contains(">/<", html);
@@ -54,6 +56,6 @@ public class DefaultNotFoundPageTests
     {
         var state = new RouteState { Path = path };
         var services = new ServiceCollection().AddSingleton(state).BuildServiceProvider();
-        return LiveRenderContext.Begin(new StubComponent(new Span()), services);
+        return LiveRenderContext.Begin(new StubComponent(Span()), services);
     }
 }

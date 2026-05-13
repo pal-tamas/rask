@@ -58,15 +58,13 @@ public sealed class App : Component
     protected override string? Css => GlobalCss;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            Html("en", Children:
-            [
-                Head(Children:
-                [
+            Html("en")[
+                Head()[
                     Meta("utf-8"),
                     Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                    Title(Children: "Rask — feature showcase"),
+                    Title()["Rask — feature showcase"],
                     Link(Rel: "stylesheet",
                         Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
                         CrossOrigin: "anonymous"),
@@ -74,12 +72,11 @@ public sealed class App : Component
                         Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css",
                         CrossOrigin: "anonymous"),
                     RaskScopedStyles()
-                ]),
-                Body(Class: "bg-body-tertiary", Children:
-                [
+                ],
+                Body(Class: "bg-body-tertiary")[
                     Router(),
                     RaskRuntimeScript()
-                ])
-            ])
-        );
+                ]
+            ]
+        ];
 }

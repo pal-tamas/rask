@@ -5,7 +5,7 @@ public class ChildTests
     [Fact]
     public void ImplicitConversion_FromComponent_StoresOriginalComponent()
     {
-        var raw = new Raw("<b/>");
+        var raw = Raw("<b/>");
         Child child = raw;
         Assert.Same(raw, child.Component);
     }
@@ -21,7 +21,7 @@ public class ChildTests
     [Fact]
     public void ConstructorWithComponent_ExposesSameInstance()
     {
-        var raw = new Raw("y");
+        var raw = Raw("y");
         var child = new Child(raw);
         Assert.Same(raw, child.Component);
     }

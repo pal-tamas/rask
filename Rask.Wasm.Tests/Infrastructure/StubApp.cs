@@ -12,16 +12,14 @@ internal sealed class StubApp : Component
     public StubApp(RouteState routeState) => _routeState = routeState;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            Html(Children:
-            [
-                Head(Children: [Title(Children: ["stub"])]),
-                Body(Children:
-                [
-                    H1(Children: [$"path={_routeState.Path}"]),
-                    P(Children: [$"count={Counter}"]),
-                    Button(OnClick: () => Counter++, Children: ["bump"])
-                ])
-            ]));
+            Html()[
+                Head()[Title()["stub"]],
+                Body()[
+                    H1()[$"path={_routeState.Path}"],
+                    P()[$"count={Counter}"],
+                    Button(OnClick: () => Counter++)["bump"]
+                ]
+            ]];
 }

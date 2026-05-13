@@ -45,21 +45,17 @@ internal sealed class RootErrorBoundary : Component
         ctx.NotifyParameters(inner, false);
 
         return F.ErrorBoundary(
-            Children: new Child[] { inner },
-            Fallback: (ex, _) => F.Fragment(Children:
-            [
+            Fallback: (ex, _) => F.Fragment()[
                 F.Doctype(),
-                F.Html(Lang: "en", Children:
-                [
-                    F.Head(Children:
-                    [
+                F.Html(Lang: "en")[
+                    F.Head()[
                         F.Meta(Charset: "utf-8"),
                         F.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                        F.Title(Children: ["Application error"])
-                    ]),
-                    F.Body(Children: [new DefaultErrorPage(ex)])
-                ])
-            ]));
+                        F.Title()["Application error"]
+                    ],
+                    F.Body()[new DefaultErrorPage(ex)]
+                ]
+            ])[inner];
     }
 
     private static LiveRenderContext? Current => LiveRenderContext.Current;

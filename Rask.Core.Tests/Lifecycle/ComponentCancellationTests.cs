@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Lifecycle;
 
 public class ComponentCancellationTests
@@ -120,12 +122,12 @@ public class ComponentCancellationTests
         protected override Task OnMountAsync() =>
             OnMountAsyncImpl?.Invoke(CancellationToken) ?? Task.CompletedTask;
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class Root : Component
     {
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 
     private sealed class TokenWatchingDisposable : Component, IDisposable
@@ -136,6 +138,6 @@ public class ComponentCancellationTests
 
         public void Dispose() => SawCancellation = CancellationToken.IsCancellationRequested;
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 }

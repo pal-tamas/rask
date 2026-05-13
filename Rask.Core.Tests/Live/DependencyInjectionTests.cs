@@ -3,6 +3,8 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Server;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class DependencyInjectionTests
@@ -43,7 +45,7 @@ public class DependencyInjectionTests
             .AddSingleton<IGreeter>(new FixedGreeter("ctx"))
             .BuildServiceProvider();
 
-        var root = new StubComponent(new Span());
+        var root = new StubComponent(Span());
         using var ctx = LiveRenderContext.Begin(root, services);
 
         var instance = Components.GreetingComponent();
@@ -103,12 +105,12 @@ public class DependencyInjectionTests
         public GreetingComponent(IGreeter greeter) => _greeter = greeter;
 
         protected override Component Render() =>
-            new Span { Children = [new Text($"hello, {_greeter.Name}")] };
+            Span()[Text($"hello, {_greeter.Name}")];
     }
 
     public sealed class ParameterlessComponent : Component
     {
-        protected override Component Render() => new Span { Children = [new Text("plain")] };
+        protected override Component Render() => Span()[Text("plain")];
     }
 
     public sealed class ScopedTracker : IDisposable
@@ -121,6 +123,6 @@ public class DependencyInjectionTests
     {
         public TrackerComponent(ScopedTracker tracker) => Tracker = tracker;
         public ScopedTracker Tracker { get; }
-        protected override Component Render() => new Raw("<x/>");
+        protected override Component Render() => Raw("<x/>");
     }
 }

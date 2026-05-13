@@ -1,6 +1,8 @@
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class LifecycleSyncContextTests
@@ -81,6 +83,6 @@ public class LifecycleSyncContextTests
             return Task.CompletedTask;
         }
 
-        protected override Component Render() => new Span();
+        protected override Component Render() => Span();
     }
 }

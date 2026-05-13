@@ -8,10 +8,10 @@ public sealed class ThrowingApp : Component
     public int Counter;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            new Html { Children = [new Head { Children = [new Title { Children = ["throw"] }] },
-                new Body { Children = [new P { Children = [$"count={Counter}"] },
-                    Button(OnClick: () => throw new InvalidOperationException("boom"), Children: ["throw"]),
-                    Button(OnClick: () => Counter++, Children: ["bump"])] }] });
+            new Html()[new Head()[new Title()["throw"]],
+                new Body()[new P()[$"count={Counter}"],
+                    Button(OnClick: () => throw new InvalidOperationException("boom"))["throw"],
+                    Button(OnClick: () => Counter++)["bump"]]]];
 }

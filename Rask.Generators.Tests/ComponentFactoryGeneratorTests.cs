@@ -658,9 +658,12 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("Name = null", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
-    public void ChildrenProperty_NonNullable_EmittedAsParams()
+    [Fact]
+    public void ChildrenProperty_FilteredFromFactorySignature()
     {
+        // Children is now exposed via the `Component this[params Child[]]` indexer, not as
+        // a factory parameter. Even a non-nullable Children prop must be filtered out — the
+        // base class declares Children, but no factory should ever emit it as a param.
         var src = """
                   using System.Collections.Generic;
                   using Rask.Core;
@@ -675,60 +678,9 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
-        Assert.Contains(
-            "Card(params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children)",
+        Assert.DoesNotContain("params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children",
             output);
-        Assert.Contains("__c.Children = Children;", output);
-    }
-
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
-    public void ChildrenProperty_Nullable_EmittedAsParamsWithStrippedNullable()
-    {
-        var src = """
-                  using System.Collections.Generic;
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed class Card : Component
-                  {
-                      public IEnumerable<Child>? Children { get; set; }
-                      public override Component Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
-
-        // params cannot be nullable — emit non-nullable IEnumerable<Child>.
-        Assert.Contains(
-            "Card(params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children)",
-            output);
-        // No ` = null` default — params can't have one.
-        Assert.DoesNotContain("Children = null", output);
-    }
-
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
-    public void ChildrenProperty_AlwaysLast_AfterRequiredAndOptional()
-    {
-        var src = """
-                  using System.Collections.Generic;
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed class Card : Component
-                  {
-                      public IEnumerable<Child> Children { get; set; }
-                      public string Name { get; set; }
-                      public string? Subtitle { get; set; }
-                      public override Component Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
-
-        Assert.Contains(
-            "Card(string Name, string? Subtitle = null, " +
-            "params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children)",
-            output);
+        Assert.DoesNotContain("__c.Children = Children;", output);
     }
 
     [Fact]
@@ -775,29 +727,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("params", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
-    public void ChildrenProperty_ReadOnlyListType_AlsoEmittedAsParams()
-    {
-        var src = """
-                  using System.Collections.Generic;
-                  using Rask.Core;
-                  namespace Demo;
-                  public sealed class Card : Component
-                  {
-                      public IReadOnlyList<Child> Children { get; set; }
-                      public override Component Render() => this;
-                  }
-                  """;
-
-        var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
-
-        Assert.Contains(
-            "Card(params global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Child> Children)",
-            output);
-    }
-
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+[Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
     public void TenProperties_FactoryParameterOrderMatchesDeclaration()
     {
         var src = """

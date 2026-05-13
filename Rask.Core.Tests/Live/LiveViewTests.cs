@@ -2,6 +2,8 @@ using System.Text.Json;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class LiveViewTests
@@ -10,11 +12,10 @@ public class LiveViewTests
     public void RenderAsLiveRoot_RegistersHandlersAndEmitsIds()
     {
         var counter = 0;
-        var view = new StubComponent(() => Div(Children:
-        [
-            Button(OnClick: () => counter++, Children: ["up"]),
-            Button(OnClick: () => counter--, Children: ["down"])
-        ]));
+        var view = new StubComponent(() => Div()[
+            Button(OnClick: () => counter++)["up"],
+            Button(OnClick: () => counter--)["down"]
+        ]);
 
         var html = view.RenderAsLiveRoot();
 
@@ -26,7 +27,7 @@ public class LiveViewTests
     [Fact]
     public void RenderAsLiveRoot_ResetsHandlerIdsBetweenRenders()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { }, Children: ["x"]));
+        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
 
         var first = view.RenderAsLiveRoot();
         var second = view.RenderAsLiveRoot();
@@ -39,7 +40,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_RunsParameterlessAction_AndIgnoresPayload()
     {
         var fired = 0;
-        var view = new StubComponent(() => Button(OnClick: () => fired++, Children: ["x"]));
+        var view = new StubComponent(() => Button(OnClick: () => fired++)["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", JsonDocument.Parse("{}").RootElement);
@@ -52,7 +53,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_StringActionHandler_ReceivesValueProperty()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => new Input { OnInput = v => captured = v });
+        var view = new StubComponent(() => Input(OnInput: v => captured = v));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"id\":\"h0\",\"type\":\"input\",\"value\":\"hello\"}");
@@ -66,7 +67,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FormDataActionHandler_ReceivesFormFields()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form(OnSubmit: f => captured = f, Children: []));
+        var view = new StubComponent(() => Form(OnSubmit: f => captured = f));
         view.RenderAsLiveRoot();
 
         using var doc =
@@ -87,7 +88,7 @@ public class LiveViewTests
         {
             await Task.Yield();
             fired = true;
-        }, Children: ["x"]));
+        })["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("h0", JsonDocument.Parse("{}").RootElement);
@@ -100,11 +101,11 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FuncStringTaskHandler_ReceivesValue()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => new Input { OnInputAsync = async v =>
+        var view = new StubComponent(() => Input(OnInputAsync: async v =>
         {
             await Task.Yield();
             captured = v;
-        } });
+        }));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"value\":\"hi\"}");
@@ -122,7 +123,7 @@ public class LiveViewTests
         {
             await Task.Yield();
             captured = f;
-        }, Children: []));
+        }));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"form\":{\"x\":\"y\"}}");
@@ -143,8 +144,7 @@ public class LiveViewTests
             {
                 await Task.Yield();
                 asyncFired++;
-            },
-            Children: ["x"]));
+            })["x"]);
 
         // emits attribute even when both set; sync wins when both registered
         var html = view.RenderAsLiveRoot();
@@ -160,7 +160,7 @@ public class LiveViewTests
     [Fact]
     public async Task TryInvokeHandlerAsync_UnknownId_ReturnsFalse()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { }, Children: ["x"]));
+        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync("hX", JsonDocument.Parse("{}").RootElement);
@@ -171,7 +171,7 @@ public class LiveViewTests
     [Fact]
     public async Task TryInvokeHandlerAsync_StaleIdAfterRerender_ReturnsFalse()
     {
-        var view = new StubComponent(() => Button(OnClick: () => { }, Children: ["x"]));
+        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
         view.RenderAsLiveRoot();
         view.RenderAsLiveRoot();
 

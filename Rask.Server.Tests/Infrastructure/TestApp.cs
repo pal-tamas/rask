@@ -12,10 +12,10 @@ public sealed class TestApp : Component
     public TestApp(RouteState routeState) => _routeState = routeState;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            new Html { Children = [new Head { Children = [new Title { Children = ["test"] }] },
-                new Body { Children = [new H1 { Children = [$"path={_routeState.Path}"] },
-                    new P { Children = [$"count={Counter}"] },
-                    Button(OnClick: () => Counter++, Children: ["bump"])] }] });
+            new Html()[new Head()[new Title()["test"]],
+                new Body()[new H1()[$"path={_routeState.Path}"],
+                    new P()[$"count={Counter}"],
+                    Button(OnClick: () => Counter++)["bump"]]]];
 }

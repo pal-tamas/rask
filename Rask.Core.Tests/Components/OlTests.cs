@@ -6,16 +6,16 @@ public class OlTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<ol></ol>", new Ol().ToHtml());
+        Assert.Equal("<ol></ol>", Ol().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
                 Assert.Equal("<ol id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" type=\"1\" reversed start=\"5\"></ol>",
-            new Ol { Type = "1", Reversed = true, Start = 5, Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
+            Ol(Type: "1", Reversed: true, Start: 5, Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<ol>&lt;x&gt;</ol>", new Ol { Children = ["<x>"] }.ToHtml());
+        Assert.Equal("<ol>&lt;x&gt;</ol>", Ol()["<x>"].ToHtml());
 }

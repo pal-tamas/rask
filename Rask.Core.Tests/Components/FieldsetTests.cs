@@ -6,17 +6,17 @@ public class FieldsetTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<fieldset></fieldset>", new Fieldset().ToHtml());
+        Assert.Equal("<fieldset></fieldset>", Fieldset().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
                 Assert.Equal(
             "<fieldset id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" disabled form=\"f\" name=\"n\"></fieldset>",
-            new Fieldset { Disabled = true, Form = "f", Name = "n", Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
+            Fieldset(Disabled: true, Form: "f", Name: "n", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<fieldset>&lt;x&gt;</fieldset>", new Fieldset { Children = ["<x>"] }.ToHtml());
+        Assert.Equal("<fieldset>&lt;x&gt;</fieldset>", Fieldset()["<x>"].ToHtml());
 }

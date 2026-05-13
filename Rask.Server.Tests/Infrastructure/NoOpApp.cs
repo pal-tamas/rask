@@ -11,9 +11,9 @@ public sealed class NoOpApp : Component
     public int Hidden;
 
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            new Html { Children = [new Head { Children = [new Title { Children = ["noop"] }] },
-                new Body { Children = [new H1 { Children = ["static"] },
-                    Button(OnClick: () => Hidden++, Children: ["noop"])] }] });
+            new Html()[new Head()[new Title()["noop"]],
+                new Body()[new H1()["static"],
+                    Button(OnClick: () => Hidden++)["noop"]]]];
 }

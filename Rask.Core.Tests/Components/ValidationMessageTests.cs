@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Components;
 
 public class ValidationMessageTests
@@ -18,10 +20,9 @@ public class ValidationMessageTests
     public void InsideEditContext_NoMessages_RendersNothing()
     {
         var p = new Person { Name = "Ada" };
-        var view = new StubComponent(() => Form(p, Children:
-        [
+        var view = new StubComponent(() => Form(p)[
             ValidationMessage(() => p.Name)
-        ]));
+        ]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validation-message", html);
     }
@@ -34,10 +35,9 @@ public class ValidationMessageTests
         ctx.AddValidator(new DataAnnotationsValidator());
         ctx.Validate();
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p, Children:
-        [
+        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidationMessage(() => p.Name)
-        ]));
+        ]);
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("class=\"validation-message\"", html);
@@ -52,10 +52,9 @@ public class ValidationMessageTests
         ctx.AddValidator(new DataAnnotationsValidator());
         ctx.Validate();
 
-        var view = new StubComponent(() => Form(Context: ctx, Model: p, Children:
-        [
+        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidationSummary()
-        ]));
+        ]);
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("<ul class=\"validation-summary\">", html);

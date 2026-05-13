@@ -3,6 +3,8 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Server;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class StateHasChangedTests
@@ -10,14 +12,14 @@ public class StateHasChangedTests
     [Fact]
     public void StateHasChanged_NoHandle_DoesNotThrow()
     {
-        var c = new StubComponent(new Span());
+        var c = new StubComponent(Span());
         c.StateHasChanged();
     }
 
     [Fact]
     public async Task StateHasChangedAsync_NoHandle_ReturnsCompletedTask()
     {
-        var c = new StubComponent(new Span());
+        var c = new StubComponent(Span());
         await c.StateHasChangedAsync();
     }
 
@@ -71,7 +73,7 @@ public class StateHasChangedTests
     public void StateHasChangedFromChild_PropagatesHandleViaLiveRenderContext()
     {
         var session = NewSession(out _);
-        var child = new StubComponent(new Span());
+        var child = new StubComponent(Span());
 
         using (LiveRenderContext.Begin(session.View, session.Services))
         {
@@ -84,6 +86,6 @@ public class StateHasChangedTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        return new LiveSession("test-session", new StubComponent(new Span()), scope);
+        return new LiveSession("test-session", new StubComponent(Span()), scope);
     }
 }

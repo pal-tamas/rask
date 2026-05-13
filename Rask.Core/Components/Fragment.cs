@@ -1,11 +1,8 @@
 namespace Rask.Core.Components;
 
-// [FactoryPositionalChildren] tells the generator to emit the single positional
-// `Fragment(params IEnumerable<Child> Children)` factory shape — no leading universal
-// attribute params (Id/Class/Style/Data have no effect on a tagless container anyway).
-// The legacy constructors below keep working for `new Fragment(children)` call sites
-// inside the framework (ErrorBoundary, ValidationMessage, etc.).
-[FactoryPositionalChildren]
+// Tagless container: renders its Children with no wrapping element. Use `Fragment()[a, b]`
+// to attach children. The legacy constructors below keep working for `new Fragment(children)`
+// call sites inside the framework (ErrorBoundary, ValidationMessage, etc.).
 public sealed class Fragment : Component
 {
     public Fragment() => Children = [];

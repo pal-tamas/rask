@@ -6,8 +6,8 @@ namespace Company.RaskServer;
 public sealed class HomePage : Component
 {
     public override Component Render() =>
-        Fragment(
-            H1(Children: ["Hello, Rask!"]),
-            P(Children: ["Welcome to your new app."])
-        );
+        Fragment()[
+            H1()["Hello, Rask!"],
+            P()["Welcome to your new app."]
+        ];
 }

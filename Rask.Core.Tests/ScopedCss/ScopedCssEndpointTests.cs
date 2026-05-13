@@ -5,6 +5,8 @@ using Rask.Core.Live;
 using Rask.Core.ScopedCss;
 using Rask.Server;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.ScopedCss;
 
 [Collection("ScopedCss")]

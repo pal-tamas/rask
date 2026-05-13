@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Live;
 
 public class ComponentFactoryIntegrationTests
@@ -64,6 +66,6 @@ public class ComponentFactoryIntegrationTests
         public string? Subtitle { get; set; }
 
         protected override Component Render() =>
-            new Span { Children = [new Text(Subtitle is null ? Name : $"{Name}: {Subtitle}")] };
+            Span()[Text(Subtitle is null ? Name : $"{Name}: {Subtitle}")];
     }
 }

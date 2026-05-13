@@ -32,19 +32,15 @@ public sealed class ValidationMessage : Component
             return new Fragment();
         }
 
-        var children = msgs.Select(m => (Child)Components.Div(Class: Class ?? "validation-message", Children: [m]));
+        var children = msgs.Select(m => (Child)Components.Div(Class: Class ?? "validation-message")[m]);
         return new Fragment(children.ToArray());
     }
 }
 
 public sealed class ValidationSummary : Component
 {
-    // Class inherited from Component — applied to the rendered <ul>.
-
-    // Convenience factory exposed alongside the auto-emitted one; lets callers write
-    // `ValidationSummary(Class: "alert")` without naming the inherited Id/Style/Data slots.
-    [GenerateForwarderFactory]
-    public static ValidationSummary Bound(string? Class = null) => new() { Class = Class };
+    // Class is inherited from Component — applied to the rendered <ul>. The generated
+    // factory exposes Id/Class/Style/Data; no extra forwarder is needed.
 
     protected override Component Render()
     {
@@ -60,7 +56,7 @@ public sealed class ValidationSummary : Component
             return new Fragment();
         }
 
-        var items = msgs.Select(m => (Child)Components.Li(Children: [m])).ToArray();
-        return Components.Ul(Class: Class ?? "validation-summary", Children: items);
+        var items = msgs.Select(m => (Child)Components.Li()[m]).ToArray();
+        return Components.Ul(Class: Class ?? "validation-summary")[items];
     }
 }

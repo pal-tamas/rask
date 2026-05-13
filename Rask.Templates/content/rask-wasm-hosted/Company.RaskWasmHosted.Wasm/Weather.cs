@@ -11,30 +11,26 @@ public sealed class Weather(IWeatherForecastService service) : Component
         _forecasts = await service.GetForecastsAsync(CancellationToken);
 
     public override Component Render() =>
-        Fragment(
-            H1(Children: ["Weather"]),
-            P(Children: ["Fetched over HTTP from the ASP.NET host."]),
+        Fragment()[
+            H1()["Weather"],
+            P()["Fetched over HTTP from the ASP.NET host."],
             _forecasts is null
-                ? P(Children: [Em(Children: ["Loading..."])])
-                : Table(Children:
-                [
-                    Thead(Children:
-                    [
-                        Tr(Children:
-                        [
-                            Th(Children: ["Date"]),
-                            Th(Children: ["Temp. (C)"]),
-                            Th(Children: ["Temp. (F)"]),
-                            Th(Children: ["Summary"])
-                        ])
-                    ]),
-                    Tbody(Children: _forecasts.Select(f => (Child)Tr(Children:
-                    [
-                        Td(Children: [f.Date.ToString("yyyy-MM-dd")]),
-                        Td(Children: [f.TemperatureC.ToString()]),
-                        Td(Children: [f.TemperatureF.ToString()]),
-                        Td(Children: [f.Summary ?? ""])
-                    ])).ToArray())
-                ])
-        );
+                ? P()[Em()["Loading..."]]
+                : Table()[
+                    Thead()[
+                        Tr()[
+                            Th()["Date"],
+                            Th()["Temp. (C)"],
+                            Th()["Temp. (F)"],
+                            Th()["Summary"]
+                        ]
+                    ],
+                    Tbody()[_forecasts.Select(f => (Child)Tr()[
+                        Td()[f.Date.ToString("yyyy-MM-dd")],
+                        Td()[f.TemperatureC.ToString()],
+                        Td()[f.TemperatureF.ToString()],
+                        Td()[f.Summary ?? ""]
+                    ]).ToArray()]
+                ]
+        ];
 }

@@ -1,6 +1,8 @@
 using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.ScopedCss;
 
 [Collection("ScopedCss")]
@@ -11,7 +13,7 @@ public class ScopedCssRenderTests
     [Fact]
     public void Render_ComponentWithCss_StampsScopeAttributeOnDescendants()
     {
-        var view = new CssWrapper(new Div { Class = "tag", Children = [new Span { Children = [new Text("hi")] }] });
+        var view = new CssWrapper(Div(Class: "tag")[Span()[Text("hi")]]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         Assert.Contains($"<div class=\"tag\" data-{scopeId}>", html);
@@ -21,7 +23,7 @@ public class ScopedCssRenderTests
     [Fact]
     public void Render_ComponentWithoutCss_DoesNotStamp()
     {
-        var view = new NoCssWrapper(new Div { Class = "tag", Children = [new Text("x")] });
+        var view = new NoCssWrapper(Div(Class: "tag")[Text("x")]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("data-r-", html);
     }
@@ -29,7 +31,7 @@ public class ScopedCssRenderTests
     [Fact]
     public void Render_ShellTags_NeverGetScopeAttribute()
     {
-        var view = new CssWrapper(new Style { Children = [new Text("body{}")] });
+        var view = new CssWrapper(Style()[Text("body{}")]);
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         Assert.DoesNotContain($"data-{scopeId}", html);
@@ -38,8 +40,8 @@ public class ScopedCssRenderTests
     [Fact]
     public void Render_NestedScopedComponents_InnerSubtreeUsesInnerScope()
     {
-        var inner = new OtherCssWrapper(new Span { Class = "inner", Children = [new Text("i")] });
-        var outer = new CssWrapper(new Div { Class = "tag", Children = [(Child)inner] });
+        var inner = new OtherCssWrapper(Span(Class: "inner")[Text("i")]);
+        var outer = new CssWrapper(Div(Class: "tag")[(Child)inner]);
         var html = outer.RenderAsLiveRoot();
         var outerId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         var innerId = CssScoper.ScopeIdFor(typeof(OtherCssWrapper));
@@ -52,7 +54,7 @@ public class ScopedCssRenderTests
     public void RaskScopedStyles_BeforeAnyCssRegistered_RendersEmpty()
     {
         ScopedCssRegistry.InvalidateAll();
-        var view = new NoCssWrapper(new RaskScopedStyles());
+        var view = new NoCssWrapper(RaskScopedStyles());
         var html = view.RenderAsLiveRoot();
         Assert.Equal("", html);
     }
@@ -60,12 +62,12 @@ public class ScopedCssRenderTests
     [Fact]
     public void RaskScopedStyles_AfterCssRegistered_RendersLink()
     {
-        var view = new CssWrapper(new Div { Class = "tag" });
+        var view = new CssWrapper(Div(Class: "tag"));
         view.RenderAsLiveRoot();
         var hash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(hash);
 
-        var probe = new NoCssWrapper(new RaskScopedStyles());
+        var probe = new NoCssWrapper(RaskScopedStyles());
         var html = probe.RenderAsLiveRoot();
         Assert.Contains($"href=\"/_rask/scoped.css?v={hash}\"", html);
         Assert.Contains("rel=\"stylesheet\"", html);

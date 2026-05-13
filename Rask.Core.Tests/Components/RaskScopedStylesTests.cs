@@ -1,6 +1,8 @@
 using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Components;
 
 [Collection("ScopedCss")]
@@ -11,18 +13,18 @@ public class RaskScopedStylesTests
     [Fact]
     public void Render_NoHashRegistered_EmitsEmptyRaw()
     {
-        var html = new RaskScopedStyles().ToHtml();
+        var html = RaskScopedStyles().ToHtml();
         Assert.Equal(string.Empty, html);
     }
 
     [Fact]
     public void Render_HashRegistered_EmitsLinkToScopedCssWithVersion()
     {
-        new RedWrapper(new Div {  }).RenderAsLiveRoot();
+        new RedWrapper(Div()).RenderAsLiveRoot();
         var hash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(hash);
 
-        var html = new RaskScopedStyles().ToHtml();
+        var html = RaskScopedStyles().ToHtml();
 
         Assert.Contains($"href=\"/_rask/scoped.css?v={hash}\"", html);
         Assert.Contains("rel=\"stylesheet\"", html);
@@ -32,17 +34,17 @@ public class RaskScopedStylesTests
     [Fact]
     public void Render_HashChanges_HrefReflectsLatestHash()
     {
-        new RedWrapper(new Div {  }).RenderAsLiveRoot();
+        new RedWrapper(Div()).RenderAsLiveRoot();
         var firstHash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(firstHash);
 
         ScopedCssRegistry.InvalidateAll();
-        new BlueWrapper(new Div {  }).RenderAsLiveRoot();
+        new BlueWrapper(Div()).RenderAsLiveRoot();
         var secondHash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(secondHash);
         Assert.NotEqual(firstHash, secondHash);
 
-        var html = new RaskScopedStyles().ToHtml();
+        var html = RaskScopedStyles().ToHtml();
 
         Assert.Contains($"v={secondHash}", html);
         Assert.DoesNotContain($"v={firstHash}", html);

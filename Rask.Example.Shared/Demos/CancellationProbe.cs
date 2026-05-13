@@ -60,15 +60,13 @@ public sealed class CancellationProbe : Component
             _ => "badge text-bg-secondary"
         };
 
-        return Div(Class: "d-flex align-items-center gap-2", Children:
-        [
-            Span(Class: $"{pillClass} cancel-probe-pill", Children: [$"#{InstanceId} {_status}"]),
-            Span(Class: "text-secondary small", Children:
-            [
+        return Div(Class: "d-flex align-items-center gap-2")[
+            Span(Class: $"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
+            Span(Class: "text-secondary small")[
                 _status == "running"
                     ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."
-            ])
-        ]);
+            ]
+        ];
     }
 }

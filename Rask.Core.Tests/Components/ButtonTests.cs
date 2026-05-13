@@ -1,20 +1,22 @@
 using Rask.Core.Components;
 using Rask.Core.Tests.Live;
 
+#pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+
 namespace Rask.Core.Tests.Components;
 
 public class ButtonTests
 {
     [Fact]
     public void Render_NullProps_ReturnsEmptyButtonTags() =>
-        Assert.Equal("<button></button>", new Button().ToHtml());
+        Assert.Equal("<button></button>", Button().ToHtml());
 
     [Fact]
     public void Render_DisabledTrue_EmitsBareDisabledAttribute()
     {
         Assert.Equal(
             "<button disabled></button>",
-            new Button { Disabled = true }.ToHtml());
+            Button(Disabled: true).ToHtml());
     }
 
     [Fact]
@@ -22,7 +24,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button></button>",
-            new Button { Disabled = false }.ToHtml());
+            Button(Disabled: false).ToHtml());
     }
 
     [Fact]
@@ -30,7 +32,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button type=\"submit\"></button>",
-            new Button { Type = "submit" }.ToHtml());
+            Button(Type: "submit").ToHtml());
     }
 
     [Fact]
@@ -38,7 +40,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button name=\"action\" value=\"save\"></button>",
-            new Button { Name = "action", Value = "save" }.ToHtml());
+            Button(Name: "action", Value: "save").ToHtml());
     }
 
     [Fact]
@@ -47,7 +49,7 @@ public class ButtonTests
         
         Assert.Equal(
             "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
-            new Button { Type = "submit", Disabled = true, Name = "action", Value = "save", Id = "go", Class = "btn", Style = "color:red", Data = new Dictionary<string, string?> { ["test-id"] = "primary" } }.ToHtml());
+            Button(Type: "submit", Disabled: true, Name: "action", Value: "save", Id: "go", Class: "btn", Style: "color:red", Data: new Dictionary<string, string?> { ["test-id"] = "primary" }).ToHtml());
     }
 
     [Fact]
@@ -55,7 +57,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button>&lt;click&gt;</button>",
-            new Button { Children = ["<click>"] }.ToHtml());
+            Button()["<click>"].ToHtml());
     }
 
     [Fact]
@@ -63,7 +65,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button><i>!</i></button>",
-            new Button { Children = [new Raw("<i>!</i>")] }.ToHtml());
+            Button()[Raw("<i>!</i>")].ToHtml());
     }
 
     [Fact]
@@ -71,28 +73,28 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button>a<b></button>",
-            new Button { Children = ["a", new Raw("<b>")] }.ToHtml());
+            Button()["a", Raw("<b>")].ToHtml());
     }
 
     [Fact]
     public void Constructor_IEnumerableOverload_RendersChildrenInOrder()
     {
-        var children = new List<Child> { "a", new Raw("<b>") };
+        var children = new List<Child> { "a", Raw("<b>") };
         Assert.Equal(
             "<button>a<b></button>",
-            new Button { Children = children }.ToHtml());
+            Button()[children].ToHtml());
     }
 
     [Fact]
     public void Render_OnClickOutsideLiveContext_OmitsHandlerAttribute()
     {
-                Assert.Equal("<button></button>", new Button { OnClick = () => { } }.ToHtml());
+                Assert.Equal("<button></button>", Button(OnClick: () => { }).ToHtml());
     }
 
     [Fact]
     public void Render_OnClickInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => new Button { OnClick = () => { }, Children = ["x"] });
+        var view = new StubComponent(() => Button(OnClick: () => { })["x"]);
         Assert.Equal(
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());
@@ -101,7 +103,7 @@ public class ButtonTests
     [Fact]
     public void Render_OnClickAsyncInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => new Button { OnClickAsync = async () => { await Task.Yield(); }, Children = ["x"] });
+        var view = new StubComponent(() => Button(OnClickAsync: async () => { await Task.Yield(); })["x"]);
         Assert.Equal(
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());

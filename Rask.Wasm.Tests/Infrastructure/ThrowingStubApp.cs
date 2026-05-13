@@ -6,15 +6,13 @@ namespace Rask.Wasm.Tests.Infrastructure;
 internal sealed class ThrowingStubApp : Component
 {
     protected override Component Render() =>
-        Fragment(
+        Fragment()[
             Doctype(),
-            Html(Children:
-            [
-                Head(Children: [Title(Children: ["throw"])]),
-                Body(Children:
-                [
-                    P(Children: ["throwing app"]),
-                    Button(OnClick: () => throw new InvalidOperationException("boom"), Children: ["go"])
-                ])
-            ]));
+            Html()[
+                Head()[Title()["throw"]],
+                Body()[
+                    P()["throwing app"],
+                    Button(OnClick: () => throw new InvalidOperationException("boom"))["go"]
+                ]
+            ]];
 }
