@@ -1,10 +1,9 @@
 <Project>
   <ItemGroup>
     <Using Include="Rask.Core"/>
-    <Using Include="Rask.Core.Tags" Static="true"/>
     <!-- Auto-generated HTML tag factories live in Rask.Core.Components.Components. -->
     <Using Include="Rask.Core.Components.Components" Static="true"/>
-    <!-- Routing helpers (Router/Outlet) come from the generator in Rask.Core.Routing.Components. -->
+    <!-- Routing helpers (Router/Outlet/Route<T>) come from the generator in Rask.Core.Routing.Components. -->
     <Using Include="Rask.Core.Routing.Components" Static="true"/>
   </ItemGroup>
 </Project>

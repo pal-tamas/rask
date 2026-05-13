@@ -3,7 +3,6 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 
 namespace Rask.Server.Tests.Authentication;
 

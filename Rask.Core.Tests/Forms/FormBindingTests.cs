@@ -3,7 +3,6 @@ using System.Text.Json;
 using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
-using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Forms;
 

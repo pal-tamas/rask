@@ -3,7 +3,6 @@ using Microsoft.Extensions.Primitives;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
-using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Routing;
 

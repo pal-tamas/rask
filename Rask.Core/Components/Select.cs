@@ -1,10 +1,109 @@
 using System.Globalization;
+using System.Linq.Expressions;
+using Rask.Core.Forms;
 using Rask.Core.Live;
+using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
 public sealed class Select : Component
 {
+    // Expression-driven factory; pre-marks the matching <option> as selected so the
+    // initial render reflects the bound value without round-tripping through the browser.
+    [GenerateForwarderFactory]
+    public static Select Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        string? Name = null,
+        bool Required = false,
+        bool Disabled = false,
+        int? Size = null,
+        bool Autofocus = false,
+        string? Autocomplete = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null,
+        params IEnumerable<Child> Children)
+    {
+        var acc = ExpressionAccessor.Parse(Bind);
+        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+        var fid = acc.Field;
+        var name = Name ?? acc.PropertyName;
+        var current = BindingHelpers.FormatValue(acc.Getter());
+        var preselected = MarkSelected(Children, current);
+
+        return C.Select(
+            Name: name, Required: Required, Disabled: Disabled, Size: Size,
+            Autofocus: Autofocus, Autocomplete: Autocomplete,
+            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true),
+            Id: Id, Class: Class, Style: Style, Data: Data,
+            Children: preselected);
+    }
+
+    private static IEnumerable<Child> MarkSelected(IEnumerable<Child> children, string current)
+    {
+        var list = new List<Child>();
+        foreach (var c in children)
+        {
+            if (c.Component is Option opt)
+            {
+                list.Add(MarkOption(opt, current));
+            }
+            else if (c.Component is Optgroup og)
+            {
+                list.Add(MarkOptgroup(og, current));
+            }
+            else
+            {
+                list.Add(c);
+            }
+        }
+
+        return list;
+    }
+
+    private static Option MarkOption(Option opt, string current)
+    {
+        if (opt.Selected || opt.Value != current)
+        {
+            return opt;
+        }
+
+        return new Option
+        {
+            Value = opt.Value,
+            Selected = true,
+            Disabled = opt.Disabled,
+            Label = opt.Label,
+            Id = opt.Id,
+            Class = opt.Class,
+            Style = opt.Style,
+            Data = opt.Data,
+            Children = opt.Children
+        };
+    }
+
+    private static Optgroup MarkOptgroup(Optgroup og, string current)
+    {
+        if (og.Children is null)
+        {
+            return og;
+        }
+
+        var newChildren = og.Children.Select(c =>
+            c.Component is Option o ? (Child)MarkOption(o, current) : c).ToArray();
+        return new Optgroup
+        {
+            Disabled = og.Disabled,
+            Label = og.Label,
+            Id = og.Id,
+            Class = og.Class,
+            Style = og.Style,
+            Data = og.Data,
+            Children = newChildren
+        };
+    }
+
     protected override string TagName => "select";
 
     public string? Name { get; set; }

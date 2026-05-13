@@ -3,6 +3,14 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
+// [FactoryGeneric] also emits a `Form<TModel>(TModel Model, Action<TModel>? OnValidSubmit, ...)`
+// overload that narrows Model + the submit-handler delegates from the non-generic factory's
+// `object?` / `Delegate?` shapes to typed counterparts. The generic overload synthesises a
+// `Func<TModel, Task>? XAsync` sibling for each named delegate property and collapses the
+// two back into a single `Delegate?` argument before forwarding to the non-generic factory.
+[FactoryGeneric("TModel",
+    ModelProperty = nameof(Model),
+    TypedDelegateProperties = new[] { nameof(OnValidSubmit), nameof(OnInvalidSubmit) })]
 public sealed class Form : Component
 {
     protected override string TagName => "form";

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
-using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Components;
 

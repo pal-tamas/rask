@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
-using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Routing;
 

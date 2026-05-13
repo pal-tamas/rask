@@ -1,10 +1,52 @@
 using System.Globalization;
+using System.Linq.Expressions;
+using Rask.Core.Forms;
 using Rask.Core.Live;
+using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
 public sealed class Textarea : Component
 {
+    // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
+    // updates per-keystroke (OnInput) since textareas are inherently string-valued.
+    [GenerateForwarderFactory]
+    public static Textarea Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        string? Name = null,
+        int? Rows = null,
+        int? Cols = null,
+        string? Placeholder = null,
+        bool Required = false,
+        bool Disabled = false,
+        bool ReadOnly = false,
+        int? MaxLength = null,
+        int? MinLength = null,
+        string? Wrap = null,
+        bool Autofocus = false,
+        string? Autocomplete = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null)
+    {
+        var acc = ExpressionAccessor.Parse(Bind);
+        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+        var fid = acc.Field;
+        var name = Name ?? acc.PropertyName;
+        var stringValue = BindingHelpers.FormatValue(acc.Getter());
+
+        return C.Textarea(
+            Name: name, Rows: Rows, Cols: Cols, Placeholder: Placeholder,
+            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
+            MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
+            Autofocus: Autofocus, Autocomplete: Autocomplete,
+            OnInput: BindingHelpers.StringSetHandler(acc, ctx, fid, false),
+            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
+            Id: Id, Class: Class, Style: Style, Data: Data,
+            Children: [stringValue]);
+    }
+
     protected override string TagName => "textarea";
 
     public string? Name { get; set; }

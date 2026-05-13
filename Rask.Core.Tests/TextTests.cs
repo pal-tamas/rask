@@ -15,10 +15,10 @@ public class TextTests
     public void Render_EmptyString_ReturnsEmptyString() => Assert.Equal("", new Text("").ToHtml());
 
     [Fact]
-    public void TagsFactory_ReturnsTextInstanceWithEncodedValue() =>
-        Assert.Equal("&lt;x&gt;", Tags.Text("<x>").ToHtml());
+    public void Factory_ReturnsTextInstanceWithEncodedValue() =>
+        Assert.Equal("&lt;x&gt;", Text("<x>").ToHtml());
 
     [Fact]
-    public void TagsFactory_PlainString_RendersUnchanged() =>
-        Assert.Equal("hello", Tags.Text("hello").ToHtml());
+    public void Factory_PlainString_RendersUnchanged() =>
+        Assert.Equal("hello", Text("hello").ToHtml());
 }

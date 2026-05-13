@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 public class GlobalUsingsEmissionTests
 {
     [Fact]
-    public void OneUserNamespace_EmitsTagsAndComponentsImports()
+    public void OneUserNamespace_EmitsFrameworkAndUserImports()
     {
         var src = """
                   using Rask.Core;
@@ -22,7 +22,9 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Rask.Core.Tags;", output);
+        Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
+        Assert.Contains("global using static global::Rask.Core.Routing.Components;", output);
         Assert.Contains("global using static global::Demo.Components;", output);
     }
 
@@ -43,13 +45,13 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Rask.Core.Tags;", output);
+        Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
         Assert.Contains("global using static global::Demo.Pages.Components;", output);
         Assert.Contains("global using static global::Demo.Other.Components;", output);
     }
 
     [Fact]
-    public void NoUserComponents_StillEmitsTagsImport()
+    public void NoUserComponents_StillEmitsFrameworkImports()
     {
         var src = """
                   namespace Demo;
@@ -58,7 +60,9 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Rask.Core.Tags;", output);
+        Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
+        Assert.Contains("global using static global::Rask.Core.Routing.Components;", output);
         Assert.DoesNotContain("global using static global::Demo.Components;", output);
     }
 
@@ -101,7 +105,7 @@ public class GlobalUsingsEmissionTests
     {
         // A user component in the global namespace has no namespace prefix to attach,
         // and `Components` (a free static class) cannot reach it via `using static`.
-        // The Tags line must still emit; no extra `using static .Components;` line.
+        // The framework imports must still emit; no extra `using static .Components;` line.
         var src = """
                   using Rask.Core;
                   public sealed class Widget : Component
@@ -112,7 +116,7 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Rask.Core.Tags;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
         Assert.DoesNotContain("global using static global::.Components;", output);
         Assert.DoesNotContain("global using static global::Components;", output);
     }

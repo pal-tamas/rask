@@ -63,8 +63,6 @@ public sealed class HomePage(Navigator nav) : Component
             ]),
             CodeSample(
                 """
-                using static Rask.Core.Tags;
-
                 Fragment(
                     Doctype(),
                     Html("en", Children: [
@@ -78,7 +76,7 @@ public sealed class HomePage(Navigator nav) : Component
                 """,
                 "The minimal page",
                 Notes:
-                "Static factories from Rask.Core.Tags build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
+                "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
                 Result: Fragment(
                     H1(Class: "h3 mb-2", Children: ["Hello, world!"]),
                     P(Class: "text-secondary mb-0", Children: ["A page rendered with Rask."])

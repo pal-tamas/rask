@@ -67,8 +67,8 @@ public sealed class BoomPage : Component
                     Fallback: (ex, recover) => BoundaryFallback(ex, () =>
                     {
                         // Order matters: dirty-mark BoomPage FIRST so its re-render calls
-                        // Tags.ErrorBoundary → boundary.SetProps with fresh Children that
-                        // no longer include the RenderThrower. THEN clear the boundary's
+                        // the ErrorBoundary factory → boundary.SetProps with fresh Children
+                        // that no longer include the RenderThrower. THEN clear the boundary's
                         // error. Calling recover() before that would synchronously re-render
                         // the boundary against the stale cached Children (still containing
                         // RenderThrower) — the boundary would trip again on the same

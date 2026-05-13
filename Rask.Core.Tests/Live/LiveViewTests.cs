@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Rask.Core.Components;
 using Rask.Core.Live;
-using static Rask.Core.Tags;
 
 namespace Rask.Core.Tests.Live;
 

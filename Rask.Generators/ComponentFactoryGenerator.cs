@@ -16,6 +16,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
+    private const string FactoryPositionalChildrenFullName = "Rask.Core.FactoryPositionalChildrenAttribute";
+    private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
+    private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     private static readonly DiagnosticDescriptor Rask001 = new(
@@ -111,6 +114,22 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
+        var positionalChildrenOnly = false;
+        GenericFactoryConfig? genericFactory = null;
+        foreach (var attr in symbol.GetAttributes())
+        {
+            var attrName = attr.AttributeClass?.ToDisplayString();
+            if (attrName == FactoryPositionalChildrenFullName)
+            {
+                positionalChildrenOnly = true;
+            }
+            else if (attrName == FactoryGenericFullName)
+            {
+                genericFactory = ParseGenericFactoryConfig(attr);
+            }
+        }
+
+        var forwarders = GetForwarderInfos(symbol);
         return new Candidate(
             ns,
             symbol.Name,
@@ -120,7 +139,151 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             hasParameterlessCtor,
             hasDICtor,
             isPublic,
-            new EquatableArray<PropInfo>(properties));
+            positionalChildrenOnly,
+            genericFactory,
+            new EquatableArray<PropInfo>(properties),
+            new EquatableArray<ForwarderInfo>(forwarders));
+    }
+
+    private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol)
+    {
+        var result = new List<ForwarderInfo>();
+        foreach (var member in symbol.GetMembers())
+        {
+            if (member is not IMethodSymbol method)
+            {
+                continue;
+            }
+
+            if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            var hasAttr = false;
+            foreach (var attr in method.GetAttributes())
+            {
+                if (attr.AttributeClass?.ToDisplayString() == GenerateForwarderFactoryFullName)
+                {
+                    hasAttr = true;
+                    break;
+                }
+            }
+
+            if (!hasAttr)
+            {
+                continue;
+            }
+
+            var typeParams = method.TypeParameters.Length > 0
+                ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
+                : string.Empty;
+            var constraints = BuildConstraintsClause(method.TypeParameters);
+
+            var parameters = new List<ForwarderParamInfo>();
+            foreach (var p in method.Parameters)
+            {
+                var typeFqn = p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                var defaultLiteral = string.Empty;
+                if (p.HasExplicitDefaultValue)
+                {
+                    defaultLiteral = TryGetDefaultLiteralFromSyntax(p) ?? FormatDefaultLiteral(p.ExplicitDefaultValue);
+                }
+
+                parameters.Add(new ForwarderParamInfo(typeFqn, p.Name, defaultLiteral, p.IsParams));
+            }
+
+            result.Add(new ForwarderInfo(
+                method.Name,
+                typeParams,
+                constraints,
+                new EquatableArray<ForwarderParamInfo>(parameters)));
+        }
+
+        return result;
+    }
+
+    private static string? TryGetDefaultLiteralFromSyntax(IParameterSymbol p)
+    {
+        if (p.DeclaringSyntaxReferences.Length == 0)
+        {
+            return null;
+        }
+
+        if (p.DeclaringSyntaxReferences[0].GetSyntax() is not ParameterSyntax syntax)
+        {
+            return null;
+        }
+
+        var value = syntax.Default?.Value;
+        return value?.ToString();
+    }
+
+    private static string FormatDefaultLiteral(object? value)
+    {
+        if (value is null)
+        {
+            return "null";
+        }
+
+        return value switch
+        {
+            bool b => b ? "true" : "false",
+            string s => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"",
+            char c => "'" + c + "'",
+            IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? "default"
+        };
+    }
+
+    private static GenericFactoryConfig? ParseGenericFactoryConfig(AttributeData attr)
+    {
+        if (attr.ConstructorArguments.Length == 0
+            || attr.ConstructorArguments[0].Value is not string typeParameter
+            || typeParameter.Length == 0)
+        {
+            return null;
+        }
+
+        var modelProperty = string.Empty;
+        var constraint = "class";
+        var typedDelegates = Array.Empty<string>();
+        foreach (var named in attr.NamedArguments)
+        {
+            switch (named.Key)
+            {
+                case "ModelProperty":
+                    if (named.Value.Value is string mp)
+                    {
+                        modelProperty = mp;
+                    }
+                    break;
+                case "Constraint":
+                    if (named.Value.Value is string ct && ct.Length > 0)
+                    {
+                        constraint = ct;
+                    }
+                    break;
+                case "TypedDelegateProperties":
+                    if (!named.Value.IsNull)
+                    {
+                        typedDelegates = named.Value.Values
+                            .Select(v => v.Value as string)
+                            .Where(s => !string.IsNullOrEmpty(s))
+                            .Select(s => s!)
+                            .ToArray();
+                    }
+                    break;
+            }
+        }
+
+        return new GenericFactoryConfig(
+            typeParameter,
+            modelProperty,
+            new EquatableArray<string>(typedDelegates),
+            constraint);
     }
 
     private static string BuildConstraintsClause(ImmutableArray<ITypeParameterSymbol> typeParameters)
@@ -271,8 +434,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // shadow same-name properties on a base — the `seen` set enforces "first wins" so
         // user shadows beat Component's defaults. `depth` records each property's distance
         // from the most-derived type so the final sort can keep derived-class properties
-        // ahead of inherited ones (matches the original hand-written `Tags.X` parameter
-        // order: tag-specific first, then Id/Class/Style/Data, then Children).
+        // ahead of inherited ones (tag-specific first, then Id/Class/Style/Data, then
+        // Children).
         var depth = 0;
         for (var current = symbol; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType, depth++)
         {
@@ -475,6 +638,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 EmitFactory(sb, c);
                 sb.AppendLine();
+
+                if (c.GenericFactory is { } gf)
+                {
+                    EmitGenericFactoryOverload(sb, c, gf);
+                    sb.AppendLine();
+                }
+
+                foreach (var f in c.Forwarders)
+                {
+                    EmitForwarderFactory(sb, c, f);
+                    sb.AppendLine();
+                }
             }
 
             sb.AppendLine("}");
@@ -518,6 +693,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
+        if (c.PositionalChildrenOnly)
+        {
+            // The user opted into a `Type(params IEnumerable<Child> Children)` shape with no
+            // universal-attribute params. Useful for tagless containers (Fragment) where
+            // Id/Class/Style/Data have no rendering effect anyway and would block positional
+            // children calls like `Fragment(c1, c2)`.
+            paramProps = paramProps.Where(IsParamsChildrenProp).ToList();
+        }
+
         var paramsChildren = paramProps.FirstOrDefault(IsParamsChildrenProp);
         var hasParamsChildren = paramsChildren.Name == "Children";
         var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
@@ -643,6 +827,171 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
     }
 
+    private static void EmitForwarderFactory(StringBuilder sb, Candidate c, ForwarderInfo f)
+    {
+        var visibility = c.IsPublic ? "public" : "internal";
+
+        // Signature: `public static {Component} {ComponentName}<...>(<params>) <constraints>`
+        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
+            .Append(c.TypeName).Append(f.TypeParameters).Append('(');
+        for (var i = 0; i < f.Parameters.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(", ");
+            }
+
+            var p = f.Parameters[i];
+            if (p.IsParams)
+            {
+                sb.Append("params ");
+            }
+
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+            if (p.DefaultLiteral.Length > 0)
+            {
+                sb.Append(" = ").Append(p.DefaultLiteral);
+            }
+        }
+
+        sb.Append(')').AppendLine(f.TypeParameterConstraints);
+
+        // Body: `=> global::{Component.FQN}.{MethodName}<...>(arg1, arg2, ...);`
+        sb.Append("        => ").Append(c.FullyQualifiedName).Append('.').Append(f.MethodName)
+            .Append(f.TypeParameters).Append('(');
+        for (var i = 0; i < f.Parameters.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(", ");
+            }
+
+            sb.Append(f.Parameters[i].Name);
+        }
+
+        sb.AppendLine(");");
+    }
+
+    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf)
+    {
+        var visibility = c.IsPublic ? "public" : "internal";
+        var typedSet = new HashSet<string>(StringComparer.Ordinal);
+        var typedDelegates = new List<string>();
+        foreach (var name in gf.TypedDelegateProperties)
+        {
+            if (string.IsNullOrEmpty(name) || !typedSet.Add(name))
+            {
+                continue;
+            }
+
+            typedDelegates.Add(name);
+        }
+
+        var modelProperty = gf.ModelProperty;
+        var paramProps = c.Properties.Where(IsParamProperty).ToList();
+        var children = paramProps.FirstOrDefault(IsParamsChildrenProp);
+        var hasParamsChildren = children.Name == "Children";
+
+        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
+            .Append(c.TypeName).Append('<').Append(gf.TypeParameter).Append(">(");
+
+        var first = true;
+
+        // Required: TModel Model — replaces ModelProperty's optional position with a typed,
+        // mandatory parameter. The non-generic factory's `object? Model = null` accepts the
+        // TModel value via implicit reference conversion (the `class` constraint ensures it).
+        if (modelProperty.Length > 0)
+        {
+            first = false;
+            sb.Append(gf.TypeParameter).Append(' ').Append(modelProperty);
+        }
+
+        // Typed delegates: `Action<TModel>? X = null` then `Func<TModel, Task>? XAsync = null`,
+        // grouped by side (sync first then async) for readability.
+        foreach (var dp in typedDelegates)
+        {
+            if (!first) sb.Append(", ");
+            first = false;
+            sb.Append("global::System.Action<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
+        }
+
+        foreach (var dp in typedDelegates)
+        {
+            if (!first) sb.Append(", ");
+            first = false;
+            sb.Append("global::System.Func<").Append(gf.TypeParameter)
+                .Append(", global::System.Threading.Tasks.Task>? ").Append(dp).Append("Async = null");
+        }
+
+        // Remaining props in declaration order, skipping the Model/typed-delegate/Children
+        // names already covered above.
+        foreach (var p in paramProps)
+        {
+            if (p.Name == modelProperty || typedSet.Contains(p.Name) || IsParamsChildrenProp(p))
+            {
+                continue;
+            }
+
+            if (!first) sb.Append(", ");
+            first = false;
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+            if (!IsRequiredFactoryParam(p))
+            {
+                sb.Append(" = ").Append(DefaultLiteralFor(p));
+            }
+        }
+
+        if (hasParamsChildren)
+        {
+            if (!first) sb.Append(", ");
+            sb.Append("params ").Append(StripNullable(children.TypeFqn)).Append(' ').Append(children.Name);
+        }
+
+        sb.Append(") where ").Append(gf.TypeParameter).Append(" : ").AppendLine(gf.Constraint);
+        sb.AppendLine("    {");
+
+        foreach (var dp in typedDelegates)
+        {
+            sb.Append("        var __").Append(dp).Append(" = (global::System.Delegate?)").Append(dp)
+                .Append(" ?? ").Append(dp).AppendLine("Async;");
+        }
+
+        sb.Append("        return ").Append(c.TypeName).AppendLine("(");
+        var argLines = new List<string>();
+        foreach (var p in paramProps)
+        {
+            string forward;
+            if (p.Name == modelProperty)
+            {
+                forward = $"{p.Name}: {modelProperty}";
+            }
+            else if (typedSet.Contains(p.Name))
+            {
+                forward = $"{p.Name}: __{p.Name}";
+            }
+            else
+            {
+                forward = $"{p.Name}: {p.Name}";
+            }
+
+            argLines.Add(forward);
+        }
+
+        for (var i = 0; i < argLines.Count; i++)
+        {
+            sb.Append("            ").Append(argLines[i]);
+            if (i < argLines.Count - 1)
+            {
+                sb.Append(',');
+            }
+
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("        );");
+        sb.AppendLine("    }");
+    }
+
     private static void EmitInitializerBody(StringBuilder sb, IEnumerable<PropInfo> props)
     {
         sb.AppendLine();
@@ -720,7 +1069,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
-        sb.AppendLine("global using static global::Rask.Core.Tags;");
         // The framework's own factory namespaces — always make them globally visible to
         // consumers, even if this assembly defines no user components of its own (and so
         // `namespaces` is empty).
@@ -761,7 +1109,28 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool HasParameterlessCtor,
         bool HasDIConstructor,
         bool IsPublic,
-        EquatableArray<PropInfo> Properties);
+        bool PositionalChildrenOnly,
+        GenericFactoryConfig? GenericFactory,
+        EquatableArray<PropInfo> Properties,
+        EquatableArray<ForwarderInfo> Forwarders);
+
+    private readonly record struct GenericFactoryConfig(
+        string TypeParameter,
+        string ModelProperty,
+        EquatableArray<string> TypedDelegateProperties,
+        string Constraint);
+
+    private readonly record struct ForwarderInfo(
+        string MethodName,
+        string TypeParameters,
+        string TypeParameterConstraints,
+        EquatableArray<ForwarderParamInfo> Parameters);
+
+    private readonly record struct ForwarderParamInfo(
+        string TypeFqn,
+        string Name,
+        string DefaultLiteral,
+        bool IsParams);
 
     private readonly record struct PropInfo(
         string Name,

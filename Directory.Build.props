@@ -33,8 +33,8 @@
     and Rask.Examples.* projects opt in — they're the in-repo stand-ins for
     downstream consumers, who pick up the same <Using> items via NuGet's auto-
     import of build/$(PackageId).props. Framework projects (Rask.Core, Rask.Server,
-    Rask.Wasm, etc.) deliberately don't get the implicit using static Rask.Core.Tags
-    because method-group names like Doctype()/Div()/Span() clash with the like-named
+    Rask.Wasm, etc.) deliberately don't get the implicit static usings because
+    method-group names like Doctype()/Div()/Span() clash with the like-named
     classes they define.
   -->
   <PropertyGroup>
@@ -44,11 +44,13 @@
 
   <!--
     Mirrors the framework-vs-consumer split above for the global static usings
-    the source generator emits (Rask.Core.Tags + per-namespace Components).
-    Framework and in-repo test projects opt out — they reference the Component
-    classes by type and would see method/type ambiguity if `Tags` were globally
-    imported. Rask.Example.* and downstream NuGet consumers get the default
-    (true), so writing Div(...)/Counter(...) in the render tree just works.
+    the source generator emits (Rask.Core.Components.Components +
+    Rask.Core.Routing.Components + per-namespace Components). Framework and
+    in-repo test projects opt out — they reference the Component classes by
+    type and would see method/type ambiguity if the factory namespaces were
+    globally imported. Rask.Example.* and downstream NuGet consumers get the
+    default (true), so writing Div(...)/Counter(...) in the render tree just
+    works.
   -->
   <PropertyGroup>
     <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>

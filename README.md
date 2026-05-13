@@ -94,9 +94,10 @@ app.UseRask<App>();
 app.Run();
 ```
 
-**`App.cs`** — the page root. The `Rask.Server` and `Rask.Wasm` packages auto-import `Rask.Core` and
-`using static Rask.Core.Tags`, so `Component`, `Div(...)`, `H1(...)` etc. are in scope project-wide with no `using`
-lines.
+**`App.cs`** — the page root. The `Rask.Server` and `Rask.Wasm` packages auto-import `Rask.Core` and the
+generator-emitted factory namespaces (`Rask.Core.Components.Components`, `Rask.Core.Routing.Components`),
+so `Component`, `Div(...)`, `H1(...)`, `Router()`, `Route<T>(...)` etc. are in scope project-wide with no
+`using` lines.
 
 ```csharp
 namespace MyApp;

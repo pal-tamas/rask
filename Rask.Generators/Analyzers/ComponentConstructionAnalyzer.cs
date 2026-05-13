@@ -16,7 +16,7 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask014 = new(
         "RASK014",
         "Components must be created via factory methods",
-        "Do not instantiate '{0}' with 'new'; use the Tags.{0}(...) factory (or the generated {1}Components.{0}(...) factory) instead",
+        "Do not instantiate '{0}' with 'new'; use the generated {1}Components.{0}(...) factory instead",
         "Usage",
         DiagnosticSeverity.Error,
         true);

@@ -1,10 +1,78 @@
 using System.Globalization;
+using System.Linq.Expressions;
+using Rask.Core.Forms;
 using Rask.Core.Live;
+using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
 public sealed class Input : Component
 {
+    // Expression-driven factory. The generator picks up [GenerateForwarderFactory] and emits
+    // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers
+    // write `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field,
+    // per-type input type (checkbox/number/date/text), and per-type change handlers wired
+    // into the ambient EditContext.
+    [GenerateForwarderFactory]
+    public static Input Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        string? Type = null,
+        string? Name = null,
+        string? Placeholder = null,
+        bool Required = false,
+        bool Disabled = false,
+        bool ReadOnly = false,
+        string? Min = null,
+        string? Max = null,
+        string? Step = null,
+        string? Pattern = null,
+        int? Size = null,
+        int? MaxLength = null,
+        int? MinLength = null,
+        string? Autocomplete = null,
+        bool Autofocus = false,
+        string? List = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null)
+    {
+        var acc = ExpressionAccessor.Parse(Bind);
+        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+        var fid = acc.Field;
+        var resolvedType = Type ?? BindingHelpers.DefaultInputType(acc.PropertyType);
+        var name = Name ?? acc.PropertyName;
+
+        var current = acc.Getter();
+
+        if (resolvedType == "checkbox")
+        {
+            var isChecked = current is bool b && b;
+            return C.Input(
+                Type: "checkbox", Name: name,
+                Checked: isChecked,
+                Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
+                Min: Min, Max: Max, Step: Step, Pattern: Pattern,
+                Size: Size, MaxLength: MaxLength, MinLength: MinLength,
+                Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
+                OnChange: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked),
+                Id: Id, Class: Class, Style: Style, Data: Data);
+        }
+
+        var stringValue = BindingHelpers.FormatValue(current);
+        var isImmediate = BindingHelpers.IsImmediateUpdateType(acc.PropertyType);
+
+        return C.Input(
+            Type: resolvedType, Name: name, Value: stringValue, Placeholder: Placeholder,
+            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
+            Min: Min, Max: Max, Step: Step, Pattern: Pattern,
+            Size: Size, MaxLength: MaxLength, MinLength: MinLength,
+            Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
+            OnInput: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false) : null,
+            OnChange: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate),
+            Id: Id, Class: Class, Style: Style, Data: Data);
+    }
+
     protected override string TagName => "input";
     protected override bool SelfClosing => true;
 

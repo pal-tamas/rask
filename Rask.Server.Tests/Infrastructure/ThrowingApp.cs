@@ -1,6 +1,5 @@
 using Rask.Core;
 using Rask.Core.Components;
-using static Rask.Core.Tags;
 
 namespace Rask.Server.Tests.Infrastructure;
 

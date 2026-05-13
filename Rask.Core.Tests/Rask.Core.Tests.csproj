@@ -21,13 +21,12 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
-    <!-- Tag factories are emitted into Rask.Core.Components.Components by the source generator.
-         Tests use them directly via static import; the Tags facade only carries the irregular
-         factories (Router/Form<T>/Route<T>) now. -->
+    <!-- Tag factories and the routing/form/fragment irregulars are all emitted by the
+         source generator into Rask.Core.Components.Components and Rask.Core.Routing.Components.
+         Tests use them unqualified via these two static imports. -->
     <Using Include="Rask.Core.Components"/>
     <Using Include="Rask.Core.Components.Components" Static="true"/>
     <Using Include="Rask.Core.Routing.Components" Static="true"/>
-    <Using Include="Rask.Core.Tags" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

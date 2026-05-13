@@ -11,20 +11,24 @@ public sealed class Router : Component
 
     public Router(RouteState state) => _state = state;
 
-    // Settable from the auto-generated factory. The setter caches a flattened leaves view
-    // so subsequent same-reference assignments don't re-flatten the tree.
+    // Settable from the auto-generated factory. A null assignment resolves to the
+    // assembly's `RouteRegistry.BuildTree()` snapshot so `Router()` (the zero-arg call
+    // shape) Just Works — the generated factory passes Routes: null and the setter fills
+    // in the default. The reference cache below prevents pointless re-flattening on
+    // same-tree re-renders.
     public IReadOnlyList<Route>? Routes
     {
         get => _routes;
         set
         {
-            if (ReferenceEquals(_routes, value))
+            var resolved = value ?? RouteRegistry.BuildTree();
+            if (ReferenceEquals(_routes, resolved))
             {
                 return;
             }
 
-            _routes = value;
-            _leaves = value is null ? Array.Empty<RouteLeaf>() : RouteFlattener.Flatten(value);
+            _routes = resolved;
+            _leaves = RouteFlattener.Flatten(resolved);
         }
     }
 

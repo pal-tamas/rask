@@ -174,10 +174,10 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     [Fact]
     public Task Primitives_RawFactory_RendersVerbatimHtml() => RunAsync(async () =>
     {
-        // Proves the Tags.Raw(string) factory (added alongside the RASK014 ban
-        // on `new`) reaches the browser as actual markup: a Text component
-        // would HTML-encode the angle brackets and no <strong> element would
-        // appear in the DOM.
+        // Proves the Raw(string) factory (added alongside the RASK014 ban on
+        // `new`) reaches the browser as actual markup: a Text component would
+        // HTML-encode the angle brackets and no <strong> element would appear
+        // in the DOM.
         await Page.GotoAsync("/primitives");
         await Expect(Page.Locator("main h1.h2"))
             .ToHaveTextAsync("Primitives",

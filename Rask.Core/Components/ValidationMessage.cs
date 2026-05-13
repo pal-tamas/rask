@@ -9,6 +9,14 @@ public sealed class ValidationMessage : Component
     // message Div" since ValidationMessage itself emits no element tag (TagName is null).
     public LambdaExpression? For { get; set; }
 
+    // Type-narrowed factory: callers pass `For: () => model.Property` and get an
+    // `Expression<Func<TProp>>` checked at compile time, instead of the raw
+    // `LambdaExpression?` the property accepts at runtime.
+    [GenerateForwarderFactory]
+    public static ValidationMessage Bound<TProp>(
+        Expression<Func<TProp>> For,
+        string? Class = null) => new() { For = For, Class = Class };
+
     protected override Component Render()
     {
         var ctx = EditContextScope.Current;
@@ -32,6 +40,12 @@ public sealed class ValidationMessage : Component
 public sealed class ValidationSummary : Component
 {
     // Class inherited from Component — applied to the rendered <ul>.
+
+    // Convenience factory exposed alongside the auto-emitted one; lets callers write
+    // `ValidationSummary(Class: "alert")` without naming the inherited Id/Style/Data slots.
+    [GenerateForwarderFactory]
+    public static ValidationSummary Bound(string? Class = null) => new() { Class = Class };
+
     protected override Component Render()
     {
         var ctx = EditContextScope.Current;

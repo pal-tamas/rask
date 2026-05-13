@@ -1,6 +1,5 @@
 using Rask.Core;
 using Rask.Core.Routing;
-using static Rask.Core.Tags;
 using static Rask.Core.Components.Components;
 
 namespace Rask.Wasm.Tests.Infrastructure;
