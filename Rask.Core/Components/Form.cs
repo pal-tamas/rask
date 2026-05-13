@@ -26,7 +26,24 @@ public sealed class Form : Component
     public object? Model { get; set; }
     public Delegate? OnValidSubmit { get; set; }
     public Delegate? OnInvalidSubmit { get; set; }
-    public EditContext? Context { get; set; }
+
+    private EditContext? _context;
+    public EditContext? Context
+    {
+        get => _context;
+        set
+        {
+            _context = value;
+            // Pre-register the user-supplied context so sibling Input/Select/Textarea bound
+            // factories — which run inside the same parent Render() pass, before this Form's
+            // EnterChildrenScope pushes the scope — resolve to this exact instance through
+            // LiveRenderContext.GetOrCreateEditContext(model).
+            if (value is not null)
+            {
+                LiveRenderContext.Current?.RegisterEditContext(value);
+            }
+        }
+    }
 
     protected override IDisposable? EnterChildrenScope()
     {

@@ -124,6 +124,19 @@ public sealed class LiveRenderContext : IDisposable
         return ctx;
     }
 
+    // Used by Form when a caller passes an explicit Context: so sibling input bound factories
+    // (which run before Form.EnterChildrenScope pushes the scope) resolve to the same instance
+    // via GetOrCreateEditContext(model) instead of auto-creating a fresh one.
+    public void RegisterEditContext(EditContext ctx)
+    {
+        if (ctx is null)
+        {
+            throw new ArgumentNullException(nameof(ctx));
+        }
+
+        _currentEditContexts[new ObjectKey(ctx.Model)] = ctx;
+    }
+
     internal Dictionary<ObjectKey, EditContext> SnapshotEditContexts() => _currentEditContexts;
 
     private sealed class ScopePopper : IDisposable

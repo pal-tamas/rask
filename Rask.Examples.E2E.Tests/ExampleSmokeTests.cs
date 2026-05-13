@@ -172,6 +172,45 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Validation_AsyncDemo_ShowsCheckingThenTakenMessage() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        await form.Locator("#v3-username").FillAsync("admin");
+
+        // Blur to fire OnChange → marks the field touched → triggers async ValidateFieldAsync.
+        // The validator delays 400ms; the indicator must surface during that window.
+        await form.Locator("#v3-username").BlurAsync();
+
+        await Expect(form.Locator(".validating-indicator, .text-muted"))
+            .ToContainTextAsync("Checking",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_ValidUsername_ReachesSuccessBanner() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        await form.Locator("#v3-username").FillAsync("ada-lovelace");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".alert-success"))
+            .ToContainTextAsync("ada-lovelace",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Primitives_RawFactory_RendersVerbatimHtml() => RunAsync(async () =>
     {
         // Proves the Raw(string) factory (added alongside the RASK014 ban on

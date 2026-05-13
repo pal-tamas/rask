@@ -36,6 +36,9 @@ What makes it different from other component frameworks:
   and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.
 - **Animated route transitions.** `Navigator.Navigate(...)` wraps the next morph in the browser's View Transitions
   API, so route changes crossfade by default (customisable per-element via the CSS `view-transition-name` property).
+- **Forms with async validation.** `Form(Model: …)` auto-attaches a DataAnnotations validator and routes submit
+  through `OnValidSubmit` / `OnInvalidSubmit`. Implement `IAsyncFieldValidator` for server-side rules — the submit
+  bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins).
 
 ## Install
 
@@ -291,6 +294,51 @@ ErrorBoundary(
 
 Pass `ResetKeys: [someId]` to auto-clear the error when the keys change (React `useEffect`-deps semantics). Without
 a `Fallback`, the boundary renders a built-in default error page.
+
+### Forms & validation
+
+Bind inputs two-way with `Input(Bind: () => model.Field)` — the input type is inferred from the property's CLR type
+(string → text, bool → checkbox, int → number, DateOnly → date, …) and new values flow back into the model on each
+event. `Form(Model: …)` auto-registers a `DataAnnotationsValidator` and routes submit through `OnValidSubmit` /
+`OnInvalidSubmit` once every `[Required]` / `[EmailAddress]` / `[Range]` check passes. Field errors render via
+`ValidationMessage`; a top-of-form digest via `ValidationSummary`.
+
+For async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a pre-built
+`EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
+in-flight per-field check (latest-wins). `ValidatingIndicator` renders its children while a field is being checked.
+
+```csharp
+public sealed class SignupModel
+{
+    [Required, StringLength(20, MinimumLength = 3)] public string Username { get; set; } = "";
+}
+
+public sealed class UniqueUsernameValidator : IAsyncFieldValidator
+{
+    public async ValueTask ValidateFieldAsync(
+        EditContext ctx, FieldIdentifier field, CancellationToken ct)
+    {
+        if (ctx.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
+        {
+            await Task.Delay(400, ct);                    // pretend it's an API call
+            if (await IsTakenAsync(m.Username))
+                ctx.AddValidationMessage(field, "Already taken.");
+        }
+    }
+    public ValueTask ValidateAsync(EditContext c, CancellationToken ct) => default;
+}
+
+var ctx = new EditContext(model);
+ctx.AddValidator(new DataAnnotationsValidator());
+ctx.AddValidator(new UniqueUsernameValidator());
+
+Form<SignupModel>(model, Context: ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
+    Input(() => model.Username),
+    ValidatingIndicator(() => model.Username)["Checking..."],
+    ValidationMessage(() => model.Username),
+    Button(Type: "submit")["Sign up"]
+]
+```
 
 ### Scoped CSS
 
