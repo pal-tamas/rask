@@ -53,19 +53,30 @@ public sealed class ComponentsPage : Component
             H2(Class: "h4 mt-5 mb-3", Children: ["[SkipFactory] hides a property"]),
             CodeSample(
                 """
-                public sealed class Counter : Component
+                public sealed class SkipFactoryCounter : Component
                 {
-                    [SkipFactory] public int Initial { get; set; }
                     private int _count;
+
+                    // [SkipFactory] excludes this property from the generated factory.
+                    // The initializer seeds the cached instance — the factory call site
+                    // doesn't have to (and can't) pass Initial through.
+                    [SkipFactory] public int Initial { get; set; } = 7;
+
                     protected override void OnMount() => _count = Initial;
-                    // ... renders _count
+
+                    protected override Component Render() =>
+                        Button(OnClick: () => _count++,
+                               Children: [$"Clicks: {_count}"]);
                 }
 
-                // Initial is excluded from the factory; assign it directly:
-                var c = new Counter { Initial = 7 };
+                // The generated factory has NO Initial parameter — the call site stays
+                // clean. Framework caches the instance by tree position, so _count
+                // survives re-renders just like any other private state.
+                SkipFactoryCounter()
                 """,
                 Notes:
-                "[SkipFactory] keeps a property settable in code while removing it from the generated factory signature."),
+                "[SkipFactory] keeps a property settable in code while removing it from the generated factory signature. The counter below started at 7 — click it and the state persists across re-renders.",
+                Result: SkipFactoryCounter()),
             H2(Class: "h4 mt-5 mb-3", Children: ["Diagnostics"]),
             Div(Class: "list-group mb-3", Children:
             [
@@ -94,6 +105,22 @@ public sealed class ComponentsPage : Component
                 ])
             ])
         );
+}
+
+public sealed class SkipFactoryCounter : Component
+{
+    private int _count;
+
+    [SkipFactory] public int Initial { get; set; } = 7;
+
+    protected override void OnMount() => _count = Initial;
+
+    protected override Component Render() =>
+        Button(
+            Class: "btn btn-outline-primary",
+            Id: "skipfactory-counter",
+            OnClick: () => _count++,
+            Children: [I(Class: "bi bi-hand-index me-2"), $"Clicks: {_count}"]);
 }
 
 public sealed class Greeting : Component

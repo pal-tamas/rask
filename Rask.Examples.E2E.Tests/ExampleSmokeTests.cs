@@ -505,6 +505,155 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Cancellation_UnmountWhileRunning_LogsCancelled() => RunAsync(async () =>
+    {
+        // Validates Component.CancellationToken end-to-end through the showcase:
+        // mount a probe that awaits Task.Delay(2500ms, CancellationToken) and
+        // unmount it before the delay elapses. The probe's OperationCanceledException
+        // catch appends "cancelled" to the page log, proving the framework cancelled
+        // the lifetime token and the await unwound cleanly.
+        await Page.GotoAsync("/cancellation");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Cancellation",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("#cancel-mount").ClickAsync();
+        // The probe's "running" pill should appear once the OnMountAsync continuation
+        // has started — the StateHasChanged() before the await guarantees it.
+        await Expect(Page.Locator(".cancel-probe-pill"))
+            .ToContainTextAsync("running",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Unmount before the 2.5s Task.Delay completes — the framework cancels the
+        // probe's CancellationToken, Task.Delay throws OperationCanceledException,
+        // and the catch logs the cancellation.
+        await Page.Locator("#cancel-unmount").ClickAsync();
+        await Expect(Page.Locator(".cancel-log"))
+            .ToContainTextAsync("cancelled",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Cancellation_LeaveRunning_LogsCompleted() => RunAsync(async () =>
+    {
+        // The complementary happy path: mount the probe and let the Task.Delay run
+        // to completion. Without this test, a regression that silently cancels every
+        // probe (e.g. a stray Cancel on every render) would still pass the test above.
+        await Page.GotoAsync("/cancellation");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Cancellation",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("#cancel-mount").ClickAsync();
+        await Expect(Page.Locator(".cancel-log"))
+            .ToContainTextAsync("completed",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Disposal_UnmountSyncProbe_FiresDispose() => RunAsync(async () =>
+    {
+        // Validates the IDisposable branch of ComponentLifecycle.DisposeComponentTree:
+        // when the parent stops rendering the probe in its children, the framework
+        // walks the diff and calls Dispose(). The probe's Dispose body logs into the
+        // page list, so the test asserts the log entry appeared.
+        await Page.GotoAsync("/disposal");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Disposal",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("#dispose-sync-mount").ClickAsync();
+        await Expect(Page.Locator(".dispose-probe-pill"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await Page.Locator("#dispose-sync-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-sync-log"))
+            .ToContainTextAsync("disposed",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Disposal_UnmountAsyncProbe_FiresDisposeAsync() => RunAsync(async () =>
+    {
+        // The IAsyncDisposable variant: DisposeAsync includes a Task.Yield, so the
+        // "async-disposed" log entry shows up after the next render cycle resolves
+        // the continuation. The 10s timeout absorbs the round trip.
+        await Page.GotoAsync("/disposal");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Disposal",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("#dispose-async-mount").ClickAsync();
+        await Expect(Page.Locator(".dispose-async-pill"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await Page.Locator("#dispose-async-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-async-log"))
+            .ToContainTextAsync("async-disposed",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Components_SkipFactoryCounter_PreservesStateAcrossClicks() => RunAsync(async () =>
+    {
+        // Two things at once: [SkipFactory] left Initial settable via object initialiser,
+        // so OnMount seeded _count to 7; and the framework caches the component by tree
+        // position, so private _count survives clicks.
+        await Page.GotoAsync("/components");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("User components",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var counter = Page.Locator("#skipfactory-counter");
+        await Expect(counter)
+            .ToContainTextAsync("Clicks: 7",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await counter.ClickAsync();
+        await counter.ClickAsync();
+        await counter.ClickAsync();
+        await Expect(counter)
+            .ToContainTextAsync("Clicks: 10",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Boom_NestedBoundary_InnerCatchesFirst() => RunAsync(async () =>
+    {
+        // Validates ErrorBoundary nesting precedence (Rask.Core/Components/ErrorBoundary.cs):
+        // an exception thrown inside the inner boundary's subtree is caught by the
+        // INNER boundary, not the outer one. The outer healthy region (a sibling of
+        // the inner boundary, also inside the outer boundary) must remain mounted.
+        await Page.GotoAsync("/boom");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Error boundary",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("#boom-nested-throw"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await Page.Locator("#boom-nested-throw").ClickAsync();
+
+        // Inner boundary fallback is shown.
+        await Expect(Page.Locator("#boom-nested-inner-fallback"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Outer boundary did NOT trip — its fallback never rendered.
+        await Expect(Page.Locator("#boom-nested-outer-fallback"))
+            .ToHaveCountAsync(0);
+        // The outer healthy region (sibling of the inner boundary inside the outer)
+        // is still visible.
+        await Expect(Page.Locator("#boom-nested-outer-healthy"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Recover restores the inner boundary; the throw button reappears.
+        await Page.Locator("#boom-nested-inner-recover").ClickAsync();
+        await Expect(Page.Locator("#boom-nested-throw"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-nested-inner-fallback"))
+            .ToHaveCountAsync(0);
+    });
+
+    [Fact]
     public Task Http_NavigateAwayBeforeLoad_NoLifecycleFault() => RunAsync(async () =>
     {
         // Validates Component.CancellationToken: visiting /http kicks off

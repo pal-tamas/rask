@@ -95,8 +95,81 @@ public sealed class BoomPage : Component
                             _throwOnRender ? (Child)new RenderThrower() : Text(string.Empty)
 #pragma warning restore RASK014
                         ])
+                    ])),
+            H2(Class: "h4 mt-5 mb-3", Children: ["Nested boundaries — inner catches first"]),
+            CodeSample(
+                """
+                ErrorBoundary(  // outer
+                    Fallback: outerFallback,
+                    Children: [
+                        Div(Children: [
+                            P(Children: ["Outer healthy region — survives inner throws."]),
+                            ErrorBoundary(  // inner
+                                Fallback: innerFallback,
+                                Children: [
+                                    Button(OnClick: () => throw new InvalidOperationException("inner kaboom"),
+                                           Children: ["Throw inside inner boundary"])
+                                ])
+                        ])
+                    ])
+                """,
+                Notes:
+                "The inner boundary catches first — the outer healthy region (and its sibling paragraph) stays mounted. If the inner fallback itself throws, the outer boundary catches the escalation.",
+                Result: ErrorBoundary(
+                    Fallback: (ex, _) => OuterFallback(ex),
+                    Children:
+                    [
+                        Div(Class: "p-3 border rounded bg-white", Id: "boom-nested-host", Children:
+                        [
+                            P(Class: "mb-2 small text-secondary",
+                                Id: "boom-nested-outer-healthy",
+                                Children: ["Outer healthy region — stays mounted while the inner boundary trips."]),
+                            ErrorBoundary(
+                                Fallback: (ex, recover) => InnerFallback(ex, recover),
+                                Children:
+                                [
+                                    Div(Class: "p-3 border rounded bg-light", Children:
+                                    [
+                                        P(Class: "small text-secondary mb-2",
+                                            Children: ["Inner boundary subtree."]),
+                                        Button(
+                                            Class: "btn btn-danger btn-sm",
+                                            Id: "boom-nested-throw",
+                                            OnClick: ThrowFromInnerHandler,
+                                            Children: [I(Class: "bi bi-exclamation-triangle me-2"),
+                                                       "Throw inside inner boundary"])
+                                    ])
+                                ])
+                        ])
                     ]))
         );
+
+    private static Child InnerFallback(Exception ex, Action recover) =>
+        Div(Class: "alert alert-warning d-flex align-items-start",
+            Id: "boom-nested-inner-fallback", Children:
+        [
+            I(Class: "bi bi-shield-exclamation me-3 fs-4"),
+            Div(Children:
+            [
+                Strong(Children: ["Inner boundary caught: "]),
+                Code(Class: "ms-1", Children: [ex.GetType().Name]),
+                P(Class: "mb-2 mt-1 small", Children: [ex.Message]),
+                Button(
+                    Class: "btn btn-sm btn-outline-secondary",
+                    Id: "boom-nested-inner-recover",
+                    OnClick: recover,
+                    Children: [I(Class: "bi bi-arrow-counterclockwise me-1"), "Recover inner"])
+            ])
+        ]);
+
+    private static Child OuterFallback(Exception ex) =>
+        Div(Class: "alert alert-danger", Id: "boom-nested-outer-fallback", Children:
+        [
+            Strong(Children: ["Outer boundary caught: "]), ex.Message
+        ]);
+
+    private static void ThrowFromInnerHandler() =>
+        throw new InvalidOperationException("kaboom — inner boundary demo");
 
     private static Child BoundaryFallback(Exception ex, Action recover) =>
         Div(Class: "alert alert-danger d-flex align-items-start", Id: "boom-fallback", Children:
