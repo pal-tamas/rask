@@ -141,7 +141,7 @@ public class AsyncLifecycleErrorBoundaryTests
             throw new InvalidOperationException("props-async");
         }
 
-        protected override Component Render() => new Span(null, new Text("loading"));
+        protected override Component Render() => new Span { Children = [new Text("loading")] };
     }
 
     private sealed class RecordingHandle : IRenderHandle

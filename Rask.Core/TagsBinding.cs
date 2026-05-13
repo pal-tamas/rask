@@ -4,6 +4,7 @@ using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using F = Rask.Core.Components;
+using C = Rask.Core.Components.Components;
 
 namespace Rask.Core;
 
@@ -43,8 +44,8 @@ public static partial class Tags
         if (resolvedType == "checkbox")
         {
             var isChecked = current is bool b && b;
-            return Input(
-                "checkbox", name,
+            return C.Input(
+                Type: "checkbox", Name: name,
                 Checked: isChecked,
                 Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
                 Min: Min, Max: Max, Step: Step, Pattern: Pattern,
@@ -57,9 +58,9 @@ public static partial class Tags
         var stringValue = FormatValue(current);
         var isImmediate = IsImmediateUpdateType(acc.PropertyType);
 
-        return Input(
-            resolvedType, name, stringValue, Placeholder,
-            Required, Disabled, ReadOnly,
+        return C.Input(
+            Type: resolvedType, Name: name, Value: stringValue, Placeholder: Placeholder,
+            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
             Min: Min, Max: Max, Step: Step, Pattern: Pattern,
             Size: Size, MaxLength: MaxLength, MinLength: MinLength,
             Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
@@ -93,11 +94,11 @@ public static partial class Tags
         var name = Name ?? acc.PropertyName;
         var stringValue = FormatValue(acc.Getter());
 
-        return Textarea(
-            name, Rows, Cols, Placeholder,
-            Required, Disabled, ReadOnly,
-            MaxLength, MinLength, Wrap,
-            Autofocus, Autocomplete,
+        return C.Textarea(
+            Name: name, Rows: Rows, Cols: Cols, Placeholder: Placeholder,
+            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
+            MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
+            Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnInput: StringSetHandler(acc, ctx, fid, false),
             OnChange: TouchAndValidateHandler(acc, ctx, fid, false),
             Id: Id, Class: Class, Style: Style, Data: Data,
@@ -116,7 +117,7 @@ public static partial class Tags
         string? Class = null,
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null,
-        IEnumerable<Child>? Children = null)
+        params IEnumerable<Child> Children)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = ResolveBindingContext(acc.Target);
@@ -125,8 +126,8 @@ public static partial class Tags
         var current = FormatValue(acc.Getter());
         var preselected = MarkSelected(Children, current);
 
-        return Select(
-            name, Required: Required, Disabled: Disabled, Size: Size,
+        return C.Select(
+            Name: name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnChange: TouchAndValidateHandler(acc, ctx, fid, true),
             Id: Id, Class: Class, Style: Style, Data: Data,
@@ -135,9 +136,9 @@ public static partial class Tags
 
     public static F.ValidationMessage ValidationMessage<TProp>(
         Expression<Func<TProp>> For,
-        string? Class = null) => new(For, Class);
+        string? Class = null) => new() { For = For, Class = Class };
 
-    public static F.ValidationSummary ValidationSummary(string? Class = null) => new(Class);
+    public static F.ValidationSummary ValidationSummary(string? Class = null) => new() { Class = Class };
 
     // Form pushes its EditContext onto EditContextScope only during *serialization* of
     // its children (HtmlSerializer enters Form.EnterChildrenScope after Render returns).
@@ -280,13 +281,8 @@ public static partial class Tags
         return false;
     }
 
-    private static IEnumerable<Child>? MarkSelected(IEnumerable<Child>? children, string current)
+    private static IEnumerable<Child> MarkSelected(IEnumerable<Child> children, string current)
     {
-        if (children is null)
-        {
-            return null;
-        }
-
         var list = new List<Child>();
         foreach (var c in children)
         {
@@ -309,31 +305,43 @@ public static partial class Tags
 
     private static F.Option MarkOption(F.Option opt, string current)
     {
-        var props = OptionProps(opt);
-        if (props is null || props.Selected || props.Value != current)
+        if (opt.Selected || opt.Value != current)
         {
             return opt;
         }
 
-        var newProps = props with { Selected = true };
-        return new F.Option(newProps, OptionChildren(opt));
+        return new F.Option
+        {
+            Value = opt.Value,
+            Selected = true,
+            Disabled = opt.Disabled,
+            Label = opt.Label,
+            Id = opt.Id,
+            Class = opt.Class,
+            Style = opt.Style,
+            Data = opt.Data,
+            Children = opt.Children
+        };
     }
 
     private static F.Optgroup MarkOptgroup(F.Optgroup og, string current)
     {
-        var children = OptgroupChildren(og);
-        if (children is null)
+        if (og.Children is null)
         {
             return og;
         }
 
-        var newChildren = children.Select(c =>
+        var newChildren = og.Children.Select(c =>
             c.Component is F.Option o ? (Child)MarkOption(o, current) : c).ToArray();
-        return new F.Optgroup(OptgroupProps(og), newChildren);
+        return new F.Optgroup
+        {
+            Disabled = og.Disabled,
+            Label = og.Label,
+            Id = og.Id,
+            Class = og.Class,
+            Style = og.Style,
+            Data = og.Data,
+            Children = newChildren
+        };
     }
-
-    private static F.Option.Props? OptionProps(F.Option opt) => opt.PropsInternal;
-    private static IEnumerable<Child> OptionChildren(F.Option opt) => opt.ChildrenInternal;
-    private static F.Optgroup.Props? OptgroupProps(F.Optgroup og) => og.PropsInternal;
-    private static IEnumerable<Child> OptgroupChildren(F.Optgroup og) => og.ChildrenInternal;
 }

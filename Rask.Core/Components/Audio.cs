@@ -1,67 +1,30 @@
 namespace Rask.Core.Components;
 
-public sealed class Audio : Component<Audio.Props>
+public sealed class Audio : Component
 {
-    public Audio(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public Audio(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "audio";
 
-    public new sealed record Props(
-        string? Src = null,
-        bool Controls = false,
-        bool Autoplay = false,
-        bool Loop = false,
-        bool Muted = false,
-        string? Preload = null,
-        string? CrossOrigin = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Src { get; set; }
+    public bool Controls { get; set; }
+    public bool Autoplay { get; set; }
+    public bool Loop { get; set; }
+    public bool Muted { get; set; }
+    public string? Preload { get; set; }
+    public string? CrossOrigin { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
+        foreach (var kv in base.BuildAttributes())
         {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Src is not null)
-            {
-                yield return new KeyValuePair<string, string?>("src", Src);
-            }
-
-            if (Controls)
-            {
-                yield return new KeyValuePair<string, string?>("controls", null);
-            }
-
-            if (Autoplay)
-            {
-                yield return new KeyValuePair<string, string?>("autoplay", null);
-            }
-
-            if (Loop)
-            {
-                yield return new KeyValuePair<string, string?>("loop", null);
-            }
-
-            if (Muted)
-            {
-                yield return new KeyValuePair<string, string?>("muted", null);
-            }
-
-            if (Preload is not null)
-            {
-                yield return new KeyValuePair<string, string?>("preload", Preload);
-            }
-
-            if (CrossOrigin is not null)
-            {
-                yield return new KeyValuePair<string, string?>("crossorigin", CrossOrigin);
-            }
+            yield return kv;
         }
+
+        if (Src is not null) yield return new("src", Src);
+        if (Controls) yield return new("controls", null);
+        if (Autoplay) yield return new("autoplay", null);
+        if (Loop) yield return new("loop", null);
+        if (Muted) yield return new("muted", null);
+        if (Preload is not null) yield return new("preload", Preload);
+        if (CrossOrigin is not null) yield return new("crossorigin", CrossOrigin);
     }
 }

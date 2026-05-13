@@ -11,13 +11,8 @@ public class AreaTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Area.Props(
-            "alt", "0,0,10,10", "rect",
-            "/x", "_blank", "noopener", "f.zip",
-            "i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal(
+                Assert.Equal(
             "<area id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" alt=\"alt\" coords=\"0,0,10,10\" shape=\"rect\" href=\"/x\" target=\"_blank\" rel=\"noopener\" download=\"f.zip\" />",
-            new Area(props).ToHtml());
+            new Area { Alt = "alt", Coords = "0,0,10,10", Shape = "rect", Href = "/x", Target = "_blank", Rel = "noopener", Download = "f.zip", Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 }

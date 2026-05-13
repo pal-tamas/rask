@@ -6,18 +6,16 @@ public class STests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<s></s>", new S(null).ToHtml());
+        Assert.Equal("<s></s>", new S().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new S.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<s id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></s>",
-            new S(props).ToHtml());
+                Assert.Equal("<s id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></s>",
+            new S { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<s>&lt;x&gt;</s>", new S(null, "<x>").ToHtml());
+        Assert.Equal("<s>&lt;x&gt;</s>", new S { Children = ["<x>"] }.ToHtml());
 }

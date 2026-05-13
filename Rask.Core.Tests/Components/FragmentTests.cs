@@ -14,7 +14,7 @@ public class FragmentTests
     [Fact]
     public void Render_MultipleChildren_EmitsConcatenated()
     {
-        var fragment = new Fragment(new Doctype(), new Html(null));
+        var fragment = new Fragment(new Doctype(), new Html());
         Assert.Equal("<!DOCTYPE html><html></html>", fragment.ToHtml());
     }
 

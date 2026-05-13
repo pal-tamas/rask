@@ -93,7 +93,7 @@ public class EventHandlerErrorBoundaryTests
                     throw new InvalidOperationException("handler-async")));
             }
 
-            return new Span(null, new Text("owner"));
+            return new Span { Children = [new Text("owner")] };
         }
     }
 }

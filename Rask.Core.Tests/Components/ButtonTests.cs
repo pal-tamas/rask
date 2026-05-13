@@ -7,14 +7,14 @@ public class ButtonTests
 {
     [Fact]
     public void Render_NullProps_ReturnsEmptyButtonTags() =>
-        Assert.Equal("<button></button>", new Button(null).ToHtml());
+        Assert.Equal("<button></button>", new Button().ToHtml());
 
     [Fact]
     public void Render_DisabledTrue_EmitsBareDisabledAttribute()
     {
         Assert.Equal(
             "<button disabled></button>",
-            new Button(new Button.Props(Disabled: true)).ToHtml());
+            new Button { Disabled = true }.ToHtml());
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button></button>",
-            new Button(new Button.Props(Disabled: false)).ToHtml());
+            new Button { Disabled = false }.ToHtml());
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button type=\"submit\"></button>",
-            new Button(new Button.Props("submit")).ToHtml());
+            new Button { Type = "submit" }.ToHtml());
     }
 
     [Fact]
@@ -38,25 +38,16 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button name=\"action\" value=\"save\"></button>",
-            new Button(new Button.Props(Name: "action", Value: "save")).ToHtml());
+            new Button { Name = "action", Value = "save" }.ToHtml());
     }
 
     [Fact]
     public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder()
     {
-        var props = new Button.Props(
-            "submit",
-            true,
-            "action",
-            "save",
-            Id: "go",
-            Class: "btn",
-            Style: "color:red",
-            Data: new Dictionary<string, string?> { ["test-id"] = "primary" });
-
+        
         Assert.Equal(
             "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
-            new Button(props).ToHtml());
+            new Button { Type = "submit", Disabled = true, Name = "action", Value = "save", Id = "go", Class = "btn", Style = "color:red", Data = new Dictionary<string, string?> { ["test-id"] = "primary" } }.ToHtml());
     }
 
     [Fact]
@@ -64,7 +55,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button>&lt;click&gt;</button>",
-            new Button(null, "<click>").ToHtml());
+            new Button { Children = ["<click>"] }.ToHtml());
     }
 
     [Fact]
@@ -72,7 +63,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button><i>!</i></button>",
-            new Button(null, new Raw("<i>!</i>")).ToHtml());
+            new Button { Children = [new Raw("<i>!</i>")] }.ToHtml());
     }
 
     [Fact]
@@ -80,7 +71,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button>a<b></button>",
-            new Button(null, "a", new Raw("<b>")).ToHtml());
+            new Button { Children = ["a", new Raw("<b>")] }.ToHtml());
     }
 
     [Fact]
@@ -89,20 +80,19 @@ public class ButtonTests
         var children = new List<Child> { "a", new Raw("<b>") };
         Assert.Equal(
             "<button>a<b></button>",
-            new Button(null, children).ToHtml());
+            new Button { Children = children }.ToHtml());
     }
 
     [Fact]
     public void Render_OnClickOutsideLiveContext_OmitsHandlerAttribute()
     {
-        var props = new Button.Props(OnClick: () => { });
-        Assert.Equal("<button></button>", new Button(props).ToHtml());
+                Assert.Equal("<button></button>", new Button { OnClick = () => { } }.ToHtml());
     }
 
     [Fact]
     public void Render_OnClickInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => new Button(new Button.Props(OnClick: () => { }), "x"));
+        var view = new StubComponent(() => new Button { OnClick = () => { }, Children = ["x"] });
         Assert.Equal(
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());
@@ -111,9 +101,7 @@ public class ButtonTests
     [Fact]
     public void Render_OnClickAsyncInsideLiveContext_EmitsDataRaskOnClick()
     {
-        var view = new StubComponent(() => new Button(
-            new Button.Props(OnClickAsync: async () => { await Task.Yield(); }),
-            "x"));
+        var view = new StubComponent(() => new Button { OnClickAsync = async () => { await Task.Yield(); }, Children = ["x"] });
         Assert.Equal(
             "<button data-rask-on-click=\"h0\">x</button>",
             view.RenderAsLiveRoot());

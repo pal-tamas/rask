@@ -9,7 +9,7 @@ public class LiveRenderContextEditContextTests
     [Fact]
     public void GetOrCreateEditContext_SameModel_ReturnsCachedInstance()
     {
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         var model = new Model();
         using var ctx = LiveRenderContext.Begin(view);
 
@@ -23,7 +23,7 @@ public class LiveRenderContextEditContextTests
     [Fact]
     public void GetOrCreateEditContext_DifferentModels_ReturnsDifferentInstances()
     {
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         using var ctx = LiveRenderContext.Begin(view);
 
         var ec1 = ctx.GetOrCreateEditContext(new Model());
@@ -35,7 +35,7 @@ public class LiveRenderContextEditContextTests
     [Fact]
     public void GetOrCreateEditContext_FactoryUsed_OnFirstCallOnly()
     {
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         var model = new Model();
         using var ctx = LiveRenderContext.Begin(view);
         var calls = 0;
@@ -54,15 +54,18 @@ public class LiveRenderContextEditContextTests
     }
 
     [Fact]
-    public void GetOrCreate_WithoutServices_ThrowsForNewComponent()
+    public void GetOrCreate_WithoutServices_InvokesFactoryWithNullProvider()
     {
-        var view = new StubComponent(new Span(null));
+        // HTML tag wrappers don't need DI — their generated factories use the closure
+        // form `__sp => new T() { ... }` which ignores the services parameter. The context
+        // therefore passes null through cleanly so tag factories work in tests that
+        // construct a LiveRenderContext without an IServiceProvider.
+        var view = new StubComponent(new Span());
         using var ctx = LiveRenderContext.Begin(view);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            ctx.GetOrCreate<Span>(_ => new Span(null)));
+        var span = ctx.GetOrCreate<Span>(_ => new Span());
 
-        Assert.Contains("IServiceProvider", ex.Message);
+        Assert.NotNull(span);
     }
 
     private sealed class Model

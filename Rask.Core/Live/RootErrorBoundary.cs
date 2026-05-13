@@ -1,5 +1,6 @@
 using Rask.Core.Components;
 using static Rask.Core.Tags;
+using F = Rask.Core.Components.Components;
 
 namespace Rask.Core.Live;
 
@@ -44,20 +45,22 @@ internal sealed class RootErrorBoundary : Component
         // OnPropsChanged still fire on the App exactly as they used to.
         ctx.NotifyParameters(inner, false);
 
-        return ErrorBoundary(
+        return F.ErrorBoundary(
             Children: new Child[] { inner },
-            Fallback: (ex, _) => Fragment(
-                Doctype(),
-                Html("en", Children:
+            Fallback: (ex, _) => F.Fragment(Children:
+            [
+                F.Doctype(),
+                F.Html(Lang: "en", Children:
                 [
-                    Head(Children:
+                    F.Head(Children:
                     [
-                        Meta("utf-8"),
-                        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                        Title(Children: ["Application error"])
+                        F.Meta(Charset: "utf-8"),
+                        F.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+                        F.Title(Children: ["Application error"])
                     ]),
-                    Body(Children: [new DefaultErrorPage(ex)])
-                ])));
+                    F.Body(Children: [new DefaultErrorPage(ex)])
+                ])
+            ]));
     }
 
     private static LiveRenderContext? Current => LiveRenderContext.Current;

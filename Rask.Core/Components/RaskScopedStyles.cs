@@ -15,9 +15,11 @@ public sealed class RaskScopedStyles : Component
             return new Raw(string.Empty);
         }
 
-        return new Link(new Link.Props(
-            Rel: "stylesheet",
-            Href: $"/_rask/scoped.css?v={hash}",
-            Data: _marker));
+        return new Link
+        {
+            Rel = "stylesheet",
+            Href = $"/_rask/scoped.css?v={hash}",
+            Data = _marker
+        };
     }
 }

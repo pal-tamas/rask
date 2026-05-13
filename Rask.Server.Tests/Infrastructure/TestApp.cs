@@ -15,10 +15,8 @@ public sealed class TestApp : Component
     protected override Component Render() =>
         Fragment(
             Doctype(),
-            new Html(null,
-                new Head(null, new Title(null, "test")),
-                new Body(null,
-                    new H1(null, $"path={_routeState.Path}"),
-                    new P(null, $"count={Counter}"),
-                    Button(OnClick: () => Counter++, Children: ["bump"]))));
+            new Html { Children = [new Head { Children = [new Title { Children = ["test"] }] },
+                new Body { Children = [new H1 { Children = [$"path={_routeState.Path}"] },
+                    new P { Children = [$"count={Counter}"] },
+                    Button(OnClick: () => Counter++, Children: ["bump"])] }] });
 }

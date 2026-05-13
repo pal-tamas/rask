@@ -6,18 +6,16 @@ public class SummaryTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<summary></summary>", new Summary(null).ToHtml());
+        Assert.Equal("<summary></summary>", new Summary().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Summary.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<summary id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></summary>",
-            new Summary(props).ToHtml());
+                Assert.Equal("<summary id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></summary>",
+            new Summary { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<summary>&lt;x&gt;</summary>", new Summary(null, "<x>").ToHtml());
+        Assert.Equal("<summary>&lt;x&gt;</summary>", new Summary { Children = ["<x>"] }.ToHtml());
 }

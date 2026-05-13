@@ -129,7 +129,7 @@ public class RenderSkipTests
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
             ctx.NotifyParameters(c, false);
-            return new Span(null, c);
+            return new Span { Children = [c] };
         }
     }
 }

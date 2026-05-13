@@ -6,18 +6,16 @@ public class EmTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<em></em>", new Em(null).ToHtml());
+        Assert.Equal("<em></em>", new Em().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Em.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<em id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></em>",
-            new Em(props).ToHtml());
+                Assert.Equal("<em id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></em>",
+            new Em { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<em>&lt;x&gt;</em>", new Em(null, "<x>").ToHtml());
+        Assert.Equal("<em>&lt;x&gt;</em>", new Em { Children = ["<x>"] }.ToHtml());
 }

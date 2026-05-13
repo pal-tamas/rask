@@ -1,31 +1,14 @@
 namespace Rask.Core.Components;
 
-public sealed class Dialog : Component<Dialog.Props>
+public sealed class Dialog : Component
 {
-    public Dialog(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public Dialog(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "dialog";
 
-    public new sealed record Props(
-        bool Open = false,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
-    {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
+    public bool Open { get; set; }
 
-            if (Open)
-            {
-                yield return new KeyValuePair<string, string?>("open", null);
-            }
-        }
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    {
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Open) yield return new("open", null);
     }
 }

@@ -1,55 +1,23 @@
 namespace Rask.Core.Components;
 
-public sealed class Source : Component<Source.Props>
+public sealed class Source : Component
 {
-    public Source(Props? props = null) : base(props, null) { }
-
     protected override string TagName => "source";
     protected override bool SelfClosing => true;
 
-    public new sealed record Props(
-        string? Src = null,
-        string? Type = null,
-        string? Srcset = null,
-        string? Sizes = null,
-        string? Media = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Src { get; set; }
+    public string? Type { get; set; }
+    public string? Srcset { get; set; }
+    public string? Sizes { get; set; }
+    public string? Media { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Src is not null)
-            {
-                yield return new KeyValuePair<string, string?>("src", Src);
-            }
-
-            if (Type is not null)
-            {
-                yield return new KeyValuePair<string, string?>("type", Type);
-            }
-
-            if (Srcset is not null)
-            {
-                yield return new KeyValuePair<string, string?>("srcset", Srcset);
-            }
-
-            if (Sizes is not null)
-            {
-                yield return new KeyValuePair<string, string?>("sizes", Sizes);
-            }
-
-            if (Media is not null)
-            {
-                yield return new KeyValuePair<string, string?>("media", Media);
-            }
-        }
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Src is not null) yield return new("src", Src);
+        if (Type is not null) yield return new("type", Type);
+        if (Srcset is not null) yield return new("srcset", Srcset);
+        if (Sizes is not null) yield return new("sizes", Sizes);
+        if (Media is not null) yield return new("media", Media);
     }
 }

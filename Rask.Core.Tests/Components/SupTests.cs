@@ -6,18 +6,16 @@ public class SupTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<sup></sup>", new Sup(null).ToHtml());
+        Assert.Equal("<sup></sup>", new Sup().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Sup.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<sup id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></sup>",
-            new Sup(props).ToHtml());
+                Assert.Equal("<sup id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></sup>",
+            new Sup { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<sup>&lt;x&gt;</sup>", new Sup(null, "<x>").ToHtml());
+        Assert.Equal("<sup>&lt;x&gt;</sup>", new Sup { Children = ["<x>"] }.ToHtml());
 }

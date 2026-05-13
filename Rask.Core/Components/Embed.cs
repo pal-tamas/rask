@@ -2,52 +2,22 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Embed : Component<Embed.Props>
+public sealed class Embed : Component
 {
-    public Embed(Props? props = null) : base(props, null) { }
-
     protected override string TagName => "embed";
     protected override bool SelfClosing => true;
 
-    public new sealed record Props(
-        string? Src = null,
-        string? Type = null,
-        int? Width = null,
-        int? Height = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Src { get; set; }
+    public string? Type { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Src is not null)
-            {
-                yield return new KeyValuePair<string, string?>("src", Src);
-            }
-
-            if (Type is not null)
-            {
-                yield return new KeyValuePair<string, string?>("type", Type);
-            }
-
-            if (Width is not null)
-            {
-                yield return new KeyValuePair<string, string?>("width",
-                    Width.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Height is not null)
-            {
-                yield return new KeyValuePair<string, string?>("height",
-                    Height.Value.ToString(CultureInfo.InvariantCulture));
-            }
-        }
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Src is not null) yield return new("src", Src);
+        if (Type is not null) yield return new("type", Type);
+        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

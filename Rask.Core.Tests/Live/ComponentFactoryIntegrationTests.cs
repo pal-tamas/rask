@@ -64,6 +64,6 @@ public class ComponentFactoryIntegrationTests
         public string? Subtitle { get; set; }
 
         protected override Component Render() =>
-            new Span(null, new Text(Subtitle is null ? Name : $"{Name}: {Subtitle}"));
+            new Span { Children = [new Text(Subtitle is null ? Name : $"{Name}: {Subtitle}")] };
     }
 }

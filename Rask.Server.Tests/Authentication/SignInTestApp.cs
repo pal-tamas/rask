@@ -12,13 +12,11 @@ public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState) : Comp
     protected override Component Render() =>
         Fragment(
             Doctype(),
-            new Html(null,
-                new Head(null, new Title(null, "auth-test")),
-                new Body(null,
-                    new H1(null, $"path={routeState.Path}"),
-                    new P(null, $"user={(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "anon")}"),
+            new Html { Children = [new Head { Children = [new Title { Children = ["auth-test"] }] },
+                new Body { Children = [new H1 { Children = [$"path={routeState.Path}"] },
+                    new P { Children = [$"user={(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "anon")}"] },
                     Button(OnClickAsync: SignInAsync, Children: ["sign-in"]),
-                    Button(OnClickAsync: SignOutAsync, Children: ["sign-out"]))));
+                    Button(OnClickAsync: SignOutAsync, Children: ["sign-out"])] }] });
 
     private Task SignInAsync()
     {

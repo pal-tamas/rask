@@ -6,18 +6,16 @@ public class DtTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<dt></dt>", new Dt(null).ToHtml());
+        Assert.Equal("<dt></dt>", new Dt().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Dt.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<dt id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></dt>",
-            new Dt(props).ToHtml());
+                Assert.Equal("<dt id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></dt>",
+            new Dt { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<dt>&lt;x&gt;</dt>", new Dt(null, "<x>").ToHtml());
+        Assert.Equal("<dt>&lt;x&gt;</dt>", new Dt { Children = ["<x>"] }.ToHtml());
 }

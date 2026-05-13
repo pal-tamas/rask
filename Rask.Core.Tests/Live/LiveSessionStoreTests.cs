@@ -16,8 +16,8 @@ public class LiveSessionStoreTests
     public void Create_AssignsUniqueIds()
     {
         var store = NewStore();
-        var s1 = store.Create(_ => new StubComponent(new Span(null)));
-        var s2 = store.Create(_ => new StubComponent(new Span(null)));
+        var s1 = store.Create(_ => new StubComponent(new Span()));
+        var s2 = store.Create(_ => new StubComponent(new Span()));
         Assert.NotEqual(s1.Id, s2.Id);
         Assert.Equal(2, store.Count);
     }
@@ -26,7 +26,7 @@ public class LiveSessionStoreTests
     public void Get_ReturnsRegisteredSession()
     {
         var store = NewStore();
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         var session = store.Create(_ => view);
 
         var fetched = store.Get(session.Id);
@@ -46,7 +46,7 @@ public class LiveSessionStoreTests
     public void Remove_DropsSession()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(new Span(null)));
+        var session = store.Create(_ => new StubComponent(new Span()));
 
         store.Remove(session.Id);
 
@@ -58,7 +58,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_AfterDelay_RemovesSession()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(new Span(null)));
+        var session = store.Create(_ => new StubComponent(new Span()));
         var id = session.Id;
 
         store.ScheduleRemoval(id, TimeSpan.FromMilliseconds(50));
@@ -71,7 +71,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_ThenGet_CancelsRemoval_SessionStaysRegistered()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(new Span(null)));
+        var session = store.Create(_ => new StubComponent(new Span()));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(200));
         var fetched = store.Get(session.Id);
@@ -85,7 +85,7 @@ public class LiveSessionStoreTests
     public async Task ScheduleRemoval_TwiceForSameId_ReplacesEarlierSchedule()
     {
         var store = NewStore();
-        var session = store.Create(_ => new StubComponent(new Span(null)));
+        var session = store.Create(_ => new StubComponent(new Span()));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(5));
@@ -109,7 +109,7 @@ public class LiveSessionStoreTests
     {
         var lifetime = new FakeLifetime();
         var store = NewStore(lifetime);
-        var session = store.Create(_ => new StubComponent(new Span(null)));
+        var session = store.Create(_ => new StubComponent(new Span()));
         lifetime.StopApplication();
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(30));
@@ -143,8 +143,8 @@ public class LiveSessionStoreTests
     public async Task RerenderAllAsync_WithSessions_CompletesWithoutThrowing()
     {
         var store = NewStore();
-        store.Create(_ => new StubComponent(new Span(null)));
-        store.Create(_ => new StubComponent(new Span(null)));
+        store.Create(_ => new StubComponent(new Span()));
+        store.Create(_ => new StubComponent(new Span()));
 
         var task = store.RerenderAllAsync();
         await task;
@@ -193,7 +193,7 @@ public class LiveSessionStoreTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     private sealed class FakeLifetime : IHostApplicationLifetime

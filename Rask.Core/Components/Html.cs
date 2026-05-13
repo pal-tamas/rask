@@ -1,43 +1,18 @@
 namespace Rask.Core.Components;
 
-public sealed class Html : Component<Html.Props>
+public sealed class Html : Component
 {
-    public Html(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public Html(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "html";
 
-    public new sealed record Props(
-        string? Lang = null,
-        string? Dir = null,
-        string? Xmlns = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Lang { get; set; }
+    public string? Dir { get; set; }
+    public string? Xmlns { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Lang is not null)
-            {
-                yield return new KeyValuePair<string, string?>("lang", Lang);
-            }
-
-            if (Dir is not null)
-            {
-                yield return new KeyValuePair<string, string?>("dir", Dir);
-            }
-
-            if (Xmlns is not null)
-            {
-                yield return new KeyValuePair<string, string?>("xmlns", Xmlns);
-            }
-        }
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Lang is not null) yield return new("lang", Lang);
+        if (Dir is not null) yield return new("dir", Dir);
+        if (Xmlns is not null) yield return new("xmlns", Xmlns);
     }
 }

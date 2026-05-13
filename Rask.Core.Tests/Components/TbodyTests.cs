@@ -6,18 +6,16 @@ public class TbodyTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<tbody></tbody>", new Tbody(null).ToHtml());
+        Assert.Equal("<tbody></tbody>", new Tbody().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Tbody.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<tbody id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></tbody>",
-            new Tbody(props).ToHtml());
+                Assert.Equal("<tbody id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></tbody>",
+            new Tbody { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<tbody>&lt;x&gt;</tbody>", new Tbody(null, "<x>").ToHtml());
+        Assert.Equal("<tbody>&lt;x&gt;</tbody>", new Tbody { Children = ["<x>"] }.ToHtml());
 }

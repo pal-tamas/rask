@@ -38,6 +38,6 @@ internal sealed class LifecycleTrackingComponent : Component
     protected override Component Render()
     {
         RenderCount++;
-        return new Span(null, new Text($"r{RenderCount}"));
+        return new Span { Children = [new Text($"r{RenderCount}")] };
     }
 }

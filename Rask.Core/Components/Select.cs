@@ -3,83 +3,37 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
-public sealed class Select : Component<Select.Props>
+public sealed class Select : Component
 {
-    public Select(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public Select(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "select";
 
-    public new sealed record Props(
-        string? Name = null,
-        bool Multiple = false,
-        bool Required = false,
-        bool Disabled = false,
-        int? Size = null,
-        string? Form = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        Action<string>? OnChange = null,
-        Func<string, Task>? OnChangeAsync = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Name { get; set; }
+    public bool Multiple { get; set; }
+    public bool Required { get; set; }
+    public bool Disabled { get; set; }
+    public int? Size { get; set; }
+    public string? Form { get; set; }
+    public bool Autofocus { get; set; }
+    public string? Autocomplete { get; set; }
+    public Action<string>? OnChange { get; set; }
+    public Func<string, Task>? OnChangeAsync { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Name is not null) yield return new("name", Name);
+        if (Multiple) yield return new("multiple", null);
+        if (Required) yield return new("required", null);
+        if (Disabled) yield return new("disabled", null);
+        if (Size is not null) yield return new("size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        if (Form is not null) yield return new("form", Form);
+        if (Autofocus) yield return new("autofocus", null);
+        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
+
+        var change = (Delegate?)OnChange ?? OnChangeAsync;
+        if (change is not null && LiveRenderContext.Current is { } ctx)
         {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Name is not null)
-            {
-                yield return new KeyValuePair<string, string?>("name", Name);
-            }
-
-            if (Multiple)
-            {
-                yield return new KeyValuePair<string, string?>("multiple", null);
-            }
-
-            if (Required)
-            {
-                yield return new KeyValuePair<string, string?>("required", null);
-            }
-
-            if (Disabled)
-            {
-                yield return new KeyValuePair<string, string?>("disabled", null);
-            }
-
-            if (Size is not null)
-            {
-                yield return new KeyValuePair<string, string?>("size",
-                    Size.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Form is not null)
-            {
-                yield return new KeyValuePair<string, string?>("form", Form);
-            }
-
-            if (Autofocus)
-            {
-                yield return new KeyValuePair<string, string?>("autofocus", null);
-            }
-
-            if (Autocomplete is not null)
-            {
-                yield return new KeyValuePair<string, string?>("autocomplete", Autocomplete);
-            }
-
-            var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null && LiveRenderContext.Current is { } ctx)
-            {
-                yield return new KeyValuePair<string, string?>("data-rask-on-change", ctx.RegisterHandler(change));
-            }
+            yield return new("data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
 }

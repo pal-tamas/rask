@@ -14,9 +14,7 @@ public sealed class NoOpApp : Component
     protected override Component Render() =>
         Fragment(
             Doctype(),
-            new Html(null,
-                new Head(null, new Title(null, "noop")),
-                new Body(null,
-                    new H1(null, "static"),
-                    Button(OnClick: () => Hidden++, Children: ["noop"]))));
+            new Html { Children = [new Head { Children = [new Title { Children = ["noop"] }] },
+                new Body { Children = [new H1 { Children = ["static"] },
+                    Button(OnClick: () => Hidden++, Children: ["noop"])] }] });
 }

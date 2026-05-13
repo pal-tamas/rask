@@ -42,7 +42,7 @@ public class DefaultNotFoundPageTests
     public void Render_NoRouteStateRegistered_FallsBackToRoot()
     {
         var services = new ServiceCollection().BuildServiceProvider();
-        using var _ = LiveRenderContext.Begin(new StubComponent(new Span(null)), services);
+        using var _ = LiveRenderContext.Begin(new StubComponent(new Span()), services);
 
         var html = new DefaultNotFoundPage().RenderForLive().ToHtml();
 
@@ -54,6 +54,6 @@ public class DefaultNotFoundPageTests
     {
         var state = new RouteState { Path = path };
         var services = new ServiceCollection().AddSingleton(state).BuildServiceProvider();
-        return LiveRenderContext.Begin(new StubComponent(new Span(null)), services);
+        return LiveRenderContext.Begin(new StubComponent(new Span()), services);
     }
 }

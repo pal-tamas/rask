@@ -652,7 +652,7 @@ public static class RaskEndpointExtensions
 
     private sealed class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Tags.Script(RuntimePath);
+        public Component Render() => Rask.Core.Components.Components.Script(Src: RuntimePath);
     }
 
     internal sealed class RaskLiveMarker

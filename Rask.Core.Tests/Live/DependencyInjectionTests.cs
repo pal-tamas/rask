@@ -43,7 +43,7 @@ public class DependencyInjectionTests
             .AddSingleton<IGreeter>(new FixedGreeter("ctx"))
             .BuildServiceProvider();
 
-        var root = new StubComponent(new Span(null));
+        var root = new StubComponent(new Span());
         using var ctx = LiveRenderContext.Begin(root, services);
 
         var instance = Components.GreetingComponent();
@@ -103,12 +103,12 @@ public class DependencyInjectionTests
         public GreetingComponent(IGreeter greeter) => _greeter = greeter;
 
         protected override Component Render() =>
-            new Span(null, new Text($"hello, {_greeter.Name}"));
+            new Span { Children = [new Text($"hello, {_greeter.Name}")] };
     }
 
     public sealed class ParameterlessComponent : Component
     {
-        protected override Component Render() => new Span(null, new Text("plain"));
+        protected override Component Render() => new Span { Children = [new Text("plain")] };
     }
 
     public sealed class ScopedTracker : IDisposable

@@ -59,7 +59,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_ScopeIdSet_NonShellTag_StampsDataAttribute()
     {
-        var view = new CssWrapper(new Div(new Div.Props(), new Text("hi")));
+        var view = new CssWrapper(new Div { Children = [new Text("hi")] });
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(CssWrapper));
         Assert.Contains($"<div data-{scopeId}>hi</div>", html);
@@ -109,7 +109,7 @@ public class HtmlSerializerTests
     [Fact]
     public void Serialize_FallthroughBranch_PushesScope_AndRecurses()
     {
-        var view = new ScopedWrapper(new Div(new Div.Props(), new Text("inner")));
+        var view = new ScopedWrapper(new Div { Children = [new Text("inner")] });
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(ScopedWrapper));
         Assert.Contains($"<div data-{scopeId}>inner</div>", html);
@@ -117,15 +117,15 @@ public class HtmlSerializerTests
 
     private static Component ShellOf(string tag) => tag switch
     {
-        "head" => new Head(new Head.Props(), new Text("x")),
-        "body" => new Body(new Body.Props(), new Text("x")),
-        "html" => new Html(new Html.Props(), new Text("x")),
-        "title" => new Title(new Title.Props(), new Text("x")),
-        "meta" => new Meta(new Meta.Props()),
-        "link" => new Link(new Link.Props()),
-        "script" => new Script(new Script.Props(), new Text("x")),
-        "style" => new Style(new Style.Props(), new Text("x")),
-        "base" => new Base(new Base.Props()),
+        "head" => new Head { Children = [new Text("x")] },
+        "body" => new Body { Children = [new Text("x")] },
+        "html" => new Html { Children = [new Text("x")] },
+        "title" => new Title { Children = [new Text("x")] },
+        "meta" => new Meta {  },
+        "link" => new Link {  },
+        "script" => new Script { Children = [new Text("x")] },
+        "style" => new Style { Children = [new Text("x")] },
+        "base" => new Base {  },
         _ => throw new ArgumentOutOfRangeException(nameof(tag))
     };
 

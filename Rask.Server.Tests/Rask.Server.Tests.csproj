@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Rask.Core.Components.Components" Static="true"/>
+    <Using Include="Rask.Core.Tags" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

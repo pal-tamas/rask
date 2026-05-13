@@ -11,10 +11,7 @@ public class ColTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Col.Props(3,
-            "i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<col id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" span=\"3\" />",
-            new Col(props).ToHtml());
+                Assert.Equal("<col id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" span=\"3\" />",
+            new Col { Span = 3, Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 }

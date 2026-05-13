@@ -13,7 +13,7 @@ public class AsyncHandlerRenderingTests
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
-        var component = new StubComponent(new Span(null)) { RenderHandle = handle };
+        var component = new StubComponent(new Span()) { RenderHandle = handle };
 
         component.RegisterTestHandler("h0", new Func<Task>(async () =>
         {
@@ -42,7 +42,7 @@ public class AsyncHandlerRenderingTests
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
-        var component = new StubComponent(new Span(null)) { RenderHandle = handle };
+        var component = new StubComponent(new Span()) { RenderHandle = handle };
 
         component.RegisterTestHandler("h0", new Func<string, Task>(async value =>
         {
@@ -62,7 +62,7 @@ public class AsyncHandlerRenderingTests
     public async Task SyncActionHandler_DoesNotInvokeRenderInScope()
     {
         var handle = new RecordingRenderHandle(() => "");
-        var component = new StubComponent(new Span(null)) { RenderHandle = handle };
+        var component = new StubComponent(new Span()) { RenderHandle = handle };
 
         var ran = false;
         component.RegisterTestHandler("h0", new Action(() => ran = true));
@@ -77,7 +77,7 @@ public class AsyncHandlerRenderingTests
     public async Task AsyncHandler_NoAwaits_DoesNotInvokeRenderInScope()
     {
         var handle = new RecordingRenderHandle(() => "");
-        var component = new StubComponent(new Span(null)) { RenderHandle = handle };
+        var component = new StubComponent(new Span()) { RenderHandle = handle };
 
         component.RegisterTestHandler("h0", new Func<Task>(() => Task.CompletedTask));
 
@@ -89,7 +89,7 @@ public class AsyncHandlerRenderingTests
     [Fact]
     public async Task AsyncHandler_NoRenderHandle_DoesNotThrow()
     {
-        var component = new StubComponent(new Span(null));
+        var component = new StubComponent(new Span());
         Assert.Null(component.RenderHandle);
 
         component.RegisterTestHandler("h0", new Func<Task>(async () => await Task.Yield()));
@@ -101,7 +101,7 @@ public class AsyncHandlerRenderingTests
     public async Task AsyncHandler_DoesNotLeaveHandlerSyncContextInstalled()
     {
         var handle = new RecordingRenderHandle(() => "");
-        var component = new StubComponent(new Span(null)) { RenderHandle = handle };
+        var component = new StubComponent(new Span()) { RenderHandle = handle };
 
         component.RegisterTestHandler("h0", new Func<Task>(async () => await Task.Yield()));
 

@@ -6,23 +6,18 @@ public class TemplateTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<template></template>", new Template(null).ToHtml());
+        Assert.Equal("<template></template>", new Template().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Template.Props(
-            "i",
-            "c",
-            "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-
+        
         Assert.Equal(
             "<template id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></template>",
-            new Template(props).ToHtml());
+            new Template { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<template>&lt;x&gt;</template>", new Template(null, "<x>").ToHtml());
+        Assert.Equal("<template>&lt;x&gt;</template>", new Template { Children = ["<x>"] }.ToHtml());
 }

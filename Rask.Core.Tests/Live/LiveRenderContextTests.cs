@@ -11,7 +11,7 @@ public class LiveRenderContextTests
     [Fact]
     public void Current_InsideBegin_IsNonNull_AndDispose_RestoresPrevious()
     {
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         Assert.Null(LiveRenderContext.Current);
         using (LiveRenderContext.Begin(view))
         {
@@ -24,7 +24,7 @@ public class LiveRenderContextTests
     [Fact]
     public void RegisterHandler_YieldsSequentialIds()
     {
-        var view = new StubComponent(new Span(null));
+        var view = new StubComponent(new Span());
         using var ctx = LiveRenderContext.Begin(view);
         var a = () => { };
         var b = () => { };

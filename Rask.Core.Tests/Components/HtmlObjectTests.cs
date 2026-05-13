@@ -6,22 +6,17 @@ public class HtmlObjectTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<object></object>", new HtmlObject(null).ToHtml());
+        Assert.Equal("<object></object>", new HtmlObject().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new HtmlObject.Props(
-            "/file.pdf", "application/pdf", "n",
-            800, 600, "f", "#m",
-            "i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal(
+                Assert.Equal(
             "<object id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" data=\"/file.pdf\" type=\"application/pdf\" name=\"n\" width=\"800\" height=\"600\" form=\"f\" usemap=\"#m\"></object>",
-            new HtmlObject(props).ToHtml());
+            new HtmlObject { DataUrl = "/file.pdf", Type = "application/pdf", Name = "n", Width = 800, Height = 600, Form = "f", UseMap = "#m", Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<object>&lt;x&gt;</object>", new HtmlObject(null, "<x>").ToHtml());
+        Assert.Equal("<object>&lt;x&gt;</object>", new HtmlObject { Children = ["<x>"] }.ToHtml());
 }

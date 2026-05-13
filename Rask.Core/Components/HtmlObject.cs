@@ -3,70 +3,27 @@ using System.Globalization;
 namespace Rask.Core.Components;
 
 // Renders the <object> HTML tag. Renamed from Object to avoid shadowing System.Object.
-public sealed class HtmlObject : Component<HtmlObject.Props>
+public sealed class HtmlObject : Component
 {
-    public HtmlObject(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public HtmlObject(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "object";
 
-    public new sealed record Props(
-        string? DataUrl = null,
-        string? Type = null,
-        string? Name = null,
-        int? Width = null,
-        int? Height = null,
-        string? Form = null,
-        string? UseMap = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? DataUrl { get; set; }
+    public string? Type { get; set; }
+    public string? Name { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public string? Form { get; set; }
+    public string? UseMap { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (DataUrl is not null)
-            {
-                yield return new KeyValuePair<string, string?>("data", DataUrl);
-            }
-
-            if (Type is not null)
-            {
-                yield return new KeyValuePair<string, string?>("type", Type);
-            }
-
-            if (Name is not null)
-            {
-                yield return new KeyValuePair<string, string?>("name", Name);
-            }
-
-            if (Width is not null)
-            {
-                yield return new KeyValuePair<string, string?>("width",
-                    Width.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Height is not null)
-            {
-                yield return new KeyValuePair<string, string?>("height",
-                    Height.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Form is not null)
-            {
-                yield return new KeyValuePair<string, string?>("form", Form);
-            }
-
-            if (UseMap is not null)
-            {
-                yield return new KeyValuePair<string, string?>("usemap", UseMap);
-            }
-        }
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (DataUrl is not null) yield return new("data", DataUrl);
+        if (Type is not null) yield return new("type", Type);
+        if (Name is not null) yield return new("name", Name);
+        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Form is not null) yield return new("form", Form);
+        if (UseMap is not null) yield return new("usemap", UseMap);
     }
 }

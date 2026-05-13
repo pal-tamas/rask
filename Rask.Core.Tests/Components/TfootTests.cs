@@ -6,18 +6,16 @@ public class TfootTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<tfoot></tfoot>", new Tfoot(null).ToHtml());
+        Assert.Equal("<tfoot></tfoot>", new Tfoot().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Tfoot.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<tfoot id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></tfoot>",
-            new Tfoot(props).ToHtml());
+                Assert.Equal("<tfoot id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></tfoot>",
+            new Tfoot { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<tfoot>&lt;x&gt;</tfoot>", new Tfoot(null, "<x>").ToHtml());
+        Assert.Equal("<tfoot>&lt;x&gt;</tfoot>", new Tfoot { Children = ["<x>"] }.ToHtml());
 }

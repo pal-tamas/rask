@@ -2,45 +2,19 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Ol : Component<Ol.Props>
+public sealed class Ol : Component
 {
-    public Ol(Props? props, IEnumerable<Child>? children = null) : base(props, children) { }
-    public Ol(Props? props, params Child[] children) : base(props, children) { }
-
     protected override string TagName => "ol";
 
-    public new sealed record Props(
-        string? Type = null,
-        bool Reversed = false,
-        int? Start = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Type { get; set; }
+    public bool Reversed { get; set; }
+    public int? Start { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
-
-            if (Type is not null)
-            {
-                yield return new KeyValuePair<string, string?>("type", Type);
-            }
-
-            if (Reversed)
-            {
-                yield return new KeyValuePair<string, string?>("reversed", null);
-            }
-
-            if (Start is not null)
-            {
-                yield return new KeyValuePair<string, string?>("start",
-                    Start.Value.ToString(CultureInfo.InvariantCulture));
-            }
-        }
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Type is not null) yield return new("type", Type);
+        if (Reversed) yield return new("reversed", null);
+        if (Start is not null) yield return new("start", Start.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

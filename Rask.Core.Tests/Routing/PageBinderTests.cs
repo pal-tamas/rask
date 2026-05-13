@@ -231,21 +231,21 @@ public class PageBinderTests
     private sealed class CustomerPage : Component
     {
         [RouteParam] public CustomerId Id { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     [SkipFactory]
     private sealed class DoublePage : Component
     {
         [QueryParam] public double? Ratio { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     [SkipFactory]
     private sealed class StringPage : Component
     {
         [RouteParam] public string? Name { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     [SkipFactory]
@@ -253,7 +253,7 @@ public class PageBinderTests
     {
         [RouteParam] public int Id { get; set; }
         [QueryParam] public int? Maybe { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     [SkipFactory]
@@ -262,13 +262,13 @@ public class PageBinderTests
         [RouteParam] public Guid Token { get; set; }
         [RouteParam] public DateTime Cutoff { get; set; }
         [RouteParam] public bool Active { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 
     [SkipFactory]
     private sealed class UnannotatedPage : Component
     {
         public string? Name { get; set; }
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 }

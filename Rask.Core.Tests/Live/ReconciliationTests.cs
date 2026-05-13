@@ -12,7 +12,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_FreshContext_AllocatesAndStores()
     {
-        var root = new StubComponent(new Span(null));
+        var root = new StubComponent(new Span());
         var factoryCalls = 0;
         using var ctx = LiveRenderContext.Begin(root, EmptyServices);
 
@@ -29,7 +29,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_ReusesPreviousInstance_AtSamePosition()
     {
-        var root = new StubComponent(new Span(null));
+        var root = new StubComponent(new Span());
         var prev = new CounterStub { Value = 7 };
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -50,7 +50,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_TypeMismatch_AllocatesFresh()
     {
-        var root = new StubComponent(new Span(null));
+        var root = new StubComponent(new Span());
         var prev = new OtherStub();
         var previousChildren = new Dictionary<(Type, int), Component> { [(typeof(CounterStub), 0)] = prev };
 
@@ -64,7 +64,7 @@ public class ReconciliationTests
     [Fact]
     public void GetOrCreate_SequentialPositions_GetDistinctKeys()
     {
-        var root = new StubComponent(new Span(null));
+        var root = new StubComponent(new Span());
         var p0 = new CounterStub { Value = 1 };
         var p1 = new CounterStub { Value = 2 };
         var previousChildren = new Dictionary<(Type, int), Component>
@@ -101,7 +101,7 @@ public class ReconciliationTests
                 ctx.GetOrCreate<CounterStub>(_ => new CounterStub { Value = 999 });
             }
 
-            return new Span(null);
+            return new Span();
         });
 
         view.RenderAsLiveRoot(EmptyServices);

@@ -1,7 +1,7 @@
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 using static Rask.Core.Tags;
+using static Rask.Core.Components.Components;
 
 namespace Rask.Wasm.Tests.Infrastructure;
 
@@ -15,10 +15,14 @@ internal sealed class StubApp : Component
     protected override Component Render() =>
         Fragment(
             Doctype(),
-            new Html(null,
-                new Head(null, new Title(null, "stub")),
-                new Body(null,
-                    new H1(null, $"path={_routeState.Path}"),
-                    new P(null, $"count={Counter}"),
-                    Button(OnClick: () => Counter++, Children: ["bump"]))));
+            Html(Children:
+            [
+                Head(Children: [Title(Children: ["stub"])]),
+                Body(Children:
+                [
+                    H1(Children: [$"path={_routeState.Path}"]),
+                    P(Children: [$"count={Counter}"]),
+                    Button(OnClick: () => Counter++, Children: ["bump"])
+                ])
+            ]));
 }

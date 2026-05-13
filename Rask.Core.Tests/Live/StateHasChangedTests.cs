@@ -10,14 +10,14 @@ public class StateHasChangedTests
     [Fact]
     public void StateHasChanged_NoHandle_DoesNotThrow()
     {
-        var c = new StubComponent(new Span(null));
+        var c = new StubComponent(new Span());
         c.StateHasChanged();
     }
 
     [Fact]
     public async Task StateHasChangedAsync_NoHandle_ReturnsCompletedTask()
     {
-        var c = new StubComponent(new Span(null));
+        var c = new StubComponent(new Span());
         await c.StateHasChangedAsync();
     }
 
@@ -71,7 +71,7 @@ public class StateHasChangedTests
     public void StateHasChangedFromChild_PropagatesHandleViaLiveRenderContext()
     {
         var session = NewSession(out _);
-        var child = new StubComponent(new Span(null));
+        var child = new StubComponent(new Span());
 
         using (LiveRenderContext.Begin(session.View, session.Services))
         {
@@ -84,6 +84,6 @@ public class StateHasChangedTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        return new LiveSession("test-session", new StubComponent(new Span(null)), scope);
+        return new LiveSession("test-session", new StubComponent(new Span()), scope);
     }
 }

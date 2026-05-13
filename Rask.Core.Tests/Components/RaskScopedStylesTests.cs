@@ -18,7 +18,7 @@ public class RaskScopedStylesTests
     [Fact]
     public void Render_HashRegistered_EmitsLinkToScopedCssWithVersion()
     {
-        new RedWrapper(new Div(new Div.Props())).RenderAsLiveRoot();
+        new RedWrapper(new Div {  }).RenderAsLiveRoot();
         var hash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(hash);
 
@@ -32,12 +32,12 @@ public class RaskScopedStylesTests
     [Fact]
     public void Render_HashChanges_HrefReflectsLatestHash()
     {
-        new RedWrapper(new Div(new Div.Props())).RenderAsLiveRoot();
+        new RedWrapper(new Div {  }).RenderAsLiveRoot();
         var firstHash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(firstHash);
 
         ScopedCssRegistry.InvalidateAll();
-        new BlueWrapper(new Div(new Div.Props())).RenderAsLiveRoot();
+        new BlueWrapper(new Div {  }).RenderAsLiveRoot();
         var secondHash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(secondHash);
         Assert.NotEqual(firstHash, secondHash);

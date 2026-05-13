@@ -25,7 +25,7 @@ internal static class HtmlSerializer
         switch (component)
         {
             case Text t:
-                sb.Append(HtmlEncoder.Default.Encode(t.Value));
+                sb.Append(HtmlEncoder.Default.Encode(t.Value ?? string.Empty));
                 break;
 
             case Raw r:
@@ -37,9 +37,12 @@ internal static class HtmlSerializer
                 break;
 
             case Fragment fragment:
-                foreach (var child in fragment.Children)
+                if (fragment.Children is { } fragmentChildren)
                 {
-                    Serialize(child.Component, sb);
+                    foreach (var child in fragmentChildren)
+                    {
+                        Serialize(child.Component, sb);
+                    }
                 }
 
                 break;
@@ -48,9 +51,9 @@ internal static class HtmlSerializer
                 SerializeErrorBoundary(boundary, sb);
                 break;
 
-            case IElement el:
-                sb.Append('<').Append(el.TagNameInternal);
-                foreach (var (name, value) in el.AttributesInternal())
+            case { TagNameInternal: { } tagName } el:
+                sb.Append('<').Append(tagName);
+                foreach (var (name, value) in el.BuildAttributesInternal())
                 {
                     sb.Append(' ').Append(name);
                     if (value is not null)
@@ -60,7 +63,7 @@ internal static class HtmlSerializer
                 }
 
                 var scopeId = LiveRenderContext.Current?.CurrentScopeId;
-                if (scopeId is not null && !_shellTags.Contains(el.TagNameInternal))
+                if (scopeId is not null && !_shellTags.Contains(tagName))
                 {
                     sb.Append(" data-").Append(scopeId);
                 }
@@ -72,15 +75,15 @@ internal static class HtmlSerializer
                 }
 
                 sb.Append('>');
-                using (el.EnterChildrenScope())
+                using (el.EnterChildrenScopeInternal())
                 {
-                    foreach (var child in el.ChildrenInternal)
+                    foreach (var child in el.RenderChildrenInternal())
                     {
                         Serialize(child.Component, sb);
                     }
                 }
 
-                sb.Append("</").Append(el.TagNameInternal).Append('>');
+                sb.Append("</").Append(tagName).Append('>');
                 break;
 
             default:

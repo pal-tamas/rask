@@ -81,6 +81,6 @@ public class LifecycleSyncContextTests
             return Task.CompletedTask;
         }
 
-        protected override Component Render() => new Span(null);
+        protected override Component Render() => new Span();
     }
 }

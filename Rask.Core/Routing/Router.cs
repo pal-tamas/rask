@@ -11,20 +11,26 @@ public sealed class Router : Component
 
     public Router(RouteState state) => _state = state;
 
+    // Settable from the auto-generated factory. The setter caches a flattened leaves view
+    // so subsequent same-reference assignments don't re-flatten the tree.
+    public IReadOnlyList<Route>? Routes
+    {
+        get => _routes;
+        set
+        {
+            if (ReferenceEquals(_routes, value))
+            {
+                return;
+            }
+
+            _routes = value;
+            _leaves = value is null ? Array.Empty<RouteLeaf>() : RouteFlattener.Flatten(value);
+        }
+    }
+
     // Router reads RouteState, which the framework can't observe — opt out of the render
     // cache so route changes always reach the chain.
     protected internal override bool BypassRenderCache => true;
-
-    internal void SetRoutes(IReadOnlyList<Route> routes)
-    {
-        if (ReferenceEquals(_routes, routes))
-        {
-            return;
-        }
-
-        _routes = routes;
-        _leaves = RouteFlattener.Flatten(routes);
-    }
 
     protected override Component Render()
     {

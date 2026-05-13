@@ -6,18 +6,16 @@ public class SampTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<samp></samp>", new Samp(null).ToHtml());
+        Assert.Equal("<samp></samp>", new Samp().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Samp.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<samp id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></samp>",
-            new Samp(props).ToHtml());
+                Assert.Equal("<samp id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></samp>",
+            new Samp { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<samp>&lt;x&gt;</samp>", new Samp(null, "<x>").ToHtml());
+        Assert.Equal("<samp>&lt;x&gt;</samp>", new Samp { Children = ["<x>"] }.ToHtml());
 }

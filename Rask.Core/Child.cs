@@ -1,9 +1,11 @@
+using Rask.Core.Components;
+
 namespace Rask.Core;
 
 public readonly struct Child
 {
     public Child(Component component) => Component = component;
-    public Child(string text) => Component = new Text(text);
+    public Child(string text) => Component = new Text { Value = text };
 
     public Component Component { get; }
 

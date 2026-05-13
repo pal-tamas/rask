@@ -6,21 +6,17 @@ public class ThTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<th></th>", new Th(null).ToHtml());
+        Assert.Equal("<th></th>", new Th().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Th.Props(2, 3, "h1",
-            "col", "name",
-            "i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal(
+                Assert.Equal(
             "<th id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" colspan=\"2\" rowspan=\"3\" headers=\"h1\" scope=\"col\" abbr=\"name\"></th>",
-            new Th(props).ToHtml());
+            new Th { Colspan = 2, Rowspan = 3, Headers = "h1", Scope = "col", Abbr = "name", Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<th>&lt;x&gt;</th>", new Th(null, "<x>").ToHtml());
+        Assert.Equal("<th>&lt;x&gt;</th>", new Th { Children = ["<x>"] }.ToHtml());
 }

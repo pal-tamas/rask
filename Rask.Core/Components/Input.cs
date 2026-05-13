@@ -3,230 +3,87 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
-public sealed class Input : Component<Input.Props>
+public sealed class Input : Component
 {
-    public Input(Props? props = null) : base(props, null) { }
-
     protected override string TagName => "input";
     protected override bool SelfClosing => true;
 
-    public new sealed record Props(
-        string? Type = null,
-        string? Name = null,
-        string? Value = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        bool Checked = false,
-        string? Min = null,
-        string? Max = null,
-        string? Step = null,
-        string? Pattern = null,
-        int? Size = null,
-        int? MaxLength = null,
-        int? MinLength = null,
-        bool Multiple = false,
-        string? Accept = null,
-        string? Alt = null,
-        string? Autocomplete = null,
-        bool Autofocus = false,
-        string? Form = null,
-        string? FormAction = null,
-        string? FormEnctype = null,
-        string? FormMethod = null,
-        bool FormNovalidate = false,
-        string? FormTarget = null,
-        string? List = null,
-        string? Src = null,
-        int? Width = null,
-        int? Height = null,
-        Action<string>? OnInput = null,
-        Action<string>? OnChange = null,
-        Func<string, Task>? OnInputAsync = null,
-        Func<string, Task>? OnChangeAsync = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Id, Class, Style, Data)
+    public string? Type { get; set; }
+    public string? Name { get; set; }
+    public string? Value { get; set; }
+    public string? Placeholder { get; set; }
+    public bool Required { get; set; }
+    public bool Disabled { get; set; }
+    public bool ReadOnly { get; set; }
+    public bool Checked { get; set; }
+    public string? Min { get; set; }
+    public string? Max { get; set; }
+    public string? Step { get; set; }
+    public string? Pattern { get; set; }
+    public int? Size { get; set; }
+    public int? MaxLength { get; set; }
+    public int? MinLength { get; set; }
+    public bool Multiple { get; set; }
+    public string? Accept { get; set; }
+    public string? Alt { get; set; }
+    public string? Autocomplete { get; set; }
+    public bool Autofocus { get; set; }
+    public string? Form { get; set; }
+    public string? FormAction { get; set; }
+    public string? FormEnctype { get; set; }
+    public string? FormMethod { get; set; }
+    public bool FormNovalidate { get; set; }
+    public string? FormTarget { get; set; }
+    public string? List { get; set; }
+    public string? Src { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public Action<string>? OnInput { get; set; }
+    public Action<string>? OnChange { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
+    public Func<string, Task>? OnChangeAsync { get; set; }
+
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
-        public override IEnumerable<KeyValuePair<string, string?>> ToAttributes()
+        foreach (var kv in base.BuildAttributes()) yield return kv;
+        if (Type is not null) yield return new("type", Type);
+        if (Name is not null) yield return new("name", Name);
+        if (Value is not null) yield return new("value", Value);
+        if (Placeholder is not null) yield return new("placeholder", Placeholder);
+        if (Required) yield return new("required", null);
+        if (Disabled) yield return new("disabled", null);
+        if (ReadOnly) yield return new("readonly", null);
+        if (Checked) yield return new("checked", null);
+        if (Min is not null) yield return new("min", Min);
+        if (Max is not null) yield return new("max", Max);
+        if (Step is not null) yield return new("step", Step);
+        if (Pattern is not null) yield return new("pattern", Pattern);
+        if (Size is not null) yield return new("size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        if (MaxLength is not null) yield return new("maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (MinLength is not null) yield return new("minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (Multiple) yield return new("multiple", null);
+        if (Accept is not null) yield return new("accept", Accept);
+        if (Alt is not null) yield return new("alt", Alt);
+        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
+        if (Autofocus) yield return new("autofocus", null);
+        if (Form is not null) yield return new("form", Form);
+        if (FormAction is not null) yield return new("formaction", FormAction);
+        if (FormEnctype is not null) yield return new("formenctype", FormEnctype);
+        if (FormMethod is not null) yield return new("formmethod", FormMethod);
+        if (FormNovalidate) yield return new("formnovalidate", null);
+        if (FormTarget is not null) yield return new("formtarget", FormTarget);
+        if (List is not null) yield return new("list", List);
+        if (Src is not null) yield return new("src", Src);
+        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
+
+        if (LiveRenderContext.Current is { } ctx)
         {
-            foreach (var kv in base.ToAttributes())
-            {
-                yield return kv;
-            }
+            var input = (Delegate?)OnInput ?? OnInputAsync;
+            if (input is not null) yield return new("data-rask-on-input", ctx.RegisterHandler(input));
 
-            if (Type is not null)
-            {
-                yield return new KeyValuePair<string, string?>("type", Type);
-            }
-
-            if (Name is not null)
-            {
-                yield return new KeyValuePair<string, string?>("name", Name);
-            }
-
-            if (Value is not null)
-            {
-                yield return new KeyValuePair<string, string?>("value", Value);
-            }
-
-            if (Placeholder is not null)
-            {
-                yield return new KeyValuePair<string, string?>("placeholder", Placeholder);
-            }
-
-            if (Required)
-            {
-                yield return new KeyValuePair<string, string?>("required", null);
-            }
-
-            if (Disabled)
-            {
-                yield return new KeyValuePair<string, string?>("disabled", null);
-            }
-
-            if (ReadOnly)
-            {
-                yield return new KeyValuePair<string, string?>("readonly", null);
-            }
-
-            if (Checked)
-            {
-                yield return new KeyValuePair<string, string?>("checked", null);
-            }
-
-            if (Min is not null)
-            {
-                yield return new KeyValuePair<string, string?>("min", Min);
-            }
-
-            if (Max is not null)
-            {
-                yield return new KeyValuePair<string, string?>("max", Max);
-            }
-
-            if (Step is not null)
-            {
-                yield return new KeyValuePair<string, string?>("step", Step);
-            }
-
-            if (Pattern is not null)
-            {
-                yield return new KeyValuePair<string, string?>("pattern", Pattern);
-            }
-
-            if (Size is not null)
-            {
-                yield return new KeyValuePair<string, string?>("size",
-                    Size.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (MaxLength is not null)
-            {
-                yield return new KeyValuePair<string, string?>("maxlength",
-                    MaxLength.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (MinLength is not null)
-            {
-                yield return new KeyValuePair<string, string?>("minlength",
-                    MinLength.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Multiple)
-            {
-                yield return new KeyValuePair<string, string?>("multiple", null);
-            }
-
-            if (Accept is not null)
-            {
-                yield return new KeyValuePair<string, string?>("accept", Accept);
-            }
-
-            if (Alt is not null)
-            {
-                yield return new KeyValuePair<string, string?>("alt", Alt);
-            }
-
-            if (Autocomplete is not null)
-            {
-                yield return new KeyValuePair<string, string?>("autocomplete", Autocomplete);
-            }
-
-            if (Autofocus)
-            {
-                yield return new KeyValuePair<string, string?>("autofocus", null);
-            }
-
-            if (Form is not null)
-            {
-                yield return new KeyValuePair<string, string?>("form", Form);
-            }
-
-            if (FormAction is not null)
-            {
-                yield return new KeyValuePair<string, string?>("formaction", FormAction);
-            }
-
-            if (FormEnctype is not null)
-            {
-                yield return new KeyValuePair<string, string?>("formenctype", FormEnctype);
-            }
-
-            if (FormMethod is not null)
-            {
-                yield return new KeyValuePair<string, string?>("formmethod", FormMethod);
-            }
-
-            if (FormNovalidate)
-            {
-                yield return new KeyValuePair<string, string?>("formnovalidate", null);
-            }
-
-            if (FormTarget is not null)
-            {
-                yield return new KeyValuePair<string, string?>("formtarget", FormTarget);
-            }
-
-            if (List is not null)
-            {
-                yield return new KeyValuePair<string, string?>("list", List);
-            }
-
-            if (Src is not null)
-            {
-                yield return new KeyValuePair<string, string?>("src", Src);
-            }
-
-            if (Width is not null)
-            {
-                yield return new KeyValuePair<string, string?>("width",
-                    Width.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (Height is not null)
-            {
-                yield return new KeyValuePair<string, string?>("height",
-                    Height.Value.ToString(CultureInfo.InvariantCulture));
-            }
-
-            if (LiveRenderContext.Current is { } ctx)
-            {
-                var input = (Delegate?)OnInput ?? OnInputAsync;
-                if (input is not null)
-                {
-                    yield return new KeyValuePair<string, string?>("data-rask-on-input", ctx.RegisterHandler(input));
-                }
-
-                var change = (Delegate?)OnChange ?? OnChangeAsync;
-                if (change is not null)
-                {
-                    yield return new KeyValuePair<string, string?>("data-rask-on-change", ctx.RegisterHandler(change));
-                }
-            }
+            var change = (Delegate?)OnChange ?? OnChangeAsync;
+            if (change is not null) yield return new("data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
 }

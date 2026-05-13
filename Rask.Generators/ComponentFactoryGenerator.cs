@@ -205,12 +205,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
     {
         var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
-        if (ns == "Rask.Core")
-        {
-            return true;
-        }
 
-        if (ns == "Rask.Core.Components" || ns.StartsWith("Rask.Core.Components.", StringComparison.Ordinal))
+        // Rask.Core itself (Component base, Text/Raw) and the Live runtime are excluded —
+        // they are not user-facing tag wrappers. Rask.Core.Components is intentionally NOT
+        // excluded: that is where the HTML tag wrappers live, and the generator now emits
+        // their factories the same way it does for user components.
+        if (ns == "Rask.Core")
         {
             return true;
         }
@@ -265,12 +265,29 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol)
     {
         var result = new List<PropInfo>();
-        foreach (var member in symbol.GetMembers())
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        // Walk the inheritance chain (most-derived first). Properties on a derived type
+        // shadow same-name properties on a base — the `seen` set enforces "first wins" so
+        // user shadows beat Component's defaults. `depth` records each property's distance
+        // from the most-derived type so the final sort can keep derived-class properties
+        // ahead of inherited ones (matches the original hand-written `Tags.X` parameter
+        // order: tag-specific first, then Id/Class/Style/Data, then Children).
+        var depth = 0;
+        for (var current = symbol; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType, depth++)
         {
-            if (member is not IPropertySymbol prop)
+            foreach (var member in current.GetMembers())
             {
-                continue;
-            }
+                if (member is not IPropertySymbol prop)
+                {
+                    continue;
+                }
+
+                if (!seen.Add(prop.Name))
+                {
+                    // Shadowed by a more-derived declaration we already visited.
+                    continue;
+                }
 
             if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
             {
@@ -322,6 +339,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                              || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
                                  SpecialType.System_Nullable_T);
 
+            // Non-nullable value types (bool, int, enums, etc.) carry an implicit `default(T)`
+            // — emit them as optional factory parameters with `default` as the literal default
+            // rather than forcing the caller to pass a value. Matches the hand-written facade
+            // pattern where `bool Disabled = false`, `int Width = 0`, etc.
+            var hasImplicitDefault = !isNullable && prop.Type.IsValueType;
+
             var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
                 .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
                                           | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
@@ -332,13 +355,25 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 isNullable,
                 hasInitializer,
                 prop.IsRequired,
+                hasImplicitDefault,
+                depth,
                 filePath,
                 spanStart,
                 spanLength));
+            }
         }
 
+        // Sort: (a) derived-class properties first (lowest depth), then (b) by file path
+        // and span — preserves the user's declaration order within each level of the
+        // inheritance chain.
         result.Sort(static (a, b) =>
         {
+            var d = a.InheritanceDepth.CompareTo(b.InheritanceDepth);
+            if (d != 0)
+            {
+                return d;
+            }
+
             var c = string.CompareOrdinal(a.DeclaringFilePath, b.DeclaringFilePath);
             return c != 0 ? c : a.DeclaringSpanStart.CompareTo(b.DeclaringSpanStart);
         });
@@ -367,14 +402,21 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static string DefaultLiteralFor(string typeFqn, bool isNullable)
+    private static string DefaultLiteralFor(PropInfo p)
     {
-        if (isNullable)
+        if (p.IsNullable)
         {
             return "null";
         }
 
-        // Defensive: should not be called for non-nullable properties (they're required).
+        if (p.HasImplicitDefault)
+        {
+            // Value type: `default` is `false` / `0` / first enum value — same shape the
+            // hand-written facade used (e.g. `bool Disabled = false`).
+            return "default";
+        }
+
+        // Defensive: should not be called for non-nullable reference properties (they're required).
         return "default";
     }
 
@@ -442,7 +484,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
-    private static bool IsRequiredFactoryParam(PropInfo p) => !p.IsNullable && !p.HasInitializer;
+    // A `Children` property whose type matches one of the standard Child-collection shapes is
+    // emitted as the trailing `params IEnumerable<Child>` slot so callers can write
+    //   MyComponent(Class: "x", childA, childB)
+    // instead of  MyComponent(Class: "x", Children: [childA, childB]).
+    private static bool IsParamsChildrenProp(PropInfo p) =>
+        p.Name == "Children" && IsChildCollectionType(p.TypeFqn);
+
+    private static bool IsChildCollectionType(string typeFqn)
+    {
+        var t = StripNullable(typeFqn);
+        return t is "global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child>"
+            or "global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Child>"
+            or "global::System.Collections.Generic.IReadOnlyCollection<global::Rask.Core.Child>"
+            or "global::System.Collections.Generic.IList<global::Rask.Core.Child>"
+            or "global::System.Collections.Generic.ICollection<global::Rask.Core.Child>"
+            or "global::System.Collections.Generic.List<global::Rask.Core.Child>"
+            or "global::Rask.Core.Child[]";
+    }
+
+    private static string StripNullable(string typeFqn) =>
+        typeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? typeFqn.Substring(0, typeFqn.Length - 1)
+            : typeFqn;
+
+    private static bool IsRequiredFactoryParam(PropInfo p) =>
+        !p.IsNullable && !p.HasInitializer && !p.HasImplicitDefault && !IsParamsChildrenProp(p);
 
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely
@@ -451,9 +518,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
+        var paramsChildren = paramProps.FirstOrDefault(IsParamsChildrenProp);
+        var hasParamsChildren = paramsChildren.Name == "Children";
         var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
-        var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
-        var canUseObjectInit = !c.HasDIConstructor;
+        var optionalProps = paramProps
+            .Where(p => !IsRequiredFactoryParam(p) && !IsParamsChildrenProp(p))
+            .ToList();
+
+        // Prefer the parameterless ctor + object-initializer path whenever it's available.
+        // Even if the component declares additional ctors that take services (DI) or
+        // primitives (Text/Raw's string-arg ctor), the generated factory only needs the
+        // parameterless one and then assigns properties — no ActivatorUtilities required.
+        var canUseObjectInit = c.HasParameterlessCtor || !c.HasDIConstructor;
 
         // Signature.
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
@@ -479,7 +555,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             first = false;
             sb.Append(p.TypeFqn).Append(' ').Append(p.Name).Append(" = ")
-                .Append(DefaultLiteralFor(p.TypeFqn, p.IsNullable));
+                .Append(DefaultLiteralFor(p));
+        }
+
+        if (hasParamsChildren)
+        {
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
+            // `params` parameters cannot be nullable — strip `?` so the signature compiles even
+            // when the property itself was declared `IEnumerable<Child>?`. The non-null param
+            // value implicitly converts back to the nullable property type at assignment time.
+            sb.Append("params ").Append(StripNullable(paramsChildren.TypeFqn)).Append(' ').Append(paramsChildren.Name);
         }
 
         sb.Append(')').AppendLine(c.TypeParameterConstraints);
@@ -632,8 +721,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("global using static global::Rask.Core.Tags;");
+        // The framework's own factory namespaces — always make them globally visible to
+        // consumers, even if this assembly defines no user components of its own (and so
+        // `namespaces` is empty).
+        sb.AppendLine("global using static global::Rask.Core.Components.Components;");
+        sb.AppendLine("global using static global::Rask.Core.Routing.Components;");
         foreach (var ns in namespaces)
         {
+            if (ns == "Rask.Core.Components" || ns == "Rask.Core.Routing")
+            {
+                continue;
+            }
+
             sb.Append("global using static global::").Append(ns).AppendLine(".Components;");
         }
 
@@ -670,6 +769,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsNullable,
         bool HasInitializer,
         bool UserMarkedRequired,
+        bool HasImplicitDefault,
+        int InheritanceDepth,
         string DeclaringFilePath,
         int DeclaringSpanStart,
         int DeclaringSpanLength);

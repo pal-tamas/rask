@@ -11,10 +11,8 @@ public sealed class ThrowingApp : Component
     protected override Component Render() =>
         Fragment(
             Doctype(),
-            new Html(null,
-                new Head(null, new Title(null, "throw")),
-                new Body(null,
-                    new P(null, $"count={Counter}"),
+            new Html { Children = [new Head { Children = [new Title { Children = ["throw"] }] },
+                new Body { Children = [new P { Children = [$"count={Counter}"] },
                     Button(OnClick: () => throw new InvalidOperationException("boom"), Children: ["throw"]),
-                    Button(OnClick: () => Counter++, Children: ["bump"]))));
+                    Button(OnClick: () => Counter++, Children: ["bump"])] }] });
 }

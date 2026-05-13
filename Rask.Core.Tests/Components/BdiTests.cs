@@ -6,18 +6,16 @@ public class BdiTests
 {
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
-        Assert.Equal("<bdi></bdi>", new Bdi(null).ToHtml());
+        Assert.Equal("<bdi></bdi>", new Bdi().ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Bdi.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<bdi id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></bdi>",
-            new Bdi(props).ToHtml());
+                Assert.Equal("<bdi id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></bdi>",
+            new Bdi { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<bdi>&lt;x&gt;</bdi>", new Bdi(null, "<x>").ToHtml());
+        Assert.Equal("<bdi>&lt;x&gt;</bdi>", new Bdi { Children = ["<x>"] }.ToHtml());
 }

@@ -28,6 +28,64 @@ public abstract class Component
     private bool _stateDirty;
     private CancellationTokenSource? _lifetimeCts;
 
+    // Universal HTML attributes — lifted from the old Component.Props record onto the
+    // component itself so tag classes can be flat (no nested Props) and the source generator
+    // walks them as factory parameters.
+    public string? Id { get; set; }
+    public string? Class { get; set; }
+    public string? Style { get; set; }
+    public IReadOnlyDictionary<string, string?>? Data { get; set; }
+
+    // The factory generator binds a trailing `params IEnumerable<Child>` slot to this
+    // property when the component renders as an HTML element.
+    public IEnumerable<Child>? Children { get; set; }
+
+    // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
+    // components). When non-null, HtmlSerializer wraps BuildAttributes()/RenderChildren()
+    // output in `<tag>…</tag>` (or self-closes when SelfClosing is true).
+    protected virtual string? TagName => null;
+    protected virtual bool SelfClosing => false;
+
+    internal string? TagNameInternal => TagName;
+    internal bool SelfClosingInternal => SelfClosing;
+    internal IEnumerable<KeyValuePair<string, string?>> BuildAttributesInternal() => BuildAttributes();
+    internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
+    internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
+
+    protected virtual IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    {
+        if (Id is not null)
+        {
+            yield return new KeyValuePair<string, string?>("id", Id);
+        }
+
+        if (Class is not null)
+        {
+            yield return new KeyValuePair<string, string?>("class", Class);
+        }
+
+        if (Style is not null)
+        {
+            yield return new KeyValuePair<string, string?>("style", Style);
+        }
+
+        if (Data is null)
+        {
+            yield break;
+        }
+
+        foreach (var kv in Data)
+        {
+            yield return new KeyValuePair<string, string?>($"data-{kv.Key}", kv.Value);
+        }
+    }
+
+    protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
+
+    // Tag components override this to wrap children rendering in an ambient scope
+    // (e.g. Form pushes an EditContext for descendant fields to consume).
+    protected virtual IDisposable? EnterChildrenScope() => null;
+
     // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
     // default branch). Async lifecycle continuations + dispatcher catch sites consult this
     // pointer to trip the right boundary; null means no ancestor boundary registered.
@@ -68,7 +126,7 @@ public abstract class Component
     internal void SeedPreviousChildren(Dictionary<(Type, int), Component> previous) =>
         _previousChildren = previous;
 
-    protected abstract Component Render();
+    protected virtual Component Render() => this;
 
     public string ToHtml()
     {
@@ -226,14 +284,11 @@ public abstract class Component
         }
         else
         {
-            if (services is null)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot create component '{typeof(T).Name}': LiveRenderContext has no IServiceProvider. " +
-                    "Render through MapRask<TApp> or pass a service provider to LiveRenderContext.Begin.");
-            }
-
-            instance = factory(services);
+            // Pass through whatever IServiceProvider the LiveRenderContext was given —
+            // possibly null. The generated factory closure for non-DI components ignores
+            // the parameter, so null is fine; DI-ctor closures (ActivatorUtilities) will
+            // surface their own NRE if asked to resolve against a null provider.
+            instance = factory(services!);
         }
 
         instance.RenderHandle ??= handle;
@@ -255,14 +310,7 @@ public abstract class Component
         }
         else
         {
-            if (services is null)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot create component '{type.Name}': LiveRenderContext has no IServiceProvider. " +
-                    "Render through MapRask<TApp> or pass a service provider to LiveRenderContext.Begin.");
-            }
-
-            instance = factory(services);
+            instance = factory(services!);
         }
 
         instance.RenderHandle ??= handle;
@@ -589,36 +637,24 @@ public abstract class Component
     }
 }
 
-internal interface IElement
-{
-    string TagNameInternal { get; }
-    bool SelfClosingInternal { get; }
-    IEnumerable<Child> ChildrenInternal { get; }
-    IEnumerable<KeyValuePair<string, string?>> AttributesInternal();
-    IDisposable? EnterChildrenScope();
-}
-
-public abstract class Component<TProps>(TProps? props, IEnumerable<Child>? children) : Component, IElement
+// Transitional shim: existing tag classes still derive from Component<TProps>. Once every
+// tag has been converted to the property-based shape (flat Component subclass), this type
+// can be deleted along with the nested Props records.
+public abstract class Component<TProps>(TProps? props, IEnumerable<Child>? children) : Component
     where TProps : Component.Props
 {
-    protected abstract string TagName { get; }
-    protected virtual bool SelfClosing => false;
-
     internal TProps? PropsInternal => props;
-    internal IEnumerable<Child> ChildrenInternal { get; } = children ?? [];
+    internal IEnumerable<Child> ChildrenSeed { get; } = children ?? [];
 
-    string IElement.TagNameInternal => TagName;
-    bool IElement.SelfClosingInternal => SelfClosing;
+    // Tag subclasses override `protected override string TagName => "..."`. The shadowed
+    // base member is `protected internal virtual string? TagName => null;` on Component —
+    // overriding with a non-nullable return is permitted.
 
-    IEnumerable<KeyValuePair<string, string?>> IElement.AttributesInternal() =>
+    // Replace Component's universal-attribute emission with the Props record's, so existing
+    // tag classes keep their attribute order: id/class/style/data-* (from Component.Props)
+    // followed by tag-specific (from each Props.ToAttributes() override).
+    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes() =>
         props is null ? [] : props.ToAttributes();
 
-    IEnumerable<Child> IElement.ChildrenInternal => RenderChildren();
-    IDisposable? IElement.EnterChildrenScope() => EnterChildrenScope();
-
-    protected virtual IDisposable? EnterChildrenScope() => null;
-
-    protected virtual IEnumerable<Child> RenderChildren() => ChildrenInternal;
-
-    protected override Component Render() => this;
+    protected override IEnumerable<Child> RenderChildren() => ChildrenSeed;
 }

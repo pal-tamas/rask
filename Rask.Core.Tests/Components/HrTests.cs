@@ -11,9 +11,7 @@ public class HrTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Hr.Props("i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal("<hr id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" />",
-            new Hr(props).ToHtml());
+                Assert.Equal("<hr id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" />",
+            new Hr { Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 }

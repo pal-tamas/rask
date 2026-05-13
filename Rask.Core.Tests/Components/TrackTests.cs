@@ -11,13 +11,8 @@ public class TrackTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        var props = new Track.Props(
-            "subtitles", "/sub.vtt", "en",
-            "English", true,
-            "i", "c", "s",
-            new Dictionary<string, string?> { ["k"] = "v" });
-        Assert.Equal(
+                Assert.Equal(
             "<track id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" kind=\"subtitles\" src=\"/sub.vtt\" srclang=\"en\" label=\"English\" default />",
-            new Track(props).ToHtml());
+            new Track { Kind = "subtitles", Src = "/sub.vtt", Srclang = "en", Label = "English", Default = true, Id = "i", Class = "c", Style = "s", Data = new Dictionary<string, string?> { ["k"] = "v" } }.ToHtml());
     }
 }
