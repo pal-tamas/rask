@@ -178,12 +178,8 @@ public class AsyncValidatorTests
             var n = Interlocked.Increment(ref _callCount);
             var userTask = wait(n, default, cancellationToken);
             var ctTask = Task.Delay(Timeout.Infinite, cancellationToken);
-            var winner = await Task.WhenAny(userTask, ctTask).ConfigureAwait(false);
-            if (winner == ctTask)
-            {
-                throw new OperationCanceledException(cancellationToken);
-            }
-
+            await Task.WhenAny(userTask, ctTask).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             await userTask.ConfigureAwait(false);
         }
 
@@ -192,12 +188,8 @@ public class AsyncValidatorTests
             var n = Interlocked.Increment(ref _callCount);
             var userTask = wait(n, field, cancellationToken);
             var ctTask = Task.Delay(Timeout.Infinite, cancellationToken);
-            var winner = await Task.WhenAny(userTask, ctTask).ConfigureAwait(false);
-            if (winner == ctTask)
-            {
-                throw new OperationCanceledException(cancellationToken);
-            }
-
+            await Task.WhenAny(userTask, ctTask).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             await userTask.ConfigureAwait(false);
             OnFinish?.Invoke(n, field, context);
         }
