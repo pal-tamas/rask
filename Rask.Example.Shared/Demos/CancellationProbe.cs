@@ -5,6 +5,7 @@ namespace Rask.Example.Shared.Demos;
 public sealed class CancellationProbe : Component
 {
     private readonly Stopwatch _watch = new();
+    private int _logged;
     private string _status = "pending";
 
     public required Action<string> Log { get; set; }
@@ -22,33 +23,39 @@ public sealed class CancellationProbe : Component
         // post-await StateHasChanged only fires after the continuation resumes, so
         // without this the user would jump straight from "pending" to "completed".
         StateHasChanged();
-        try
-        {
-            // Cooperative cancellation in 100ms slices. We poll the captured token
-            // rather than passing it into Task.Delay because, on single-threaded WASM,
-            // a Task.Delay cancellation raised from inside the dispatch lock doesn't
-            // always resume the await — polling at every slice boundary guarantees
-            // we notice the cancellation within ~100ms of it being requested.
-            while (_watch.ElapsedMilliseconds < 2500)
-            {
-                await Task.Delay(100);
-                if (token.IsCancellationRequested)
-                {
-                    throw new OperationCanceledException(token);
-                }
-            }
 
-            _watch.Stop();
-            _status = "completed";
-            Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
-        }
-        catch (OperationCanceledException)
+        // Synchronous cancellation observer: fires the instant the framework calls
+        // Cancel() on our lifetime CTS (inside DisposeComponentTree, before the loop's
+        // next Task.Delay continuation would otherwise resume). On WASM CI the polling
+        // continuation can be delayed enough by event-loop contention to push the test
+        // past its 10s timeout — registering here makes the "cancelled" log entry
+        // appear in lock-step with the framework's dispose pass, independent of any
+        // scheduler latency. Interlocked guards against the loop's own cancellation
+        // observation logging a duplicate entry.
+        using var registration = token.Register(static state =>
         {
-            _watch.Stop();
-            // Probe is being unmounted, so re-rendering itself is moot — but the
-            // page owns the log list and re-renders, so the entry is still visible.
-            Log($"#{InstanceId} cancelled ({_watch.ElapsedMilliseconds} ms)");
+            var probe = (CancellationProbe)state!;
+            if (Interlocked.Exchange(ref probe._logged, 1) != 0) return;
+            if (probe._watch.IsRunning) probe._watch.Stop();
+            probe.Log($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
+        }, this);
+
+        // Cooperative cancellation in 100ms slices. We poll the captured token
+        // rather than passing it into Task.Delay because, on single-threaded WASM,
+        // a Task.Delay cancellation raised from inside the dispatch lock doesn't
+        // always resume the await — polling at every slice boundary guarantees
+        // we notice the cancellation within ~100ms of it being requested even
+        // when the Register callback above somehow missed.
+        while (_watch.ElapsedMilliseconds < 2500)
+        {
+            await Task.Delay(100);
+            if (token.IsCancellationRequested) return;
         }
+
+        if (Interlocked.Exchange(ref _logged, 1) != 0) return;
+        _watch.Stop();
+        _status = "completed";
+        Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
     }
 
     protected override Component Render()

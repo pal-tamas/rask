@@ -107,18 +107,27 @@ public sealed class CancellationPage : Component
         _log.Add(line);
         StateHasChanged();
         // The cancel/dispose continuation may land back inside an in-flight dispatch
-        // (WASM Task.Run can run inline), so the immediate StateHasChanged would be
-        // dropped by the live session's in-handler guard. A yielded follow-up fires
-        // after the lock releases and guarantees the log entry reaches the browser.
-        _ = DeferredRerenderAsync();
+        // (token.Register fires synchronously during the unmount dispatch's dispose
+        // pass on WASM, and the polling-loop path can resume inside Task.Run inline),
+        // so the immediate StateHasChanged is dropped by the live session's in-handler
+        // guard. The yielded follow-ups below fire after the lock releases and the
+        // browser receives the log entry. Schedule two re-renders at increasing
+        // intervals on Task.Run to detach from whatever SynchronizationContext is
+        // current — one of them is virtually guaranteed to land after the lock is
+        // free even under CI event-loop contention.
+        _ = Task.Run(DeferredRerendersAsync);
     }
 
-    private async Task DeferredRerenderAsync()
+    private async Task DeferredRerendersAsync()
     {
         // Task.Delay (rather than Task.Yield) routes through the runtime timer queue,
         // which always lands on a future event loop tick — guaranteeing we escape the
-        // current dispatch's render lock before requesting a follow-up render.
+        // current dispatch's render lock before requesting a follow-up render. Two
+        // attempts cover slower CI runners where the first 50ms slice can still land
+        // inside the dispatch's lock window.
         await Task.Delay(50);
+        StateHasChanged();
+        await Task.Delay(200);
         StateHasChanged();
     }
 }
