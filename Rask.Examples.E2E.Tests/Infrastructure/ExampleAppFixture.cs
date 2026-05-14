@@ -5,6 +5,12 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 public abstract class ExampleAppFixture : IAsyncLifetime
 {
+#if DEBUG
+    private const string Configuration = "Debug";
+#else
+    private const string Configuration = "Release";
+#endif
+
     private readonly Lock _logLock = new();
     private readonly StringBuilder _stderr = new();
     private readonly StringBuilder _stdout = new();
@@ -42,7 +48,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
                 "--no-launch-profile",
                 "--no-build",
                 "-c",
-                "Debug",
+                Configuration,
                 "--",
                 "--urls",
                 BaseUrl

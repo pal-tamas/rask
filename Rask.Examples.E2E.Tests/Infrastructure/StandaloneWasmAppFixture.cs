@@ -16,6 +16,12 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 /// </summary>
 public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 {
+#if DEBUG
+    private const string Configuration = "Debug";
+#else
+    private const string Configuration = "Release";
+#endif
+
     private const string ProjectRelativePath = "Rask.Example.Wasm";
 
     private static readonly Regex AppUrlPattern =
@@ -58,8 +64,9 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
                 "--project",
                 projectPath,
                 "--no-launch-profile",
+                "--no-build",
                 "-c",
-                "Debug"
+                Configuration
             },
             RedirectStandardOutput = true,
             RedirectStandardError = true,
