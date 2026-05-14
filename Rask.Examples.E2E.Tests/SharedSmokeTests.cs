@@ -194,6 +194,123 @@ public abstract class SharedSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Binding_NullableInt_ClearToNull_RoundTripsThroughEcho() => RunAsync(async () =>
+    {
+        // BindingHelpers.TrySetTyped routes empty input to null for Nullable<T>. Fill the
+        // int? input, commit via Tab, assert the echo shows the typed value; clear, commit,
+        // assert the echo shows "null".
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var echo = Page.Locator(".sample-result-body:has(#bind-null-age) pre code");
+        var input = Page.Locator("#bind-null-age");
+
+        await Expect(echo).ToContainTextAsync("OptionalAge = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await input.FillAsync("42");
+        await input.PressAsync("Tab");
+        await Expect(input).ToHaveValueAsync("42",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("OptionalAge = 42",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await input.FillAsync("");
+        await input.PressAsync("Tab");
+        await Expect(echo).ToContainTextAsync("OptionalAge = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Binding_NullableDate_ClearToNull_RoundTripsThroughEcho() => RunAsync(async () =>
+    {
+        // DateOnly? — date inputs are change-only. Same dispatch discipline as
+        // Binding_StartDateFirstChange_UpdatesEchoAndInputValue: drive .value + change while
+        // focus is held. Clearing the value posts "" → BindingHelpers maps to null.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var echo = Page.Locator(".sample-result-body:has(#bind-null-start) pre code");
+        var input = Page.Locator("#bind-null-start");
+        await Expect(input).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await Expect(echo).ToContainTextAsync("StartDate   = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await Page.EvaluateAsync(@"async () => {
+            const el = document.getElementById('bind-null-start');
+            el.focus();
+            el.value = '2026-05-15';
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }");
+        await Expect(echo).ToContainTextAsync("StartDate   = 2026-05-15",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await Page.EvaluateAsync(@"async () => {
+            const el = document.getElementById('bind-null-start');
+            el.focus();
+            el.value = '';
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }");
+        await Expect(echo).ToContainTextAsync("StartDate   = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Binding_NullableEnumSelect_EmptyOption_SetsNull() => RunAsync(async () =>
+    {
+        // Select.Bound over Color?: the placeholder option (Value="") posts back as ""
+        // which BindingHelpers maps to null. The typed values round-trip via Enum.TryParse
+        // on the unwrapped enum type (fixed by the same change that made nullable enums
+        // reach TrySetTyped's enum branch instead of falling into RouteValueParser).
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var echo = Page.Locator(".sample-result-body:has(#bind-null-color) pre code");
+
+        await Expect(echo).ToContainTextAsync("Favorite    = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await Page.Locator("#bind-null-color").SelectOptionAsync("Red");
+        await Expect(echo).ToContainTextAsync("Favorite    = Red",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Re-select the placeholder ("" value) → null.
+        await Page.Locator("#bind-null-color").SelectOptionAsync(new SelectOptionValue { Value = "" });
+        await Expect(echo).ToContainTextAsync("Favorite    = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Binding_NullableString_ClearToNull_RoundTripsThroughEcho() => RunAsync(async () =>
+    {
+        // string? — reference type, not Nullable<T>. BindingHelpers reads the NRT annotation
+        // via NullabilityInfoContext and treats empty input as null. Echo prints "null"
+        // (no quotes) when null vs "\"value\"" when set, so the assertion is unambiguous.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var echo = Page.Locator(".sample-result-body:has(#bind-null-nick) pre code");
+        var input = Page.Locator("#bind-null-nick");
+
+        await Expect(echo).ToContainTextAsync("Nickname    = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await input.FillAsync("Bea");
+        await Expect(echo).ToContainTextAsync("Nickname    = \"Bea\"",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await input.FillAsync("");
+        await Expect(echo).ToContainTextAsync("Nickname    = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Binding_Textarea_StreamsEachKeystroke() => RunAsync(async () =>
     {
         // Textarea.Bound wires OnInputAsync for every keystroke (textareas are inherently
@@ -747,9 +864,12 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         var form = Page.Locator("form:has(#v10-code)");
         await form.Locator("button[type=submit]").ClickAsync();
 
+        // 30s instead of 10s: the form-level async Validate posts its continuation through
+        // HandlerSyncContext and the message-add chain runs on the thread pool. Same CI-
+        // contention rationale as Validation_HeadlessSummary_RendersOnInvalidSubmit above.
         await Expect(form.Locator(".alert-danger"))
             .ToContainTextAsync("Code is required",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
 
     // ---------- Validation: new demos (v5 cross-field, v6 programmatic, v7 FluentValidation) ----------
