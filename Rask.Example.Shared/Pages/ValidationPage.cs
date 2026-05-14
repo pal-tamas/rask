@@ -67,7 +67,7 @@ public sealed class ValidationPage : Component
                 ]
                 """,
                 Notes:
-                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. Registering an IAsyncFieldValidator makes the sync ctx.Validate() throw — go through the Form submit bridge (which already awaits internally).",
+                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. Registering an IAsyncFieldValidator makes the sync ctx.Validate() throw — go through the Form submit bridge (which already awaits internally). The literal \"explode\" forces the demo validator to throw mid-await so you can see the generic \"Validation could not be completed.\" fallback that the framework surfaces when a validator faults.",
                 Result: AsyncValidationDemo())
         ];
 }

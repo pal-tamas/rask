@@ -236,16 +236,22 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await form.Locator("#v3-username").FillAsync("admin");
 
         // Blur to fire OnChange → marks the field touched → triggers async ValidateFieldAsync.
-        // The validator delays 400ms; the indicator must surface during that window.
+        // The validator delays 400ms; the .validating-indicator span must surface during that
+        // window. Pin on the framework class (ValidatingIndicator.cs:87), not Bootstrap utilities,
+        // so the assertion fails loudly if the pending render is missing on either host.
         await form.Locator("#v3-username").BlurAsync();
 
-        await Expect(form.Locator(".validating-indicator, .text-muted"))
+        await Expect(form.Locator(".validating-indicator"))
             .ToContainTextAsync("Checking",
                 new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
 
         await Expect(form.Locator(".text-danger"))
             .ToContainTextAsync("taken",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+
+        // After the validator completes the indicator must collapse back to an empty fragment.
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
     });
 
     [Fact]
@@ -255,13 +261,180 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        var form = Page.Locator("form:has(#v3-username)");
+        // The success banner is a sibling of the form (it lives inside the same
+        // sample-result-body wrapper alongside the form), so scope the alert lookup to that
+        // demo container rather than the form itself.
+        var demo = Page.Locator(".sample-result-body:has(#v3-username)");
+        var form = demo.Locator("form");
         await form.Locator("#v3-username").FillAsync("ada-lovelace");
+
+        // Let the per-field async validator finish (indicator clears) before submitting, so the
+        // submit-side ValidateAsync doesn't race the in-flight per-field run.
+        await form.Locator("#v3-username").BlurAsync();
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
         await form.Locator("button[type=submit]").ClickAsync();
 
-        await Expect(form.Locator(".alert-success"))
+        await Expect(demo.Locator(".alert-success"))
             .ToContainTextAsync("ada-lovelace",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_RetypingAfterTaken_ClearsMessage() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        var field = form.Locator("#v3-username");
+
+        await field.FillAsync("admin");
+        await field.BlurAsync();
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+
+        // Correct the value. For strings the OnInput handler validates as soon as the field is
+        // touched (BindingHelpers.StringSetHandler line 88), so the message must clear without
+        // another blur.
+        await field.FillAsync("ada-lovelace");
+        await Expect(form.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_LatestWinsCancellation_OnlyFinalResultShown() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        var field = form.Locator("#v3-username");
+
+        // Touch the field first so subsequent OnInput keystrokes trigger validation.
+        await field.FillAsync("seed");
+        await field.BlurAsync();
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // Fire "admin" (would emit "taken" after 400ms), then replace before that window expires.
+        // Latest-wins must cancel the in-flight run so no "taken" message appears.
+        await field.FillAsync("admin");
+        await Page.WaitForTimeoutAsync(50);
+        await field.FillAsync("ada-lovelace");
+
+        // Indicator settles, no stale "taken" message remains.
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        await Expect(form.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_SubmitWhilePending_AwaitsValidation() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Success banner is a form-sibling inside the same sample-result-body, so scope the
+        // banner negation to the demo container.
+        var demo = Page.Locator(".sample-result-body:has(#v3-username)");
+        var form = demo.Locator("form");
+        var field = form.Locator("#v3-username");
+
+        await field.FillAsync("admin");
+        // Click submit immediately. Form.BuildSubmitBridge awaits ctx.ValidateAsync() which
+        // cancels any per-field in-flight run and reruns sync + async validators from scratch.
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        await Expect(demo.Locator(".alert-success"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 2_000 });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_EmptyInput_ShowsDataAnnotationsRequired() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+
+        // Submit empty. UniqueUsernameValidator.CheckAsync short-circuits on empty input,
+        // so only the DataAnnotations [Required] check runs through the submit bridge's
+        // ValidateAsync. Blur-on-empty wouldn't fire `change` (the value didn't actually
+        // change), so going through submit is the deterministic trigger.
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+        // The async path never produced a pending state, so the indicator must never appear.
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 2_000 });
+        // Success banner must NOT appear — the form did not pass validation. The banner lives
+        // outside the <form> in the demo's sample-result-body, so scope to that wrapper.
+        await Expect(Page.Locator(".sample-result-body:has(#v3-username) .alert-success"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 2_000 });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_ExceptionInValidator_ShowsGenericMessage() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        var field = form.Locator("#v3-username");
+
+        // The literal "explode" forces UniqueUsernameValidator.CheckAsync to throw mid-await.
+        // EditContext.ValidateFieldAsync catches the exception and pushes the framework's generic
+        // "Validation could not be completed." message via AddValidationMessage.
+        await field.FillAsync("explode");
+        await field.BlurAsync();
+
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("could not be completed",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+    });
+
+    [Fact]
+    public Task Validation_AsyncDemo_RapidTyping_NoLingeringIndicator() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v3-username)");
+        var field = form.Locator("#v3-username");
+
+        // Touch the field so OnInput keystrokes validate.
+        await field.FillAsync("seed");
+        await field.BlurAsync();
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        await field.FillAsync("");
+        await field.PressSequentiallyAsync("xylophone",
+            new LocatorPressSequentiallyOptions { Delay = 60 });
+
+        // The final value "xylophone" doesn't match any Taken entry, so once everything settles
+        // there must be no lingering indicator and no taken/required messages.
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        await Expect(form.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
     });
 
     [Fact]

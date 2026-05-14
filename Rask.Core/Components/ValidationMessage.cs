@@ -9,6 +9,13 @@ public sealed class ValidationMessage : Component
     // message Div" since ValidationMessage itself emits no element tag (TagName is null).
     public LambdaExpression? For { get; set; }
 
+    // Reads mutable EditContext state (per-field message list) the framework doesn't observe.
+    // The cache would otherwise pin the messages observed during whichever earlier render
+    // populated it — e.g. the mid-await render captures the no-message state, and the post-
+    // handler render then reuses that stale subtree even after an async validator added a
+    // message. Same rationale as Router/Outlet opting out for RouteState.
+    protected internal override bool BypassRenderCache => true;
+
     // Type-narrowed factory: callers pass `For: () => model.Property` and get an
     // `Expression<Func<TProp>>` checked at compile time, instead of the raw
     // `LambdaExpression?` the property accepts at runtime.
@@ -42,6 +49,9 @@ public sealed class ValidationSummary : Component
     // Class is inherited from Component — applied to the rendered <ul>. The generated
     // factory exposes Id/Class/Style/Data; no extra forwarder is needed.
 
+    // Reads EditContext message state — see ValidationMessage for the rationale.
+    protected internal override bool BypassRenderCache => true;
+
     protected override Component Render()
     {
         var ctx = EditContextScope.Current;
@@ -64,6 +74,9 @@ public sealed class ValidationSummary : Component
 public sealed class ValidatingIndicator : Component
 {
     public LambdaExpression? For { get; set; }
+
+    // Reads EditContext.IsValidating(field) — see ValidationMessage for the rationale.
+    protected internal override bool BypassRenderCache => true;
 
     [GenerateForwarderFactory]
     public static ValidatingIndicator Bound<TProp>(

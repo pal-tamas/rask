@@ -429,6 +429,12 @@ public abstract class Component
                     return true;
                 case Func<Task> f:
                     await InvokeWithRenderingAsync(f).ConfigureAwait(false);
+                    // The mid-await render inside InvokeWithRenderingAsync resets _stateDirty
+                    // to false when it walks the owner's subtree. Re-mark dirty here so the
+                    // dispatcher's post-handler render picks up state mutated AFTER the
+                    // mid-await window (e.g. an async validator's terminal message, or a
+                    // user lambda that ran on the continuation of an awaited Task).
+                    owner._stateDirty = true;
                     return true;
                 case Action<string> a:
                     a(ExtractString(payload, "value"));
@@ -436,6 +442,7 @@ public abstract class Component
                 case Func<string, Task> f:
                     var s = ExtractString(payload, "value");
                     await InvokeWithRenderingAsync(() => f(s)).ConfigureAwait(false);
+                    owner._stateDirty = true;
                     return true;
                 case Action<FormData> a:
                     a(FormData.FromJson(payload));
@@ -443,6 +450,7 @@ public abstract class Component
                 case Func<FormData, Task> f:
                     var data = FormData.FromJson(payload);
                     await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
+                    owner._stateDirty = true;
                     return true;
                 default:
                     handler.DynamicInvoke();

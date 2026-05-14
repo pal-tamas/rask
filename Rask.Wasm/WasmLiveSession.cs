@@ -83,11 +83,38 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    Task IRenderHandle.RenderInScopeAsync()
+    async Task IRenderHandle.RenderInScopeAsync()
     {
-        // For WASM the in-handler renderer just refreshes the in-flight payload. Since DispatchAsync
-        // returns one final payload after the handler completes, intermediate scope renders are no-ops here.
-        return Task.CompletedTask;
+        // Mirror Rask.Server LiveSession.RenderAndSendAsync: when the framework asks for a
+        // mid-await render (Component.InvokeWithRenderingAsync), build and push an intermediate
+        // payload directly via JSInterop.ApplyRender so transient UI state — e.g. the async-
+        // validator "Checking…" indicator that lives only during the validator's await window —
+        // reaches the browser before the post-handler payload supersedes it. The dispatcher
+        // already holds _lock and has InHandlerScope=true at this point, so no re-locking.
+        //
+        // Suppress the ambient SynchronizationContext (HandlerSyncContext, installed by
+        // Component.InvokeWithRenderingAsync) for the duration of this call: BuildPayloadAsync's
+        // internal `await Task.Yield()` would otherwise Post its continuation back through
+        // HandlerSyncContext, which re-enters this same method via _render — a render loop on
+        // the WASM JS task queue.
+        var prevCtx = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            if (string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var extracted = PayloadExtractor.Extract(payload);
+            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson);
+            _lastAppliedPayload = payload;
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prevCtx);
+        }
     }
 
     private void OnUserChanged() => _ = RequestRenderAsync();

@@ -115,7 +115,7 @@ public sealed class AsyncValidationDemo : Component
                     Div()[
                         Label("v3-username", Class: "form-label small mb-1")["Username"],
                         Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Username, "text-muted small mt-1")[
+                        ValidatingIndicator(() => _model.Username, "validating-indicator text-muted small mt-1")[
                             I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
                         ],
                         ValidationMessage(() => _model.Username, "text-danger small mt-1")
@@ -161,6 +161,14 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
         if (string.IsNullOrWhiteSpace(username))
         {
             return;
+        }
+
+        // E2E test seam: the literal "explode" forces the validator to throw mid-await so the
+        // framework's generic "Validation could not be completed." path is exercised end-to-end.
+        if (string.Equals(username, "explode", StringComparison.OrdinalIgnoreCase))
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("Simulated remote failure.");
         }
 
         await Task.Delay(400, ct).ConfigureAwait(false);
