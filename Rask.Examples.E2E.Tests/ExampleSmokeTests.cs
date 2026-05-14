@@ -187,16 +187,19 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
+        // Bind Age first to avoid the change-only input race: a name/email OnInput re-
+        // render's morph would otherwise reset Age's .value back to the server's still-
+        // zero model value, and the resulting blur would have no value-change to fire
+        // `change` on. See the longer comment in
+        // Validation_Summary_EmptySubmit_RendersHeadlessTemplate.
+        await Page.Locator("#v1-age").FillAsync("28");
+        await Page.Locator("#v1-age").PressAsync("Tab");
+        await Expect(Page.Locator("#v1-age"))
+            .ToHaveValueAsync("28", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        await Page.Locator("#v1-plan").SelectOptionAsync("pro");
         await Page.Locator("#v1-name").FillAsync("Ada Lovelace");
         await Page.Locator("#v1-email").FillAsync("ada@example.com");
-        await Page.Locator("#v1-age").FillAsync("28");
-        // <input type=number> only wires data-rask-on-change. FillAsync triggers `input`
-        // but not `change`, and Form.BuildSubmitBridge validates ctx.Model (populated by
-        // per-field change events), not the submit FormData — so a real Tab keypress is
-        // needed to deterministically commit Age to the server before submit. See the
-        // longer comment in Validation_Summary_EmptySubmit_RendersHeadlessTemplate.
-        await Page.Locator("#v1-age").PressAsync("Tab");
-        await Page.Locator("#v1-plan").SelectOptionAsync("pro");
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
 
         await Expect(Page.Locator(".alert-success").First)
@@ -261,19 +264,33 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         // Filling every field and resubmitting must clear the summary entirely —
         // ValidationSummary returns Fragment() when GetValidationEntries is empty,
         // so the .alert-danger DOM node must disappear, not merely be hidden.
+        //
+        // Order matters under load. <input type=number> is change-only (no data-rask-
+        // on-input), and rask.js's morph FORCES the rendered server value into the
+        // input's .value on every re-render for change-only inputs (see rask.js morph
+        // for INPUT — "change-only inputs are server-authoritative on every commit").
+        // Form.BuildSubmitBridge validates ctx.Model, which is built from per-field
+        // change events — NOT the submit FormData — so if Age never fires `change`,
+        // ctx.Model.Age stays at 0 and Range[13,120] rejects the submit.
+        //
+        // The race: if Age is filled BEFORE the OnInput re-renders from Name/Email
+        // round-trip, those subsequent morphs reset Age's .value back to "0" (the
+        // server's still-zero model value). The browser then sees focus-time value 0
+        // and current value 0 on blur, so it suppresses the `change` event entirely
+        // and Age never reaches the server.
+        //
+        // Fix: bind Age first, fire its change via a real Tab keypress (programmatic
+        // element.blur() is unreliable on number inputs in headless Chromium under
+        // load), and wait for the round-trip — proven by the rendered value attribute
+        // catching up — before touching any other field.
+        await form.Locator("#v2-age").FillAsync("28");
+        await form.Locator("#v2-age").PressAsync("Tab");
+        await Expect(form.Locator("#v2-age"))
+            .ToHaveValueAsync("28", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        await form.Locator("#v2-plan").SelectOptionAsync("pro");
         await form.Locator("#v2-name").FillAsync("Ada Lovelace");
         await form.Locator("#v2-email").FillAsync("ada@example.com");
-        await form.Locator("#v2-age").FillAsync("28");
-        // <input type=number> only wires data-rask-on-change (non-string fast path).
-        // Form.BuildSubmitBridge runs validation against ctx.Model — built from per-
-        // field change events, NOT the browser's submit FormData — so if the age field
-        // never fires `change`, ctx.Model.Age stays at 0 and Range[13,120] fails.
-        // BlurAsync (programmatic element.blur()) does not reliably trigger Chromium's
-        // change event on number inputs. A real Tab keypress causes the browser to fire
-        // blur + change natively (trusted event), which the document-level listener in
-        // rask.js then forwards to the server.
-        await form.Locator("#v2-age").PressAsync("Tab");
-        await form.Locator("#v2-plan").SelectOptionAsync("pro");
         await form.Locator("button[type=submit]").ClickAsync();
 
         // Success banner first — proves OnValidSubmit fired (and therefore the post-
