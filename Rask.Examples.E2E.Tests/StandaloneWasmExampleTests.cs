@@ -37,6 +37,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/boom"] = "Error boundary",
         ["/binding"] = "Two-way binding",
         ["/validation"] = "Validation",
+        ["/nested-forms"] = "Complex models",
         ["/scoped-css"] = "Scoped CSS",
         ["/view-transitions"] = "View transitions",
         ["/http"] = "HttpClient + DI",

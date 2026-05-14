@@ -18,6 +18,11 @@ internal static class BindingHelpers
     public static EditContext? ResolveBindingContext(object model) =>
         EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
 
+    // Picks the <input type=…> attribute from the bound property's CLR type. Every numeric
+    // primitive that .NET ships an IParsable<T> for maps to "number" so the browser supplies
+    // the native numeric keypad and increment buttons; the actual round-trip through
+    // RouteValueParser uses T.TryParse(raw, InvariantCulture, out) so the parse side is
+    // already polymorphic across the whole set.
     public static string DefaultInputType(Type propType)
     {
         var t = Nullable.GetUnderlyingType(propType) ?? propType;
@@ -26,8 +31,13 @@ internal static class BindingHelpers
             return "checkbox";
         }
 
-        if (t == typeof(int) || t == typeof(long) || t == typeof(short) ||
-            t == typeof(double) || t == typeof(float) || t == typeof(decimal))
+        if (t == typeof(byte) || t == typeof(sbyte)
+            || t == typeof(short) || t == typeof(ushort)
+            || t == typeof(int) || t == typeof(uint)
+            || t == typeof(long) || t == typeof(ulong)
+            || t == typeof(nint) || t == typeof(nuint)
+            || t == typeof(float) || t == typeof(double)
+            || t == typeof(decimal) || t == typeof(Half))
         {
             return "number";
         }

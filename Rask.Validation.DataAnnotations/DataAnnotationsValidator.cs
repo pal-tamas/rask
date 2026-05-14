@@ -43,23 +43,36 @@ public sealed class DataAnnotationsValidator : Component
         public Inner(IServiceProvider? services) => _services = services;
 
         // DataAnnotationsValidator reflects over the form model — when trimming, users must
-        // preserve the model's properties (typically via `[DynamicallyAccessedMembers]` on
-        // the binding source, or by referencing the model from a [Route]'d page, which roots
-        // it via DynamicDependency).
+        // preserve the public properties of every reachable model type (typically via
+        // `[DynamicallyAccessedMembers]` on the binding source, or by referencing the model
+        // from a [Route]'d page, which roots it via DynamicDependency). The graph walk
+        // extends the same contract to nested sub-objects and collection items.
         [UnconditionalSuppressMessage("Trimming", "IL2026",
-            Justification = "ValidationContext/Validator reflect over the model. The user-owned model type is " +
-                            "preserved through binding annotations on their app, not Rask.Validation.DataAnnotations itself.")]
+            Justification = "ValidationContext/Validator reflect over the model graph. The user-owned model " +
+                            "types are preserved through binding annotations on their app, not Rask.Validation.DataAnnotations itself.")]
         public void Validate(EditContext context)
         {
+            foreach (var node in ModelGraphWalker.Walk(context.Model))
+            {
+                ValidateNode(context, node);
+            }
+        }
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "TryValidateObject reflects over the node's runtime type — same trim contract " +
+                            "as the root: the consumer is responsible for preserving every reachable model " +
+                            "type's public properties, typically via [DynamicallyAccessedMembers].")]
+        private void ValidateNode(EditContext context, object node)
+        {
             var results = new List<ValidationResult>();
-            var ctx = NewValidationContext(context.Model);
-            Validator.TryValidateObject(context.Model, ctx, results, true);
+            var ctx = NewValidationContext(node);
+            Validator.TryValidateObject(node, ctx, results, true);
 
             // BCL's TryValidateObject short-circuits IValidatableObject.Validate as soon as any
             // attribute-level error is found. ASP.NET Core MVC's DefaultObjectValidator does not
             // — attribute and IValidatableObject errors accumulate together. Invoke the interface
             // method ourselves to match that experience.
-            if (context.Model is IValidatableObject validatable)
+            if (node is IValidatableObject validatable)
             {
                 foreach (var r in validatable.Validate(ctx))
                 {
@@ -73,7 +86,7 @@ public sealed class DataAnnotationsValidator : Component
                 if (members.Count == 0)
                 {
                     context.AddValidationMessage(
-                        new FieldIdentifier(context.Model, string.Empty),
+                        new FieldIdentifier(node, string.Empty),
                         r.ErrorMessage ?? "Invalid value.");
                     continue;
                 }
@@ -81,7 +94,7 @@ public sealed class DataAnnotationsValidator : Component
                 foreach (var m in members)
                 {
                     context.AddValidationMessage(
-                        new FieldIdentifier(context.Model, m),
+                        new FieldIdentifier(node, m),
                         r.ErrorMessage ?? "Invalid value.");
                 }
             }
@@ -90,24 +103,23 @@ public sealed class DataAnnotationsValidator : Component
         [UnconditionalSuppressMessage("Trimming", "IL2026",
             Justification = "Same as Validate(): user-owned model preservation is the caller's responsibility.")]
         [UnconditionalSuppressMessage("Trimming", "IL2075",
-            Justification = "GetProperty on the model's runtime type — preserved by the user's binding setup.")]
+            Justification = "GetProperty on the field-owner's runtime type — preserved by the user's binding setup.")]
         public void ValidateField(EditContext context, FieldIdentifier field)
         {
-            if (!ReferenceEquals(field.Model, context.Model))
-            {
-                return;
-            }
-
-            var prop = context.Model.GetType().GetProperty(field.FieldName);
+            // field.Model is always the immediate owner of field.FieldName (reference-based
+            // FieldIdentifier scheme), so per-field validation works at any depth without
+            // walking the graph — TryValidateProperty just runs against the owner directly.
+            var owner = field.Model;
+            var prop = owner.GetType().GetProperty(field.FieldName);
             if (prop is null)
             {
                 return;
             }
 
-            var ctx = NewValidationContext(context.Model);
+            var ctx = NewValidationContext(owner);
             ctx.MemberName = field.FieldName;
             var results = new List<ValidationResult>();
-            Validator.TryValidateProperty(prop.GetValue(context.Model), ctx, results);
+            Validator.TryValidateProperty(prop.GetValue(owner), ctx, results);
 
             foreach (var r in results)
             {
@@ -117,9 +129,9 @@ public sealed class DataAnnotationsValidator : Component
             // IValidatableObject is a whole-object rule, so re-run it for per-field revalidation
             // and surface only results that name this field. Cross-field rules referencing the
             // active field stay reactive; rules targeting other fields don't bleed in.
-            if (context.Model is IValidatableObject validatable)
+            if (owner is IValidatableObject validatable)
             {
-                var fullCtx = NewValidationContext(context.Model);
+                var fullCtx = NewValidationContext(owner);
                 foreach (var r in validatable.Validate(fullCtx))
                 {
                     if (r.MemberNames.Contains(field.FieldName))

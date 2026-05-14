@@ -365,6 +365,87 @@ Two lighter-weight alternatives, when a full `IAsyncFieldValidator` is overkill:
 Reach for `IAsyncFieldValidator` when the rule needs DI (an `HttpClient`, a repository) or when you want to reuse it
 across forms.
 
+#### Complex models — sub-objects and lists
+
+`Bind` and validation extend transparently through nested sub-objects and collections. A single
+`DataAnnotationsValidator()` or `FluentValidationValidator(...)` at the top of the form covers the whole reachable
+graph — there's no per-level opt-in. Validation messages key off the **owner sub-instance**, not a dotted path from
+the root, so removing or replacing a row drops its error state with it.
+
+```csharp
+public sealed class CheckoutModel
+{
+    [Required] public string Name { get; set; } = "";
+    public AddressModel Address { get; set; } = new();
+    public List<LineItem> Items { get; set; } = new();
+}
+
+public sealed class AddressModel
+{
+    [Required] public string Street { get; set; } = "";
+    [Required, RegularExpression("^[A-Z]{2}$")] public string Country { get; set; } = "";
+}
+
+public sealed class LineItem
+{
+    [Required] public string Description { get; set; } = "";
+    [Range(1, int.MaxValue)] public int Quantity { get; set; } = 1;
+}
+```
+
+**Sub-object binding** uses the same `Bind: () => ...` shape as flat models:
+
+```csharp
+Input(Bind: () => _model.Address.Street),
+ValidationMessage(For: () => _model.Address.Street,
+    Template: errs => Div(Class: "field-error")[errs[0]]),
+```
+
+**Collection binding — foreach + per-item capture** is the canonical pattern. Each iteration captures a different
+`item` reference into its own closure, so each row's lambda points at a distinct instance:
+
+```csharp
+foreach (var item in _model.Items)
+{
+    rows.Add(Tr()[
+        Td()[Input(Bind: () => item.Description)],
+        Td()[Input(Bind: () => item.Quantity)],
+        Td()[Button(Type: "button", OnClick: () => _model.Items.Remove(item))["×"]]
+    ]);
+}
+```
+
+**Collection binding — indexer style** is the alternative when you need the row number for UI (reorder buttons,
+"Row #3" labels) or when items are records that get replaced rather than mutated — `() => model.Items[i].Name`
+re-resolves the indexer every render, so the binding follows the new slot value through replacement. Watch out for
+the classic `for (int i = …)` closure trap: copy the index into a per-iteration local before the lambda captures it.
+
+```csharp
+for (var idx = 0; idx < _model.Items.Count; idx++)
+{
+    var i = idx;                                      // <-- per-iteration capture, NOT idx
+    rows.Add(Tr()[
+        Td()[$"#{i + 1}"],
+        Td()[Input(Bind: () => _model.Items[i].Description)],
+        Td()[Input(Bind: () => _model.Items[i].Quantity)]
+    ]);
+}
+```
+
+`foreach` doesn't have the closure trap. Records with init-only properties can't be auto-bound via the `Bind` setter
+— either declare the record properties as mutable (`{ get; set; }`), or use the indexer pattern with a manual
+`OnChange` that replaces the slot with `_model.Items[i] = _model.Items[i] with { Field = newValue }`.
+
+**FluentValidation nesting** uses `SetValidator(...)` and `RuleForEach(...).SetValidator(...)` in the user validator
+— Rask routes the dotted `error.PropertyName` (`Address.Street`, `Lines[0].Quantity`) back to the runtime sub-
+instance so `ValidationMessage(For: () => _model.Address.Street, ...)` reads it off the right slot.
+
+**Trimming caveat.** Validating a nested graph reflects over every reachable model type. The trimming contract that
+already applies to the root model (preserve its public properties via `[DynamicallyAccessedMembers]` or a
+`<TrimmerRootDescriptor>`) extends to every nested type. The full Forms/Complex-models showcase under `/nested-forms`
+demonstrates all four patterns side-by-side.
+
+
 ```csharp
 public sealed class UniqueUsernameValidator : IAsyncFieldValidator
 {
