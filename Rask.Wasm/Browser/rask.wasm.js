@@ -173,13 +173,22 @@ function morph(from, to) {
         if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
     }
     const tag = from.tagName;
-    if ((tag === "INPUT" || tag === "TEXTAREA") && document.activeElement !== from) {
-        let newVal = to.getAttribute("value");
-        if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
-        if (newVal === null) newVal = "";
-        if (from.value !== newVal) from.value = newVal;
-        const checked = to.hasAttribute("checked");
-        if (from.checked !== checked) from.checked = checked;
+    if (tag === "INPUT" || tag === "TEXTAREA") {
+        // Only inputs with data-rask-on-input stream keystrokes — those need the
+        // focus guard so a lagging re-render doesn't clobber mid-typed characters.
+        // Change-only inputs (date / number / time / datetime-local / checkbox /
+        // radio) commit at change time; the server's rendered value is canonical
+        // and must win, otherwise Chromium leaves a focused date input's dirty
+        // value flag stale and the first picker change appears to be dropped.
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        if (!streaming || document.activeElement !== from) {
+            let newVal = to.getAttribute("value");
+            if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
+            if (newVal === null) newVal = "";
+            if (from.value !== newVal) from.value = newVal;
+            const checked = to.hasAttribute("checked");
+            if (from.checked !== checked) from.checked = checked;
+        }
     }
     // Skip JS-owned elements (marked data-rask-managed) — they're not part of the
     // .NET render tree, so pairing them against the incoming children would either

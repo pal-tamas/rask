@@ -252,13 +252,21 @@
             if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
         }
         var tag = from.tagName;
-        if ((tag === "INPUT" || tag === "TEXTAREA") && document.activeElement !== from) {
-            var newVal = to.getAttribute("value");
-            if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
-            if (newVal === null) newVal = "";
-            if (from.value !== newVal) from.value = newVal;
-            var checked = to.hasAttribute("checked");
-            if (from.checked !== checked) from.checked = checked;
+        if (tag === "INPUT" || tag === "TEXTAREA") {
+            // Mirror rask.wasm.js — only oninput-streaming inputs need the focus
+            // guard against lagging re-renders. Change-only inputs (date / number /
+            // time / datetime-local / checkbox / radio) are server-authoritative on
+            // every commit and must accept the rendered .value even while focused,
+            // or Chromium drops the first change on a focused date input.
+            var streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+            if (!streaming || document.activeElement !== from) {
+                var newVal = to.getAttribute("value");
+                if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
+                if (newVal === null) newVal = "";
+                if (from.value !== newVal) from.value = newVal;
+                var checked = to.hasAttribute("checked");
+                if (from.checked !== checked) from.checked = checked;
+            }
         }
         var fc = [], tc = [];
         for (var n = from.firstChild; n; n = n.nextSibling) fc.push(n);
