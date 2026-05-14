@@ -129,6 +129,12 @@ jobs:
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Validation.DataAnnotations
+        run: dotnet pack Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.Validation.FluentValidation
+        run: dotnet pack Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Templates
         run: dotnet pack Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
 
