@@ -7,6 +7,8 @@
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
 [![NuGet Rask.Wasm.Hosting](https://img.shields.io/nuget/v/Rask.Wasm.Hosting.svg?label=Rask.Wasm.Hosting)](https://www.nuget.org/packages/Rask.Wasm.Hosting)
 [![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
+[![NuGet Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
+[![NuGet Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -36,9 +38,10 @@ What makes it different from other component frameworks:
   and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.
 - **Animated route transitions.** `Navigator.Navigate(...)` wraps the next morph in the browser's View Transitions
   API, so route changes crossfade by default (customisable per-element via the CSS `view-transition-name` property).
-- **Forms with async validation.** `Form(Model: …)` auto-attaches a DataAnnotations validator and routes submit
-  through `OnValidSubmit` / `OnInvalidSubmit`. Implement `IAsyncFieldValidator` for server-side rules — the submit
-  bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins).
+- **Forms with async validation.** `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt
+  into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form as children.
+  Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing,
+  and rapid keystrokes cancel any prior in-flight validation (latest-wins).
 
 ## Install
 
@@ -63,22 +66,28 @@ pre-wired with the cross-TFM ProjectReference and a sample `/api/weatherforecast
 
 ### Add packages to an existing project
 
-Three NuGet packages, one per host model. Pick the one that matches the project you're authoring:
+Pick one host package per project, then add validation packages as needed:
 
-| Host model               | Package             | Project type                                                        | Entry-point API                                             |
-|--------------------------|---------------------|---------------------------------------------------------------------|-------------------------------------------------------------|
-| Server live (WebSockets) | `Rask.Server`       | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
-| Browser WASM             | `Rask.Wasm`         | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
-| WASM bundle host         | `Rask.Wasm.Hosting` | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
+| Package                            | Project type                                                        | Entry-point API                                             |
+|------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------|
+| `Rask.Server`                      | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
+| `Rask.Wasm`                        | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
+| `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
+| `Rask.Validation.DataAnnotations`  | any host (referenced from the project that hosts your forms)        | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
+| `Rask.Validation.FluentValidation` | any host (referenced from the project that hosts your forms)        | drop `FluentValidationValidator(new MyValidator())` inside  |
 
 ```bash
-dotnet add package Rask.Server        # server live host
-dotnet add package Rask.Wasm          # browser WASM client
-dotnet add package Rask.Wasm.Hosting  # ASP.NET host serving a WASM bundle
+dotnet add package Rask.Server                       # server live host
+dotnet add package Rask.Wasm                         # browser WASM client
+dotnet add package Rask.Wasm.Hosting                 # ASP.NET host serving a WASM bundle
+dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentModel.DataAnnotations
+dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
 ```
 
 `Rask.Server` and `Rask.Wasm` each bundle the core component types and source generators. `Rask.Wasm.Hosting` depends on
-`Rask.Wasm` and pulls those in transitively.
+`Rask.Wasm` and pulls those in transitively. The validation packages depend only on `Rask.Core` and add a global
+`using static` for their factory namespace, so `DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in
+scope without any extra `using` lines.
 
 ## Quick Start — Server
 
@@ -297,22 +306,49 @@ a `Fallback`, the boundary renders a built-in default error page.
 
 ### Forms & validation
 
-Bind inputs two-way with `Input(Bind: () => model.Field)` — the input type is inferred from the property's CLR type
+Bind inputs two-way with `Input(() => model.Field)` — the input type is inferred from the property's CLR type
 (string → text, bool → checkbox, int → number, DateOnly → date, …) and new values flow back into the model on each
-event. `Form(Model: …)` auto-registers a `DataAnnotationsValidator` and routes submit through `OnValidSubmit` /
-`OnInvalidSubmit` once every `[Required]` / `[EmailAddress]` / `[Range]` check passes. Field errors render via
-`ValidationMessage`; a top-of-form digest via `ValidationSummary`.
+event. `Form<TModel>(model, OnValidSubmit: …, OnInvalidSubmit: …)` routes submit through whichever validators are
+attached to its `EditContext`. Field errors render via `ValidationMessage`; a top-of-form digest via
+`ValidationSummary`.
 
-For async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a pre-built
-`EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
-in-flight per-field check (latest-wins). `ValidatingIndicator` renders its children while a field is being checked.
+Validation is opt-in — Rask.Core ships no validator by default. Add the package you want and drop the validator
+component inside the form:
+
+- **`Rask.Validation.DataAnnotations`** — `DataAnnotationsValidator()` wires `[Required]` / `[EmailAddress]` / `[Range]`
+  / `IValidatableObject` into the form's `EditContext`.
+- **`Rask.Validation.FluentValidation`** — `FluentValidationValidator(new MyValidator())` delegates to a
+  `FluentValidation.IValidator`, including async rules via `MustAsync`.
 
 ```csharp
 public sealed class SignupModel
 {
     [Required, StringLength(20, MinimumLength = 3)] public string Username { get; set; } = "";
+    [Required, EmailAddress]                        public string Email    { get; set; } = "";
 }
 
+[Route("/signup")]
+public sealed class SignupPage : Component
+{
+    private readonly SignupModel _model = new();
+
+    public override Component Render() =>
+        Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
+            DataAnnotationsValidator(),                         // opt-in: DA attributes
+            Input(() => _model.Username),
+            ValidationMessage(() => _model.Username),
+            Input(() => _model.Email),
+            ValidationMessage(() => _model.Email),
+            Button(Type: "submit")["Sign up"]
+        ];
+}
+```
+
+For ad-hoc async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a manually
+built `EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
+in-flight per-field check (latest-wins). `ValidatingIndicator` renders its children while a field is being checked.
+
+```csharp
 public sealed class UniqueUsernameValidator : IAsyncFieldValidator
 {
     public async ValueTask ValidateFieldAsync(
@@ -328,16 +364,23 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
     public ValueTask ValidateAsync(EditContext c, CancellationToken ct) => default;
 }
 
-var ctx = new EditContext(model);
-ctx.AddValidator(new DataAnnotationsValidator());
-ctx.AddValidator(new UniqueUsernameValidator());
+private readonly SignupModel _model = new();
+private EditContext? _ctx;
 
-Form<SignupModel>(model, Context: ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
-    Input(() => model.Username),
-    ValidatingIndicator(() => model.Username)["Checking..."],
-    ValidationMessage(() => model.Username),
-    Button(Type: "submit")["Sign up"]
-]
+protected override void OnMount()
+{
+    _ctx = new EditContext(_model);
+    _ctx.AddValidator(new UniqueUsernameValidator());
+}
+
+public override Component Render() =>
+    Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
+        DataAnnotationsValidator(),
+        Input(() => _model.Username),
+        ValidatingIndicator(() => _model.Username)["Checking..."],
+        ValidationMessage(() => _model.Username),
+        Button(Type: "submit")["Sign up"]
+    ];
 ```
 
 ### Scoped CSS
