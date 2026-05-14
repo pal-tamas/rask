@@ -118,6 +118,58 @@ public class EditContextEdgeTests
     }
 
     [Fact]
+    public void AddValidationMessage_DuplicateMessageOnSameField_KeptOnce()
+    {
+        var ctx = new EditContext(new Model());
+        var fid = new FieldIdentifier(ctx.Model, "A");
+
+        ctx.AddValidationMessage(fid, "boom");
+        ctx.AddValidationMessage(fid, "boom");
+
+        Assert.Single(ctx.GetValidationMessages(fid));
+    }
+
+    [Fact]
+    public void AddValidationMessage_DuplicateMessage_SecondAddDoesNotFireEvent()
+    {
+        var ctx = new EditContext(new Model());
+        var fid = new FieldIdentifier(ctx.Model, "A");
+        var fired = 0;
+        ctx.ValidationStateChanged += () => fired++;
+
+        ctx.AddValidationMessage(fid, "boom");
+        ctx.AddValidationMessage(fid, "boom");
+
+        Assert.Equal(1, fired);
+    }
+
+    [Fact]
+    public void AddValidationMessage_DistinctMessagesOnSameField_BothKept()
+    {
+        var ctx = new EditContext(new Model());
+        var fid = new FieldIdentifier(ctx.Model, "A");
+
+        ctx.AddValidationMessage(fid, "first");
+        ctx.AddValidationMessage(fid, "second");
+
+        Assert.Equal(new[] { "first", "second" }, ctx.GetValidationMessages(fid));
+    }
+
+    [Fact]
+    public void AddValidationMessage_SameMessageOnDifferentFields_BothKept()
+    {
+        var ctx = new EditContext(new Model());
+        var a = new FieldIdentifier(ctx.Model, "A");
+        var b = new FieldIdentifier(ctx.Model, "B");
+
+        ctx.AddValidationMessage(a, "same");
+        ctx.AddValidationMessage(b, "same");
+
+        Assert.Single(ctx.GetValidationMessages(a));
+        Assert.Single(ctx.GetValidationMessages(b));
+    }
+
+    [Fact]
     public void Constructor_NullModel_Throws() =>
         Assert.Throws<ArgumentNullException>(() => new EditContext(null!));
 

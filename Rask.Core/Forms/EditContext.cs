@@ -186,9 +186,21 @@ public sealed class EditContext
         }
     }
 
+    // Idempotent on (field, message): a second identical add is a no-op — neither the
+    // list nor the event observe it. Matches ASP.NET Core ModelStateDictionary's
+    // duplicate-error suppression and closes the door on the "same message rendered twice"
+    // class of bugs that can otherwise arise when a validator runs against the same field
+    // through more than one path (full Validate + per-field re-validate, re-entrant Render
+    // on a sync-context resume, etc.).
     public void AddValidationMessage(FieldIdentifier field, string message)
     {
-        GetOrCreate(field).Messages.Add(message);
+        var state = GetOrCreate(field);
+        if (state.Messages.Contains(message, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        state.Messages.Add(message);
         ValidationStateChanged?.Invoke();
     }
 

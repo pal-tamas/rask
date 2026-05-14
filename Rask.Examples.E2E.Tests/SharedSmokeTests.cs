@@ -1105,6 +1105,13 @@ public abstract class SharedSmokeTests : IAsyncLifetime
 
         var demo = Page.Locator(".sample-result-body:has(#v11-name)");
         var form = demo.Locator("form");
+        // Scope per-field error counts to the wrapping Div that owns each input — the demo
+        // renders Div()[Label, Input(Id:"v11-x"), ValidationMessage(For:() => _model.X)],
+        // so each field's `.text-danger` is the ValidationMessage sibling of the input.
+        // Scoping makes a duplicate leaking elsewhere fail loudly (and at the right field)
+        // instead of silently inflating a form-wide count.
+        var nameField = form.Locator("div:has(> #v11-name)");
+        var departureField = form.Locator("div:has(> #v11-departure)");
 
         // Date inputs are change-only — match the discipline used by CrossFieldSummaryDemo's e2e:
         // fill, blur, wait for the committed value before touching the next one.
@@ -1121,12 +1128,12 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         await form.Locator("button[type=submit]").ClickAsync();
 
         // Attribute error on Name (per-field ValidationMessage template).
-        await Expect(form.Locator(".text-danger").Filter(
+        await Expect(nameField.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Name is required" }))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // IValidatableObject per-field result for Departure.
-        await Expect(form.Locator(".text-danger").Filter(
+        await Expect(departureField.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
@@ -1139,10 +1146,10 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         await form.Locator("#v11-name").FillAsync("Ada");
         await form.Locator("button[type=submit]").ClickAsync();
 
-        await Expect(form.Locator(".text-danger").Filter(
+        await Expect(nameField.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Name is required" }))
             .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Expect(form.Locator(".text-danger").Filter(
+        await Expect(departureField.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(form.Locator(".alert-danger"))
@@ -1157,7 +1164,7 @@ public abstract class SharedSmokeTests : IAsyncLifetime
             .ToHaveValueAsync("2026-07-01", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
         await form.Locator("button[type=submit]").ClickAsync();
 
-        await Expect(form.Locator(".text-danger").Filter(
+        await Expect(departureField.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
             .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(form.Locator(".alert-danger"))
@@ -1248,5 +1255,211 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         await Expect(demo.Locator(".alert-success"))
             .ToContainTextAsync("Welcome, alice!",
                 new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    // ---------- Validation: Complex models (nested forms) ----------
+
+    [Fact]
+    public Task Nested_PageLoads_HeaderRendersFromSidebar() => RunAsync(async () =>
+    {
+        // Deep-link entry plus header sanity. The page hosts four standalone demo forms
+        // (sub-object, foreach list, indexer list, FluentValidation) so subsequent tests
+        // can scope to each form by its unique id selector.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+    });
+
+    [Fact]
+    public Task Nested_SubObject_EmptySubmit_ShowsAddressFieldErrors() => RunAsync(async () =>
+    {
+        // The Address sub-object's [Required] attributes must fire under a single
+        // DataAnnotationsValidator at the root. Each Address field carries its own
+        // ValidationMessage(For: () => _model.Address.Street, …) reading off the
+        // sub-instance's FieldIdentifier slot.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-name)");
+        await form.Locator("#nf-submit").ClickAsync();
+
+        await Expect(form.Locator("div:has(> #nf-street) .text-danger"))
+            .ToContainTextAsync("Street is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(form.Locator("div:has(> #nf-city) .text-danger"))
+            .ToContainTextAsync("City is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(form.Locator("div:has(> #nf-country) .text-danger"))
+            .ToContainTextAsync("Country is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_SubObject_InvalidCountry_ShowsRegexMessage() => RunAsync(async () =>
+    {
+        // [RegularExpression("^[A-Z]{2}$")] on AddressModel.Country lives on a sub-object
+        // property — make sure the graph-walked attribute fires at the right depth.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-name)");
+        await form.Locator("#nf-country").FillAsync("nz");
+        await form.Locator("#nf-submit").ClickAsync();
+
+        await Expect(form.Locator("div:has(> #nf-country) .text-danger"))
+            .ToContainTextAsync("ISO 2-letter code",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_SubObject_ValidSubmit_RoutesToOnValidSubmit() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-name)");
+        await form.Locator("#nf-name").FillAsync("Ada Lovelace");
+        await form.Locator("#nf-email").FillAsync("ada@example.com");
+        await form.Locator("#nf-street").FillAsync("221B Baker St");
+        await form.Locator("#nf-city").FillAsync("London");
+        await form.Locator("#nf-country").FillAsync("UK");
+        await form.Locator("#nf-submit").ClickAsync();
+
+        await Expect(Page.Locator("#nf-result"))
+            .ToContainTextAsync("221B Baker St",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("#nf-result"))
+            .ToContainTextAsync("London",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Nested_ListForeach_AddAndRemoveRow_StableState() => RunAsync(async () =>
+    {
+        // Foreach-captured per-item bindings: adding/removing rows must just work — each
+        // row's input owns its own FieldIdentifier keyed by the LineItem instance, so the
+        // remaining rows stay typed-in across morphs.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-list-add)");
+        // The page starts with one row prefilled. Add two more.
+        await form.Locator("#nf-list-add").ClickAsync();
+        await form.Locator("#nf-list-add").ClickAsync();
+
+        await Expect(form.Locator("tbody tr"))
+            .ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Remove the middle row.
+        await form.Locator("tbody tr:nth-child(2) button.btn-outline-danger").ClickAsync();
+        await Expect(form.Locator("tbody tr"))
+            .ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_ListForeach_EmptySubmit_ShowsPerRowMessage() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-list-add)");
+        // Clear the prefilled row's description so the [Required] on its Description fires.
+        await form.Locator("tbody tr:first-child td:first-child input").FillAsync("");
+        await form.Locator("#nf-list-submit").ClickAsync();
+
+        await Expect(form.Locator("tbody tr:first-child .text-danger").First)
+            .ToContainTextAsync("Description is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_ListIndexer_AddRow_NewBindingsWork() => RunAsync(async () =>
+    {
+        // The for-loop indexer path: each new row's `() => model.Skus[i].Code` lambda is
+        // re-resolved per render against the underlying list, so a freshly added row's
+        // input is bound to the right SkuRow without rebind boilerplate.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-idx-add)");
+        await form.Locator("#nf-idx-add").ClickAsync();
+        await Expect(form.Locator("tbody tr"))
+            .ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // The newly-added row's SKU input must be bound — typing into it should not throw
+        // and the value must persist through a re-render (here triggered by add/remove).
+        var newSku = form.Locator("tbody tr:nth-child(2) td:nth-child(2) input");
+        await newSku.FillAsync("TYPED-X");
+        await Expect(newSku).ToHaveValueAsync("TYPED-X",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Nested_ListIndexer_InvalidSku_ShowsRegexMessage() => RunAsync(async () =>
+    {
+        // [RegularExpression] on the indexer-bound row's SkuRow.Code must fire at the row
+        // owner, not the root — proves indexer-bound FieldIdentifiers route correctly.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-idx-add)");
+        await form.Locator("tbody tr:first-child td:nth-child(2) input").FillAsync("nope");
+        await form.Locator("#nf-idx-submit").ClickAsync();
+
+        await Expect(form.Locator("tbody tr:first-child .text-danger").First)
+            .ToContainTextAsync("uppercase letters, digits, and dashes",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_FluentValidation_EmptySubmit_ShowsSubObjectAndPerRowMessages() => RunAsync(async () =>
+    {
+        // SetValidator(new OrderAddressValidator()) and RuleForEach(...).SetValidator(...)
+        // — FluentValidation walks itself; the framework routes the dotted property paths
+        // (Address.Street, Lines[0].Sku) back to their owner sub-instances.
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-fv-name)");
+        // The prefilled row is valid by default — clear its Sku so the line-item rule fires.
+        await form.Locator("tbody tr:first-child td:first-child input").FillAsync("");
+        await form.Locator("#nf-fv-submit").ClickAsync();
+
+        // Address.Street is empty by default — the SetValidator chain must surface it on
+        // the address fieldset's first input.
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Street is required" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // RuleForEach line-item rule fires under the row.
+        await Expect(form.Locator("tbody .text-danger").Filter(
+                new LocatorFilterOptions { HasText = "SKU is required" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Nested_FluentValidation_ValidSubmit_RoutesToOnValidSubmit() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/nested-forms");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Complex models",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#nf-fv-name)");
+        await form.Locator("#nf-fv-name").FillAsync("Ada");
+        // Address fieldset's inputs are the first two within the fieldset.
+        await form.Locator("fieldset input").Nth(0).FillAsync("221B Baker St");
+        await form.Locator("fieldset input").Nth(1).FillAsync("London");
+        await form.Locator("#nf-fv-submit").ClickAsync();
+
+        await Expect(Page.Locator("#nf-fv-result"))
+            .ToContainTextAsync("221B Baker St",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
 }
