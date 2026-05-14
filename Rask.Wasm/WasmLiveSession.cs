@@ -21,6 +21,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
     private string? _lastCssHashSent;
 
+    // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
+    // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
+    // releasing the lock — catches state mutated by dispose callbacks that fire AFTER ToHtml
+    // serialised the first payload but BEFORE the dispatch returns.
+    private bool _pendingRenderInScope;
+
     public WasmLiveSession(Component view, IServiceProvider services)
     {
         View = view;
@@ -55,8 +61,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     {
         if (InHandlerScope)
         {
-            // We're already inside a handler-scoped render; let the post-handler payload flush carry the new HTML.
-            await Task.CompletedTask.ConfigureAwait(false);
+            // Already inside a dispatch's render: signal the helper to rebuild the payload
+            // before releasing the lock so dispose-driven state changes (e.g. a token.Register
+            // callback that calls StateHasChanged on a parent) land in the response payload
+            // instead of waiting for the next event.
+            _pendingRenderInScope = true;
             return;
         }
 
@@ -64,7 +73,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         InHandlerScope = true;
         try
         {
-            var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            var payload = await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
             // Skip the JS interop call when nothing changed since the last apply. Catches
             // StateHasChanged calls that didn't ultimately modify any visible output.
             if (string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
@@ -186,7 +195,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                         historyReplace = replace;
                     }
 
-                    var payload = await BuildPayloadAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
                     // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
                     // The JS host treats an empty string as "no-op." Always send when historyUrl is set.
                     if (historyUrl is null && string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
@@ -242,7 +251,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             try
             {
-                var payload = await BuildPayloadAsync(fullUrl, replace).ConfigureAwait(false);
+                var payload = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 _lastAppliedPayload = payload;
                 return payload;
             }
@@ -257,6 +266,26 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             InHandlerScope = false;
             _lock.Release();
         }
+    }
+
+    private async Task<string> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace)
+    {
+        // First build emits any pending history navigation. If a dispose callback (or other
+        // synchronous code reached during RenderAsLiveRoot) requested another render via
+        // StateHasChanged, it set _pendingRenderInScope=true — rebuild so the dispatch's
+        // returned payload carries the post-dispose state. Pass (null, false) on the rebuild:
+        // the navigator's pending history entry was already consumed by the first build, and
+        // re-passing historyUrl/replace would emit a duplicate history.pushState.
+        _pendingRenderInScope = false;
+        var payload = await BuildPayloadAsync(historyUrl, replace).ConfigureAwait(false);
+        var budget = 2;
+        while (_pendingRenderInScope && budget-- > 0)
+        {
+            _pendingRenderInScope = false;
+            payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+        }
+
+        return payload;
     }
 
     internal async Task<string> BuildPayloadAsync(string? historyUrl, bool replace)
