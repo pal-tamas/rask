@@ -48,6 +48,17 @@ public sealed class BindingPage : Component
                 """,
                 Notes:
                 "The same Bind helper picks the right input type from the property's CLR type and wires immediate (string) or change-deferred (everything else) update timing automatically.",
-                Result: BindingMultiDemo())
+                Result: BindingMultiDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Typed — Textarea<TProp>(Bind: ...)"],
+            CodeSample(
+                """
+                Textarea(Bind: () => _model.Notes,
+                         Rows: 3,
+                         Placeholder: "Jot something down…")
+                Pre()[$"Notes = \"{_model.Notes}\""]
+                """,
+                Notes:
+                "Textareas always stream — Textarea.Bound wires OnInputAsync for every keystroke so the echo updates without blur or submit, no matter how long the text is.",
+                Result: BindingTextareaDemo())
         ];
 }

@@ -45,6 +45,31 @@ public sealed class BindingTypedDemo : Component
     }
 }
 
+public sealed class BindingTextareaDemo : Component
+{
+    private readonly Holder _model = new();
+
+    protected override Component Render() =>
+        Fragment()[
+            Textarea(
+                () => _model.Notes,
+                Id: "bind-textarea",
+                Class: "form-control mb-2",
+                Rows: 3,
+                Placeholder: "Jot something down…"),
+            Pre(Class: "small mb-0 p-3 bg-light border rounded")[
+                Code()[
+                    $"Notes  = \"{_model.Notes}\"\n" +
+                    $"Length = {_model.Notes.Length}"
+                ]
+            ]];
+
+    private sealed class Holder
+    {
+        public string Notes { get; set; } = "";
+    }
+}
+
 public sealed class BindingMultiDemo : Component
 {
     public enum Color { Red, Green, Blue }
