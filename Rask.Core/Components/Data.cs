@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Data : Component
+public sealed class Data : Element
 {
     protected override string TagName => "data";
 

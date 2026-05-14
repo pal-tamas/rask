@@ -6,7 +6,7 @@ using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
-public sealed class Input : Component
+public sealed class Input : Element
 {
     // Expression-driven factory. The generator picks up [GenerateForwarderFactory] and emits
     // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers

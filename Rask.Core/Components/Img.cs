@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Img : Component
+public sealed class Img : Element
 {
     protected override string TagName => "img";
     protected override bool SelfClosing => true;

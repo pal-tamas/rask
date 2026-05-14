@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Col : Component
+public sealed class Col : Element
 {
     protected override string TagName => "col";
     protected override bool SelfClosing => true;

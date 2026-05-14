@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Style : Component
+public sealed class Style : Element
 {
     protected override string TagName => "style";
 

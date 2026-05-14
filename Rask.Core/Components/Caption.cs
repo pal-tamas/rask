@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Caption : Component
+public sealed class Caption : Element
 {
     protected override string TagName => "caption";
 }

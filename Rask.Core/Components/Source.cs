@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Source : Component
+public sealed class Source : Element
 {
     protected override string TagName => "source";
     protected override bool SelfClosing => true;

@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Dialog : Component
+public sealed class Dialog : Element
 {
     protected override string TagName => "dialog";
 

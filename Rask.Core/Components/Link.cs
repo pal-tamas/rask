@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Link : Component
+public sealed class Link : Element
 {
     protected override string TagName => "link";
     protected override bool SelfClosing => true;

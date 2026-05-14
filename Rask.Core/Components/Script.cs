@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Script : Component
+public sealed class Script : Element
 {
     protected override string TagName => "script";
 

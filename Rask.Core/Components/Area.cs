@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Area : Component
+public sealed class Area : Element
 {
     protected override string TagName => "area";
     protected override bool SelfClosing => true;

@@ -47,14 +47,14 @@ public class HtmlSerializerTests
     public void Serialize_AttributeWithNullValue_EmitsBareAttributeName()
     {
         var data = new Dictionary<string, string?> { ["flag"] = null };
-        var html = new Block(new BlockProps(Data: data)).ToHtml();
+        var html = new Block { Data = data }.ToHtml();
         Assert.Equal("<block data-flag></block>", html);
     }
 
     [Fact]
     public void Serialize_AttributeWithStringValue_HtmlEncodesValue()
     {
-        var html = new Block(new BlockProps("a\"b<c")).ToHtml();
+        var html = new Block { Class = "a\"b<c" }.ToHtml();
         Assert.Equal("<block class=\"a&quot;b&lt;c\"></block>", html);
     }
 
@@ -89,24 +89,24 @@ public class HtmlSerializerTests
     public void Serialize_ScopeIdNull_NoStamping()
     {
         // No LiveRenderContext / no scope id → element has only its own attrs.
-        var html = new Block(new BlockProps("tag")).ToHtml();
+        var html = new Block { Class = "tag" }.ToHtml();
         Assert.Equal("<block class=\"tag\"></block>", html);
     }
 
     [Fact]
     public void Serialize_VoidElement_NoChildren_EmitsSelfClose() =>
-        Assert.Equal("<void />", new VoidEl(null).ToHtml());
+        Assert.Equal("<void />", new VoidEl().ToHtml());
 
     [Fact]
     public void Serialize_VoidElement_WithChildren_StillSelfCloses()
     {
-        var html = new VoidEl(null, new Child[] { Text("ignored") }).ToHtml();
+        var html = new VoidEl()[Text("ignored")].ToHtml();
         Assert.Equal("<void />", html);
     }
 
     [Fact]
     public void Serialize_VoidElement_WithAttrs_AttrsBeforeSelfCloser() =>
-        Assert.Equal("<void class=\"a\" />", new VoidEl(new BlockProps("a")).ToHtml());
+        Assert.Equal("<void class=\"a\" />", new VoidEl { Class = "a" }.ToHtml());
 
     [Fact]
     public void Serialize_FallthroughBranch_PushesScope_AndRecurses()
@@ -131,21 +131,13 @@ public class HtmlSerializerTests
         _ => throw new ArgumentOutOfRangeException(nameof(tag))
     };
 
-    private sealed record BlockProps(
-        string? Class = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        : Component.Props(Class: Class, Data: Data);
-
-    private sealed class Block : Component<BlockProps>
+    private sealed class Block : Element
     {
-        public Block(BlockProps? props, IEnumerable<Child>? children = null) : base(props, children) { }
-        public Block(BlockProps? props, params Child[] children) : base(props, children) { }
         protected override string TagName => "block";
     }
 
-    private sealed class VoidEl : Component<BlockProps>
+    private sealed class VoidEl : Element
     {
-        public VoidEl(BlockProps? props, IEnumerable<Child>? children = null) : base(props, children) { }
         protected override string TagName => "void";
         protected override bool SelfClosing => true;
     }

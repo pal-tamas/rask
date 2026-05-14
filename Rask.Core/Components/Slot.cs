@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Slot : Component
+public sealed class Slot : Element
 {
     protected override string TagName => "slot";
 

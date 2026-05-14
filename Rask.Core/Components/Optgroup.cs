@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Optgroup : Component
+public sealed class Optgroup : Element
 {
     protected override string TagName => "optgroup";
 

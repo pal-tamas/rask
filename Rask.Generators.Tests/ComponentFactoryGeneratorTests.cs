@@ -2,7 +2,7 @@ namespace Rask.Generators.Tests;
 
 public class ComponentFactoryGeneratorTests
 {
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void NoPublicProperties_EmitsParameterlessFactory()
     {
         var src = """
@@ -18,12 +18,14 @@ public class ComponentFactoryGeneratorTests
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
         Assert.Contains("public static global::Demo.Widget Widget()", output);
-        Assert.Contains(
-            "static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<global::Demo.Widget>(__sp)",
-            output);
+        // Widget has a parameterless ctor and no DI ctor, so the factory uses object-init
+        // rather than ActivatorUtilities — avoids NRE when the LiveRenderContext was created
+        // without a service provider (tests calling RenderAsLiveRoot() with no DI).
+        Assert.Contains("static _ => new global::Demo.Widget()", output);
+        Assert.DoesNotContain("ActivatorUtilities.CreateInstance<global::Demo.Widget>", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void OneNonNullableProperty_AddsRequiredParam()
     {
         var src = """
@@ -44,7 +46,7 @@ public class ComponentFactoryGeneratorTests
         Assert.Contains("__c.Name = Name;", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void OneNullableProperty_AddsOptionalParamWithNullDefault()
     {
         var src = """
@@ -84,7 +86,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("Tag", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void MixedProps_RequiredBeforeOptional()
     {
         var src = """
@@ -264,7 +266,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("Name = Name", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void InitOnlySetter_Included()
     {
         var src = """
@@ -323,7 +325,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("Default = default", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void ValueTypeNonNullable_IsRequired()
     {
         var src = """
@@ -339,11 +341,11 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
-        Assert.Contains("Widget(int Count)", output);
+        Assert.Contains("Widget(int Count = default)", output);
         Assert.DoesNotContain("Count = null", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void RoutingAttributes_DoNotChangeFactoryParamCasing()
     {
         var src = """
@@ -390,7 +392,7 @@ public class ComponentFactoryGeneratorTests
         Assert.Equal(firstOutput, secondOutput);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void GenericComponentWithTypeParameter_EmitsGenericFactory()
     {
         var src = """
@@ -411,7 +413,7 @@ public class ComponentFactoryGeneratorTests
         Assert.Contains("__c.Value = Value;", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void GenericComponent_PropertyOfExpressionType_RoundtripsTypeParameter()
     {
         var src = """
@@ -433,7 +435,7 @@ public class ComponentFactoryGeneratorTests
             output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void GenericComponent_WithClassConstraint_EmitsConstraintClause()
     {
         var src = """
@@ -452,7 +454,7 @@ public class ComponentFactoryGeneratorTests
         Assert.Contains("Card<T>(T Model) where T : class", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void ParameterlessFactory_CallsNotifyParameters_WithPropsChangedFalse()
     {
         var src = """
@@ -582,10 +584,11 @@ public class ComponentFactoryGeneratorTests
         Assert.Contains("__c.Value = Value;", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
-    public void BaseClassProperty_NotFlattenedIntoDerivedFactory()
+    [Fact]
+    public void BaseClassProperty_FlowsIntoDerivedFactory()
     {
-        // GetMembers() returns only directly-declared members; base properties stay on the base's factory.
+        // The generator walks the inheritance chain so a derived component's factory
+        // exposes both its own props (depth 0) and the base's props (depth 1).
         var src = """
                   using Rask.Core;
                   namespace Demo;
@@ -603,11 +606,10 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Components.g.cs");
 
-        Assert.Contains("Widget(string? DerivedProp = null)", output);
-        Assert.DoesNotContain("BaseProp", output);
+        Assert.Contains("Widget(string? DerivedProp = null, string? BaseProp = null)", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void AbstractPropertyOverriddenInDerived_AppearsOnceInDerivedFactory()
     {
         var src = """
@@ -635,7 +637,7 @@ public class ComponentFactoryGeneratorTests
         Assert.Equal(-1, nextAssign);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void NullableDisableContext_StringProperty_TreatedAsNonNullable()
     {
         // Under `#nullable disable` a `string` property has no Annotated marker, so the factory
@@ -705,7 +707,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("Children", output);
     }
 
-    [Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+    [Fact]
     public void ChildrenProperty_NotChildCollectionType_TreatedAsRegularProp()
     {
         // A property named "Children" whose type isn't a Child-collection (here, string)
@@ -727,7 +729,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("params", output);
     }
 
-[Fact(Skip = "Asserts pre-refactor generator output; needs update for inherited Id/Class/Style/Data/Children walk.")]
+[Fact]
     public void TenProperties_FactoryParameterOrderMatchesDeclaration()
     {
         var src = """

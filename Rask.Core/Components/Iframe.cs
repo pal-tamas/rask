@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Iframe : Component
+public sealed class Iframe : Element
 {
     protected override string TagName => "iframe";
 

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Meter : Component
+public sealed class Meter : Element
 {
     protected override string TagName => "meter";
 

@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Del : Component
+public sealed class Del : Element
 {
     protected override string TagName => "del";
 

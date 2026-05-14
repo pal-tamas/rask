@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Fieldset : Component
+public sealed class Fieldset : Element
 {
     protected override string TagName => "fieldset";
 

@@ -6,7 +6,7 @@ using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
-public sealed class Textarea : Component
+public sealed class Textarea : Element
 {
     // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
     // updates per-keystroke (OnInput) since textareas are inherently string-valued.

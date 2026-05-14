@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Dfn : Component
+public sealed class Dfn : Element
 {
     protected override string TagName => "dfn";
 }

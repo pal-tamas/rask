@@ -738,9 +738,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
             sb.AppendLine("        {");
             sb.Append("            var __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
-            sb.Append(
-                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
-                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
+            if (canUseObjectInit)
+            {
+                // Prefer the parameterless ctor: a context with no service provider (tests
+                // calling RenderAsLiveRoot() without a ServiceProvider) would otherwise NRE
+                // inside ActivatorUtilities. The DI-ctor branch below stays as a fallback for
+                // components whose only constructors take injected services.
+                sb.Append("                static _ => new ").Append(c.FullyQualifiedName).AppendLine("());");
+            }
+            else
+            {
+                sb.Append(
+                        "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
+                    .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
+            }
             sb.AppendLine("            __ctx.NotifyParameters(__c, propsChanged: false);");
             sb.AppendLine("            return __c;");
             sb.AppendLine("        }");

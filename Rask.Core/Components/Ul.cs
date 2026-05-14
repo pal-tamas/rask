@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Ul : Component
+public sealed class Ul : Element
 {
     protected override string TagName => "ul";
 }

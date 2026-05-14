@@ -26,4 +26,8 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="MinVer" Version="7.0.0" />
+  </ItemGroup>
+
 </Project>

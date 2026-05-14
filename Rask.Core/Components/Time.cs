@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Time : Component
+public sealed class Time : Element
 {
     protected override string TagName => "time";
 

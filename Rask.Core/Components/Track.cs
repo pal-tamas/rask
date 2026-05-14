@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Track : Component
+public sealed class Track : Element
 {
     protected override string TagName => "track";
     protected override bool SelfClosing => true;

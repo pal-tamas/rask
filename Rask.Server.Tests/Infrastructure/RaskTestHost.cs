@@ -2,14 +2,18 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Rask.Core;
 
 namespace Rask.Server.Tests.Infrastructure;
 
 internal sealed class RaskTestHost : IDisposable
 {
-    private RaskTestHost(TestServer server)
+    private readonly WebApplication _app;
+
+    private RaskTestHost(WebApplication app, TestServer server)
     {
+        _app = app;
         Server = server;
         Http = server.CreateClient();
         WebSockets = server.CreateWebSocketClient();
@@ -26,7 +30,7 @@ internal sealed class RaskTestHost : IDisposable
     public void Dispose()
     {
         Http.Dispose();
-        Server.Dispose();
+        ((IAsyncDisposable)_app).DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 
     public static RaskTestHost Create<TApp>(
@@ -34,21 +38,21 @@ internal sealed class RaskTestHost : IDisposable
         Action<IApplicationBuilder>? configureMiddleware = null)
         where TApp : Component
     {
-        var hostBuilder = new WebHostBuilder()
-            .ConfigureServices(services =>
-            {
-                services.AddRouting();
-                services.AddRask();
-                configureServices?.Invoke(services);
-            })
-            .Configure(app =>
-            {
-                app.UseRouting();
-                app.UseWebSockets();
-                configureMiddleware?.Invoke(app);
-                app.UseEndpoints(endpoints => endpoints.UseRask<TApp>());
-            });
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddRouting();
+        builder.Services.AddRask();
+        configureServices?.Invoke(builder.Services);
 
-        return new RaskTestHost(new TestServer(hostBuilder));
+        var app = builder.Build();
+        app.UseRouting();
+        app.UseWebSockets();
+        configureMiddleware?.Invoke(app);
+        app.UseRask<TApp>();
+
+        app.StartAsync().GetAwaiter().GetResult();
+
+        var server = app.GetTestServer();
+        return new RaskTestHost(app, server);
     }
 }

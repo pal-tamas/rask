@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Header : Component
+public sealed class Header : Element
 {
     protected override string TagName => "header";
 }

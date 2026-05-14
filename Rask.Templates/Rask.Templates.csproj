@@ -33,6 +33,10 @@
     <Compile Remove="**/*"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="MinVer" Version="7.0.0" />
+  </ItemGroup>
+
   <UsingTask TaskName="RaskReplaceInFile"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">

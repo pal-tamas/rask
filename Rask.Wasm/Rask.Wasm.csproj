@@ -18,14 +18,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0"/>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
     <!--
       Rask.Core uses Microsoft.AspNetCore.Authorization (in RouteAuthorizationGuard).
       On the WASM track there's no Microsoft.AspNetCore.App framework reference, so we
       surface this dep at the package boundary so consumers can restore it.
     -->
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.0"/>
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.8" />
+    <PackageReference Update="MinVer" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>

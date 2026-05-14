@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class B : Component
+public sealed class B : Element
 {
     protected override string TagName => "b";
 }

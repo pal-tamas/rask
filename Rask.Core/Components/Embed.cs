@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Embed : Component
+public sealed class Embed : Element
 {
     protected override string TagName => "embed";
     protected override bool SelfClosing => true;

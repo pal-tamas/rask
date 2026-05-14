@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Map : Component
+public sealed class Map : Element
 {
     protected override string TagName => "map";
 

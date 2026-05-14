@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Sup : Component
+public sealed class Sup : Element
 {
     protected override string TagName => "sup";
 }

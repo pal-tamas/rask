@@ -28,14 +28,6 @@ public abstract class Component
     private bool _stateDirty;
     private CancellationTokenSource? _lifetimeCts;
 
-    // Universal HTML attributes — lifted from the old Component.Props record onto the
-    // component itself so tag classes can be flat (no nested Props) and the source generator
-    // walks them as factory parameters.
-    public string? Id { get; set; }
-    public string? Class { get; set; }
-    public string? Style { get; set; }
-    public IReadOnlyDictionary<string, string?>? Data { get; set; }
-
     // Set by the children indexer below. Factories no longer expose Children as a
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
     public IEnumerable<Child>? Children { get; set; }
@@ -64,33 +56,10 @@ public abstract class Component
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
 
-    protected virtual IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
-    {
-        if (Id is not null)
-        {
-            yield return new KeyValuePair<string, string?>("id", Id);
-        }
-
-        if (Class is not null)
-        {
-            yield return new KeyValuePair<string, string?>("class", Class);
-        }
-
-        if (Style is not null)
-        {
-            yield return new KeyValuePair<string, string?>("style", Style);
-        }
-
-        if (Data is null)
-        {
-            yield break;
-        }
-
-        foreach (var kv in Data)
-        {
-            yield return new KeyValuePair<string, string?>($"data-{kv.Key}", kv.Value);
-        }
-    }
+    // Default: no HTML attributes. HTML element subclasses derive from Element, which
+    // overrides this to emit id/class/style/data-*. Tag-specific overrides chain via
+    // `base.BuildAttributes()` so the universal attrs lead and tag-specific attrs follow.
+    protected virtual IEnumerable<KeyValuePair<string, string?>> BuildAttributes() => [];
 
     protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
 
@@ -621,60 +590,4 @@ public abstract class Component
         return v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : string.Empty;
     }
 
-    public abstract record Props(
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-    {
-        public virtual IEnumerable<KeyValuePair<string, string?>> ToAttributes()
-        {
-            if (Id is not null)
-            {
-                yield return new KeyValuePair<string, string?>("id", Id);
-            }
-
-            if (Class is not null)
-            {
-                yield return new KeyValuePair<string, string?>("class", Class);
-            }
-
-            if (Style is not null)
-            {
-                yield return new KeyValuePair<string, string?>("style", Style);
-            }
-
-            if (Data is null)
-            {
-                yield break;
-            }
-
-            foreach (var kv in Data)
-            {
-                yield return new KeyValuePair<string, string?>($"data-{kv.Key}", kv.Value);
-            }
-        }
-    }
-}
-
-// Transitional shim: existing tag classes still derive from Component<TProps>. Once every
-// tag has been converted to the property-based shape (flat Component subclass), this type
-// can be deleted along with the nested Props records.
-public abstract class Component<TProps>(TProps? props, IEnumerable<Child>? children) : Component
-    where TProps : Component.Props
-{
-    internal TProps? PropsInternal => props;
-    internal IEnumerable<Child> ChildrenSeed { get; } = children ?? [];
-
-    // Tag subclasses override `protected override string TagName => "..."`. The shadowed
-    // base member is `protected internal virtual string? TagName => null;` on Component —
-    // overriding with a non-nullable return is permitted.
-
-    // Replace Component's universal-attribute emission with the Props record's, so existing
-    // tag classes keep their attribute order: id/class/style/data-* (from Component.Props)
-    // followed by tag-specific (from each Props.ToAttributes() override).
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes() =>
-        props is null ? [] : props.ToAttributes();
-
-    protected override IEnumerable<Child> RenderChildren() => ChildrenSeed;
 }

@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Meta : Component
+public sealed class Meta : Element
 {
     protected override string TagName => "meta";
     protected override bool SelfClosing => true;

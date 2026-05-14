@@ -11,7 +11,7 @@ namespace Rask.Core.Components;
 [FactoryGeneric("TModel",
     ModelProperty = nameof(Model),
     TypedDelegateProperties = new[] { nameof(OnValidSubmit), nameof(OnInvalidSubmit) })]
-public sealed class Form : Component
+public sealed class Form : Element
 {
     protected override string TagName => "form";
 

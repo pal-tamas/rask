@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Video : Component
+public sealed class Video : Element
 {
     protected override string TagName => "video";
 

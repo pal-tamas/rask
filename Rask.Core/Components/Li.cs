@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Li : Component
+public sealed class Li : Element
 {
     protected override string TagName => "li";
 

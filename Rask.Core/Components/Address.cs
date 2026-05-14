@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Address : Component
+public sealed class Address : Element
 {
     protected override string TagName => "address";
 }

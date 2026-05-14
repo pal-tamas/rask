@@ -2,7 +2,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
-public sealed class Button : Component
+public sealed class Button : Element
 {
     protected override string TagName => "button";
 

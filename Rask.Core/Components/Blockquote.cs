@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Blockquote : Component
+public sealed class Blockquote : Element
 {
     protected override string TagName => "blockquote";
 

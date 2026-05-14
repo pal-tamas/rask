@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Rask.Core.Components;
 
 // Renders the <object> HTML tag. Renamed from Object to avoid shadowing System.Object.
-public sealed class HtmlObject : Component
+public sealed class HtmlObject : Element
 {
     protected override string TagName => "object";
 

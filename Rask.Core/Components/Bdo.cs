@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Bdo : Component
+public sealed class Bdo : Element
 {
     protected override string TagName => "bdo";
 

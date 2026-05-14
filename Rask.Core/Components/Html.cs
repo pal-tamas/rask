@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Html : Component
+public sealed class Html : Element
 {
     protected override string TagName => "html";
 

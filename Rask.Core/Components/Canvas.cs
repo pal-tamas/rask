@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Canvas : Component
+public sealed class Canvas : Element
 {
     protected override string TagName => "canvas";
 

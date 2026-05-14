@@ -4,7 +4,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Components;
 
-public sealed class NavLink : Component
+public sealed class NavLink : Element
 {
     protected override string TagName => "a";
 

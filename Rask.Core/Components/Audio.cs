@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Audio : Component
+public sealed class Audio : Element
 {
     protected override string TagName => "audio";
 

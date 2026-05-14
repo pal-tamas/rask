@@ -62,7 +62,7 @@ public class ComponentFactoryIntegrationTests
 
     public sealed class GreetCard : Component
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public string? Subtitle { get; set; }
 
         protected override Component Render() =>

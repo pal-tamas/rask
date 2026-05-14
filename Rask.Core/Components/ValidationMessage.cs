@@ -74,6 +74,7 @@ public sealed class ValidationSummary : Component
 public sealed class ValidatingIndicator : Component
 {
     public LambdaExpression? For { get; set; }
+    public string? Class { get; set; }
 
     // Reads EditContext.IsValidating(field) — see ValidationMessage for the rationale.
     protected internal override bool BypassRenderCache => true;

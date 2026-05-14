@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Rask.Core.Components;
 
-public sealed class Colgroup : Component
+public sealed class Colgroup : Element
 {
     protected override string TagName => "colgroup";
 

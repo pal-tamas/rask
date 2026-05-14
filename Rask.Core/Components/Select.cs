@@ -6,7 +6,7 @@ using C = Rask.Core.Components.Components;
 
 namespace Rask.Core.Components;
 
-public sealed class Select : Component
+public sealed class Select : Element
 {
     // Expression-driven factory; pre-marks the matching <option> as selected so the
     // initial render reflects the bound value without round-tripping through the browser.

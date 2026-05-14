@@ -1,6 +1,6 @@
 namespace Rask.Core.Components;
 
-public sealed class Label : Component
+public sealed class Label : Element
 {
     protected override string TagName => "label";
 
