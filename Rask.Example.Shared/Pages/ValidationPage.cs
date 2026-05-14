@@ -261,6 +261,53 @@ public sealed class ValidationPage : Component
                 """,
                 Notes:
                 "FluentValidation's own Cascade(CascadeMode.Stop) mirrors Rask's first-error-wins: NotEmpty must pass before Matches, which must pass before the MustAsync API check fires. Type \"TKT-001\" to see the indicator while the await is in flight, then the \"already reserved\" message land. Type a value not in the reserved set (e.g. \"TKT-999\") to submit successfully. FluentValidationValidator is registered as an IAsyncFieldValidator — async rules and sync rules share the one wrapper.",
-                Result: FluentValidationAsyncDemo())
+                Result: FluentValidationAsyncDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Custom ValidationAttribute — IsValid, GetValidationResult, and DI"],
+            CodeSample(
+                """
+                // IsValid(object?) — the simplest custom-attribute shape.
+                public sealed class StrongPasswordAttribute : ValidationAttribute {
+                    public override bool IsValid(object? value) =>
+                        value is string s && s.Length >= 8
+                            && s.Any(char.IsLetter) && s.Any(char.IsDigit);
+                }
+
+                // GetValidationResult — reads ValidationContext.ObjectInstance for cross-field rules.
+                public sealed class MatchesPropertyAttribute(string otherProperty) : ValidationAttribute {
+                    protected override ValidationResult? IsValid(object? value, ValidationContext ctx) {
+                        var other = ctx.ObjectInstance.GetType().GetProperty(otherProperty)
+                            ?.GetValue(ctx.ObjectInstance);
+                        return Equals(value, other)
+                            ? ValidationResult.Success
+                            : new ValidationResult(ErrorMessage, new[] { ctx.MemberName! });
+                    }
+                }
+
+                // ValidationContext.GetService<T>() — resolves services from the render-scoped SP.
+                public sealed class NotBannedAttribute : ValidationAttribute {
+                    protected override ValidationResult? IsValid(object? value, ValidationContext ctx) {
+                        var svc = (IBannedWordService?)ctx.GetService(typeof(IBannedWordService));
+                        return svc is { } s && value is string str && s.Words.Contains(str)
+                            ? new ValidationResult(FormatErrorMessage(str), new[] { ctx.MemberName! })
+                            : ValidationResult.Success;
+                    }
+                }
+
+                public sealed class CustomAttributeModel {
+                    [Required, NotBanned(ErrorMessage = "\"{0}\" isn't available.")]
+                    public string Username { get; set; } = "";
+
+                    [Required, StrongPassword(ErrorMessage = "8+ chars, letters and digits.")]
+                    public string Password { get; set; } = "";
+
+                    [Required, MatchesProperty(nameof(Password), ErrorMessage = "Passwords don't match.")]
+                    public string ConfirmPassword { get; set; } = "";
+                }
+
+                // Program.cs: services.AddSingleton<IBannedWordService, BannedWordService>();
+                """,
+                Notes:
+                "Custom ValidationAttribute subclasses flow through DataAnnotationsValidator with no extra opt-in — System.ComponentModel.DataAnnotations.Validator walks every attribute on the property at validation time. ValidationContext is constructed with the render-scoped IServiceProvider, so attributes can resolve services via ctx.GetService<T>() the same way ASP.NET Core / Blazor's DataAnnotationsValidator do it. Try \"admin\" (NotBanned, DI-resolved), a weak password (StrongPassword.IsValid), or mismatched confirm (MatchesProperty reads ObjectInstance).",
+                Result: CustomAttributeDemo())
         ];
 }

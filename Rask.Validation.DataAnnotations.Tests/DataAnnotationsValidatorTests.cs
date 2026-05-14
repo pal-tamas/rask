@@ -109,6 +109,137 @@ public class DataAnnotationsValidatorTests
     }
 
     [Fact]
+    public void Validate_IValidatableObject_FormLevelError_AttachesToEmptyField()
+    {
+        // Model.Validate returns a ValidationResult with empty MemberNames — should land on
+        // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
+        var m = new BookingModel { Departure = new DateOnly(2026, 6, 1), Arrival = new DateOnly(2026, 6, 5), RaiseFormLevel = true };
+        var ctx = RegisterValidatorFor(m);
+
+        ctx.Validate();
+
+        Assert.Contains("Booking spans a blackout window.", ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
+    }
+
+    [Fact]
+    public void Validate_IValidatableObject_PerFieldError_AttachesToNamedField()
+    {
+        // Model.Validate returns a ValidationResult with MemberNames = ["Departure"] — should
+        // land on that field's messages.
+        var m = new BookingModel
+        {
+            Name = "Ada",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2026, 6, 5)
+        };
+        var ctx = RegisterValidatorFor(m);
+
+        ctx.Validate();
+
+        Assert.Contains("Departure cannot be in the past.",
+            ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
+    }
+
+    [Fact]
+    public void Validate_IValidatableObject_RunsEvenWhenAttributeValidationFails()
+    {
+        // ASP.NET Core parity: BCL's TryValidateObject silences IValidatableObject as soon as
+        // any attribute fails. Here Name is empty (Required fails) AND the model raises a
+        // form-level error — both must surface together.
+        var m = new BookingModel
+        {
+            Name = "",
+            Departure = new DateOnly(2026, 6, 1),
+            Arrival = new DateOnly(2026, 6, 5),
+            RaiseFormLevel = true
+        };
+        var ctx = RegisterValidatorFor(m);
+
+        ctx.Validate();
+
+        Assert.Contains("Name is required.",
+            ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Name))));
+        Assert.Contains("Booking spans a blackout window.",
+            ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
+    }
+
+    [Fact]
+    public void ValidateField_IValidatableObject_SurfacesCrossFieldErrorOnNamedField()
+    {
+        // Re-validating Departure on its own should surface the IValidatableObject result
+        // whose MemberNames include Departure.
+        var m = new BookingModel
+        {
+            Name = "Ada",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2026, 6, 5)
+        };
+        var ctx = RegisterValidatorFor(m);
+
+        ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Departure)));
+
+        Assert.Contains("Departure cannot be in the past.",
+            ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
+    }
+
+    [Fact]
+    public void ValidateField_IValidatableObject_IgnoresErrorsForOtherFields()
+    {
+        // Re-validating Name must NOT pull in Departure's IValidatableObject error, and a
+        // form-level (empty MemberNames) error must not attach to Name either.
+        var m = new BookingModel
+        {
+            Name = "Ada",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2026, 6, 5),
+            RaiseFormLevel = true
+        };
+        var ctx = RegisterValidatorFor(m);
+
+        ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Name)));
+
+        Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Name))));
+        Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
+        Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
+    }
+
+    private static EditContext RegisterValidatorFor(object model)
+    {
+        var ctx = new EditContext(model);
+        using (EditContextScope.Push(ctx))
+        {
+            DataAnnotationsValidator().ToHtml();
+        }
+        return ctx;
+    }
+
+    private sealed class BookingModel : IValidatableObject
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        public string Name { get; set; } = "";
+
+        public DateOnly Departure { get; set; }
+        public DateOnly Arrival { get; set; }
+
+        public bool RaiseFormLevel { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Departure < new DateOnly(2026, 1, 1))
+            {
+                yield return new ValidationResult(
+                    "Departure cannot be in the past.",
+                    new[] { nameof(Departure) });
+            }
+
+            if (RaiseFormLevel)
+            {
+                yield return new ValidationResult("Booking spans a blackout window.");
+            }
+        }
+    }
+
+    [Fact]
     public void Component_Render_IsIdempotent_AcrossMultipleRenders()
     {
         var p = new Person { Name = "" };

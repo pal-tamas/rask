@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 
 namespace Rask.Validation.DataAnnotations;
 
@@ -41,8 +42,20 @@ public sealed class DataAnnotationsValidator : Component
         public void Validate(EditContext context)
         {
             var results = new List<ValidationResult>();
-            var ctx = new ValidationContext(context.Model);
+            var ctx = NewValidationContext(context.Model);
             Validator.TryValidateObject(context.Model, ctx, results, true);
+
+            // BCL's TryValidateObject short-circuits IValidatableObject.Validate as soon as any
+            // attribute-level error is found. ASP.NET Core MVC's DefaultObjectValidator does not
+            // — attribute and IValidatableObject errors accumulate together. Invoke the interface
+            // method ourselves to match that experience.
+            if (context.Model is IValidatableObject validatable)
+            {
+                foreach (var r in validatable.Validate(ctx))
+                {
+                    results.Add(r);
+                }
+            }
 
             foreach (var r in results)
             {
@@ -81,7 +94,8 @@ public sealed class DataAnnotationsValidator : Component
                 return;
             }
 
-            var ctx = new ValidationContext(context.Model) { MemberName = field.FieldName };
+            var ctx = NewValidationContext(context.Model);
+            ctx.MemberName = field.FieldName;
             var results = new List<ValidationResult>();
             Validator.TryValidateProperty(prop.GetValue(context.Model), ctx, results);
 
@@ -89,6 +103,34 @@ public sealed class DataAnnotationsValidator : Component
             {
                 context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
             }
+
+            // IValidatableObject is a whole-object rule, so re-run it for per-field revalidation
+            // and surface only results that name this field. Cross-field rules referencing the
+            // active field stay reactive; rules targeting other fields don't bleed in.
+            if (context.Model is IValidatableObject validatable)
+            {
+                var fullCtx = NewValidationContext(context.Model);
+                foreach (var r in validatable.Validate(fullCtx))
+                {
+                    if (r.MemberNames.Contains(field.FieldName))
+                    {
+                        context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
+                    }
+                }
+            }
         }
+
+        // ASP.NET Core / Blazor parity: ValidationContext is constructed with the render-scoped
+        // IServiceProvider so custom ValidationAttribute subclasses can call
+        // validationContext.GetService<T>() at validation time. Resolved lazily from the active
+        // LiveRenderContext — outside a live context (e.g. unit tests that drive EditContext
+        // directly) the SP is null and GetService<T>() returns null, matching MVC's behavior
+        // when no service provider is configured.
+        [UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "ValidationContext's no-display-name ctor reflects for DisplayNameAttribute on the " +
+                            "model — same constraint as Validate/ValidateField: the user-owned model type is " +
+                            "preserved through the consumer's binding/page annotations.")]
+        private static ValidationContext NewValidationContext(object model) =>
+            new(model, LiveRenderContext.Current?.Services, items: null);
     }
 }
