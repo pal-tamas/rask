@@ -59,5 +59,9 @@
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
 
 </Project>

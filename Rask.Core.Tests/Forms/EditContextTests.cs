@@ -35,10 +35,20 @@ public class EditContextTests
     public void AddValidator_DedupesByType()
     {
         var ctx = new EditContext(new Model());
-        ctx.AddValidator(new DataAnnotationsValidator());
-        ctx.AddValidator(new DataAnnotationsValidator()); // distinct instance, same type
+        var fid = new FieldIdentifier(ctx.Model, "Name");
+        ctx.AddValidator(new MessageStampingValidator());
+        ctx.AddValidator(new MessageStampingValidator()); // distinct instance, same type
         ctx.Validate();
-        // No assertion needed beyond "doesn't throw / doesn't double up". If duplicated, the messages list would have duplicates — verified later.
+        // If the validator was added twice, we'd see two copies of "stamp" — dedup means one.
+        Assert.Single(ctx.GetValidationMessages(fid));
+    }
+
+    private sealed class MessageStampingValidator : IFieldValidator
+    {
+        public void Validate(EditContext context) =>
+            context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "stamp");
+
+        public void ValidateField(EditContext context, FieldIdentifier field) { }
     }
 
     [Fact]

@@ -12,38 +12,71 @@ public sealed class ValidationPage : Component
         Fragment()[
             PageHeader.Render(
                 "Validation",
-                "Set Form.Model to a class decorated with DataAnnotations. Rask auto-attaches a DataAnnotationsValidator and routes the submit through OnValidSubmit / OnInvalidSubmit. Per-field errors render through ValidationMessage; a top-of-form digest renders through ValidationSummary."),
-            H2(Class: "h4 mt-4 mb-3")["Per-field — ValidationMessage"],
+                "Validators are opt-in components placed inside the Form. Drop DataAnnotationsValidator() in if your model uses [Required]/[Range]/etc., or FluentValidationValidator(...) if you wired up FluentValidation. Or skip both and pass Validate: directly on Form (cross-field rule) or on Input/Select/Textarea (per-field rule) — the callback is just a Func that returns IEnumerable<string>, sync or async."),
+            H2(Class: "h4 mt-4 mb-3")["Per-field — DataAnnotations + ValidationMessage"],
             CodeSample(
                 """
+                static Component FieldError(IReadOnlyList<string> msgs) =>
+                    Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small")[m])];
+
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) =>
                          _submission = $"Registered: {m.Name} <{m.Email}>")[
+                        DataAnnotationsValidator(),
                         Label(For: "name")["Name"],
                         Input(Bind: () => _model.Name, Id: "name"),
-                        ValidationMessage(For: () => _model.Name,
-                                          Class: "text-danger small"),
+                        ValidationMessage(For: () => _model.Name, Template: FieldError),
                         // ... Email, Age, Plan ...
                         Button(Type: "submit")["Register"]
                      ]
                 """,
                 Notes:
-                "OnValidSubmit fires only after every [Required]/[EmailAddress]/[Range]/[StringLength] check passes. ValidationMessage subscribes to a single field via the same Bind-style expression.",
+                "DataAnnotationsValidator() is a real component — drop it in to opt into [Required]/[EmailAddress]/[Range]/[StringLength]. ValidationMessage's Template runs only when the field has at least one message — the empty state stays out of the DOM.",
                 Result: ValidationFieldsDemo()),
             H2(Class: "h4 mt-5 mb-3")["Top-of-form — ValidationSummary"],
             CodeSample(
                 """
+                static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
+                    Div(Class: "alert alert-danger small mb-0")[
+                        Ul(Class: "mb-0 ps-3")[
+                            entries.Select(e => (Child)Li()[
+                                Strong()[e.Field], ": ", e.Message
+                            ])
+                        ]
+                    ];
+
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) => /* ... */)[
-                        ValidationSummary(Class: "alert alert-danger small"),
+                        DataAnnotationsValidator(),
+                        ValidationSummary(Template: SummaryAlert),
                         // ... unadorned fields, no per-field ValidationMessage ...
                         Button(Type: "submit")["Register"]
                      ]
                 """,
                 Notes:
-                "ValidationSummary renders a <ul> of every current message in the form's EditContext. Pair it with novalidate-style inputs when you want a single error block instead of inline hints.",
+                "ValidationSummary's Template receives every current ValidationEntry (Field + Message). The component itself emits nothing — wrapper, list shape, and field formatting are entirely yours.",
                 Result: ValidationSummaryDemo()),
-            H2(Class: "h4 mt-5 mb-3")["Async — IAsyncFieldValidator"],
+            H2(Class: "h4 mt-5 mb-3")["Inline — Validate: on field & form"],
+            CodeSample(
+                """
+                Form<LoginModel>(_model,
+                     OnValidSubmit: m => _submission = "Welcome",
+                     Validate: (Func<LoginModel, IEnumerable<string>>)(m =>
+                         m.Password == m.Confirm ? [] : ["Passwords do not match."]))[
+                        Input(Bind: () => _model.Email,
+                              Validate: (Func<string, IEnumerable<string>>)(v =>
+                                  v.Contains('@') ? [] : ["Email looks wrong."])),
+                        ValidationMessage(For: () => _model.Email, Template: FieldError),
+                        Input(Bind: () => _model.Password, Type: "password"),
+                        Input(Bind: () => _model.Confirm, Type: "password"),
+                        ValidationSummary(Template: SummaryAlert),
+                        Button(Type: "submit")["Sign in"]
+                     ]
+                """,
+                Notes:
+                "No DataAnnotations on the model — every rule lives at the call site. Validate: on Input runs per-keystroke (after the field is touched) and produces field-scoped messages. Validate: on Form runs at submit and produces summary-scoped messages. Both delegates accept either a Func<T, IEnumerable<string>> (sync) or Func<T, CancellationToken, ValueTask<IEnumerable<string>>> (async).",
+                Result: InlineValidateDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Async — IAsyncFieldValidator / FluentValidation"],
             CodeSample(
                 """
                 public sealed class UniqueUsernameValidator : IAsyncFieldValidator {
@@ -56,18 +89,16 @@ public sealed class ValidationPage : Component
                     /* ValidateAsync similar */
                 }
 
-                _ctx = new EditContext(_model);
-                _ctx.AddValidator(new DataAnnotationsValidator());
-                _ctx.AddValidator(new UniqueUsernameValidator());
-
-                Form(Model: _model, Context: _ctx, OnValidSubmit: ...)[
+                Form(Model: _model, OnValidSubmit: ...)[
+                    DataAnnotationsValidator(),
+                    new UniqueUsernameValidator() /* or FluentValidationValidator(new …) */,
                     Input(Bind: () => _model.Username),
                     ValidatingIndicator(For: () => _model.Username)["Checking..."],
-                    ValidationMessage(For: () => _model.Username)
+                    ValidationMessage(For: () => _model.Username, Template: FieldError)
                 ]
                 """,
                 Notes:
-                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. Registering an IAsyncFieldValidator makes the sync ctx.Validate() throw — go through the Form submit bridge (which already awaits internally). The literal \"explode\" forces the demo validator to throw mid-await so you can see the generic \"Validation could not be completed.\" fallback that the framework surfaces when a validator faults.",
+                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. The literal \"explode\" forces the demo validator to throw mid-await so you can see the generic \"Validation could not be completed.\" fallback that the framework surfaces when a validator faults.",
                 Result: AsyncValidationDemo())
         ];
 }

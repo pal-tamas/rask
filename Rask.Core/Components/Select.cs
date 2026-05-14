@@ -19,6 +19,7 @@ public sealed class Select : Component
         int? Size = null,
         bool Autofocus = false,
         string? Autocomplete = null,
+        Delegate? Validate = null,
         string? Id = null,
         string? Class = null,
         string? Style = null,
@@ -29,6 +30,7 @@ public sealed class Select : Component
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
+        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
         var current = BindingHelpers.FormatValue(acc.Getter());
         var preselected = MarkSelected(Children, current);
 

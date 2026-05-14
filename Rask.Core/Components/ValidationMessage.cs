@@ -5,24 +5,24 @@ namespace Rask.Core.Components;
 
 public sealed class ValidationMessage : Component
 {
-    // Class is inherited from Component — repurposed here as "class to apply to each rendered
-    // message Div" since ValidationMessage itself emits no element tag (TagName is null).
     public LambdaExpression? For { get; set; }
 
+    // Headless: caller owns the markup. Invoked only when at least one message exists
+    // for the bound field; the empty case renders nothing.
+    public required Func<IReadOnlyList<string>, Component> Template { get; set; }
+
     // Reads mutable EditContext state (per-field message list) the framework doesn't observe.
-    // The cache would otherwise pin the messages observed during whichever earlier render
+    // The cache would otherwise pin the messages seen during whichever earlier render
     // populated it — e.g. the mid-await render captures the no-message state, and the post-
     // handler render then reuses that stale subtree even after an async validator added a
     // message. Same rationale as Router/Outlet opting out for RouteState.
     protected internal override bool BypassRenderCache => true;
 
-    // Type-narrowed factory: callers pass `For: () => model.Property` and get an
-    // `Expression<Func<TProp>>` checked at compile time, instead of the raw
-    // `LambdaExpression?` the property accepts at runtime.
     [GenerateForwarderFactory]
     public static ValidationMessage Bound<TProp>(
         Expression<Func<TProp>> For,
-        string? Class = null) => new() { For = For, Class = Class };
+        Func<IReadOnlyList<string>, Component> Template) =>
+        new() { For = For, Template = Template };
 
     protected override Component Render()
     {
@@ -39,15 +39,16 @@ public sealed class ValidationMessage : Component
             return new Fragment();
         }
 
-        var children = msgs.Select(m => (Child)Components.Div(Class: Class ?? "validation-message")[m]);
-        return new Fragment(children.ToArray());
+        return Template(msgs);
     }
 }
 
 public sealed class ValidationSummary : Component
 {
-    // Class is inherited from Component — applied to the rendered <ul>. The generated
-    // factory exposes Id/Class/Style/Data; no extra forwarder is needed.
+    // Headless: caller owns the markup. Invoked only when the form has at least one
+    // message; each entry pairs the offending field name (empty for form-level messages)
+    // with its error text.
+    public required Func<IReadOnlyList<ValidationEntry>, Component> Template { get; set; }
 
     // Reads EditContext message state — see ValidationMessage for the rationale.
     protected internal override bool BypassRenderCache => true;
@@ -60,14 +61,13 @@ public sealed class ValidationSummary : Component
             return new Fragment();
         }
 
-        var msgs = ctx.GetValidationMessages().ToList();
-        if (msgs.Count == 0)
+        var entries = ctx.GetValidationEntries();
+        if (entries.Count == 0)
         {
             return new Fragment();
         }
 
-        var items = msgs.Select(m => (Child)Components.Li()[m]).ToArray();
-        return Components.Ul(Class: Class ?? "validation-summary")[items];
+        return Template(entries);
     }
 }
 

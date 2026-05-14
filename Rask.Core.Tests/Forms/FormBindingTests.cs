@@ -75,10 +75,14 @@ public class FormBindingTests
         var validCalled = 0;
         var invalidCalled = 0;
 
-        var view = new StubComponent(() => Form(
+        var view = new StubComponent(() => Form<Person>(
             p,
-            (Action<Person>)(_ => validCalled++),
-            (Action<Person>)(_ => invalidCalled++))[Input(() => p.Name), Input(() => p.Age)]);
+            _ => validCalled++,
+            _ => invalidCalled++,
+            Validate: (Func<Person, IEnumerable<string>>)(m =>
+                string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>()))[
+                    Input(() => p.Name), Input(() => p.Age)
+                ]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = ExtractAttr(html, "data-rask-on-submit");

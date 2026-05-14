@@ -4,15 +4,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
-    <ProjectReference Include="..\Rask.Validation.DataAnnotations\Rask.Validation.DataAnnotations.csproj"/>
-    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
 </Project>

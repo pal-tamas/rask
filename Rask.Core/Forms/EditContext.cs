@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Rask.Core.Forms;
 
 public sealed class EditContext
@@ -5,6 +7,8 @@ public sealed class EditContext
     private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
     private readonly List<IFieldValidator> _validators = new();
     private readonly List<IAsyncFieldValidator> _asyncValidators = new();
+    private readonly Dictionary<FieldIdentifier, DelegateRegistration> _fieldDelegates = new();
+    private Delegate? _formDelegate;
 
     public EditContext(object model) => Model = model ?? throw new ArgumentNullException(nameof(model));
 
@@ -47,7 +51,55 @@ public sealed class EditContext
         _asyncValidators.Add(validator);
     }
 
-    public bool HasAsyncValidators => _asyncValidators.Count > 0;
+    // Per-field inline Validate delegate from Input/Select/Textarea factories. Passing
+    // `validate: null` clears any prior registration so a re-render that drops the parameter
+    // doesn't leave a stale callback in place. The value getter lets the dispatcher read the
+    // current field value without reflecting on every validate call.
+    public void RegisterFieldValidator(FieldIdentifier field, Delegate? validate, Func<object?> valueGetter)
+    {
+        if (validate is null)
+        {
+            _fieldDelegates.Remove(field);
+            return;
+        }
+
+        _fieldDelegates[field] = new DelegateRegistration(validate, valueGetter);
+    }
+
+    // Convenience overload for callers that don't have a getter handy (tests, direct API
+    // use). Uses reflection over the model's runtime type to resolve the value.
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "GetProperty on the model's runtime type — same constraint as DataAnnotations: " +
+                        "the user-owned model's public properties are preserved by their binding setup.")]
+    public void RegisterFieldValidator(FieldIdentifier field, Delegate? validate) =>
+        RegisterFieldValidator(field, validate, () =>
+            field.Model.GetType().GetProperty(field.FieldName)?.GetValue(field.Model));
+
+    // Form-level inline Validate delegate. Null clears.
+    public void RegisterFormValidator(Delegate? validate) => _formDelegate = validate;
+
+    public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
+
+    public bool HasAsyncDelegateValidators
+    {
+        get
+        {
+            if (_formDelegate is not null && DelegateValidator.IsAsync(_formDelegate))
+            {
+                return true;
+            }
+
+            foreach (var reg in _fieldDelegates.Values)
+            {
+                if (DelegateValidator.IsAsync(reg.Validate))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
 
     public bool IsValidating(FieldIdentifier field) =>
         _states.TryGetValue(field, out var s) && s.PendingCount > 0;
@@ -80,6 +132,18 @@ public sealed class EditContext
         {
             yield return m;
         }
+    }
+
+    public IReadOnlyList<ValidationEntry> GetValidationEntries()
+    {
+        var entries = new List<ValidationEntry>();
+        foreach (var pair in _states)
+        foreach (var m in pair.Value.Messages)
+        {
+            entries.Add(new ValidationEntry(pair.Key.FieldName, m));
+        }
+
+        return entries;
     }
 
     public bool HasValidationMessages() =>
@@ -130,7 +194,7 @@ public sealed class EditContext
 
     public bool Validate()
     {
-        if (_asyncValidators.Count > 0)
+        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
         {
             throw new InvalidOperationException("Async validators are registered; call ValidateAsync.");
         }
@@ -141,13 +205,16 @@ public sealed class EditContext
             v.Validate(this);
         }
 
+        InvokeSyncFieldDelegates();
+        InvokeSyncFormDelegate();
+
         ValidationStateChanged?.Invoke();
         return !HasValidationMessages();
     }
 
     public bool ValidateField(FieldIdentifier field)
     {
-        if (_asyncValidators.Count > 0)
+        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
         {
             throw new InvalidOperationException("Async validators are registered; call ValidateFieldAsync.");
         }
@@ -157,6 +224,8 @@ public sealed class EditContext
         {
             v.ValidateField(this, field);
         }
+
+        InvokeSyncFieldDelegate(field);
 
         ValidationStateChanged?.Invoke();
         return GetValidationMessages(field).Count == 0;
@@ -197,6 +266,22 @@ public sealed class EditContext
             }
         }
 
+        // Inline per-field delegates: sync invoked, async awaited. Each one isolates its own
+        // exception so one bad delegate doesn't kill the whole submit pipeline.
+        foreach (var pair in _fieldDelegates)
+        {
+            await InvokeFieldDelegateAsync(pair.Key, pair.Value, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        // Form-level delegate runs last so it sees settled per-field state and can apply
+        // cross-field rules (e.g. "passwords match") with awareness of upstream errors.
+        if (_formDelegate is not null)
+        {
+            await InvokeFormDelegateAsync(_formDelegate, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
         ValidationStateChanged?.Invoke();
         return !HasValidationMessages();
     }
@@ -218,7 +303,16 @@ public sealed class EditContext
             v.ValidateField(this, field);
         }
 
-        if (_asyncValidators.Count == 0)
+        var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
+        var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);
+
+        // Sync inline delegate runs synchronously alongside sync validators.
+        if (hasFieldDelegate && !fieldDelegateIsAsync)
+        {
+            InvokeSyncFieldDelegate(field, fieldReg);
+        }
+
+        if (_asyncValidators.Count == 0 && !fieldDelegateIsAsync)
         {
             ValidationStateChanged?.Invoke();
             // Dispose the CTS we just installed; sync path doesn't need it.
@@ -260,6 +354,32 @@ public sealed class EditContext
                 }
             }
 
+            if (fieldDelegateIsAsync)
+            {
+                try
+                {
+                    var msgs = await DelegateValidator.InvokeAsync(
+                        fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
+                    foreach (var m in msgs)
+                    {
+                        AddValidationMessage(field, m);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
+                }
+                catch (Exception)
+                {
+                    AddValidationMessage(field, "Validation could not be completed.");
+                }
+
+                if (cts.IsCancellationRequested)
+                {
+                    return false;
+                }
+            }
+
             return state.Messages.Count == 0;
         }
         finally
@@ -284,6 +404,13 @@ public sealed class EditContext
         {
             s.Touched = true;
         }
+
+        // Field delegates may target fields that haven't been touched by a binding yet;
+        // make sure their messages survive the next per-keystroke gate.
+        foreach (var field in _fieldDelegates.Keys)
+        {
+            GetOrCreate(field).Touched = true;
+        }
     }
 
     internal FieldState GetOrCreate(FieldIdentifier field)
@@ -297,6 +424,114 @@ public sealed class EditContext
         return s;
     }
 
+    private void InvokeSyncFieldDelegates()
+    {
+        foreach (var pair in _fieldDelegates)
+        {
+            InvokeSyncFieldDelegate(pair.Key, pair.Value);
+        }
+    }
+
+    private void InvokeSyncFieldDelegate(FieldIdentifier field)
+    {
+        if (_fieldDelegates.TryGetValue(field, out var reg))
+        {
+            InvokeSyncFieldDelegate(field, reg);
+        }
+    }
+
+    private void InvokeSyncFieldDelegate(FieldIdentifier field, DelegateRegistration reg)
+    {
+        try
+        {
+            foreach (var msg in DelegateValidator.InvokeSync(reg.Validate, reg.ValueGetter()))
+            {
+                AddValidationMessage(field, msg);
+            }
+        }
+        catch
+        {
+            AddValidationMessage(field, "Validation could not be completed.");
+        }
+    }
+
+    private void InvokeSyncFormDelegate()
+    {
+        if (_formDelegate is null)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var msg in DelegateValidator.InvokeSync(_formDelegate, Model))
+            {
+                AddValidationMessage(new FieldIdentifier(Model, string.Empty), msg);
+            }
+        }
+        catch
+        {
+            AddValidationMessage(new FieldIdentifier(Model, string.Empty), "Validation could not be completed.");
+        }
+    }
+
+    private async ValueTask InvokeFieldDelegateAsync(
+        FieldIdentifier field, DelegateRegistration reg, CancellationToken cancellationToken)
+    {
+        if (DelegateValidator.IsAsync(reg.Validate))
+        {
+            try
+            {
+                var msgs = await DelegateValidator.InvokeAsync(
+                    reg.Validate, reg.ValueGetter(), cancellationToken).ConfigureAwait(false);
+                foreach (var m in msgs)
+                {
+                    AddValidationMessage(field, m);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                AddValidationMessage(field, "Validation could not be completed.");
+            }
+        }
+        else
+        {
+            InvokeSyncFieldDelegate(field, reg);
+        }
+    }
+
+    private async ValueTask InvokeFormDelegateAsync(Delegate validate, CancellationToken cancellationToken)
+    {
+        var formField = new FieldIdentifier(Model, string.Empty);
+        if (DelegateValidator.IsAsync(validate))
+        {
+            try
+            {
+                var msgs = await DelegateValidator.InvokeAsync(validate, Model, cancellationToken).ConfigureAwait(false);
+                foreach (var m in msgs)
+                {
+                    AddValidationMessage(formField, m);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                AddValidationMessage(formField, "Validation could not be completed.");
+            }
+        }
+        else
+        {
+            InvokeSyncFormDelegate();
+        }
+    }
+
     internal sealed class FieldState
     {
         public List<string> Messages = new();
@@ -304,5 +539,17 @@ public sealed class EditContext
         public bool Touched;
         public int PendingCount;
         public CancellationTokenSource? Cts;
+    }
+
+    private readonly struct DelegateRegistration
+    {
+        public DelegateRegistration(Delegate validate, Func<object?> valueGetter)
+        {
+            Validate = validate;
+            ValueGetter = valueGetter;
+        }
+
+        public Delegate Validate { get; }
+        public Func<object?> ValueGetter { get; }
     }
 }

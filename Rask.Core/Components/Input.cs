@@ -32,6 +32,7 @@ public sealed class Input : Component
         string? Autocomplete = null,
         bool Autofocus = false,
         string? List = null,
+        Delegate? Validate = null,
         string? Id = null,
         string? Class = null,
         string? Style = null,
@@ -42,6 +43,10 @@ public sealed class Input : Component
         var fid = acc.Field;
         var resolvedType = Type ?? BindingHelpers.DefaultInputType(acc.PropertyType);
         var name = Name ?? acc.PropertyName;
+
+        // Always call Register — null clears a stale delegate from a prior render so dropping
+        // the parameter between frames doesn't leave the old rule running.
+        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
 
         var current = acc.Getter();
 

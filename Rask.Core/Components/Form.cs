@@ -27,6 +27,13 @@ public sealed class Form : Component
     public Delegate? OnValidSubmit { get; set; }
     public Delegate? OnInvalidSubmit { get; set; }
 
+    // Cross-field validation rule. Accepts either:
+    //   sync   — Func<TModel, IEnumerable<string>>
+    //   async  — Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>>
+    // Messages produced here attach to FieldIdentifier(Model, "") — i.e. they surface in
+    // ValidationSummary and any field-less ValidationMessage, not against a specific input.
+    public Delegate? Validate { get; set; }
+
     private EditContext? _context;
     public EditContext? Context
     {
@@ -58,20 +65,26 @@ public sealed class Form : Component
 
     internal EditContext ResolveContext()
     {
+        EditContext ctx;
         if (Context is not null)
         {
-            return Context;
+            ctx = Context;
         }
-
-        if (Model is null)
+        else
         {
-            throw new InvalidOperationException("Form requires Model or Context.");
+            if (Model is null)
+            {
+                throw new InvalidOperationException("Form requires Model or Context.");
+            }
+
+            ctx = LiveRenderContext.Current is { } live
+                ? live.GetOrCreateEditContext(Model)
+                : new EditContext(Model);
         }
 
-        var ctx = LiveRenderContext.Current is { } live
-            ? live.GetOrCreateEditContext(Model)
-            : new EditContext(Model);
-        ctx.AddValidator(new DataAnnotationsValidator());
+        // RegisterFormValidator(null) clears any prior registration so a re-render that
+        // drops the Validate parameter doesn't leave a stale callback behind.
+        ctx.RegisterFormValidator(Validate);
         return ctx;
     }
 

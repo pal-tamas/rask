@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
@@ -12,7 +11,7 @@ public class ValidationMessageTests
     public void OutsideEditContext_RendersNothing()
     {
         var p = new Person();
-        var html = ValidationMessage(() => p.Name).ToHtml();
+        var html = ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]]).ToHtml();
         Assert.Equal("", html);
     }
 
@@ -21,22 +20,21 @@ public class ValidationMessageTests
     {
         var p = new Person { Name = "Ada" };
         var view = new StubComponent(() => Form(p)[
-            ValidationMessage(() => p.Name)
+            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
         ]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validation-message", html);
     }
 
     [Fact]
-    public void InsideEditContext_AfterValidate_RendersDivPerMessage()
+    public void InsideEditContext_WithMessage_RendersTemplate()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
-        ctx.AddValidator(new DataAnnotationsValidator());
-        ctx.Validate();
+        ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationMessage(() => p.Name)
+            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -45,15 +43,17 @@ public class ValidationMessageTests
     }
 
     [Fact]
-    public void ValidationSummary_AfterValidate_RendersUlOfMessages()
+    public void ValidationSummary_WithMessages_RendersTemplate()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
-        ctx.AddValidator(new DataAnnotationsValidator());
-        ctx.Validate();
+        ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
-            ValidationSummary()
+            ValidationSummary(entries =>
+                Ul(Class: "validation-summary")[
+                    entries.Select(e => (Child)Li()[e.Message]).ToArray()
+                ])
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -63,7 +63,6 @@ public class ValidationMessageTests
 
     private sealed class Person
     {
-        [Required(ErrorMessage = "Name is required")]
         public string Name { get; set; } = "";
     }
 }

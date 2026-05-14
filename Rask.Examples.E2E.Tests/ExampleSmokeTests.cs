@@ -438,6 +438,57 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Validation_InlineFieldValidate_ShowsErrorAfterTouch() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // The InlineValidateDemo's form holds #v4-email with an inline Validate: callback.
+        var form = Page.Locator("form:has(#v4-email)");
+        var email = form.Locator("#v4-email");
+
+        // Type an obviously-invalid email and blur to touch the field. The inline Validate
+        // delegate on the Input (Func<string, IEnumerable<string>>) flags missing '@'.
+        await email.FillAsync("not-an-email");
+        await email.BlurAsync();
+
+        await Expect(form.Locator("#v4-email + .text-danger, #v4-email ~ .text-danger").First)
+            .ToContainTextAsync("Email looks wrong",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+
+        // Fixing the value (string fields revalidate per-keystroke once touched) clears the
+        // inline rule's message.
+        await email.FillAsync("ada@example.com");
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Email looks wrong" }))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Validation_InlineFormValidate_AddsSummaryErrorOnMismatch() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v4-email)");
+
+        // Form-level Validate: callback returns ["Passwords do not match."] when
+        // password != confirm. Trigger it by submitting with a mismatch.
+        await form.Locator("#v4-email").FillAsync("ada@example.com");
+        await form.Locator("#v4-password").FillAsync("alpha");
+        await form.Locator("#v4-confirm").FillAsync("bravo");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        // The summary alert in InlineValidateDemo only renders form-level messages, so
+        // this assertion specifically validates the Validate: form-level path.
+        await Expect(form.Locator(".alert-danger"))
+            .ToContainTextAsync("Passwords do not match",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
     public Task Primitives_RawFactory_RendersVerbatimHtml() => RunAsync(async () =>
     {
         // Proves the Raw(string) factory (added alongside the RASK014 ban on
