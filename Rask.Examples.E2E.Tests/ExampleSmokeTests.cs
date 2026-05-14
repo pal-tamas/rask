@@ -190,11 +190,18 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Page.Locator("#v1-name").FillAsync("Ada Lovelace");
         await Page.Locator("#v1-email").FillAsync("ada@example.com");
         await Page.Locator("#v1-age").FillAsync("28");
+        // <input type=number> only wires data-rask-on-change. FillAsync triggers `input`
+        // but not `change`, and Form.BuildSubmitBridge validates ctx.Model (populated by
+        // per-field change events), not the submit FormData — so a real Tab keypress is
+        // needed to deterministically commit Age to the server before submit. See the
+        // longer comment in Validation_Summary_EmptySubmit_RendersHeadlessTemplate.
+        await Page.Locator("#v1-age").PressAsync("Tab");
         await Page.Locator("#v1-plan").SelectOptionAsync("pro");
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
 
         await Expect(Page.Locator(".alert-success").First)
-            .ToContainTextAsync("Ada Lovelace", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+            .ToContainTextAsync("Ada Lovelace",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
 
     [Fact]
@@ -257,18 +264,29 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await form.Locator("#v2-name").FillAsync("Ada Lovelace");
         await form.Locator("#v2-email").FillAsync("ada@example.com");
         await form.Locator("#v2-age").FillAsync("28");
-        // <input type=number> only wires data-rask-on-change (non-string fast path), and
-        // Playwright's Fill + SelectOption sequence never blurs the input — so the change
-        // event never fires server-side and ctx.Model.Age stays at 0. Tab off explicitly.
-        await form.Locator("#v2-age").BlurAsync();
+        // <input type=number> only wires data-rask-on-change (non-string fast path).
+        // Form.BuildSubmitBridge runs validation against ctx.Model — built from per-
+        // field change events, NOT the browser's submit FormData — so if the age field
+        // never fires `change`, ctx.Model.Age stays at 0 and Range[13,120] fails.
+        // BlurAsync (programmatic element.blur()) does not reliably trigger Chromium's
+        // change event on number inputs. A real Tab keypress causes the browser to fire
+        // blur + change natively (trusted event), which the document-level listener in
+        // rask.js then forwards to the server.
+        await form.Locator("#v2-age").PressAsync("Tab");
         await form.Locator("#v2-plan").SelectOptionAsync("pro");
         await form.Locator("button[type=submit]").ClickAsync();
 
         // Success banner first — proves OnValidSubmit fired (and therefore the post-
-        // handler render observed an empty EditContext).
-        await Expect(Page.Locator(".alert-success").First)
+        // handler render observed an empty EditContext). Scope to the v2 demo container
+        // so the locator can't lock onto an alert from a different demo on the page, and
+        // give the submit round-trip more headroom: this turn flushes five queued WS
+        // messages (name OnInput × 1, email OnInput × 1, age OnChange, plan OnChange,
+        // submit) before the success render arrives, which can briefly exceed 10 s under
+        // parallel-class CI load.
+        var demo = Page.Locator(".sample-result-body:has(#v2-name)");
+        await Expect(demo.Locator(".alert-success"))
             .ToContainTextAsync("Ada Lovelace",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         // Same render must have collapsed the headless summary: GetValidationEntries() is
         // empty, ValidationSummary returns Fragment(), the previous template DOM disappears.
@@ -514,6 +532,25 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
         await Expect(form.Locator(".text-danger").Filter(
                 new LocatorFilterOptions { HasText = "Email looks wrong" }))
             .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Validation_InlineFieldValidate_FiresOnSubmit_WithoutPriorTouch() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Submit the InlineValidateDemo without typing into the email field. The inline
+        // Validate delegate rejects any value that doesn't contain '@', so an empty value
+        // must surface "Email looks wrong" once submit drives ctx.ValidateAsync past every
+        // registered field delegate (touched or not).
+        var form = Page.Locator("form:has(#v4-email)");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator("#v4-email + .text-danger, #v4-email ~ .text-danger").First)
+            .ToContainTextAsync("Email looks wrong",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
     });
 
     [Fact]

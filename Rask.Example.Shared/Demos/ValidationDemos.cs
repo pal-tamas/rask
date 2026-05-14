@@ -139,7 +139,7 @@ public sealed class InlineValidateDemo : Component
 
     protected override Component Render() =>
         Fragment()[
-            Form<LoginModel>(
+            Form(
                 _model,
                 m => _submission = $"Welcome, {m.Email}",
                 Class: "vstack gap-3",
@@ -149,7 +149,7 @@ public sealed class InlineValidateDemo : Component
                         Label("v4-email", Class: "form-label small mb-1")["Email"],
                         Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
                             Validate: (Func<string, IEnumerable<string>>)(v =>
-                                string.IsNullOrWhiteSpace(v) || v.Contains('@')
+                                v.Contains('@')
                                     ? Array.Empty<string>()
                                     : new[] { "Email looks wrong." })),
                         ValidationMessage(() => _model.Email, FieldError)

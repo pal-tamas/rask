@@ -33,6 +33,38 @@ public class InputDelegateValidateTests
     }
 
     [Fact]
+    public async Task Input_InlineValidate_FiresOnSubmit_EvenWithoutPriorTouch()
+    {
+        // Reproduces the user's report: the inline `Validate:` on a field must run during
+        // the form's submit pipeline regardless of whether the field was ever touched, so
+        // that "submit untouched form" still gates OnValidSubmit on the field's rule.
+        var p = new Person { Name = "" };
+        var validCalled = 0;
+        var invalidCalled = 0;
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form<Person>(
+            p,
+            _ => validCalled++,
+            _ => invalidCalled++)[
+                Input(() => p.Name,
+                    Validate: (Func<string, IEnumerable<string>>)(_ => new[] { "always-fail" })),
+                new ContextCapture(ctx => captured = ctx)
+            ]);
+        var html = view.RenderAsLiveRoot();
+
+        var submitId = ExtractAttr(html, "data-rask-on-submit")!;
+        using var payload = JsonDocument.Parse("{\"form\":{\"Name\":\"\"}}");
+        await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
+
+        Assert.NotNull(captured);
+        Assert.Contains("always-fail",
+            captured!.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
+        Assert.Equal(0, validCalled);
+        Assert.Equal(1, invalidCalled);
+    }
+
+    [Fact]
     public async Task Input_InlineValidate_NullOnReRender_ClearsRegistration()
     {
         var p = new Person { Name = "" };
