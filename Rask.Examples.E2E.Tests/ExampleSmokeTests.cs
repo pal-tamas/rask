@@ -112,6 +112,60 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Binding_StartDateFirstChange_UpdatesEchoAndInputValue() => RunAsync(async () =>
+    {
+        // Regression: <input type="date"> bound to DateOnly is change-only (no
+        // data-rask-on-input). The morph used to guard from.value/from.checked
+        // sync with `document.activeElement !== from` — fine for streaming text
+        // inputs, but a problem for change-only inputs where the server's
+        // rendered value is authoritative.  Simulate the date-picker flow by
+        // focusing the input, writing the value, and dispatching `change` from
+        // JS while focus is held; assert both the echo and the input's own
+        // .value end up in sync after the round trip.
+        await Page.GotoAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var startDate = Page.Locator("#bind-start");
+        await Expect(startDate).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Drive a date-picker-like change with focus held. `await` returns once
+        // the async dispatch round-trips so the next assertion sees post-morph state.
+        await Page.EvaluateAsync(@"async () => {
+            const el = document.getElementById('bind-start');
+            el.focus();
+            el.value = '2026-05-15';
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }");
+
+        // "Subscribe =" only appears in the echo, never in the syntax-highlighted
+        // source sample, so this disambiguates the two <pre><code> blocks.
+        var echo = Page.Locator("pre code").Filter(
+            new LocatorFilterOptions { HasText = "Subscribe =" });
+        await Expect(echo).ToContainTextAsync("StartDate = 2026-05-15",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Input's own .value must agree with the echo — this is what the morph
+        // focus-guard fix protects.
+        await Expect(startDate).ToHaveValueAsync("2026-05-15",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        // Second change while focus is still on the input — locks the regression
+        // and proves the fix isn't order-dependent.
+        await Page.EvaluateAsync(@"async () => {
+            const el = document.getElementById('bind-start');
+            el.focus();
+            el.value = '2027-02-03';
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }");
+        await Expect(echo).ToContainTextAsync("StartDate = 2027-02-03",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(startDate).ToHaveValueAsync("2027-02-03",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Validation_InvalidSubmit_ShowsRequiredMessages() => RunAsync(async () =>
     {
         await Page.GotoAsync("/validation");
