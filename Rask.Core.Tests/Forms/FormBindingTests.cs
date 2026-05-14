@@ -162,6 +162,307 @@ public class FormBindingTests
         Assert.Same(captures[0], captures[1]);
     }
 
+    [Fact]
+    public void BoundInput_NullableInt_RendersEmptyValue_WhenNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("name=\"OptionalAge\"", html);
+        Assert.Contains("type=\"number\"", html);
+        Assert.Contains("value=\"\"", html);
+    }
+
+    [Fact]
+    public void BoundInput_NullableInt_RendersFormattedValue_WhenSet()
+    {
+        var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("value=\"7\"", html);
+    }
+
+    [Fact]
+    public void BoundInput_NullableDecimal_FormatsInvariantCulture()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("type=\"number\"", html);
+        Assert.Contains("value=\"19.95\"", html);
+    }
+
+    [Fact]
+    public void BoundInput_NullableDateTime_RendersIsoFormat_WhenSet()
+    {
+        var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
+        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("type=\"datetime-local\"", html);
+        Assert.Contains("value=\"2025-05-14T09:30\"", html);
+    }
+
+    [Fact]
+    public void BoundInput_NullableDateOnly_RendersIsoDate_WhenSet()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("type=\"date\"", html);
+        Assert.Contains("value=\"1990-01-02\"", html);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableInt_EmptyString_SetsPropertyToNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        Assert.NotNull(changeId);
+
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.OptionalAge);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableInt_ValidValue_SetsTypedValue()
+    {
+        var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"42\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(42, p.OptionalAge);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableInt_InvalidValue_LeavesPropertyUnchanged()
+    {
+        var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        // Handler still completes (TouchAndValidateHandler always runs validation after the
+        // optional set), but the property retains its prior value because TrySetTyped failed.
+        Assert.True(ok);
+        Assert.Equal(7, p.OptionalAge);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDecimal_EmptyString_SetsPropertyToNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.Price);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDateTime_EmptyString_SetsPropertyToNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
+        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.StartedAt);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDateOnly_EmptyString_SetsPropertyToNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.Birthday);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDecimal_ValidValue_SetsTypedValue()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Price = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"12.5\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(12.5m, p.Price);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDateTime_ValidIso_SetsTypedValue()
+    {
+        var p = new Person { Name = "Ada", Age = 30, StartedAt = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"2025-05-14T09:30\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(new DateTime(2025, 5, 14, 9, 30, 0), p.StartedAt);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableDateOnly_ValidIso_SetsTypedValue()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Birthday = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"1990-01-02\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(new DateOnly(1990, 1, 2), p.Birthday);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableEnum_ValidValue_ParsesEnum()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Status = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"Active\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(PersonStatus.Active, p.Status);
+    }
+
+    [Fact]
+    public async Task OnChange_NullableEnum_EmptyString_SetsPropertyToNull()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Status = PersonStatus.Active };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.Status);
+    }
+
+    [Fact]
+    public async Task OnInput_NullableString_EmptyInput_SetsPropertyToNull()
+    {
+        // For `string?`, BindingHelpers.TrySetTyped reads the NRT annotation off the
+        // PropertyInfo via NullabilityInfoContext and treats empty input as null. The
+        // sibling test below pins the inverse for non-nullable `string`.
+        var p = new Person { Name = "Ada", Age = 30, Nickname = "Bea" };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Nickname)]);
+        var html = view.RenderAsLiveRoot();
+
+        var inputId = ExtractAttr(html, "data-rask-on-input");
+        Assert.NotNull(inputId);
+
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Null(p.Nickname);
+    }
+
+    [Fact]
+    public async Task OnInput_NonNullableString_EmptyInput_SetsEmptyString()
+    {
+        // Non-nullable `string` keeps the pre-existing semantics — empty input becomes
+        // empty string, not null. NullabilityInfoContext reports WriteState == NotNull
+        // for the annotation, so the empty→null shortcut is skipped and the value flows
+        // through RouteValueParser, which returns "" verbatim.
+        var p = new Person { Name = "Ada", Age = 30 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Name)]);
+        var html = view.RenderAsLiveRoot();
+
+        var inputId = ExtractAttr(html, "data-rask-on-input");
+        Assert.NotNull(inputId);
+
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(inputId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal("", p.Name);
+    }
+
+    [Fact]
+    public async Task NullableBool_Checkbox_TogglesTrueFalse_NeverReturnsToNull()
+    {
+        // Pins the current BoolToggleHandler semantics (BindingHelpers.cs:131):
+        // `acc.Setter(!wasChecked)` flips between true and false. Starting from null,
+        // wasChecked is false → first click sets true, then false, then true again.
+        // Tri-state nullable bool is a follow-up — HTML checkboxes have no native
+        // indeterminate state and Blazor's <InputCheckbox bool?> behaves identically.
+        var p = new Person { Name = "Ada", Age = 30, AcceptedTerms = null };
+        var view = new StubComponent(() => Form(p)[Input(() => p.AcceptedTerms)]);
+
+        var html = view.RenderAsLiveRoot();
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        Assert.NotNull(changeId);
+
+        using var emptyDoc = JsonDocument.Parse("{}");
+        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
+        Assert.Equal(true, p.AcceptedTerms);
+
+        html = view.RenderAsLiveRoot();
+        changeId = ExtractAttr(html, "data-rask-on-change");
+        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
+        Assert.Equal(false, p.AcceptedTerms);
+
+        html = view.RenderAsLiveRoot();
+        changeId = ExtractAttr(html, "data-rask-on-change");
+        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
+        Assert.Equal(true, p.AcceptedTerms);
+        Assert.NotNull(p.AcceptedTerms);
+    }
+
     private static string? ExtractAttr(string html, string attr)
     {
         var marker = attr + "=\"";
@@ -181,7 +482,17 @@ public class FormBindingTests
         [Required] public string Name { get; set; } = "";
         [Range(1, 120)] public int Age { get; set; }
         public bool Subscribed { get; set; }
+
+        public int? OptionalAge { get; set; }
+        public decimal? Price { get; set; }
+        public DateTime? StartedAt { get; set; }
+        public DateOnly? Birthday { get; set; }
+        public bool? AcceptedTerms { get; set; }
+        public string? Nickname { get; set; }
+        public PersonStatus? Status { get; set; }
     }
+
+    private enum PersonStatus { Active, Inactive }
 
     private sealed class ContextCapture(Action<EditContext> capture) : Component
     {

@@ -49,6 +49,20 @@ public sealed class BindingPage : Component
                 Notes:
                 "The same Bind helper picks the right input type from the property's CLR type and wires immediate (string) or change-deferred (everything else) update timing automatically.",
                 Result: BindingMultiDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Typed — nullable properties"],
+            CodeSample(
+                """
+                Input(Bind: () => _model.OptionalAge)   // int?    → empty → null
+                Input(Bind: () => _model.StartDate)     // DateOnly? → empty → null
+                Select(Bind: () => _model.Favorite)[    // Color?
+                    Option("")["— none —"],
+                    Option("Red")["Red"], ...
+                ]
+                Input(Bind: () => _model.Nickname)      // string? (NRT) → empty → null
+                """,
+                Notes:
+                "BindingHelpers.TrySetTyped routes empty input to null when the property is nullable — either Nullable<T> for value types or NRT-annotated for reference types (detected via NullabilityInfoContext). Non-nullable string still becomes \"\" when emptied; non-nullable value types fail to parse and keep their previous value.",
+                Result: BindingNullableDemo()),
             H2(Class: "h4 mt-5 mb-3")["Typed — Textarea<TProp>(Bind: ...)"],
             CodeSample(
                 """

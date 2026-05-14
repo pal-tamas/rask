@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
@@ -152,15 +153,20 @@ internal static class BindingHelpers
     private static bool TrySetTyped(ExpressionAccessor.Accessor acc, string raw)
     {
         var t = acc.PropertyType;
-        if (Nullable.GetUnderlyingType(t) is not null && string.IsNullOrEmpty(raw))
+        var underlying = Nullable.GetUnderlyingType(t);
+        if (string.IsNullOrEmpty(raw) && IsNullableProperty(acc.Property, underlying, t))
         {
             acc.Setter(null);
             return true;
         }
 
-        if (t.IsEnum)
+        // Enum.TryParse needs the unwrapped type — Nullable<TEnum>.IsEnum is false, so a
+        // nullable enum would otherwise fall through to RouteValueParser, which only
+        // probes IParsable<T> (enums don't expose it through reflection's interface table).
+        var effective = underlying ?? t;
+        if (effective.IsEnum)
         {
-            if (Enum.TryParse(t, raw, true, out var en))
+            if (Enum.TryParse(effective, raw, true, out var en))
             {
                 acc.Setter(en);
                 return true;
@@ -176,5 +182,32 @@ internal static class BindingHelpers
         }
 
         return false;
+    }
+
+    // Determines whether an empty form value should round-trip to `null`. Value types use
+    // Nullable<T>; reference types (notably `string?`) carry C# nullable-annotation metadata
+    // that NullabilityInfoContext reads off the PropertyInfo. Unknown (NRT disabled in the
+    // model's compilation context) is treated as non-nullable, matching pre-NRT behavior.
+    private static readonly NullabilityInfoContext _nullabilityCtx = new();
+
+    private static bool IsNullableProperty(PropertyInfo prop, Type? underlying, Type type)
+    {
+        if (underlying is not null)
+        {
+            return true;
+        }
+
+        if (type.IsValueType)
+        {
+            return false;
+        }
+
+        NullabilityInfo info;
+        lock (_nullabilityCtx)
+        {
+            info = _nullabilityCtx.Create(prop);
+        }
+
+        return info.WriteState == NullabilityState.Nullable;
     }
 }
