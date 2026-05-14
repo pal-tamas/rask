@@ -200,13 +200,20 @@ public sealed class EditContext
         }
 
         ClearAllMessages();
-        foreach (var v in _validators)
-        {
-            v.Validate(this);
-        }
 
+        // Inline per-field delegates run first, then the form-level inline delegate,
+        // then attribute-driven validators (DataAnnotations, FluentValidation, …) in
+        // registration order. First-error-wins gates each later stage so a field stays
+        // tied to the first rule that flagged it.
         InvokeSyncFieldDelegates();
         InvokeSyncFormDelegate();
+
+        foreach (var v in _validators)
+        {
+            var pre = SnapshotMessageCounts();
+            v.Validate(this);
+            TrimGatedMessages(pre);
+        }
 
         ValidationStateChanged?.Invoke();
         return !HasValidationMessages();
@@ -220,12 +227,22 @@ public sealed class EditContext
         }
 
         ClearMessages(field);
-        foreach (var v in _validators)
-        {
-            v.ValidateField(this, field);
-        }
 
+        // Inline field delegate first, then attribute-driven validators — short-circuit
+        // as soon as any stage has produced a message for the field (first-error-wins).
         InvokeSyncFieldDelegate(field);
+
+        if (GetValidationMessages(field).Count == 0)
+        {
+            foreach (var v in _validators)
+            {
+                v.ValidateField(this, field);
+                if (GetValidationMessages(field).Count > 0)
+                {
+                    break;
+                }
+            }
+        }
 
         ValidationStateChanged?.Invoke();
         return GetValidationMessages(field).Count == 0;
@@ -240,15 +257,38 @@ public sealed class EditContext
         }
 
         ClearAllMessages();
+
+        // Inline per-field delegates first: sync invoked, async awaited. Each one isolates
+        // its own exception so one bad delegate doesn't kill the whole submit pipeline.
+        foreach (var pair in _fieldDelegates)
+        {
+            await InvokeFieldDelegateAsync(pair.Key, pair.Value, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        // Form-level inline delegate runs next so cross-field rules (e.g. "passwords match")
+        // can observe the per-field messages just produced above.
+        if (_formDelegate is not null)
+        {
+            await InvokeFormDelegateAsync(_formDelegate, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        // Attribute-driven validators (DataAnnotations, FluentValidation, …) follow,
+        // in registration order — sync first, then async. First-error-wins gates each
+        // validator so a field that's already flagged stays tied to the earliest rule.
         foreach (var v in _validators)
         {
+            var pre = SnapshotMessageCounts();
             v.Validate(this);
+            TrimGatedMessages(pre);
         }
 
         if (_asyncValidators.Count > 0)
         {
             foreach (var v in _asyncValidators)
             {
+                var pre = SnapshotMessageCounts();
                 try
                 {
                     await v.ValidateAsync(this, cancellationToken).ConfigureAwait(false);
@@ -262,24 +302,9 @@ public sealed class EditContext
                     AddValidationMessage(new FieldIdentifier(Model, string.Empty), "Validation could not be completed.");
                 }
 
+                TrimGatedMessages(pre);
                 cancellationToken.ThrowIfCancellationRequested();
             }
-        }
-
-        // Inline per-field delegates: sync invoked, async awaited. Each one isolates its own
-        // exception so one bad delegate doesn't kill the whole submit pipeline.
-        foreach (var pair in _fieldDelegates)
-        {
-            await InvokeFieldDelegateAsync(pair.Key, pair.Value, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        // Form-level delegate runs last so it sees settled per-field state and can apply
-        // cross-field rules (e.g. "passwords match") with awareness of upstream errors.
-        if (_formDelegate is not null)
-        {
-            await InvokeFormDelegateAsync(_formDelegate, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
         }
 
         ValidationStateChanged?.Invoke();
@@ -298,24 +323,31 @@ public sealed class EditContext
 
         ClearMessages(field);
 
-        foreach (var v in _validators)
-        {
-            v.ValidateField(this, field);
-        }
-
         var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
         var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);
 
-        // Sync inline delegate runs synchronously alongside sync validators.
-        if (hasFieldDelegate && !fieldDelegateIsAsync)
+        // Fast sync path: nothing async to await. Inline first, then attribute-driven;
+        // first-error-wins short-circuits as soon as any stage flags the field.
+        if (!fieldDelegateIsAsync && _asyncValidators.Count == 0)
         {
-            InvokeSyncFieldDelegate(field, fieldReg);
-        }
+            if (hasFieldDelegate)
+            {
+                InvokeSyncFieldDelegate(field, fieldReg);
+            }
 
-        if (_asyncValidators.Count == 0 && !fieldDelegateIsAsync)
-        {
+            if (state.Messages.Count == 0)
+            {
+                foreach (var v in _validators)
+                {
+                    v.ValidateField(this, field);
+                    if (state.Messages.Count > 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
             ValidationStateChanged?.Invoke();
-            // Dispose the CTS we just installed; sync path doesn't need it.
             if (ReferenceEquals(state.Cts, cts))
             {
                 state.Cts = null;
@@ -324,6 +356,9 @@ public sealed class EditContext
             return state.Messages.Count == 0;
         }
 
+        // Async path. Enter the pending bookkeeping up front so the inline delegate (async
+        // or sync) runs ahead of the attribute-driven validators — same order as the sync
+        // path above.
         var wasZero = state.PendingCount == 0;
         state.PendingCount++;
         if (wasZero)
@@ -333,50 +368,79 @@ public sealed class EditContext
 
         try
         {
-            foreach (var v in _asyncValidators)
+            if (hasFieldDelegate)
             {
-                try
+                if (fieldDelegateIsAsync)
                 {
-                    await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return false;
-                }
-                catch (Exception)
-                {
-                    AddValidationMessage(field, "Validation could not be completed.");
-                }
+                    try
+                    {
+                        var msgs = await DelegateValidator.InvokeAsync(
+                            fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
+                        foreach (var m in msgs)
+                        {
+                            AddValidationMessage(field, m);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return false;
+                    }
+                    catch (Exception)
+                    {
+                        AddValidationMessage(field, "Validation could not be completed.");
+                    }
 
-                if (cts.IsCancellationRequested)
+                    if (cts.IsCancellationRequested)
+                    {
+                        return false;
+                    }
+                }
+                else
                 {
-                    return false;
+                    InvokeSyncFieldDelegate(field, fieldReg);
                 }
             }
 
-            if (fieldDelegateIsAsync)
+            // First-error-wins: skip sync IFieldValidators once the field already has a
+            // message from an earlier stage.
+            if (state.Messages.Count == 0)
             {
-                try
+                foreach (var v in _validators)
                 {
-                    var msgs = await DelegateValidator.InvokeAsync(
-                        fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
-                    foreach (var m in msgs)
+                    v.ValidateField(this, field);
+                    if (state.Messages.Count > 0)
                     {
-                        AddValidationMessage(field, m);
+                        break;
                     }
                 }
-                catch (OperationCanceledException)
-                {
-                    return false;
-                }
-                catch (Exception)
-                {
-                    AddValidationMessage(field, "Validation could not be completed.");
-                }
+            }
 
-                if (cts.IsCancellationRequested)
+            if (state.Messages.Count == 0)
+            {
+                foreach (var v in _asyncValidators)
                 {
-                    return false;
+                    try
+                    {
+                        await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return false;
+                    }
+                    catch (Exception)
+                    {
+                        AddValidationMessage(field, "Validation could not be completed.");
+                    }
+
+                    if (cts.IsCancellationRequested)
+                    {
+                        return false;
+                    }
+
+                    if (state.Messages.Count > 0)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -410,6 +474,40 @@ public sealed class EditContext
         foreach (var field in _fieldDelegates.Keys)
         {
             GetOrCreate(field).Touched = true;
+        }
+    }
+
+    // First-error-wins gating. We snapshot the per-field message count before invoking a
+    // validator, then trim any messages that validator added on fields that already had
+    // earlier messages. Two consequences:
+    //   * Across stages — inline → form-level → sync IFieldValidator → async IAsyncFieldValidator
+    //     — a field can only carry an error from the *first* stage that produced one.
+    //   * Across validators within the sync or async stage, the earliest registered validator
+    //     to flag a field wins; later validators don't pile on for the same field.
+    // When the upstream rule passes on a re-validate, the snapshot is empty and the next
+    // stage gets to run, which gives the "fix the error, the next rule kicks in" behaviour.
+    private Dictionary<FieldIdentifier, int> SnapshotMessageCounts()
+    {
+        var snapshot = new Dictionary<FieldIdentifier, int>();
+        foreach (var pair in _states)
+        {
+            if (pair.Value.Messages.Count > 0)
+            {
+                snapshot[pair.Key] = pair.Value.Messages.Count;
+            }
+        }
+
+        return snapshot;
+    }
+
+    private void TrimGatedMessages(Dictionary<FieldIdentifier, int> preCounts)
+    {
+        foreach (var pair in preCounts)
+        {
+            if (_states.TryGetValue(pair.Key, out var s) && s.Messages.Count > pair.Value)
+            {
+                s.Messages.RemoveRange(pair.Value, s.Messages.Count - pair.Value);
+            }
         }
     }
 

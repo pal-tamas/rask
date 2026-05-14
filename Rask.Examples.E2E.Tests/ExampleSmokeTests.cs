@@ -594,6 +594,91 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Validation_FirstErrorWins_InlineGatesDataAnnotations_ThenFlips() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // FirstErrorWinsDemo: inline rule rejects whitespace ("Code is required."), and a
+        // [RegularExpression] DA rule rejects any non "ABC-123" value. EditContext gates the
+        // DA rule while the inline rule is failing, so an empty submit must only surface the
+        // inline message — the DA "Use the ABC-123 format." must NOT also appear.
+        var form = Page.Locator("form:has(#v8-code)");
+        var field = form.Locator("#v8-code");
+
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        var errors = form.Locator(".text-danger");
+        await Expect(errors).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        await Expect(errors.First).ToContainTextAsync("Code is required",
+            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+
+        // Type a value that satisfies the inline rule (non-empty) but fails DA. With the
+        // inline rule clean, gating releases and the DA message flips in.
+        await field.FillAsync("abc");
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("ABC-123 format",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+
+        // Fix the DA rule too — both stages now pass and the success banner lands.
+        await field.FillAsync("ABC-123");
+        await form.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator(".sample-result-body:has(#v8-code) .alert-success"))
+            .ToContainTextAsync("Activated: ABC-123",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_FluentValidationAsync_ChainTransitionsToMustAsync() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // FluentValidationAsyncDemo: a single RuleFor with CascadeMode.Stop ending in MustAsync.
+        // Empty submit hits NotEmpty; "abc" hits Matches; "TKT-001" hits MustAsync after the
+        // 400ms await (indicator visible during the wait); "TKT-999" submits successfully.
+        var form = Page.Locator("form:has(#v9-code)");
+        var field = form.Locator("#v9-code");
+
+        await form.Locator("button[type=submit]").ClickAsync();
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("Code is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+
+        await field.FillAsync("abc");
+        await field.BlurAsync();
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("TKT-123",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+
+        // Reserved code → after the 400ms MustAsync await, the message lands. The indicator
+        // surfaces during the await window.
+        await field.FillAsync("TKT-001");
+        await field.BlurAsync();
+        await Expect(form.Locator(".validating-indicator"))
+            .ToContainTextAsync("Checking",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("already reserved",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // Free code → submit succeeds.
+        await field.FillAsync("TKT-999");
+        await field.BlurAsync();
+        await Expect(form.Locator(".validating-indicator"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        await form.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator(".sample-result-body:has(#v9-code) .alert-success"))
+            .ToContainTextAsync("Reserved: TKT-999",
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
     public Task Primitives_RawFactory_RendersVerbatimHtml() => RunAsync(async () =>
     {
         // Proves the Raw(string) factory (added alongside the RASK014 ban on

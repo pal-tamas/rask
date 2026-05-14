@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 using Rask.Core.Forms;
 using static Rask.Validation.DataAnnotations.Components;
+using static Rask.Validation.FluentValidation.Components;
 
 namespace Rask.Example.Shared.Demos;
 
@@ -282,4 +284,308 @@ public sealed class RegistrationModel
 
     [Required(ErrorMessage = "Pick a plan.")]
     public string Plan { get; set; } = "";
+}
+
+public sealed class CrossFieldSummaryDemo : Component
+{
+    private readonly TripModel _model = new();
+    private string? _submission;
+
+    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
+        entries.Count == 0
+            ? Fragment()
+            : Div(Class: "alert alert-danger small mb-0")[
+                Ul(Class: "mb-0 ps-3")[
+                    entries.Select(e => (Child)Li()[
+                        e.Field.Length == 0
+                            ? (Child)e.Message
+                            : (Child)Fragment()[Strong()[e.Field], ": ", e.Message]
+                    ])
+                ]
+            ];
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<TripModel>(
+                _model,
+                m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
+                Class: "vstack gap-3",
+                Validate: (Func<TripModel, IEnumerable<string>>)(m =>
+                    m.Return > m.Depart
+                        ? Array.Empty<string>()
+                        : new[] { "Return date must be after departure." }))[
+                    ValidationSummary(SummaryAlert),
+                    Div()[
+                        Label("v5-depart", Class: "form-label small mb-1")["Departure"],
+                        Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
+                    ],
+                    Div()[
+                        Label("v5-return", Class: "form-label small mb-1")["Return"],
+                        Input(() => _model.Return, Id: "v5-return", Class: "form-control")
+                    ],
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class TripModel
+{
+    public DateOnly Depart { get; set; } = new(2026, 6, 1);
+    public DateOnly Return { get; set; } = new(2026, 6, 1);
+}
+
+public sealed class ProgrammaticValidateDemo : Component
+{
+    private readonly TaskModel _model = new();
+    private readonly EditContext _ctx;
+    private string? _submission;
+
+    public ProgrammaticValidateDemo()
+    {
+        _ctx = new EditContext(_model);
+        _ctx.AddValidator(new SlowTitleValidator());
+    }
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    private async Task ValidateNowAsync()
+    {
+        await _ctx.ValidateAsync().ConfigureAwait(false);
+    }
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<TaskModel>(
+                _model,
+                m => _submission = $"Saved task: {m.Title}",
+                Context: _ctx,
+                Class: "vstack gap-3")[
+                    Div()[
+                        Label("v6-title", Class: "form-label small mb-1")["Title"],
+                        Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
+                        ValidatingIndicator(() => _model.Title, "validating-indicator text-muted small mt-1")[
+                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+                        ],
+                        ValidationMessage(() => _model.Title, FieldError)
+                    ],
+                    Div(Class: "d-flex gap-2")[
+                        Button(
+                            "button",
+                            Id: "v6-validate-now",
+                            Class: "btn btn-outline-secondary",
+                            OnClickAsync: ValidateNowAsync)[
+                                I(Class: "bi bi-search me-1"), "Validate now"
+                            ],
+                        Button(
+                            "submit",
+                            Id: "v6-submit",
+                            Disabled: _ctx.IsValidatingAny,
+                            Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class TaskModel
+{
+    [Required(ErrorMessage = "Title is required.")]
+    public string Title { get; set; } = "";
+}
+
+// 600ms delay so the e2e test for submit-disable has a deterministic window to observe
+// the disabled state before the async validator settles. Like UniqueUsernameValidator,
+// the literal "explode" exercises the framework's exception fallback.
+public sealed class SlowTitleValidator : IAsyncFieldValidator
+{
+    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+    {
+        if (context.Model is TaskModel m)
+        {
+            await CheckAsync(context, new FieldIdentifier(m, nameof(TaskModel.Title)), m.Title, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+    {
+        if (context.Model is TaskModel m && field.FieldName == nameof(TaskModel.Title))
+        {
+            await CheckAsync(context, field, m.Title, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task CheckAsync(EditContext context, FieldIdentifier field, string title, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return;
+        }
+
+        await Task.Delay(600, ct).ConfigureAwait(false);
+        if (string.Equals(title, "duplicate", StringComparison.OrdinalIgnoreCase))
+        {
+            context.AddValidationMessage(field, $"\"{title}\" is already used.");
+        }
+    }
+}
+
+public sealed class FluentValidationDemo : Component
+{
+    private readonly OrderModel _model = new();
+    private string? _submission;
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<OrderModel>(
+                _model,
+                m => _submission = $"Ordered {m.Quantity} × {m.Product}",
+                Class: "vstack gap-3")[
+                    FluentValidationValidator(new OrderValidator()),
+                    Div()[
+                        Label("v7-product", Class: "form-label small mb-1")["Product"],
+                        Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
+                        ValidationMessage(() => _model.Product, FieldError)
+                    ],
+                    Div()[
+                        Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
+                        Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
+                        ValidationMessage(() => _model.Quantity, FieldError)
+                    ],
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-bag-check me-1"), "Order"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class OrderModel
+{
+    public string Product { get; set; } = "";
+    public int Quantity { get; set; }
+}
+
+public sealed class OrderValidator : AbstractValidator<OrderModel>
+{
+    public OrderValidator()
+    {
+        RuleFor(x => x.Product).NotEmpty().WithMessage("Product is required.");
+        RuleFor(x => x.Quantity).GreaterThanOrEqualTo(1).WithMessage("Quantity must be at least 1.");
+    }
+}
+
+// First-error-wins: an inline per-field rule and a DataAnnotations rule both target the
+// same field. EditContext gates later stages once any earlier stage has flagged the field,
+// so the inline "Required." message appears while the input is empty, and ONLY after that
+// rule passes does the [RegularExpression] format error surface.
+public sealed class FirstErrorWinsDemo : Component
+{
+    private readonly LicenseModel _model = new();
+    private string? _submission;
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<LicenseModel>(
+                _model,
+                m => _submission = $"Activated: {m.Code}",
+                Class: "vstack gap-3")[
+                    DataAnnotationsValidator(),
+                    Div()[
+                        Label("v8-code", Class: "form-label small mb-1")["License code"],
+                        Input(() => _model.Code, Id: "v8-code", Class: "form-control",
+                            Validate: (Func<string, IEnumerable<string>>)(v =>
+                                string.IsNullOrWhiteSpace(v)
+                                    ? new[] { "Code is required." }
+                                    : Array.Empty<string>())),
+                        ValidationMessage(() => _model.Code, FieldError)
+                    ],
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class LicenseModel
+{
+    [RegularExpression(@"^[A-Z]{3}-\d{3}$", ErrorMessage = "Use the ABC-123 format.")]
+    public string Code { get; set; } = "";
+}
+
+// FluentValidation async: a single RuleFor chain stacks NotEmpty → Matches → MustAsync.
+// FluentValidationValidator wraps the whole IValidator into an IAsyncFieldValidator, so
+// MustAsync awaits the network-shaped check and the ValidatingIndicator surfaces while
+// the await is in flight.
+public sealed class FluentValidationAsyncDemo : Component
+{
+    private readonly TicketModel _model = new();
+    private string? _submission;
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<TicketModel>(
+                _model,
+                m => _submission = $"Reserved: {m.Code}",
+                Class: "vstack gap-3")[
+                    FluentValidationValidator(new TicketValidator()),
+                    Div()[
+                        Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
+                        Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
+                        ValidatingIndicator(() => _model.Code, "validating-indicator text-muted small mt-1")[
+                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
+                        ],
+                        ValidationMessage(() => _model.Code, FieldError)
+                    ],
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class TicketModel
+{
+    public string Code { get; set; } = "";
+}
+
+// CascadeMode.Stop keeps FV's own chain aligned with Rask's first-error-wins gating:
+// NotEmpty must pass before Matches runs, which must pass before MustAsync fires.
+public sealed class TicketValidator : AbstractValidator<TicketModel>
+{
+    private static readonly HashSet<string> Used = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TKT-001", "TKT-002", "TKT-003"
+    };
+
+    public TicketValidator()
+    {
+        RuleFor(x => x.Code).Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("Code is required.")
+            .Matches(@"^TKT-\d{3}$").WithMessage("Format must be TKT-123.")
+            .MustAsync(async (code, ct) =>
+            {
+                await Task.Delay(400, ct).ConfigureAwait(false);
+                return !Used.Contains(code);
+            }).WithMessage("Code is already reserved.");
+    }
 }
