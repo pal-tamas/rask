@@ -13,6 +13,13 @@ public sealed class Input : Element
     // write `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field,
     // per-type input type (checkbox/number/date/text), and per-type change handlers wired
     // into the ambient EditContext.
+    //
+    // `Validate` ships as three overloads to dodge the `(Func<…>)` cast at the call site:
+    //   - no Validate parameter at all (omit to skip validation),
+    //   - typed sync   `Func<TProp, IEnumerable<string>> Validate`,
+    //   - typed async  `Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate`.
+    // Overload resolution picks based on the lambda's arity; all three forward to the shared
+    // BoundCore which collapses to the single `Delegate?` the EditContext consumes.
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
@@ -32,11 +39,93 @@ public sealed class Input : Element
         string? Autocomplete = null,
         bool Autofocus = false,
         string? List = null,
-        Delegate? Validate = null,
         string? Id = null,
         string? Class = null,
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null)
+        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
+            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
+            Autocomplete, Autofocus, List, validate: null, Id, Class, Style, Data);
+
+    [GenerateForwarderFactory]
+    public static Input Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        Func<TProp, IEnumerable<string>> Validate,
+        string? Type = null,
+        string? Name = null,
+        string? Placeholder = null,
+        bool Required = false,
+        bool Disabled = false,
+        bool ReadOnly = false,
+        string? Min = null,
+        string? Max = null,
+        string? Step = null,
+        string? Pattern = null,
+        int? Size = null,
+        int? MaxLength = null,
+        int? MinLength = null,
+        string? Autocomplete = null,
+        bool Autofocus = false,
+        string? List = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null)
+        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
+            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
+            Autocomplete, Autofocus, List, validate: Validate, Id, Class, Style, Data);
+
+    [GenerateForwarderFactory]
+    public static Input Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        string? Type = null,
+        string? Name = null,
+        string? Placeholder = null,
+        bool Required = false,
+        bool Disabled = false,
+        bool ReadOnly = false,
+        string? Min = null,
+        string? Max = null,
+        string? Step = null,
+        string? Pattern = null,
+        int? Size = null,
+        int? MaxLength = null,
+        int? MinLength = null,
+        string? Autocomplete = null,
+        bool Autofocus = false,
+        string? List = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null)
+        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
+            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
+            Autocomplete, Autofocus, List, validate: Validate, Id, Class, Style, Data);
+
+    private static Input BoundCore<TProp>(
+        Expression<Func<TProp>> Bind,
+        string? Type,
+        string? Name,
+        string? Placeholder,
+        bool Required,
+        bool Disabled,
+        bool ReadOnly,
+        string? Min,
+        string? Max,
+        string? Step,
+        string? Pattern,
+        int? Size,
+        int? MaxLength,
+        int? MinLength,
+        string? Autocomplete,
+        bool Autofocus,
+        string? List,
+        Delegate? validate,
+        string? Id,
+        string? Class,
+        string? Style,
+        IReadOnlyDictionary<string, string?>? Data)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
@@ -46,7 +135,7 @@ public sealed class Input : Element
 
         // Always call Register — null clears a stale delegate from a prior render so dropping
         // the parameter between frames doesn't leave the old rule running.
-        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+        ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
 
         var current = acc.Getter();
 

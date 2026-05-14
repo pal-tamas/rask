@@ -16,8 +16,8 @@ public class InputDelegateValidateTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Name,
-                Validate: (Func<string, IEnumerable<string>>)(v =>
-                    v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())),
+                Validate: v =>
+                    v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
         var html = view.RenderAsLiveRoot();
@@ -48,7 +48,7 @@ public class InputDelegateValidateTests
             _ => validCalled++,
             _ => invalidCalled++)[
                 Input(() => p.Name,
-                    Validate: (Func<string, IEnumerable<string>>)(_ => new[] { "always-fail" })),
+                    Validate: _ => new[] { "always-fail" }),
                 new ContextCapture(ctx => captured = ctx)
             ]);
         var html = view.RenderAsLiveRoot();
@@ -74,8 +74,8 @@ public class InputDelegateValidateTests
         var view = new StubComponent(() => Form(p)[
             includeValidator
                 ? Input(() => p.Name,
-                    Validate: (Func<string, IEnumerable<string>>)(v =>
-                        v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()))
+                    Validate: v =>
+                        v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
                 : Input(() => p.Name),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -96,6 +96,65 @@ public class InputDelegateValidateTests
         using var blur2 = JsonDocument.Parse("{\"value\":\"ab\"}");
         await view.TryInvokeHandlerAsync(changeId2, blur2.RootElement);
 
+        Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
+    }
+
+    [Fact]
+    public async Task Input_InlineValidate_AsyncOverload_RunsThroughValidateAsync()
+    {
+        // Drives the async `Validate: (v, ct) => …` overload — a one-line lambda binds straight
+        // to Func<string, CancellationToken, ValueTask<IEnumerable<string>>> with no cast. The
+        // dispatch goes through DelegateValidator.InvokeAsync because IsAsync(d) sees the two
+        // parameters; messages land via EditContext.ValidateFieldAsync.
+        var p = new Person { Name = "" };
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form(p)[
+            Input(() => p.Name,
+                Validate: async (v, ct) =>
+                {
+                    await Task.Yield();
+                    ct.ThrowIfCancellationRequested();
+                    return v.Length < 3 ? new[] { "async-too-short" } : Array.Empty<string>();
+                }),
+            new ContextCapture(ctx => captured = ctx)
+        ]);
+        var html = view.RenderAsLiveRoot();
+        Assert.NotNull(captured);
+
+        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)));
+
+        Assert.Contains("async-too-short",
+            captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
+    }
+
+    [Fact]
+    public async Task Input_InlineValidate_AsyncOverload_RespectsCancellation()
+    {
+        // The framework hands the field's own CancellationToken to the async delegate; if the
+        // delegate throws OperationCanceledException the run is treated as superseded and no
+        // generic "could not be completed" message gets emitted.
+        var p = new Person { Name = "abc" };
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form(p)[
+            Input(() => p.Name,
+                Validate: async (v, ct) =>
+                {
+                    await Task.Yield();
+                    ct.ThrowIfCancellationRequested();
+                    return Array.Empty<string>();
+                }),
+            new ContextCapture(ctx => captured = ctx)
+        ]);
+        view.RenderAsLiveRoot();
+        Assert.NotNull(captured);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)), cts.Token);
+
+        // OCE bubbled — no generic message added; no success messages either.
         Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
     }
 

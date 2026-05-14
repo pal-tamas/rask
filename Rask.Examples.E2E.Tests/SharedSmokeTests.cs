@@ -712,6 +712,45 @@ public abstract class SharedSmokeTests : IAsyncLifetime
                 new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
     });
 
+    [Fact]
+    public Task Validation_InlineFieldAsyncValidate_ShowsRemoteError() => RunAsync(async () =>
+    {
+        // Drives the typed async Validate overload (Func<T, CT, ValueTask<IEnumerable<string>>>)
+        // on the Input. CheckCodeAsync sleeps 250ms then flags reserved codes — the test types
+        // a reserved code, blurs, and waits for the async result to land in .text-danger.
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v10-code)");
+        var field = form.Locator("#v10-code");
+
+        await field.FillAsync("BAD-001");
+        await field.BlurAsync();
+
+        await Expect(form.Locator(".text-danger"))
+            .ToContainTextAsync("reserved",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+    });
+
+    [Fact]
+    public Task Validation_InlineFormAsyncValidate_AddsSummaryErrorAtSubmit() => RunAsync(async () =>
+    {
+        // Drives the typed async Validate overload on Form<PromoModel>. With an empty Code
+        // the async form-level rule returns ["Code is required."], which lands as a form-
+        // level entry rendered by the SummaryAlert (.alert-danger).
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v10-code)");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".alert-danger"))
+            .ToContainTextAsync("Code is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
     // ---------- Validation: new demos (v5 cross-field, v6 programmatic, v7 FluentValidation) ----------
 
     [Fact]
@@ -926,6 +965,93 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         await form.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.Locator(".sample-result-body:has(#v9-code) .alert-success"))
             .ToContainTextAsync("Reserved: TKT-999",
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task Validation_ValidatableObject_AttributeAndInterfaceErrors_SurfaceTogether() => RunAsync(async () =>
+    {
+        // ASP.NET Core parity assertion. BookingModel pairs [Required] on Name with an
+        // IValidatableObject.Validate that returns BOTH a per-field result for Departure
+        // (MemberNames=["Departure"]) and a form-level result (empty MemberNames). The BCL's
+        // TryValidateObject would silence Validate() the moment [Required] fails — Rask's
+        // DataAnnotationsValidator invokes the interface directly, so all three errors must
+        // surface in the same submit cycle. The test then fixes each error in turn and asserts
+        // it disappears independently before submitting cleanly to the success banner.
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var demo = Page.Locator(".sample-result-body:has(#v11-name)");
+        var form = demo.Locator("form");
+
+        // Date inputs are change-only — match the discipline used by CrossFieldSummaryDemo's e2e:
+        // fill, blur, wait for the committed value before touching the next one.
+        await form.Locator("#v11-departure").FillAsync("2020-01-01");
+        await form.Locator("#v11-departure").PressAsync("Tab");
+        await Expect(form.Locator("#v11-departure"))
+            .ToHaveValueAsync("2020-01-01", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        await form.Locator("#v11-arrival").FillAsync("2019-12-31");
+        await form.Locator("#v11-arrival").PressAsync("Tab");
+        await Expect(form.Locator("#v11-arrival"))
+            .ToHaveValueAsync("2019-12-31", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        // Attribute error on Name (per-field ValidationMessage template).
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Name is required" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // IValidatableObject per-field result for Departure.
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // IValidatableObject form-level result lands in the summary.
+        await Expect(form.Locator(".alert-danger"))
+            .ToContainTextAsync("Arrival must be after departure",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Fix Name only — its [Required] error clears; the two IValidatableObject errors stay.
+        await form.Locator("#v11-name").FillAsync("Ada");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Name is required" }))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".alert-danger"))
+            .ToContainTextAsync("Arrival must be after departure",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Fix Departure → past-date error clears; form-level error still holds because
+        // Arrival (2019-12-31) is still ≤ Departure (2026-07-01).
+        await form.Locator("#v11-departure").FillAsync("2026-07-01");
+        await form.Locator("#v11-departure").PressAsync("Tab");
+        await Expect(form.Locator("#v11-departure"))
+            .ToHaveValueAsync("2026-07-01", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Departure cannot be in the past" }))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".alert-danger"))
+            .ToContainTextAsync("Arrival must be after departure",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Fix Arrival → all errors clear, success banner lands.
+        await form.Locator("#v11-arrival").FillAsync("2026-07-05");
+        await form.Locator("#v11-arrival").PressAsync("Tab");
+        await Expect(form.Locator("#v11-arrival"))
+            .ToHaveValueAsync("2026-07-05", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(demo.Locator(".alert-success"))
+            .ToContainTextAsync("Booked: Ada 2026-07-01",
                 new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 }

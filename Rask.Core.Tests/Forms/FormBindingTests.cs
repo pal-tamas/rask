@@ -76,11 +76,11 @@ public class FormBindingTests
         var invalidCalled = 0;
 
         var view = new StubComponent(() => Form<Person>(
-            p,
-            _ => validCalled++,
-            _ => invalidCalled++,
-            Validate: (Func<Person, IEnumerable<string>>)(m =>
-                string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>()))[
+            Model: p,
+            OnValidSubmit: _ => validCalled++,
+            OnInvalidSubmit: _ => invalidCalled++,
+            Validate: m =>
+                string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
                     Input(() => p.Name), Input(() => p.Age)
                 ]);
         var html = view.RenderAsLiveRoot();
@@ -91,6 +91,40 @@ public class FormBindingTests
 
         Assert.Equal(0, validCalled);
         Assert.Equal(1, invalidCalled);
+    }
+
+    [Fact]
+    public async Task FormValidate_AsyncOverload_AddsFormLevelMessage_AtSubmit()
+    {
+        // Drives Form<TModel>'s async Validate overload: the lambda binds to
+        // Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>> with no cast,
+        // and the async messages attach to FieldIdentifier(Model, "") — exactly where
+        // ValidationSummary / form-scoped readers look.
+        var p = new Person { Name = "Ada", Age = 30 };
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form<Person>(
+            Model: p,
+            Validate: async (m, ct) =>
+            {
+                await Task.Yield();
+                ct.ThrowIfCancellationRequested();
+                return string.IsNullOrEmpty(m.Name)
+                    ? new[] { "async-form-rule" }
+                    : Array.Empty<string>();
+            })[
+                Input(() => p.Name),
+                new ContextCapture(c => captured = c)
+            ]);
+        var html = view.RenderAsLiveRoot();
+        Assert.NotNull(captured);
+
+        // Force the name to be blank so the async rule produces a message.
+        p.Name = "";
+        await captured!.ValidateAsync();
+
+        Assert.Contains("async-form-rule",
+            captured.GetValidationMessages(new FieldIdentifier(p, string.Empty)));
     }
 
     [Fact]

@@ -242,6 +242,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var modelProperty = string.Empty;
         var constraint = "class";
         var typedDelegates = Array.Empty<string>();
+        var typedValidators = Array.Empty<string>();
         foreach (var named in attr.NamedArguments)
         {
             switch (named.Key)
@@ -268,6 +269,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                             .ToArray();
                     }
                     break;
+                case "TypedValidatorProperties":
+                    if (!named.Value.IsNull)
+                    {
+                        typedValidators = named.Value.Values
+                            .Select(v => v.Value as string)
+                            .Where(s => !string.IsNullOrEmpty(s))
+                            .Select(s => s!)
+                            .ToArray();
+                    }
+                    break;
             }
         }
 
@@ -275,6 +286,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             typeParameter,
             modelProperty,
             new EquatableArray<string>(typedDelegates),
+            new EquatableArray<string>(typedValidators),
             constraint);
     }
 
@@ -857,6 +869,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine(");");
     }
 
+    private enum ValidatorShape { None, Sync, Async }
+
     private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf)
     {
         var visibility = c.IsPublic ? "public" : "internal";
@@ -872,9 +886,56 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             typedDelegates.Add(name);
         }
 
+        var typedValidators = new List<string>();
+        var validatorSet = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in gf.TypedValidatorProperties)
+        {
+            if (string.IsNullOrEmpty(name) || !typedSet.Add(name))
+            {
+                continue;
+            }
+
+            typedValidators.Add(name);
+            validatorSet.Add(name);
+        }
+
         var modelProperty = gf.ModelProperty;
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
 
+        if (typedValidators.Count == 0)
+        {
+            EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
+                modelProperty, paramProps, ValidatorShape.None);
+            return;
+        }
+
+        // Fan out into three overloads. Overload resolution at the call site disambiguates:
+        //   - no `Validate:` arg          → None overload (Validate forwarded as null)
+        //   - one-arg lambda `v => …`     → Sync overload (typed Func<T, IEnumerable<string>>)
+        //   - two-arg lambda `(v, ct) => …` → Async overload (typed Func<T, CT, ValueTask<…>>)
+        // Both Sync and Async overloads make the validator parameter required so the No
+        // overload remains the unambiguous match when the caller passes neither.
+        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
+            modelProperty, paramProps, ValidatorShape.None);
+        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
+            modelProperty, paramProps, ValidatorShape.Sync);
+        EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
+            modelProperty, paramProps, ValidatorShape.Async);
+    }
+
+    private static void EmitOneOverload(
+        StringBuilder sb,
+        Candidate c,
+        GenericFactoryConfig gf,
+        string visibility,
+        HashSet<string> typedSet,
+        List<string> typedDelegates,
+        List<string> typedValidators,
+        HashSet<string> validatorSet,
+        string modelProperty,
+        List<PropInfo> paramProps,
+        ValidatorShape validatorShape)
+    {
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append('<').Append(gf.TypeParameter).Append(">(");
 
@@ -887,6 +948,32 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             first = false;
             sb.Append(gf.TypeParameter).Append(' ').Append(modelProperty);
+        }
+
+        // Typed validator parameter — required, no default. Position is right after Model so
+        // it stays prominent in IntelliSense. Sync vs async is fixed per overload; the body
+        // forwards the lambda into the non-generic factory's `Delegate?` slot.
+        if (validatorShape == ValidatorShape.Sync)
+        {
+            foreach (var vp in typedValidators)
+            {
+                if (!first) sb.Append(", ");
+                first = false;
+                sb.Append("global::System.Func<").Append(gf.TypeParameter)
+                    .Append(", global::System.Collections.Generic.IEnumerable<string>> ").Append(vp);
+            }
+        }
+        else if (validatorShape == ValidatorShape.Async)
+        {
+            foreach (var vp in typedValidators)
+            {
+                if (!first) sb.Append(", ");
+                first = false;
+                sb.Append("global::System.Func<").Append(gf.TypeParameter)
+                    .Append(", global::System.Threading.CancellationToken, ")
+                    .Append("global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> ")
+                    .Append(vp);
+            }
         }
 
         // Typed delegates: `Action<TModel>? X = null` then `Func<TModel, Task>? XAsync = null`,
@@ -941,6 +1028,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             if (p.Name == modelProperty)
             {
                 forward = $"{p.Name}: {modelProperty}";
+            }
+            else if (validatorSet.Contains(p.Name))
+            {
+                forward = validatorShape == ValidatorShape.None
+                    ? $"{p.Name}: null"
+                    : $"{p.Name}: {p.Name}";
             }
             else if (typedSet.Contains(p.Name))
             {
@@ -1094,6 +1187,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string TypeParameter,
         string ModelProperty,
         EquatableArray<string> TypedDelegateProperties,
+        EquatableArray<string> TypedValidatorProperties,
         string Constraint);
 
     private readonly record struct ForwarderInfo(

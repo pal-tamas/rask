@@ -17,6 +17,14 @@ public sealed class FactoryGenericAttribute : Attribute
     // Delegate? passed to the non-generic factory's X parameter.
     public string[] TypedDelegateProperties { get; init; } = Array.Empty<string>();
 
+    // Properties typed as `Delegate?` that hold a validator callback. For each name "X",
+    // the generic overload exposes `Func<TModel, IEnumerable<string>>? X` (sync) and a
+    // synthesized `Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>>? XAsync`
+    // sibling. Both collapse back into a single Delegate? for the non-generic factory.
+    // Separate from TypedDelegateProperties because the validator shape returns messages
+    // and supports cancellation — Action/Func<Task> doesn't.
+    public string[] TypedValidatorProperties { get; init; } = Array.Empty<string>();
+
     // The constraint clause emitted as `where TModel : {Constraint}`. Defaults to `class`.
     public string Constraint { get; init; } = "class";
 }

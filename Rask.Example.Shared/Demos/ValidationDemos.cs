@@ -142,18 +142,18 @@ public sealed class InlineValidateDemo : Component
     protected override Component Render() =>
         Fragment()[
             Form(
-                _model,
-                m => _submission = $"Welcome, {m.Email}",
+                Model: _model,
+                OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
                 Class: "vstack gap-3",
-                Validate: (Func<LoginModel, IEnumerable<string>>)(m =>
-                    m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." }))[
+                Validate: m =>
+                    m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
                     Div()[
                         Label("v4-email", Class: "form-label small mb-1")["Email"],
                         Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
-                            Validate: (Func<string, IEnumerable<string>>)(v =>
+                            Validate: v =>
                                 v.Contains('@')
                                     ? Array.Empty<string>()
-                                    : new[] { "Email looks wrong." })),
+                                    : new[] { "Email looks wrong." }),
                         ValidationMessage(() => _model.Email, FieldError)
                     ],
                     Div()[
@@ -179,6 +179,84 @@ public sealed class LoginModel
     public string Email { get; set; } = "";
     public string Password { get; set; } = "";
     public string Confirm { get; set; } = "";
+}
+
+public sealed class InlineAsyncValidateDemo : Component
+{
+    // Showcases the typed async Validate overload: a bare `async (v, ct) => …` lambda binds
+    // directly to Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> on the Input,
+    // and a bare `async (m, ct) => …` lambda binds the same shape on Form — both with no cast.
+    // The 250ms delay drives the latest-wins cancellation path (rapid typing supersedes the
+    // prior in-flight run) and ValidatingIndicator surfaces the pending state.
+    private static readonly HashSet<string> TakenCodes =
+        new(StringComparer.OrdinalIgnoreCase) { "BAD-001", "DEAD-BEEF", "RESERVED" };
+
+    private readonly PromoModel _model = new();
+    private string? _submission;
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
+    {
+        var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
+        if (formOnly.Count == 0)
+        {
+            return Fragment();
+        }
+
+        return Div(Class: "alert alert-danger small mb-0")[
+            Ul(Class: "mb-0 ps-3")[formOnly.Select(e => (Child)Li()[e.Message])]
+        ];
+    }
+
+    private static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return Array.Empty<string>();
+        }
+
+        await Task.Delay(250, ct).ConfigureAwait(false);
+        return TakenCodes.Contains(code) ? new[] { $"\"{code}\" is reserved." } : Array.Empty<string>();
+    }
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<PromoModel>(
+                Model: _model,
+                OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
+                Class: "vstack gap-3",
+                Validate: async (m, ct) =>
+                {
+                    await Task.Yield();
+                    ct.ThrowIfCancellationRequested();
+                    return string.IsNullOrWhiteSpace(m.Code)
+                        ? new[] { "Code is required." }
+                        : Array.Empty<string>();
+                })[
+                    Div()[
+                        Label("v10-code", Class: "form-label small mb-1")["Promo code"],
+                        Input(() => _model.Code, Id: "v10-code", Class: "form-control",
+                            Validate: CheckCodeAsync),
+                        ValidatingIndicator(() => _model.Code, "validating-indicator text-muted small mt-1")[
+                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+                        ],
+                        ValidationMessage(() => _model.Code, FieldError)
+                    ],
+                    ValidationSummary(SummaryAlert),
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class PromoModel
+{
+    public string Code { get; set; } = "";
 }
 
 public sealed class AsyncValidationDemo : Component
@@ -307,13 +385,13 @@ public sealed class CrossFieldSummaryDemo : Component
     protected override Component Render() =>
         Fragment()[
             Form<TripModel>(
-                _model,
-                m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
+                Model: _model,
+                OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
                 Class: "vstack gap-3",
-                Validate: (Func<TripModel, IEnumerable<string>>)(m =>
+                Validate: m =>
                     m.Return > m.Depart
                         ? Array.Empty<string>()
-                        : new[] { "Return date must be after departure." }))[
+                        : new[] { "Return date must be after departure." })[
                     ValidationSummary(SummaryAlert),
                     Div()[
                         Label("v5-depart", Class: "form-label small mb-1")["Departure"],
@@ -336,6 +414,90 @@ public sealed class TripModel
 {
     public DateOnly Depart { get; set; } = new(2026, 6, 1);
     public DateOnly Return { get; set; } = new(2026, 6, 1);
+}
+
+// IValidatableObject parity with ASP.NET Core: BookingModel mixes attribute rules ([Required]
+// on Name) with an IValidatableObject.Validate method that yields both a per-field result
+// (MemberNames=[nameof(Departure)]) and a form-level result (no MemberNames). The BCL's own
+// Validator.TryValidateObject would silence Validate() once the attribute fails — Rask's
+// DataAnnotationsValidator calls IValidatableObject directly so all errors accumulate.
+public sealed class ValidatableObjectDemo : Component
+{
+    private readonly BookingModel _model = new();
+    private string? _submission;
+
+    private static Component FieldError(IReadOnlyList<string> msgs) =>
+        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+
+    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
+    {
+        var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
+        if (formOnly.Count == 0)
+        {
+            return Fragment();
+        }
+
+        return Div(Class: "alert alert-danger small mb-0")[
+            Ul(Class: "mb-0 ps-3")[formOnly.Select(e => (Child)Li()[e.Message])]
+        ];
+    }
+
+    protected override Component Render() =>
+        Fragment()[
+            Form<BookingModel>(
+                _model,
+                m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
+                Class: "vstack gap-3")[
+                    DataAnnotationsValidator(),
+                    ValidationSummary(SummaryAlert),
+                    Div()[
+                        Label("v11-name", Class: "form-label small mb-1")["Name"],
+                        Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
+                        ValidationMessage(() => _model.Name, FieldError)
+                    ],
+                    Div()[
+                        Label("v11-departure", Class: "form-label small mb-1")["Departure"],
+                        Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
+                        ValidationMessage(() => _model.Departure, FieldError)
+                    ],
+                    Div()[
+                        Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
+                        Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
+                        ValidationMessage(() => _model.Arrival, FieldError)
+                    ],
+                    Div()[
+                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
+                    ]
+                ],
+            _submission is null
+                ? Fragment()
+                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+}
+
+public sealed class BookingModel : IValidatableObject
+{
+    private static readonly DateOnly Today = new(2026, 5, 14);
+
+    [Required(ErrorMessage = "Name is required.")]
+    public string Name { get; set; } = "";
+
+    public DateOnly Departure { get; set; } = new(2026, 7, 1);
+    public DateOnly Arrival { get; set; } = new(2026, 7, 5);
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Departure < Today)
+        {
+            yield return new ValidationResult(
+                "Departure cannot be in the past.",
+                new[] { nameof(Departure) });
+        }
+
+        if (Arrival <= Departure)
+        {
+            yield return new ValidationResult("Arrival must be after departure.");
+        }
+    }
 }
 
 public sealed class ProgrammaticValidateDemo : Component
@@ -506,10 +668,10 @@ public sealed class FirstErrorWinsDemo : Component
                     Div()[
                         Label("v8-code", Class: "form-label small mb-1")["License code"],
                         Input(() => _model.Code, Id: "v8-code", Class: "form-control",
-                            Validate: (Func<string, IEnumerable<string>>)(v =>
+                            Validate: v =>
                                 string.IsNullOrWhiteSpace(v)
                                     ? new[] { "Code is required." }
-                                    : Array.Empty<string>())),
+                                    : Array.Empty<string>()),
                         ValidationMessage(() => _model.Code, FieldError)
                     ],
                     Div()[

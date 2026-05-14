@@ -61,11 +61,11 @@ public sealed class ValidationPage : Component
                 """
                 Form<LoginModel>(_model,
                      OnValidSubmit: m => _submission = "Welcome",
-                     Validate: (Func<LoginModel, IEnumerable<string>>)(m =>
-                         m.Password == m.Confirm ? [] : ["Passwords do not match."]))[
+                     Validate: m =>
+                         m.Password == m.Confirm ? [] : ["Passwords do not match."])[
                         Input(Bind: () => _model.Email,
-                              Validate: (Func<string, IEnumerable<string>>)(v =>
-                                  v.Contains('@') ? [] : ["Email looks wrong."])),
+                              Validate: v =>
+                                  v.Contains('@') ? [] : ["Email looks wrong."]),
                         ValidationMessage(For: () => _model.Email, Template: FieldError),
                         Input(Bind: () => _model.Password, Type: "password"),
                         Input(Bind: () => _model.Confirm, Type: "password"),
@@ -76,6 +76,26 @@ public sealed class ValidationPage : Component
                 Notes:
                 "No DataAnnotations on the model — every rule lives at the call site. Validate: on Input runs per-keystroke (after the field is touched) and produces field-scoped messages. Validate: on Form runs at submit and produces summary-scoped messages. Both delegates accept either a Func<T, IEnumerable<string>> (sync) or Func<T, CancellationToken, ValueTask<IEnumerable<string>>> (async).",
                 Result: InlineValidateDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Inline async — Validate: as Func<T, CT, ValueTask<IEnumerable<string>>>"],
+            CodeSample(
+                """
+                static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code, CancellationToken ct) {
+                    await Task.Delay(250, ct);
+                    return TakenCodes.Contains(code) ? new[] { $"\"{code}\" is reserved." } : [];
+                }
+
+                Form<PromoModel>(Model: _model, OnValidSubmit: m => ...,
+                     Validate: async (m, ct) =>
+                         string.IsNullOrWhiteSpace(m.Code) ? ["Code is required."] : [])[
+                        Input(Bind: () => _model.Code, Validate: CheckCodeAsync),
+                        ValidatingIndicator(For: () => _model.Code)["Checking…"],
+                        ValidationMessage(For: () => _model.Code, Template: FieldError),
+                        Button(Type: "submit")["Redeem"]
+                     ]
+                """,
+                Notes:
+                "Same call-site shape as the sync Validate above — overload resolution picks the async variant from the lambda's two-parameter arity (or method-group conversion against a `(T, CancellationToken) -> ValueTask<IEnumerable<string>>` method). The ValidatingIndicator surfaces while the 250ms delay runs; rapid typing supersedes the prior in-flight check (latest-wins) and OperationCanceledException is swallowed without producing a generic message.",
+                Result: InlineAsyncValidateDemo()),
             H2(Class: "h4 mt-5 mb-3")["Async — IAsyncFieldValidator / FluentValidation"],
             CodeSample(
                 """
@@ -103,11 +123,11 @@ public sealed class ValidationPage : Component
             H2(Class: "h4 mt-5 mb-3")["Cross-field — Form-level Validate feeding ValidationSummary"],
             CodeSample(
                 """
-                Form<TripModel>(_model, m => _submission = ...,
-                     Validate: (Func<TripModel, IEnumerable<string>>)(m =>
+                Form<TripModel>(Model: _model, OnValidSubmit: m => _submission = ...,
+                     Validate: m =>
                          m.Return > m.Depart
                              ? Array.Empty<string>()
-                             : new[] { "Return date must be after departure." }))[
+                             : new[] { "Return date must be after departure." })[
                         ValidationSummary(SummaryAlert),
                         Input(Bind: () => _model.Depart, Id: "v5-depart"),
                         Input(Bind: () => _model.Return, Id: "v5-return"),
@@ -117,6 +137,40 @@ public sealed class ValidationPage : Component
                 Notes:
                 "Form-level Validate runs at submit time and adds its messages to FieldIdentifier(model, \"\") — they surface in ValidationSummary alongside any field-level messages but never tag a specific input.",
                 Result: CrossFieldSummaryDemo()),
+            H2(Class: "h4 mt-5 mb-3")["IValidatableObject — model-level Validate(ctx) alongside attributes"],
+            CodeSample(
+                """
+                public sealed class BookingModel : IValidatableObject {
+                    [Required(ErrorMessage = "Name is required.")]
+                    public string Name { get; set; } = "";
+                    public DateOnly Departure { get; set; }
+                    public DateOnly Arrival { get; set; }
+
+                    public IEnumerable<ValidationResult> Validate(ValidationContext ctx) {
+                        if (Departure < Today)
+                            yield return new ValidationResult(
+                                "Departure cannot be in the past.",
+                                new[] { nameof(Departure) });   // per-field
+                        if (Arrival <= Departure)
+                            yield return new ValidationResult(
+                                "Arrival must be after departure.");   // form-level
+                    }
+                }
+
+                Form<BookingModel>(_model, OnValidSubmit: m => /* ... */)[
+                    DataAnnotationsValidator(),
+                    ValidationSummary(SummaryAlert),
+                    Input(Bind: () => _model.Name, Id: "v11-name"),
+                    ValidationMessage(For: () => _model.Name, Template: FieldError),
+                    Input(Bind: () => _model.Departure, Id: "v11-departure"),
+                    ValidationMessage(For: () => _model.Departure, Template: FieldError),
+                    Input(Bind: () => _model.Arrival, Id: "v11-arrival"),
+                    Button(Type: "submit")["Book"]
+                ]
+                """,
+                Notes:
+                "ASP.NET Core MVC accumulates attribute errors and IValidatableObject errors into the same ModelState — the BCL's own Validator.TryValidateObject silences IValidatableObject as soon as any attribute fails. DataAnnotationsValidator calls the interface directly so both layers always surface together. ValidationResult.MemberNames routes the message: an empty collection lands on FieldIdentifier(model, \"\") (ValidationSummary), a populated one tags a specific field (ValidationMessage). Submit empty to see Name's [Required] and the model's two Validate() results land in the same render.",
+                Result: ValidatableObjectDemo()),
             H2(Class: "h4 mt-5 mb-3")["Programmatic — EditContext.Validate() and IsValidating"],
             CodeSample(
                 """
@@ -171,10 +225,10 @@ public sealed class ValidationPage : Component
                 Form<LicenseModel>(_model, m => _submission = "Activated")[
                     DataAnnotationsValidator(),
                     Input(Bind: () => _model.Code,
-                          Validate: (Func<string, IEnumerable<string>>)(v =>
+                          Validate: v =>
                               string.IsNullOrWhiteSpace(v)
                                   ? new[] { "Code is required." }
-                                  : Array.Empty<string>())),
+                                  : Array.Empty<string>()),
                     ValidationMessage(For: () => _model.Code, Template: FieldError),
                     Button(Type: "submit")["Activate"]
                 ]

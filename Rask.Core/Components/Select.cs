@@ -10,6 +10,8 @@ public sealed class Select : Element
 {
     // Expression-driven factory; pre-marks the matching <option> as selected so the
     // initial render reflects the bound value without round-tripping through the browser.
+    // `Validate` ships as three overloads to avoid the `(Func<…>)` call-site cast — see
+    // Input.Bound for the dispatch rationale.
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
@@ -19,18 +21,70 @@ public sealed class Select : Element
         int? Size = null,
         bool Autofocus = false,
         string? Autocomplete = null,
-        Delegate? Validate = null,
         string? Id = null,
         string? Class = null,
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
+        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
+            validate: null, Id, Class, Style, Data, Children);
+
+    [GenerateForwarderFactory]
+    public static Select Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        Func<TProp, IEnumerable<string>> Validate,
+        string? Name = null,
+        bool Required = false,
+        bool Disabled = false,
+        int? Size = null,
+        bool Autofocus = false,
+        string? Autocomplete = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null,
+        params IEnumerable<Child> Children)
+        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
+            validate: Validate, Id, Class, Style, Data, Children);
+
+    [GenerateForwarderFactory]
+    public static Select Bound<TProp>(
+        Expression<Func<TProp>> Bind,
+        Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        string? Name = null,
+        bool Required = false,
+        bool Disabled = false,
+        int? Size = null,
+        bool Autofocus = false,
+        string? Autocomplete = null,
+        string? Id = null,
+        string? Class = null,
+        string? Style = null,
+        IReadOnlyDictionary<string, string?>? Data = null,
+        params IEnumerable<Child> Children)
+        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
+            validate: Validate, Id, Class, Style, Data, Children);
+
+    private static Select BoundCore<TProp>(
+        Expression<Func<TProp>> Bind,
+        string? Name,
+        bool Required,
+        bool Disabled,
+        int? Size,
+        bool Autofocus,
+        string? Autocomplete,
+        Delegate? validate,
+        string? Id,
+        string? Class,
+        string? Style,
+        IReadOnlyDictionary<string, string?>? Data,
+        IEnumerable<Child> Children)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
-        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+        ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
         var current = BindingHelpers.FormatValue(acc.Getter());
         var preselected = MarkSelected(Children, current);
 
