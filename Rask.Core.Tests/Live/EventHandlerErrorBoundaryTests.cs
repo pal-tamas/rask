@@ -15,7 +15,7 @@ public class EventHandlerErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var handlerOwner = new HandlerOwner(throwsSync: true);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { handlerOwner }, fallback: null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
         // root's handler dict. RegisterHandler happens during the serialization walk via
@@ -39,7 +39,7 @@ public class EventHandlerErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var handlerOwner = new HandlerOwner(throwsSync: false);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { handlerOwner }, fallback: null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
         _ = boundary.ToHtml();

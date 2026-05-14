@@ -12,7 +12,7 @@ public class ErrorBoundaryTests
     public void Render_NoError_RendersChildren()
     {
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { Span()[Text("ok")] }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { Span()[Text("ok")] }, fallback: null);
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
     }
@@ -23,8 +23,7 @@ public class ErrorBoundaryTests
         var boundary = ErrorBoundary();
         boundary.SetProps(
             new Child[] { new ThrowingRender("kaboom") },
-            (ex, _) => Span()[Text(ex.Message)],
-            resetKeys: null);
+            (ex, _) => Span()[Text(ex.Message)]);
 
         Assert.Equal("<span>kaboom</span>", boundary.ToHtml());
     }
@@ -38,8 +37,7 @@ public class ErrorBoundaryTests
         var boundary = ErrorBoundary();
         boundary.SetProps(
             new Child[] { new ThrowMidwayComponent() },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: null);
+            (ex, _) => Span()[Text("fb")]);
 
         var html = boundary.ToHtml();
         Assert.Equal("<span>fb</span>", html);
@@ -52,8 +50,7 @@ public class ErrorBoundaryTests
         var boundary = ErrorBoundary();
         boundary.SetProps(
             new Child[] { new ThrowingRender("dflt") },
-            fallback: null,
-            resetKeys: null);
+            fallback: null);
 
         var html = boundary.ToHtml();
         Assert.Contains("rask-error-boundary", html);
@@ -68,8 +65,7 @@ public class ErrorBoundaryTests
         var inner = ErrorBoundary();
         inner.SetProps(
             new Child[] { new ThrowingRender("inner") },
-            (ex, _) => Span()[Text("INNER:" + ex.Message)],
-            resetKeys: null);
+            (ex, _) => Span()[Text("INNER:" + ex.Message)]);
 
         var outer = ErrorBoundary();
         outer.SetProps(
@@ -78,8 +74,7 @@ public class ErrorBoundaryTests
             {
                 outerCaught = true;
                 return Span()[Text("OUTER")];
-            },
-            resetKeys: null);
+            });
 
         var html = outer.ToHtml();
         Assert.Equal("<span>INNER:inner</span>", html);
@@ -92,14 +87,12 @@ public class ErrorBoundaryTests
         var inner = ErrorBoundary();
         inner.SetProps(
             new Child[] { new ThrowingRender("first") },
-            (_, _) => throw new InvalidOperationException("fallback-broke"),
-            resetKeys: null);
+            (_, _) => throw new InvalidOperationException("fallback-broke"));
 
         var outer = ErrorBoundary();
         outer.SetProps(
             new Child[] { inner },
-            (ex, _) => Span()[Text("OUTER:" + ex.Message)],
-            resetKeys: null);
+            (ex, _) => Span()[Text("OUTER:" + ex.Message)]);
 
         Assert.Equal("<span>OUTER:fallback-broke</span>", outer.ToHtml());
     }
@@ -110,8 +103,7 @@ public class ErrorBoundaryTests
         var boundary = ErrorBoundary();
         boundary.SetProps(
             new Child[] { new ConditionalThrow(shouldThrow: true) },
-            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)],
-            resetKeys: null);
+            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
 
         // First render: boundary trips on the throw, emits fallback.
         var trippedHtml = boundary.ToHtml();
@@ -120,92 +112,8 @@ public class ErrorBoundaryTests
         // Now simulate "fix the cause" then call Recover.
         boundary.SetProps(
             new Child[] { new ConditionalThrow(shouldThrow: false) },
-            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)],
-            resetKeys: null);
+            (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
         boundary.Recover();
-
-        Assert.Equal("<span>ok</span>", boundary.ToHtml());
-    }
-
-    [Fact]
-    public void ResetKeys_Change_AutoRecovers()
-    {
-        var boundary = ErrorBoundary();
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: true) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { "v1" });
-
-        var trippedHtml = boundary.ToHtml();
-        Assert.Equal("<span>fb</span>", trippedHtml);
-
-        // ResetKey changes from "v1" -> "v2" AND we fix the underlying cause.
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: false) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { "v2" });
-
-        // Auto-recover fires inside SetProps; next render walks Children again.
-        Assert.Equal("<span>ok</span>", boundary.ToHtml());
-    }
-
-    [Fact]
-    public void ResetKeys_SameValue_DoesNotAutoRecover()
-    {
-        var boundary = ErrorBoundary();
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: true) },
-            (ex, _) => Span()[Text("fb:" + ex.Message)],
-            resetKeys: new object?[] { "v1" });
-
-        // First render trips.
-        Assert.Contains("fb:", boundary.ToHtml());
-
-        // Re-apply props with the SAME ResetKey value and a fixed child. Error must
-        // persist because the boundary didn't observe a key change.
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: false) },
-            (ex, _) => Span()[Text("fb:" + ex.Message)],
-            resetKeys: new object?[] { "v1" });
-
-        Assert.Contains("fb:", boundary.ToHtml());
-    }
-
-    [Fact]
-    public void ResetKeys_AnyElementChange_AutoRecovers()
-    {
-        var boundary = ErrorBoundary();
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: true) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { 1, "stable" });
-
-        Assert.Equal("<span>fb</span>", boundary.ToHtml());
-
-        // Only the second element changed; auto-recovery should still fire.
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: false) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { 1, "changed" });
-
-        Assert.Equal("<span>ok</span>", boundary.ToHtml());
-    }
-
-    [Fact]
-    public void ResetKeys_LengthChange_AutoRecovers()
-    {
-        var boundary = ErrorBoundary();
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: true) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { 1 });
-
-        Assert.Equal("<span>fb</span>", boundary.ToHtml());
-
-        boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: false) },
-            (ex, _) => Span()[Text("fb")],
-            resetKeys: new object?[] { 1, 2 });
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
     }
@@ -219,7 +127,7 @@ public class ErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var probe = new BoundaryProbe();
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { probe }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { probe }, fallback: null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -237,7 +145,7 @@ public class ErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var probe = new BoundaryProbe();
         var first = ErrorBoundary();
-        first.SetProps(new Child[] { probe }, fallback: null, resetKeys: null);
+        first.SetProps(new Child[] { probe }, fallback: null);
         using (LiveRenderContext.Begin(first, sp))
         {
             _ = first.ToHtml();
@@ -247,7 +155,7 @@ public class ErrorBoundaryTests
 
         // Now reparent the probe under a different boundary. The stamp should NOT change.
         var second = ErrorBoundary();
-        second.SetProps(new Child[] { probe }, fallback: null, resetKeys: null);
+        second.SetProps(new Child[] { probe }, fallback: null);
         using (LiveRenderContext.Begin(second, sp))
         {
             _ = second.ToHtml();

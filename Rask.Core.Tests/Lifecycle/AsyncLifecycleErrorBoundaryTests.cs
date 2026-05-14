@@ -14,7 +14,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var child = new FaultingComponent(faultOn: FaultPoint.MountAsync);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { child }, fallback: null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
         // OnMountAsync fires. The faulted Task continuation routes through Boundary.Trip.
@@ -36,7 +36,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var child = new FaultingComponent(faultOn: FaultPoint.PropsAsync);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { child }, fallback: null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -88,7 +88,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var boundary = ErrorBoundary();
         var handle = new RecordingHandle();
         boundary.RenderHandle = handle;
-        boundary.SetProps(new Child[] { child }, fallback: null, resetKeys: null);
+        boundary.SetProps(new Child[] { child }, fallback: null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {

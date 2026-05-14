@@ -2,71 +2,24 @@ namespace Rask.Core.Components;
 
 public sealed class ErrorBoundary : Component
 {
-    private bool _hasResetKeys;
-    private object?[]? _resetKeysSnapshot;
-
     public Func<Exception, Action, Child>? Fallback { get; set; }
-    public IReadOnlyList<object?>? ResetKeys { get; set; }
 
     internal Exception? Error { get; private set; }
 
-    // Sugar for tests that construct an ErrorBoundary directly and need to seed all three
-    // props in one call. Identical to assigning the properties individually and then
-    // letting OnPropsChanged run.
+    // Sugar for tests that construct an ErrorBoundary directly and need to seed both
+    // props in one call.
     internal void SetProps(
         IEnumerable<Child>? children,
-        Func<Exception, Action, Child>? fallback,
-        IReadOnlyList<object?>? resetKeys)
+        Func<Exception, Action, Child>? fallback)
     {
         Children = children;
         Fallback = fallback;
-        ResetKeys = resetKeys;
-        OnPropsChanged();
     }
 
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
     // every frame — same opt-out Router/DefaultNotFoundPage use for context-derived state.
     protected internal override bool BypassRenderCache => true;
-
-    protected override void OnPropsChanged()
-    {
-        // Snapshot ResetKeys to a fresh array each render so a caller mutating the source
-        // list between renders can't poison the equality check. First call seeds without
-        // resetting; subsequent calls clear the error when any element has changed by
-        // Equals (React's useEffect-deps semantics).
-        var snapshot = ResetKeys?.ToArray();
-        if (_hasResetKeys && KeysChanged(_resetKeysSnapshot, snapshot))
-        {
-            Error = null;
-        }
-
-        _resetKeysSnapshot = snapshot;
-        _hasResetKeys = true;
-    }
-
-    private static bool KeysChanged(object?[]? previous, object?[]? current)
-    {
-        if (previous is null && current is null)
-        {
-            return false;
-        }
-
-        if (previous is null || current is null || previous.Length != current.Length)
-        {
-            return true;
-        }
-
-        for (var i = 0; i < previous.Length; i++)
-        {
-            if (!Equals(previous[i], current[i]))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     internal void Trip(Exception ex)
     {
