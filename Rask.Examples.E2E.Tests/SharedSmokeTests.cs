@@ -440,8 +440,9 @@ public abstract class SharedSmokeTests : IAsyncLifetime
 
         // Blur to fire OnChange → marks the field touched → triggers async ValidateFieldAsync.
         // The validator delays 400ms; the .validating-indicator span must surface during that
-        // window. Pin on the framework class (ValidatingIndicator.cs:87), not Bootstrap utilities,
-        // so the assertion fails loudly if the pending render is missing on either host.
+        // window. Pin on the class the showcase puts on its own <span> — ValidatingIndicator is
+        // headless and emits no markup itself, so the assertion exercises the showcase template
+        // and fails loudly if the pending render is missing on either host.
         await form.Locator("#v3-username").BlurAsync();
 
         await Expect(form.Locator(".validating-indicator"))
@@ -1052,6 +1053,80 @@ public abstract class SharedSmokeTests : IAsyncLifetime
 
         await Expect(demo.Locator(".alert-success"))
             .ToContainTextAsync("Booked: Ada 2026-07-01",
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task Validation_CustomAttributes_RejectInvalidThenAcceptValid() => RunAsync(async () =>
+    {
+        // Exercises three custom : ValidationAttribute subclasses through DataAnnotationsValidator.
+        //   • [Banned] resolves IBannedWordService via ValidationContext.GetService — proves the
+        //     render-scoped IServiceProvider plumbing works end-to-end through the live render path.
+        //   • [StrongPassword] is an IsValid(object?) override (simplest shape).
+        //   • [MatchesProperty] reads ValidationContext.ObjectInstance for cross-field comparison.
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var demo = Page.Locator(".sample-result-body:has(#v12-username)");
+        var form = demo.Locator("form");
+
+        // Step 1 — Username = "admin" trips [Banned] (the DI-resolved attribute). Pair it with a
+        // weak password and a mismatched confirm so all three custom-attribute rules fire on the
+        // same submit cycle, including [StrongPassword] and [MatchesProperty]. First-error-wins
+        // gating may suppress [Required] underneath each custom rule but cannot suppress rules on
+        // *other* fields, so all three messages must coexist.
+        await form.Locator("#v12-username").FillAsync("admin");
+        await form.Locator("#v12-password").FillAsync("weak");
+        await form.Locator("#v12-confirm").FillAsync("different");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "isn't available" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "8 characters" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Passwords don't match" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(demo.Locator(".alert-success"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 2_000 });
+
+        // Step 2 — fix Username to a non-banned value. The [Banned] rule clears; the other two
+        // custom-attribute messages remain because we haven't touched their fields yet.
+        await form.Locator("#v12-username").FillAsync("alice");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "isn't available" }))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "8 characters" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Passwords don't match" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Step 3 — fix the password to a strong value but leave the confirm mismatched. The
+        // [StrongPassword] message clears; only the cross-field [MatchesProperty] message stays.
+        await form.Locator("#v12-password").FillAsync("Strong1Pass");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "8 characters" }))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(form.Locator(".text-danger").Filter(
+                new LocatorFilterOptions { HasText = "Passwords don't match" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Step 4 — fix the confirm so it matches. All custom-attribute messages clear and the
+        // success banner lands.
+        await form.Locator("#v12-confirm").FillAsync("Strong1Pass");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(demo.Locator(".alert-success"))
+            .ToContainTextAsync("Welcome, alice!",
                 new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 }

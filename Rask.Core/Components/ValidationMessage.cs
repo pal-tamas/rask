@@ -74,7 +74,10 @@ public sealed class ValidationSummary : Component
 public sealed class ValidatingIndicator : Component
 {
     public LambdaExpression? For { get; set; }
-    public string? Class { get; set; }
+
+    // Headless: caller owns the markup. Invoked only while EditContext.IsValidating(field)
+    // is true for the bound field; the idle case renders nothing.
+    public required Func<Component> Template { get; set; }
 
     // Reads EditContext.IsValidating(field) — see ValidationMessage for the rationale.
     protected internal override bool BypassRenderCache => true;
@@ -82,7 +85,8 @@ public sealed class ValidatingIndicator : Component
     [GenerateForwarderFactory]
     public static ValidatingIndicator Bound<TProp>(
         Expression<Func<TProp>> For,
-        string? Class = null) => new() { For = For, Class = Class };
+        Func<Component> Template) =>
+        new() { For = For, Template = Template };
 
     protected override Component Render()
     {
@@ -98,6 +102,6 @@ public sealed class ValidatingIndicator : Component
             return new Fragment();
         }
 
-        return Components.Span(Class: Class ?? "validating-indicator")[Children ?? Array.Empty<Child>()];
+        return Template();
     }
 }

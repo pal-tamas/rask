@@ -26,12 +26,22 @@ public sealed class DataAnnotationsValidator : Component
 
     protected override Component Render()
     {
-        EditContextScope.Current?.AddValidator(new Inner());
+        // Snapshot the render-scoped IServiceProvider at Render time. Handler invocation
+        // (submit, change, blur) doesn't re-enter LiveRenderContext, so reading
+        // LiveRenderContext.Current?.Services at validation time would return null and break
+        // ValidationContext.GetService<T>(). The SP doesn't change across renders within a
+        // session (same DI scope), so the first registration's snapshot is durable;
+        // AddValidator's type-dedup discards subsequent re-registrations anyway.
+        EditContextScope.Current?.AddValidator(new Inner(LiveRenderContext.Current?.Services));
         return Rask.Core.Components.Components.Fragment();
     }
 
     private sealed class Inner : IFieldValidator
     {
+        private readonly IServiceProvider? _services;
+
+        public Inner(IServiceProvider? services) => _services = services;
+
         // DataAnnotationsValidator reflects over the form model — when trimming, users must
         // preserve the model's properties (typically via `[DynamicallyAccessedMembers]` on
         // the binding source, or by referencing the model from a [Route]'d page, which roots
@@ -122,15 +132,15 @@ public sealed class DataAnnotationsValidator : Component
 
         // ASP.NET Core / Blazor parity: ValidationContext is constructed with the render-scoped
         // IServiceProvider so custom ValidationAttribute subclasses can call
-        // validationContext.GetService<T>() at validation time. Resolved lazily from the active
-        // LiveRenderContext — outside a live context (e.g. unit tests that drive EditContext
-        // directly) the SP is null and GetService<T>() returns null, matching MVC's behavior
-        // when no service provider is configured.
+        // validationContext.GetService<T>() at validation time. _services is captured once at
+        // Render() time (see comment on the outer Render method). Outside a live context (unit
+        // tests that drive EditContext directly), _services is null and GetService<T>() returns
+        // null, matching MVC's behavior when no service provider is configured.
         [UnconditionalSuppressMessage("Trimming", "IL2026",
             Justification = "ValidationContext's no-display-name ctor reflects for DisplayNameAttribute on the " +
                             "model — same constraint as Validate/ValidateField: the user-owned model type is " +
                             "preserved through the consumer's binding/page annotations.")]
-        private static ValidationContext NewValidationContext(object model) =>
-            new(model, LiveRenderContext.Current?.Services, items: null);
+        private ValidationContext NewValidationContext(object model) =>
+            new(model, _services, items: null);
     }
 }

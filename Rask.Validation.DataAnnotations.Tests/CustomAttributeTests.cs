@@ -88,10 +88,11 @@ public class CustomAttributeTests
     public void GetValidationResult_CustomAttribute_CanResolveServices_ViaValidationContext()
     {
         // [Banned] resolves IBannedWords from ValidationContext.GetService — proves the
-        // render-scoped IServiceProvider flows through ValidationContext construction.
-        // The validator reads LiveRenderContext.Current?.Services lazily *at validation time*,
-        // so registration outside the live scope is fine — we only need the SP active during
-        // ctx.Validate().
+        // render-scoped IServiceProvider flows through ValidationContext construction. The
+        // validator snapshots LiveRenderContext.Current?.Services at registration time (which
+        // is the Render() pass), so the live context must be active around RegisterValidator,
+        // NOT around Validate (handler invocation doesn't re-enter LiveRenderContext, just
+        // like the production path).
         var sp = new StubServices(new BannedWords("admin", "root"));
         var m = new Account
         {
@@ -99,12 +100,14 @@ public class CustomAttributeTests
             Password = "Strong1Pass",
             ConfirmPassword = "Strong1Pass"
         };
-        var ctx = RegisterValidator(m);
 
+        EditContext ctx;
         using (LiveRenderContext.Begin(new NoOpRoot(), sp))
         {
-            ctx.Validate();
+            ctx = RegisterValidator(m);
         }
+
+        ctx.Validate();
 
         Assert.Contains(
             "\"admin\" isn't available.",

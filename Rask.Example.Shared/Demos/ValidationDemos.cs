@@ -197,6 +197,11 @@ public sealed class InlineAsyncValidateDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
+    private static Component Checking() =>
+        Span(Class: "validating-indicator text-muted small mt-1")[
+            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+        ];
+
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
         var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
@@ -239,9 +244,7 @@ public sealed class InlineAsyncValidateDemo : Component
                         Label("v10-code", Class: "form-label small mb-1")["Promo code"],
                         Input(() => _model.Code, Id: "v10-code", Class: "form-control",
                             Validate: CheckCodeAsync),
-                        ValidatingIndicator(() => _model.Code, "validating-indicator text-muted small mt-1")[
-                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
-                        ],
+                        ValidatingIndicator(() => _model.Code, Checking),
                         ValidationMessage(() => _model.Code, FieldError)
                     ],
                     ValidationSummary(SummaryAlert),
@@ -271,6 +274,11 @@ public sealed class AsyncValidationDemo : Component
         _ctx.AddValidator(new UniqueUsernameValidator());
     }
 
+    private static Component Checking() =>
+        Span(Class: "validating-indicator text-muted small mt-1")[
+            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
+        ];
+
     protected override Component Render() =>
         Fragment()[
             Form<SignupModel>(
@@ -282,9 +290,7 @@ public sealed class AsyncValidationDemo : Component
                     Div()[
                         Label("v3-username", Class: "form-label small mb-1")["Username"],
                         Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Username, "validating-indicator text-muted small mt-1")[
-                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
-                        ],
+                        ValidatingIndicator(() => _model.Username, Checking),
                         ValidationMessage(() => _model.Username,
                             msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])])
                     ],
@@ -515,6 +521,11 @@ public sealed class ProgrammaticValidateDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
+    private static Component Checking() =>
+        Span(Class: "validating-indicator text-muted small mt-1")[
+            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+        ];
+
     private async Task ValidateNowAsync()
     {
         await _ctx.ValidateAsync().ConfigureAwait(false);
@@ -530,9 +541,7 @@ public sealed class ProgrammaticValidateDemo : Component
                     Div()[
                         Label("v6-title", Class: "form-label small mb-1")["Title"],
                         Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Title, "validating-indicator text-muted small mt-1")[
-                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
-                        ],
+                        ValidatingIndicator(() => _model.Title, Checking),
                         ValidationMessage(() => _model.Title, FieldError)
                     ],
                     Div(Class: "d-flex gap-2")[
@@ -701,6 +710,11 @@ public sealed class FluentValidationAsyncDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
+    private static Component Checking() =>
+        Span(Class: "validating-indicator text-muted small mt-1")[
+            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
+        ];
+
     protected override Component Render() =>
         Fragment()[
             Form<TicketModel>(
@@ -711,9 +725,7 @@ public sealed class FluentValidationAsyncDemo : Component
                     Div()[
                         Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
                         Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Code, "validating-indicator text-muted small mt-1")[
-                            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
-                        ],
+                        ValidatingIndicator(() => _model.Code, Checking),
                         ValidationMessage(() => _model.Code, FieldError)
                     ],
                     Div()[

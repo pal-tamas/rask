@@ -103,7 +103,7 @@ public class AsyncFormBindingTests
         Assert.True(ctx.IsValidating(fid));
 
         var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
-            ValidatingIndicator(() => model.Username, Class: "spinner")["Checking..."]
+            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -118,7 +118,7 @@ public class AsyncFormBindingTests
         var ctx = new EditContext(model);
 
         var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
-            ValidatingIndicator(() => model.Username, Class: "spinner")["Checking..."]
+            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."])
         ]);
 
         var html = view.RenderAsLiveRoot();

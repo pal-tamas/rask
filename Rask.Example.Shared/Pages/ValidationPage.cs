@@ -88,7 +88,7 @@ public sealed class ValidationPage : Component
                      Validate: async (m, ct) =>
                          string.IsNullOrWhiteSpace(m.Code) ? ["Code is required."] : [])[
                         Input(Bind: () => _model.Code, Validate: CheckCodeAsync),
-                        ValidatingIndicator(For: () => _model.Code)["Checking…"],
+                        ValidatingIndicator(For: () => _model.Code, Template: Checking),
                         ValidationMessage(For: () => _model.Code, Template: FieldError),
                         Button(Type: "submit")["Redeem"]
                      ]
@@ -113,7 +113,7 @@ public sealed class ValidationPage : Component
                     DataAnnotationsValidator(),
                     new UniqueUsernameValidator() /* or FluentValidationValidator(new …) */,
                     Input(Bind: () => _model.Username),
-                    ValidatingIndicator(For: () => _model.Username)["Checking..."],
+                    ValidatingIndicator(For: () => _model.Username, Template: Checking),
                     ValidationMessage(For: () => _model.Username, Template: FieldError)
                 ]
                 """,
@@ -179,7 +179,7 @@ public sealed class ValidationPage : Component
 
                 Form<TaskModel>(_model, m => _submission = ..., Context: _ctx)[
                     Input(Bind: () => _model.Title, Id: "v6-title"),
-                    ValidatingIndicator(For: () => _model.Title)["Checking…"],
+                    ValidatingIndicator(For: () => _model.Title, Template: Checking),
                     ValidationMessage(For: () => _model.Title, Template: FieldError),
                     Button(Type: "button", Id: "v6-validate-now",
                            OnClickAsync: () => _ctx.ValidateAsync().AsTask())["Validate now"],
@@ -254,7 +254,7 @@ public sealed class ValidationPage : Component
                 Form<TicketModel>(_model, m => _submission = ...)[
                     FluentValidationValidator(new TicketValidator()),
                     Input(Bind: () => _model.Code),
-                    ValidatingIndicator(For: () => _model.Code)["Checking availability..."],
+                    ValidatingIndicator(For: () => _model.Code, Template: Checking),
                     ValidationMessage(For: () => _model.Code, Template: FieldError),
                     Button(Type: "submit")["Reserve"]
                 ]
