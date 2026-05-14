@@ -40,6 +40,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
                 "--project",
                 projectPath,
                 "--no-launch-profile",
+                "--no-build",
                 "-c",
                 "Debug",
                 "--",
