@@ -226,6 +226,57 @@ public abstract class ExampleSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Validation_Summary_EmptySubmit_RendersHeadlessTemplate() => RunAsync(async () =>
+    {
+        // The summary demo wraps the headless ValidationSummary with the user-defined
+        // SummaryAlert template: a Bootstrap alert containing a <strong>{Field}</strong>
+        // per ValidationEntry. Submitting empty must invoke the template (proving the
+        // EditContext lookup, post-handler re-render, and Template delegate all line up).
+        await Page.GotoAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v2-name)");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        var alert = form.Locator(".alert-danger").First;
+        await Expect(alert).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(alert).ToContainTextAsync("Name is required",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(alert.Locator("li").Filter(new LocatorFilterOptions { HasText = "Name" })
+                .Locator("strong").First)
+            .ToHaveTextAsync("Name");
+        await Expect(alert.Locator("li").Filter(new LocatorFilterOptions { HasText = "Email" })
+                .Locator("strong").First)
+            .ToHaveTextAsync("Email");
+
+        // Filling every field and resubmitting must clear the summary entirely —
+        // ValidationSummary returns Fragment() when GetValidationEntries is empty,
+        // so the .alert-danger DOM node must disappear, not merely be hidden.
+        await form.Locator("#v2-name").FillAsync("Ada Lovelace");
+        await form.Locator("#v2-email").FillAsync("ada@example.com");
+        await form.Locator("#v2-age").FillAsync("28");
+        // <input type=number> only wires data-rask-on-change (non-string fast path), and
+        // Playwright's Fill + SelectOption sequence never blurs the input — so the change
+        // event never fires server-side and ctx.Model.Age stays at 0. Tab off explicitly.
+        await form.Locator("#v2-age").BlurAsync();
+        await form.Locator("#v2-plan").SelectOptionAsync("pro");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        // Success banner first — proves OnValidSubmit fired (and therefore the post-
+        // handler render observed an empty EditContext).
+        await Expect(Page.Locator(".alert-success").First)
+            .ToContainTextAsync("Ada Lovelace",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Same render must have collapsed the headless summary: GetValidationEntries() is
+        // empty, ValidationSummary returns Fragment(), the previous template DOM disappears.
+        await Expect(form.Locator(".alert-danger")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Validation_AsyncDemo_ShowsCheckingThenTakenMessage() => RunAsync(async () =>
     {
         await Page.GotoAsync("/validation");
