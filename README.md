@@ -301,16 +301,17 @@ ErrorBoundary(
 ]
 ```
 
-Pass `ResetKeys: [someId]` to auto-clear the error when the keys change (React `useEffect`-deps semantics). Without
-a `Fallback`, the boundary renders a built-in default error page.
+Without a `Fallback`, the boundary renders a built-in default error page. The `recover` callback passed to the
+fallback is the only reset path.
 
 ### Forms & validation
 
-Bind inputs two-way with `Input(() => model.Field)` — the input type is inferred from the property's CLR type
+Bind inputs two-way with `Input(Bind: () => model.Field)` — the input type is inferred from the property's CLR type
 (string → text, bool → checkbox, int → number, DateOnly → date, …) and new values flow back into the model on each
 event. `Form<TModel>(model, OnValidSubmit: …, OnInvalidSubmit: …)` routes submit through whichever validators are
-attached to its `EditContext`. Field errors render via `ValidationMessage`; a top-of-form digest via
-`ValidationSummary`.
+attached to its `EditContext`. Field errors render via `ValidationMessage` and a top-of-form digest via
+`ValidationSummary` — both are headless and take a required `Template:` lambda so you control the markup
+(e.g. `Template: errs => Div(Class: "err")[errs[0]]`).
 
 Validation is opt-in — Rask.Core ships no validator by default. Add the package you want and drop the validator
 component inside the form:
@@ -335,10 +336,12 @@ public sealed class SignupPage : Component
     public override Component Render() =>
         Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
             DataAnnotationsValidator(),                         // opt-in: DA attributes
-            Input(() => _model.Username),
-            ValidationMessage(() => _model.Username),
-            Input(() => _model.Email),
-            ValidationMessage(() => _model.Email),
+            Input(Bind: () => _model.Username),
+            ValidationMessage(For: () => _model.Username,
+                Template: errs => Div(Class: "field-error")[errs[0]]),
+            Input(Bind: () => _model.Email),
+            ValidationMessage(For: () => _model.Email,
+                Template: errs => Div(Class: "field-error")[errs[0]]),
             Button(Type: "submit")["Sign up"]
         ];
 }
@@ -346,7 +349,21 @@ public sealed class SignupPage : Component
 
 For ad-hoc async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a manually
 built `EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
-in-flight per-field check (latest-wins). `ValidatingIndicator` renders its children while a field is being checked.
+in-flight per-field check (latest-wins). `ValidatingIndicator` is headless too — pass a `Template:` lambda for
+whatever should show while the field is being checked (e.g. `Template: () => Span()["Checking..."]`).
+
+Two lighter-weight alternatives, when a full `IAsyncFieldValidator` is overkill:
+
+- **Per-field inline rule** — pass a `Validate:` lambda directly to an `Input`. Three overloads cover the common
+  shapes: omit it, return `IEnumerable<string>` for sync rules, or return `ValueTask<IEnumerable<string>>` for async
+  (the `CancellationToken` cancels the in-flight check on the next keystroke). An empty sequence means valid; any
+  returned strings become the field's errors.
+- **Cross-field rule on the form** — pass `Validate:` to `Form<TModel>` to run a model-level check on submit (great
+  for "passwords must match" or "either email or phone is required"). `[FactoryGeneric]` narrows the lambda's
+  parameter to `TModel` so it's strongly typed.
+
+Reach for `IAsyncFieldValidator` when the rule needs DI (an `HttpClient`, a repository) or when you want to reuse it
+across forms.
 
 ```csharp
 public sealed class UniqueUsernameValidator : IAsyncFieldValidator
@@ -376,9 +393,11 @@ protected override void OnMount()
 public override Component Render() =>
     Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
         DataAnnotationsValidator(),
-        Input(() => _model.Username),
-        ValidatingIndicator(() => _model.Username)["Checking..."],
-        ValidationMessage(() => _model.Username),
+        Input(Bind: () => _model.Username),
+        ValidatingIndicator(For: () => _model.Username,
+            Template: () => Span(Class: "spinner")["Checking..."]),
+        ValidationMessage(For: () => _model.Username,
+            Template: errs => Div(Class: "field-error")[errs[0]]),
         Button(Type: "submit")["Sign up"]
     ];
 ```
