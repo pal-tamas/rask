@@ -18,7 +18,9 @@ namespace Rask.Core.Tests.Forms;
 //   3. Invariant-culture formatting on the render side (so "3.14" doesn't become "3,14"
 //      under a comma-decimal locale).
 //   4. Empty input on a nullable property sets null.
-//   5. Invalid input leaves the prior value alone.
+//   4b. Empty input on a non-nullable value type sets default(T) so a cleared number/date
+//       input doesn't snap back to its prior value on the next render.
+//   5. Invalid input (non-empty, unparseable) leaves the prior value alone.
 public class PrimitiveBindingTests
 {
     [Theory]
@@ -218,9 +220,27 @@ public class PrimitiveBindingTests
         using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
-        // Invalid input must NOT silently zero the field — TrySetTyped returns false and the
-        // setter is never called.
+        // Invalid input (non-empty, unparseable) must NOT silently zero the field — TrySetTyped
+        // returns false and the setter is never called. The empty-input case is a separate
+        // intentional clear and goes through the default(T) branch (see sibling test).
         Assert.Equal(1.5, p.D);
+    }
+
+    [Fact]
+    public async Task NumericProperty_EmptyInput_SetsDefault()
+    {
+        var p = new NumericHolder { D = 1.5 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
+        var html = view.RenderAsLiveRoot();
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        // Empty input on a non-nullable value type clears to default(T) so the user can
+        // actually empty the field. Without this, the next render snaps the input back to
+        // the prior value because TrySetTyped failed.
+        Assert.Equal(0d, p.D);
     }
 
     [Theory]

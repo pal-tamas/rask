@@ -223,6 +223,43 @@ public abstract class SharedSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Binding_NonNullableInt_Clear_SetsZeroAndStaysCleared() => RunAsync(async () =>
+    {
+        // Pin the asymmetry between non-nullable and nullable empty-clear on a number input:
+        //   • int  → BindingHelpers.TrySetTyped's value-type branch returns default(T) so the
+        //     model snaps to 0 and the input shows "0" instead of snapping back to the prior value.
+        //   • int? → still routes empty → null (sibling test Binding_NullableInt_ClearToNull).
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var echo = Page.Locator("#bind-clear-echo");
+        var nonNullable = Page.Locator("#bind-clear-age");
+        var nullable = Page.Locator("#bind-clear-optage");
+
+        await Expect(echo).ToContainTextAsync("Age         = 30",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("OptionalAge = 7",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Non-nullable int: clear → model becomes 0, input value snaps to "0".
+        await nonNullable.FillAsync("");
+        await nonNullable.PressAsync("Tab");
+        await Expect(echo).ToContainTextAsync("Age         = 0",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(nonNullable).ToHaveValueAsync("0",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+
+        // Nullable int: clear → model becomes null, input value stays empty.
+        await nullable.FillAsync("");
+        await nullable.PressAsync("Tab");
+        await Expect(echo).ToContainTextAsync("OptionalAge = null",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(nullable).ToHaveValueAsync("",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
     public Task Binding_NullableDate_ClearToNull_RoundTripsThroughEcho() => RunAsync(async () =>
     {
         // DateOnly? — date inputs are change-only. Same dispatch discipline as

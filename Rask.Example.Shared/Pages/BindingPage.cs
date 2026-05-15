@@ -61,8 +61,17 @@ public sealed class BindingPage : Component
                 Input(Bind: () => _model.Nickname)      // string? (NRT) → empty → null
                 """,
                 Notes:
-                "BindingHelpers.TrySetTyped routes empty input to null when the property is nullable — either Nullable<T> for value types or NRT-annotated for reference types (detected via NullabilityInfoContext). Non-nullable string still becomes \"\" when emptied; non-nullable value types fail to parse and keep their previous value.",
+                "BindingHelpers.TrySetTyped routes empty input to null when the property is nullable — either Nullable<T> for value types or NRT-annotated for reference types (detected via NullabilityInfoContext). Non-nullable string still becomes \"\" when emptied; non-nullable value types clear to default(T) — see the next section.",
                 Result: BindingNullableDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Typed — clearing a non-nullable value-type input"],
+            CodeSample(
+                """
+                Input(Bind: () => _model.Age)         // int      → clear → 0
+                Input(Bind: () => _model.OptionalAge) // int?     → clear → null
+                """,
+                Notes:
+                "Clearing a number/date/enum input on a non-nullable value type now snaps the model to default(T) instead of silently reverting. The nullable companion still routes empty → null, so the two paths stay distinguishable.",
+                Result: BindingClearDefaultDemo()),
             H2(Class: "h4 mt-5 mb-3")["Typed — Textarea<TProp>(Bind: ...)"],
             CodeSample(
                 """

@@ -159,15 +159,34 @@ internal static class BindingHelpers
         Justification = "acc.PropertyType is the model property's static type; if the user marks the [RouteParam]/" +
                         "[QueryParam] / form-bound property correctly (RASK011 enforces IParsable<T> or string), " +
                         "TryParse's IL2060/IL2070 demands are met by the same DynamicDependency that preserves " +
-                        "the page/model's public members.")]
+                        "the page/model's public members. Activator.CreateInstance(t) on the empty-input path is " +
+                        "only reached for value types and returns a zero-initialised instance without invoking a " +
+                        "constructor, so it carries no member-access demand.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2067",
+        Justification = "Same rationale as IL2072 above — the value-type default path uses Activator.CreateInstance " +
+                        "on acc.PropertyType, which the trimmer cannot prove is a value type at compile time.")]
     private static bool TrySetTyped(ExpressionAccessor.Accessor acc, string raw)
     {
         var t = acc.PropertyType;
         var underlying = Nullable.GetUnderlyingType(t);
-        if (string.IsNullOrEmpty(raw) && IsNullableProperty(acc.Property, underlying, t))
+        if (string.IsNullOrEmpty(raw))
         {
-            acc.Setter(null);
-            return true;
+            if (IsNullableProperty(acc.Property, underlying, t))
+            {
+                acc.Setter(null);
+                return true;
+            }
+
+            // Non-nullable value type: empty raw maps to default(T) so the user can clear a
+            // number/date/enum input. Without this, IParsable<T>.TryParse("") fails, the model
+            // keeps its prior value, and the next render snaps the cleared input back to it.
+            // Non-nullable reference types (string with non-nullable NRT) fall through —
+            // RouteValueParser returns "" verbatim for string.
+            if (t.IsValueType)
+            {
+                acc.Setter(Activator.CreateInstance(t));
+                return true;
+            }
         }
 
         // Enum.TryParse needs the unwrapped type — Nullable<TEnum>.IsEnum is false, so a

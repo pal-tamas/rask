@@ -392,6 +392,69 @@ public class FormBindingTests
     }
 
     [Fact]
+    public async Task OnChange_NonNullableInt_EmptyString_SetsDefault()
+    {
+        // Non-nullable value-type bindings (here `int Age`) treat empty input as `default(T)`
+        // so the user can clear a number/date/enum input. The sibling nullable test above
+        // (OnChange_NullableInt_EmptyString_SetsPropertyToNull) pins the null path for `int?`.
+        var p = new Person { Name = "Ada", Age = 30 };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Age)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(0, p.Age);
+    }
+
+    [Fact]
+    public async Task OnChange_NonNullableDecimal_EmptyString_SetsDefault()
+    {
+        var p = new Person { Name = "Ada", Age = 30, Salary = 5000m };
+        var view = new StubComponent(() => Form(p)[Input(() => p.Salary)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(0m, p.Salary);
+    }
+
+    [Fact]
+    public async Task OnChange_NonNullableDateOnly_EmptyString_SetsDefault()
+    {
+        var p = new Person { Name = "Ada", Age = 30, HireDate = new DateOnly(2020, 6, 1) };
+        var view = new StubComponent(() => Form(p)[Input(() => p.HireDate)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(default(DateOnly), p.HireDate);
+    }
+
+    [Fact]
+    public async Task OnChange_NonNullableEnum_EmptyString_SetsDefault()
+    {
+        var p = new Person { Name = "Ada", Age = 30, CurrentStatus = PersonStatus.Inactive };
+        var view = new StubComponent(() => Form(p)[Input(() => p.CurrentStatus)]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        using var doc = JsonDocument.Parse("{\"value\":\"\"}");
+        var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+
+        Assert.True(ok);
+        Assert.Equal(default(PersonStatus), p.CurrentStatus);
+    }
+
+    [Fact]
     public async Task OnInput_NullableString_EmptyInput_SetsPropertyToNull()
     {
         // For `string?`, BindingHelpers.TrySetTyped reads the NRT annotation off the
@@ -482,6 +545,9 @@ public class FormBindingTests
         [Required] public string Name { get; set; } = "";
         [Range(1, 120)] public int Age { get; set; }
         public bool Subscribed { get; set; }
+        public decimal Salary { get; set; }
+        public DateOnly HireDate { get; set; }
+        public PersonStatus CurrentStatus { get; set; }
 
         public int? OptionalAge { get; set; }
         public decimal? Price { get; set; }
