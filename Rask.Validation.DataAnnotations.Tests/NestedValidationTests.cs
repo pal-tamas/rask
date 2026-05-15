@@ -1,5 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using Rask.Core;
+using Rask.Core.Components;
 using Rask.Core.Forms;
+
+#pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
 
 namespace Rask.Validation.DataAnnotations.Tests;
 
@@ -247,6 +252,91 @@ public class NestedValidationTests
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(replaced, "Name")));
         // The discarded record's slot has been cleared too.
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(first, "Name")));
+    }
+
+    [Fact]
+    public async Task FormPipeline_NestedField_FiresOnChange()
+    {
+        // End-to-end through the Form factory + Input handler dispatch path. Without the
+        // model-graph pre-walk in Form.Model's setter, the Input bound to p.Address.Street
+        // would resolve to a separate EditContext keyed by p.Address — different from the
+        // form's EditContext where DataAnnotationsValidator self-registers — and the per-
+        // keystroke ValidateField call would land in an empty context, producing no message.
+        var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form<Person>(p)[
+            DataAnnotationsValidator(),
+            Input(() => p.Address!.Street),
+            new ContextCapture(ctx => captured = ctx)
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        Assert.NotNull(changeId);
+        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
+        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+
+        Assert.NotNull(captured);
+        Assert.Same(p, captured!.Model);
+        Assert.Contains("Street required",
+            captured.GetValidationMessages(new FieldIdentifier(p.Address!, "Street")));
+    }
+
+    [Fact]
+    public async Task FormPipeline_NestedField_BlurSurfacesMessageInRenderedHtml()
+    {
+        // End-to-end through the Form factory + Input handler dispatch path, asserting the
+        // [Required] error surfaces in the post-blur HTML via ValidationMessage. This catches
+        // the handler/display context split that FormPipeline_NestedField_FiresOnChange
+        // misses by reading the EditContext directly instead of going through the renderer.
+        var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
+
+        var view = new StubComponent(() => Form<Person>(p)[
+            DataAnnotationsValidator(),
+            Input(() => p.Address!.Street),
+            ValidationMessage(() => p.Address!.Street,
+                msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
+        ]);
+
+        var initial = view.RenderAsLiveRoot();
+        Assert.DoesNotContain("Street required", initial);
+
+        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
+        await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
+
+        var afterBlur = view.RenderAsLiveRoot();
+        Assert.Contains("Street required", afterBlur);
+    }
+
+    private static string? ExtractAttr(string html, string attr)
+    {
+        var marker = attr + "=\"";
+        var i = html.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return null;
+        var start = i + marker.Length;
+        var end = html.IndexOf('"', start);
+        return end < 0 ? null : html.Substring(start, end - start);
+    }
+
+    private sealed class StubComponent : Component
+    {
+        private readonly Func<Component> _factory;
+        public StubComponent(Func<Component> factory) => _factory = factory;
+        protected override Component Render() => _factory();
+    }
+
+    private sealed class ContextCapture(Action<EditContext> capture) : Component
+    {
+        protected override Component Render()
+        {
+            if (EditContextScope.Current is { } c)
+            {
+                capture(c);
+            }
+            return Fragment();
+        }
     }
 
     private static EditContext RegisterValidator<T>(T model) where T : class

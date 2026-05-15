@@ -76,6 +76,49 @@ public sealed class ValidationPage : Component
                 Notes:
                 "No DataAnnotations on the model — every rule lives at the call site. Validate: on Input runs per-keystroke (after the field is touched) and produces field-scoped messages. Validate: on Form runs at submit and produces summary-scoped messages. Both delegates accept either a Func<T, IEnumerable<string>> (sync) or Func<T, CancellationToken, ValueTask<IEnumerable<string>>> (async).",
                 Result: InlineValidateDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Nested test"],
+            CodeSample(
+                """
+                public sealed class StorefrontModel {
+                    public string CustomerName { get; set; } = "";
+                    public StorefrontAddress Address { get; set; } = new();
+                    public List<StorefrontLineItem> Items { get; set; } = new();
+                    public string DiscountCode { get; set; } = "";
+                }
+
+                static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
+                    string code, CancellationToken ct)
+                {
+                    if (!Regex.IsMatch(code ?? "", @"^\d{5}$"))
+                        return new[] { "Postal code must be 5 digits." };
+                    await Task.Delay(300, ct);
+                    return Undeliverable.Contains(code)
+                        ? new[] { "We don't ship to this area." }
+                        : Array.Empty<string>();
+                }
+
+                protected override Component Render() {
+                    // Derived state — recomputed on every render. The dispatcher re-renders
+                    // after each handler completes, so the figures stay in sync automatically.
+                    var subtotal = _model.Items.Sum(i => i.Quantity * i.UnitPrice);
+                    var pct = PromoCodes.GetValueOrDefault(_model.DiscountCode, 0m);
+                    var total = subtotal * (1m - pct) * 1.08m;
+
+                    return Form<StorefrontModel>(_model, OnValidSubmit)[
+                        // Async validation on a NESTED field.
+                        Input(Bind: () => _model.Address.PostalCode, Validate: ValidatePostalAsync),
+                        ValidatingIndicator(For: () => _model.Address.PostalCode, Template: Checking),
+                        ValidationMessage(For: () => _model.Address.PostalCode, Template: FieldError),
+                        Input(Bind: () => _model.Items[0].Quantity),
+                        Input(Bind: () => _model.Items[0].UnitPrice),
+                        Input(Bind: () => _model.DiscountCode),
+                        Div()[ "Total ", total ]
+                    ];
+                }
+                """,
+                Notes:
+                "Combines async validation on a nested field with live derived UI. The Validate: lambda on Input(() => _model.Address.PostalCode, …) routes through the form's EditContext, same as a root field — latest-wins cancellation supersedes the prior in-flight check, ValidatingIndicator surfaces while the await is pending, and OperationCanceledException is swallowed without producing a generic message. Live calcs work because every event handler re-renders the owning component: string fields (DiscountCode) update on every keystroke via OnInput, numeric fields (Quantity / UnitPrice) update on blur via OnChange — both flow through the same dispatcher path. Submit only fires OnValidSubmit when every per-field rule passes; an undeliverable ZIP keeps the form pending until corrected.",
+                Result: NestedAsyncWithLiveTotalsDemo()),
             H2(Class: "h4 mt-5 mb-3")["Inline async — Validate: as Func<T, CT, ValueTask<IEnumerable<string>>>"],
             CodeSample(
                 """

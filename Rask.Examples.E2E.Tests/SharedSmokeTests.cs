@@ -1365,6 +1365,97 @@ public abstract class SharedSmokeTests : IAsyncLifetime
                 new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 
+    // ---------- Validation: Nested async + live totals (NestedAsyncWithLiveTotalsDemo) ----------
+    //
+    // The showcase wires an async Validate: onto a NESTED field (() => _model.Address.PostalCode)
+    // and also displays derived totals recomputed on every render. Pre-fix, the Input's keystroke /
+    // blur handlers resolved to a stray EditContext keyed by _model.Address while ValidationMessage
+    // read from the form's EditContext — so the per-field error never surfaced and the user had to
+    // submit to see anything. These tests pin both the regression (blur → message) and the
+    // showcase's secondary feature (live totals recomputed on every event).
+    [Fact]
+    public Task Validation_Nested_PostalEmptySubmit_ShowsRequiredMessage() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // The user's most direct complaint: an empty nested field shouldn't stay silent until
+        // submit. Submit is still the deterministic trigger because blur-on-empty doesn't fire
+        // `change` (the value never deviated from focus-time), so this test goes through the
+        // submit bridge — TouchAllRegisteredFields + ValidateAsync — to drive the path. Pre-fix
+        // the postal validator's "Postal code is required." message landed on a stray sub-
+        // object EditContext, ValidationMessage read the (empty) form context, and nothing
+        // appeared in the rendered HTML.
+        var form = Page.Locator("form:has(#v-nlive-postal)");
+        await form.Locator("button[type=submit]").ClickAsync();
+
+        var postalField = form.Locator("div:has(> #v-nlive-postal)");
+        await Expect(postalField.Locator(".text-danger"))
+            .ToContainTextAsync("Postal code is required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_Nested_PostalBlurInvalidValue_ShowsFiveDigitMessage() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var form = Page.Locator("form:has(#v-nlive-postal)");
+        var field = form.Locator("#v-nlive-postal");
+        var postalField = form.Locator("div:has(> #v-nlive-postal)");
+
+        // Typing changes the value so blur DOES fire `change` → TouchAndValidateHandler runs on
+        // the nested binding. The regex check fails before the 300ms await, so the message
+        // surfaces immediately. Pre-fix the handler wrote to a stray sub-object context that
+        // ValidationMessage never read, so the .text-danger DOM stayed empty.
+        await field.FillAsync("12");
+        await field.BlurAsync();
+
+        await Expect(postalField.Locator(".text-danger"))
+            .ToContainTextAsync("must be 5 digits",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The field is now touched, so subsequent keystrokes (OnInput) re-validate without
+        // another blur — "1234" still fails the regex.
+        await field.FillAsync("1234");
+        await Expect(postalField.Locator(".text-danger"))
+            .ToContainTextAsync("must be 5 digits",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Validation_Nested_LiveTotals_PromoKeystroke_AppliesDiscount() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/validation");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // The promo code is a root-level string field (OnInput per keystroke). The Render()
+        // method recomputes subtotal/discount/tax/total from the current model on every render,
+        // so the discount line must update mid-keystroke without a blur. Initial subtotal is
+        // 1*9.99 + 2*14.99 = 39.97, with no promo the discount line shows -$0.00. SAVE10 = 10%
+        // off so the discount line jumps to -$4.00 (rounded from 3.997).
+        var form = Page.Locator("form:has(#v-nlive-postal)");
+        await Expect(form.Locator("#v-nlive-discount"))
+            .ToHaveTextAsync("-$0.00",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        await form.Locator("#v-nlive-promo").FillAsync("SAVE10");
+
+        await Expect(form.Locator("#v-nlive-discount"))
+            .ToHaveTextAsync("-$4.00",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    // Async-validator + submit-success paths for the nested showcase are covered by the unit
+    // tests AsyncValidate_NestedField_TypingThenBlurSurfacesMessageInRenderedHtml and
+    // AsyncValidate_NestedField_SubmitAfterValidFill_RoutesToValidPath in
+    // Rask.Core.Tests/Forms/NestedBindingValidationTests.cs — exercising them through Playwright
+    // adds Server-WS timing flakiness without exercising any path the unit tests miss.
+
     // ---------- Validation: Complex models (nested forms) ----------
 
     [Fact]

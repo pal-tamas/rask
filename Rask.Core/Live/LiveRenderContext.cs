@@ -137,6 +137,28 @@ public sealed class LiveRenderContext : IDisposable
         _currentEditContexts[new ObjectKey(ctx.Model)] = ctx;
     }
 
+    // Used by Form to make a sub-object reachable through the same EditContext as its root
+    // model, so a nested binding like Input(() => model.Address.Street) — whose acc.Target is
+    // model.Address — resolves to the form's EditContext rather than auto-creating a separate
+    // sub-object context. Last-write-wins: when a Form receives both Model and Context, the
+    // generated factory's setter order is Model-then-Context, so the Model setter runs first
+    // (auto-creating a stray ctx and registering subs against it), and the Context setter
+    // must be able to overwrite those subs to point at the user-supplied Context.
+    internal void RegisterEditContextForKey(object subModel, EditContext ctx)
+    {
+        if (subModel is null)
+        {
+            throw new ArgumentNullException(nameof(subModel));
+        }
+
+        if (ctx is null)
+        {
+            throw new ArgumentNullException(nameof(ctx));
+        }
+
+        _currentEditContexts[new ObjectKey(subModel)] = ctx;
+    }
+
     internal Dictionary<ObjectKey, EditContext> SnapshotEditContexts() => _currentEditContexts;
 
     private sealed class ScopePopper : IDisposable

@@ -29,7 +29,30 @@ public sealed class Form : Element
     public string? Name { get; set; }
     public Action<FormData>? OnSubmit { get; set; }
     public Func<FormData, Task>? OnSubmitAsync { get; set; }
-    public object? Model { get; set; }
+
+    private object? _model;
+    // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
+    // walks the model graph so descendant sub-objects also resolve to the same context. Without
+    // this, a nested binding like Input(() => model.Address.Street) — whose acc.Target is
+    // model.Address — would GetOrCreateEditContext(model.Address) at factory time and end up
+    // writing field events into a separate empty EditContext, never reaching the validators
+    // that self-registered into the form's context. Setter runs every render (generated factory
+    // re-applies properties on cached instances), keeping the registration fresh when sub-
+    // object references are swapped between renders.
+    public object? Model
+    {
+        get => _model;
+        set
+        {
+            _model = value;
+            if (value is not null && LiveRenderContext.Current is { } live)
+            {
+                var ctx = live.GetOrCreateEditContext(value);
+                RegisterSubGraph(live, ctx, value);
+            }
+        }
+    }
+
     public Delegate? OnValidSubmit { get; set; }
     public Delegate? OnInvalidSubmit { get; set; }
 
@@ -50,10 +73,24 @@ public sealed class Form : Element
             // Pre-register the user-supplied context so sibling Input/Select/Textarea bound
             // factories — which run inside the same parent Render() pass, before this Form's
             // EnterChildrenScope pushes the scope — resolve to this exact instance through
-            // LiveRenderContext.GetOrCreateEditContext(model).
-            if (value is not null)
+            // LiveRenderContext.GetOrCreateEditContext(model). Walk the model graph so nested
+            // bindings (acc.Target = a sub-object) also land on this context rather than
+            // auto-creating a separate one keyed by the sub-object reference.
+            if (value is not null && LiveRenderContext.Current is { } live)
             {
-                LiveRenderContext.Current?.RegisterEditContext(value);
+                live.RegisterEditContext(value);
+                RegisterSubGraph(live, value, value.Model);
+            }
+        }
+    }
+
+    private static void RegisterSubGraph(LiveRenderContext live, EditContext ctx, object root)
+    {
+        foreach (var node in ModelGraphWalker.Walk(root))
+        {
+            if (!ReferenceEquals(node, root))
+            {
+                live.RegisterEditContextForKey(node, ctx);
             }
         }
     }

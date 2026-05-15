@@ -1,5 +1,10 @@
+using System.Text.Json;
 using FluentValidation;
+using Rask.Core;
+using Rask.Core.Components;
 using Rask.Core.Forms;
+
+#pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
 
 namespace Rask.Validation.FluentValidation.Tests;
 
@@ -141,6 +146,65 @@ public class NestedValidationTests
         Assert.Contains(
             "stale-index error",
             ctx.GetValidationMessages(new FieldIdentifier(p, string.Empty)));
+    }
+
+    [Fact]
+    public async Task FormPipeline_NestedField_FiresOnChange()
+    {
+        // End-to-end through the Form factory + Input handler dispatch path. Without the
+        // model-graph pre-walk in Form.Model's setter, the Input bound to p.Address.Street
+        // would resolve to a separate EditContext keyed by p.Address — different from the
+        // form's EditContext where FluentValidationValidator self-registers — and the per-
+        // keystroke ValidateFieldAsync call would land in an empty context, producing no
+        // message.
+        var p = new Person { Address = new Address { Street = "" } };
+        EditContext? captured = null;
+
+        var view = new StubComponent(() => Form<Person>(p)[
+            FluentValidationValidator(new PersonValidator()),
+            Input(() => p.Address!.Street),
+            new ContextCapture(ctx => captured = ctx)
+        ]);
+        var html = view.RenderAsLiveRoot();
+
+        var changeId = ExtractAttr(html, "data-rask-on-change");
+        Assert.NotNull(changeId);
+        using var blur = JsonDocument.Parse("{\"value\":\"\"}");
+        await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
+
+        Assert.NotNull(captured);
+        Assert.Same(p, captured!.Model);
+        Assert.Contains("Street required",
+            captured.GetValidationMessages(new FieldIdentifier(p.Address!, "Street")));
+    }
+
+    private static string? ExtractAttr(string html, string attr)
+    {
+        var marker = attr + "=\"";
+        var i = html.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return null;
+        var start = i + marker.Length;
+        var end = html.IndexOf('"', start);
+        return end < 0 ? null : html.Substring(start, end - start);
+    }
+
+    private sealed class StubComponent : Component
+    {
+        private readonly Func<Component> _factory;
+        public StubComponent(Func<Component> factory) => _factory = factory;
+        protected override Component Render() => _factory();
+    }
+
+    private sealed class ContextCapture(Action<EditContext> capture) : Component
+    {
+        protected override Component Render()
+        {
+            if (EditContextScope.Current is { } c)
+            {
+                capture(c);
+            }
+            return Fragment();
+        }
     }
 
     private static EditContext RegisterValidator<T>(T model, IValidator validator) where T : class
