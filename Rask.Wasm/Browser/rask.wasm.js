@@ -116,6 +116,7 @@ function handle(reply) {
             root = document.querySelector("[data-rask-root]") || document.body;
         }
         applyHistory(reply.history);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     // Animate navigations (renders carrying a history block) with the View
     // Transitions API when the browser supports it. State-only re-renders skip

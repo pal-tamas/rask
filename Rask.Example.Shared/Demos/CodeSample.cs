@@ -45,9 +45,12 @@ public sealed class CodeSample : Component
                                    .sample-code code {
                                        white-space: pre;
                                        background: transparent;
-                                       color: inherit;
                                        padding: 0;
                                        font-size: inherit;
+                                   }
+                                   .sample-code code.hljs {
+                                       background: transparent;
+                                       padding: 0;
                                    }
                                    .sample-result-col {
                                        background: #fff;

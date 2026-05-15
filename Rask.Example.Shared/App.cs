@@ -71,6 +71,26 @@ public sealed class App : Component
                     Link(Rel: "stylesheet",
                         Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css",
                         CrossOrigin: "anonymous"),
+                    Link(Rel: "stylesheet",
+                        Href: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/atom-one-dark.min.css",
+                        CrossOrigin: "anonymous"),
+                    Script(Src: "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js",
+                        CrossOrigin: "anonymous"),
+                    Script()[Raw("""
+                        window.raskHighlight = function () {
+                            if (!window.hljs) return;
+                            document.querySelectorAll('pre code[class*="language-"]').forEach(function (el) {
+                                delete el.dataset.highlighted;
+                                hljs.highlightElement(el);
+                            });
+                        };
+                        window.raskAfterMorph = window.raskHighlight;
+                        if (document.readyState === "loading") {
+                            document.addEventListener("DOMContentLoaded", window.raskHighlight);
+                        } else {
+                            window.raskHighlight();
+                        }
+                        """)],
                     RaskScopedStyles()
                 ],
                 Body(Class: "bg-body-tertiary")[

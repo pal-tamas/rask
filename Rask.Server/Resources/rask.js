@@ -59,6 +59,7 @@
                         history.pushState({rask: true}, "", data.history.url);
                     }
                 }
+                if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
             // Animate navigations (renders carrying a history block) with the View
             // Transitions API when the browser supports it. State-only re-renders
