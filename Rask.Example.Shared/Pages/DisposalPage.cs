@@ -9,9 +9,12 @@ namespace Rask.Example.Shared.Pages;
 public sealed class DisposalPage : Component
 {
     private readonly List<string> _asyncLog = new();
+    private readonly List<string> _hookLog = new();
     private readonly List<string> _syncLog = new();
     private bool _asyncMounted;
+    private bool _hookMounted;
     private int _nextAsyncId;
+    private int _nextHookId;
     private int _nextSyncId;
     private bool _syncMounted;
 
@@ -95,7 +98,67 @@ public sealed class DisposalPage : Component
                     "If you need to observe the cancellation token from inside Dispose, it is already in the cancelled state by then — see ",
                     Code()["/cancellation"], "."
                 ]
-            ]
+            ],
+            H2(Class: "h4 mt-5 mb-3")["OnUnmount vs IDisposable"],
+            P(Class: "text-secondary")[
+                Code()["OnUnmount"], " / ", Code()["OnUnmountAsync"],
+                " is the framework-side cleanup signal. It fires before the lifetime ",
+                Code()["CancellationToken"],
+                " is cancelled, so cleanup code can still observe the token. Reach for it when the resource is conceptually a ",
+                Em()["lifecycle hook"],
+                " (unsubscribe from an event, stop a timer you started in ", Code()["OnMount"],
+                ") and reserve ", Code()["IDisposable"],
+                " for things you would dispose anyway in non-Rask code (file handles, HTTP responses, DB connections)."
+            ],
+            Div(Class: "card shadow-sm border-0 mb-4")[
+                Div(Class: "card-body")[
+                    Div(Class: "d-flex gap-2 mb-3")[
+                        Button(
+                            Class: "btn btn-primary btn-sm",
+                            Id: "unmount-hook-mount",
+                            Disabled: _hookMounted,
+                            OnClick: MountHook)[I(Class: "bi bi-play-circle me-1"), "Start ticker"],
+                        Button(
+                            Class: "btn btn-outline-secondary btn-sm",
+                            Id: "unmount-hook-unmount",
+                            Disabled: !_hookMounted,
+                            OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
+                    ],
+                    _hookMounted
+                        ? UnmountTimerProbe(Log: AppendHookLog, InstanceId: _nextHookId)
+                        : P(Class: "text-secondary fst-italic mb-0")["Ticker not running."],
+                    LogList(_hookLog, "unmount-hook-log")
+                ]
+            ],
+            CodeSample(
+                """
+                public sealed class UnmountTimerProbe : Component
+                {
+                    public required Action<string> Log { get; set; }
+                    private Timer? _timer;
+                    private int _ticks;
+
+                    protected override void OnMount()
+                    {
+                        Log("ticker started");
+                        _timer = new Timer(_ => {
+                            _ticks++;
+                            StateHasChanged();
+                        }, null, 1000, 1000);
+                    }
+
+                    protected override void OnUnmount()
+                    {
+                        _timer?.Dispose();
+                        Log($"ticker stopped after {_ticks} tick(s)");
+                    }
+
+                    protected override Component Render() =>
+                        Span()[$"tick {_ticks}"];
+                }
+                """,
+                Notes:
+                "No IDisposable on the component. The timer is owned by a render hook, so its cleanup belongs in OnUnmount — symmetric with OnMount. The lifetime CancellationToken is still live here, so you could also pass it to any pending awaits if you wanted to fan out cancellation.")
         ];
 
     private static Component LogList(IReadOnlyList<string> entries, string id) =>
@@ -147,6 +210,28 @@ public sealed class DisposalPage : Component
     private void AppendAsyncLog(string line)
     {
         _asyncLog.Add(line);
+        StateHasChanged();
+        _ = DeferredRerenderAsync();
+    }
+
+    private void MountHook()
+    {
+        if (_hookMounted) return;
+        _nextHookId++;
+        _hookMounted = true;
+        StateHasChanged();
+    }
+
+    private void UnmountHook()
+    {
+        if (!_hookMounted) return;
+        _hookMounted = false;
+        StateHasChanged();
+    }
+
+    private void AppendHookLog(string line)
+    {
+        _hookLog.Add(line);
         StateHasChanged();
         _ = DeferredRerenderAsync();
     }

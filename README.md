@@ -313,6 +313,10 @@ attached to its `EditContext`. Field errors render via `ValidationMessage` and a
 `ValidationSummary` — both are headless and take a required `Template:` lambda so you control the markup
 (e.g. `Template: errs => Div(Class: "err")[errs[0]]`).
 
+`Input` / `Select` / `Textarea` also accept `AfterBind` / `AfterBindAsync` callbacks that fire **after** the new value
+is written to the model (and after validators see the change) — handy for dependent fields that need to rebind in the
+same render. Skipped on parse failure or no-op writes.
+
 Validation is opt-in — Rask.Core ships no validator by default. Add the package you want and drop the validator
 component inside the form:
 
@@ -483,6 +487,71 @@ public override Component Render() =>
     ];
 ```
 
+### Files: upload and download
+
+`Input(Type: "file", OnFiles: …)` accepts files; `Navigator.Download(...)` sends them. The same component code runs
+unchanged on Server and WASM — only the transport differs (multipart over the WebSocket on the server, JS-Map +
+chunked reads on WASM; downloads go through `/_rask/download/{token}` on the server, base64 + Blob URL on WASM).
+
+```csharp
+Input(Type: "file", OnFiles: async files => {
+    var file = files[0];                                         // RaskFile
+    using var s = file.OpenReadStream(maxAllowedSize: 5_000_000, // valid only inside this handler
+                                      cancellationToken: CancellationToken);
+    await s.CopyToAsync(destination);
+})
+```
+
+```csharp
+public sealed class ReportPage(Navigator nav) : Component
+{
+    private void Download() =>
+        nav.Download("report.txt",
+                     Encoding.UTF8.GetBytes("hello"),
+                     "text/plain");
+
+    public override Component Render() =>
+        Button(OnClick: Download)["Download report"];
+}
+```
+
+`RaskFile` exposes `Name`, `Size`, `ContentType`, `LastModified`, plus `OpenReadStream(maxAllowedSize, ct)`. The
+stream is only valid while the handler is on the stack — read whatever you need before returning. Inside a `Form`,
+files also surface through `FormData.Files(name)` and participate in submit. `Navigator.Download` must be called from
+an event handler. See `Rask.Example.Shared/Pages/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
+
+### Virtualization
+
+`Virtualize<T>` is a headless windowed-list primitive — it emits no DOM of its own and instead invokes the `Render`
+delegate with the visible window of items plus the spacer offsets you wire into your own scroll container.
+
+```csharp
+Virtualize<Row>(
+    Items: _rows,                                  // or ItemsProvider for async paging
+    ItemSize: 32,                                  // pixel height of one row
+    OverscanCount: 4,
+    InitialClientHeight: 400,
+    Render: ctx => Div(
+        Style: "height:400px; overflow:auto;",
+        OnScroll: ctx.OnScroll)[
+        Div(Style: $"height:{ctx.OffsetBefore}px"),  // spacer for off-screen rows above
+        Table()[
+            Tbody()[
+                ctx.VisibleItems.Select(item => (Child)Tr()[
+                    Td()[$"#{item.Index}"],
+                    Td()[item.Value?.Name ?? ""]    // null while a placeholder is loading
+                ]).ToArray()
+            ]
+        ],
+        Div(Style: $"height:{ctx.OffsetAfter}px")    // spacer for off-screen rows below
+    ])
+```
+
+Provide exactly one of `Items` (in-memory) or `ItemsProvider` (async paging:
+`Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>`). With a provider, `Virtualize` caches loaded items by
+global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true` until
+a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-row table demo.
+
 ### Scoped CSS
 
 Colocate styles on the component. Selectors are auto-scoped to the component type, served once from `/_rask/scoped.css`,
@@ -505,12 +574,13 @@ Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quic
 
 ### Lifecycle reference
 
-| Hook                                     | When                                               |
-|------------------------------------------|----------------------------------------------------|
-| `OnMount` / `OnMountAsync`               | Once, on first instance creation                   |
-| `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied               |
-| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag      |
-| `StateHasChanged()`                      | Call to force a re-render outside an event handler |
+| Hook                                     | When                                                                                |
+|------------------------------------------|-------------------------------------------------------------------------------------|
+| `OnMount` / `OnMountAsync`               | Once, on first instance creation                                                    |
+| `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied                                                |
+| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag                                       |
+| `OnUnmount` / `OnUnmountAsync`           | Once, on disposal (children before parents); the lifetime `CancellationToken` is still live |
+| `StateHasChanged()`                      | Call to force a re-render outside an event handler                                  |
 
 ## Status
 

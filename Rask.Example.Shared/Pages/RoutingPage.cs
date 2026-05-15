@@ -62,6 +62,36 @@ public sealed class RoutingPage(Navigator nav) : Component
                     Class: "btn btn-outline-primary btn-sm",
                     OnClick: () =>
                         nav.Navigate("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[I(Class: "bi bi-link-45deg me-1"), "/users/ada?tab=profile"]
-            ]
+            ],
+            H2(Class: "h4 mt-5 mb-3")["Reacting to navigation: RouteState.Changed"],
+            P(Class: "text-secondary")[
+                Code()["RouteState"],
+                " raises ",
+                Code()["Changed"],
+                " whenever the path or query actually changes (reference-equality gated). Subscribe in ",
+                Code()["OnMount"],
+                " and unsubscribe in ",
+                Code()["OnUnmount"],
+                ". Useful for components rendered ",
+                Em()["above"],
+                " the ", Code()["Router"],
+                " (sidebars, breadcrumbs, the path display in the showcase header) that need to refresh on every nav, including browser back/forward."
+            ],
+            CodeSample(
+                """
+                public sealed class PathDisplay(RouteState route) : Component
+                {
+                    protected override void OnMount() =>
+                        route.Changed += StateHasChanged;
+
+                    protected override void OnUnmount() =>
+                        route.Changed -= StateHasChanged;
+
+                    protected override Component Render() =>
+                        Span()["path: ", Code()[route.Path]];
+                }
+                """,
+                Notes:
+                "The handler is just StateHasChanged — the framework already knows how to coalesce the resulting render with whatever else the dispatcher is processing. Always pair the subscribe with the unsubscribe in OnUnmount; otherwise the RouteState keeps a strong reference to the (already-unmounted) component.")
         ];
 }
