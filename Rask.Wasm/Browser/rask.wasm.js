@@ -158,6 +158,27 @@ function applyScopedCss(hash, cssText) {
     if (typeof cssText === "string") style.textContent = cssText;
 }
 
+// Scripts produced by DOMParser have their "already started" flag set, so the
+// browser silently skips them when morph() appends them into the live document.
+// Rebuild script nodes via createElement so they actually execute, propagate
+// every attribute (type=module, defer, integrity, nonce, crossorigin, …), and
+// fire raskAfterMorph again once external scripts finish loading — inline
+// scripts run synchronously on insertion and may early-return if they depend
+// on a not-yet-loaded global like window.hljs.
+function reviveScript(node) {
+    if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return node;
+    const s = document.createElement("script");
+    for (const a of node.attributes) s.setAttribute(a.name, a.value);
+    if (s.src) {
+        s.async = false;
+        s.addEventListener("load", () => {
+            if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+        }, { once: true });
+    }
+    s.text = node.textContent;
+    return s;
+}
+
 function applyHistory(history) {
     if (!history || typeof history.url !== "string") return;
     const target = prependBase(history.url);
@@ -273,9 +294,9 @@ function morph(from, to) {
     const max = Math.max(fc.length, tc.length);
     for (let k = 0; k < max; k++) {
         const src = fc[k], dst = tc[k];
-        if (!src) from.appendChild(dst);
+        if (!src) from.appendChild(reviveScript(dst));
         else if (!dst) from.removeChild(src);
-        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) from.replaceChild(dst, src);
+        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) from.replaceChild(reviveScript(dst), src);
         else morph(src, dst);
     }
 }
