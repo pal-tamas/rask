@@ -238,7 +238,8 @@ document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-rask-on-click]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
-    send({id: t.getAttribute("data-rask-on-click"), type: "click"});
+    send({id: t.getAttribute("data-rask-on-click"), type: "click",
+          shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey});
 });
 
 document.addEventListener("input", (e) => {

@@ -101,6 +101,7 @@ internal static class HtmlSerializer
 
                 using (live?.PushScope(component))
                 using (live?.EnterParentScope(component))
+                using (component.EnterChildrenScopeInternal())
                 {
                     Serialize(component.RenderForLive(), sb);
                 }

@@ -396,6 +396,9 @@ public abstract class Component
                 case Action a:
                     a();
                     return true;
+                case Action<MouseModifiers> am:
+                    am(ExtractModifiers(payload));
+                    return true;
                 case Func<Task> f:
                     await InvokeWithRenderingAsync(f).ConfigureAwait(false);
                     // The mid-await render inside InvokeWithRenderingAsync resets _stateDirty
@@ -403,6 +406,11 @@ public abstract class Component
                     // dispatcher's post-handler render picks up state mutated AFTER the
                     // mid-await window (e.g. an async validator's terminal message, or a
                     // user lambda that ran on the continuation of an awaited Task).
+                    owner._stateDirty = true;
+                    return true;
+                case Func<MouseModifiers, Task> fm:
+                    var modsForAsync = ExtractModifiers(payload);
+                    await InvokeWithRenderingAsync(() => fm(modsForAsync)).ConfigureAwait(false);
                     owner._stateDirty = true;
                     return true;
                 case Action<string> a:
@@ -590,4 +598,22 @@ public abstract class Component
         return v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : string.Empty;
     }
 
+    private static MouseModifiers ExtractModifiers(JsonElement payload) =>
+        new(ExtractBool(payload, "shiftKey"),
+            ExtractBool(payload, "ctrlKey"),
+            ExtractBool(payload, "altKey"),
+            ExtractBool(payload, "metaKey"));
+
+    private static bool ExtractBool(JsonElement payload, string property)
+    {
+        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(property, out var v))
+        {
+            return false;
+        }
+
+        return v.ValueKind == JsonValueKind.True;
+    }
+
 }
+
+public readonly record struct MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta);
