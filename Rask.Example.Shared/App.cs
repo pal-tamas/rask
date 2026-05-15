@@ -63,7 +63,7 @@ public sealed class App : Component
             Html("en")[
                 Head()[
                     Meta("utf-8"),
-                    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+                    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
                     Title()["Rask — feature showcase"],
                     Link(Rel: "stylesheet",
                         Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
@@ -91,7 +91,17 @@ public sealed class App : Component
                             window.raskHighlight();
                         }
                         """)],
-                    RaskScopedStyles()
+                    RaskScopedStyles(),
+                    Style()[Raw("""
+                        html { -webkit-text-size-adjust: 100%; }
+                        body {
+                            -webkit-tap-highlight-color: transparent;
+                            overscroll-behavior-y: none;
+                            padding-left: env(safe-area-inset-left);
+                            padding-right: env(safe-area-inset-right);
+                        }
+                        button, a, [role="button"] { touch-action: manipulation; }
+                        """)]
                 ],
                 Body(Class: "bg-body-tertiary")[
                     Router(),
