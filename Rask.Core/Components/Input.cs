@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Components;
+using RaskFileType = Rask.Core.Forms.RaskFile;
 
 namespace Rask.Core.Components;
 
@@ -216,6 +217,8 @@ public sealed class Input : Element
     public Action<string>? OnChange { get; set; }
     public Func<string, Task>? OnInputAsync { get; set; }
     public Func<string, Task>? OnChangeAsync { get; set; }
+    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
     protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
     {
@@ -258,6 +261,9 @@ public sealed class Input : Element
 
             var change = (Delegate?)OnChange ?? OnChangeAsync;
             if (change is not null) yield return new("data-rask-on-change", ctx.RegisterHandler(change));
+
+            var files = (Delegate?)OnFiles ?? OnFilesAsync;
+            if (files is not null) yield return new("data-rask-on-files", ctx.RegisterHandler(files));
         }
     }
 }

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace Rask.Core.Routing;
 
-public sealed class Navigator(RouteState routeState)
+public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink = null)
 {
     private bool _dirty;
     private bool _inHandler;
@@ -95,6 +95,27 @@ public sealed class Navigator(RouteState routeState)
         routeState.Query = QueryCollection.Empty;
         _dirty = true;
     }
+
+    public void Download(string filename, byte[] bytes, string? contentType = null)
+    {
+        EnsureInHandler();
+        ArgumentException.ThrowIfNullOrEmpty(filename);
+        ArgumentNullException.ThrowIfNull(bytes);
+        ResolveSink().Stage(filename, bytes, contentType);
+    }
+
+    public void Download(string filename, Stream stream, string? contentType = null)
+    {
+        EnsureInHandler();
+        ArgumentException.ThrowIfNullOrEmpty(filename);
+        ArgumentNullException.ThrowIfNull(stream);
+        ResolveSink().Stage(filename, stream, contentType);
+    }
+
+    private IDownloadSink ResolveSink() =>
+        downloadSink ?? throw new InvalidOperationException(
+            "Navigator.Download requires an IDownloadSink. Rask.Server registers one via AddRask(); " +
+            "WASM hosts get one from WasmHostBuilder. If you're in a unit test, register a fake.");
 
     internal IDisposable EnterHandler()
     {

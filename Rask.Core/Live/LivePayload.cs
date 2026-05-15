@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Core.Authentication;
+using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 
 namespace Rask.Core.Live;
@@ -31,7 +32,8 @@ public static class LivePayload
         string? historyUrl,
         bool replace,
         string? cssText = null,
-        AuthInstruction? auth = null)
+        AuthInstruction? auth = null,
+        PendingDownload? download = null)
     {
         var cssHash = ScopedCssRegistry.CurrentHash;
 
@@ -62,6 +64,28 @@ public static class LivePayload
                 if (auth.ReturnUrl is not null)
                 {
                     writer.WriteString("returnUrl", auth.ReturnUrl);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            if (download is not null)
+            {
+                writer.WriteStartObject("download");
+                writer.WriteString("filename", download.Filename);
+                if (download.ContentType is not null)
+                {
+                    writer.WriteString("contentType", download.ContentType);
+                }
+
+                if (download.Url is not null)
+                {
+                    writer.WriteString("url", download.Url);
+                }
+
+                if (download.Bytes is not null)
+                {
+                    writer.WriteBase64String("bytes", download.Bytes);
                 }
 
                 writer.WriteEndObject();

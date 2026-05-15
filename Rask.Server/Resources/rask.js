@@ -73,6 +73,10 @@
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }
+            if (data.download && typeof data.download.url === "string"
+                && typeof data.download.filename === "string") {
+                triggerDownload(data.download.url, data.download.filename);
+            }
         });
 
         ws.addEventListener("close", scheduleReconnect);
@@ -218,10 +222,52 @@
     });
 
     document.addEventListener("change", function (e) {
-        var t = e.target.closest("[data-rask-on-change]");
+        var t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
         if (!t || !inRoot(t)) return;
-        send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
+        if (t.tagName === "INPUT" && t.type === "file" && t.hasAttribute("data-rask-on-files")) {
+            var files = t.files;
+            if (!files || files.length === 0) return;
+            uploadFiles(files).then(function (metas) {
+                send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
+            }).catch(function (err) {
+                console.error("Rask: file upload failed", err);
+            });
+            return;
+        }
+        if (t.hasAttribute("data-rask-on-change")) {
+            send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
+        }
     });
+
+    function uploadFiles(files) {
+        var fd = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            fd.append("f" + i, files[i], files[i].name);
+            fd.append("f" + i + "__lastModified", String(files[i].lastModified || 0));
+        }
+        return fetch("/_rask/upload/" + encodeURIComponent(sessionId), {
+            method: "POST",
+            body: fd,
+            credentials: "same-origin"
+        }).then(function (res) {
+            if (!res.ok) throw new Error("upload failed: " + res.status);
+            return res.json();
+        }).then(function (json) {
+            return Array.isArray(json.files) ? json.files : [];
+        });
+    }
+
+    function triggerDownload(url, filename) {
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+            try { document.body.removeChild(a); } catch (_) {}
+        }, 0);
+    }
 
     // scroll events don't bubble — listen in capture phase at the document level so we
     // observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
@@ -257,13 +303,34 @@
         var t = e.target.closest("[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
-        var fd = new FormData(t);
-        var obj = {};
-        fd.forEach(function (v, k) {
-            obj[k] = String(v);
+        submitForm(t).catch(function (err) {
+            console.error("Rask: submit failed", err);
         });
-        send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
     });
+
+    function submitForm(form) {
+        var obj = {};
+        var fileInputs = form.querySelectorAll('input[type="file"][name]');
+        var pending = [];
+        var fileFields = {};
+        for (var i = 0; i < fileInputs.length; i++) {
+            (function (input) {
+                if (!input.files || input.files.length === 0) return;
+                pending.push(uploadFiles(input.files).then(function (metas) {
+                    fileFields[input.name] = metas;
+                }));
+            })(fileInputs[i]);
+        }
+        return Promise.all(pending).then(function () {
+            var fd = new FormData(form);
+            fd.forEach(function (v, k) {
+                if (v instanceof File || v instanceof Blob) return;
+                obj[k] = String(v);
+            });
+            if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
+            send({id: form.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
+        });
+    }
 
     function morph(from, to) {
         if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {

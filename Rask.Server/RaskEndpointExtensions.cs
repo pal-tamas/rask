@@ -16,9 +16,11 @@ using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Components;
 using Rask.Core.Live;
+using Rask.Core.Forms;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using Rask.Server.Authentication;
+using Rask.Server.Files;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -48,6 +50,12 @@ public static class RaskEndpointExtensions
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
+        services.AddSingleton<SessionUploadStore>();
+        services.AddSingleton<SessionDownloadStore>();
+        services.TryAddSingleton<RaskUploadOptions>();
+        services.AddScoped<RaskSessionContext>();
+        services.AddScoped<IBrowserFileBackend, ServerFileBackend>();
+        services.AddScoped<IDownloadSink, ServerDownloadSink>();
 
         services.AddScoped<SessionUserProvider>();
         services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<SessionUserProvider>());
@@ -182,6 +190,16 @@ public static class RaskEndpointExtensions
         endpoints.MapPost("/_rask/auth/redeem",
                 (HttpContext ctx, IAuthTicketStore tickets) => RedeemAuthTicketAsync(ctx, tickets))
             .DisableAntiforgery();
+
+        endpoints.MapPost("/_rask/upload/{sessionId}",
+                (HttpContext ctx, string sessionId, LiveSessionStore sessionStore,
+                    SessionUploadStore uploadStore, RaskUploadOptions options) =>
+                    HandleUploadAsync(ctx, sessionId, sessionStore, uploadStore, options))
+            .DisableAntiforgery();
+
+        endpoints.MapGet("/_rask/download/{sessionId}/{token}",
+            (HttpContext ctx, string sessionId, string token, SessionDownloadStore downloads) =>
+                HandleDownloadAsync(ctx, sessionId, token, downloads));
 
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         ScopedCssRegistry.BundleChanged += () => _ = sessionStore.RerenderAllAsync();
@@ -353,7 +371,7 @@ public static class RaskEndpointExtensions
                         using (navigator.EnterHandler())
                         using (authSignIn.EnterHandler())
                         {
-                            if (await session.View.TryInvokeHandlerAsync(handlerId, root))
+                            if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
                             {
                                 string? historyUrl = null;
                                 var historyReplace = false;
@@ -648,6 +666,137 @@ public static class RaskEndpointExtensions
         using var stream = asm.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
+    }
+
+    private static async Task HandleUploadAsync(
+        HttpContext ctx,
+        string sessionId,
+        LiveSessionStore sessions,
+        SessionUploadStore uploads,
+        RaskUploadOptions options)
+    {
+        if (sessions.Get(sessionId) is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (!ctx.Request.HasFormContentType)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        var form = await ctx.Request.ReadFormAsync(ctx.RequestAborted).ConfigureAwait(false);
+        if (form.Files.Count == 0)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        if (form.Files.Count > options.MaxFilesPerRequest)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            return;
+        }
+
+        var staged = new List<SessionUploadStore.Entry>(form.Files.Count);
+        foreach (var file in form.Files)
+        {
+            if (file.Length > options.MaxFileSize)
+            {
+                foreach (var prior in staged)
+                {
+                    uploads.Release(prior.SessionId, prior.Token);
+                }
+
+                ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                return;
+            }
+
+            long lastModified = 0;
+            if (long.TryParse(form[$"{file.Name}__lastModified"].ToString(), out var lm))
+            {
+                lastModified = lm;
+            }
+
+            var entry = uploads.Stage(
+                sessionId,
+                file.FileName,
+                string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                file.Length,
+                DateTimeOffset.FromUnixTimeMilliseconds(lastModified),
+                async path =>
+                {
+                    await using var output = File.Create(path);
+                    await using var input = file.OpenReadStream();
+                    await input.CopyToAsync(output, ctx.RequestAborted).ConfigureAwait(false);
+                });
+            staged.Add(entry);
+        }
+
+        ctx.Response.ContentType = "application/json; charset=utf-8";
+        using var ms = new MemoryStream();
+        using (var writer = new System.Text.Json.Utf8JsonWriter(ms))
+        {
+            writer.WriteStartObject();
+            writer.WriteStartArray("files");
+            foreach (var entry in staged)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("token", entry.Token);
+                writer.WriteString("name", entry.Name);
+                writer.WriteNumber("size", entry.Size);
+                writer.WriteString("type", entry.ContentType);
+                writer.WriteNumber("lastModified", entry.LastModified.ToUnixTimeMilliseconds());
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        await ctx.Response.Body.WriteAsync(ms.ToArray(), ctx.RequestAborted).ConfigureAwait(false);
+    }
+
+    private static async Task HandleDownloadAsync(
+        HttpContext ctx,
+        string sessionId,
+        string token,
+        SessionDownloadStore downloads)
+    {
+        if (!downloads.TryTake(sessionId, token, out var entry) || entry is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        try
+        {
+            ctx.Response.ContentType = entry.ContentType;
+            ctx.Response.Headers.CacheControl = "no-store";
+            var disposition = $"attachment; filename=\"{Uri.EscapeDataString(entry.Filename)}\"";
+            ctx.Response.Headers["Content-Disposition"] = disposition;
+
+            if (entry.Bytes is { } bytes)
+            {
+                ctx.Response.ContentLength = bytes.Length;
+                await ctx.Response.Body.WriteAsync(bytes, ctx.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+
+            if (entry.TempPath is { } tempPath && File.Exists(tempPath))
+            {
+                var info = new FileInfo(tempPath);
+                ctx.Response.ContentLength = info.Length;
+                await using var fs = File.OpenRead(tempPath);
+                await fs.CopyToAsync(ctx.Response.Body, ctx.RequestAborted).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            downloads.Release(entry);
+        }
     }
 
     private sealed class ServerRuntimeScript : IRaskRuntimeScript

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
+using Rask.Server.Files;
 
 namespace Rask.Server;
 
@@ -51,6 +52,11 @@ public sealed class LiveSessionStore : IAsyncDisposable
     internal LiveSession Create(Func<IServiceProvider, Component> factory)
     {
         var scope = _scopeFactory.CreateScope();
+        var sessionId = Guid.NewGuid().ToString("N");
+        if (scope.ServiceProvider.GetService<RaskSessionContext>() is { } sessionCtx)
+        {
+            sessionCtx.Id = sessionId;
+        }
         Component view;
         try
         {
@@ -62,7 +68,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
             throw;
         }
 
-        var session = new LiveSession(Guid.NewGuid().ToString("N"), view, scope);
+        var session = new LiveSession(sessionId, view, scope);
         _sessions[session.Id] = session;
         return session;
     }

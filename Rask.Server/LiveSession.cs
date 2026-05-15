@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 
 namespace Rask.Server;
 
@@ -47,6 +48,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     public async ValueTask DisposeAsync()
     {
         await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
+        ReleaseFileStores();
         Lock.Dispose();
         Scope.Dispose();
     }
@@ -54,8 +56,22 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     public void Dispose()
     {
         ComponentLifecycle.DisposeComponentTree(View);
+        ReleaseFileStores();
         Lock.Dispose();
         Scope.Dispose();
+    }
+
+    private void ReleaseFileStores()
+    {
+        try
+        {
+            Services.GetService<Files.SessionUploadStore>()?.ReleaseSession(Id);
+            Services.GetService<Files.SessionDownloadStore>()?.ReleaseSession(Id);
+        }
+        catch
+        {
+            // best-effort cleanup; do not let store errors mask disposal
+        }
     }
 
     public async Task RequestRenderAsync()
@@ -113,12 +129,20 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         var html = View.RenderAsLiveRoot(Services);
         var withRoot = LivePayload.InjectRootAttr(html, Id);
         var body = LivePayload.ExtractBody(withRoot);
-        var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth);
+
+        PendingDownload? download = null;
+        if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
+        {
+            download = pd;
+        }
+
+        var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth, download);
 
         // Skip the frame when the payload is byte-identical to the previous one AND nothing
         // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
         // that ended up not modifying tracked state.
-        if (historyUrl is null && auth is null && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
+        if (historyUrl is null && auth is null && download is null
+            && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
         {
             return;
         }

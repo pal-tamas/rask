@@ -8,7 +8,7 @@ internal static class PayloadExtractor
     {
         if (string.IsNullOrEmpty(payload))
         {
-            return new Result(string.Empty, null, null, null);
+            return new Result(string.Empty, null, null, null, null);
         }
 
         using var doc = JsonDocument.Parse(payload);
@@ -29,8 +29,14 @@ internal static class PayloadExtractor
             historyJson = hist.GetRawText();
         }
 
-        return new Result(html, cssHash, cssText, historyJson);
+        string? downloadJson = null;
+        if (root.TryGetProperty("download", out var dl) && dl.ValueKind == JsonValueKind.Object)
+        {
+            downloadJson = dl.GetRawText();
+        }
+
+        return new Result(html, cssHash, cssText, historyJson, downloadJson);
     }
 
-    public readonly record struct Result(string Html, string? CssHash, string? CssText, string? HistoryJson);
+    public readonly record struct Result(string Html, string? CssHash, string? CssText, string? HistoryJson, string? DownloadJson);
 }

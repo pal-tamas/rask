@@ -44,7 +44,7 @@ export function setExports(exports) {
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
 // background re-renders. `historyJson` is null for normal renders.
-export function applyRender(html, cssHash, cssText, historyJson) {
+export function applyRender(html, cssHash, cssText, historyJson, downloadJson) {
     let history = null;
     if (typeof historyJson === "string" && historyJson.length > 0) {
         try {
@@ -52,7 +52,76 @@ export function applyRender(html, cssHash, cssText, historyJson) {
         } catch (_) {
         }
     }
-    handle({html, cssHash, cssText, history});
+    let download = null;
+    if (typeof downloadJson === "string" && downloadJson.length > 0) {
+        try {
+            download = JSON.parse(downloadJson);
+        } catch (_) {
+        }
+    }
+    handle({html, cssHash, cssText, history, download});
+}
+
+// File registry for input[type=file]: maps short refs -> live File objects.
+// Cleared when the file input fires another change so old refs become unreachable.
+const fileRegistry = new Map();
+
+export async function readFileChunk(ref, offset, length) {
+    const file = fileRegistry.get(ref);
+    if (!file) return new Uint8Array();
+    const end = Math.min(file.size, offset + length);
+    const slice = file.slice(offset, end);
+    const buf = await slice.arrayBuffer();
+    return new Uint8Array(buf);
+}
+
+function registerFiles(inputEl, files) {
+    // Drop any prior refs for this input so a re-pick doesn't pile up File objects.
+    if (inputEl.__raskFileRefs) {
+        for (const r of inputEl.__raskFileRefs) fileRegistry.delete(r);
+    }
+    const metas = [];
+    const refs = [];
+    for (const f of files) {
+        const r = (crypto && crypto.randomUUID) ? crypto.randomUUID() : "f-" + Math.random().toString(36).slice(2);
+        fileRegistry.set(r, f);
+        refs.push(r);
+        metas.push({
+            ref: r,
+            name: f.name,
+            size: f.size,
+            type: f.type || "application/octet-stream",
+            lastModified: f.lastModified || 0
+        });
+    }
+    inputEl.__raskFileRefs = refs;
+    return metas;
+}
+
+function triggerDownload(download) {
+    if (!download || typeof download.filename !== "string") return;
+    const bytes = decodeBase64(download.bytes);
+    if (!bytes) return;
+    const blob = new Blob([bytes], {type: download.contentType || "application/octet-stream"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = download.filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        try { document.body.removeChild(a); } catch (_) {}
+        URL.revokeObjectURL(url);
+    }, 0);
+}
+
+function decodeBase64(b64) {
+    if (typeof b64 !== "string" || b64.length === 0) return null;
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
 }
 
 export function getLocation() {
@@ -128,6 +197,7 @@ function handle(reply) {
     }
     if (typeof reply.cssHash === "string" || reply.cssHash === null)
         applyScopedCss(reply.cssHash, reply.cssText);
+    if (reply.download) triggerDownload(reply.download);
 }
 
 async function send(payload) {
@@ -249,9 +319,18 @@ document.addEventListener("input", (e) => {
 });
 
 document.addEventListener("change", (e) => {
-    const t = e.target.closest("[data-rask-on-change]");
+    const t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
     if (!t || !inRoot(t)) return;
-    send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
+    if (t.tagName === "INPUT" && t.type === "file" && t.hasAttribute("data-rask-on-files")) {
+        const files = t.files;
+        if (!files || files.length === 0) return;
+        const metas = registerFiles(t, files);
+        send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
+        return;
+    }
+    if (t.hasAttribute("data-rask-on-change")) {
+        send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
+    }
 });
 
 // scroll events don't bubble — listen in capture phase at the document level so we
@@ -288,10 +367,18 @@ document.addEventListener("submit", (e) => {
     const t = e.target.closest("[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
+    const fileInputs = t.querySelectorAll('input[type="file"][name]');
+    const fileFields = {};
+    for (const input of fileInputs) {
+        if (!input.files || input.files.length === 0) continue;
+        fileFields[input.name] = registerFiles(input, input.files);
+    }
     const fd = new FormData(t);
     const obj = {};
     fd.forEach((v, k) => {
+        if (v instanceof File || v instanceof Blob) return;
         obj[k] = String(v);
     });
+    if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
 });

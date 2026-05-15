@@ -44,6 +44,15 @@ public abstract class Component
         get { Children = children; return this; }
     }
 
+    // Overload so call sites that build children via LINQ (`items.Select(x => Foo(x))`)
+    // don't need a per-item `(Child)` cast — `IEnumerable<Component>` doesn't lift through
+    // the user-defined `Component -> Child` conversion. Overload resolution prefers this
+    // for Component-typed inputs and falls back to the Child indexer for strings or mixes.
+    public Component this[params IEnumerable<Component> children]
+    {
+        get { Children = children.Select(c => (Child)c); return this; }
+    }
+
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
     // components). When non-null, HtmlSerializer wraps BuildAttributes()/RenderChildren()
     // output in `<tag>…</tag>` (or self-closes when SelfClosing is true).
@@ -377,7 +386,10 @@ public abstract class Component
         return id;
     }
 
-    internal async ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
+    internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
+        => TryInvokeHandlerAsync(id, payload, null);
+
+    internal async ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload, IServiceProvider? services)
     {
         if (_handlers is null || !_handlers.TryGetValue(id, out var entry))
         {
@@ -385,6 +397,7 @@ public abstract class Component
         }
 
         var (owner, handler) = entry;
+        using var __dispatchScope = DispatchServicesScope.Push(services);
         // Match Blazor: every event handler implicitly marks the registering component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.
@@ -437,6 +450,24 @@ public abstract class Component
                     await InvokeWithRenderingAsync(() => f(scroll)).ConfigureAwait(false);
                     owner._stateDirty = true;
                     return true;
+                case Action<IReadOnlyList<RaskFile>> a:
+                {
+                    var files = FileListReader.Read(payload);
+                    try { a(files); }
+                    finally { ReleaseFiles(files); }
+                    return true;
+                }
+                case Func<IReadOnlyList<RaskFile>, Task> f:
+                {
+                    var files = FileListReader.Read(payload);
+                    try
+                    {
+                        await InvokeWithRenderingAsync(() => f(files)).ConfigureAwait(false);
+                    }
+                    finally { ReleaseFiles(files); }
+                    owner._stateDirty = true;
+                    return true;
+                }
                 default:
                     handler.DynamicInvoke();
                     return true;
@@ -622,6 +653,15 @@ public abstract class Component
         return v.ValueKind == JsonValueKind.True;
     }
 
+    private static void ReleaseFiles(IReadOnlyList<RaskFile> files)
+    {
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        FileListReader.ResolveBackend()?.Release(files);
+    }
 }
 
 public readonly record struct MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta);

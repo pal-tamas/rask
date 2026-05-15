@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
+using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
+using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
 
@@ -17,6 +19,8 @@ public sealed class WasmHostBuilder
         Services = new ServiceCollection();
         Services.AddLogging();
         Services.AddSingleton<RouteState>();
+        Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
+        Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         Services.TryAddSingleton<RaskAuthorizationOptions>();
@@ -80,6 +84,6 @@ public sealed class WasmHostBuilder
         }
 
         var extracted = PayloadExtractor.Extract(payload);
-        JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson);
+        JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
     }
 }

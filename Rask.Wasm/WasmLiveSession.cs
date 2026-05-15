@@ -82,7 +82,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             }
 
             var extracted = PayloadExtractor.Extract(payload);
-            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson);
+            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
             _lastAppliedPayload = payload;
         }
         finally
@@ -117,7 +117,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             }
 
             var extracted = PayloadExtractor.Extract(payload);
-            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson);
+            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
             _lastAppliedPayload = payload;
         }
         finally
@@ -182,7 +182,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             {
                 using (navigator.EnterHandler())
                 {
-                    if (!await View.TryInvokeHandlerAsync(handlerId, root).ConfigureAwait(false))
+                    if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
                     {
                         return string.Empty;
                     }
@@ -337,6 +337,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             _lastCssHashSent = currentHash;
         }
 
-        return LivePayload.BuildPayload(withRoot, historyUrl, replace, cssText);
+        Rask.Core.Routing.PendingDownload? download = null;
+        if (Services.GetService<Rask.Core.Routing.IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
+        {
+            download = pd;
+        }
+
+        return LivePayload.BuildPayload(withRoot, historyUrl, replace, cssText, null, download);
     }
 }
