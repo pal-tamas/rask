@@ -168,6 +168,123 @@ public sealed class BindingClearDefaultDemo : Component
     }
 }
 
+public sealed class BindingAfterBindDemo : Component
+{
+    private readonly Holder _model = new();
+    private string[] _cities = Cities["US"];
+
+    private static readonly Dictionary<string, string[]> Cities = new()
+    {
+        ["US"] = new[] { "New York", "Los Angeles", "Chicago" },
+        ["DE"] = new[] { "Berlin", "Hamburg", "Munich" },
+        ["JP"] = new[] { "Tokyo", "Osaka", "Kyoto" }
+    };
+
+    protected override Component Render() =>
+        Fragment()[
+            Div(Class: "mb-3")[
+                Label("bind-after-country", Class: "form-label small")["Country"],
+                Select(
+                    Bind: () => _model.Country,
+                    AfterBind: c =>
+                    {
+                        _cities = Cities[c];
+                        _model.City = _cities[0];
+                    },
+                    Id: "bind-after-country",
+                    Class: "form-select")[
+                        Option(Value: "US")["United States"],
+                        Option(Value: "DE")["Germany"],
+                        Option(Value: "JP")["Japan"]
+                    ]
+            ],
+            Div(Class: "mb-3")[
+                Label("bind-after-city", Class: "form-label small")["City"],
+                Select(
+                    Bind: () => _model.City,
+                    Id: "bind-after-city",
+                    Class: "form-select")[
+                        _cities.Select(c => (Child)Option(Value: c)[c])
+                    ]
+            ],
+            Pre(Class: "small mb-0 p-3 bg-light border rounded")[
+                Code(Id: "bind-after-echo")[
+                    $"Country = {_model.Country}\n" +
+                    $"City    = {_model.City}"
+                ]
+            ]];
+
+    private sealed class Holder
+    {
+        public string Country { get; set; } = "US";
+        public string City { get; set; } = "New York";
+    }
+}
+
+public sealed class BindingAfterBindAsyncDemo : Component
+{
+    private readonly Holder _model = new();
+    private string[] _languages = Array.Empty<string>();
+    private bool _loading;
+
+    private static readonly Dictionary<string, string[]> Catalog = new()
+    {
+        ["frontend"] = new[] { "TypeScript", "JavaScript", "HTML", "CSS" },
+        ["backend"]  = new[] { "C#", "Rust", "Go", "Python" },
+        ["data"]     = new[] { "SQL", "Python", "R", "Scala" }
+    };
+
+    protected override Component Render() =>
+        Fragment()[
+            Div(Class: "mb-3")[
+                Label("bind-async-track", Class: "form-label small")["Track"],
+                Select(
+                    Bind: () => _model.Track,
+                    AfterBindAsync: async track =>
+                    {
+                        _loading = true;
+                        StateHasChanged();
+                        // Simulated remote fetch — swap for HttpClient.GetFromJsonAsync in real code.
+                        await Task.Delay(300);
+                        _languages = Catalog[track];
+                        _model.Language = _languages[0];
+                        _loading = false;
+                    },
+                    Id: "bind-async-track",
+                    Class: "form-select")[
+                        Option(Value: "frontend")["Frontend"],
+                        Option(Value: "backend")["Backend"],
+                        Option(Value: "data")["Data"]
+                    ]
+            ],
+            Div(Class: "mb-3")[
+                Label("bind-async-lang", Class: "form-label small")[
+                    _loading ? "Language (loading…)" : "Language"
+                ],
+                Select(
+                    Bind: () => _model.Language,
+                    Id: "bind-async-lang",
+                    Class: "form-select",
+                    Disabled: _loading || _languages.Length == 0)[
+                        _languages.Length == 0
+                            ? new Child[] { Option(Value: "")["— pick a track —"] }
+                            : _languages.Select(l => (Child)Option(Value: l)[l])
+                    ]
+            ],
+            Pre(Class: "small mb-0 p-3 bg-light border rounded")[
+                Code(Id: "bind-async-echo")[
+                    $"Track    = {_model.Track}\n" +
+                    $"Language = {_model.Language}"
+                ]
+            ]];
+
+    private sealed class Holder
+    {
+        public string Track { get; set; } = "";
+        public string Language { get; set; } = "";
+    }
+}
+
 public sealed class BindingMultiDemo : Component
 {
     public enum Color { Red, Green, Blue }

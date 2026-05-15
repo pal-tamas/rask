@@ -83,8 +83,39 @@ internal static class BindingHelpers
         };
     }
 
+    // Collapses the typed AfterBind / AfterBindAsync pair from a `Bound<TProp>` factory into a
+    // single non-generic Func<Task>? closure. Returns null when neither is supplied so the
+    // handler builders can stay on the cheap no-callback path. The closure reads the now-set
+    // value back through acc.Getter() (handlers fire afterBind *after* TrySetTyped), so the
+    // user's callback always sees the new value.
+    public static Func<Task>? BuildAfterBind<TProp>(
+        ExpressionAccessor.Accessor acc,
+        Action<TProp>? sync,
+        Func<TProp, Task>? asyncFn)
+    {
+        if (sync is null && asyncFn is null)
+        {
+            return null;
+        }
+
+        return async () =>
+        {
+            var v = (TProp)acc.Getter()!;
+            sync?.Invoke(v);
+            if (asyncFn is not null)
+            {
+                await asyncFn(v).ConfigureAwait(false);
+            }
+        };
+    }
+
+    // `afterBind` is the post-bind side-effect hook (typically populated from the `AfterBind` /
+    // `AfterBindAsync` factory parameters on Input/Select/Textarea). It only fires when a parse
+    // actually mutated the model, so the user never sees a stale value; we run it after
+    // NotifyFieldChanged so validators that observe IsModified see the new state.
     public static Func<string, Task> StringSetHandler(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet) =>
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
+        Func<Task>? afterBind = null) =>
         async raw =>
         {
             if (!TrySetTyped(acc, raw))
@@ -93,6 +124,11 @@ internal static class BindingHelpers
             }
 
             ctx?.NotifyFieldChanged(fid);
+            if (afterBind is not null)
+            {
+                await afterBind().ConfigureAwait(false);
+            }
+
             // Blazor parity: stay quiet until the user (or a submit) has touched the field,
             // then re-validate on every keystroke so a correction clears the message
             // without needing a blur to trigger the change event.
@@ -110,15 +146,23 @@ internal static class BindingHelpers
         };
 
     public static Func<string, Task> TouchAndValidateHandler(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange) =>
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
+        Func<Task>? afterBind = null) =>
         async raw =>
         {
+            var didBind = false;
             if (setOnChange)
             {
                 if (TrySetTyped(acc, raw))
                 {
                     ctx?.NotifyFieldChanged(fid);
+                    didBind = true;
                 }
+            }
+
+            if (didBind && afterBind is not null)
+            {
+                await afterBind().ConfigureAwait(false);
             }
 
             ctx?.NotifyFieldTouched(fid);
@@ -136,11 +180,17 @@ internal static class BindingHelpers
         };
 
     public static Func<string, Task> BoolToggleHandler(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool wasChecked) =>
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool wasChecked,
+        Func<Task>? afterBind = null) =>
         async _ =>
         {
             acc.Setter(!wasChecked);
             ctx?.NotifyFieldChanged(fid);
+            if (afterBind is not null)
+            {
+                await afterBind().ConfigureAwait(false);
+            }
+
             ctx?.NotifyFieldTouched(fid);
             if (ctx is not null)
             {

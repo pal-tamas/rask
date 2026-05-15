@@ -82,6 +82,37 @@ public sealed class BindingPage : Component
                 """,
                 Notes:
                 "Textareas always stream — Textarea.Bound wires OnInputAsync for every keystroke so the echo updates without blur or submit, no matter how long the text is.",
-                Result: BindingTextareaDemo())
+                Result: BindingTextareaDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Typed — AfterBind (sync)"],
+            CodeSample(
+                """
+                Select(Bind: () => _model.Country,
+                       AfterBind: c => {
+                           _cities = Cities[c];
+                           _model.City = _cities[0];
+                       })[ ... ]
+                Select(Bind: () => _model.City)[
+                    _cities.Select(c => (Child)Option(Value: c)[c])
+                ]
+                """,
+                Notes:
+                "AfterBind fires after TrySetTyped has written the new value to the model and before validators run. The dependent dropdown rebinds in the same render — no extra round-trip.",
+                Result: BindingAfterBindDemo()),
+            H2(Class: "h4 mt-5 mb-3")["Typed — AfterBindAsync (async)"],
+            CodeSample(
+                """
+                Select(Bind: () => _model.Track,
+                       AfterBindAsync: async track => {
+                           _loading = true;
+                           StateHasChanged();          // surface "loading…" mid-await
+                           await Task.Delay(300);      // simulated fetch
+                           _languages = Catalog[track];
+                           _model.Language = _languages[0];
+                           _loading = false;
+                       })[ ... ]
+                """,
+                Notes:
+                "AfterBindAsync is awaited before the post-handler render, so validators see the new dependent state. A mid-await StateHasChanged() pushes the \"loading…\" UI before the simulated fetch completes; the dispatcher's per-await rendering picks it up.",
+                Result: BindingAfterBindAsyncDemo())
         ];
 }

@@ -23,6 +23,8 @@ public sealed class Input : Element
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,
         string? Name = null,
         string? Placeholder = null,
@@ -45,12 +47,15 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: null, Id, Class, Style, Data);
+            Autocomplete, Autofocus, List, validate: null,
+            AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, IEnumerable<string>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,
         string? Name = null,
         string? Placeholder = null,
@@ -73,12 +78,15 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: Validate, Id, Class, Style, Data);
+            Autocomplete, Autofocus, List, validate: Validate,
+            AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,
         string? Name = null,
         string? Placeholder = null,
@@ -101,7 +109,8 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: Validate, Id, Class, Style, Data);
+            Autocomplete, Autofocus, List, validate: Validate,
+            AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     private static Input BoundCore<TProp>(
         Expression<Func<TProp>> Bind,
@@ -122,6 +131,8 @@ public sealed class Input : Element
         bool Autofocus,
         string? List,
         Delegate? validate,
+        Action<TProp>? afterBindSync,
+        Func<TProp, Task>? afterBindAsync,
         string? Id,
         string? Class,
         string? Style,
@@ -137,6 +148,7 @@ public sealed class Input : Element
         // the parameter between frames doesn't leave the old rule running.
         ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
 
+        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
         var current = acc.Getter();
 
         if (resolvedType == "checkbox")
@@ -149,7 +161,7 @@ public sealed class Input : Element
                 Min: Min, Max: Max, Step: Step, Pattern: Pattern,
                 Size: Size, MaxLength: MaxLength, MinLength: MinLength,
                 Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-                OnChangeAsync: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked),
+                OnChangeAsync: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked, afterBind),
                 Id: Id, Class: Class, Style: Style, Data: Data);
         }
 
@@ -162,8 +174,8 @@ public sealed class Input : Element
             Min: Min, Max: Max, Step: Step, Pattern: Pattern,
             Size: Size, MaxLength: MaxLength, MinLength: MinLength,
             Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-            OnInputAsync: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false) : null,
-            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate),
+            OnInputAsync: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false, afterBind) : null,
+            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate, afterBind),
             Id: Id, Class: Class, Style: Style, Data: Data);
     }
 

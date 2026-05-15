@@ -15,6 +15,8 @@ public sealed class Textarea : Element
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         int? Rows = null,
         int? Cols = null,
@@ -33,12 +35,14 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: null, Id, Class, Style, Data);
+            validate: null, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, IEnumerable<string>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         int? Rows = null,
         int? Cols = null,
@@ -57,12 +61,14 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: Validate, Id, Class, Style, Data);
+            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         int? Rows = null,
         int? Cols = null,
@@ -81,7 +87,7 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: Validate, Id, Class, Style, Data);
+            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     private static Textarea BoundCore<TProp>(
         Expression<Func<TProp>> Bind,
@@ -98,6 +104,8 @@ public sealed class Textarea : Element
         bool Autofocus,
         string? Autocomplete,
         Delegate? validate,
+        Action<TProp>? afterBindSync,
+        Func<TProp, Task>? afterBindAsync,
         string? Id,
         string? Class,
         string? Style,
@@ -108,6 +116,7 @@ public sealed class Textarea : Element
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
         ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
+        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
         var stringValue = BindingHelpers.FormatValue(acc.Getter());
 
         return (Textarea)C.Textarea(
@@ -115,7 +124,7 @@ public sealed class Textarea : Element
             Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
             MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
-            OnInputAsync: BindingHelpers.StringSetHandler(acc, ctx, fid, false),
+            OnInputAsync: BindingHelpers.StringSetHandler(acc, ctx, fid, false, afterBind),
             OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
             Id: Id, Class: Class, Style: Style, Data: Data)[stringValue];
     }

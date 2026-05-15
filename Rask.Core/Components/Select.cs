@@ -15,6 +15,8 @@ public sealed class Select : Element
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         bool Required = false,
         bool Disabled = false,
@@ -27,12 +29,14 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: null, Id, Class, Style, Data, Children);
+            validate: null, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, IEnumerable<string>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         bool Required = false,
         bool Disabled = false,
@@ -45,12 +49,14 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: Validate, Id, Class, Style, Data, Children);
+            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
         Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        Action<TProp>? AfterBind = null,
+        Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
         bool Required = false,
         bool Disabled = false,
@@ -63,7 +69,7 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: Validate, Id, Class, Style, Data, Children);
+            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     private static Select BoundCore<TProp>(
         Expression<Func<TProp>> Bind,
@@ -74,6 +80,8 @@ public sealed class Select : Element
         bool Autofocus,
         string? Autocomplete,
         Delegate? validate,
+        Action<TProp>? afterBindSync,
+        Func<TProp, Task>? afterBindAsync,
         string? Id,
         string? Class,
         string? Style,
@@ -85,13 +93,14 @@ public sealed class Select : Element
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
         ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
+        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
         var current = BindingHelpers.FormatValue(acc.Getter());
         var preselected = MarkSelected(Children, current);
 
         return (Select)C.Select(
             Name: name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
-            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true),
+            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true, afterBind),
             Id: Id, Class: Class, Style: Style, Data: Data)[preselected];
     }
 

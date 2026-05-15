@@ -371,6 +371,77 @@ public abstract class SharedSmokeTests : IAsyncLifetime
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
+    [Fact]
+    public Task Binding_AfterBind_Sync_RefreshesDependentSelect() => RunAsync(async () =>
+    {
+        // Sync AfterBind on Select(Bind: () => _model.Country): picking a different country
+        // synchronously rebuilds the City option list and resets _model.City to the head of
+        // the new list. The dependent select's options + the echo both reflect the new state
+        // on the same render that the Country change triggers.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var country = Page.Locator("#bind-after-country");
+        var city = Page.Locator("#bind-after-city");
+        var echo = Page.Locator(".sample-result-body:has(#bind-after-country) pre code");
+
+        await Expect(country).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await country.SelectOptionAsync("DE");
+        await Expect(city).ToHaveValueAsync("Berlin",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Country = DE",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("City    = Berlin",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await country.SelectOptionAsync("JP");
+        await Expect(city).ToHaveValueAsync("Tokyo",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Country = JP",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("City    = Tokyo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Binding_AfterBindAsync_RefreshesDependentSelectAfterDelay() => RunAsync(async () =>
+    {
+        // AfterBindAsync on Select(Bind: () => _model.Track): the simulated 300ms fetch
+        // delays the language list. The dispatcher awaits AfterBindAsync before re-rendering,
+        // so once it completes the dependent select is enabled, populated, and the echo shows
+        // the new Track + first Language.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var track = Page.Locator("#bind-async-track");
+        var lang = Page.Locator("#bind-async-lang");
+        var echo = Page.Locator(".sample-result-body:has(#bind-async-track) pre code");
+
+        await Expect(track).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        await track.SelectOptionAsync("backend");
+        // 10s timeout absorbs the 300ms simulated fetch + dispatcher round-trip on either host.
+        await Expect(lang).ToHaveValueAsync("C#",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Track    = backend",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Language = C#",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await track.SelectOptionAsync("data");
+        await Expect(lang).ToHaveValueAsync("SQL",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Track    = data",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(echo).ToContainTextAsync("Language = SQL",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
     // ---------- Validation: DataAnnotations (per-field) ----------
 
     [Fact]
