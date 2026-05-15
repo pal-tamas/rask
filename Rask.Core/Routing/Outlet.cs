@@ -1,12 +1,29 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
 public sealed class Outlet : Component
 {
-    // Outlet reads ctx.Route (the per-render route chain state). Like Router, opt out of
-    // the render cache so route changes flow through the chain on every render.
-    protected internal override bool BypassRenderCache => true;
+    // Cached at mount because LiveRenderContext.Current is null during disposal, so
+    // OnUnmount can't re-resolve RouteState from the render scope.
+    private RouteState? _route;
+
+    protected override void OnMount()
+    {
+        // Subscribe to RouteState.Changed so the cached subtree is invalidated when the
+        // route chain changes. Without this, Router's re-render would walk past a cached
+        // Outlet whose ctx.Route snapshot is stale.
+        _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
+        if (_route is null) return;
+        _route.Changed += StateHasChanged;
+    }
+
+    protected override void OnUnmount()
+    {
+        if (_route is null) return;
+        _route.Changed -= StateHasChanged;
+    }
 
     protected override Component Render()
     {

@@ -32,9 +32,11 @@ public sealed class Router : Component
         }
     }
 
-    // Router reads RouteState, which the framework can't observe — opt out of the render
-    // cache so route changes always reach the chain.
-    protected internal override bool BypassRenderCache => true;
+    // Subscribe to RouteState.Changed so Render() re-executes on every nav and the
+    // route chain reflects the new path/query. Unsubscribe in OnUnmount.
+    protected override void OnMount() => _state.Changed += StateHasChanged;
+
+    protected override void OnUnmount() => _state.Changed -= StateHasChanged;
 
     protected override Component Render()
     {

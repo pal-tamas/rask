@@ -9,6 +9,15 @@ internal static class ComponentLifecycle
             DisposeComponentTree(child);
         }
 
+        // OnUnmount fires before token cancellation so the hook can still observe a live
+        // token. Any user CancellationToken.Register callbacks then fire on CancelLifetimeToken
+        // immediately below — both mechanisms work, additive.
+        var unmountTask = component.RaiseUnmount();
+        if (unmountTask is not null)
+        {
+            _ = ObserveUnmountFault(unmountTask, component);
+        }
+
         component.CancelLifetimeToken();
 
         switch (component)
@@ -35,6 +44,13 @@ internal static class ComponentLifecycle
             await DisposeComponentTreeAsync(child).ConfigureAwait(false);
         }
 
+        var unmountTask = component.RaiseUnmount();
+        if (unmountTask is not null)
+        {
+            try { await unmountTask.ConfigureAwait(false); }
+            catch (Exception ex) { Component.LogUnmountError(component, ex); }
+        }
+
         component.CancelLifetimeToken();
 
         switch (component)
@@ -52,6 +68,12 @@ internal static class ComponentLifecycle
         }
 
         component.DisposeLifetimeToken();
+    }
+
+    private static async Task ObserveUnmountFault(Task task, Component component)
+    {
+        try { await task.ConfigureAwait(false); }
+        catch (Exception ex) { Component.LogUnmountError(component, ex); }
     }
 
     private static async Task DisposeAsyncSafe(IAsyncDisposable ad, Component component)

@@ -11,6 +11,10 @@ internal sealed class LifecycleTrackingComponent : Component
     public int PropsChangedCount;
     public int RenderCount;
     public int RenderedCount;
+    public int UnmountAsyncCount;
+    public int UnmountCount;
+    public Action? OnUnmountImpl;
+    public Func<Task>? OnUnmountAsyncImpl;
     public List<bool> RenderedFlags { get; } = new();
 
     protected override void OnMount() => MountCount++;
@@ -33,6 +37,18 @@ internal sealed class LifecycleTrackingComponent : Component
     {
         RenderedCount++;
         RenderedFlags.Add(firstRender);
+    }
+
+    protected override void OnUnmount()
+    {
+        UnmountCount++;
+        OnUnmountImpl?.Invoke();
+    }
+
+    protected override Task OnUnmountAsync()
+    {
+        UnmountAsyncCount++;
+        return OnUnmountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }
 
     protected override Component Render()

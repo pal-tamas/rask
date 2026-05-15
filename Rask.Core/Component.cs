@@ -132,6 +132,23 @@ public abstract class Component
     protected virtual void OnRendered(bool firstRender) { }
     protected virtual Task OnRenderedAsync(bool firstRender) => Task.CompletedTask;
 
+    /// <summary>
+    ///     Runs once when this component is removed from the tree — navigation away, parent
+    ///     subtree torn down, or session disposal. Symmetric with <see cref="OnMount" />.
+    ///     The component's <see cref="CancellationToken" /> is still live here; it is
+    ///     cancelled immediately after this hook returns. Do not call
+    ///     <see cref="StateHasChanged" /> from inside — the component is leaving the tree.
+    /// </summary>
+    protected virtual void OnUnmount() { }
+
+    /// <summary>
+    ///     Async counterpart to <see cref="OnUnmount" />. Awaited on async disposal paths
+    ///     (e.g. <c>LiveSession.DisposeAsync</c>), fire-and-forget with fault logging on
+    ///     synchronous disposal — mirroring the framework's handling of
+    ///     <see cref="IAsyncDisposable" />.
+    /// </summary>
+    protected virtual Task OnUnmountAsync() => Task.CompletedTask;
+
     internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
         var firstRender = !_hasInitialized;
@@ -171,6 +188,35 @@ public abstract class Component
         var cts = Interlocked.Exchange(ref _lifetimeCts, null);
         cts?.Dispose();
     }
+
+    // Returns null when there's nothing for the caller to await — the async hook either
+    // wasn't overridden, completed synchronously, or already failed (faults logged inline).
+    // The sync dispose path fire-and-forgets a non-null return via ObserveUnmountFault;
+    // the async path awaits it directly. Skipped entirely when _hasInitialized is false —
+    // a component that never mounted has no unmount counterpart, symmetric with OnMount.
+    internal Task? RaiseUnmount()
+    {
+        if (!_hasInitialized) return null;
+
+        try { OnUnmount(); }
+        catch (Exception ex) { LogUnmountError(this, ex); }
+
+        Task task;
+        try { task = OnUnmountAsync(); }
+        catch (Exception ex) { LogUnmountError(this, ex); return null; }
+
+        if (task.IsCompletedSuccessfully) return null;
+        if (task.IsFaulted)
+        {
+            LogUnmountError(this, (Exception?)task.Exception?.InnerException ?? task.Exception!);
+            return null;
+        }
+        if (task.IsCanceled) return null;
+        return task;
+    }
+
+    internal static void LogUnmountError(Component comp, Exception ex) =>
+        Console.Error.WriteLine($"Rask unmount hook on {comp.GetType().Name} threw: {ex}");
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {
@@ -344,6 +390,7 @@ public abstract class Component
     public void StateHasChanged()
     {
         _stateDirty = true;
+        Console.Error.WriteLine("[DIAG-SHC] " + GetType().Name);
         var handle = RenderHandle;
         if (handle is null)
         {
@@ -383,6 +430,7 @@ public abstract class Component
         _handlers ??= new Dictionary<string, (Component, Delegate)>();
         var id = "h" + _nextHandlerId++;
         _handlers[id] = (owner, handler);
+        Console.Error.WriteLine($"[DIAG-REG] {id} owner={owner.GetType().Name} target={handler.Target?.GetType().Name ?? "(null)"} method={handler.Method.DeclaringType?.Name}.{handler.Method.Name}");
         return id;
     }
 
