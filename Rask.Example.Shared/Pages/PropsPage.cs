@@ -22,9 +22,9 @@ public sealed class PropsPage : Component
                     Style: "padding: 0.5rem; border: 1px solid #ccc;")["Three attributes — id then class then style."]
                 """,
                 Result: Div(
-                    "card-1",
-                    "card border-primary",
-                    "padding: 0.6rem 0.8rem;")["Three attributes — id then class then style."]),
+                    Id: "card-1",
+                    Class: "card border-primary",
+                    Style: "padding: 0.6rem 0.8rem;")["Three attributes — id then class then style."]),
             H2(Class: "h4 mt-5 mb-3")["Data — dictionary expands as data-*"],
             CodeSample(
                 """
