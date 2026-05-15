@@ -204,7 +204,7 @@ public sealed class BindingAfterBindDemo : Component
                     Bind: () => _model.City,
                     Id: "bind-after-city",
                     Class: "form-select")[
-                        _cities.Select(c => (Child)Option(Value: c)[c])
+                        _cities.Select(c => Option(Value: c)[c])
                     ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
@@ -224,14 +224,14 @@ public sealed class BindingAfterBindDemo : Component
 public sealed class BindingAfterBindAsyncDemo : Component
 {
     private readonly Holder _model = new();
-    private string[] _languages = Array.Empty<string>();
+    private string[] _languages = [];
     private bool _loading;
 
-    private static readonly Dictionary<string, string[]> Catalog = new()
+    private static readonly Dictionary<string, string[]> _catalog = new()
     {
-        ["frontend"] = new[] { "TypeScript", "JavaScript", "HTML", "CSS" },
-        ["backend"]  = new[] { "C#", "Rust", "Go", "Python" },
-        ["data"]     = new[] { "SQL", "Python", "R", "Scala" }
+        ["frontend"] = ["TypeScript", "JavaScript", "HTML", "CSS"],
+        ["backend"]  = ["C#", "Rust", "Go", "Python"],
+        ["data"]     = ["SQL", "Python", "R", "Scala"]
     };
 
     protected override Component Render() =>
@@ -243,10 +243,10 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     AfterBindAsync: async track =>
                     {
                         _loading = true;
-                        StateHasChanged();
+                        await StateHasChangedAsync();
                         // Simulated remote fetch — swap for HttpClient.GetFromJsonAsync in real code.
                         await Task.Delay(300);
-                        _languages = Catalog[track];
+                        _languages = _catalog[track];
                         _model.Language = _languages[0];
                         _loading = false;
                     },
@@ -267,8 +267,8 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     Class: "form-select",
                     Disabled: _loading || _languages.Length == 0)[
                         _languages.Length == 0
-                            ? new Child[] { Option(Value: "")["— pick a track —"] }
-                            : _languages.Select(l => (Child)Option(Value: l)[l])
+                            ? [Option(Value: "")["— pick a track —"]]
+                            : _languages.Select(l => Option(Value: l)[l])
                     ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[

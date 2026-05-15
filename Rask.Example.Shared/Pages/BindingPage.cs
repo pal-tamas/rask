@@ -92,7 +92,7 @@ public sealed class BindingPage : Component
                            _model.City = _cities[0];
                        })[ ... ]
                 Select(Bind: () => _model.City)[
-                    _cities.Select(c => (Child)Option(Value: c)[c])
+                    _cities.Select(c => Option(Value: c)[c])
                 ]
                 """,
                 Notes:
