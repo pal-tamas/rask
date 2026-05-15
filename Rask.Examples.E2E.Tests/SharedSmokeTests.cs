@@ -1570,4 +1570,38 @@ public abstract class SharedSmokeTests : IAsyncLifetime
             .ToContainTextAsync("221B Baker St",
                 new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
     });
+
+    // ---------- Virtualize ----------
+
+    [Fact]
+    public Task Virtualize_RendersOnlyVisibleWindow_AndScrollShiftsIt() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/virtualize");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Virtualize",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var scroller = Page.Locator("[data-testid=virtualize-scroller]");
+        await Expect(scroller).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        var rows = Page.Locator("[data-row-index]");
+        await Expect(rows.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        var initialCount = await rows.CountAsync();
+        Assert.InRange(initialCount, 1, 100);
+
+        var firstIndexBefore = await rows.First.GetAttributeAsync("data-row-index");
+        Assert.NotNull(firstIndexBefore);
+
+        await scroller.EvaluateAsync("el => { el.scrollTop = 4800; }");
+
+        await Expect(rows.First).Not.ToHaveAttributeAsync("data-row-index", firstIndexBefore!,
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+
+        var firstIndexAfter = await rows.First.GetAttributeAsync("data-row-index");
+        Assert.NotNull(firstIndexAfter);
+        var idx = int.Parse(firstIndexAfter!);
+        Assert.InRange(idx, 130, 170);
+
+        var afterCount = await rows.CountAsync();
+        Assert.InRange(afterCount, 1, 100);
+    });
 }

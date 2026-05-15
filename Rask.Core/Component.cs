@@ -429,6 +429,14 @@ public abstract class Component
                     await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
                     owner._stateDirty = true;
                     return true;
+                case Action<ScrollEvent> a:
+                    a(ScrollEvent.FromJson(payload));
+                    return true;
+                case Func<ScrollEvent, Task> f:
+                    var scroll = ScrollEvent.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => f(scroll)).ConfigureAwait(false);
+                    owner._stateDirty = true;
+                    return true;
                 default:
                     handler.DynamicInvoke();
                     return true;

@@ -223,6 +223,36 @@
         send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
     });
 
+    // scroll events don't bubble — listen in capture phase at the document level so we
+    // observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
+    // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
+    var scrollPending = new Set();
+    var scrollRaf = 0;
+    function flushScroll() {
+        scrollRaf = 0;
+        scrollPending.forEach(function (el) {
+            if (!el.isConnected) return;
+            var id = el.getAttribute("data-rask-on-scroll");
+            if (!id) return;
+            send({
+                id: id,
+                type: "scroll",
+                scrollTop: el.scrollTop | 0,
+                clientHeight: el.clientHeight | 0,
+                scrollHeight: el.scrollHeight | 0
+            });
+        });
+        scrollPending.clear();
+    }
+    document.addEventListener("scroll", function (e) {
+        var t = e.target;
+        if (!t || t.nodeType !== 1) return;
+        if (!t.hasAttribute || !t.hasAttribute("data-rask-on-scroll")) return;
+        if (!inRoot(t)) return;
+        scrollPending.add(t);
+        if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll);
+    }, true);
+
     document.addEventListener("submit", function (e) {
         var t = e.target.closest("[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
