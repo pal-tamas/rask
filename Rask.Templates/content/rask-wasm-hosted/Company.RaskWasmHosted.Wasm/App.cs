@@ -4,7 +4,7 @@ namespace Company.RaskWasmHosted.Wasm;
 
 public sealed class App : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment()[
             Doctype(),
             Html("en")[

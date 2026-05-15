@@ -26,4 +26,53 @@ public class RouteStateTests
         Assert.Equal("/foo", state.Path);
         Assert.Same(q, state.Query);
     }
+
+    [Fact]
+    public void SetPath_DifferentValue_RaisesChanged()
+    {
+        var state = new RouteState();
+        var fires = 0;
+        state.Changed += () => fires++;
+
+        state.Path = "/foo";
+
+        Assert.Equal(1, fires);
+    }
+
+    [Fact]
+    public void SetPath_SameValue_DoesNotRaise()
+    {
+        var state = new RouteState { Path = "/foo" };
+        var fires = 0;
+        state.Changed += () => fires++;
+
+        state.Path = "/foo";
+
+        Assert.Equal(0, fires);
+    }
+
+    [Fact]
+    public void SetQuery_DifferentInstance_RaisesChanged()
+    {
+        var state = new RouteState();
+        var fires = 0;
+        state.Changed += () => fires++;
+
+        state.Query = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
+
+        Assert.Equal(1, fires);
+    }
+
+    [Fact]
+    public void SetQuery_SameInstance_DoesNotRaise()
+    {
+        var q = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
+        var state = new RouteState { Query = q };
+        var fires = 0;
+        state.Changed += () => fires++;
+
+        state.Query = q;
+
+        Assert.Equal(0, fires);
+    }
 }
