@@ -35,6 +35,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/disposal"] = "Disposal",
         ["/events"] = "Events",
         ["/virtualize"] = "Virtualize",
+        ["/data-grid"] = "Data grid",
         ["/boom"] = "Error boundary",
         ["/binding"] = "Two-way binding",
         ["/validation"] = "Validation",

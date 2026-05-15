@@ -1604,4 +1604,60 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         var afterCount = await rows.CountAsync();
         Assert.InRange(afterCount, 1, 100);
     });
+
+    // ---------- DataGrid ----------
+
+    [Fact]
+    public Task DataGrid_PageLoads_RendersFirstSourceRowAndPager() => RunAsync(async () =>
+    {
+        // Header sanity + initial paint. With no sort applied, DataGridRows iterates
+        // the source in declaration order, so the first <td> on the first row is the
+        // id of the first sample order (#1001). PageSize=6 over 20 rows = 4 pages.
+        await NavigateToAsync("/data-grid");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
+            .ToHaveTextAsync("1001",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("nav .btn-group span"))
+            .ToContainTextAsync("Page 1 of 4",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task DataGrid_SortByTotalAsc_PlacesLowestFirst() => RunAsync(async () =>
+    {
+        // Single click cycles none → asc on the Total column. The cheapest order is
+        // Larry Wall ($50.00, id #1019), which must surface to row 1 of page 1 after
+        // the click round-trips through the live runtime.
+        await NavigateToAsync("/data-grid");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("table thead button:has-text(\"Total\")").ClickAsync();
+
+        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
+            .ToHaveTextAsync("1019",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task DataGrid_PagerNext_AdvancesToSecondPage() => RunAsync(async () =>
+    {
+        // PageSize=6, so the second page starts at source index 6 — order #1007
+        // (Edsger Dijkstra). The pager label updates from "Page 1 of 4" to "Page 2 of 4".
+        await NavigateToAsync("/data-grid");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.Locator("nav .btn-group button:has-text(\"Next\")").ClickAsync();
+
+        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
+            .ToHaveTextAsync("1007",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("nav .btn-group span"))
+            .ToContainTextAsync("Page 2 of 4",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
 }
