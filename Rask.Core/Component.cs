@@ -87,7 +87,7 @@ public abstract class Component
     // Router/Outlet) must opt out of render caching: without this their cached subtree gets
     // reused even after the global state changed. User code should set internal state +
     // call StateHasChanged() instead — only opt in if you genuinely cannot.
-    protected internal virtual bool BypassRenderCache => false;
+    protected virtual bool BypassRenderCache => false;
 
     /// <summary>
     ///     The current user, resolved from <see cref="IUserProvider" /> in the active render scope.
@@ -552,7 +552,23 @@ public abstract class Component
             var userTask = invoke();
             if (!userTask.IsCompleted)
             {
-                await handle.RenderInScopeAsync().ConfigureAwait(false);
+                // Suspend HandlerSyncContext for the duration of the render-and-send. Kestrel's
+                // WebSocket.SendAsync has internal awaits that don't all use ConfigureAwait(false),
+                // so any leaking ambient sync context becomes the target for its flush
+                // continuation. With HandlerSyncContext as the target, that continuation Posts a
+                // RunWithRendersAsync, which fires *another* render-and-send on the same socket —
+                // a recursive render chain that races the in-flight one, the WS lock, and the
+                // user's still-pending async work. Restoring prev for the render call confines
+                // HandlerSyncContext to the user-code window where it's actually meaningful.
+                SynchronizationContext.SetSynchronizationContext(prev);
+                try
+                {
+                    await handle.RenderInScopeAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(ctx);
+                }
             }
 
             await userTask.ConfigureAwait(false);

@@ -39,6 +39,15 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     public IServiceProvider Services => Scope.ServiceProvider;
     public SemaphoreSlim Lock { get; } = new(1, 1);
 
+    // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
+    // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
+    // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on
+    // thread-pool workers from a user `await Task.Yield()` posting back through the captured
+    // sync context). Two concurrent View.RenderAsLiveRoot walks on different threads otherwise
+    // mutate the same Component state — _children, _stateDirty, _cachedRenderResult — and one
+    // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
+    private readonly SemaphoreSlim _renderLock = new(1, 1);
+
     public bool InHandlerScope
     {
         get => _inHandlerScope.Value;
@@ -50,6 +59,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
         ReleaseFileStores();
         Lock.Dispose();
+        _renderLock.Dispose();
         Scope.Dispose();
     }
 
@@ -58,6 +68,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         ComponentLifecycle.DisposeComponentTree(View);
         ReleaseFileStores();
         Lock.Dispose();
+        _renderLock.Dispose();
         Scope.Dispose();
     }
 
@@ -126,29 +137,37 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             return;
         }
 
-        var html = View.RenderAsLiveRoot(Services);
-        var withRoot = LivePayload.InjectRootAttr(html, Id);
-        var body = LivePayload.ExtractBody(withRoot);
-
-        PendingDownload? download = null;
-        if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
+        await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
+        try
         {
-            download = pd;
+            var html = View.RenderAsLiveRoot(Services);
+            var withRoot = LivePayload.InjectRootAttr(html, Id);
+            var body = LivePayload.ExtractBody(withRoot);
+
+            PendingDownload? download = null;
+            if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
+            {
+                download = pd;
+            }
+
+            var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth, download);
+
+            // Skip the frame when the payload is byte-identical to the previous one AND nothing
+            // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
+            // that ended up not modifying tracked state.
+            if (historyUrl is null && auth is null && download is null
+                && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, _socketCt)
+                .ConfigureAwait(false);
+            _lastSentPayload = payload;
         }
-
-        var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth, download);
-
-        // Skip the frame when the payload is byte-identical to the previous one AND nothing
-        // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
-        // that ended up not modifying tracked state.
-        if (historyUrl is null && auth is null && download is null
-            && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
+        finally
         {
-            return;
+            _renderLock.Release();
         }
-
-        await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, _socketCt)
-            .ConfigureAwait(false);
-        _lastSentPayload = payload;
     }
 }

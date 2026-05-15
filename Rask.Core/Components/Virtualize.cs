@@ -60,7 +60,7 @@ public sealed class Virtualize : Component
     // every render must re-execute. Without this, the cached Div from the last render
     // would be returned even after a scroll event changed _scrollTop. Same reasoning as
     // Router/Outlet — see Component.BypassRenderCache.
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     protected override void OnPropsChanged()
     {

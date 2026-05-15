@@ -19,7 +19,7 @@ public sealed class ErrorBoundary : Component
     // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
     // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
     // every frame — same opt-out Router/DefaultNotFoundPage use for context-derived state.
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     internal void Trip(Exception ex)
     {

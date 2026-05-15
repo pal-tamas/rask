@@ -1,6 +1,9 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Core.Live;
+using Rask.Core.Routing;
 using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014
@@ -87,6 +90,80 @@ public class AsyncFormBindingTests
         Assert.Equal("admin", model.Username);
         Assert.Equal(new[] { "Already taken." }, ctx.GetValidationMessages(fid));
         Assert.False(ctx.IsValidating(fid));
+    }
+
+    [Fact]
+    public async Task AsyncValidator_PostHandlerRender_ShowsMessage_AndNoIndicator()
+    {
+        // Mirrors the failing E2E test Validation_AsyncDemo_ShowsCheckingThenTakenMessage:
+        // fill the bound input with "admin" and fire OnChange (blur). After the async validator
+        // completes, the next RenderAsLiveRoot — i.e. what the WS dispatcher emits as the
+        // post-handler frame — must show the "taken" message and must NOT still show the
+        // "Checking…" indicator.
+        var model = new SignupModel { Username = "" };
+        var ctx = new EditContext(model);
+        ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
+
+        var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
+            Input(() => model.Username),
+            ValidatingIndicator(() => model.Username, () => Span(Class: "spinner")["Checking..."]),
+            ValidationMessage(() => model.Username, msgs => Div(Class: "text-danger")[msgs[0]])
+        ]);
+        var handle = new RenderingHandle(view);
+        view.RenderHandle = handle;
+
+        var initial = view.RenderAsLiveRoot();
+        var inputId = ExtractAttr(initial, "data-rask-on-input");
+        var changeId = ExtractAttr(initial, "data-rask-on-change");
+
+        using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
+        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement);
+        using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
+        await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement);
+
+        var fid = new FieldIdentifier(model, "Username");
+        Assert.Equal(new[] { "Already taken." }, ctx.GetValidationMessages(fid));
+        Assert.False(ctx.IsValidating(fid));
+
+        // The actual bug: the post-handler render — the next RenderAsLiveRoot call — must
+        // reflect those facts in the emitted HTML.
+        var post = view.RenderAsLiveRoot();
+        Assert.Contains("Already taken.", post);
+        Assert.DoesNotContain("Checking...", post);
+    }
+
+    [Fact]
+    public async Task AsyncValidator_PostHandlerRender_UnderRouterOutlet_ShowsMessage_AndNoIndicator()
+    {
+        // Same reproduction as the StubComponent test above, but with the validation page
+        // nested inside a Router/Outlet chain — i.e. the structure the real showcase uses.
+        // The recent commit 474bcf4 removed BypassRenderCache from Router and Outlet, so
+        // when no nav happens the route subtree is served from cache; this test pins that
+        // the post-handler render still walks down to the dirty AsyncValidationDemo and
+        // produces the validator's terminal output rather than a stale "Checking..." frame.
+        var state = new RouteState { Path = "/form" };
+        var services = new ServiceCollection();
+        services.AddSingleton(state);
+        var sp = services.BuildServiceProvider();
+
+        var view = new StubComponent(() => Router(new[] { Route<RouterOutletFormPage>("/form") }));
+        var handle = new RenderingHandle(view);
+        view.RenderHandle = handle;
+
+        var initial = view.RenderAsLiveRoot(sp);
+        var inputId = ExtractAttr(initial, "data-rask-on-input");
+        var changeId = ExtractAttr(initial, "data-rask-on-change");
+        Assert.NotNull(inputId);
+        Assert.NotNull(changeId);
+
+        using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
+        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement, sp);
+        using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
+        await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement, sp);
+
+        var post = view.RenderAsLiveRoot(sp);
+        Assert.Contains("Already taken.", post);
+        Assert.DoesNotContain("Checking...", post);
     }
 
     [Fact]
@@ -191,5 +268,57 @@ public class AsyncFormBindingTests
         {
             await new TaskCompletionSource().Task.ConfigureAwait(false);
         }
+    }
+
+    private sealed class DelayedRejectValidator(string reject, string message, int delayMs) : IAsyncFieldValidator
+    {
+        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+
+        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
+        {
+            await Task.Delay(delayMs, ct).ConfigureAwait(false);
+            if (context.Model is SignupModel m && string.Equals(m.Username, reject, StringComparison.OrdinalIgnoreCase))
+            {
+                context.AddValidationMessage(field, message);
+            }
+        }
+    }
+
+    // Minimal IRenderHandle: fires a fresh RenderAsLiveRoot on every render request so the
+    // dispatcher's mid-await render path produces a real cached subtree, the same way the
+    // server's LiveSession.RenderInScopeAsync does.
+    private sealed class RenderingHandle(Component view) : IRenderHandle
+    {
+        public Task RequestRenderAsync()
+        {
+            view.RenderAsLiveRoot();
+            return Task.CompletedTask;
+        }
+
+        Task IRenderHandle.RenderInScopeAsync()
+        {
+            view.RenderAsLiveRoot();
+            return Task.CompletedTask;
+        }
+    }
+
+    [SkipFactory]
+    public sealed class RouterOutletFormPage : Component
+    {
+        private readonly SignupModel _model = new();
+        private readonly EditContext _ctx;
+
+        public RouterOutletFormPage()
+        {
+            _ctx = new EditContext(_model);
+            _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
+        }
+
+        protected override Component Render() =>
+            Form<SignupModel>(_model, Context: _ctx)[
+                Input(() => _model.Username),
+                ValidatingIndicator(() => _model.Username, () => Span(Class: "spinner")["Checking..."]),
+                ValidationMessage(() => _model.Username, msgs => Div(Class: "text-danger")[msgs[0]])
+            ];
     }
 }

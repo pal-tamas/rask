@@ -21,7 +21,7 @@ internal sealed class RootErrorBoundary : Component
     // the first GetOrCreate inside Render() lazily forwards the handle.
     internal Component Inner => _inner;
 
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     protected override Component Render()
     {

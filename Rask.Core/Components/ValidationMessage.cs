@@ -16,7 +16,7 @@ public sealed class ValidationMessage : Component
     // populated it — e.g. the mid-await render captures the no-message state, and the post-
     // handler render then reuses that stale subtree even after an async validator added a
     // message. Same rationale as Router/Outlet opting out for RouteState.
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     [GenerateForwarderFactory]
     public static ValidationMessage Bound<TProp>(
@@ -51,7 +51,7 @@ public sealed class ValidationSummary : Component
     public required Func<IReadOnlyList<ValidationEntry>, Component> Template { get; set; }
 
     // Reads EditContext message state — see ValidationMessage for the rationale.
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     protected override Component Render()
     {
@@ -80,7 +80,7 @@ public sealed class ValidatingIndicator : Component
     public required Func<Component> Template { get; set; }
 
     // Reads EditContext.IsValidating(field) — see ValidationMessage for the rationale.
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     [GenerateForwarderFactory]
     public static ValidatingIndicator Bound<TProp>(

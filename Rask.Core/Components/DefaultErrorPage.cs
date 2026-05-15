@@ -7,7 +7,7 @@ public sealed class DefaultErrorPage : Component
 
     public DefaultErrorPage(Exception error) => _error = error;
 
-    protected internal override bool BypassRenderCache => true;
+    protected override bool BypassRenderCache => true;
 
     protected override Component Render()
     {
