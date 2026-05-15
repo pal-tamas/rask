@@ -136,6 +136,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/disposal", "Disposal", "bi-trash", "Components"),
         ("/events", "Events", "bi-mouse", "Components"),
         ("/virtualize", "Virtualize", "bi-list-ol", "Components"),
+        ("/table", "Data table", "bi-table", "Components"),
         ("/boom", "Error boundary", "bi-shield-exclamation", "Components"),
         ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms"),
         ("/validation", "Validation", "bi-shield-check", "Forms"),
