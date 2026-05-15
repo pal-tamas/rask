@@ -135,7 +135,6 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/cancellation", "Cancellation", "bi-x-circle", "Components"),
         ("/disposal", "Disposal", "bi-trash", "Components"),
         ("/events", "Events", "bi-mouse", "Components"),
-        ("/data-grid", "Data grid", "bi-table", "Components"),
         ("/virtualize", "Virtualize", "bi-list-ol", "Components"),
         ("/boom", "Error boundary", "bi-shield-exclamation", "Components"),
         ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms"),
@@ -143,7 +142,9 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms"),
         ("/scoped-css", "Scoped CSS", "bi-palette", "Styling"),
         ("/view-transitions", "View transitions", "bi-stars", "Styling"),
-        ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data")
+        ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data"),
+        ("/upload", "File upload", "bi-upload", "Files"),
+        ("/download", "File download", "bi-cloud-download", "Files")
     ];
 
     protected override string? Css => LayoutCss;

@@ -27,6 +27,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Rask.Example.Server\Rask.Example.Server.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\Rask.Example.Wasm.Host\Rask.Example.Wasm.Host.csproj"

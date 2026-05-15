@@ -35,7 +35,6 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/disposal"] = "Disposal",
         ["/events"] = "Events",
         ["/virtualize"] = "Virtualize",
-        ["/data-grid"] = "Data grid",
         ["/boom"] = "Error boundary",
         ["/binding"] = "Two-way binding",
         ["/validation"] = "Validation",
@@ -43,6 +42,8 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/scoped-css"] = "Scoped CSS",
         ["/view-transitions"] = "View transitions",
         ["/http"] = "HttpClient + DI",
+        ["/upload"] = "File upload",
+        ["/download"] = "File download",
     };
 
     private readonly StandaloneWasmAppFixture _app;

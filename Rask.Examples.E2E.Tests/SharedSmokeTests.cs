@@ -1605,59 +1605,83 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         Assert.InRange(afterCount, 1, 100);
     });
 
-    // ---------- DataGrid ----------
+    // ---------- Files (upload + download) ----------
+
+    private static string FixturePath(string name) =>
+        Path.Combine(AppContext.BaseDirectory, "Fixtures", name);
 
     [Fact]
-    public Task DataGrid_PageLoads_RendersFirstSourceRowAndPager() => RunAsync(async () =>
+    public Task Upload_PageLoads_RendersFilePicker() => RunAsync(async () =>
     {
-        // Header sanity + initial paint. With no sort applied, DataGridRows iterates
-        // the source in declaration order, so the first <td> on the first row is the
-        // id of the first sample order (#1001). PageSize=6 over 20 rows = 4 pages.
-        await NavigateToAsync("/data-grid");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+        await NavigateToAsync("/upload");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("File upload",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
-            .ToHaveTextAsync("1001",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("nav .btn-group span"))
-            .ToContainTextAsync("Page 1 of 4",
+        await Expect(Page.Locator("input#upload-input"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("body").First)
+            .ToContainTextAsync("No file selected yet.",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]
-    public Task DataGrid_SortByTotalAsc_PlacesLowestFirst() => RunAsync(async () =>
+    public Task Upload_PickFile_RendersFileMetadata() => RunAsync(async () =>
     {
-        // Single click cycles none → asc on the Total column. The cheapest order is
-        // Larry Wall ($50.00, id #1019), which must surface to row 1 of page 1 after
-        // the click round-trips through the live runtime.
-        await NavigateToAsync("/data-grid");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+        // Picking a small text fixture exercises the full upload pipeline: multipart
+        // POST + temp-file stream on the server, JSImport chunked reads on WASM. The
+        // page surfaces every field on RaskFile (name, size, content-type, modified)
+        // so an assertion on each one proves the file backend hydrated the metadata
+        // end-to-end before the handler ran.
+        await NavigateToAsync("/upload");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("File upload",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await Page.Locator("table thead button:has-text(\"Total\")").ClickAsync();
+        await Page.Locator("input#upload-input").SetInputFilesAsync(FixturePath("echo.txt"));
 
-        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
-            .ToHaveTextAsync("1019",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("[data-rask-meta=name]"))
+            .ToHaveTextAsync("echo.txt",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("[data-rask-meta=size]"))
+            .ToContainTextAsync("6 bytes",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("[data-rask-meta=type]"))
+            .ToContainTextAsync("text/plain",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("[data-rask-meta=modified]"))
+            .Not.ToBeEmptyAsync(new LocatorAssertionsToBeEmptyOptions { Timeout = 10_000 });
     });
 
     [Fact]
-    public Task DataGrid_PagerNext_AdvancesToSecondPage() => RunAsync(async () =>
+    public Task Download_ReportButton_DownloadsTextFile() => RunAsync(async () =>
     {
-        // PageSize=6, so the second page starts at source index 6 — order #1007
-        // (Edsger Dijkstra). The pager label updates from "Page 1 of 4" to "Page 2 of 4".
-        await NavigateToAsync("/data-grid");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data grid",
+        // The report download exercises the Navigator.Download(byte[]) path. On the
+        // server, this stages bytes in SessionDownloadStore and the browser fetches
+        // /_rask/download/{sid}/{token}; on WASM, the bytes ride back in the render
+        // payload as base64 and the JS runtime triggers a Blob download. Either way
+        // Playwright sees a single download event.
+        await NavigateToAsync("/download");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("File download",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await Page.Locator("nav .btn-group button:has-text(\"Next\")").ClickAsync();
+        var button = Page.Locator("button#download-report");
+        await Expect(button).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        await Expect(Page.Locator("table tbody tr").First.Locator("td").First)
-            .ToHaveTextAsync("1007",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("nav .btn-group span"))
-            .ToContainTextAsync("Page 2 of 4",
+        var download = await Page.RunAndWaitForDownloadAsync(async () =>
+        {
+            await button.ClickAsync();
+        });
+
+        Assert.Equal("report.txt", download.SuggestedFilename);
+        var path = await download.PathAsync();
+        Assert.False(string.IsNullOrEmpty(path), "Download path should be available");
+        var content = await File.ReadAllTextAsync(path!);
+        Assert.StartsWith("Rask download demo", content);
+        Assert.Contains("Count: 1", content);
+
+        // Counter rendering also proves the handler state survived the round trip.
+        await Expect(Page.Locator("[data-rask-report-count]"))
+            .ToContainTextAsync("Generated 1 time(s).",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 }
