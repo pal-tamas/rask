@@ -198,7 +198,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                         Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;")[BuildGroups()]
                     ],
                     Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
-                        Div(Class: "mx-auto", Style: "max-width: 920px;")[Outlet()]
+                        Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]
                     ]
                 ]
             ],
