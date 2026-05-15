@@ -216,6 +216,36 @@ public abstract class ExampleSmokeTests : SharedSmokeTests
     });
 
     [Fact]
+    public Task InSessionNavigation_BetweenRoutesAndNotFound_UpdatesSidebarActive() => RunAsync(async () =>
+    {
+        await Page.GotoAsync("/tags");
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn-active"))
+            .ToHaveTextAsync(new Regex("Tag factories"),
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // In-session nav to a catch-all URL (popstate is what rask.js intercepts and forwards
+        // to the server as a WS "navigate" — same code path Navigator.Navigate produces).
+        await Page.EvaluateAsync(@"() => {
+            history.pushState({rask: true}, '', '/in-session-missing');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Page not found",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        // No sidebar entry matches the catch-all path, so no button should be active.
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn-active"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // "Back to welcome" → in-session nav to "/" — sidebar must now show Welcome active.
+        await Page.Locator("main button:has-text(\"Back to welcome\")").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn-active"))
+            .ToHaveTextAsync(new Regex("Welcome"),
+                new LocatorAssertionsToHaveTextOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
     public Task Navigation_PreservesSpaContext() => RunAsync(async () =>
     {
         await Page.GotoAsync("/");

@@ -148,6 +148,10 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 
     protected override string? Css => LayoutCss;
 
+    // Sidebar active-class is computed from route.Path inside Render(), which the framework
+    // can't observe — opt out of the render cache so the active link updates on every nav.
+    protected override bool BypassRenderCache => true;
+
     private bool _drawerOpen;
 
     protected override Component Render() =>
