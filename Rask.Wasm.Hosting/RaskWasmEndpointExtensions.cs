@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -91,12 +92,20 @@ public static class RaskWasmEndpointExtensions
                     ctx.Context.Response.ContentType = "application/javascript";
                 }
 
-                // Force revalidation on every request. ETag + Last-Modified still give the
-                // 304 fast path when content is unchanged, but without `no-cache` browsers
-                // (especially for ES module imports) reuse disk-cached copies across page
-                // loads without checking — which masks `dotnet build` rebuilds of rask.wasm.js
-                // and the published _framework/*.wasm payload.
-                ctx.Context.Response.Headers.CacheControl = "no-cache";
+                // Cache classification:
+                //   - Fingerprinted _framework/ assets (filename contains an embedded content
+                //     hash, e.g. dotnet.7a8b9c2d.js) — safe to mark immutable: the URL changes
+                //     when the bytes change. Browsers serve from disk cache with zero round
+                //     trips for the year.
+                //   - Everything else (index.html, main.js, rask.wasm.js, unfingerprinted
+                //     _framework/*.wasm in the default WASM SDK output) — `no-cache` so a
+                //     deploy that rewrites the same filename is picked up immediately. ETag +
+                //     Last-Modified still give the 304 fast path on unchanged bodies, but
+                //     without `no-cache` browsers (especially for ES module imports) reuse
+                //     disk-cached copies across page loads without revalidating.
+                ctx.Context.Response.Headers.CacheControl = IsFingerprintedAsset(ctx.File.Name)
+                    ? "public, max-age=31536000, immutable"
+                    : "no-cache";
             }
         });
 
@@ -110,4 +119,18 @@ public static class RaskWasmEndpointExtensions
 
         return endpoints;
     }
+
+    // Matches Blazor/WASM SDK fingerprinted asset names: <stem>.<10+ hex/alphanumeric>.<ext>.
+    // The hash segment is at least 10 chars to avoid false positives on filenames like
+    // System.IO.Pipelines.wasm (where "Pipelines" is alphanumeric but isn't a content hash).
+    // When <WasmFingerprintAssets>true</WasmFingerprintAssets> is enabled on the consumer's
+    // WASM project, the SDK emits names like dotnet.7a8b9c2d3e4f5061.js and this regex hits.
+    // The default SDK output (filenames like dotnet.js, Rask.Core.wasm) doesn't fingerprint
+    // and falls through to no-cache.
+    private static readonly Regex _fingerprintRegex = new(
+        @"\.[0-9a-z]{10,}\.[^.]+$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    internal static bool IsFingerprintedAsset(string fileName)
+        => _fingerprintRegex.IsMatch(fileName);
 }

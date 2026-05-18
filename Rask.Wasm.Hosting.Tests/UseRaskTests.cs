@@ -59,7 +59,7 @@ public class UseRaskTests
     }
 
     [Fact]
-    public async Task StaticResponses_HaveCacheControlNoCache()
+    public async Task UnfingerprintedStaticResponses_HaveCacheControlNoCache()
     {
         using var bundle = new FakeBundleDirectory();
         await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
@@ -70,6 +70,39 @@ public class UseRaskTests
             Assert.True(response.Headers.CacheControl?.NoCache == true,
                 $"{path} missing Cache-Control: no-cache");
         }
+    }
+
+    [Fact]
+    public async Task FingerprintedAsset_ServedAsImmutable()
+    {
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var response = await host.Http.GetAsync("/_framework/dotnet.7a8b9c2d3e4f.wasm");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var cc = response.Headers.CacheControl;
+        Assert.NotNull(cc);
+        // public, max-age=31536000, immutable
+        Assert.True(cc!.Public, "should be public");
+        Assert.Equal(TimeSpan.FromDays(365), cc.MaxAge);
+        // Immutable is not exposed as a typed flag on CacheControlHeaderValue prior to net9;
+        // ToString round-trip is the most reliable way to assert it.
+        Assert.Contains("immutable", cc.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IndexHtmlFallback_AlwaysNoCache_EvenWithLooksLikeFingerprintedRequest()
+    {
+        // SPA fallback path must stay no-cache so a deploy of new app code is picked up
+        // immediately; the fallback rewrites every unmapped path to index.html.
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var response = await host.Http.GetAsync("/some/unmapped/spa/route");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoCache == true);
     }
 
     [Fact]

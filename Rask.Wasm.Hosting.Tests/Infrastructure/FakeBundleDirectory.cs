@@ -21,6 +21,9 @@ internal sealed class FakeBundleDirectory : IDisposable
         // Repeating zeroes compress extremely well — brotli output is tens of bytes vs the
         // raw KB, so the assertions reading Content-Length see a clear win.
         File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "foo.wasm"), wasmBytes);
+        // Fingerprinted asset name — what the WASM SDK emits when
+        // <WasmFingerprintAssets>true</WasmFingerprintAssets> is enabled.
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "dotnet.7a8b9c2d3e4f.wasm"), wasmBytes);
         File.WriteAllText(System.IO.Path.Combine(Path, "js", "app.js"),
             "console.log('hi');");
         File.WriteAllText(System.IO.Path.Combine(Path, "unknown.bin"),

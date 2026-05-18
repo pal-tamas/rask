@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Rask.Benchmarks;
 
@@ -50,22 +51,25 @@ internal static class BundleSizeReport
 
         Console.WriteLine($"Framework directory: {frameworkDir}");
         Console.WriteLine();
-        Console.WriteLine($"{"File",-50} {"Raw",12} {"Br",12} {"Gz",12}");
-        Console.WriteLine(new string('-', 90));
+        Console.WriteLine($"{"File",-50} {"Raw",12} {"Br",12} {"Gz",12} {"Cache",-10}");
+        Console.WriteLine(new string('-', 100));
 
         long totalRaw = 0, totalBr = 0, totalGz = 0;
+        int immutableCount = 0;
         foreach (var r in rows)
         {
-            Console.WriteLine($"{Trim(r.Name, 50),-50} {Fmt(r.Raw),12} {Fmt(r.Br),12} {Fmt(r.Gz),12}");
+            var cache = IsFingerprinted(r.Name) ? "immutable" : "no-cache";
+            if (cache == "immutable") immutableCount++;
+            Console.WriteLine($"{Trim(r.Name, 50),-50} {Fmt(r.Raw),12} {Fmt(r.Br),12} {Fmt(r.Gz),12} {cache,-10}");
             totalRaw += r.Raw;
             totalBr += r.Br ?? r.Raw;
             totalGz += r.Gz ?? r.Raw;
         }
 
-        Console.WriteLine(new string('-', 90));
+        Console.WriteLine(new string('-', 100));
         Console.WriteLine($"{"TOTAL",-50} {Fmt(totalRaw),12} {Fmt(totalBr),12} {Fmt(totalGz),12}");
         Console.WriteLine();
-        Console.WriteLine($"  {rows.Count} files");
+        Console.WriteLine($"  {rows.Count} files ({immutableCount} immutable, {rows.Count - immutableCount} no-cache)");
         Console.WriteLine($"  Raw total: {Fmt(totalRaw)} ({totalRaw:N0} bytes)");
         Console.WriteLine($"  Br  total: {Fmt(totalBr)} ({totalBr:N0} bytes) — {Percent(totalBr, totalRaw)} of raw");
         Console.WriteLine($"  Gz  total: {Fmt(totalGz)} ({totalGz:N0} bytes) — {Percent(totalGz, totalRaw)} of raw");
@@ -135,6 +139,15 @@ internal static class BundleSizeReport
         }
         return null;
     }
+
+    // Mirrors Rask.Wasm.Hosting.RaskWasmEndpointExtensions.IsFingerprintedAsset — kept
+    // duplicated rather than pulled in via InternalsVisibleTo to keep the report's
+    // dependency surface small (no Rask.Wasm.Hosting reference).
+    private static readonly Regex _fingerprintRegex = new(
+        @"\.[0-9a-z]{10,}\.[^.]+$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static bool IsFingerprinted(string fileName) => _fingerprintRegex.IsMatch(fileName);
 
     private readonly record struct Row(string Name, long Raw, long? Br, long? Gz);
 }
