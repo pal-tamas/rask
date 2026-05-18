@@ -34,6 +34,8 @@
     <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
   </ItemGroup>
 
+  <Import Project="..\build\Rask.MinifyJs.targets" />
+
   <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
           Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-morph.js"
           Outputs="$(IntermediateOutputPath)rask.js">
@@ -44,6 +46,15 @@
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <!--
+      Release builds: strip block comments, full-line // comments, and blank lines from
+      the spliced client JS. Conservative — preserves mid-line behaviour so strings,
+      template literals, and regex literals stay untouched. Debug builds keep the
+      readable form to aid in-browser debugging.
+    -->
+    <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask.js"
+                  OutputFile="$(IntermediateOutputPath)rask.js"
+                  Condition=" '$(Configuration)' == 'Release' " />
   </Target>
 
   <ItemGroup>

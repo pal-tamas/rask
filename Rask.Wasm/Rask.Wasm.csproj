@@ -45,12 +45,33 @@
     template Resources/rask.wasm.js at the @@RASK_MORPH@@ marker. The generated artifact
     lands directly in Browser/ so the existing Browser/** Pack glob picks it up.
   -->
+  <!--
+    Browser/ assets shipped in every NuGet package: main.js (the dotnet boot hook) and
+    index.html (the framework page shell). rask.wasm.js is added separately below — its
+    pack source switches between the source-tracked file (Debug) and the minified
+    intermediate (Release) so the in-repo Browser/rask.wasm.js stays as the readable form
+    while NuGet consumers get the minified bytes.
+  -->
   <ItemGroup>
-    <None Include="Browser\**" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\main.js" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\index.html" Pack="true" PackagePath="Browser\"/>
+    <None Include="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
+          Pack="true" PackagePath="Browser\rask.wasm.js"
+          Condition=" '$(Configuration)' == 'Release' "/>
+    <None Include="Browser\rask.wasm.js"
+          Pack="true" PackagePath="Browser\rask.wasm.js"
+          Condition=" '$(Configuration)' != 'Release' "/>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+  <Import Project="..\build\Rask.MinifyJs.targets" />
+
+  <!--
+    Always write the unminified spliced JS to Browser/rask.wasm.js — that's the file the
+    in-repo Rask.Example.Wasm project consumes via the framework targets (and the source
+    contributors look at). NuGet consumers see whichever version is packed (above).
+  -->
+  <Target Name="_RaskSpliceClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;_RaskMinifyClientJs"
           Inputs="Resources\rask.wasm.js;..\Rask.Core\Resources\rask-morph.js"
           Outputs="Browser\rask.wasm.js">
     <PropertyGroup>
@@ -59,6 +80,26 @@
       <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskWasmJs>
     </PropertyGroup>
     <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <!--
+    Release builds: write a minified copy to the intermediate dir. The pack item-group
+    picks that up as Browser/rask.wasm.js inside the package, leaving the source-tracked
+    Browser/rask.wasm.js readable for git diffs and IDE inspection. The minifier strips
+    block comments, full-line // comments, and blank lines — state-aware so strings,
+    template literals, and regex literals stay untouched.
+
+    Split out from the splice target so each has its own Inputs/Outputs incremental check;
+    otherwise the splice's up-to-date check skips the whole compound target.
+  -->
+  <Target Name="_RaskMinifyClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Condition=" '$(Configuration)' == 'Release' "
+          Inputs="Browser\rask.wasm.js"
+          Outputs="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <Copy SourceFiles="Browser\rask.wasm.js" DestinationFiles="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js" />
+    <RaskMinifyJs InputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
+                  OutputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js" />
   </Target>
 
   <!--
