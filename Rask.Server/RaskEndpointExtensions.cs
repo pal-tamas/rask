@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
@@ -276,35 +277,58 @@ public static class RaskEndpointExtensions
         });
         LiveSession? session = null;
         var buffer = new byte[16 * 1024];
-        var message = new StringBuilder();
+        var message = new ArrayBufferWriter<byte>(initialCapacity: 16 * 1024);
 
         try
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
-                message.Clear();
                 WebSocketReceiveResult result;
-                do
-                {
-                    result = await ws.ReceiveAsync(buffer, ct);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        return;
-                    }
+                ReadOnlyMemory<byte> payload;
 
+                result = await ws.ReceiveAsync(buffer, ct);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return;
+                }
+
+                if (result.EndOfMessage)
+                {
+                    // Hot path: single-fragment message. Parse JSON directly from the
+                    // receive buffer slice — no UTF-8 string decode, no accumulator copy.
+                    payload = buffer.AsMemory(0, result.Count);
+                }
+                else
+                {
+                    message.ResetWrittenCount();
                     if (result.Count > 0)
                     {
-                        message.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                        message.Write(buffer.AsSpan(0, result.Count));
                     }
-                } while (!result.EndOfMessage);
 
-                var text = message.ToString();
-                if (text.Length == 0)
+                    do
+                    {
+                        result = await ws.ReceiveAsync(buffer, ct);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            return;
+                        }
+
+                        if (result.Count > 0)
+                        {
+                            message.Write(buffer.AsSpan(0, result.Count));
+                        }
+                    } while (!result.EndOfMessage);
+
+                    payload = message.WrittenMemory;
+                }
+
+                if (payload.Length == 0)
                 {
                     continue;
                 }
 
-                using var doc = JsonDocument.Parse(text);
+                using var doc = JsonDocument.Parse(payload);
                 var root = doc.RootElement;
                 var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
                     ? t.GetString()
