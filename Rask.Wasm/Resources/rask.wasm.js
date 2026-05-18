@@ -202,6 +202,10 @@ function handle(reply) {
     if (reply.download) triggerDownload(reply.download);
 }
 
+// Cached at module scope: TextEncoder construction is cheap but not free, and a
+// steady-typing user fires `send` ~60×/sec via the rAF input-coalescing path.
+const _sendEncoder = new TextEncoder();
+
 async function send(payload) {
     console.log("[Rask] send", payload);
     if (!dotnetExports) {
@@ -213,15 +217,13 @@ async function send(payload) {
         return;
     }
     try {
-        const reply = await dotnetExports.Rask.Wasm.JSInterop.Dispatch(JSON.stringify(payload));
-        console.log("[Rask] send reply bytes:", reply ? reply.length : 0);
-        if (typeof reply === "string" && reply.length > 0) {
-            try {
-                handle(JSON.parse(reply));
-            } catch (e) {
-                console.error("Rask: malformed dispatch reply", e, reply);
-            }
-        }
+        // Dispatch now marshals the request as a byte[] (cuts the per-event UTF-16 string
+        // copy across the JS/.NET boundary that the prior string signature forced) and
+        // .NET pushes the response back through the existing applyRender JSImport — the
+        // JSExport generator doesn't support Task<byte[]> return types. JS just awaits
+        // completion; the morph happens via the applyRender callback path.
+        const requestBytes = _sendEncoder.encode(JSON.stringify(payload));
+        await dotnetExports.Rask.Wasm.JSInterop.Dispatch(requestBytes);
     } catch (e) {
         console.error("Rask: dispatch failed", e);
     }
@@ -244,10 +246,12 @@ document.addEventListener("click", (e) => {
     }
     if (url.origin !== location.origin) return;
     e.preventDefault();
+    flushInputsNow();
     send({type: "navigate", path: stripBase(url.pathname), query: url.search});
 });
 
 window.addEventListener("popstate", () => {
+    flushInputsNow();
     send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
 });
 
@@ -255,19 +259,64 @@ document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-rask-on-click]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
+    flushInputsNow();
     send({id: t.getAttribute("data-rask-on-click"), type: "click",
           shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey});
 });
 
+// Input events fire per keystroke — on fast typing that's 5–10 messages over the
+// JS interop / WS boundary per second per input. Coalesce per-element with rAF:
+// the same element typed into multiple times within one frame produces a single
+// outgoing message carrying the latest value at flush time. The element itself
+// is the de-duping key — multiple inputs in the same frame each get one message.
+// flushInputsNow() is called at the top of every other event handler (change,
+// submit, click, navigate) so the server always processes input events before
+// the subsequent action that depends on them — without this, a change event
+// triggered immediately after typing reaches the server BEFORE the coalesced
+// input, and any validator the change kicks off reads the stale model value.
+const inputPending = new Set();
+let inputRaf = 0;
+function flushInputs() {
+    inputRaf = 0;
+    inputPending.forEach((el) => {
+        if (!el.isConnected) return;
+        const id = el.getAttribute("data-rask-on-input");
+        if (!id) return;
+        send({id, type: "input", value: el.value});
+    });
+    inputPending.clear();
+}
+function flushInputsNow() {
+    if (inputRaf) { cancelAnimationFrame(inputRaf); inputRaf = 0; }
+    if (inputPending.size > 0) flushInputs();
+}
+function queueInput(el) {
+    inputPending.add(el);
+    if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
+}
 document.addEventListener("input", (e) => {
     const t = e.target.closest("[data-rask-on-input]");
     if (!t || !inRoot(t)) return;
-    send({id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value});
+    // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the change
+    // event typically fires in the same task (Playwright fill, browser commit on blur),
+    // and a downstream validator triggered by change reads the model state set by the
+    // matching input. Coalescing the input would put the change event ahead of it on
+    // the .NET dispatcher and the validator would observe stale state. Only standalone
+    // input handlers (no change wired) get the rAF coalescing win.
+    if (t.hasAttribute("data-rask-on-change")) {
+        send({id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value});
+        return;
+    }
+    queueInput(t);
 });
 
 document.addEventListener("change", (e) => {
     const t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
     if (!t || !inRoot(t)) return;
+    // Flush before processing — if the same element (or a sibling) has a pending
+    // coalesced input, the server needs to see it BEFORE the change-triggered
+    // validator / handler runs, otherwise the validator reads stale model state.
+    flushInputsNow();
     if (t.tagName === "INPUT" && t.type === "file" && t.hasAttribute("data-rask-on-files")) {
         const files = t.files;
         if (!files || files.length === 0) return;
@@ -314,6 +363,7 @@ document.addEventListener("submit", (e) => {
     const t = e.target.closest("[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
+    flushInputsNow();
     const fileInputs = t.querySelectorAll('input[type="file"][name]');
     const fileFields = {};
     for (const input of fileInputs) {
