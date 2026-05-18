@@ -98,6 +98,18 @@ public abstract class Component
         }
     }
 
+    // Overload that writes a two-part attribute name directly without allocating an
+    // intermediate concatenation. Used by Element for `data-{key}` — `"data-" + kv.Key`
+    // would otherwise allocate a string per data-attribute per render.
+    protected static void AppendAttr(StringBuilder sb, string namePrefix, string nameSuffix, string? value)
+    {
+        sb.Append(' ').Append(namePrefix).Append(nameSuffix);
+        if (value is not null)
+        {
+            sb.Append("=\"").Append(HtmlEncoder.Default.Encode(value)).Append('"');
+        }
+    }
+
     protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
 
     // Tag components override this to wrap children rendering in an ambient scope

@@ -26,7 +26,7 @@ public abstract class Element : Component
         if (Data is null) return;
         foreach (var kv in Data)
         {
-            AppendAttr(sb, "data-" + kv.Key, kv.Value);
+            AppendAttr(sb, "data-", kv.Key, kv.Value);
         }
     }
 }
