@@ -51,6 +51,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
+        services.AddSingleton<IRaskScopedStyles, ServerScopedStyles>();
         services.AddSingleton<SessionUploadStore>();
         services.AddSingleton<SessionDownloadStore>();
         services.TryAddSingleton<RaskUploadOptions>();
@@ -835,6 +836,17 @@ public static class RaskEndpointExtensions
     private sealed class ServerRuntimeScript : IRaskRuntimeScript
     {
         public Component Render() => Rask.Core.Components.Components.Script(Src: RuntimePath);
+    }
+
+    private sealed class ServerScopedStyles : IRaskScopedStyles
+    {
+        private static readonly IReadOnlyDictionary<string, string?> _marker =
+            new Dictionary<string, string?> { ["rask-scoped"] = "" };
+
+        public Component Render(string hash) => Rask.Core.Components.Components.Link(
+            Rel: "stylesheet",
+            Href: $"/_rask/scoped.css?v={hash}",
+            Data: _marker);
     }
 
     internal sealed class RaskLiveMarker

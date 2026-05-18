@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 
@@ -60,18 +61,42 @@ public class ScopedCssRenderTests
     }
 
     [Fact]
-    public void RaskScopedStyles_AfterCssRegistered_RendersLink()
+    public void RaskScopedStyles_AfterCssRegistered_NoProvider_RendersEmpty()
+    {
+        var view = new CssWrapper(Div(Class: "tag"));
+        view.RenderAsLiveRoot();
+        Assert.NotNull(ScopedCssRegistry.CurrentHash);
+
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var probe = new NoCssWrapper(RaskScopedStyles());
+        var html = probe.RenderAsLiveRoot(sp);
+        Assert.Equal("", html);
+    }
+
+    [Fact]
+    public void RaskScopedStyles_AfterCssRegistered_WithProvider_DelegatesToProvider()
     {
         var view = new CssWrapper(Div(Class: "tag"));
         view.RenderAsLiveRoot();
         var hash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(hash);
 
+        var services = new ServiceCollection();
+        services.AddSingleton<IRaskScopedStyles>(
+            new LinkProvider(h => Link(Rel: "stylesheet", Href: $"/_rask/scoped.css?v={h}")));
+        var sp = services.BuildServiceProvider();
+
         var probe = new NoCssWrapper(RaskScopedStyles());
-        var html = probe.RenderAsLiveRoot();
+        var html = probe.RenderAsLiveRoot(sp);
         Assert.Contains($"href=\"/_rask/scoped.css?v={hash}\"", html);
         Assert.Contains("rel=\"stylesheet\"", html);
-        Assert.Contains("data-rask-scoped", html);
+    }
+
+    private sealed class LinkProvider : IRaskScopedStyles
+    {
+        private readonly Func<string, Component> _factory;
+        public LinkProvider(Func<string, Component> factory) => _factory = factory;
+        public Component Render(string hash) => _factory(hash);
     }
 
     private sealed class NoCssWrapper : Component
