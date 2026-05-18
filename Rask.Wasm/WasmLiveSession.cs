@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,10 @@ namespace Rask.Wasm;
 internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
+    // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented
+    // backing array hot. Eliminates the per-render ArrayBufferWriter allocation that
+    // BuildPayloadUtf8WithRoot's byte[]-returning overload would otherwise make.
+    private readonly ArrayBufferWriter<byte> _writeBuffer = new(initialCapacity: 4096);
     private byte[]? _lastAppliedPayload;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
@@ -345,9 +350,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
         // BuildPayloadUtf8WithRoot fuses InjectRootAttr + payload write on UTF-8 bytes,
         // emitting the whole document (head + body) so the JS-side morph against
-        // document.documentElement can update head children. The byte[] is handed
-        // straight to JS via JSInterop.ApplyRender — one boundary crossing instead of
-        // five string params, and JS parses the JSON once.
-        return LivePayload.BuildPayloadUtf8WithRoot(html, "wasm", historyUrl, replace, cssText, null, download);
+        // document.documentElement can update head children. Writes into the pooled
+        // _writeBuffer so the per-render ArrayBufferWriter allocation is gone; the
+        // ToArray at the end is still needed today because the JS interop boundary
+        // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
+        _writeBuffer.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download);
+        return _writeBuffer.WrittenSpan.ToArray();
     }
 }

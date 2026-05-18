@@ -84,12 +84,26 @@ public static class LivePayload
         PendingDownload? download = null)
     {
         var buffer = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            WriteJson(writer, html, historyUrl, replace, cssText, auth, download);
-        }
-
+        BuildPayloadUtf8(buffer, html, historyUrl, replace, cssText, auth, download);
         return buffer.WrittenSpan.ToArray();
+    }
+
+    /// <summary>
+    /// Pooled-writer overload of <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload)"/>.
+    /// Writes the JSON payload into the caller-supplied buffer; callers reuse the writer
+    /// across frames (Clear / ResetWrittenCount) to avoid the per-frame 4 KiB allocation.
+    /// </summary>
+    public static void BuildPayloadUtf8(
+        ArrayBufferWriter<byte> output,
+        string html,
+        string? historyUrl,
+        bool replace,
+        string? cssText = null,
+        AuthInstruction? auth = null,
+        PendingDownload? download = null)
+    {
+        using var writer = new Utf8JsonWriter(output);
+        WriteJson(writer, html, historyUrl, replace, cssText, auth, download);
     }
 
     /// <summary>
@@ -109,15 +123,38 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null)
-        => BuildPayloadUtf8Spliced(html, sessionId, includeOnlyBody: true,
+    {
+        var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
+        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download);
+        return output.WrittenSpan.ToArray();
+    }
+
+    /// <summary>
+    /// Pooled-writer overload of <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>.
+    /// Writes the JSON payload into <paramref name="output"/>; the caller owns the buffer
+    /// and is expected to <c>ResetWrittenCount()</c> between frames so the rented array is
+    /// reused. Lets <see cref="System.Net.WebSockets.WebSocket.SendAsync(ReadOnlyMemory{byte}, System.Net.WebSockets.WebSocketMessageType, bool, CancellationToken)"/>
+    /// consume <see cref="ArrayBufferWriter{T}.WrittenMemory"/> directly — no per-frame copy.
+    /// </summary>
+    public static void BuildPayloadUtf8WithBody(
+        ArrayBufferWriter<byte> output,
+        string html,
+        string sessionId,
+        string? historyUrl,
+        bool replace,
+        string? cssText = null,
+        AuthInstruction? auth = null,
+        PendingDownload? download = null)
+        => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: true,
             historyUrl, replace, cssText, auth, download);
 
     /// <summary>
     /// WASM live-path payload builder. Same UTF-8 splice as
-    /// <see cref="BuildPayloadUtf8WithBody"/>, but emits the **whole document** (Doctype,
-    /// Html, Head, Body) so the JS-side morph against <c>document.documentElement</c> can
-    /// update head children too — title, stylesheet <c>&lt;link&gt;</c>s, the scoped-css
-    /// link. The data-rask-root marker is still spliced onto the opening <c>&lt;body&gt;</c>.
+    /// <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>,
+    /// but emits the **whole document** (Doctype, Html, Head, Body) so the JS-side morph
+    /// against <c>document.documentElement</c> can update head children too — title,
+    /// stylesheet <c>&lt;link&gt;</c>s, the scoped-css link. The data-rask-root marker is
+    /// still spliced onto the opening <c>&lt;body&gt;</c>.
     /// </summary>
     public static byte[] BuildPayloadUtf8WithRoot(
         string html,
@@ -127,10 +164,29 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null)
-        => BuildPayloadUtf8Spliced(html, sessionId, includeOnlyBody: false,
+    {
+        var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
+        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download);
+        return output.WrittenSpan.ToArray();
+    }
+
+    /// <summary>
+    /// Pooled-writer overload of <see cref="BuildPayloadUtf8WithRoot(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>.
+    /// </summary>
+    public static void BuildPayloadUtf8WithRoot(
+        ArrayBufferWriter<byte> output,
+        string html,
+        string sessionId,
+        string? historyUrl,
+        bool replace,
+        string? cssText = null,
+        AuthInstruction? auth = null,
+        PendingDownload? download = null)
+        => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: false,
             historyUrl, replace, cssText, auth, download);
 
-    private static byte[] BuildPayloadUtf8Spliced(
+    private static void BuildPayloadUtf8Spliced(
+        ArrayBufferWriter<byte> output,
         string html,
         string sessionId,
         bool includeOnlyBody,
@@ -152,7 +208,8 @@ public static class LivePayload
             if (bodyOpen < 0)
             {
                 // No <body> tag — fall back to the string-side payload builder.
-                return BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download);
+                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download);
+                return;
             }
 
             var sliceStart = includeOnlyBody ? bodyOpen : 0;
@@ -162,14 +219,16 @@ public static class LivePayload
                 var tagEndRel = htmlBytes[bodyOpen..].IndexOf((byte)'>');
                 if (tagEndRel < 0)
                 {
-                    return BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download);
+                    return;
                 }
 
                 var afterOpenTag = bodyOpen + tagEndRel + 1;
                 var closeIdx = IndexOfIgnoreCaseUtf8(htmlBytes, "</body>"u8, afterOpenTag);
                 if (closeIdx < 0)
                 {
-                    return BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download);
+                    return;
                 }
 
                 sliceEnd = closeIdx + "</body>"u8.Length;
@@ -208,13 +267,8 @@ public static class LivePayload
                 cursor += suffix.Length;
                 slice[headLen..].CopyTo(spliced[cursor..]);
 
-                var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-                using (var writer = new Utf8JsonWriter(output))
-                {
-                    WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download);
-                }
-
-                return output.WrittenSpan.ToArray();
+                using var writer = new Utf8JsonWriter(output);
+                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download);
             }
             finally
             {

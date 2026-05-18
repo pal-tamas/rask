@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
@@ -11,7 +12,12 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
     private static readonly AsyncLocal<bool> _inHandlerScope = new();
 
-    private byte[]? _lastSentBytes;
+    // Two-buffer swap: `_writeBuffer` receives the next frame, `_lastSentBuffer` holds the
+    // previous send (dedup compare target). After SendAsync the references swap so the just-
+    // sent buffer becomes the dedup baseline without any byte[] copy. Both writers persist
+    // across the session's lifetime; ResetWrittenCount keeps the underlying rented array hot.
+    private ArrayBufferWriter<byte> _writeBuffer = new(initialCapacity: 4096);
+    private ArrayBufferWriter<byte>? _lastSentBuffer;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -120,7 +126,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         // A reconnect — possibly a different browser tab/window — needs the current HTML
         // even when it byte-matches the prior socket's last frame. Reset the dedup baseline
         // so the recovery render reliably emits.
-        _lastSentBytes = null;
+        _lastSentBuffer = null;
     }
 
     public void DetachSocket()
@@ -151,8 +157,10 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // <body> / </body> via vectorized byte-span scans (no UTF-16 char-by-char loops)
             // and splices data-rask-root in place — collapsing the previous
             // InjectRootAttr → ExtractBody → BuildPayloadUtf8 chain into one pass and
-            // eliminating the two intermediate string allocations.
-            var payload = LivePayload.BuildPayloadUtf8WithBody(html, Id, historyUrl, replace, null, auth, download);
+            // eliminating the two intermediate string allocations. Writes into the pooled
+            // _writeBuffer so the per-frame ArrayBufferWriter + ToArray copy are also gone.
+            _writeBuffer.ResetWrittenCount();
+            LivePayload.BuildPayloadUtf8WithBody(_writeBuffer, html, Id, historyUrl, replace, null, auth, download);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
@@ -160,15 +168,18 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // Utf8JsonWriter is deterministic, so byte equality is equivalent to the previous
             // string-Ordinal compare.
             if (historyUrl is null && auth is null && download is null
-                && _lastSentBytes is not null
-                && payload.AsSpan().SequenceEqual(_lastSentBytes))
+                && _lastSentBuffer is not null
+                && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
             {
                 return;
             }
 
-            await _socket.SendAsync(payload.AsMemory(), WebSocketMessageType.Text, true, _socketCt)
+            await _socket.SendAsync(_writeBuffer.WrittenMemory, WebSocketMessageType.Text, true, _socketCt)
                 .ConfigureAwait(false);
-            _lastSentBytes = payload;
+
+            // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous
+            // baseline (or a fresh writer on first send) is reused as the next write target.
+            (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(initialCapacity: 4096));
         }
         finally
         {

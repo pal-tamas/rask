@@ -1,3 +1,4 @@
+using System.Buffers;
 using BenchmarkDotNet.Attributes;
 using Rask.Core.Live;
 
@@ -13,10 +14,13 @@ namespace Rask.Benchmarks;
 public class LivePayloadUtf8Benchmarks
 {
     private string _html = null!;
+    private ArrayBufferWriter<byte> _pooledWriter = null!;
 
     [GlobalSetup]
     public void Setup()
     {
+        _pooledWriter = new ArrayBufferWriter<byte>(initialCapacity: 32 * 1024);
+
         var rows = new System.Text.StringBuilder();
         for (var i = 0; i < 200; i++)
         {
@@ -40,4 +44,16 @@ public class LivePayloadUtf8Benchmarks
     [Benchmark]
     public byte[] BuildPayloadUtf8WithBody()
         => LivePayload.BuildPayloadUtf8WithBody(_html, "session-bench", null, false);
+
+    [Benchmark]
+    public int BuildPayloadUtf8WithBody_Pooled()
+    {
+        // PR2 shape: caller pre-pools the ArrayBufferWriter so the per-frame 4 KiB
+        // allocation and the final WrittenSpan.ToArray() copy are both gone. The
+        // WebSocket.SendAsync overload accepts ReadOnlyMemory<byte>, so the server
+        // dispatcher hands writer.WrittenMemory through directly.
+        _pooledWriter.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8WithBody(_pooledWriter, _html, "session-bench", null, false);
+        return _pooledWriter.WrittenCount;
+    }
 }
