@@ -173,6 +173,32 @@ public class VirtualizeTests
         Assert.Equal(3, captured.VisibleItems.Count);
     }
 
+    [Fact]
+    public void Render_UserSetsRaskKeyOnRow_AttributeFlowsToHtml()
+    {
+        // Documents the recommended keying pattern for Virtualize rows: setting
+        // Data["rask-key"] makes the client-side morph engage its keyed reconciliation
+        // path so reordered / scrolled rows keep their DOM identity (focus, scroll
+        // state, view-transition animations) across re-renders.
+        var items = Enumerable.Range(0, 50).ToList();
+        var view = new StubComponent(() => Virtualize<int>(
+            Render: ctx => Div()[
+                ctx.VisibleItems.Select(item =>
+                    (Child)Div(Data: new Dictionary<string, string?>
+                    {
+                        ["rask-key"] = item.Index.ToString()
+                    })[item.Value!.ToString()])
+            ],
+            Items: items,
+            ItemSize: 20,
+            InitialClientHeight: 100));
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("data-rask-key=\"0\"", html);
+        Assert.Contains("data-rask-key=\"4\"", html);
+    }
+
     private static string? ExtractAttr(string html, string attr)
     {
         var marker = attr + "=\"";

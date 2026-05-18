@@ -332,75 +332,7 @@
         });
     }
 
-    // Scripts produced by DOMParser have their "already started" flag set, so the
-    // browser silently skips them when morph() appends them into the live document.
-    // Rebuild script nodes via createElement so they actually execute, propagate
-    // every attribute (type=module, defer, integrity, nonce, crossorigin, …), and
-    // fire raskAfterMorph again once external scripts finish loading — inline
-    // scripts run synchronously on insertion and may early-return if they depend
-    // on a not-yet-loaded global like window.hljs.
-    function reviveScript(node) {
-        if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return node;
-        var s = document.createElement("script");
-        for (var i = 0; i < node.attributes.length; i++) {
-            var a = node.attributes[i];
-            s.setAttribute(a.name, a.value);
-        }
-        if (s.src) {
-            s.async = false;
-            s.addEventListener("load", function () {
-                if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
-            }, { once: true });
-        }
-        s.text = node.textContent;
-        return s;
-    }
-
-    function morph(from, to) {
-        if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
-            from.parentNode.replaceChild(to, from);
-            return;
-        }
-        if (from.nodeType === 3 || from.nodeType === 8) {
-            if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
-            return;
-        }
-        var fa = from.attributes, ta = to.attributes;
-        for (var i = fa.length - 1; i >= 0; i--) {
-            var name = fa[i].name;
-            if (!to.hasAttribute(name)) from.removeAttribute(name);
-        }
-        for (var j = 0; j < ta.length; j++) {
-            var a = ta[j];
-            if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
-        }
-        var tag = from.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") {
-            // Mirror rask.wasm.js — only oninput-streaming inputs need the focus
-            // guard against lagging re-renders. Change-only inputs (date / number /
-            // time / datetime-local / checkbox / radio) are server-authoritative on
-            // every commit and must accept the rendered .value even while focused,
-            // or Chromium drops the first change on a focused date input.
-            var streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
-            if (!streaming || document.activeElement !== from) {
-                var newVal = to.getAttribute("value");
-                if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
-                if (newVal === null) newVal = "";
-                if (from.value !== newVal) from.value = newVal;
-                var checked = to.hasAttribute("checked");
-                if (from.checked !== checked) from.checked = checked;
-            }
-        }
-        var fc = [], tc = [];
-        for (var n = from.firstChild; n; n = n.nextSibling) fc.push(n);
-        for (var m = to.firstChild; m; m = m.nextSibling) tc.push(m);
-        var max = Math.max(fc.length, tc.length);
-        for (var k = 0; k < max; k++) {
-            var src = fc[k], dst = tc[k];
-            if (!src) from.appendChild(reviveScript(dst));
-            else if (!dst) from.removeChild(src);
-            else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) from.replaceChild(reviveScript(dst), src);
-            else morph(src, dst);
-        }
-    }
+    // The reviveScript() + morph() definitions are concatenated in at build time
+    // from Rask.Core/Resources/rask-morph.js by the _RaskBuildClientJs target.
+    // @@RASK_MORPH@@
 })();

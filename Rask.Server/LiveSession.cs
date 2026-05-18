@@ -140,8 +140,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         try
         {
             var html = View.RenderAsLiveRoot(Services);
-            var withRoot = LivePayload.InjectRootAttr(html, Id);
-            var body = LivePayload.ExtractBody(withRoot);
 
             PendingDownload? download = null;
             if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
@@ -149,7 +147,12 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 download = pd;
             }
 
-            var payload = LivePayload.BuildPayloadUtf8(body, historyUrl, replace, null, auth, download);
+            // BuildPayloadUtf8WithBody encodes the rendered HTML to UTF-8 once, then locates
+            // <body> / </body> via vectorized byte-span scans (no UTF-16 char-by-char loops)
+            // and splices data-rask-root in place — collapsing the previous
+            // InjectRootAttr → ExtractBody → BuildPayloadUtf8 chain into one pass and
+            // eliminating the two intermediate string allocations.
+            var payload = LivePayload.BuildPayloadUtf8WithBody(html, Id, historyUrl, replace, null, auth, download);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations

@@ -13,7 +13,7 @@ namespace Rask.Wasm;
 internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private string? _lastAppliedPayload;
+    private byte[]? _lastAppliedPayload;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
@@ -76,13 +76,13 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             var payload = await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
             // Skip the JS interop call when nothing changed since the last apply. Catches
             // StateHasChanged calls that didn't ultimately modify any visible output.
-            if (string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+            // SequenceEqual is SIMD-accelerated on byte[] — equivalent to the prior string compare.
+            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
             {
                 return;
             }
 
-            var extracted = PayloadExtractor.Extract(payload);
-            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
+            JSInterop.ApplyRender(payload);
             _lastAppliedPayload = payload;
         }
         finally
@@ -111,13 +111,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         try
         {
             var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
             {
                 return;
             }
 
-            var extracted = PayloadExtractor.Extract(payload);
-            JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
+            JSInterop.ApplyRender(payload);
             _lastAppliedPayload = payload;
         }
         finally
@@ -128,7 +127,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
     private void OnUserChanged() => _ = RequestRenderAsync();
 
-    public async Task<string> InitialRenderAsync()
+    public async Task<byte[]> InitialRenderAsync()
     {
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
@@ -198,13 +197,15 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                     var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
                     // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
                     // The JS host treats an empty string as "no-op." Always send when historyUrl is set.
-                    if (historyUrl is null && string.Equals(payload, _lastAppliedPayload, StringComparison.Ordinal))
+                    if (historyUrl is null
+                        && _lastAppliedPayload is not null
+                        && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
                     {
                         return string.Empty;
                     }
 
                     _lastAppliedPayload = payload;
-                    return payload;
+                    return System.Text.Encoding.UTF8.GetString(payload);
                 }
             }
             catch (Exception ex)
@@ -253,7 +254,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             {
                 var payload = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 _lastAppliedPayload = payload;
-                return payload;
+                return System.Text.Encoding.UTF8.GetString(payload);
             }
             catch (Exception ex)
             {
@@ -268,7 +269,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    private async Task<string> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace)
+    private async Task<byte[]> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
@@ -288,7 +289,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         return payload;
     }
 
-    internal async Task<string> BuildPayloadAsync(string? historyUrl, bool replace)
+    internal async Task<byte[]> BuildPayloadAsync(string? historyUrl, bool replace)
     {
         await Task.Yield();
 
@@ -327,7 +328,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // document so the JS runtime can morph <head> too — title, stylesheet <link>s, and the
         // scoped-css <link> would otherwise stay frozen at whatever the static index.html shipped.
         var html = View.RenderAsLiveRoot(Services);
-        var withRoot = LivePayload.InjectRootAttr(html, "wasm");
 
         var currentHash = ScopedCssRegistry.CurrentHash;
         string? cssText = null;
@@ -343,6 +343,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             download = pd;
         }
 
-        return LivePayload.BuildPayload(withRoot, historyUrl, replace, cssText, null, download);
+        // BuildPayloadUtf8WithRoot fuses InjectRootAttr + payload write on UTF-8 bytes,
+        // emitting the whole document (head + body) so the JS-side morph against
+        // document.documentElement can update head children. The byte[] is handed
+        // straight to JS via JSInterop.ApplyRender — one boundary crossing instead of
+        // five string params, and JS parses the JSON once.
+        return LivePayload.BuildPayloadUtf8WithRoot(html, "wasm", historyUrl, replace, cssText, null, download);
     }
 }

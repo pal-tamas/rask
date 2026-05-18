@@ -39,6 +39,21 @@ public class LiveRenderRoundTripBenchmarks
         return last!;
     }
 
+    // 100-row list with data-rask-key emission per row. Mirrors the Virtualize / sortable
+    // table pattern: every render shuffles the row order so the keyed-morph branch (in
+    // rask-morph.js) would do an O(k) reorder client-side instead of replacing every node.
+    // The C# side measures the server-render allocation cost of producing the keyed HTML;
+    // actual reorder-vs-replace cost lives in the browser and is harness-measured.
+    private int _reorderSeed;
+
+    [Benchmark]
+    public string RenderKeyedList100_ShuffledEachIteration()
+    {
+        _reorderSeed = (_reorderSeed + 1) & 0x7fffffff;
+        var tree = BuildKeyedListTree(100, _reorderSeed);
+        return tree.RenderAsLiveRoot();
+    }
+
     private static Component BuildTree()
     {
         var rows = new List<Child>(capacity: 20);
@@ -57,6 +72,36 @@ public class LiveRenderRoundTripBenchmarks
                     ]
                 ]
             ]
+        ];
+    }
+
+    private static Component BuildKeyedListTree(int count, int seed)
+    {
+        // Deterministic shuffle so the benchmark output is reproducible while still
+        // exercising the morph reorder branch on every iteration.
+        var order = new int[count];
+        for (var i = 0; i < count; i++) order[i] = i;
+        var rnd = new Random(seed);
+        for (var i = count - 1; i > 0; i--)
+        {
+            var j = rnd.Next(i + 1);
+            (order[i], order[j]) = (order[j], order[i]);
+        }
+
+        var rows = new List<Child>(capacity: count);
+        for (var i = 0; i < count; i++)
+        {
+            var idx = order[i];
+            rows.Add(C.Div(
+                Class: "row",
+                Data: new Dictionary<string, string?> { ["rask-key"] = idx.ToString() })[
+                C.Span()[$"Item {idx}"]
+            ]);
+        }
+
+        return C.Fragment()[
+            C.Doctype(),
+            C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
         ];
     }
 }

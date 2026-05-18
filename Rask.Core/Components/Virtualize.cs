@@ -10,6 +10,12 @@ namespace Rask.Core.Components;
 // the state's OnScroll handler into a scrollable container and reads OffsetBefore /
 // OffsetAfter / VisibleValues to drive their own markup.
 //
+// To preserve row identity across scroll / reorder, set Data["rask-key"] = item.Index
+// (or any stable per-row identity) on the row element. The client morph engages a keyed
+// reconciliation path when any child carries data-rask-key, moving existing DOM nodes
+// into place instead of replacing them — focus, scroll state, and view-transition
+// animations survive the re-render. See /virtualize in the showcase for the pattern.
+//
 // Always invoked through the hand-written generic factory `Components.Virtualize<T>(...)`
 // (see Virtualize.Generics.cs). The non-generic factory remains as the forwarding target.
 //

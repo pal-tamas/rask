@@ -60,9 +60,15 @@ public sealed class VirtualizePage : Component
                             ctx.VisibleItems.Select(item =>
                                 (Child)Tr(
                                     Style: $"height:{ctx.ItemSize}px;",
+                                    // data-rask-key engages the morph algorithm's keyed
+                                    // reconciliation path: scrolling the window moves the
+                                    // existing <tr> nodes instead of replacing them, so
+                                    // focus / scroll state / view-transition animations
+                                    // survive the re-render.
                                     Data: new Dictionary<string, string?>
                                     {
-                                        ["row-index"] = item.Index.ToString()
+                                        ["row-index"] = item.Index.ToString(),
+                                        ["rask-key"] = item.Index.ToString()
                                     })[
                                     Td()[item.Value?.Index.ToString() ?? ""],
                                     Td()[item.Value?.Name ?? ""],

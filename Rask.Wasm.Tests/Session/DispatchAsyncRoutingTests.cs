@@ -168,9 +168,9 @@ public class DispatchAsyncRoutingTests
         return (session, provider);
     }
 
-    private static string ExtractFirstHandlerId(string payload)
+    private static string ExtractFirstHandlerId(byte[] payload)
     {
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(payload.AsMemory());
         var html = doc.RootElement.GetProperty("html").GetString()!;
         var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
         Assert.True(match.Success, $"no handler id in payload html: {html}");

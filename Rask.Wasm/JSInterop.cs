@@ -28,7 +28,7 @@ internal static partial class JSInterop
     public static partial void SetExports(JSObject exports);
 
     [JSImport("applyRender", ModuleName)]
-    public static partial void ApplyRender(string html, string? cssHash, string? cssText, string? historyJson, string? downloadJson);
+    public static partial void ApplyRender(byte[] payload);
 
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
@@ -55,7 +55,7 @@ internal static partial class JSInterop
     public static Task<string> Dispatch(string json) =>
         _session is null ? Task.FromResult(string.Empty) : _session.DispatchAsync(json);
 
-    public static void ApplyRender(string html, string? cssHash, string? cssText, string? historyJson, string? downloadJson) { }
+    public static void ApplyRender(byte[] payload) { }
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
     public static void PushHistory(string url, bool replace) { }

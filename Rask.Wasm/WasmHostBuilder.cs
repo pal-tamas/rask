@@ -72,18 +72,10 @@ public sealed class WasmHostBuilder
 
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);
         Console.WriteLine($"[Rask.Wasm] first render payload bytes={payload.Length}");
-        PushPayload(payload);
-        Console.WriteLine("[Rask.Wasm] first render applied");
-    }
-
-    private static void PushPayload(string payload)
-    {
-        if (string.IsNullOrEmpty(payload))
+        if (payload.Length > 0)
         {
-            return;
+            JSInterop.ApplyRender(payload);
         }
-
-        var extracted = PayloadExtractor.Extract(payload);
-        JSInterop.ApplyRender(extracted.Html, extracted.CssHash, extracted.CssText, extracted.HistoryJson, extracted.DownloadJson);
+        Console.WriteLine("[Rask.Wasm] first render applied");
     }
 }

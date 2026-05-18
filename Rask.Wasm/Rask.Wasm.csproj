@@ -39,11 +39,27 @@
     and appends to WasmExtraFilesToDeploy. Browser/ and build/ are packed at the package root
     so the auto-import in the consumer's project sees them under the package's top-level
     folders, matching the in-repo layout that Directory.Build.targets imports from.
+
+    rask.wasm.js itself is generated at build time by _RaskBuildClientJs (below), which
+    splices the shared morph algorithm (Rask.Core/Resources/rask-morph.js) into the
+    template Resources/rask.wasm.js at the @@RASK_MORPH@@ marker. The generated artifact
+    lands directly in Browser/ so the existing Browser/** Pack glob picks it up.
   -->
   <ItemGroup>
     <None Include="Browser\**" Pack="true" PackagePath="Browser\"/>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
+
+  <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Inputs="Resources\rask.wasm.js;..\Rask.Core\Resources\rask-morph.js"
+          Outputs="Browser\rask.wasm.js">
+    <PropertyGroup>
+      <_RaskWasmTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.wasm.js'))</_RaskWasmTemplate>
+      <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
+      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskWasmJs>
+    </PropertyGroup>
+    <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
 
   <!--
     Bundle Rask.Core.dll into each lib/{TFM}/ folder alongside Rask.Wasm.dll. NuGet's TFM

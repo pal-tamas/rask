@@ -19,7 +19,7 @@ public class PayloadShapeTests
 
         var payload = await session.InitialRenderAsync();
 
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(payload.AsMemory());
         var html = doc.RootElement.GetProperty("html").GetString()!;
         Assert.Contains("data-rask-root=\"wasm\"", html);
     }
@@ -31,7 +31,7 @@ public class PayloadShapeTests
 
         var payload = await session.InitialRenderAsync();
 
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(payload.AsMemory());
         Assert.False(doc.RootElement.TryGetProperty("cssText", out _));
     }
 
@@ -60,9 +60,9 @@ public class PayloadShapeTests
         return (session, provider);
     }
 
-    private static string ExtractFirstHandlerId(string payload)
+    private static string ExtractFirstHandlerId(byte[] payload)
     {
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(payload.AsMemory());
         var html = doc.RootElement.GetProperty("html").GetString()!;
         var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
         Assert.True(match.Success);
