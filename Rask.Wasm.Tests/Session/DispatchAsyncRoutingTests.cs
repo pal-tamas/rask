@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,13 +14,13 @@ public class DispatchAsyncRoutingTests
     public DispatchAsyncRoutingTests() => ScopedCssRegistry.InvalidateAll();
 
     [Fact]
-    public async Task Dispatch_EmptyJson_ReturnsEmptyString()
+    public async Task Dispatch_EmptyJson_ReturnsEmptyBytes()
     {
         var (session, _) = NewSession();
 
-        var result = await session.DispatchAsync(string.Empty);
+        var result = await session.DispatchAsync(Array.Empty<byte>());
 
-        Assert.Equal(string.Empty, result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -29,10 +30,10 @@ public class DispatchAsyncRoutingTests
         var routeState = services.GetRequiredService<RouteState>();
         await session.InitialRenderAsync();
 
-        var result = await session.DispatchAsync("""{"type":"navigate","path":"/destination","query":""}""");
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/destination","query":""}"""));
 
-        Assert.NotEqual(string.Empty, result);
-        using var doc = JsonDocument.Parse(result);
+        Assert.NotEmpty(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
         Assert.Equal("/destination", routeState.Path);
         var history = doc.RootElement.GetProperty("history");
         Assert.Equal("push", history.GetProperty("action").GetString());
@@ -44,9 +45,9 @@ public class DispatchAsyncRoutingTests
     {
         var (session, _) = NewSession();
 
-        var result = await session.DispatchAsync("""{"type":"navigate","path":""}""");
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":""}"""));
 
-        Assert.Equal(string.Empty, result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -55,9 +56,9 @@ public class DispatchAsyncRoutingTests
         var (session, _) = NewSession();
         await session.InitialRenderAsync();
 
-        var result = await session.DispatchAsync("""{"type":"navigate","path":"/x","replace":true}""");
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/x","replace":true}"""));
 
-        using var doc = JsonDocument.Parse(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
         Assert.Equal("replace", doc.RootElement.GetProperty("history").GetProperty("action").GetString());
     }
 
@@ -66,9 +67,9 @@ public class DispatchAsyncRoutingTests
     {
         var (session, _) = NewSession();
 
-        var result = await session.DispatchAsync("""{"foo":"bar"}""");
+        var result = await session.DispatchAsync(Utf8("""{"foo":"bar"}"""));
 
-        Assert.Equal(string.Empty, result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -77,9 +78,9 @@ public class DispatchAsyncRoutingTests
         var (session, _) = NewSession();
         await session.InitialRenderAsync();
 
-        var result = await session.DispatchAsync("""{"id":"h999"}""");
+        var result = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
 
-        Assert.Equal(string.Empty, result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -89,10 +90,10 @@ public class DispatchAsyncRoutingTests
         var initial = await session.InitialRenderAsync();
 
         var handlerId = ExtractFirstHandlerId(initial);
-        var result = await session.DispatchAsync($$"""{"id":"{{handlerId}}","type":"click"}""");
+        var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
-        Assert.NotEqual(string.Empty, result);
-        using var doc = JsonDocument.Parse(result);
+        Assert.NotEmpty(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
         var html = doc.RootElement.GetProperty("html").GetString()!;
         Assert.Contains("count=1", html);
     }
@@ -103,9 +104,9 @@ public class DispatchAsyncRoutingTests
         var (session, _) = NewSession();
         await session.InitialRenderAsync();
 
-        var result = await session.DispatchAsync("""{"type":"navigate","path":"/x","query":""}""");
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/x","query":""}"""));
 
-        using var doc = JsonDocument.Parse(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
         Assert.Equal("/x", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
     }
 
@@ -117,13 +118,13 @@ public class DispatchAsyncRoutingTests
         var handlerId = ExtractFirstHandlerId(initial);
 
         var tasks = Enumerable.Range(0, 5)
-            .Select(_ => session.DispatchAsync($$"""{"id":"{{handlerId}}","type":"click"}"""))
+            .Select(_ => session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}""")))
             .ToArray();
         var results = await Task.WhenAll(tasks);
 
         var counts = results.Select(r =>
         {
-            using var doc = JsonDocument.Parse(r);
+            using var doc = JsonDocument.Parse(r.AsMemory());
             var html = doc.RootElement.GetProperty("html").GetString()!;
             return int.Parse(Regex.Match(html, "count=(\\d+)").Groups[1].Value);
         }).OrderBy(c => c).ToArray();
@@ -133,7 +134,7 @@ public class DispatchAsyncRoutingTests
     }
 
     [Fact]
-    public async Task Dispatch_HandlerThatThrows_ReturnsEmptyString_AndSessionStaysUsable()
+    public async Task Dispatch_HandlerThatThrows_ReturnsEmpty_AndSessionStaysUsable()
     {
         var services = new ServiceCollection();
         services.AddSingleton<RouteState>();
@@ -146,14 +147,14 @@ public class DispatchAsyncRoutingTests
         var initial = await session.InitialRenderAsync();
         var handlerId = ExtractFirstHandlerId(initial);
 
-        var result = await session.DispatchAsync($$"""{"id":"{{handlerId}}"}""");
+        var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}"}"""));
 
-        Assert.Equal(string.Empty, result);
+        Assert.Empty(result);
 
         // Session is still usable: a subsequent valid dispatch (using an unknown handler id) still returns empty,
         // proving the lock was released and the session didn't crash.
-        var follow = await session.DispatchAsync("""{"id":"h999"}""");
-        Assert.Equal(string.Empty, follow);
+        var follow = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
+        Assert.Empty(follow);
     }
 
     private static (WasmLiveSession session, IServiceProvider services) NewSession()
@@ -167,6 +168,8 @@ public class DispatchAsyncRoutingTests
         JSInterop.Init(session);
         return (session, provider);
     }
+
+    private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);
 
     private static string ExtractFirstHandlerId(byte[] payload)
     {

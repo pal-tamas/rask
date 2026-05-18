@@ -347,6 +347,10 @@ function handle(reply) {
     if (reply.download) triggerDownload(reply.download);
 }
 
+// Cached at module scope: TextEncoder construction is cheap but not free, and a
+// steady-typing user fires `send` ~60×/sec via the rAF input-coalescing path.
+const _sendEncoder = new TextEncoder();
+
 async function send(payload) {
     console.log("[Rask] send", payload);
     if (!dotnetExports) {
@@ -358,15 +362,13 @@ async function send(payload) {
         return;
     }
     try {
-        const reply = await dotnetExports.Rask.Wasm.JSInterop.Dispatch(JSON.stringify(payload));
-        console.log("[Rask] send reply bytes:", reply ? reply.length : 0);
-        if (typeof reply === "string" && reply.length > 0) {
-            try {
-                handle(JSON.parse(reply));
-            } catch (e) {
-                console.error("Rask: malformed dispatch reply", e, reply);
-            }
-        }
+        // Dispatch now marshals the request as a byte[] (cuts the per-event UTF-16 string
+        // copy across the JS/.NET boundary that the prior string signature forced) and
+        // .NET pushes the response back through the existing applyRender JSImport — the
+        // JSExport generator doesn't support Task<byte[]> return types. JS just awaits
+        // completion; the morph happens via the applyRender callback path.
+        const requestBytes = _sendEncoder.encode(JSON.stringify(payload));
+        await dotnetExports.Rask.Wasm.JSInterop.Dispatch(requestBytes);
     } catch (e) {
         console.error("Rask: dispatch failed", e);
     }

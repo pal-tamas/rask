@@ -149,15 +149,24 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    public async Task<string> DispatchAsync(string json)
+    public async Task<byte[]> DispatchAsync(byte[] json)
     {
-        if (string.IsNullOrEmpty(json))
+        // Push model: produce the render payload, then either return it to the caller
+        // (tests) OR call JSInterop.ApplyRender from inside .NET (production). The JSExport
+        // generator doesn't support Task<byte[]> as a return type — Task<string> works but
+        // would force a base64 round-trip — so production callers use the push side.
+        // Returning bytes preserves the test seam: tests can assert against the payload
+        // without standing up a JS interop bridge.
+        if (json is null || json.Length == 0)
         {
-            return string.Empty;
+            return Array.Empty<byte>();
         }
 
         JsonElement root;
-        using var doc = JsonDocument.Parse(json);
+        // Parse straight from the UTF-8 byte payload — no UTF-16 string materialisation.
+        // JS hands the bytes across the interop boundary directly via TextEncoder.encode
+        // on the send path, replacing the prior JSON.stringify + string-marshalled call.
+        using var doc = JsonDocument.Parse(json.AsMemory());
         root = doc.RootElement.Clone();
 
         var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
@@ -174,7 +183,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             : null;
         if (handlerId is null)
         {
-            return string.Empty;
+            return Array.Empty<byte>();
         }
 
         await _lock.WaitAsync().ConfigureAwait(false);
@@ -188,7 +197,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                 {
                     if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
                     {
-                        return string.Empty;
+                        return Array.Empty<byte>();
                     }
 
                     string? historyUrl = null;
@@ -201,22 +210,22 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
                     var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
                     // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
-                    // The JS host treats an empty string as "no-op." Always send when historyUrl is set.
+                    // The JS host treats an empty byte array as "no-op." Always send when historyUrl is set.
                     if (historyUrl is null
                         && _lastAppliedPayload is not null
                         && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
                     {
-                        return string.Empty;
+                        return Array.Empty<byte>();
                     }
 
                     _lastAppliedPayload = payload;
-                    return System.Text.Encoding.UTF8.GetString(payload);
+                    return payload;
                 }
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Rask WASM handler '{handlerId}' threw: {ex}");
-                return string.Empty;
+                return Array.Empty<byte>();
             }
         }
         finally
@@ -226,14 +235,14 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    private async Task<string> HandleNavigateAsync(JsonElement root)
+    private async Task<byte[]> HandleNavigateAsync(JsonElement root)
     {
         var navPath = root.TryGetProperty("path", out var p) && p.ValueKind == JsonValueKind.String
             ? p.GetString()
             : null;
         if (string.IsNullOrEmpty(navPath))
         {
-            return string.Empty;
+            return Array.Empty<byte>();
         }
 
         var navQueryString = root.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String
@@ -259,12 +268,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             {
                 var payload = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 _lastAppliedPayload = payload;
-                return System.Text.Encoding.UTF8.GetString(payload);
+                return payload;
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Rask WASM navigate '{navPath}' threw: {ex}");
-                return string.Empty;
+                return Array.Empty<byte>();
             }
         }
         finally

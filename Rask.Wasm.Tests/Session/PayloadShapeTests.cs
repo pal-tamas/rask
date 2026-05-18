@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,9 +43,9 @@ public class PayloadShapeTests
         var initial = await session.InitialRenderAsync();
         var handlerId = ExtractFirstHandlerId(initial);
 
-        var payload = await session.DispatchAsync($$"""{"id":"{{handlerId}}","type":"click"}""");
+        var payload = await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
-        using var doc = JsonDocument.Parse(payload);
+        using var doc = JsonDocument.Parse(payload.AsMemory());
         Assert.False(doc.RootElement.TryGetProperty("cssText", out _));
     }
 

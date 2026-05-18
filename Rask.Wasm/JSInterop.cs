@@ -21,8 +21,21 @@ internal static partial class JSInterop
         JSHost.ImportAsync(ModuleName, "../rask.wasm.js");
 
     [JSExport]
-    public static Task<string> Dispatch(string json) =>
-        _session is null ? Task.FromResult(string.Empty) : _session.DispatchAsync(json);
+    public static async Task Dispatch(byte[] json)
+    {
+        if (_session is null) return;
+
+        // Push the result back through the existing applyRender JSImport instead of
+        // returning Task<byte[]> (unsupported by the JSExport source generator). One
+        // boundary crossing each way, both byte[] — total interop cost is the same as
+        // the prior Task<string> pull model but without the per-event JSON.stringify in
+        // JS + UTF-16 transcode in the marshalling layer.
+        var payload = await _session.DispatchAsync(json).ConfigureAwait(false);
+        if (payload.Length > 0)
+        {
+            ApplyRender(payload);
+        }
+    }
 
     [JSImport("setExports", ModuleName)]
     public static partial void SetExports(JSObject exports);
@@ -52,8 +65,12 @@ internal static partial class JSInterop
     // without a JS runtime. None of the non-browser stubs perform real interop.
     public static Task ImportJsModuleAsync() => Task.CompletedTask;
 
-    public static Task<string> Dispatch(string json) =>
-        _session is null ? Task.FromResult(string.Empty) : _session.DispatchAsync(json);
+    public static Task Dispatch(byte[] json)
+    {
+        // Non-browser stub: drop the return value (matches the JSExport's Task return).
+        // Tests call session.DispatchAsync(json) directly to inspect the byte[] payload.
+        return _session?.DispatchAsync(json) ?? Task.CompletedTask;
+    }
 
     public static void ApplyRender(byte[] payload) { }
     public static string GetLocation() => "/";
