@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using Rask.Core.ScopedCss;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -82,6 +83,43 @@ public class ScopedCssRegistryTests
         var yPos = css.IndexOf(".y[data-", StringComparison.Ordinal);
         Assert.True(xPos >= 0 && yPos >= 0);
         Assert.True(xPos < yPos);
+    }
+
+    [Fact]
+    public void GetBundleUtf8_MatchesGetBundle_AndIsCachedAcrossCalls()
+    {
+        CallTryRegister(new HasCss());
+        CallTryRegister(new OtherCss());
+
+        var (css, hash) = ScopedCssRegistry.GetBundle();
+        var (utf8, etag) = ScopedCssRegistry.GetBundleUtf8();
+
+        // Bytes must round-trip to the string bundle exactly.
+        Assert.Equal(Encoding.UTF8.GetBytes(css), utf8.ToArray());
+        // ETag is the hash wrapped in double quotes (matches the header format).
+        Assert.Equal($"\"{hash}\"", etag);
+
+        // The cached buffer is reused across calls until invalidation. ReadOnlyMemory<byte>
+        // doesn't expose identity directly; comparing the backing arrays is fine because
+        // GetBundleUtf8 stores _cachedBundleUtf8 as a byte[].
+        var (utf8b, etagB) = ScopedCssRegistry.GetBundleUtf8();
+        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8, out var seg1));
+        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8b, out var seg2));
+        Assert.Same(seg1.Array, seg2.Array);
+        Assert.Same(etag, etagB);
+    }
+
+    [Fact]
+    public void GetBundleUtf8_InvalidateBumpsCache()
+    {
+        CallTryRegister(new HasCss());
+        var (_, etag1) = ScopedCssRegistry.GetBundleUtf8();
+
+        CallTryRegister(new OtherCss());
+        var (utf8b, etag2) = ScopedCssRegistry.GetBundleUtf8();
+
+        Assert.NotEqual(etag1, etag2);
+        Assert.Contains(".y[data-", Encoding.UTF8.GetString(utf8b.ToArray()));
     }
 
     [Fact]

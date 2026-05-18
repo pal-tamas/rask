@@ -10,6 +10,12 @@ public static class ScopedCssRegistry
     private static readonly List<Type> _order = new();
     private static string? _cachedBundle;
     private static string? _cachedHash;
+    // Cached UTF-8 encoding and pre-quoted ETag for the served path. The bundle string is
+    // computed on first GetBundle() or GetBundleUtf8() call after an invalidation; the
+    // bytes/etag are computed lazily on first GetBundleUtf8(). All three fields share the
+    // same _lock and are invalidated together by InvalidateBundle.
+    private static byte[]? _cachedBundleUtf8;
+    private static string? _cachedEtag;
 
     public static string? CurrentHash
     {
@@ -143,6 +149,27 @@ public static class ScopedCssRegistry
         }
     }
 
+    /// <summary>
+    ///     UTF-8 byte view of <see cref="GetBundle"/> plus a pre-formatted ETag header value
+    ///     (already wrapped in double quotes). Both are cached alongside the string bundle and
+    ///     invalidated together — the served endpoint can write the bytes straight to the
+    ///     response body without re-encoding UTF-8 per request.
+    /// </summary>
+    public static (ReadOnlyMemory<byte> Css, string Etag) GetBundleUtf8()
+    {
+        lock (_lock)
+        {
+            EnsureBundle();
+            if (_cachedBundleUtf8 is null || _cachedEtag is null)
+            {
+                _cachedBundleUtf8 = Encoding.UTF8.GetBytes(_cachedBundle ?? string.Empty);
+                _cachedEtag = $"\"{_cachedHash ?? "empty"}\"";
+            }
+
+            return (_cachedBundleUtf8, _cachedEtag);
+        }
+    }
+
     private static void EnsureBundle()
     {
         if (_cachedBundle is not null)
@@ -171,6 +198,8 @@ public static class ScopedCssRegistry
     {
         _cachedBundle = null;
         _cachedHash = null;
+        _cachedBundleUtf8 = null;
+        _cachedEtag = null;
     }
 
     private static string ComputeShortHash(string s)

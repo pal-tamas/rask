@@ -650,8 +650,10 @@ public static class RaskEndpointExtensions
 
     internal static Task ServeScopedCssAsync(HttpContext ctx)
     {
-        var (css, hash) = ScopedCssRegistry.GetBundle();
-        var etag = $"\"{hash}\"";
+        // GetBundleUtf8 returns a cached byte[] + pre-quoted ETag — neither re-encodes
+        // UTF-8 on the hot path. The byte buffer is held by the registry and shared across
+        // requests until the next invalidation (hot-reload, component teardown).
+        var (css, etag) = ScopedCssRegistry.GetBundleUtf8();
         if (string.Equals(ctx.Request.Headers.IfNoneMatch.ToString(), etag, StringComparison.Ordinal))
         {
             ctx.Response.StatusCode = StatusCodes.Status304NotModified;
@@ -661,7 +663,7 @@ public static class RaskEndpointExtensions
         ctx.Response.ContentType = "text/css; charset=utf-8";
         ctx.Response.Headers.ETag = etag;
         ctx.Response.Headers.CacheControl = "no-cache";
-        return ctx.Response.WriteAsync(css);
+        return ctx.Response.Body.WriteAsync(css).AsTask();
     }
 
     private static string LoadEmbeddedScript()
