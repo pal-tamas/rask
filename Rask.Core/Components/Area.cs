@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Area : Element
@@ -13,15 +15,15 @@ public sealed class Area : Element
     public string? Rel { get; set; }
     public string? Download { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Alt is not null) yield return new("alt", Alt);
-        if (Coords is not null) yield return new("coords", Coords);
-        if (Shape is not null) yield return new("shape", Shape);
-        if (Href is not null) yield return new("href", Href);
-        if (Target is not null) yield return new("target", Target);
-        if (Rel is not null) yield return new("rel", Rel);
-        if (Download is not null) yield return new("download", Download);
+        base.WriteAttributes(sb);
+        if (Alt is not null) AppendAttr(sb, "alt", Alt);
+        if (Coords is not null) AppendAttr(sb, "coords", Coords);
+        if (Shape is not null) AppendAttr(sb, "shape", Shape);
+        if (Href is not null) AppendAttr(sb, "href", Href);
+        if (Target is not null) AppendAttr(sb, "target", Target);
+        if (Rel is not null) AppendAttr(sb, "rel", Rel);
+        if (Download is not null) AppendAttr(sb, "download", Download);
     }
 }

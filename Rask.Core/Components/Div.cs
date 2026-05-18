@@ -1,3 +1,4 @@
+using System.Text;
 using Rask.Core.Live;
 
 namespace Rask.Core.Components;
@@ -14,24 +15,24 @@ public sealed class Div : Element
     // {scrollTop, clientHeight, scrollHeight} payload into a typed ScrollEvent before invoking.
     public Delegate? OnScroll { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
+        base.WriteAttributes(sb);
 
         if (LiveRenderContext.Current is not { } ctx)
         {
-            yield break;
+            return;
         }
 
         var click = (Delegate?)OnClick ?? OnClickAsync;
         if (click is not null)
         {
-            yield return new("data-rask-on-click", ctx.RegisterHandler(click));
+            AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }
 
         if (OnScroll is not null)
         {
-            yield return new("data-rask-on-scroll", ctx.RegisterHandler(OnScroll));
+            AppendAttr(sb, "data-rask-on-scroll", ctx.RegisterHandler(OnScroll));
         }
     }
 }

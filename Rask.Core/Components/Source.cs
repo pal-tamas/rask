@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Source : Element
@@ -11,13 +13,13 @@ public sealed class Source : Element
     public string? Sizes { get; set; }
     public string? Media { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Src is not null) yield return new("src", Src);
-        if (Type is not null) yield return new("type", Type);
-        if (Srcset is not null) yield return new("srcset", Srcset);
-        if (Sizes is not null) yield return new("sizes", Sizes);
-        if (Media is not null) yield return new("media", Media);
+        base.WriteAttributes(sb);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Srcset is not null) AppendAttr(sb, "srcset", Srcset);
+        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
+        if (Media is not null) AppendAttr(sb, "media", Media);
     }
 }

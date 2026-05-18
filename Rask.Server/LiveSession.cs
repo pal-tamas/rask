@@ -1,5 +1,4 @@
 using System.Net.WebSockets;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
@@ -12,7 +11,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
     private static readonly AsyncLocal<bool> _inHandlerScope = new();
 
-    private string? _lastSentPayload;
+    private byte[]? _lastSentBytes;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -121,7 +120,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         // A reconnect — possibly a different browser tab/window — needs the current HTML
         // even when it byte-matches the prior socket's last frame. Reset the dedup baseline
         // so the recovery render reliably emits.
-        _lastSentPayload = null;
+        _lastSentBytes = null;
     }
 
     public void DetachSocket()
@@ -150,20 +149,23 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 download = pd;
             }
 
-            var payload = LivePayload.BuildPayload(body, historyUrl, replace, null, auth, download);
+            var payload = LivePayload.BuildPayloadUtf8(body, historyUrl, replace, null, auth, download);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
-            // that ended up not modifying tracked state.
+            // that ended up not modifying tracked state. SequenceEqual is SIMD-accelerated and
+            // Utf8JsonWriter is deterministic, so byte equality is equivalent to the previous
+            // string-Ordinal compare.
             if (historyUrl is null && auth is null && download is null
-                && string.Equals(payload, _lastSentPayload, StringComparison.Ordinal))
+                && _lastSentBytes is not null
+                && payload.AsSpan().SequenceEqual(_lastSentBytes))
             {
                 return;
             }
 
-            await _socket.SendAsync(Encoding.UTF8.GetBytes(payload), WebSocketMessageType.Text, true, _socketCt)
+            await _socket.SendAsync(payload.AsMemory(), WebSocketMessageType.Text, true, _socketCt)
                 .ConfigureAwait(false);
-            _lastSentPayload = payload;
+            _lastSentBytes = payload;
         }
         finally
         {

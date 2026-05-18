@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -14,15 +15,15 @@ public sealed class Meter : Element
     public double? Optimum { get; set; }
     public string? Form { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Value is not null) yield return new("value", Value.Value.ToString(CultureInfo.InvariantCulture));
-        if (Min is not null) yield return new("min", Min.Value.ToString(CultureInfo.InvariantCulture));
-        if (Max is not null) yield return new("max", Max.Value.ToString(CultureInfo.InvariantCulture));
-        if (Low is not null) yield return new("low", Low.Value.ToString(CultureInfo.InvariantCulture));
-        if (High is not null) yield return new("high", High.Value.ToString(CultureInfo.InvariantCulture));
-        if (Optimum is not null) yield return new("optimum", Optimum.Value.ToString(CultureInfo.InvariantCulture));
-        if (Form is not null) yield return new("form", Form);
+        base.WriteAttributes(sb);
+        if (Value is not null) AppendAttr(sb, "value", Value.Value.ToString(CultureInfo.InvariantCulture));
+        if (Min is not null) AppendAttr(sb, "min", Min.Value.ToString(CultureInfo.InvariantCulture));
+        if (Max is not null) AppendAttr(sb, "max", Max.Value.ToString(CultureInfo.InvariantCulture));
+        if (Low is not null) AppendAttr(sb, "low", Low.Value.ToString(CultureInfo.InvariantCulture));
+        if (High is not null) AppendAttr(sb, "high", High.Value.ToString(CultureInfo.InvariantCulture));
+        if (Optimum is not null) AppendAttr(sb, "optimum", Optimum.Value.ToString(CultureInfo.InvariantCulture));
+        if (Form is not null) AppendAttr(sb, "form", Form);
     }
 }

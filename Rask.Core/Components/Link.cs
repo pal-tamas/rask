@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Link : Element
@@ -17,19 +19,19 @@ public sealed class Link : Element
     public bool Disabled { get; set; }
     public string? Color { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Href is not null) yield return new("href", Href);
-        if (Rel is not null) yield return new("rel", Rel);
-        if (Type is not null) yield return new("type", Type);
-        if (Media is not null) yield return new("media", Media);
-        if (Sizes is not null) yield return new("sizes", Sizes);
-        if (Hreflang is not null) yield return new("hreflang", Hreflang);
-        if (As is not null) yield return new("as", As);
-        if (CrossOrigin is not null) yield return new("crossorigin", CrossOrigin);
-        if (ReferrerPolicy is not null) yield return new("referrerpolicy", ReferrerPolicy);
-        if (Disabled) yield return new("disabled", null);
-        if (Color is not null) yield return new("color", Color);
+        base.WriteAttributes(sb);
+        if (Href is not null) AppendAttr(sb, "href", Href);
+        if (Rel is not null) AppendAttr(sb, "rel", Rel);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Media is not null) AppendAttr(sb, "media", Media);
+        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
+        if (Hreflang is not null) AppendAttr(sb, "hreflang", Hreflang);
+        if (As is not null) AppendAttr(sb, "as", As);
+        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
+        if (ReferrerPolicy is not null) AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (Color is not null) AppendAttr(sb, "color", Color);
     }
 }

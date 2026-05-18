@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -16,17 +17,17 @@ public sealed class Iframe : Element
     public string? Loading { get; set; }
     public string? ReferrerPolicy { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Src is not null) yield return new("src", Src);
-        if (Srcdoc is not null) yield return new("srcdoc", Srcdoc);
-        if (Name is not null) yield return new("name", Name);
-        if (Sandbox is not null) yield return new("sandbox", Sandbox);
-        if (Allow is not null) yield return new("allow", Allow);
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        if (Loading is not null) yield return new("loading", Loading);
-        if (ReferrerPolicy is not null) yield return new("referrerpolicy", ReferrerPolicy);
+        base.WriteAttributes(sb);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Srcdoc is not null) AppendAttr(sb, "srcdoc", Srcdoc);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Sandbox is not null) AppendAttr(sb, "sandbox", Sandbox);
+        if (Allow is not null) AppendAttr(sb, "allow", Allow);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Loading is not null) AppendAttr(sb, "loading", Loading);
+        if (ReferrerPolicy is not null) AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
     }
 }

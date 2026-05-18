@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -8,9 +9,9 @@ public sealed class Colgroup : Element
 
     public int? Span { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Span is not null) yield return new("span", Span.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Span is not null) AppendAttr(sb, "span", Span.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

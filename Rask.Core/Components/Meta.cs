@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Meta : Element
@@ -10,12 +12,12 @@ public sealed class Meta : Element
     public string? Content { get; set; }
     public string? HttpEquiv { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Charset is not null) yield return new("charset", Charset);
-        if (Name is not null) yield return new("name", Name);
-        if (Content is not null) yield return new("content", Content);
-        if (HttpEquiv is not null) yield return new("http-equiv", HttpEquiv);
+        base.WriteAttributes(sb);
+        if (Charset is not null) AppendAttr(sb, "charset", Charset);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Content is not null) AppendAttr(sb, "content", Content);
+        if (HttpEquiv is not null) AppendAttr(sb, "http-equiv", HttpEquiv);
     }
 }

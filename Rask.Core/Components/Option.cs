@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Option : Element
@@ -9,12 +11,12 @@ public sealed class Option : Element
     public bool Disabled { get; set; }
     public string? Label { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Value is not null) yield return new("value", Value);
-        if (Selected) yield return new("selected", null);
-        if (Disabled) yield return new("disabled", null);
-        if (Label is not null) yield return new("label", Label);
+        base.WriteAttributes(sb);
+        if (Value is not null) AppendAttr(sb, "value", Value);
+        if (Selected) AppendAttr(sb, "selected", null);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (Label is not null) AppendAttr(sb, "label", Label);
     }
 }

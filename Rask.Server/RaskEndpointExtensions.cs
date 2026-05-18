@@ -176,7 +176,14 @@ public static class RaskEndpointExtensions
                 }
 
                 var wsUser = ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
-                using var ws = await ctx.WebSockets.AcceptWebSocketAsync();
+                // permessage-deflate negotiation: the browser advertises the extension in the
+                // upgrade request and we accept it. Render payloads are HTML-heavy and
+                // compress ~10x. The "Dangerous" prefix in the property name warns about
+                // CRIME/BREACH-style scenarios with attacker-controlled plaintext interleaved
+                // with secrets on the same channel — not the situation here (per-session WS
+                // frames carry the user's own rendered view, no cross-origin mixing).
+                using var ws = await ctx.WebSockets.AcceptWebSocketAsync(
+                    new WebSocketAcceptContext { DangerousEnableCompression = true });
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, lifetime.ApplicationStopping);
                 await RunSocketLoop(ws, store, wsUser, linked.Token, lifetime.ApplicationStopping);

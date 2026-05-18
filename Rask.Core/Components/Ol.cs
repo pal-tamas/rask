@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -10,11 +11,11 @@ public sealed class Ol : Element
     public bool Reversed { get; set; }
     public int? Start { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Type is not null) yield return new("type", Type);
-        if (Reversed) yield return new("reversed", null);
-        if (Start is not null) yield return new("start", Start.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Reversed) AppendAttr(sb, "reversed", null);
+        if (Start is not null) AppendAttr(sb, "start", Start.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

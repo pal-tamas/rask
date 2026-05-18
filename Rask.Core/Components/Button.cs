@@ -1,3 +1,4 @@
+using System.Text;
 using Rask.Core.Live;
 
 namespace Rask.Core.Components;
@@ -13,18 +14,18 @@ public sealed class Button : Element
     public Action? OnClick { get; set; }
     public Func<Task>? OnClickAsync { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Type is not null) yield return new("type", Type);
-        if (Disabled) yield return new("disabled", null);
-        if (Name is not null) yield return new("name", Name);
-        if (Value is not null) yield return new("value", Value);
+        base.WriteAttributes(sb);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Value is not null) AppendAttr(sb, "value", Value);
 
         var click = (Delegate?)OnClick ?? OnClickAsync;
         if (click is not null && LiveRenderContext.Current is { } ctx)
         {
-            yield return new("data-rask-on-click", ctx.RegisterHandler(click));
+            AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }
     }
 }

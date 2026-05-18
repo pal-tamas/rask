@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Output : Element
@@ -8,11 +10,11 @@ public sealed class Output : Element
     public string? Form { get; set; }
     public string? Name { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (For is not null) yield return new("for", For);
-        if (Form is not null) yield return new("form", Form);
-        if (Name is not null) yield return new("name", Name);
+        base.WriteAttributes(sb);
+        if (For is not null) AppendAttr(sb, "for", For);
+        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (Name is not null) AppendAttr(sb, "name", Name);
     }
 }

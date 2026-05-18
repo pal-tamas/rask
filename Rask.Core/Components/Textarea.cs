@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Components;
@@ -150,31 +151,31 @@ public sealed class Textarea : Element
     public Func<string, Task>? OnInputAsync { get; set; }
     public Func<string, Task>? OnChangeAsync { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Name is not null) yield return new("name", Name);
-        if (Rows is not null) yield return new("rows", Rows.Value.ToString(CultureInfo.InvariantCulture));
-        if (Cols is not null) yield return new("cols", Cols.Value.ToString(CultureInfo.InvariantCulture));
-        if (Placeholder is not null) yield return new("placeholder", Placeholder);
-        if (Required) yield return new("required", null);
-        if (Disabled) yield return new("disabled", null);
-        if (ReadOnly) yield return new("readonly", null);
-        if (MaxLength is not null) yield return new("maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (MinLength is not null) yield return new("minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (Wrap is not null) yield return new("wrap", Wrap);
-        if (Autofocus) yield return new("autofocus", null);
-        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
-        if (Form is not null) yield return new("form", Form);
-        if (Dirname is not null) yield return new("dirname", Dirname);
+        base.WriteAttributes(sb);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Rows is not null) AppendAttr(sb, "rows", Rows.Value.ToString(CultureInfo.InvariantCulture));
+        if (Cols is not null) AppendAttr(sb, "cols", Cols.Value.ToString(CultureInfo.InvariantCulture));
+        if (Placeholder is not null) AppendAttr(sb, "placeholder", Placeholder);
+        if (Required) AppendAttr(sb, "required", null);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (ReadOnly) AppendAttr(sb, "readonly", null);
+        if (MaxLength is not null) AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (MinLength is not null) AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (Wrap is not null) AppendAttr(sb, "wrap", Wrap);
+        if (Autofocus) AppendAttr(sb, "autofocus", null);
+        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
+        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (Dirname is not null) AppendAttr(sb, "dirname", Dirname);
 
         if (LiveRenderContext.Current is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
-            if (input is not null) yield return new("data-rask-on-input", ctx.RegisterHandler(input));
+            if (input is not null) AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
 
             var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null) yield return new("data-rask-on-change", ctx.RegisterHandler(change));
+            if (change is not null) AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
 }

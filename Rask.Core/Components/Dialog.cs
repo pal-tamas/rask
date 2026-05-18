@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Dialog : Element
@@ -6,9 +8,9 @@ public sealed class Dialog : Element
 
     public bool Open { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Open) yield return new("open", null);
+        base.WriteAttributes(sb);
+        if (Open) AppendAttr(sb, "open", null);
     }
 }

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Q : Element
@@ -6,9 +8,9 @@ public sealed class Q : Element
 
     public string? Cite { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Cite is not null) yield return new("cite", Cite);
+        base.WriteAttributes(sb);
+        if (Cite is not null) AppendAttr(sb, "cite", Cite);
     }
 }

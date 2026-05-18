@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -9,10 +10,10 @@ public sealed class Canvas : Element
     public int? Width { get; set; }
     public int? Height { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

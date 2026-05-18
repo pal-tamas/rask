@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Track : Element
@@ -11,13 +13,13 @@ public sealed class Track : Element
     public string? Label { get; set; }
     public bool Default { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Kind is not null) yield return new("kind", Kind);
-        if (Src is not null) yield return new("src", Src);
-        if (Srclang is not null) yield return new("srclang", Srclang);
-        if (Label is not null) yield return new("label", Label);
-        if (Default) yield return new("default", null);
+        base.WriteAttributes(sb);
+        if (Kind is not null) AppendAttr(sb, "kind", Kind);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Srclang is not null) AppendAttr(sb, "srclang", Srclang);
+        if (Label is not null) AppendAttr(sb, "label", Label);
+        if (Default) AppendAttr(sb, "default", null);
     }
 }

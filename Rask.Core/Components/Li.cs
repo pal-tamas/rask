@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -8,9 +9,9 @@ public sealed class Li : Element
 
     public int? Value { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Value is not null) yield return new("value", Value.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Value is not null) AppendAttr(sb, "value", Value.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

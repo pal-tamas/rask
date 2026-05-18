@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -18,19 +19,19 @@ public sealed class Video : Element
     public string? CrossOrigin { get; set; }
     public bool PlaysInline { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Src is not null) yield return new("src", Src);
-        if (Poster is not null) yield return new("poster", Poster);
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        if (Controls) yield return new("controls", null);
-        if (Autoplay) yield return new("autoplay", null);
-        if (Loop) yield return new("loop", null);
-        if (Muted) yield return new("muted", null);
-        if (Preload is not null) yield return new("preload", Preload);
-        if (CrossOrigin is not null) yield return new("crossorigin", CrossOrigin);
-        if (PlaysInline) yield return new("playsinline", null);
+        base.WriteAttributes(sb);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Poster is not null) AppendAttr(sb, "poster", Poster);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Controls) AppendAttr(sb, "controls", null);
+        if (Autoplay) AppendAttr(sb, "autoplay", null);
+        if (Loop) AppendAttr(sb, "loop", null);
+        if (Muted) AppendAttr(sb, "muted", null);
+        if (Preload is not null) AppendAttr(sb, "preload", Preload);
+        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
+        if (PlaysInline) AppendAttr(sb, "playsinline", null);
     }
 }

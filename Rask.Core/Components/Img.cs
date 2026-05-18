@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -20,20 +21,20 @@ public sealed class Img : Element
     public string? UseMap { get; set; }
     public bool Ismap { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Src is not null) yield return new("src", Src);
-        if (Alt is not null) yield return new("alt", Alt);
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        if (Loading is not null) yield return new("loading", Loading);
-        if (Srcset is not null) yield return new("srcset", Srcset);
-        if (Sizes is not null) yield return new("sizes", Sizes);
-        if (CrossOrigin is not null) yield return new("crossorigin", CrossOrigin);
-        if (ReferrerPolicy is not null) yield return new("referrerpolicy", ReferrerPolicy);
-        if (Decoding is not null) yield return new("decoding", Decoding);
-        if (UseMap is not null) yield return new("usemap", UseMap);
-        if (Ismap) yield return new("ismap", null);
+        base.WriteAttributes(sb);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Alt is not null) AppendAttr(sb, "alt", Alt);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Loading is not null) AppendAttr(sb, "loading", Loading);
+        if (Srcset is not null) AppendAttr(sb, "srcset", Srcset);
+        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
+        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
+        if (ReferrerPolicy is not null) AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
+        if (Decoding is not null) AppendAttr(sb, "decoding", Decoding);
+        if (UseMap is not null) AppendAttr(sb, "usemap", UseMap);
+        if (Ismap) AppendAttr(sb, "ismap", null);
     }
 }

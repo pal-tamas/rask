@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Html : Element
@@ -8,11 +10,11 @@ public sealed class Html : Element
     public string? Dir { get; set; }
     public string? Xmlns { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Lang is not null) yield return new("lang", Lang);
-        if (Dir is not null) yield return new("dir", Dir);
-        if (Xmlns is not null) yield return new("xmlns", Xmlns);
+        base.WriteAttributes(sb);
+        if (Lang is not null) AppendAttr(sb, "lang", Lang);
+        if (Dir is not null) AppendAttr(sb, "dir", Dir);
+        if (Xmlns is not null) AppendAttr(sb, "xmlns", Xmlns);
     }
 }

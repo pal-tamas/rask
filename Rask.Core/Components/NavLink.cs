@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -38,43 +39,7 @@ public sealed class NavLink : Element
         _route.Changed -= StateHasChanged;
     }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
-    {
-        // Inlines Element.BuildAttributes() so the active class can be merged into the
-        // class attribute. Order must match base: id, class, style, data-*.
-        if (Id is not null)
-        {
-            yield return new("id", Id);
-        }
-
-        var effectiveClass = ResolveEffectiveClass();
-        if (effectiveClass is not null)
-        {
-            yield return new("class", effectiveClass);
-        }
-
-        if (Style is not null)
-        {
-            yield return new("style", Style);
-        }
-
-        if (Data is not null)
-        {
-            foreach (var kv in Data)
-            {
-                yield return new($"data-{kv.Key}", kv.Value);
-            }
-        }
-
-        if (Href is not null)
-        {
-            yield return new("href", Href.Value.ToString());
-        }
-
-        yield return new("data-rask-nav", null);
-    }
-
-    private string? ResolveEffectiveClass()
+    protected override string? ResolveClass()
     {
         // Null ActiveClass → default "active". Empty string → user opted out of active styling.
         var active = ActiveClass ?? "active";
@@ -84,6 +49,13 @@ public sealed class NavLink : Element
         }
 
         return string.IsNullOrEmpty(Class) ? active : $"{Class} {active}";
+    }
+
+    protected override void WriteAttributes(StringBuilder sb)
+    {
+        base.WriteAttributes(sb);
+        if (Href is not null) AppendAttr(sb, "href", Href.Value.ToString());
+        AppendAttr(sb, "data-rask-nav", null);
     }
 
     private bool IsActive()

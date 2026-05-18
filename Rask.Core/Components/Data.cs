@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Data : Element
@@ -6,9 +8,9 @@ public sealed class Data : Element
 
     public string? Value { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Value is not null) yield return new("value", Value);
+        base.WriteAttributes(sb);
+        if (Value is not null) AppendAttr(sb, "value", Value);
     }
 }

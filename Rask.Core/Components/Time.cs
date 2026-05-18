@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Time : Element
@@ -6,9 +8,9 @@ public sealed class Time : Element
 
     public string? DateTime { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (DateTime is not null) yield return new("datetime", DateTime);
+        base.WriteAttributes(sb);
+        if (DateTime is not null) AppendAttr(sb, "datetime", DateTime);
     }
 }

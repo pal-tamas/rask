@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Audio : Element
@@ -12,19 +14,15 @@ public sealed class Audio : Element
     public string? Preload { get; set; }
     public string? CrossOrigin { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes())
-        {
-            yield return kv;
-        }
-
-        if (Src is not null) yield return new("src", Src);
-        if (Controls) yield return new("controls", null);
-        if (Autoplay) yield return new("autoplay", null);
-        if (Loop) yield return new("loop", null);
-        if (Muted) yield return new("muted", null);
-        if (Preload is not null) yield return new("preload", Preload);
-        if (CrossOrigin is not null) yield return new("crossorigin", CrossOrigin);
+        base.WriteAttributes(sb);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Controls) AppendAttr(sb, "controls", null);
+        if (Autoplay) AppendAttr(sb, "autoplay", null);
+        if (Loop) AppendAttr(sb, "loop", null);
+        if (Muted) AppendAttr(sb, "muted", null);
+        if (Preload is not null) AppendAttr(sb, "preload", Preload);
+        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
     }
 }

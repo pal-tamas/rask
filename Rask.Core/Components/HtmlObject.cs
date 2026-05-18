@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -15,15 +16,15 @@ public sealed class HtmlObject : Element
     public string? Form { get; set; }
     public string? UseMap { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (DataUrl is not null) yield return new("data", DataUrl);
-        if (Type is not null) yield return new("type", Type);
-        if (Name is not null) yield return new("name", Name);
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        if (Form is not null) yield return new("form", Form);
-        if (UseMap is not null) yield return new("usemap", UseMap);
+        base.WriteAttributes(sb);
+        if (DataUrl is not null) AppendAttr(sb, "data", DataUrl);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (UseMap is not null) AppendAttr(sb, "usemap", UseMap);
     }
 }

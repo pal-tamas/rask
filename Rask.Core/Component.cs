@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
@@ -54,21 +55,35 @@ public abstract class Component
     }
 
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
-    // components). When non-null, HtmlSerializer wraps BuildAttributes()/RenderChildren()
+    // components). When non-null, HtmlSerializer wraps WriteAttributes(sb)/RenderChildren()
     // output in `<tag>…</tag>` (or self-closes when SelfClosing is true).
     protected virtual string? TagName => null;
     protected virtual bool SelfClosing => false;
 
     internal string? TagNameInternal => TagName;
     internal bool SelfClosingInternal => SelfClosing;
-    internal IEnumerable<KeyValuePair<string, string?>> BuildAttributesInternal() => BuildAttributes();
+    internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
 
     // Default: no HTML attributes. HTML element subclasses derive from Element, which
     // overrides this to emit id/class/style/data-*. Tag-specific overrides chain via
-    // `base.BuildAttributes()` so the universal attrs lead and tag-specific attrs follow.
-    protected virtual IEnumerable<KeyValuePair<string, string?>> BuildAttributes() => [];
+    // `base.WriteAttributes(sb)` so the universal attrs lead and tag-specific attrs follow.
+    // Direct StringBuilder writes avoid the per-attribute KeyValuePair + iterator state-machine
+    // allocations that the previous IEnumerable<KVP> shape forced on every render.
+    protected virtual void WriteAttributes(StringBuilder sb) { }
+
+    // Emit one attribute with the standard space prefix. Null value → bare attribute
+    // (e.g. `required`, `disabled`); non-null → name="encoded-value" with full HTML escaping
+    // matching the prior HtmlSerializer behaviour.
+    protected static void AppendAttr(StringBuilder sb, string name, string? value)
+    {
+        sb.Append(' ').Append(name);
+        if (value is not null)
+        {
+            sb.Append("=\"").Append(HtmlEncoder.Default.Encode(value)).Append('"');
+        }
+    }
 
     protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
 

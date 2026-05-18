@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Components;
@@ -181,22 +182,22 @@ public sealed class Select : Element
     public Action<string>? OnChange { get; set; }
     public Func<string, Task>? OnChangeAsync { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Name is not null) yield return new("name", Name);
-        if (Multiple) yield return new("multiple", null);
-        if (Required) yield return new("required", null);
-        if (Disabled) yield return new("disabled", null);
-        if (Size is not null) yield return new("size", Size.Value.ToString(CultureInfo.InvariantCulture));
-        if (Form is not null) yield return new("form", Form);
-        if (Autofocus) yield return new("autofocus", null);
-        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
+        base.WriteAttributes(sb);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Multiple) AppendAttr(sb, "multiple", null);
+        if (Required) AppendAttr(sb, "required", null);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (Size is not null) AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (Autofocus) AppendAttr(sb, "autofocus", null);
+        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
 
         var change = (Delegate?)OnChange ?? OnChangeAsync;
         if (change is not null && LiveRenderContext.Current is { } ctx)
         {
-            yield return new("data-rask-on-change", ctx.RegisterHandler(change));
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
 }

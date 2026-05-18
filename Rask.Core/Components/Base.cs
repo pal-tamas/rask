@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Base : Element
@@ -8,10 +10,10 @@ public sealed class Base : Element
     public string? Href { get; set; }
     public string? Target { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Href is not null) yield return new("href", Href);
-        if (Target is not null) yield return new("target", Target);
+        base.WriteAttributes(sb);
+        if (Href is not null) AppendAttr(sb, "href", Href);
+        if (Target is not null) AppendAttr(sb, "target", Target);
     }
 }

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Bdo : Element
@@ -6,9 +8,9 @@ public sealed class Bdo : Element
 
     public string? Dir { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Dir is not null) yield return new("dir", Dir);
+        base.WriteAttributes(sb);
+        if (Dir is not null) AppendAttr(sb, "dir", Dir);
     }
 }

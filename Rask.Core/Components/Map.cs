@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Map : Element
@@ -6,9 +8,9 @@ public sealed class Map : Element
 
     public string? Name { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Name is not null) yield return new("name", Name);
+        base.WriteAttributes(sb);
+        if (Name is not null) AppendAttr(sb, "name", Name);
     }
 }

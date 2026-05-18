@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Style : Element
@@ -9,12 +11,12 @@ public sealed class Style : Element
     public string? Title { get; set; }
     public string? Nonce { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Type is not null) yield return new("type", Type);
-        if (Media is not null) yield return new("media", Media);
-        if (Title is not null) yield return new("title", Title);
-        if (Nonce is not null) yield return new("nonce", Nonce);
+        base.WriteAttributes(sb);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Media is not null) AppendAttr(sb, "media", Media);
+        if (Title is not null) AppendAttr(sb, "title", Title);
+        if (Nonce is not null) AppendAttr(sb, "nonce", Nonce);
     }
 }

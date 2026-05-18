@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask.Core.Components;
 
 public sealed class Optgroup : Element
@@ -7,10 +9,10 @@ public sealed class Optgroup : Element
     public bool Disabled { get; set; }
     public string? Label { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Disabled) yield return new("disabled", null);
-        if (Label is not null) yield return new("label", Label);
+        base.WriteAttributes(sb);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (Label is not null) AppendAttr(sb, "label", Label);
     }
 }

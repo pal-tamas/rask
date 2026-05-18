@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace Rask.Core.Components;
 
@@ -9,10 +10,10 @@ public sealed class Progress : Element
     public double? Value { get; set; }
     public double? Max { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Value is not null) yield return new("value", Value.Value.ToString(CultureInfo.InvariantCulture));
-        if (Max is not null) yield return new("max", Max.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Value is not null) AppendAttr(sb, "value", Value.Value.ToString(CultureInfo.InvariantCulture));
+        if (Max is not null) AppendAttr(sb, "max", Max.Value.ToString(CultureInfo.InvariantCulture));
     }
 }

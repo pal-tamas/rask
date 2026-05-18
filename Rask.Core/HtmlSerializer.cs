@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using Rask.Core.Components;
 using Rask.Core.Live;
 
+
 namespace Rask.Core;
 
 internal static class HtmlSerializer
@@ -53,14 +54,7 @@ internal static class HtmlSerializer
 
             case { TagNameInternal: { } tagName } el:
                 sb.Append('<').Append(tagName);
-                foreach (var (name, value) in el.BuildAttributesInternal())
-                {
-                    sb.Append(' ').Append(name);
-                    if (value is not null)
-                    {
-                        sb.Append("=\"").Append(HtmlEncoder.Default.Encode(value)).Append('"');
-                    }
-                }
+                el.WriteAttributesInternal(sb);
 
                 var scopeId = LiveRenderContext.Current?.CurrentScopeId;
                 if (scopeId is not null && !_shellTags.Contains(tagName))

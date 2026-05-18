@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Components;
@@ -220,50 +221,50 @@ public sealed class Input : Element
     public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
     public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Type is not null) yield return new("type", Type);
-        if (Name is not null) yield return new("name", Name);
-        if (Value is not null) yield return new("value", Value);
-        if (Placeholder is not null) yield return new("placeholder", Placeholder);
-        if (Required) yield return new("required", null);
-        if (Disabled) yield return new("disabled", null);
-        if (ReadOnly) yield return new("readonly", null);
-        if (Checked) yield return new("checked", null);
-        if (Min is not null) yield return new("min", Min);
-        if (Max is not null) yield return new("max", Max);
-        if (Step is not null) yield return new("step", Step);
-        if (Pattern is not null) yield return new("pattern", Pattern);
-        if (Size is not null) yield return new("size", Size.Value.ToString(CultureInfo.InvariantCulture));
-        if (MaxLength is not null) yield return new("maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (MinLength is not null) yield return new("minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (Multiple) yield return new("multiple", null);
-        if (Accept is not null) yield return new("accept", Accept);
-        if (Alt is not null) yield return new("alt", Alt);
-        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
-        if (Autofocus) yield return new("autofocus", null);
-        if (Form is not null) yield return new("form", Form);
-        if (FormAction is not null) yield return new("formaction", FormAction);
-        if (FormEnctype is not null) yield return new("formenctype", FormEnctype);
-        if (FormMethod is not null) yield return new("formmethod", FormMethod);
-        if (FormNovalidate) yield return new("formnovalidate", null);
-        if (FormTarget is not null) yield return new("formtarget", FormTarget);
-        if (List is not null) yield return new("list", List);
-        if (Src is not null) yield return new("src", Src);
-        if (Width is not null) yield return new("width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) yield return new("height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        base.WriteAttributes(sb);
+        if (Type is not null) AppendAttr(sb, "type", Type);
+        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Value is not null) AppendAttr(sb, "value", Value);
+        if (Placeholder is not null) AppendAttr(sb, "placeholder", Placeholder);
+        if (Required) AppendAttr(sb, "required", null);
+        if (Disabled) AppendAttr(sb, "disabled", null);
+        if (ReadOnly) AppendAttr(sb, "readonly", null);
+        if (Checked) AppendAttr(sb, "checked", null);
+        if (Min is not null) AppendAttr(sb, "min", Min);
+        if (Max is not null) AppendAttr(sb, "max", Max);
+        if (Step is not null) AppendAttr(sb, "step", Step);
+        if (Pattern is not null) AppendAttr(sb, "pattern", Pattern);
+        if (Size is not null) AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        if (MaxLength is not null) AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (MinLength is not null) AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
+        if (Multiple) AppendAttr(sb, "multiple", null);
+        if (Accept is not null) AppendAttr(sb, "accept", Accept);
+        if (Alt is not null) AppendAttr(sb, "alt", Alt);
+        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
+        if (Autofocus) AppendAttr(sb, "autofocus", null);
+        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (FormAction is not null) AppendAttr(sb, "formaction", FormAction);
+        if (FormEnctype is not null) AppendAttr(sb, "formenctype", FormEnctype);
+        if (FormMethod is not null) AppendAttr(sb, "formmethod", FormMethod);
+        if (FormNovalidate) AppendAttr(sb, "formnovalidate", null);
+        if (FormTarget is not null) AppendAttr(sb, "formtarget", FormTarget);
+        if (List is not null) AppendAttr(sb, "list", List);
+        if (Src is not null) AppendAttr(sb, "src", Src);
+        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
 
         if (LiveRenderContext.Current is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
-            if (input is not null) yield return new("data-rask-on-input", ctx.RegisterHandler(input));
+            if (input is not null) AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
 
             var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null) yield return new("data-rask-on-change", ctx.RegisterHandler(change));
+            if (change is not null) AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
 
             var files = (Delegate?)OnFiles ?? OnFilesAsync;
-            if (files is not null) yield return new("data-rask-on-files", ctx.RegisterHandler(files));
+            if (files is not null) AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
         }
     }
 }

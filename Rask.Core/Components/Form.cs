@@ -1,3 +1,4 @@
+using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
@@ -159,15 +160,15 @@ public sealed class Form : Element
             }
         };
 
-    protected override IEnumerable<KeyValuePair<string, string?>> BuildAttributes()
+    protected override void WriteAttributes(StringBuilder sb)
     {
-        foreach (var kv in base.BuildAttributes()) yield return kv;
-        if (Enctype is not null) yield return new("enctype", Enctype);
-        if (Target is not null) yield return new("target", Target);
-        if (AcceptCharset is not null) yield return new("accept-charset", AcceptCharset);
-        if (Autocomplete is not null) yield return new("autocomplete", Autocomplete);
-        if (Novalidate) yield return new("novalidate", null);
-        if (Name is not null) yield return new("name", Name);
+        base.WriteAttributes(sb);
+        if (Enctype is not null) AppendAttr(sb, "enctype", Enctype);
+        if (Target is not null) AppendAttr(sb, "target", Target);
+        if (AcceptCharset is not null) AppendAttr(sb, "accept-charset", AcceptCharset);
+        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
+        if (Novalidate) AppendAttr(sb, "novalidate", null);
+        if (Name is not null) AppendAttr(sb, "name", Name);
 
         Delegate? submit;
         if (Model is not null || Context is not null)
@@ -182,7 +183,7 @@ public sealed class Form : Element
 
         if (submit is not null && LiveRenderContext.Current is { } liveCtx)
         {
-            yield return new("data-rask-on-submit", liveCtx.RegisterHandler(submit));
+            AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
         }
     }
 }
