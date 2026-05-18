@@ -1,6 +1,9 @@
 #if RASK_BROWSER
 using System.Runtime.InteropServices.JavaScript;
 #endif
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Routing;
+using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
 
@@ -35,6 +38,19 @@ internal static partial class JSInterop
         {
             ApplyRender(payload);
         }
+    }
+
+    // Sync byte[] return — JSExport's marshaller maps that to a Uint8Array on the JS side
+    // with zero base64 round-trip. JS triggerDownload calls this in response to a render
+    // payload that carried `download.token`, then synthesises the <a download> click against
+    // the returned Uint8Array. The token is consumed on first pull; double-clicks yield
+    // an empty array rather than throwing.
+    [JSExport]
+    public static byte[] PullDownload(string token)
+    {
+        if (_session is null || string.IsNullOrEmpty(token)) return Array.Empty<byte>();
+        var sink = _session.Services.GetService<IDownloadSink>() as WasmDownloadSink;
+        return sink?.Pull(token) ?? Array.Empty<byte>();
     }
 
     [JSImport("setExports", ModuleName)]
@@ -78,5 +94,13 @@ internal static partial class JSInterop
     public static void PushHistory(string url, bool replace) { }
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());
+
+    // Non-browser stub mirroring the JSExport above so tests can drive the same code path.
+    public static byte[] PullDownload(string token)
+    {
+        if (_session is null || string.IsNullOrEmpty(token)) return Array.Empty<byte>();
+        var sink = _session.Services.GetService<IDownloadSink>() as WasmDownloadSink;
+        return sink?.Pull(token) ?? Array.Empty<byte>();
+    }
 #endif
 }

@@ -391,7 +391,13 @@ public static class LivePayload
                 writer.WriteString("url", download.Url);
             }
 
-            if (download.Bytes is not null)
+            if (download.Token is not null)
+            {
+                // WASM token-pull path: bytes stay .NET-side, JS pulls them via PullDownload
+                // JSExport. Keeps the per-render JSON payload tight regardless of file size.
+                writer.WriteString("token", download.Token);
+            }
+            else if (download.Bytes is not null)
             {
                 writer.WriteBase64String("bytes", download.Bytes);
             }

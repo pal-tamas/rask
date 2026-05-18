@@ -98,8 +98,19 @@ function registerFiles(inputEl, files) {
 
 function triggerDownload(download) {
     if (!download || typeof download.filename !== "string") return;
-    const bytes = decodeBase64(download.bytes);
-    if (!bytes) return;
+    let bytes;
+    if (typeof download.token === "string" && download.token.length > 0
+        && dotnetExports && dotnetExports.Rask && dotnetExports.Rask.Wasm
+        && dotnetExports.Rask.Wasm.JSInterop
+        && typeof dotnetExports.Rask.Wasm.JSInterop.PullDownload === "function") {
+        // Token-pull path: bytes live in .NET, JSExport returns them directly as a Uint8Array.
+        // No base64 inflation, no decode loop — render payload only carried the token string.
+        bytes = dotnetExports.Rask.Wasm.JSInterop.PullDownload(download.token);
+    } else if (typeof download.bytes === "string") {
+        // Legacy base64-inline path (test seam + back-compat).
+        bytes = decodeBase64(download.bytes);
+    }
+    if (!bytes || bytes.length === 0) return;
     const blob = new Blob([bytes], {type: download.contentType || "application/octet-stream"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
