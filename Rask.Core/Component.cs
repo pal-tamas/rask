@@ -29,6 +29,14 @@ public abstract class Component
     private bool _stateDirty;
     private CancellationTokenSource? _lifetimeCts;
 
+    // Pooled scratch buffers reused across renders when this component is acting as a
+    // render root (only RenderAsLiveRootCore touches them). Lazily allocated on first
+    // root render; cleared in place each subsequent frame. Saves three Dictionary/HashSet
+    // allocations per render after warmup.
+    private HashSet<Component>? _alivePrev;
+    private HashSet<Component>? _aliveNow;
+    private Dictionary<Component, Component>? _parentMap;
+
     // Set by the children indexer below. Factories no longer expose Children as a
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
     public IEnumerable<Child>? Children { get; set; }
@@ -307,8 +315,13 @@ public abstract class Component
             return _cachedRenderResult;
         }
 
-        _previousChildren = _children;
-        _children = new Dictionary<(Type, int), Component>();
+        // Swap the two dictionaries instead of allocating a fresh map per render —
+        // both fields persist across the component lifetime, so after first render
+        // every subsequent render reuses the same two buffers. _children is cleared
+        // before any new writes; _previousChildren retains the prior frame's entries
+        // for GetOrCreateChild's reuse lookup.
+        (_previousChildren, _children) = (_children, _previousChildren);
+        _children.Clear();
         _childPositions = 0;
 
         // HtmlSerializer wraps every user-component serialization in an EnterParentScope so
@@ -405,7 +418,6 @@ public abstract class Component
     public void StateHasChanged()
     {
         _stateDirty = true;
-        Console.Error.WriteLine("[DIAG-SHC] " + GetType().Name);
         var handle = RenderHandle;
         if (handle is null)
         {
@@ -443,10 +455,22 @@ public abstract class Component
         }
 
         _handlers ??= new Dictionary<string, (Component, Delegate)>();
-        var id = "h" + _nextHandlerId++;
+        var n = _nextHandlerId++;
+        var id = n < _smallHandlerIds.Length ? _smallHandlerIds[n] : "h" + n;
         _handlers[id] = (owner, handler);
-        Console.Error.WriteLine($"[DIAG-REG] {id} owner={owner.GetType().Name} target={handler.Target?.GetType().Name ?? "(null)"} method={handler.Method.DeclaringType?.Name}.{handler.Method.Name}");
         return id;
+    }
+
+    // Pre-built "h0".."h255" so handler registration in the common case (small forms,
+    // typical pages) doesn't pay a string-concat allocation per call. Overflow above
+    // 256 handlers per render falls back to the concat path.
+    private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(256);
+
+    private static string[] BuildSmallHandlerIds(int n)
+    {
+        var arr = new string[n];
+        for (var i = 0; i < n; i++) arr[i] = "h" + i;
+        return arr;
     }
 
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
@@ -601,17 +625,31 @@ public abstract class Component
 
     private string RenderAsLiveRootCore(IServiceProvider? services)
     {
-        _handlers = new Dictionary<string, (Component, Delegate)>();
+        // Reuse the handler dictionary across renders — IDs are reissued from 0 every
+        // root render, so the prior frame's contents are irrelevant. Lazy-init only on
+        // the very first render of this component as a root.
+        _handlers ??= new Dictionary<string, (Component, Delegate)>();
+        _handlers.Clear();
         _nextHandlerId = 0;
         var previousEditContexts = _persistedEditContexts;
         using var ctx = LiveRenderContext.Begin(this, previousEditContexts, services);
+
+        // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore
+        // runs single-threaded per session (the WS dispatcher serializes via the session
+        // lock), so reusing these in place is safe and saves three allocations per render
+        // after warmup.
+        _alivePrev ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
+        _aliveNow ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
+        _parentMap ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
+        _alivePrev.Clear();
+        _aliveNow.Clear();
+        _parentMap.Clear();
 
         // Snapshot the alive set AND parent map BEFORE we touch _children. Walking via
         // every component's _children gives us the same view the previous successful render
         // produced. The parent map is needed in the dispose pass to suppress double-dispose
         // of descendants in a torn-down subtree.
-        var previousParents = new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
-        var previouslyAlive = CollectAliveWithParents(this, previousParents);
+        CollectAliveWithParents(this, _alivePrev, _parentMap);
 
         // RenderAsLiveRoot is the explicit "render now" entry point — called for the initial
         // GET, WS reconnect recovery render, hot reload, and from tests. Force the root to
@@ -624,9 +662,9 @@ public abstract class Component
 
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
-        var nowAlive = CollectAlive(this);
+        CollectAlive(this, _aliveNow);
 
-        foreach (var child in nowAlive)
+        foreach (var child in _aliveNow)
         {
             if (!ReferenceEquals(child, this))
             {
@@ -640,17 +678,17 @@ public abstract class Component
         // ALSO disposes its descendants. To avoid disposing each descendant twice, only
         // dispose components whose previously-alive parent is still alive (or whose parent
         // is the root); the parent's recursion will handle the rest.
-        foreach (var prev in previouslyAlive)
+        foreach (var prev in _alivePrev)
         {
-            if (nowAlive.Contains(prev) || ReferenceEquals(prev, this))
+            if (_aliveNow.Contains(prev) || ReferenceEquals(prev, this))
             {
                 continue;
             }
 
             // If our previous parent is also being disposed in this pass, the parent's
             // DisposeComponentTree will cover us — skip to avoid double-dispose.
-            if (previousParents.TryGetValue(prev, out var parent) &&
-                !nowAlive.Contains(parent) &&
+            if (_parentMap.TryGetValue(prev, out var parent) &&
+                !_aliveNow.Contains(parent) &&
                 !ReferenceEquals(parent, this))
             {
                 continue;
@@ -663,11 +701,9 @@ public abstract class Component
         return html;
     }
 
-    private static HashSet<Component> CollectAlive(Component root)
+    private static void CollectAlive(Component root, HashSet<Component> seen)
     {
-        var set = new HashSet<Component>(ReferenceEqualityComparer.Instance);
-        Visit(root, set);
-        return set;
+        Visit(root, seen);
 
         static void Visit(Component c, HashSet<Component> seen)
         {
@@ -683,13 +719,12 @@ public abstract class Component
         }
     }
 
-    private static HashSet<Component> CollectAliveWithParents(
+    private static void CollectAliveWithParents(
         Component root,
+        HashSet<Component> seen,
         Dictionary<Component, Component> parents)
     {
-        var set = new HashSet<Component>(ReferenceEqualityComparer.Instance);
-        Visit(root, set, parents);
-        return set;
+        Visit(root, seen, parents);
 
         static void Visit(Component c, HashSet<Component> seen, Dictionary<Component, Component> parents)
         {
