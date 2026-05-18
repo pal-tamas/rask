@@ -60,11 +60,19 @@ public static class RaskWasmEndpointExtensions
 
         var fileProvider = new PhysicalFileProvider(resolved);
 
+        // Precompressed siblings first: if the WASM publish step emitted .br/.gz next to
+        // each asset (set <CompressionEnabled>true</CompressionEnabled> on the WASM
+        // project), serve those directly with the matching Content-Encoding header — zero
+        // request-time CPU and CDN-cacheable. Falls through to UseStaticFiles + the
+        // runtime UseResponseCompression below when no sibling exists.
+        app.UseMiddleware<PrecompressedFileMiddleware>(fileProvider);
+
         // If the host called services.AddRask() (which registers brotli/gzip providers and
         // adds application/wasm + application/octet-stream to the compressible MIME set),
         // wire UseResponseCompression ahead of UseStaticFiles so .wasm/.dll/.js/.json bodies
         // ship compressed. Skipped silently when not registered — the host still works,
-        // just without compression.
+        // just without compression. With the precompressed-sibling middleware ahead, this
+        // only fires for files without a baked sibling (e.g. index.html if not pre-encoded).
         if (app.ApplicationServices.GetService<IResponseCompressionProvider>() is not null)
         {
             app.UseResponseCompression();
@@ -82,7 +90,16 @@ public static class RaskWasmEndpointExtensions
             DefaultContentType = "application/octet-stream",
             OnPrepareResponse = ctx =>
             {
-                var ext = Path.GetExtension(ctx.File.Name);
+                // The precompressed middleware may have rewritten the path to a .br/.gz
+                // sibling — strip the encoding suffix so the MIME/cache classification
+                // reflects the underlying asset (foo.wasm.br is still "application/wasm").
+                var name = ctx.File.Name;
+                if (name.EndsWith(".br", StringComparison.OrdinalIgnoreCase)
+                    || name.EndsWith(".gz", StringComparison.OrdinalIgnoreCase))
+                {
+                    name = name[..^3];
+                }
+                var ext = Path.GetExtension(name);
                 if (ext.Equals(".wasm", StringComparison.OrdinalIgnoreCase))
                 {
                     ctx.Context.Response.ContentType = "application/wasm";
@@ -103,7 +120,7 @@ public static class RaskWasmEndpointExtensions
                 //     Last-Modified still give the 304 fast path on unchanged bodies, but
                 //     without `no-cache` browsers (especially for ES module imports) reuse
                 //     disk-cached copies across page loads without revalidating.
-                ctx.Context.Response.Headers.CacheControl = IsFingerprintedAsset(ctx.File.Name)
+                ctx.Context.Response.Headers.CacheControl = IsFingerprintedAsset(name)
                     ? "public, max-age=31536000, immutable"
                     : "no-cache";
             }

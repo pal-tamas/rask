@@ -24,6 +24,13 @@ internal sealed class FakeBundleDirectory : IDisposable
         // Fingerprinted asset name — what the WASM SDK emits when
         // <WasmFingerprintAssets>true</WasmFingerprintAssets> is enabled.
         File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "dotnet.7a8b9c2d3e4f.wasm"), wasmBytes);
+        // Precompressed siblings for the precompressed-middleware tests. Bytes are
+        // distinct enough that the test can prove the sibling was served (not the raw).
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "compressed.wasm"), wasmBytes);
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "compressed.wasm.br"),
+            new byte[] { 0x42, 0x52, 0x01, 0x02 });
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "compressed.wasm.gz"),
+            new byte[] { 0x1F, 0x8B, 0x08, 0x00, 0x00 });
         File.WriteAllText(System.IO.Path.Combine(Path, "js", "app.js"),
             "console.log('hi');");
         File.WriteAllText(System.IO.Path.Combine(Path, "unknown.bin"),

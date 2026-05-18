@@ -196,6 +196,60 @@ public class UseRaskTests
     }
 
     [Fact]
+    public async Task PrecompressedBrotliSibling_Preferred_OverRuntimeCompression()
+    {
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/compressed.wasm");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("br", response.Content.Headers.ContentEncoding);
+        // Content-Type follows the original asset (the .br suffix is encoding metadata,
+        // not a different file type).
+        Assert.Equal("application/wasm", response.Content.Headers.ContentType?.MediaType);
+        // The fake .br bytes are 4 bytes (0x42 0x52 0x01 0x02) — must match the sibling
+        // file, not the raw wasm or anything UseResponseCompression would have produced.
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal(new byte[] { 0x42, 0x52, 0x01, 0x02 }, bytes);
+    }
+
+    [Fact]
+    public async Task PrecompressedGzipSibling_PreferredWhenBrNotAccepted()
+    {
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/compressed.wasm");
+        req.Headers.AcceptEncoding.ParseAdd("gzip");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("gzip", response.Content.Headers.ContentEncoding);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal(new byte[] { 0x1F, 0x8B, 0x08, 0x00, 0x00 }, bytes);
+    }
+
+    [Fact]
+    public async Task PrecompressedMiddleware_NoSibling_FallsThroughToRawFile()
+    {
+        // foo.wasm has no .br/.gz siblings — the middleware must skip and let
+        // UseStaticFiles serve the raw bytes (no Content-Encoding header).
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // No precompressed sibling, no AddRask (no runtime compression) — body ships raw.
+        Assert.Empty(response.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
     public void UseRask_OnEndpointBuilderWithoutApplicationBuilder_Throws()
     {
         using var bundle = new FakeBundleDirectory();
