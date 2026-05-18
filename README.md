@@ -30,8 +30,8 @@ What makes it different from other component frameworks:
   Required vs. optional parameters fall out of property nullability automatically.
 - **Type-safe URLs.** Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"`
   strings that rot.
-- **Scoped CSS, colocated.** Override `protected override string? Css =>` on a component and selectors are auto-scoped
-  to that type and hot-reloaded.
+- **Scoped CSS, colocated.** Drop a sibling `{Component}.css` next to `{Component}.cs` and selectors are auto-scoped
+  to that type and hot-reloaded — no class-name discipline, no BEM, no leaks.
 - **Constructor DI in components.** `class Weather(IWeatherForecastService svc) : Component` works directly — no
   `[Inject]` properties, no boilerplate.
 - **Error boundaries.** `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree
@@ -117,7 +117,7 @@ namespace MyApp;
 
 public sealed class App : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment()[
             Doctype(),
             Html("en")[
@@ -146,7 +146,7 @@ namespace MyApp;
 [Route("/")]
 public sealed class HomePage : Component
 {
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment()[
             H1()["Hello, world!"],
             P()["Welcome to your new Rask app."]
@@ -186,7 +186,9 @@ app.Run();
 ```
 
 `app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation, and
-a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alongside it.
+a SPA fallback so client-side routes resolve. Precompressed `.br` / `.gz` siblings (emitted by the WASM publish step
+next to `_framework/*` assets) are served with the right `Content-Encoding` automatically — no extra config, no runtime
+compression cost on the framework payload. Add your `/api/...` endpoints alongside it.
 
 ## Core concepts
 
@@ -200,7 +202,7 @@ Every component is a `sealed class : Component`. Override `Render()` and return 
 public sealed class Greeting : Component
 {
     public string? Name { get; set; }
-    public override Component Render() => H1()[$"Hello, {Name ?? "world"}!"];
+    protected override Component Render() => H1()[$"Hello, {Name ?? "world"}!"];
 }
 ```
 
@@ -228,7 +230,7 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Fragment()[
             H1()["Counter"],
             P()[$"Current count: {_count}"],
@@ -252,7 +254,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
     protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
-    public override Component Render() =>
+    protected override Component Render() =>
         _forecasts is null
             ? P()[Em()["Loading..."]]
             : Table()[/* render rows */];
@@ -271,7 +273,7 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
-    public override Component Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
+    protected override Component Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere:
@@ -337,7 +339,7 @@ public sealed class SignupPage : Component
 {
     private readonly SignupModel _model = new();
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
             DataAnnotationsValidator(),                         // opt-in: DA attributes
             Input(Bind: () => _model.Username),
@@ -475,7 +477,7 @@ protected override void OnMount()
     _ctx.AddValidator(new UniqueUsernameValidator());
 }
 
-public override Component Render() =>
+protected override Component Render() =>
     Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
         DataAnnotationsValidator(),
         Input(Bind: () => _model.Username),
@@ -496,8 +498,7 @@ chunked reads on WASM; downloads go through `/_rask/download/{token}` on the ser
 ```csharp
 Input(Type: "file", OnFiles: async files => {
     var file = files[0];                                         // RaskFile
-    using var s = file.OpenReadStream(maxAllowedSize: 5_000_000, // valid only inside this handler
-                                      cancellationToken: CancellationToken);
+    using var s = file.OpenReadStream(maxAllowedSize: 5_000_000); // valid only inside this handler
     await s.CopyToAsync(destination);
 })
 ```
@@ -510,7 +511,7 @@ public sealed class ReportPage(Navigator nav) : Component
                      Encoding.UTF8.GetBytes("hello"),
                      "text/plain");
 
-    public override Component Render() =>
+    protected override Component Render() =>
         Button(OnClick: Download)["Download report"];
 }
 ```
@@ -554,23 +555,32 @@ a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-r
 
 ### Scoped CSS
 
-Colocate styles on the component. Selectors are auto-scoped to the component type, served once from `/_rask/scoped.css`,
-and hot-reloaded under `dotnet watch`.
+Drop a sibling `{Component}.css` file next to `{Component}.cs` and the source generator pairs them at compile time —
+selectors are auto-scoped to that component type, served from `/_rask/scoped.css`, and hot-reloaded under `dotnet watch`.
 
 ```csharp
+// Card.cs
 public sealed class Card : Component
 {
-    protected override string? Css => """
-        .card { padding: 1rem; border-radius: 8px; border: 1px solid #ddd; }
-        .card:hover { background: #f7f7f7; }
-    """;
-
-    public override Component Render() =>
+    protected override Component Render() =>
         Div(Class: "card")["..."];
 }
 ```
 
-Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quick start).
+```css
+/* Card.css — sibling file, no extra wiring */
+.card { padding: 1rem; border-radius: 8px; border: 1px solid #ddd; }
+.card:hover { background: #f7f7f7; }
+```
+
+The showcase uses this throughout: `App.css`, `HomePage.css`, `ScopedRed.css` / `ScopedBlue.css`, `ViewTransitionsPage.css`,
+and the `Layout/ShowcaseLayout.css` for the sidebar. Two components can use the same `.box` selector — the framework
+rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` file with no matching component raises
+`RASK015`; opt the whole project out with `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` in the `.csproj`.
+
+Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quick start). On the server it renders a
+`<link rel="stylesheet" href="/_rask/scoped.css?v=…">`; in the WASM host the bundle is delivered through the page shell's
+`<style id="rask-scoped">` slot. Either way, the call site is identical.
 
 ### Lifecycle reference
 

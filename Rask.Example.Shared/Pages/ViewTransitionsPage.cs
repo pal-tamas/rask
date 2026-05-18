@@ -48,19 +48,19 @@ public sealed class ViewTransitionsPage(Navigator nav) : Component
                 "The default ::view-transition-old(root) / ::view-transition-new(root) animation is a 250ms crossfade. Browsers without the API skip the wrap transparently."),
             H2(Class: "h4 mt-5 mb-3")["Per-element morphing"],
             CodeSample(
-                """""
-                protected override string? Css => """
-                    .hero {
-                        view-transition-name: page-hero;
-                        background: linear-gradient(135deg, #06b, #048);
-                        border-radius: 0.75rem;
-                        padding: 1.5rem;
-                    }
-                    """;
-
+                """"
+                // Hero.cs
                 protected override Component Render() =>
                     Div(Class: "hero")["Welcome"];
-                """"",
+
+                /* Hero.css (sibling file — paired automatically by the source generator) */
+                .hero {
+                    view-transition-name: page-hero;
+                    background: linear-gradient(135deg, #06b, #048);
+                    border-radius: 0.75rem;
+                    padding: 1.5rem;
+                }
+                """",
                 Notes:
                 "When the source and destination pages each render an element with the same view-transition-name, the browser morphs between them instead of crossfading the whole page.",
                 Result: Div(Class: "vt-hero")[

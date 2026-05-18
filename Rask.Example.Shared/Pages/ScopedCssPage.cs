@@ -12,45 +12,52 @@ public sealed class ScopedCssPage : Component
         Fragment()[
             PageHeader.Render(
                 "Scoped CSS",
-                "Override protected override string? Css on your component to colocate styles. Rask hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component."),
+                "Drop a sibling {Component}.css file next to {Component}.cs and Rask pairs them at compile time. The framework hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component — no class-name discipline, no BEM, no leaks."),
+
             H2(Class: "h4 mt-4 mb-3")["Two components, same selector, no conflict"],
             CodeSample(
                 """""
+                // ScopedRed.cs
                 public sealed class ScopedRed : Component
                 {
-                    protected override string? Css => """
-                        .box { background: #fde0e0; color: #8a1f1f; ... }
-                        """;
-                    public override Component Render() =>
-                        Div(Class: "box")["I think .box should be red."];
+                    protected override Component Render() =>
+                        Div(Class: "box")[Span(Class: "dot"), "I think .box should be red."];
                 }
 
+                /* ScopedRed.css (sibling file) */
+                .box { background: #fdecec; color: #8a1f1f; ... }
+                .dot { width: 0.6rem; height: 0.6rem; background: #d23030; border-radius: 50%; }
+
+
+                // ScopedBlue.cs — same .box selector, different sibling .css
                 public sealed class ScopedBlue : Component
                 {
-                    protected override string? Css => """
-                        .box { background: #dde6ff; color: #1c357a; ... }
-                        """;
-                    public override Component Render() =>
-                        Div(Class: "box")["I think .box should be blue."];
+                    protected override Component Render() =>
+                        Div(Class: "box")[Span(Class: "dot"), "I think .box should be blue."];
                 }
                 """"",
                 Notes:
-                "The framework stamps every rendered body element with data-{scopeId}, then rewrites \".box\" to \".box[data-{scopeId}]\". Same source CSS, isolated outputs.",
+                "Both classes use the same .box selector. The framework stamps every rendered body element with data-{scopeId}, then rewrites .box to .box[data-{scopeId}] — same source CSS, isolated outputs.",
                 Result: Div(Class: "d-flex flex-column gap-2")[
                     ScopedRed(),
                     ScopedBlue()
                 ]),
+
             H2(Class: "h4 mt-5 mb-3")["How it ships"],
             P()[
                 "Put ", Code()["RaskScopedStyles()"],
                 " in your ", Code()["<head>"],
-                " — that emits a single ", Code()["<link href=\"/_rask/scoped.css?v={hash}\">"],
-                ". The bundle is served with ETag + 304 revalidation. Under ",
+                ". The host decides the form: on the server it renders ",
+                Code()["<link href=\"/_rask/scoped.css?v={hash}\">"],
+                " served with ETag + 304 revalidation; in the WASM host the bundle is delivered through the page shell's ",
+                Code()["<style id=\"rask-scoped\">"],
+                " slot instead. Same call site either way. Under ",
                 Code()["dotnet watch"],
                 " a metadata-update handler invalidates the affected type and re-renders every open session with a fresh ",
                 Code()["?v="],
                 " — hot reload without a page refresh."
             ],
+
             H2(Class: "h4 mt-5 mb-3")["What gets rewritten"],
             Div(Class: "list-group list-group-flush mb-3")[
                 Li(Class: "list-group-item d-flex align-items-start")[
@@ -73,6 +80,16 @@ public sealed class ScopedCssPage : Component
                     I(Class: "bi bi-dash-circle text-secondary me-2 mt-1"),
                     Div()["Shell tags (html, head, body, title, meta, link, script, style, base) are not stamped"]
                 ]
+            ],
+
+            H2(Class: "h4 mt-5 mb-3")["Diagnostics"],
+            P()[
+                "A ", Code()[".css"], " file with no matching ", Code()[".cs"],
+                " component in the same directory raises ", Code()["RASK015"],
+                ". Two ", Code()[".css"], " files claiming the same component (e.g. ",
+                Code()["Counter.css"], " in two folders) raise ", Code()["RASK016"],
+                ". Opt the whole project out with ",
+                Code()["<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>"], "."
             ]
         ];
 }
