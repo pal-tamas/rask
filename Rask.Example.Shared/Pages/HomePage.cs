@@ -7,30 +7,6 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class HomePage(Navigator nav) : Component
 {
-    protected override string? Css => """
-                                      .hero-card {
-                                          background: linear-gradient(135deg, var(--rask-accent-soft) 0%, #ffffff 100%);
-                                          border: 1px solid var(--bs-border-color);
-                                      }
-                                      .feature-card {
-                                          transition: transform 140ms ease, box-shadow 140ms ease;
-                                      }
-                                      .feature-card:hover {
-                                          transform: translateY(-2px);
-                                      }
-                                      .feature-icon {
-                                          width: 2.4rem;
-                                          height: 2.4rem;
-                                          border-radius: 0.6rem;
-                                          display: inline-flex;
-                                          align-items: center;
-                                          justify-content: center;
-                                          background: var(--rask-accent-soft);
-                                          color: var(--rask-accent);
-                                          font-size: 1.2rem;
-                                      }
-                                      """;
-
     protected override Component Render() =>
         Fragment()[
             Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[

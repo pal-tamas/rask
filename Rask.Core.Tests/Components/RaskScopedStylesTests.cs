@@ -10,7 +10,11 @@ namespace Rask.Core.Tests.Components;
 [Collection("ScopedCss")]
 public class RaskScopedStylesTests
 {
-    public RaskScopedStylesTests() => ScopedCssRegistry.InvalidateAll();
+    public RaskScopedStylesTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        ScopedCssRegistry.RegisterType(typeof(RedWrapper), ".red { color: red; }");
+    }
 
     [Fact]
     public void Render_NoHashRegistered_EmitsEmptyRaw()
@@ -81,7 +85,6 @@ public class RaskScopedStylesTests
     {
         private readonly Component _body;
         public RedWrapper(Component body) => _body = body;
-        protected internal override string? Css => ".red { color: red; }";
         protected override Component Render() => _body;
     }
 }

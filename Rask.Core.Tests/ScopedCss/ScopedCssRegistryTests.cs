@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text;
 using Rask.Core.ScopedCss;
 
@@ -12,25 +11,22 @@ public class ScopedCssRegistryTests
     public ScopedCssRegistryTests() => ScopedCssRegistry.InvalidateAll();
 
     [Fact]
-    public void TryRegister_NullCss_ReturnsFalse()
+    public void EmptyRegistry_HasNullHash()
     {
-        var reg = typeof(ScopedCssRegistry);
-        var method = reg.GetMethod("TryRegister", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var args = new object?[] { new NoCss(), null };
-        var result = (bool)method.Invoke(null, args)!;
-        Assert.False(result);
         Assert.Null(ScopedCssRegistry.CurrentHash);
+        var (css, _) = ScopedCssRegistry.GetBundle();
+        Assert.Empty(css);
     }
 
     [Fact]
-    public void TryRegister_NonNullCss_AddsEntryAndBumpsHash()
+    public void RegisterType_AddsEntryAndBumpsHash()
     {
         var fired = false;
         Action handler = () => fired = true;
         ScopedCssRegistry.BundleChanged += handler;
         try
         {
-            CallTryRegister(new HasCss());
+            ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
             Assert.True(fired);
             Assert.NotNull(ScopedCssRegistry.CurrentHash);
             var (css, hash) = ScopedCssRegistry.GetBundle();
@@ -41,16 +37,25 @@ public class ScopedCssRegistryTests
     }
 
     [Fact]
-    public void TryRegister_SameTypeTwice_IsIdempotent()
+    public void RegisterType_NullOrWhitespace_DoesNotAddEntry()
     {
-        CallTryRegister(new HasCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), "");
+        Assert.Null(ScopedCssRegistry.CurrentHash);
+        ScopedCssRegistry.RegisterType(typeof(HasCss), "   \n  ");
+        Assert.Null(ScopedCssRegistry.CurrentHash);
+    }
+
+    [Fact]
+    public void RegisterType_SameCssTwice_IsIdempotent()
+    {
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
         var hashAfterFirst = ScopedCssRegistry.CurrentHash;
         var fired = 0;
         Action handler = () => fired++;
         ScopedCssRegistry.BundleChanged += handler;
         try
         {
-            CallTryRegister(new HasCss());
+            ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
             Assert.Equal(0, fired);
             Assert.Equal(hashAfterFirst, ScopedCssRegistry.CurrentHash);
         }
@@ -60,7 +65,7 @@ public class ScopedCssRegistryTests
     [Fact]
     public void Invalidate_RemovesEntryAndBumpsHash()
     {
-        CallTryRegister(new HasCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
         var fired = false;
         Action handler = () => fired = true;
         ScopedCssRegistry.BundleChanged += handler;
@@ -76,8 +81,8 @@ public class ScopedCssRegistryTests
     [Fact]
     public void GetBundle_ConcatenatesInInsertionOrder()
     {
-        CallTryRegister(new HasCss());
-        CallTryRegister(new OtherCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
+        ScopedCssRegistry.RegisterType(typeof(OtherCss), ".y { color: blue; }");
         var (css, _) = ScopedCssRegistry.GetBundle();
         var xPos = css.IndexOf(".x[data-", StringComparison.Ordinal);
         var yPos = css.IndexOf(".y[data-", StringComparison.Ordinal);
@@ -88,8 +93,8 @@ public class ScopedCssRegistryTests
     [Fact]
     public void GetBundleUtf8_MatchesGetBundle_AndIsCachedAcrossCalls()
     {
-        CallTryRegister(new HasCss());
-        CallTryRegister(new OtherCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
+        ScopedCssRegistry.RegisterType(typeof(OtherCss), ".y { color: blue; }");
 
         var (css, hash) = ScopedCssRegistry.GetBundle();
         var (utf8, etag) = ScopedCssRegistry.GetBundleUtf8();
@@ -112,10 +117,10 @@ public class ScopedCssRegistryTests
     [Fact]
     public void GetBundleUtf8_InvalidateBumpsCache()
     {
-        CallTryRegister(new HasCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
         var (_, etag1) = ScopedCssRegistry.GetBundleUtf8();
 
-        CallTryRegister(new OtherCss());
+        ScopedCssRegistry.RegisterType(typeof(OtherCss), ".y { color: blue; }");
         var (utf8b, etag2) = ScopedCssRegistry.GetBundleUtf8();
 
         Assert.NotEqual(etag1, etag2);
@@ -125,37 +130,21 @@ public class ScopedCssRegistryTests
     [Fact]
     public void InvalidateAll_RemovesEverything()
     {
-        CallTryRegister(new HasCss());
-        CallTryRegister(new OtherCss());
+        ScopedCssRegistry.RegisterType(typeof(HasCss), ".x { color: red; }");
+        ScopedCssRegistry.RegisterType(typeof(OtherCss), ".y { color: blue; }");
         ScopedCssRegistry.InvalidateAll();
         Assert.Null(ScopedCssRegistry.CurrentHash);
         var (css, _) = ScopedCssRegistry.GetBundle();
         Assert.Empty(css);
     }
 
-    private static void CallTryRegister(Component instance)
-    {
-        var method = typeof(ScopedCssRegistry).GetMethod(
-            "TryRegister",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        var args = new object?[] { instance, null };
-        method.Invoke(null, args);
-    }
-
-    private sealed class NoCss : Component
-    {
-        protected override Component Render() => this;
-    }
-
     private sealed class HasCss : Component
     {
-        protected internal override string? Css => ".x { color: red; }";
         protected override Component Render() => this;
     }
 
     private sealed class OtherCss : Component
     {
-        protected internal override string? Css => ".y { color: blue; }";
         protected override Component Render() => this;
     }
 }

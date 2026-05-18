@@ -11,7 +11,11 @@ namespace Rask.Server.Tests.Endpoints;
 [Collection("ScopedCss")]
 public class ScopedStylesProviderTests
 {
-    public ScopedStylesProviderTests() => ScopedCssRegistry.InvalidateAll();
+    public ScopedStylesProviderTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        ScopedCssRegistry.RegisterType(typeof(ScopedCssApp), ".tag { color: red; }");
+    }
 
     [Fact]
     public void AddRask_RegistersIRaskScopedStyles()
@@ -41,8 +45,6 @@ public class ScopedStylesProviderTests
 
     public sealed class ScopedCssApp : Component
     {
-        protected override string? Css => ".tag { color: red; }";
-
         protected override Component Render() =>
             Fragment()[
                 Doctype(),

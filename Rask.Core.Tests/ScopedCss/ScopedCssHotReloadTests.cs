@@ -10,14 +10,6 @@ public class ScopedCssHotReloadTests
 {
     public ScopedCssHotReloadTests() => ScopedCssRegistry.InvalidateAll();
 
-    private static void Register(Component instance)
-    {
-        var m = typeof(ScopedCssRegistry).GetMethod(
-            "TryRegister",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        m.Invoke(null, new object?[] { instance, null });
-    }
-
     private static void InvokeUpdateApplication(Type[]? types)
     {
         var handlerType = typeof(ScopedCssRegistry).Assembly
@@ -29,10 +21,26 @@ public class ScopedCssHotReloadTests
     }
 
     [Fact]
-    public void UpdateApplication_TargetedType_InvalidatesEntry()
+    public void UpdateApplication_NullTypes_InvalidatesAll()
     {
-        Register(new Reloadable());
+        // Null updatedTypes is the "I don't know what changed" signal — drop everything and
+        // let module initializers / RefreshAll repopulate from each loaded assembly.
+        ScopedCssRegistry.RegisterType(typeof(Reloadable), ".rl { color: red; }");
         Assert.NotNull(ScopedCssRegistry.CurrentHash);
+
+        InvokeUpdateApplication(null);
+
+        Assert.Null(ScopedCssRegistry.CurrentHash);
+    }
+
+    [Fact]
+    public void UpdateApplication_UnrelatedType_NoChange()
+    {
+        // A .cs edit on a regular component class arrives as that type in updatedTypes.
+        // The registry's source of truth is now the generator-emitted class, so a lone
+        // component-type update is a no-op — entries are not invalidated.
+        ScopedCssRegistry.RegisterType(typeof(Reloadable), ".rl { color: red; }");
+        var hashBefore = ScopedCssRegistry.CurrentHash;
 
         var fired = false;
         Action h = () => fired = true;
@@ -43,43 +51,35 @@ public class ScopedCssHotReloadTests
         }
         finally { ScopedCssRegistry.BundleChanged -= h; }
 
-        Assert.True(fired);
-        Assert.Null(ScopedCssRegistry.CurrentHash);
-    }
-
-    [Fact]
-    public void UpdateApplication_NullTypes_InvalidatesAll()
-    {
-        Register(new Reloadable());
-        Assert.NotNull(ScopedCssRegistry.CurrentHash);
-
-        InvokeUpdateApplication(null);
-
-        Assert.Null(ScopedCssRegistry.CurrentHash);
-    }
-
-    [Fact]
-    public void UpdateApplication_UnknownType_NoChange()
-    {
-        Register(new Reloadable());
-        var hashBefore = ScopedCssRegistry.CurrentHash;
-
-        var fired = false;
-        Action h = () => fired = true;
-        ScopedCssRegistry.BundleChanged += h;
-        try
-        {
-            InvokeUpdateApplication(new[] { typeof(string) });
-        }
-        finally { ScopedCssRegistry.BundleChanged -= h; }
-
         Assert.False(fired);
         Assert.Equal(hashBefore, ScopedCssRegistry.CurrentHash);
     }
 
+    [Fact]
+    public void UpdateApplication_GeneratedRegistrationType_InvalidatesAll()
+    {
+        // A .css edit causes the generator to re-emit __RaskScopedCssRegistration, and the
+        // hot-reload handler invalidates everything before re-invoking RefreshAll on each
+        // loaded assembly. In this test there's no real generated class, so the result is
+        // an empty registry.
+        ScopedCssRegistry.RegisterType(typeof(Reloadable), ".rl { color: red; }");
+        Assert.NotNull(ScopedCssRegistry.CurrentHash);
+
+        InvokeUpdateApplication(new[] { typeof(__RaskScopedCssRegistration) });
+
+        Assert.Null(ScopedCssRegistry.CurrentHash);
+    }
+
     private sealed class Reloadable : Component
     {
-        protected internal override string? Css => ".rl { color: red; }";
         protected override Component Render() => this;
+    }
+
+    // Hot-reload handler treats any type whose simple name matches the generated class as
+    // a signal to refresh. Using a dummy class with the same simple name matches the
+    // handler's contract without depending on the actual generator output being present in
+    // the test assembly.
+    private sealed class __RaskScopedCssRegistration
+    {
     }
 }

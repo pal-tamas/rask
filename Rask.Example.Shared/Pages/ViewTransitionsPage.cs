@@ -8,24 +8,6 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ViewTransitionsPage(Navigator nav) : Component
 {
-    private const string CssText = """
-                                   .vt-hero {
-                                       view-transition-name: showcase-hero;
-                                       background: linear-gradient(135deg, var(--rask-accent), var(--rask-accent-strong));
-                                       color: #fff;
-                                       border-radius: 0.75rem;
-                                       padding: 1.5rem 1.75rem;
-                                       box-shadow: 0 12px 30px rgba(0, 102, 179, 0.18);
-                                   }
-                                   .vt-hero .vt-hero-meta { opacity: 0.75; font-size: 0.85rem; }
-                                   ::view-transition-old(root),
-                                   ::view-transition-new(root) {
-                                       animation-duration: 320ms;
-                                   }
-                                   """;
-
-    protected override string? Css => CssText;
-
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

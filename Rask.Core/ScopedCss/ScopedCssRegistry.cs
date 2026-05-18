@@ -47,50 +47,61 @@ public static class ScopedCssRegistry
 
     public static event Action? BundleChanged;
 
-    internal static bool TryRegister(Component instance, out string scopeId)
+    /// <summary>
+    ///     Returns the scope id stamped on body elements rendered under a component of the
+    ///     given type, or null/empty when no CSS has been registered for that type. Called
+    ///     from <see cref="Live.LiveRenderContext.PushScope"/> on every render.
+    /// </summary>
+    internal static bool TryRegister(Type componentType, out string scopeId)
     {
-        var type = instance.GetType();
-        var css = instance.Css;
-        var changed = false;
         lock (_lock)
         {
-            if (_entries.TryGetValue(type, out var existing))
+            if (_entries.TryGetValue(componentType, out var existing))
+            {
+                scopeId = existing.ScopeId;
+                return true;
+            }
+        }
+
+        scopeId = string.Empty;
+        return false;
+    }
+
+    /// <summary>
+    ///     Registers (or replaces) the CSS for a component type. Called by generator-emitted
+    ///     module initializers and by the hot-reload handler when the generated source for a
+    ///     `.css` sibling is re-emitted. No-op when <paramref name="css"/> equals the previously
+    ///     registered source (same string, same hash, same scope id).
+    /// </summary>
+    public static void RegisterType(Type componentType, string css)
+    {
+        if (string.IsNullOrWhiteSpace(css))
+        {
+            UnregisterType(componentType);
+            return;
+        }
+
+        bool changed;
+        lock (_lock)
+        {
+            if (_entries.TryGetValue(componentType, out var existing))
             {
                 if (string.Equals(existing.Source, css, StringComparison.Ordinal))
                 {
-                    scopeId = existing.ScopeId;
-                    return true;
+                    return;
                 }
 
-                if (string.IsNullOrWhiteSpace(css))
-                {
-                    _entries.Remove(type);
-                    _order.Remove(type);
-                    InvalidateBundle();
-                    scopeId = string.Empty;
-                    changed = true;
-                }
-                else
-                {
-                    scopeId = existing.ScopeId;
-                    var rewritten = CssScoper.Rewrite(css, scopeId);
-                    _entries[type] = new Entry(scopeId, rewritten, css);
-                    InvalidateBundle();
-                    changed = true;
-                }
+                var rewritten = CssScoper.Rewrite(css, existing.ScopeId);
+                _entries[componentType] = new Entry(existing.ScopeId, rewritten, css);
+                InvalidateBundle();
+                changed = true;
             }
             else
             {
-                if (string.IsNullOrWhiteSpace(css))
-                {
-                    scopeId = string.Empty;
-                    return false;
-                }
-
-                scopeId = CssScoper.ScopeIdFor(type);
+                var scopeId = CssScoper.ScopeIdFor(componentType);
                 var rewritten = CssScoper.Rewrite(css, scopeId);
-                _entries[type] = new Entry(scopeId, rewritten, css!);
-                _order.Add(type);
+                _entries[componentType] = new Entry(scopeId, rewritten, css);
+                _order.Add(componentType);
                 InvalidateBundle();
                 changed = true;
             }
@@ -100,11 +111,13 @@ public static class ScopedCssRegistry
         {
             BundleChanged?.Invoke();
         }
-
-        return !string.IsNullOrEmpty(scopeId);
     }
 
-    public static void Invalidate(Type componentType)
+    /// <summary>
+    ///     Removes the entry for a component type. Used by hot-reload (when a `.css` sibling
+    ///     is deleted) and by tests that need to clean up registrations.
+    /// </summary>
+    public static void UnregisterType(Type componentType)
     {
         bool changed;
         lock (_lock)
@@ -122,6 +135,8 @@ public static class ScopedCssRegistry
             BundleChanged?.Invoke();
         }
     }
+
+    public static void Invalidate(Type componentType) => UnregisterType(componentType);
 
     public static void InvalidateAll()
     {

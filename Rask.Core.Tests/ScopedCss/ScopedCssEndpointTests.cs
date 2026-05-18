@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Rask.Core.Live;
@@ -13,14 +12,6 @@ namespace Rask.Core.Tests.ScopedCss;
 public class ScopedCssEndpointTests
 {
     public ScopedCssEndpointTests() => ScopedCssRegistry.InvalidateAll();
-
-    private static void Register(Component instance)
-    {
-        var m = typeof(ScopedCssRegistry).GetMethod(
-            "TryRegister",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        m.Invoke(null, new object?[] { instance, null });
-    }
 
     private static (HttpContext ctx, MemoryStream body) NewContext(string? ifNoneMatch = null)
     {
@@ -38,7 +29,7 @@ public class ScopedCssEndpointTests
     [Fact]
     public async Task ServeScopedCss_ReturnsBundleWithEtag()
     {
-        Register(new WithCss());
+        ScopedCssRegistry.RegisterType(typeof(WithCss), ".endpoint { color: red; }");
         var (css, hash) = ScopedCssRegistry.GetBundle();
         var (ctx, body) = NewContext();
 
@@ -54,7 +45,7 @@ public class ScopedCssEndpointTests
     [Fact]
     public async Task ServeScopedCss_IfNoneMatchHit_Returns304()
     {
-        Register(new WithCss());
+        ScopedCssRegistry.RegisterType(typeof(WithCss), ".endpoint { color: red; }");
         var (_, hash) = ScopedCssRegistry.GetBundle();
         var (ctx, body) = NewContext($"\"{hash}\"");
 
@@ -67,10 +58,10 @@ public class ScopedCssEndpointTests
     [Fact]
     public async Task ServeScopedCss_HashChanges_AfterNewRegistration()
     {
-        Register(new WithCss());
+        ScopedCssRegistry.RegisterType(typeof(WithCss), ".endpoint { color: red; }");
         var hashA = ScopedCssRegistry.CurrentHash;
 
-        Register(new EndpointSecond());
+        ScopedCssRegistry.RegisterType(typeof(EndpointSecond), ".second { color: blue; }");
         var hashB = ScopedCssRegistry.CurrentHash;
 
         Assert.NotEqual(hashA, hashB);
@@ -82,7 +73,7 @@ public class ScopedCssEndpointTests
     [Fact]
     public void BuildPayload_IncludesCssHash_SoLiveCanRefreshTheLink()
     {
-        Register(new WithCss());
+        ScopedCssRegistry.RegisterType(typeof(WithCss), ".endpoint { color: red; }");
         var hash = ScopedCssRegistry.CurrentHash;
         Assert.NotNull(hash);
         var payload = LivePayload.BuildPayload("<body></body>", null, false);
@@ -98,13 +89,11 @@ public class ScopedCssEndpointTests
 
     private sealed class WithCss : Component
     {
-        protected internal override string? Css => ".endpoint { color: red; }";
         protected override Component Render() => this;
     }
 
     private sealed class EndpointSecond : Component
     {
-        protected internal override string? Css => ".second { color: blue; }";
         protected override Component Render() => this;
     }
 }

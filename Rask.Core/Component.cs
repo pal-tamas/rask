@@ -109,8 +109,6 @@ public abstract class Component
     // pointer to trip the right boundary; null means no ancestor boundary registered.
     internal Components.ErrorBoundary? Boundary { get; set; }
 
-    protected internal virtual string? Css => null;
-
     // Components that read mutable state the framework doesn't observe (e.g. RouteState in
     // Router/Outlet) must opt out of render caching: without this their cached subtree gets
     // reused even after the global state changed. User code should set internal state +

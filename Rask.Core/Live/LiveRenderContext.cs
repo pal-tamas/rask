@@ -50,7 +50,7 @@ public sealed class LiveRenderContext : IDisposable
 
     internal IDisposable? PushScope(Component instance)
     {
-        if (!ScopedCssRegistry.TryRegister(instance, out var scopeId))
+        if (!ScopedCssRegistry.TryRegister(instance.GetType(), out var scopeId))
         {
             return null;
         }

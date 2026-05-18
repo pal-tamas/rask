@@ -21,7 +21,11 @@ namespace Rask.Wasm.Tests.Session;
 [Collection("WasmSession")]
 public class ScopedStylesAbsenceTests
 {
-    public ScopedStylesAbsenceTests() => ScopedCssRegistry.InvalidateAll();
+    public ScopedStylesAbsenceTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        ScopedCssRegistry.RegisterType(typeof(ScopedCssStubApp), ".tag { color: red; }");
+    }
 
     [Fact]
     public async Task InitialRender_AppWithScopedCss_DoesNotIncludeScopedCssLink()
@@ -54,8 +58,6 @@ public class ScopedStylesAbsenceTests
 
     private sealed class ScopedCssStubApp : Component
     {
-        protected override string? Css => ".tag { color: red; }";
-
         protected override Component Render() =>
             Fragment()[
                 Doctype(),

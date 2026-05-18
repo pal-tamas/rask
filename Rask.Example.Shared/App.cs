@@ -2,61 +2,7 @@ namespace Rask.Example.Shared;
 
 public sealed class App : Component
 {
-    // Override Bootstrap's primary palette with Rask's brand blue (#0066B3 — a nod to
-    // the Norwegian/Danish/Swedish origin of "rask" = fast). The --rask-accent /
-    // --rask-accent-soft custom properties are re-used across layout and page-level
-    // scoped CSS, so changing them here cascades everywhere.
-    private const string GlobalCss = """
-                                     :root {
-                                         --bs-primary: #0066B3;
-                                         --bs-primary-rgb: 0, 102, 179;
-                                         --bs-link-color: #0066B3;
-                                         --bs-link-color-rgb: 0, 102, 179;
-                                         --bs-link-hover-color: #00538F;
-                                         --bs-link-hover-color-rgb: 0, 83, 143;
-                                         --rask-accent: #0066B3;
-                                         --rask-accent-strong: #00538F;
-                                         --rask-accent-soft: #e3eff8;
-                                     }
-                                     .btn-primary {
-                                         --bs-btn-bg: #0066B3;
-                                         --bs-btn-border-color: #0066B3;
-                                         --bs-btn-hover-bg: #00538F;
-                                         --bs-btn-hover-border-color: #00538F;
-                                         --bs-btn-active-bg: #004678;
-                                         --bs-btn-active-border-color: #004678;
-                                         --bs-btn-disabled-bg: #0066B3;
-                                         --bs-btn-disabled-border-color: #0066B3;
-                                     }
-                                     .btn-outline-primary {
-                                         --bs-btn-color: #0066B3;
-                                         --bs-btn-border-color: #0066B3;
-                                         --bs-btn-hover-bg: #0066B3;
-                                         --bs-btn-hover-border-color: #0066B3;
-                                         --bs-btn-active-bg: #0066B3;
-                                         --bs-btn-active-border-color: #0066B3;
-                                     }
-                                     body { font-feature-settings: "ss01", "cv11"; }
-                                     a { color: var(--rask-accent); }
-                                     a:hover { color: var(--rask-accent-strong); }
-                                     code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-                                     :not(pre) > code {
-                                         background: var(--rask-accent-soft);
-                                         color: var(--rask-accent);
-                                         padding: 0.08rem 0.32rem;
-                                         border-radius: 4px;
-                                         font-size: 0.86em;
-                                     }
-                                     pre { margin: 0; }
-                                     .rask-badge {
-                                         background: var(--rask-accent-soft);
-                                         color: var(--rask-accent);
-                                     }
-                                     .text-accent { color: var(--rask-accent) !important; }
-                                     """;
-
-    protected override string? Css => GlobalCss;
-
+    // Brand palette and global cascade live in App.css (sibling scoped-CSS file).
     protected override Component Render() =>
         Fragment()[
             Doctype(),

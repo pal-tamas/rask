@@ -9,7 +9,12 @@ namespace Rask.Core.Tests.ScopedCss;
 [Collection("ScopedCss")]
 public class ScopedCssRenderTests
 {
-    public ScopedCssRenderTests() => ScopedCssRegistry.InvalidateAll();
+    public ScopedCssRenderTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        ScopedCssRegistry.RegisterType(typeof(CssWrapper), ".tag { color: red; }");
+        ScopedCssRegistry.RegisterType(typeof(OtherCssWrapper), ".inner { color: blue; }");
+    }
 
     [Fact]
     public void Render_ComponentWithCss_StampsScopeAttributeOnDescendants()
@@ -110,7 +115,6 @@ public class ScopedCssRenderTests
     {
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
-        protected internal override string? Css => ".tag { color: red; }";
         protected override Component Render() => _body;
     }
 
@@ -118,7 +122,6 @@ public class ScopedCssRenderTests
     {
         private readonly Component _body;
         public OtherCssWrapper(Component body) => _body = body;
-        protected internal override string? Css => ".inner { color: blue; }";
         protected override Component Render() => _body;
     }
 }

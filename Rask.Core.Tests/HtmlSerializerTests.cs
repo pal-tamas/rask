@@ -9,7 +9,12 @@ namespace Rask.Core.Tests;
 [Collection("ScopedCss")]
 public class HtmlSerializerTests
 {
-    public HtmlSerializerTests() => ScopedCssRegistry.InvalidateAll();
+    public HtmlSerializerTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        ScopedCssRegistry.RegisterType(typeof(CssWrapper), ".x { color: red; }");
+        ScopedCssRegistry.RegisterType(typeof(ScopedWrapper), ".y { color: blue; }");
+    }
 
     [Fact]
     public void Serialize_Text_EncodesValue()
@@ -146,7 +151,6 @@ public class HtmlSerializerTests
     {
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
-        protected internal override string? Css => ".x { color: red; }";
         protected override Component Render() => _body;
     }
 
@@ -154,7 +158,6 @@ public class HtmlSerializerTests
     {
         private readonly Component _body;
         public ScopedWrapper(Component body) => _body = body;
-        protected internal override string? Css => ".y { color: blue; }";
         protected override Component Render() => _body;
     }
 }
