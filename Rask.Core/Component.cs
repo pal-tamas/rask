@@ -24,6 +24,11 @@ public abstract class Component
     private bool _hasRenderedOnce;
     private int _nextHandlerId;
     private Dictionary<LiveRenderContext.ObjectKey, EditContext> _persistedEditContexts = new();
+    // Sibling pool dict: gets passed as the next frame's `current` so the per-render
+    // EditContext dictionary allocation is gone. RenderAsLiveRootCore swaps the two after
+    // each render — the just-snapshotted current becomes the next frame's previous, and
+    // the now-stale previous gets Clear()ed and reused as next frame's current.
+    private Dictionary<LiveRenderContext.ObjectKey, EditContext>? _editContextsPool;
     private Dictionary<(Type, int), Component> _previousChildren = new();
     private bool _propsDirty;
     private bool _stateDirty;
@@ -642,7 +647,11 @@ public abstract class Component
         _handlers.Clear();
         _nextHandlerId = 0;
         var previousEditContexts = _persistedEditContexts;
-        using var ctx = LiveRenderContext.Begin(this, previousEditContexts, services);
+        // Recycle the previously-snapshotted dict as the next frame's `current`. First
+        // render: pool is null, allocate once. Steady state: Clear and reuse.
+        _editContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
+        _editContextsPool.Clear();
+        using var ctx = LiveRenderContext.Begin(this, previousEditContexts, _editContextsPool, services);
 
         // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore
         // runs single-threaded per session (the WS dispatcher serializes via the session
@@ -707,7 +716,11 @@ public abstract class Component
             ComponentLifecycle.DisposeComponentTree(prev);
         }
 
-        _persistedEditContexts = ctx.SnapshotEditContexts();
+        // Swap: the dict we wrote into this frame becomes next frame's `previous`;
+        // the now-stale previous becomes the pool that next frame will Clear and reuse.
+        var snapshot = ctx.SnapshotEditContexts();
+        _editContextsPool = _persistedEditContexts;
+        _persistedEditContexts = snapshot;
         return html;
     }
 

@@ -10,7 +10,7 @@ public sealed class LiveRenderContext : IDisposable
 {
     private static readonly AsyncLocal<LiveRenderContext?> _current = new();
     private readonly Stack<ErrorBoundary> _boundaryStack = new();
-    private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts = new();
+    private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts;
     private readonly IRenderHandle? _handle;
     private readonly Stack<Component> _parentStack = new();
     private readonly LiveRenderContext? _previous;
@@ -22,10 +22,12 @@ public sealed class LiveRenderContext : IDisposable
     private LiveRenderContext(
         Component root,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
+        Dictionary<ObjectKey, EditContext> currentEditContexts,
         IServiceProvider? services)
     {
         _root = root;
         _previousEditContexts = previousEditContexts;
+        _currentEditContexts = currentEditContexts;
         Services = services;
         _handle = root.RenderHandle;
         _previous = _current.Value;
@@ -73,16 +75,19 @@ public sealed class LiveRenderContext : IDisposable
     }
 
     public static LiveRenderContext Begin(Component root) =>
-        new(root, new Dictionary<ObjectKey, EditContext>(), null);
+        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), null);
 
     public static LiveRenderContext Begin(Component root, IServiceProvider? services) =>
-        new(root, new Dictionary<ObjectKey, EditContext>(), services);
+        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), services);
 
+    // RenderAsLiveRootCore swaps two dictionaries it owns and passes both in here, so neither
+    // the current nor the previous dict is allocated per render after warmup.
     internal static LiveRenderContext Begin(
         Component root,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
+        Dictionary<ObjectKey, EditContext> currentEditContexts,
         IServiceProvider? services) =>
-        new(root, previousEditContexts, services);
+        new(root, previousEditContexts, currentEditContexts, services);
 
     public string RegisterHandler(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores
