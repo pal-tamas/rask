@@ -22,11 +22,19 @@ public static class LivePayload
 
         var encoded = HtmlEncoder.Default.Encode(sessionId);
         var insertAt = i + "<body".Length;
-        var sb = new StringBuilder(html.Length + encoded.Length + 32);
-        sb.Append(html, 0, insertAt);
-        sb.Append(" data-rask-root=\"").Append(encoded).Append('"');
-        sb.Append(html, insertAt, html.Length - insertAt);
-        return sb.ToString();
+        var sb = RaskStringBuilderPool.Shared.Get();
+        try
+        {
+            sb.EnsureCapacity(html.Length + encoded.Length + 32);
+            sb.Append(html, 0, insertAt);
+            sb.Append(" data-rask-root=\"").Append(encoded).Append('"');
+            sb.Append(html, insertAt, html.Length - insertAt);
+            return sb.ToString();
+        }
+        finally
+        {
+            RaskStringBuilderPool.Shared.Return(sb);
+        }
     }
 
     public static string ExtractBody(string html)

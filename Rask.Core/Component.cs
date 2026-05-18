@@ -143,9 +143,19 @@ public abstract class Component
 
     public string ToHtml()
     {
-        var sb = new StringBuilder();
-        HtmlSerializer.Serialize(this, sb);
-        return sb.ToString();
+        // Rent a StringBuilder from the shared pool instead of allocating per call. The
+        // pool returns it on dispose; oversized buffers (>64 KiB) are discarded so a single
+        // huge render doesn't retain an outlier capacity indefinitely.
+        var sb = RaskStringBuilderPool.Shared.Get();
+        try
+        {
+            HtmlSerializer.Serialize(this, sb);
+            return sb.ToString();
+        }
+        finally
+        {
+            RaskStringBuilderPool.Shared.Return(sb);
+        }
     }
 
     protected virtual void OnMount() { }
