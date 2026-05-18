@@ -1,7 +1,9 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
 namespace Rask.Wasm.Hosting;
@@ -56,6 +58,16 @@ public static class RaskWasmEndpointExtensions
         }
 
         var fileProvider = new PhysicalFileProvider(resolved);
+
+        // If the host called services.AddRask() (which registers brotli/gzip providers and
+        // adds application/wasm + application/octet-stream to the compressible MIME set),
+        // wire UseResponseCompression ahead of UseStaticFiles so .wasm/.dll/.js/.json bodies
+        // ship compressed. Skipped silently when not registered — the host still works,
+        // just without compression.
+        if (app.ApplicationServices.GetService<IResponseCompressionProvider>() is not null)
+        {
+            app.UseResponseCompression();
+        }
 
         app.UseDefaultFiles(new DefaultFilesOptions
         {

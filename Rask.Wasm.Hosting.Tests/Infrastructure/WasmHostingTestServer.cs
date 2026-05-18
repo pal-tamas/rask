@@ -24,10 +24,15 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
         await _app.DisposeAsync();
     }
 
-    public static async Task<WasmHostingTestServer> CreateAsync(string? bundlePath)
+    public static async Task<WasmHostingTestServer> CreateAsync(string? bundlePath, bool withCompression = false)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
+
+        if (withCompression)
+        {
+            builder.Services.AddRask();
+        }
 
         var app = builder.Build();
         app.UseRouting();

@@ -116,6 +116,53 @@ public class UseRaskTests
     }
 
     [Fact]
+    public async Task AddRaskRegistered_BrotliRequestedForWasm_ResponseUsesBrotli()
+    {
+        // Pad the .wasm to 8 KiB so the body crosses ResponseCompression's minimum-size
+        // threshold (otherwise small payloads are passed through unchanged).
+        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: true);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("br", response.Content.Headers.ContentEncoding);
+        Assert.Equal("application/wasm", response.Content.Headers.ContentType?.MediaType);
+        // Highly-compressible repeating bytes — output should be a tiny fraction of the input.
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.True(bytes.Length < 1024,
+            $"expected brotli output to be << raw 8 KiB, was {bytes.Length} bytes");
+    }
+
+    [Fact]
+    public async Task AddRaskRegistered_NoAcceptEncoding_NoCompression()
+    {
+        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: true);
+
+        var response = await host.Http.GetAsync("/_framework/foo.wasm");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(response.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
+    public async Task AddRaskNotRegistered_BrotliRequested_NoCompression()
+    {
+        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: false);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(response.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
     public void UseRask_OnEndpointBuilderWithoutApplicationBuilder_Throws()
     {
         using var bundle = new FakeBundleDirectory();
