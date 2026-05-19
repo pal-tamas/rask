@@ -373,7 +373,7 @@ public abstract class Component
         }
     }
 
-    internal void RaiseLifecycleAfterRender()
+    internal void RaiseOnRendered()
     {
         var firstRender = !_hasRenderedOnce;
         _hasRenderedOnce = true;
@@ -864,11 +864,11 @@ public abstract class Component
         {
             if (!ReferenceEquals(child, this))
             {
-                child.RaiseLifecycleAfterRender();
+                child.RaiseOnRendered();
             }
         }
 
-        RaiseLifecycleAfterRender();
+        RaiseOnRendered();
 
         // Snapshot the queue NOW — after every OnRendered (sync portion) had its chance
         // to call InvokeScopedJs — but before the ctx exits the using block. The ctx

@@ -7,9 +7,9 @@
 // is either ready (synchronous script in head) or about to be — we check
 // window.hljs and fall back to the script's load event if not yet ready.
 // firstRender is unused here (hljs.highlightElement is idempotent so re-running on
-// subsequent renders is harmless) but the parameter is plumbed through for hooks
-// that want to differentiate "first paint" from "subsequent renders" — same shape
-// as Blazor's OnAfterRender(bool firstRender).
+// subsequent renders is harmless) but the parameter is plumbed through from the
+// C#-side OnRendered(bool firstRender) lifecycle hook for cases that want to
+// differentiate "first paint" from "subsequent renders".
 export function rendered(el, firstRender) {
     const code = el.querySelector('code[class*="language-"]');
     if (!code) return;
