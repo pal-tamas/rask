@@ -57,44 +57,63 @@ public class ScopedCssRenderTests
     }
 
     [Fact]
-    public void RaskScopedStyles_BeforeAnyCssRegistered_RendersEmpty()
+    public void ScopedCss_BeforeAnyCssRegistered_EmitsNothingInHead()
     {
         ScopedCssRegistry.InvalidateAll();
-        var view = new NoCssWrapper(RaskScopedStyles());
+        var view = new PageRoot(new NoCssWrapper(Div(Class: "tag")));
         var html = view.RenderAsLiveRoot();
-        Assert.Equal("", html);
+        Assert.DoesNotContain("scoped.css", html);
+        Assert.DoesNotContain("__rask_head_assets__", html);
     }
 
     [Fact]
-    public void RaskScopedStyles_AfterCssRegistered_NoProvider_RendersEmpty()
+    public void ScopedCss_AfterCssRegistered_NoProvider_EmitsNothingInHead()
     {
-        var view = new CssWrapper(Div(Class: "tag"));
-        view.RenderAsLiveRoot();
-        Assert.NotNull(ScopedCssRegistry.CurrentHash);
-
+        // The framework only emits the scoped-css <link> when the host has
+        // registered an IRaskScopedStyles strategy. Without one, the bundle exists
+        // (CurrentHash non-null) but no link tag lands in <head>.
+        var view = new PageRoot(new CssWrapper(Div(Class: "tag")));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var probe = new NoCssWrapper(RaskScopedStyles());
-        var html = probe.RenderAsLiveRoot(sp);
-        Assert.Equal("", html);
+        var html = view.RenderAsLiveRoot(sp);
+        Assert.NotNull(ScopedCssRegistry.CurrentHash);
+        Assert.DoesNotContain("scoped.css", html);
     }
 
     [Fact]
-    public void RaskScopedStyles_AfterCssRegistered_WithProvider_DelegatesToProvider()
+    public void ScopedCss_AfterCssRegistered_WithProvider_LinkAppearsInHead()
     {
-        var view = new CssWrapper(Div(Class: "tag"));
-        view.RenderAsLiveRoot();
-        var hash = ScopedCssRegistry.CurrentHash;
-        Assert.NotNull(hash);
-
         var services = new ServiceCollection();
         services.AddSingleton<IRaskScopedStyles>(
             new LinkProvider(h => Link(Rel: "stylesheet", Href: $"/_rask/scoped.css?v={h}")));
         var sp = services.BuildServiceProvider();
 
-        var probe = new NoCssWrapper(RaskScopedStyles());
-        var html = probe.RenderAsLiveRoot(sp);
+        var view = new PageRoot(new CssWrapper(Div(Class: "tag")));
+        var html = view.RenderAsLiveRoot(sp);
+        var hash = ScopedCssRegistry.CurrentHash;
+        Assert.NotNull(hash);
         Assert.Contains($"href=\"/_rask/scoped.css?v={hash}\"", html);
         Assert.Contains("rel=\"stylesheet\"", html);
+        // Link sits inside <head>.
+        var headOpen = html.IndexOf("<head>", StringComparison.Ordinal);
+        var headClose = html.IndexOf("</head>", StringComparison.Ordinal);
+        var linkIdx = html.IndexOf("scoped.css", StringComparison.Ordinal);
+        Assert.True(headOpen < linkIdx && linkIdx < headClose);
+    }
+
+    // Minimal page root with a framework-managed <head>. Used to exercise the
+    // auto-emission path now that the RaskScopedStyles marker is gone.
+    private sealed class PageRoot : Component
+    {
+        private readonly Component _body;
+        public PageRoot(Component body) => _body = body;
+        protected override Component Render() =>
+            Fragment()[
+                Doctype(),
+                Html("en")[
+                    Head(),
+                    Body()[_body]
+                ]
+            ];
     }
 
     private sealed class LinkProvider : IRaskScopedStyles

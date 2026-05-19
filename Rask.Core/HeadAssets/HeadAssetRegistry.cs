@@ -1,5 +1,8 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
+using Rask.Core.ScopedCss;
+using Rask.Core.ScopedJs;
 
 namespace Rask.Core.HeadAssets;
 
@@ -107,11 +110,15 @@ internal sealed class HeadAssetRegistry
     }
 
     /// <summary>
-    ///     Replaces the first sentinel comment in <paramref name="html"/> with the
-    ///     concatenated unique-asset markup. No-op when the sentinel is absent (user
-    ///     didn't place <see cref="RaskHeadAssets"/>) or when nothing was registered.
+    ///     Replaces the framework-managed <c>&lt;head&gt;</c> sentinel with:
+    ///     user-declared <c>Component.Head</c> contributions (deduped, singleton
+    ///     tags resolved), then the scoped-css <c>&lt;link&gt;</c> (via
+    ///     <c>IRaskScopedStyles</c> from <paramref name="services"/>), then the
+    ///     scoped-js <c>&lt;script&gt;</c> (via <c>IRaskScopedScripts</c>). User
+    ///     contributions go first so an App.css scoped rule wins the cascade over
+    ///     an externally-loaded Bootstrap.
     /// </summary>
-    public string ApplyTo(string html)
+    public string ApplyTo(string html, IServiceProvider? services = null)
     {
         var idx = html.IndexOf(Sentinel, StringComparison.Ordinal);
         if (idx < 0)
@@ -119,17 +126,39 @@ internal sealed class HeadAssetRegistry
             return html;
         }
 
-        if (_orderedHtml.Count == 0)
+        // Resolve the host-provided emission strategies up front so we can pre-size
+        // the StringBuilder for the final splice.
+        string? scopedCssHtml = null;
+        string? scopedJsHtml = null;
+        var cssHash = ScopedCssRegistry.CurrentHash;
+        var jsHash = ScopedJsRegistry.CurrentHash;
+        if (services is not null && cssHash is not null
+            && services.GetService<IRaskScopedStyles>() is { } cssStrategy)
+        {
+            scopedCssHtml = cssStrategy.Render(cssHash).ToHtml();
+        }
+
+        if (services is not null && jsHash is not null
+            && services.GetService<IRaskScopedScripts>() is { } jsStrategy)
+        {
+            scopedJsHtml = jsStrategy.Render(jsHash).ToHtml();
+        }
+
+        if (_orderedHtml.Count == 0 && scopedCssHtml is null && scopedJsHtml is null)
         {
             return html.Remove(idx, Sentinel.Length);
         }
 
-        var sb = new StringBuilder(html.Length + _orderedHtml.Sum(s => s.Length) - Sentinel.Length);
+        var totalLen = html.Length - Sentinel.Length;
+        foreach (var asset in _orderedHtml) totalLen += asset.Length;
+        if (scopedCssHtml is not null) totalLen += scopedCssHtml.Length;
+        if (scopedJsHtml is not null) totalLen += scopedJsHtml.Length;
+
+        var sb = new StringBuilder(totalLen);
         sb.Append(html, 0, idx);
-        foreach (var asset in _orderedHtml)
-        {
-            sb.Append(asset);
-        }
+        foreach (var asset in _orderedHtml) sb.Append(asset);
+        if (scopedCssHtml is not null) sb.Append(scopedCssHtml);
+        if (scopedJsHtml is not null) sb.Append(scopedJsHtml);
         sb.Append(html, idx + Sentinel.Length, html.Length - idx - Sentinel.Length);
         return sb.ToString();
     }

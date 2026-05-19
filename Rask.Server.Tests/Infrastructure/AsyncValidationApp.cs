@@ -2,6 +2,8 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Forms;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Server.Tests.Infrastructure;
 
 // Mirrors the Rask.Example.Shared AsyncValidationDemo + ValidationPage structure

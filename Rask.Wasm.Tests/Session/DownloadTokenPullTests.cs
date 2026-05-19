@@ -8,6 +8,8 @@ using Rask.Wasm.Files;
 using Rask.Wasm.Tests.Infrastructure;
 using static Rask.Core.Components.Components;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Wasm.Tests.Session;
 
 [Collection("WasmSession")]

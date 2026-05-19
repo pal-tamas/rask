@@ -4,6 +4,8 @@ using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Server.Tests.Authentication;
 
 public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState) : Component

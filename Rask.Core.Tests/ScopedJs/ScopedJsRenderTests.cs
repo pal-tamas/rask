@@ -67,41 +67,58 @@ public class ScopedJsRenderTests
     }
 
     [Fact]
-    public void RaskScopedScripts_BeforeAnyJsRegistered_RendersEmpty()
+    public void ScopedJs_BeforeAnyJsRegistered_EmitsNothingInHead()
     {
-        var view = new NoJsWrapper(RaskScopedScripts());
+        var view = new PageRoot(new NoJsWrapper(Div(Class: "x")));
         var html = view.RenderAsLiveRoot();
-        Assert.Equal("", html);
+        Assert.DoesNotContain("scoped.js", html);
+        Assert.DoesNotContain("__rask_head_assets__", html);
     }
 
     [Fact]
-    public void RaskScopedScripts_AfterJsRegistered_NoProvider_RendersEmpty()
+    public void ScopedJs_AfterJsRegistered_NoProvider_EmitsNothingInHead()
     {
         ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
-        Assert.NotNull(ScopedJsRegistry.CurrentHash);
-
+        var view = new PageRoot(new JsWrapper(Div(Class: "x")));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var probe = new NoJsWrapper(RaskScopedScripts());
-        var html = probe.RenderAsLiveRoot(sp);
-        Assert.Equal("", html);
+        var html = view.RenderAsLiveRoot(sp);
+        Assert.NotNull(ScopedJsRegistry.CurrentHash);
+        Assert.DoesNotContain("scoped.js", html);
     }
 
     [Fact]
-    public void RaskScopedScripts_AfterJsRegistered_WithProvider_DelegatesToProvider()
+    public void ScopedJs_AfterJsRegistered_WithProvider_ScriptAppearsInHead()
     {
         ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
-        var hash = ScopedJsRegistry.CurrentHash;
-        Assert.NotNull(hash);
-
         var services = new ServiceCollection();
         services.AddSingleton<IRaskScopedScripts>(
             new ScriptProvider(h => Script(Src: $"/_rask/scoped.js?v={h}", Defer: true)));
         var sp = services.BuildServiceProvider();
 
-        var probe = new NoJsWrapper(RaskScopedScripts());
-        var html = probe.RenderAsLiveRoot(sp);
+        var view = new PageRoot(new JsWrapper(Div(Class: "x")));
+        var html = view.RenderAsLiveRoot(sp);
+        var hash = ScopedJsRegistry.CurrentHash;
+        Assert.NotNull(hash);
         Assert.Contains($"src=\"/_rask/scoped.js?v={hash}\"", html);
         Assert.Contains(" defer", html);
+        var headOpen = html.IndexOf("<head>", StringComparison.Ordinal);
+        var headClose = html.IndexOf("</head>", StringComparison.Ordinal);
+        var scriptIdx = html.IndexOf("scoped.js", StringComparison.Ordinal);
+        Assert.True(headOpen < scriptIdx && scriptIdx < headClose);
+    }
+
+    private sealed class PageRoot : Component
+    {
+        private readonly Component _body;
+        public PageRoot(Component body) => _body = body;
+        protected override Component Render() =>
+            Fragment()[
+                Doctype(),
+                Html("en")[
+                    Head(),
+                    Body()[_body]
+                ]
+            ];
     }
 
     private sealed class ScriptProvider : IRaskScopedScripts

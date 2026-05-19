@@ -1,7 +1,9 @@
 #if RASK_BROWSER
 using System.Runtime.InteropServices.JavaScript;
 #endif
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
 
@@ -37,6 +39,41 @@ internal static partial class JSInterop
         if (payload.Length > 0)
         {
             ApplyRender(payload);
+        }
+    }
+
+    // Routes InvokeJsAsync<T> results back from the JS-side scoped-JS dispatcher
+    // to the C# JsInvokeResultStore. `payload` is either null, a JSON-primitive
+    // value as string (the JS shim JSON-stringifies non-string results), or a
+    // raw string. The store deserializes per the awaiting Task's T.
+    [JSExport]
+    public static void ResolveJsInvoke(int id, string? payload, string? error)
+    {
+        if (error is not null)
+        {
+            JsInvokeResultStore.TryResolve(id, null, error);
+            return;
+        }
+
+        if (payload is null)
+        {
+            JsInvokeResultStore.TryResolve(id, null, null);
+            return;
+        }
+
+        try
+        {
+            // payload is JSON.stringify output OR a string passed through. Try
+            // parsing as JSON; on failure, treat as a raw string and re-encode
+            // as a JSON string literal with a hand-rolled escape (trim-safe).
+            using var doc = JsonDocument.Parse(payload);
+            JsInvokeResultStore.TryResolve(id, doc.RootElement.Clone(), null);
+        }
+        catch (JsonException)
+        {
+            var quoted = JsonEncodedText.Encode(payload).ToString();
+            using var doc = JsonDocument.Parse("\"" + quoted + "\"");
+            JsInvokeResultStore.TryResolve(id, doc.RootElement.Clone(), null);
         }
     }
 
@@ -96,6 +133,10 @@ internal static partial class JSInterop
         Task.FromResult(Array.Empty<byte>());
 
     // Non-browser stub mirroring the JSExport above so tests can drive the same code path.
+    public static void ResolveJsInvoke(int id, string? payload, string? error) =>
+        JsInvokeResultStore.TryResolve(id,
+            payload is null ? null : JsonDocument.Parse(payload).RootElement.Clone(), error);
+
     public static byte[] PullDownload(string token)
     {
         if (_session is null || string.IsNullOrEmpty(token)) return Array.Empty<byte>();

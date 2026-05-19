@@ -4,6 +4,8 @@ using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 using Rask.Server.Tests.Infrastructure;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
 namespace Rask.Server.Tests.Endpoints;
@@ -45,11 +47,13 @@ public class ScopedStylesProviderTests
 
     public sealed class ScopedCssApp : Component
     {
+        protected override Component? Head => Title()["test"];
+
         protected override Component Render() =>
             Fragment()[
                 Doctype(),
                 Html()[
-                    Head()[Title()["test"], RaskScopedStyles()],
+                    Head(),
                     Body()[Div(Class: "tag")["hi"]]
                 ]
             ];

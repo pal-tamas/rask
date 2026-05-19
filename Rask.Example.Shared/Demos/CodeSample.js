@@ -1,11 +1,16 @@
 // Per-instance Highlight.js bootstrap for the showcase's <CodeSample /> component.
-// The framework's scoped-JS pipeline calls rendered(el) against the outermost element
-// of every rendered CodeSample (data-rask-mount="r-..." stamped by HtmlSerializer).
-// The hljs <link> + <script> dependencies are declared by CodeSample.Head and placed
-// into <head> by the framework's RaskHeadAssets sentinel, so by the time rendered runs
-// the highlighter is either ready (synchronous script in head) or about to be — we
-// check window.hljs and fall back to the script's load event if not yet ready.
-export function rendered(el) {
+// The framework's scoped-JS pipeline calls rendered(el, firstRender) against the
+// outermost element of every rendered CodeSample (data-rask-mount="r-..." stamped
+// by HtmlSerializer) when CodeSample.cs's OnRendered calls InvokeScopedJs. The hljs
+// <link> + <script> dependencies are declared by CodeSample.Head and placed into
+// <head> via the framework's auto-emit; by the time rendered runs the highlighter
+// is either ready (synchronous script in head) or about to be — we check
+// window.hljs and fall back to the script's load event if not yet ready.
+// firstRender is unused here (hljs.highlightElement is idempotent so re-running on
+// subsequent renders is harmless) but the parameter is plumbed through for hooks
+// that want to differentiate "first paint" from "subsequent renders" — same shape
+// as Blazor's OnAfterRender(bool firstRender).
+export function rendered(el, firstRender) {
     const code = el.querySelector('code[class*="language-"]');
     if (!code) return;
     if (window.hljs) {

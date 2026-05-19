@@ -69,11 +69,12 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
         // Used by the WASM host where the payload is handed to JS interop as a UTF-16 string.
         // The server host calls BuildPayloadUtf8 instead to skip the UTF-16 round-trip.
-        var bytes = BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download, jsText);
+        var bytes = BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
         return Encoding.UTF8.GetString(bytes);
     }
 
@@ -84,15 +85,16 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
         var buffer = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        BuildPayloadUtf8(buffer, html, historyUrl, replace, cssText, auth, download, jsText);
+        BuildPayloadUtf8(buffer, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
         return buffer.WrittenSpan.ToArray();
     }
 
     /// <summary>
-    /// Pooled-writer overload of <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload,string)"/>.
+    /// Pooled-writer overload of <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload,string,IReadOnlyList{ScopedJsInvoke})"/>.
     /// Writes the JSON payload into the caller-supplied buffer; callers reuse the writer
     /// across frames (Clear / ResetWrittenCount) to avoid the per-frame 4 KiB allocation.
     /// </summary>
@@ -104,10 +106,11 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
         using var writer = new Utf8JsonWriter(output);
-        WriteJson(writer, html, historyUrl, replace, cssText, auth, download, jsText);
+        WriteJson(writer, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
     }
 
     /// <summary>
@@ -127,10 +130,11 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
         var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText);
+        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
@@ -150,9 +154,10 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: true,
-            historyUrl, replace, cssText, auth, download, jsText);
+            historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
 
     /// <summary>
     /// WASM live-path payload builder. Same UTF-8 splice as
@@ -170,10 +175,11 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
         var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText);
+        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
@@ -189,9 +195,10 @@ public static class LivePayload
         string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null)
+        string? jsText = null,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: false,
-            historyUrl, replace, cssText, auth, download, jsText);
+            historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
 
     private static void BuildPayloadUtf8Spliced(
         ArrayBufferWriter<byte> output,
@@ -203,7 +210,8 @@ public static class LivePayload
         string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText)
+        string? jsText,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes)
     {
         var htmlByteCount = Encoding.UTF8.GetByteCount(html);
         var htmlBuffer = ArrayPool<byte>.Shared.Rent(htmlByteCount);
@@ -217,7 +225,7 @@ public static class LivePayload
             if (bodyOpen < 0)
             {
                 // No <body> tag — fall back to the string-side payload builder.
-                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText);
+                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
                 return;
             }
 
@@ -228,7 +236,7 @@ public static class LivePayload
                 var tagEndRel = htmlBytes[bodyOpen..].IndexOf((byte)'>');
                 if (tagEndRel < 0)
                 {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
                     return;
                 }
 
@@ -236,7 +244,7 @@ public static class LivePayload
                 var closeIdx = IndexOfIgnoreCaseUtf8(htmlBytes, "</body>"u8, afterOpenTag);
                 if (closeIdx < 0)
                 {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
                     return;
                 }
 
@@ -277,7 +285,7 @@ public static class LivePayload
                 slice[headLen..].CopyTo(spliced[cursor..]);
 
                 using var writer = new Utf8JsonWriter(output);
-                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download, jsText);
+                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
             }
             finally
             {
@@ -326,14 +334,15 @@ public static class LivePayload
         string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText)
+        string? jsText,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes)
     {
         var cssHash = ScopedCssRegistry.CurrentHash;
         var jsHash = ScopedJsRegistry.CurrentHash;
 
         writer.WriteStartObject();
         writer.WriteString("html", html);
-        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download);
+        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download, scopedJsInvokes);
     }
 
     private static void WriteJsonUtf8Body(
@@ -344,14 +353,15 @@ public static class LivePayload
         string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText)
+        string? jsText,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes)
     {
         var cssHash = ScopedCssRegistry.CurrentHash;
         var jsHash = ScopedJsRegistry.CurrentHash;
 
         writer.WriteStartObject();
         writer.WriteString("html", htmlUtf8);
-        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download);
+        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download, scopedJsInvokes);
     }
 
     private static void WriteJsonTail(
@@ -363,7 +373,8 @@ public static class LivePayload
         string? cssText,
         string? jsText,
         AuthInstruction? auth,
-        PendingDownload? download)
+        PendingDownload? download,
+        IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes)
     {
         writer.WriteString("cssHash", cssHash);
         writer.WriteString("jsHash", jsHash);
@@ -376,6 +387,41 @@ public static class LivePayload
         if (jsText is not null)
         {
             writer.WriteString("jsText", jsText);
+        }
+
+        if (scopedJsInvokes is { Count: > 0 })
+        {
+            // Per-render queue of explicit scoped-JS method invocations. Each entry
+            // names a scope id + method + arg list — the client dispatcher calls
+            // `methods[method](el, ...args)` against every data-rask-mount element
+            // whose attribute value matches the scope id, after morph completes.
+            // When `id` is present the host expects the client to ship the return
+            // value back keyed by that id (server: WS message; WASM: JSExport).
+            writer.WriteStartArray("scopedJsInvokes");
+            foreach (var invoke in scopedJsInvokes)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("scope", invoke.ScopeId);
+                writer.WriteString("method", invoke.Method);
+                if (invoke.InvokeId is { } invokeId)
+                {
+                    writer.WriteNumber("id", invokeId);
+                }
+
+                if (invoke.Args is { Length: > 0 } args)
+                {
+                    writer.WriteStartArray("args");
+                    foreach (var arg in args)
+                    {
+                        WriteArgValue(writer, arg);
+                    }
+
+                    writer.WriteEndArray();
+                }
+
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
         }
 
         if (historyUrl is not null)
@@ -427,6 +473,32 @@ public static class LivePayload
         }
 
         writer.WriteEndObject();
+    }
+
+    // Hand-rolled primitive serialiser for InvokeJs args. Trim-safe (no reflection /
+    // JsonSerializer<T>) and only supports the JSON primitive set. Complex types fall
+    // through to ToString() so the user gets *something* across the wire, but the
+    // doc on InvokeJs spells out the supported types up front.
+    private static void WriteArgValue(Utf8JsonWriter writer, object? arg)
+    {
+        switch (arg)
+        {
+            case null: writer.WriteNullValue(); break;
+            case bool b: writer.WriteBooleanValue(b); break;
+            case byte u8: writer.WriteNumberValue(u8); break;
+            case sbyte i8: writer.WriteNumberValue(i8); break;
+            case short i16: writer.WriteNumberValue(i16); break;
+            case ushort u16: writer.WriteNumberValue(u16); break;
+            case int i32: writer.WriteNumberValue(i32); break;
+            case uint u32: writer.WriteNumberValue(u32); break;
+            case long i64: writer.WriteNumberValue(i64); break;
+            case ulong u64: writer.WriteNumberValue(u64); break;
+            case float f32: writer.WriteNumberValue(f32); break;
+            case double f64: writer.WriteNumberValue(f64); break;
+            case decimal d: writer.WriteNumberValue(d); break;
+            case string s: writer.WriteStringValue(s); break;
+            default: writer.WriteStringValue(arg.ToString() ?? string.Empty); break;
+        }
     }
 
     private static int IndexOfBodyOpen(string html)

@@ -1,6 +1,8 @@
 using Rask.Core;
 using Rask.Core.Components;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Server.Tests.Infrastructure;
 
 public sealed class ThrowingApp : Component

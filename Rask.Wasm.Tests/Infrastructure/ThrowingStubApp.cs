@@ -1,6 +1,8 @@
 using Rask.Core;
 using static Rask.Core.Components.Components;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Wasm.Tests.Infrastructure;
 
 internal sealed class ThrowingStubApp : Component

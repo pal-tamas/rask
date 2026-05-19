@@ -124,7 +124,9 @@ public class HtmlSerializerTests
 
     private static Component ShellOf(string tag) => tag switch
     {
-        "head" => Head()[Text("x")],
+        // Head() is framework-managed (no children allowed per RASK019) — its case
+        // verifies the no-stamp rule alongside the rest of the shell tags.
+        "head" => Head(),
         "body" => Body()[Text("x")],
         "html" => Html()[Text("x")],
         "title" => Title()[Text("x")],

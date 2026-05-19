@@ -60,6 +60,21 @@ public sealed class LiveRenderContext : IDisposable
     /// </summary>
     internal HeadAssetRegistry HeadAssets { get; } = new();
 
+    private readonly List<ScopedJsInvoke> _scopedJsInvokes = new();
+
+    /// <summary>
+    ///     Per-render queue of explicit scoped-JS invocations. Populated by
+    ///     <see cref="Component.InvokeScopedJs"/> calls from inside
+    ///     <c>OnRendered</c> / <c>OnRenderedAsync</c>; consumed by the host's payload
+    ///     builder which writes them as the <c>scopedJsInvokes</c> JSON field so the
+    ///     client dispatcher fires <c>rendered(el, firstRender)</c> against matching
+    ///     <c>data-rask-mount</c> elements after morph completes.
+    /// </summary>
+    internal IReadOnlyList<ScopedJsInvoke> ScopedJsInvokes => _scopedJsInvokes;
+
+    internal void QueueScopedJsInvoke(string scopeId, string method, object?[]? args, int? invokeId = null) =>
+        _scopedJsInvokes.Add(new ScopedJsInvoke(scopeId, method, args, invokeId));
+
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;

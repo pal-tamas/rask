@@ -6,6 +6,8 @@ using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using static Rask.Core.Components.Components;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
 namespace Rask.Wasm.Tests.Session;
@@ -58,11 +60,13 @@ public class ScopedStylesAbsenceTests
 
     private sealed class ScopedCssStubApp : Component
     {
+        protected override Component? Head => Title()["wasm-stub"];
+
         protected override Component Render() =>
             Fragment()[
                 Doctype(),
                 Html()[
-                    Head()[Title()["wasm-stub"], RaskScopedStyles()],
+                    Head(),
                     Body()[Div(Class: "tag")["hi"]]
                 ]
             ];

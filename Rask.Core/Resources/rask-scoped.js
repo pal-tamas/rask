@@ -3,83 +3,106 @@
 // in Rask.Server.csproj and Rask.Wasm.csproj.
 //
 // Public author surface (sibling `.js` next to a Component):
-//   export function rendered(el) {
-//       // do something with el; return a cleanup function if you need teardown.
-//       return () => { /* cleanup runs before el leaves the DOM */ };
-//   }
+//   export function rendered(el, firstRender) { /* ... */ }
+//   export async function fetchSomething(el, key) { return await x.fetch(key); }
+//   // any number of named exports — each becomes a method on the scoped module.
 //
-// The bundle delivered from the server / inlined on WASM consists of per-component
-// `Rask.scoped.register(scopeId, factory)` calls (one per .js sibling). The morph
-// algorithm in rask-morph.js calls `Rask.scoped.walkRendered` / `Rask.scoped.walkRemoved`
-// against every inserted / removed subtree; the server runtime walks the initial DOM
-// once after WS open, the WASM runtime walks once after setExports.
+// Invocation model: NOT automatic. C# user code calls
+//   InvokeJs("name", ...args)             — fire-and-forget
+//   InvokeJsAsync<T>("name", ...args)     — await the return value
+// from a lifecycle hook (typically OnRendered). The framework ships queued
+// invocations in the render payload as `scopedJsInvokes`; the client runtime calls
+//   Rask.scoped.invoke(scopeId, method, idOrNull, args)
+// for each entry after morph completes. The dispatcher looks up `method` on the
+// registered module object, calls it as `module[method](el, ...args)` for the
+// first matching `data-rask-mount` element, awaits any returned Promise, and
+// — when `idOrNull` is a number — ships the result back via the host-installed
+// `Rask.scoped._sendResult(id, value, error)` bridge.
 window.Rask = window.Rask || {};
 Rask.scoped = (function () {
-    var registry = new Map();    // scopeId -> rendered fn
-    var cleanups = new WeakMap(); // element -> cleanup fn returned by rendered()
+    var registry = new Map(); // scopeId -> { name: function, ... }
 
     function register(scopeId, factory) {
-        var hook;
+        var methods;
         try {
-            hook = (typeof factory === 'function') ? factory() : factory;
+            methods = (typeof factory === 'function') ? factory() : factory;
         } catch (e) {
             console.error('[Rask] scoped-js factory failed for ' + scopeId, e);
             return;
         }
-        if (typeof hook === 'function') {
-            registry.set(scopeId, hook);
+        if (methods && typeof methods === 'object') {
+            registry.set(scopeId, methods);
         }
     }
 
-    function dispatch(node, phase) {
-        if (!node || node.nodeType !== 1) return;
-        var scopeId = node.getAttribute && node.getAttribute('data-rask-mount');
-        if (!scopeId) return;
-        if (phase === 'rendered') {
-            var fn = registry.get(scopeId);
-            if (typeof fn !== 'function') return;
-            // Each render re-runs the hook (mirrors Blazor's OnAfterRender semantics + the
-            // React useEffect-with-no-deps shape). Tear down the previous render's effect
-            // before kicking off the new one so listeners / timers don't accumulate.
-            var prevCleanup = cleanups.get(node);
-            if (prevCleanup) {
-                cleanups.delete(node);
-                try { prevCleanup(node); }
-                catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
-            }
+    // host runtime installs this hook to ship the result back across the
+    // appropriate transport (WS message on server, JSExport call on WASM).
+    function _sendResult(id, value, error) {
+        // default no-op — overridden by rask.js / rask.wasm.js
+    }
+
+    function _serializeResult(value) {
+        if (value === undefined) return null;
+        // Keep the wire payload narrow: primitives travel as JSON-native; everything
+        // else (objects, arrays, classes) stringifies. C# DeserializeResult<T>
+        // handles primitives directly and falls back to the JSON raw text for string T.
+        var t = typeof value;
+        if (t === 'boolean' || t === 'number' || t === 'string' || value === null) return value;
+        try { return JSON.stringify(value); } catch (e) { return String(value); }
+    }
+
+    function invoke(scopeId, method, id, args) {
+        if (!scopeId || !method) return;
+        var hasId = (typeof id === 'number');
+        var methods = registry.get(scopeId);
+        if (!methods) {
+            if (hasId) _sendResult(id, null, null);
+            return;
+        }
+        var fn = methods[method];
+        if (typeof fn !== 'function') {
+            if (hasId) _sendResult(id, null, null);
+            return;
+        }
+        var extra = Array.isArray(args) ? args : [];
+        // For fire-and-forget invocations, dispatch against EVERY matching element.
+        // For await-the-result invocations (id present), only the first matching
+        // element's return value is shipped back — matches Component.InvokeJsAsync's
+        // documented contract.
+        var nodes = document.querySelectorAll('[data-rask-mount="' + scopeId + '"]');
+        if (hasId) {
+            var node = nodes[0];
+            if (!node) { _sendResult(id, null, null); return; }
             try {
-                var result = fn(node);
-                if (typeof result === 'function') {
-                    cleanups.set(node, result);
+                var result = fn.apply(null, [node].concat(extra));
+                if (result && typeof result.then === 'function') {
+                    result.then(
+                        function (v) { _sendResult(id, _serializeResult(v), null); },
+                        function (err) { _sendResult(id, null, (err && err.message) || String(err)); }
+                    );
+                } else {
+                    _sendResult(id, _serializeResult(result), null);
                 }
             } catch (e) {
-                console.error('[Rask] rendered failed for ' + scopeId, e);
+                _sendResult(id, null, e && e.message || String(e));
             }
-        } else {
-            // Element is leaving the DOM. Only fire cleanup; no rendered to invoke.
-            var c = cleanups.get(node);
-            if (!c) return;
-            cleanups.delete(node);
-            try { c(node); }
-            catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
+            return;
         }
-    }
-
-    function walk(root, phase) {
-        if (!root) return;
-        if (root.nodeType === 1 && root.hasAttribute && root.hasAttribute('data-rask-mount')) {
-            dispatch(root, phase);
-        }
-        if (root.querySelectorAll) {
-            var nodes = root.querySelectorAll('[data-rask-mount]');
-            for (var i = 0; i < nodes.length; i++) dispatch(nodes[i], phase);
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            try {
+                fn.apply(null, [n].concat(extra));
+            } catch (e) {
+                console.error('[Rask] ' + method + ' failed for ' + scopeId, e);
+            }
         }
     }
 
     return {
         register: register,
-        dispatch: dispatch,
-        walkRendered: function (r) { walk(r, 'rendered'); },
-        walkRemoved: function (r) { walk(r, 'removed'); }
+        invoke: invoke,
+        // The host runtime patches this with a transport-specific sender.
+        set _sendResult(fn) { _sendResult = fn; },
+        get _sendResult() { return _sendResult; }
     };
 })();

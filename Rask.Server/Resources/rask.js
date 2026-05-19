@@ -29,13 +29,10 @@
             for (var i = 0; i < queue.length; i++) ws.send(queue[i]);
             queue.length = 0;
             hideOverlay();
-            // Initial walk: the page DOM came from the HTTP GET and never went through
-            // morph, so insertion-time `rendered` hooks never fired. Walk once now so
-            // every data-rask-mount element gets rendered() called against it. The bundle
-            // <script> is added by applyScopedJs below; if it isn't loaded yet, register()
-            // calls run later and the walk this triggers is a no-op for those scopes —
-            // the applyScopedJs onload handler re-walks once registration completes.
-            if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(document.documentElement);
+            // The framework no longer auto-fires scoped-JS `rendered` hooks. C# user
+            // code invokes them via `InvokeScopedJs(firstRender)` from OnRendered /
+            // OnRenderedAsync; the resulting `scopedJsInvokes` payload field is
+            // dispatched below in the WS message handler after each morph.
         });
 
         ws.addEventListener("message", function (e) {
@@ -70,12 +67,8 @@
                         history.pushState({rask: true}, "", data.history.url);
                     }
                 }
-                // Re-fire rendered() against every data-rask-mount element after morph
-                // completes. Morph may have rewritten attributes set by the previous
-                // rendered() invocation (e.g. highlight.js's added `hljs` class), so the
-                // hook needs to run again to re-establish them. The cleanup fn returned
-                // from the prior call (if any) is invoked first.
-                if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(root);
+                // Scoped-JS `rendered` hooks are NOT auto-fired here — the framework
+                // dispatches them based on the `scopedJsInvokes` payload field below.
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
             // Animate navigations (renders carrying a history block) with the View
@@ -88,6 +81,23 @@
             }
             if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
             if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
+            // Dispatch any queued scoped-JS invocations against the freshly-morphed DOM.
+            // Each entry calls `Rask.scoped.invoke(scope, method, id, args)`. When
+            // `id` is present the dispatcher ships the result back via the
+            // _sendResult bridge below; otherwise it's fire-and-forget. The bundle
+            // script is `defer`red and may not have loaded on the initial frame —
+            // if so, the registry lookup misses and the dispatcher no-ops; the
+            // applyScopedJs onload handler retries every registered scope.
+            if (Array.isArray(data.scopedJsInvokes) && window.Rask && Rask.scoped) {
+                for (var si = 0; si < data.scopedJsInvokes.length; si++) {
+                    var inv = data.scopedJsInvokes[si];
+                    if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
+                        var args = Array.isArray(inv.args) ? inv.args : [];
+                        var invId = (typeof inv.id === "number") ? inv.id : null;
+                        Rask.scoped.invoke(inv.scope, inv.method, invId, args);
+                    }
+                }
+            }
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }
@@ -155,6 +165,15 @@
         if ("inert" in document.body) document.body.inert = false;
     }
 
+    // Install the InvokeJsAsync result-shipper. Server-side: route the result back
+    // to the .NET JsInvokeResultStore over the live WS using a dedicated message
+    // type. The framework's WS handler matches `id` and completes the awaiting TCS.
+    if (window.Rask && Rask.scoped) {
+        Rask.scoped._sendResult = function (id, value, error) {
+            send({ type: "invokeResult", id: id, result: value, error: error });
+        };
+    }
+
     function applyScopedCss(hash) {
         var url = "/_rask/scoped.css?v=" + hash;
         var link = document.querySelector("link[data-rask-scoped]");
@@ -182,9 +201,18 @@
         script.defer = true;
         script.src = url;
         script.addEventListener("load", function () {
-            if (window.Rask && Rask.scoped) {
-                Rask.scoped.walkRemoved(document.documentElement);
-                Rask.scoped.walkRendered(document.documentElement);
+            // Bundle just loaded — register() calls have populated the registry. Any
+            // C#-queued invocations that arrived before this point hit an empty
+            // registry and no-op'd; re-invoke "rendered" against every registered
+            // scope with firstRender=true (the bundle-load moment is the first time
+            // these elements see their hook). Modules without a "rendered" export
+            // silently no-op in the dispatcher.
+            if (!window.Rask || !Rask.scoped) return;
+            var marked = document.querySelectorAll("[data-rask-mount]");
+            var seen = new Set();
+            for (var i = 0; i < marked.length; i++) {
+                var s = marked[i].getAttribute("data-rask-mount");
+                if (s && !seen.has(s)) { seen.add(s); Rask.scoped.invoke(s, "rendered", null, [true]); }
             }
         }, { once: true });
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);

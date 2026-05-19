@@ -374,7 +374,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // ToArray at the end is still needed today because the JS interop boundary
         // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
         _writeBuffer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download, jsText);
+        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download, jsText,
+            scopedJsInvokes: View.PendingScopedJsInvokes);
         return _writeBuffer.WrittenSpan.ToArray();
     }
 }

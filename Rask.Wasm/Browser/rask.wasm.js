@@ -41,15 +41,24 @@ export function setExports(exports) {
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
     console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
-    // Initial walk: the page DOM (from the WASM page shell + the first applyRender)
-    // never went through morph, so insertion-time `rendered` hooks never fired. Walk
-    // once now so every data-rask-mount element gets rendered() called against it.
-    // The bundle is inlined into <script id="rask-scoped-js"> by applyScopedJs; the
-    // first walk here is a no-op if the bundle hasn't been delivered yet, and
-    // applyScopedJs re-walks after each bundle update.
-    if (window.Rask && window.Rask.scoped) {
-        window.Rask.scoped.walkRendered(document.documentElement);
+    // Install the InvokeJsAsync result-shipper. WASM routes results back through
+    // the ResolveJsInvoke JSExport — .NET-side calls JsInvokeResultStore.TryResolve
+    // to complete the awaiting Task<T>.
+    if (window.Rask && window.Rask.scoped && exports && exports.Rask
+        && exports.Rask.Wasm && exports.Rask.Wasm.JSInterop
+        && typeof exports.Rask.Wasm.JSInterop.ResolveJsInvoke === "function") {
+        window.Rask.scoped._sendResult = function (id, value, error) {
+            let payload;
+            if (value === null || value === undefined) payload = null;
+            else if (typeof value === "string") payload = value;
+            else payload = JSON.stringify(value);
+            exports.Rask.Wasm.JSInterop.ResolveJsInvoke(id, payload, error || null);
+        };
     }
+    // The framework no longer auto-fires scoped-JS `rendered` hooks. C# user code
+    // invokes them via `InvokeJs(method, args)` from a C# lifecycle hook (typically
+    // OnRendered); the resulting `scopedJsInvokes` payload field is dispatched
+    // inside handle() after each morph.
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
@@ -192,9 +201,16 @@ function applyScopedJs(hash, jsText) {
     script.setAttribute("data-rask-managed", "");
     script.textContent = jsText;
     document.head.appendChild(script);
-    if (window.Rask && window.Rask.scoped) {
-        window.Rask.scoped.walkRemoved(document.documentElement);
-        window.Rask.scoped.walkRendered(document.documentElement);
+    // Bundle just (re-)evaluated — register() calls have populated the registry.
+    // C#-queued invocations that arrived before this point hit an empty registry
+    // and no-op'd; re-invoke "rendered" against every registered scope with
+    // firstRender=true. Modules without a "rendered" export silently no-op.
+    if (!window.Rask || !window.Rask.scoped) return;
+    const marked = document.querySelectorAll("[data-rask-mount]");
+    const seen = new Set();
+    for (const node of marked) {
+        const s = node.getAttribute("data-rask-mount");
+        if (s && !seen.has(s)) { seen.add(s); window.Rask.scoped.invoke(s, "rendered", null, [true]); }
     }
 }
 
@@ -206,84 +222,107 @@ function applyScopedJs(hash, jsText) {
 // in Rask.Server.csproj and Rask.Wasm.csproj.
 //
 // Public author surface (sibling `.js` next to a Component):
-//   export function rendered(el) {
-//       // do something with el; return a cleanup function if you need teardown.
-//       return () => { /* cleanup runs before el leaves the DOM */ };
-//   }
+//   export function rendered(el, firstRender) { /* ... */ }
+//   export async function fetchSomething(el, key) { return await x.fetch(key); }
+//   // any number of named exports — each becomes a method on the scoped module.
 //
-// The bundle delivered from the server / inlined on WASM consists of per-component
-// `Rask.scoped.register(scopeId, factory)` calls (one per .js sibling). The morph
-// algorithm in rask-morph.js calls `Rask.scoped.walkRendered` / `Rask.scoped.walkRemoved`
-// against every inserted / removed subtree; the server runtime walks the initial DOM
-// once after WS open, the WASM runtime walks once after setExports.
+// Invocation model: NOT automatic. C# user code calls
+//   InvokeJs("name", ...args)             — fire-and-forget
+//   InvokeJsAsync<T>("name", ...args)     — await the return value
+// from a lifecycle hook (typically OnRendered). The framework ships queued
+// invocations in the render payload as `scopedJsInvokes`; the client runtime calls
+//   Rask.scoped.invoke(scopeId, method, idOrNull, args)
+// for each entry after morph completes. The dispatcher looks up `method` on the
+// registered module object, calls it as `module[method](el, ...args)` for the
+// first matching `data-rask-mount` element, awaits any returned Promise, and
+// — when `idOrNull` is a number — ships the result back via the host-installed
+// `Rask.scoped._sendResult(id, value, error)` bridge.
 window.Rask = window.Rask || {};
 Rask.scoped = (function () {
-    var registry = new Map();    // scopeId -> rendered fn
-    var cleanups = new WeakMap(); // element -> cleanup fn returned by rendered()
+    var registry = new Map(); // scopeId -> { name: function, ... }
 
     function register(scopeId, factory) {
-        var hook;
+        var methods;
         try {
-            hook = (typeof factory === 'function') ? factory() : factory;
+            methods = (typeof factory === 'function') ? factory() : factory;
         } catch (e) {
             console.error('[Rask] scoped-js factory failed for ' + scopeId, e);
             return;
         }
-        if (typeof hook === 'function') {
-            registry.set(scopeId, hook);
+        if (methods && typeof methods === 'object') {
+            registry.set(scopeId, methods);
         }
     }
 
-    function dispatch(node, phase) {
-        if (!node || node.nodeType !== 1) return;
-        var scopeId = node.getAttribute && node.getAttribute('data-rask-mount');
-        if (!scopeId) return;
-        if (phase === 'rendered') {
-            var fn = registry.get(scopeId);
-            if (typeof fn !== 'function') return;
-            // Each render re-runs the hook (mirrors Blazor's OnAfterRender semantics + the
-            // React useEffect-with-no-deps shape). Tear down the previous render's effect
-            // before kicking off the new one so listeners / timers don't accumulate.
-            var prevCleanup = cleanups.get(node);
-            if (prevCleanup) {
-                cleanups.delete(node);
-                try { prevCleanup(node); }
-                catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
-            }
+    // host runtime installs this hook to ship the result back across the
+    // appropriate transport (WS message on server, JSExport call on WASM).
+    function _sendResult(id, value, error) {
+        // default no-op — overridden by rask.js / rask.wasm.js
+    }
+
+    function _serializeResult(value) {
+        if (value === undefined) return null;
+        // Keep the wire payload narrow: primitives travel as JSON-native; everything
+        // else (objects, arrays, classes) stringifies. C# DeserializeResult<T>
+        // handles primitives directly and falls back to the JSON raw text for string T.
+        var t = typeof value;
+        if (t === 'boolean' || t === 'number' || t === 'string' || value === null) return value;
+        try { return JSON.stringify(value); } catch (e) { return String(value); }
+    }
+
+    function invoke(scopeId, method, id, args) {
+        if (!scopeId || !method) return;
+        var hasId = (typeof id === 'number');
+        var methods = registry.get(scopeId);
+        if (!methods) {
+            if (hasId) _sendResult(id, null, null);
+            return;
+        }
+        var fn = methods[method];
+        if (typeof fn !== 'function') {
+            if (hasId) _sendResult(id, null, null);
+            return;
+        }
+        var extra = Array.isArray(args) ? args : [];
+        // For fire-and-forget invocations, dispatch against EVERY matching element.
+        // For await-the-result invocations (id present), only the first matching
+        // element's return value is shipped back — matches Component.InvokeJsAsync's
+        // documented contract.
+        var nodes = document.querySelectorAll('[data-rask-mount="' + scopeId + '"]');
+        if (hasId) {
+            var node = nodes[0];
+            if (!node) { _sendResult(id, null, null); return; }
             try {
-                var result = fn(node);
-                if (typeof result === 'function') {
-                    cleanups.set(node, result);
+                var result = fn.apply(null, [node].concat(extra));
+                if (result && typeof result.then === 'function') {
+                    result.then(
+                        function (v) { _sendResult(id, _serializeResult(v), null); },
+                        function (err) { _sendResult(id, null, (err && err.message) || String(err)); }
+                    );
+                } else {
+                    _sendResult(id, _serializeResult(result), null);
                 }
             } catch (e) {
-                console.error('[Rask] rendered failed for ' + scopeId, e);
+                _sendResult(id, null, e && e.message || String(e));
             }
-        } else {
-            // Element is leaving the DOM. Only fire cleanup; no rendered to invoke.
-            var c = cleanups.get(node);
-            if (!c) return;
-            cleanups.delete(node);
-            try { c(node); }
-            catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
+            return;
         }
-    }
-
-    function walk(root, phase) {
-        if (!root) return;
-        if (root.nodeType === 1 && root.hasAttribute && root.hasAttribute('data-rask-mount')) {
-            dispatch(root, phase);
-        }
-        if (root.querySelectorAll) {
-            var nodes = root.querySelectorAll('[data-rask-mount]');
-            for (var i = 0; i < nodes.length; i++) dispatch(nodes[i], phase);
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            try {
+                fn.apply(null, [n].concat(extra));
+            } catch (e) {
+                console.error('[Rask] ' + method + ' failed for ' + scopeId, e);
+            }
         }
     }
 
     return {
         register: register,
-        dispatch: dispatch,
-        walkRendered: function (r) { walk(r, 'rendered'); },
-        walkRemoved: function (r) { walk(r, 'removed'); }
+        invoke: invoke,
+        // The host runtime patches this with a transport-specific sender.
+        set _sendResult(fn) { _sendResult = fn; },
+        get _sendResult() { return _sendResult; }
     };
 })();
 
@@ -320,26 +359,24 @@ function reviveScript(node) {
     return s;
 }
 
-// Wrappers around the underlying DOM mutation primitives that dispatch the
-// scoped-js mount/unmount hooks at the right moment. Unmount runs BEFORE removal
-// so the hook still sees the node attached; mount runs AFTER insertion so the
-// node is in the live DOM when the hook reads it.
+// Wrappers around the underlying DOM mutation primitives. Scoped-JS hooks are
+// NOT auto-fired by morph any more — C# code drives invocations explicitly via
+// InvokeJs(name, ...args) from a lifecycle hook (typically OnRendered); the
+// resulting `scopedJsInvokes` payload field is dispatched by the runtime after
+// morph completes. If a user needs teardown on element removal, they should use
+// a MutationObserver inside their hook or expose an explicit "removed" method
+// and call it from OnUnmount via InvokeJs.
 function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 function _raskAppendChild(parent, dst) {
     parent.appendChild(dst);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 function _raskRemoveChild(parent, src) {
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
     parent.removeChild(src);
 }
 function _raskReplaceChild(parent, dst, src) {
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
     parent.replaceChild(dst, src);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 
 function morph(from, to) {
@@ -483,12 +520,8 @@ function handle(reply) {
             root = document.querySelector("[data-rask-root]") || document.body;
         }
         applyHistory(reply.history);
-        // Re-fire rendered() against every data-rask-mount element after morph
-        // completes — morph may have rewritten attributes the prior rendered() call
-        // set (e.g. highlight.js's added `hljs` class). Cleanup runs first if present.
-        if (window.Rask && window.Rask.scoped) {
-            window.Rask.scoped.walkRendered(document.documentElement);
-        }
+        // Scoped-JS `rendered` hooks are NOT auto-fired here — dispatched below
+        // based on the `scopedJsInvokes` payload field.
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     // Animate navigations (renders carrying a history block) with the View
@@ -503,6 +536,19 @@ function handle(reply) {
         applyScopedCss(reply.cssHash, reply.cssText);
     if (typeof reply.jsHash === "string" || reply.jsHash === null)
         applyScopedJs(reply.jsHash, reply.jsText);
+    // Dispatch C#-queued scoped-JS invocations against the morphed DOM. Each entry
+    // calls `methods[inv.method](el, ...inv.args)`; when `id` is present the
+    // dispatcher ships the result back through the _sendResult bridge installed
+    // below to complete the awaiting Task<T>.
+    if (Array.isArray(reply.scopedJsInvokes) && window.Rask && window.Rask.scoped) {
+        for (const inv of reply.scopedJsInvokes) {
+            if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
+                const args = Array.isArray(inv.args) ? inv.args : [];
+                const invId = (typeof inv.id === "number") ? inv.id : null;
+                window.Rask.scoped.invoke(inv.scope, inv.method, invId, args);
+            }
+        }
+    }
     if (reply.download) triggerDownload(reply.download);
 }
 

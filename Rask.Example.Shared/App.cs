@@ -2,13 +2,17 @@ namespace Rask.Example.Shared;
 
 public sealed class App : Component
 {
-    // App-level <head> contributions: title (singleton — pages override via their own
-    // Head) and the Bootstrap CDN dependencies. Declaring CDN assets here colocates
-    // them with the consumer; they live in the same registry as component-declared
-    // assets and dedup the same way. The title singleton means a page's Head wins for
-    // tab text without producing a second <title> in head.
+    // ALL <head> contents come through here. <head> is a framework-managed slot —
+    // passing children to Head() is a RASK019 compile error. The framework collects
+    // contributions from every component currently in the tree (App + every page +
+    // every demo component), dedupes by rendered HTML, resolves singleton tags
+    // (<title>, <base>) so the latest contributor wins, and auto-appends the
+    // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
+    // the scoped-css link so App.css's brand palette overrides Bootstrap.
     protected override Component? Head => Fragment()[
         Title()["Rask — feature showcase"],
+        Meta("utf-8"),
+        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
         Link(Rel: "stylesheet",
             Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
             CrossOrigin: "anonymous"),
@@ -18,20 +22,11 @@ public sealed class App : Component
     ];
 
     // Brand palette and global cascade live in App.css (sibling scoped-CSS file).
-    // Note the order in <head>: RaskHeadAssets() (component-declared deps including
-    // Bootstrap) comes BEFORE RaskScopedStyles() (the scoped-CSS bundle). The brand
-    // palette in App.css overrides Bootstrap's CSS variables, so it must load after.
     protected override Component Render() =>
         Fragment()[
             Doctype(),
             Html("en")[
-                Head()[
-                    Meta("utf-8"),
-                    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
-                    RaskHeadAssets(),
-                    RaskScopedStyles(),
-                    RaskScopedScripts()
-                ],
+                Head(),
                 Body(Class: "bg-body-tertiary")[
                     Router(),
                     RaskRuntimeScript()

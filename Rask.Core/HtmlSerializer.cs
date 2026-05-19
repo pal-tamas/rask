@@ -85,6 +85,16 @@ internal static class HtmlSerializer
                     }
                 }
 
+                // The <head> element is framework-managed: emit the head-asset sentinel
+                // here so user-declared Head contributions (collected during the render
+                // walk) splice in via HeadAssetRegistry.ApplyTo, alongside scoped-css
+                // and scoped-js framework markers. Children passed to Head() (if any
+                // slip past the RASK019 analyzer) render first; the sentinel follows.
+                if (tagName == "head" && live is not null)
+                {
+                    sb.Append(HeadAssets.HeadAssetRegistry.Sentinel);
+                }
+
                 sb.Append("</").Append(tagName).Append('>');
                 break;
 

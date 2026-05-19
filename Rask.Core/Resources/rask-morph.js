@@ -31,26 +31,24 @@ function reviveScript(node) {
     return s;
 }
 
-// Wrappers around the underlying DOM mutation primitives that dispatch the
-// scoped-js mount/unmount hooks at the right moment. Unmount runs BEFORE removal
-// so the hook still sees the node attached; mount runs AFTER insertion so the
-// node is in the live DOM when the hook reads it.
+// Wrappers around the underlying DOM mutation primitives. Scoped-JS hooks are
+// NOT auto-fired by morph any more — C# code drives invocations explicitly via
+// InvokeJs(name, ...args) from a lifecycle hook (typically OnRendered); the
+// resulting `scopedJsInvokes` payload field is dispatched by the runtime after
+// morph completes. If a user needs teardown on element removal, they should use
+// a MutationObserver inside their hook or expose an explicit "removed" method
+// and call it from OnUnmount via InvokeJs.
 function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 function _raskAppendChild(parent, dst) {
     parent.appendChild(dst);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 function _raskRemoveChild(parent, src) {
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
     parent.removeChild(src);
 }
 function _raskReplaceChild(parent, dst, src) {
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
     parent.replaceChild(dst, src);
-    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
 }
 
 function morph(from, to) {

@@ -4,8 +4,8 @@ using Rask.Core.Components;
 
 namespace Rask.Core.Tests.HeadAssets;
 
-// End-to-end render tests for Component.Head + RaskHeadAssets — exercises the
-// HtmlSerializer.Add → HeadAssetRegistry → Component.RenderAsLiveRootCore splice
+// End-to-end render tests for Component.Head + framework-managed <head> — exercises
+// the HtmlSerializer.Add → HeadAssetRegistry → Component.RenderAsLiveRootCore splice
 // pass. Unit-level dedup behavior lives in HeadAssetRegistryTests; this file
 // asserts the rendered HTML you'd actually see in the browser.
 public class HeadAssetRenderTests
@@ -105,7 +105,10 @@ public class HeadAssetRenderTests
             Fragment()[
                 Doctype(),
                 Html("en")[
-                    Head()[Meta("utf-8"), RaskHeadAssets()],
+                    // Head() is framework-managed: the serializer auto-inserts the
+                    // head-asset sentinel inside, so contributions splice in without
+                    // any explicit placeholder.
+                    Head(),
                     Body()[_body]
                 ]
             ];
@@ -128,7 +131,10 @@ public class HeadAssetRenderTests
             Fragment()[
                 Doctype(),
                 Html("en")[
-                    Head()[Meta("utf-8"), RaskHeadAssets()],
+                    // Head() is framework-managed: the serializer auto-inserts the
+                    // head-asset sentinel inside, so contributions splice in without
+                    // any explicit placeholder.
+                    Head(),
                     Body()[_body]
                 ]
             ];

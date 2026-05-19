@@ -22,6 +22,15 @@ public sealed class CodeSample : Component
             CrossOrigin: "anonymous")
     ];
 
+    // The framework no longer auto-fires scoped-JS hooks. Opt in by calling
+    // InvokeJs from a lifecycle hook — OnRendered fires after every render with a
+    // firstRender flag we plumb through to rendered(el, firstRender) in CodeSample.js.
+    // The hook itself is idempotent for hljs so re-firing on subsequent renders is
+    // harmless. The method name "rendered" is a CodeSample convention — any name
+    // works because InvokeJs dispatches by name to the corresponding `export
+    // function` in the sibling .js.
+    protected override void OnRendered(bool firstRender) => InvokeJs("rendered", firstRender);
+
     protected override Component Render() =>
         Div(Class: "card shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null

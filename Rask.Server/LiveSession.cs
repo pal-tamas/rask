@@ -163,7 +163,8 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // Component.Head never made it to the browser tab on SPA-style navigation.
             // The added head bytes (~2-3 KB) compress away under permessage-deflate.
             _writeBuffer.ResetWrittenCount();
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download);
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
+                scopedJsInvokes: View.PendingScopedJsInvokes);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations

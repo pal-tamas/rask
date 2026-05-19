@@ -2,6 +2,8 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
 namespace Rask.Server.Tests.Infrastructure;
 
 public sealed class TestApp : Component

@@ -213,17 +213,38 @@ public static class ScopedJsRegistry
         return sb.ToString();
     }
 
-    // The author writes idiomatic ES-module syntax (`export function rendered(el) { ... }`).
-    // We strip the leading `export` keyword on function/const/let/var declarations, then
-    // wrap the body in a Rask.scoped.register call that returns whatever `rendered` the
-    // author defined. Teardown is expressed by `rendered` returning a cleanup function —
-    // mirrors React's useEffect contract.
+    // The author writes idiomatic ES-module syntax — any number of named exports:
+    //   export function rendered(el, firstRender) { ... }
+    //   export function highlight(el, language) { ... }
+    // The wrapper strips `export` keywords (so the declarations are local) and then
+    // returns an object literal mapping each exported function name to the
+    // declaration in the closure. C# user code invokes individual methods by name
+    // via InvokeJs("rendered", args...), routed through Rask.scoped.invoke.
     private static readonly Regex _exportStrip =
         new(@"(^|\n)\s*export\s+(default\s+)?(?=(function|const|let|var)\b)",
             RegexOptions.Compiled);
 
+    // Locate `export function NAME(` declarations — these become methods on the
+    // returned module object. Non-exported helpers stay in the closure scope.
+    private static readonly Regex _exportedFunctionNames =
+        new(@"(^|\n)\s*export\s+(?:default\s+)?function\s+(\w+)\s*\(",
+            RegexOptions.Compiled);
+
     private static string WrapModule(string scopeId, string source)
     {
+        // Capture the set of exported function names BEFORE stripping the `export`
+        // keyword — once stripped, the marker is gone and we can't tell exports
+        // apart from helpers.
+        var exportedNames = new List<string>();
+        foreach (Match m in _exportedFunctionNames.Matches(source))
+        {
+            var name = m.Groups[2].Value;
+            if (!exportedNames.Contains(name, StringComparer.Ordinal))
+            {
+                exportedNames.Add(name);
+            }
+        }
+
         var stripped = _exportStrip.Replace(source, "$1");
         var sb = new StringBuilder(stripped.Length + 128);
         sb.Append("Rask.scoped.register(\"").Append(scopeId).Append("\", function () {\n");
@@ -233,8 +254,28 @@ public static class ScopedJsRegistry
             sb.Append('\n');
         }
 
-        sb.Append("    return typeof rendered === 'function' ? rendered : undefined;\n");
-        sb.Append("});\n");
+        sb.Append("    return {");
+        if (exportedNames.Count == 0)
+        {
+            sb.Append("};\n});\n");
+            return sb.ToString();
+        }
+
+        sb.Append('\n');
+        for (var i = 0; i < exportedNames.Count; i++)
+        {
+            var name = exportedNames[i];
+            sb.Append("        ").Append(name).Append(": typeof ").Append(name)
+                .Append(" === 'function' ? ").Append(name).Append(" : undefined");
+            if (i < exportedNames.Count - 1)
+            {
+                sb.Append(',');
+            }
+
+            sb.Append('\n');
+        }
+
+        sb.Append("    };\n});\n");
         return sb.ToString();
     }
 
