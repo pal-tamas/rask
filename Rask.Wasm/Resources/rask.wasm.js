@@ -241,14 +241,37 @@ function handle(reply) {
         // an equivalent; that's harmless because the module is already running.
         freshHtml = doc.documentElement;
     }
+    // All post-morph work (history push, scoped CSS/JS apply, scoped-JS dispatch,
+    // raskAfterMorph hook) runs INSIDE the applyDom callback. document.startViewTransition
+    // schedules the callback so the DOM mutations are batched with snapshot capture —
+    // code sitting outside it would run on the OLD DOM and dispatch against stale
+    // data-rask-mount elements (or none on a from-empty navigation). Bundling
+    // everything inside the same callback guarantees morph completes before dispatch
+    // reads the DOM, with or without view transitions.
     const applyDom = () => {
         if (freshHtml) {
             morph(document.documentElement, freshHtml);
             root = document.querySelector("[data-rask-root]") || document.body;
         }
         applyHistory(reply.history);
-        // Scoped-JS `rendered` hooks are NOT auto-fired here — dispatched below
-        // based on the `scopedJsInvokes` payload field.
+        if (typeof reply.cssHash === "string" || reply.cssHash === null)
+            applyScopedCss(reply.cssHash, reply.cssText);
+        if (typeof reply.jsHash === "string" || reply.jsHash === null)
+            applyScopedJs(reply.jsHash, reply.jsText);
+        // Scoped-JS `rendered` hooks are NOT auto-fired — dispatched here based on
+        // the `scopedJsInvokes` payload field. Each entry calls
+        // `methods[inv.method](el, ...inv.args)`; when `id` is present the
+        // dispatcher ships the result back through the _sendResult bridge to
+        // complete the awaiting Task<T>.
+        if (Array.isArray(reply.scopedJsInvokes) && window.Rask && window.Rask.scoped) {
+            for (const inv of reply.scopedJsInvokes) {
+                if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
+                    const args = Array.isArray(inv.args) ? inv.args : [];
+                    const invId = (typeof inv.id === "number") ? inv.id : null;
+                    window.Rask.scoped.invoke(inv.scope, inv.method, invId, args);
+                }
+            }
+        }
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     // Animate navigations (renders carrying a history block) with the View
@@ -258,23 +281,6 @@ function handle(reply) {
         document.startViewTransition(applyDom);
     } else {
         applyDom();
-    }
-    if (typeof reply.cssHash === "string" || reply.cssHash === null)
-        applyScopedCss(reply.cssHash, reply.cssText);
-    if (typeof reply.jsHash === "string" || reply.jsHash === null)
-        applyScopedJs(reply.jsHash, reply.jsText);
-    // Dispatch C#-queued scoped-JS invocations against the morphed DOM. Each entry
-    // calls `methods[inv.method](el, ...inv.args)`; when `id` is present the
-    // dispatcher ships the result back through the _sendResult bridge installed
-    // below to complete the awaiting Task<T>.
-    if (Array.isArray(reply.scopedJsInvokes) && window.Rask && window.Rask.scoped) {
-        for (const inv of reply.scopedJsInvokes) {
-            if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
-                const args = Array.isArray(inv.args) ? inv.args : [];
-                const invId = (typeof inv.id === "number") ? inv.id : null;
-                window.Rask.scoped.invoke(inv.scope, inv.method, invId, args);
-            }
-        }
     }
     if (reply.download) triggerDownload(reply.download);
 }

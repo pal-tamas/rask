@@ -148,15 +148,13 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         // <code class="language-csharp">. Highlight.js adds the `hljs` class on
         // success.
         //
-        // Known race on the StandaloneWasm host: a follow-up morph clobbers the
-        // class after dispatch. Server + WASM-host pass reliably with the explicit
-        // invocation model; the standalone-only path needs its own investigation
-        // and is skipped via the FixtureName guard until then.
-        if (FixtureName == "StandaloneWasm")
-        {
-            return;
-        }
-
+        // Regression for a View-Transitions-API race that hit StandaloneWasm: the
+        // SPA-nav path wrapped morph in document.startViewTransition, and the
+        // dispatch loop used to sit OUTSIDE the callback — so it ran against the
+        // pre-morph DOM (zero data-rask-mount elements for binding's CodeSamples,
+        // because home was still up) and never invoked rendered. The runtime now
+        // dispatches inside applyDom so morph and dispatch share a single
+        // callback, guaranteeing the ordering regardless of view-transition timing.
         await NavigateToAsync("/binding");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });

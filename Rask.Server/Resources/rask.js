@@ -55,6 +55,13 @@
                 // matching the WASM runtime's morph target.
                 freshHtml = doc.documentElement;
             }
+            // All post-morph work (history push, scoped CSS/JS apply, scoped-JS
+            // dispatch, raskAfterMorph hook) runs INSIDE the applyDom callback.
+            // When morph is wrapped in document.startViewTransition the callback
+            // executes asynchronously — code sitting outside it would run on the
+            // OLD DOM and dispatch against stale data-rask-mount elements (or none
+            // on a from-empty nav). Bundling everything inside the same callback
+            // guarantees morph completes before dispatch reads the DOM.
             function applyDom() {
                 if (freshHtml) {
                     morph(document.documentElement, freshHtml);
@@ -67,8 +74,25 @@
                         history.pushState({rask: true}, "", data.history.url);
                     }
                 }
-                // Scoped-JS `rendered` hooks are NOT auto-fired here — the framework
-                // dispatches them based on the `scopedJsInvokes` payload field below.
+                if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
+                if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
+                // Dispatch any queued scoped-JS invocations against the freshly-morphed
+                // DOM. Each entry calls `Rask.scoped.invoke(scope, method, id, args)`.
+                // When `id` is present the dispatcher ships the result back via the
+                // _sendResult bridge; otherwise it's fire-and-forget. The bundle
+                // script is `defer`red and may not have loaded on the initial frame —
+                // if so, the registry lookup misses and the dispatcher no-ops; the
+                // applyScopedJs onload handler retries every registered scope.
+                if (Array.isArray(data.scopedJsInvokes) && window.Rask && Rask.scoped) {
+                    for (var si = 0; si < data.scopedJsInvokes.length; si++) {
+                        var inv = data.scopedJsInvokes[si];
+                        if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
+                            var args = Array.isArray(inv.args) ? inv.args : [];
+                            var invId = (typeof inv.id === "number") ? inv.id : null;
+                            Rask.scoped.invoke(inv.scope, inv.method, invId, args);
+                        }
+                    }
+                }
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
             // Animate navigations (renders carrying a history block) with the View
@@ -78,25 +102,6 @@
                 document.startViewTransition(applyDom);
             } else {
                 applyDom();
-            }
-            if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
-            if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
-            // Dispatch any queued scoped-JS invocations against the freshly-morphed DOM.
-            // Each entry calls `Rask.scoped.invoke(scope, method, id, args)`. When
-            // `id` is present the dispatcher ships the result back via the
-            // _sendResult bridge below; otherwise it's fire-and-forget. The bundle
-            // script is `defer`red and may not have loaded on the initial frame —
-            // if so, the registry lookup misses and the dispatcher no-ops; the
-            // applyScopedJs onload handler retries every registered scope.
-            if (Array.isArray(data.scopedJsInvokes) && window.Rask && Rask.scoped) {
-                for (var si = 0; si < data.scopedJsInvokes.length; si++) {
-                    var inv = data.scopedJsInvokes[si];
-                    if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
-                        var args = Array.isArray(inv.args) ? inv.args : [];
-                        var invId = (typeof inv.id === "number") ? inv.id : null;
-                        Rask.scoped.invoke(inv.scope, inv.method, invId, args);
-                    }
-                }
             }
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
