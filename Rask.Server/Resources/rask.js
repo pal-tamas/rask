@@ -49,14 +49,18 @@
                 location.reload();
                 return;
             }
-            var fresh = null;
+            var freshHtml = null;
             if (typeof data.html === "string") {
                 var doc = new DOMParser().parseFromString(data.html, "text/html");
-                fresh = doc.body;
+                // Morph the whole <html> element so head changes (title, per-page Head
+                // asset contributions, scoped-css/scoped-js hash bumps) propagate too.
+                // Server now sends the full document via BuildPayloadUtf8WithRoot —
+                // matching the WASM runtime's morph target.
+                freshHtml = doc.documentElement;
             }
             function applyDom() {
-                if (fresh) {
-                    morph(root, fresh);
+                if (freshHtml) {
+                    morph(document.documentElement, freshHtml);
                     root = document.querySelector("[data-rask-root]") || root;
                 }
                 if (data.history && typeof data.history.url === "string") {

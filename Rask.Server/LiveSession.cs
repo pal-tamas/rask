@@ -153,14 +153,17 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 download = pd;
             }
 
-            // BuildPayloadUtf8WithBody encodes the rendered HTML to UTF-8 once, then locates
-            // <body> / </body> via vectorized byte-span scans (no UTF-16 char-by-char loops)
-            // and splices data-rask-root in place — collapsing the previous
-            // InjectRootAttr → ExtractBody → BuildPayloadUtf8 chain into one pass and
-            // eliminating the two intermediate string allocations. Writes into the pooled
-            // _writeBuffer so the per-frame ArrayBufferWriter + ToArray copy are also gone.
+            // BuildPayloadUtf8WithRoot encodes the rendered HTML to UTF-8 once, splices
+            // data-rask-root onto <body>, and emits the WHOLE document (Doctype + Html +
+            // Head + Body). Sending the full document — same shape WASM uses — lets the
+            // client morph document.documentElement and pick up <head> changes
+            // (<title>, per-page Head asset contributions, scoped CSS/JS hash bumps)
+            // across in-app navigations. Body-only payloads froze <head> at whatever
+            // the initial HTTP GET produced, so a per-page Title declared via
+            // Component.Head never made it to the browser tab on SPA-style navigation.
+            // The added head bytes (~2-3 KB) compress away under permessage-deflate.
             _writeBuffer.ResetWrittenCount();
-            LivePayload.BuildPayloadUtf8WithBody(_writeBuffer, html, Id, historyUrl, replace, null, auth, download);
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations

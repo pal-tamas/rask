@@ -101,6 +101,31 @@ public abstract class SharedSmokeTests : IAsyncLifetime
     });
 
     [Fact]
+    public Task Head_TitleUpdatesOnSidebarNavigation() => RunAsync(async () =>
+    {
+        // Regression for the server bug where in-app navigation morphed only <body>,
+        // freezing <head> (and therefore <title>) at whatever the initial HTTP GET
+        // produced. NavigateToAsync above falls back to Page.GotoAsync — a full
+        // browser reload that bypasses the SPA path; this test forces the sidebar
+        // click path the user actually exercises.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page).ToHaveTitleAsync("Two-way binding — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
+
+        // Sidebar buttons emit data-rask-nav; the client runtime intercepts the click,
+        // sends a navigate message over WS / JS interop, and morphs the response in
+        // place — no full reload. If the morph misses <head>, the title stays
+        // "Two-way binding — Rask" and this assertion fails.
+        await ClickSidebar("Scoped CSS");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Scoped CSS",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page).ToHaveTitleAsync("Scoped CSS — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
     public Task Head_ExactlyOneTitleInHead() => RunAsync(async () =>
     {
         // Spec compliance: HTML 4.2.2 says at most one <title> per document. App.Head
