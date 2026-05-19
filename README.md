@@ -117,15 +117,19 @@ namespace MyApp;
 
 public sealed class App : Component
 {
+    // App-level head content goes through the Component? Head override.
+    // Pages override their own Head to set per-page Title — singleton dedup
+    // means the page's contribution supersedes this fallback for the tab.
+    protected override Component? Head => Fragment()[
+        Title()["My Rask App"],
+        Meta("utf-8")
+    ];
+
     protected override Component Render() =>
         Fragment()[
             Doctype(),
             Html("en")[
-                Head()[
-                    Meta("utf-8"),
-                    Title()["My Rask App"],
-                    RaskScopedStyles()
-                ],
+                Head(),                       // framework-managed slot
                 Body()[
                     Router(),
                     RaskRuntimeScript()
@@ -134,6 +138,12 @@ public sealed class App : Component
         ];
 }
 ```
+
+`<head>` is framework-managed — passing children to `Head()` is a `RASK019` compile error.
+The framework collects every component's `Head` override during render, dedupes
+contributions, resolves singleton tags (`<title>`, `<base>` — last contributor wins),
+and splices the result plus the scoped-CSS link and scoped-JS bundle script inside
+`<head>` automatically.
 
 **`HomePage.cs`** — your first route. `Rask.Core.Routing` (for `[Route]`, `[RouteParam]`, `Navigator`, …) is the one
 namespace you still bring in explicitly.
@@ -576,11 +586,123 @@ public sealed class Card : Component
 The showcase uses this throughout: `App.css`, `HomePage.css`, `ScopedRed.css` / `ScopedBlue.css`, `ViewTransitionsPage.css`,
 and the `Layout/ShowcaseLayout.css` for the sidebar. Two components can use the same `.box` selector — the framework
 rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` file with no matching component raises
-`RASK015`; opt the whole project out with `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` in the `.csproj`.
+`RASK015`; two `.css` files claiming the same component raise `RASK016`; opt the whole project out with
+`<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` in the `.csproj`.
 
-Place `RaskScopedStyles()` once inside `<head>` (see `App.cs` in the server quick start). On the server it renders a
-`<link rel="stylesheet" href="/_rask/scoped.css?v=…">`; in the WASM host the bundle is delivered through the page shell's
-`<style id="rask-scoped">` slot. Either way, the call site is identical.
+The bundle is delivered automatically — on the server as a `<link rel="stylesheet" href="/_rask/scoped.css?v=…">`
+inside `<head>`, on WASM through the page shell's `<style id="rask-scoped">` slot. No call site or placement is
+required; the framework-managed `<head>` (see *Page head contributions* below) splices it in for you.
+
+**Targeting shell tags** — selectors like `body`, `html`, `button` don't carry `data-{scopeId}` (those tags are
+intentionally excluded from stamping), so a sibling rule like `body { ... }` would never match. Wrap the selector in
+`:global(...)` to opt out of scoping:
+
+```css
+:global(body) {
+    overscroll-behavior-y: none;
+    padding-left: env(safe-area-inset-left);
+}
+:global(button), :global(a) { touch-action: manipulation; }
+```
+
+The wrapper is stripped at compile time and the rule emits exactly the inner selector. `:global()` also works inside
+`@media` / `@supports` / `@container` / `@layer` blocks.
+
+### Scoped JS
+
+Drop a sibling `{Component}.js` file next to `{Component}.cs` to colocate behavior with markup. The file exports any
+number of named functions; the framework bundles them, ships the bundle (server: `/_rask/scoped.js?v={hash}`; WASM:
+inline), and dispatches calls when the C# side asks.
+
+```js
+// CodeSample.js — sibling of CodeSample.cs
+export function rendered(el, firstRender) {
+    const code = el.querySelector('code[class*="language-"]');
+    if (code && window.hljs) {
+        delete code.dataset.highlighted;
+        window.hljs.highlightElement(code);
+    }
+}
+```
+
+```csharp
+public sealed class CodeSample : Component
+{
+    // Frame the call site: the framework does NOT auto-fire scoped-JS hooks.
+    // OnRendered is the typical hook — it gets a firstRender bool that flows
+    // straight through to your `rendered(el, firstRender)` function.
+    protected override void OnRendered(bool firstRender) =>
+        InvokeJs("rendered", firstRender);
+
+    protected override Component Render() => /* … */;
+}
+```
+
+The `"rendered"` name is a convention — `InvokeJs(methodName, args...)` dispatches against any function you exported.
+You can call from any lifecycle hook (`OnMount`, `OnRendered`, event handlers, etc.); the C# side queues the invocation
+and the client runtime fires it after morph completes. The framework stamps `data-rask-mount="{scopeId}"` on the
+outermost element of each rendered component instance that has a sibling `.js`; the dispatcher calls
+`methodName(el, ...args)` against every matching element in the scope.
+
+Orphan `.js` files (no matching `.cs` in the same folder) raise `RASK017`; ambiguous matches raise `RASK018`. Opt
+out per-project with `<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude>`.
+
+### Page head contributions
+
+Any component can override `protected virtual Component? Head` to declare what belongs in `<head>` while that component
+is in the tree:
+
+```csharp
+public sealed class UserDetailPage : Component
+{
+    [RouteParam] public int Id { get; set; }
+
+    // The framework dedupes by rendered HTML; <title> and <base> are singleton
+    // tags — last contributor wins. So this page's Title overrides App's
+    // fallback when the user lands on /users/42.
+    protected override Component? Head => Fragment()[
+        Title()[$"User #{Id} — My Rask App"],
+        Meta(Name: "description", Content: $"Profile for user {Id}"),
+        Link(Rel: "stylesheet", Href: "https://cdn.example.com/profile.css")
+    ];
+
+    protected override Component Render() => /* … */;
+}
+```
+
+When the user navigates away, the page leaves the tree, its contributions drop from the registry, and the next
+render's `<head>` reflects whatever components remain. Multiple instances of the same `Link(Href: "...")` dedupe to
+a single emission. The `Head()` HTML element itself is **framework-managed** — passing it children is a `RASK019`
+compile error; everything goes through the override.
+
+### Async JS interop
+
+For round-trips where C# needs a value back from JS, use `InvokeJsAsync<T>(method, args)`:
+
+```csharp
+protected override async Task OnRenderedAsync(bool firstRender)
+{
+    if (!firstRender) return;
+    int height = await InvokeJsAsync<int>("getScrollHeight");
+    // … do something with height
+}
+```
+
+```js
+// MyComponent.js
+export function getScrollHeight(el) {
+    return el.scrollHeight;        // sync return is fine
+}
+// async functions also work — the dispatcher awaits the returned Promise
+export async function loadFromCdn(el, url) {
+    const r = await fetch(url);
+    return await r.text();
+}
+```
+
+`T` must be a JSON primitive (`bool`, `int`, `long`, `double`, `string`) for trim-safety; for complex shapes,
+return a JSON string from JS and parse in C#. When a scope has multiple matching `data-rask-mount` elements the
+first one's result wins; when none match the task completes with `default(T)`.
 
 ### Lifecycle reference
 
