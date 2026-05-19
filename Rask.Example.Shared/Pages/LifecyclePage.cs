@@ -12,6 +12,8 @@ public sealed class LifecyclePage : Component
     private bool _cycleMounted;
     private int _nextCycleId;
 
+    protected override Component? Head => Title()["Lifecycle — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

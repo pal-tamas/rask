@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class TagsPage : Component
 {
+    protected override Component? Head => Title()["Tag factories — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

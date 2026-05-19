@@ -158,8 +158,107 @@ internal static class CssScoper
             }
 
             first = false;
+
+            // `:global(X)` opt-out — when the trimmed selector is wrapped in :global(),
+            // emit X with no scope suffix. Used for app-global rules colocated in a
+            // component's sibling .css (e.g. `:global(body) { ... }`), where the target
+            // tag is a shell tag the framework never stamps data-rask-* on anyway.
+            if (TryUnwrapGlobal(prelude, range.Start, range.End,
+                out var leadStart, out var leadEnd,
+                out var innerStart, out var innerEnd,
+                out var trailStart, out var trailEnd))
+            {
+                sb.Append(prelude, leadStart, leadEnd - leadStart);
+                sb.Append(prelude, innerStart, innerEnd - innerStart);
+                sb.Append(prelude, trailStart, trailEnd - trailStart);
+                continue;
+            }
+
             AppendScopedSelector(prelude, range.Start, range.End, suffix, sb);
         }
+    }
+
+    // Returns true when the (whitespace-trimmed) selector range is exactly `:global(X)`.
+    // <paramref name="leadStart"/>/<paramref name="leadEnd"/> bracket any leading
+    // whitespace from the source that should be preserved so formatting around commas
+    // stays intact; <paramref name="innerStart"/>/<paramref name="innerEnd"/> bracket X.
+    private static bool TryUnwrapGlobal(string source, int start, int end,
+        out int leadStart, out int leadEnd,
+        out int innerStart, out int innerEnd,
+        out int trailStart, out int trailEnd)
+    {
+        leadStart = start;
+        leadEnd = start;
+        innerStart = 0;
+        innerEnd = 0;
+        trailStart = end;
+        trailEnd = end;
+
+        var s = start;
+        while (s < end && char.IsWhiteSpace(source[s]))
+        {
+            s++;
+        }
+
+        leadEnd = s;
+
+        var e = end;
+        while (e > s && char.IsWhiteSpace(source[e - 1]))
+        {
+            e--;
+        }
+
+        trailStart = e;
+        trailEnd = end;
+
+        const string prefix = ":global(";
+        if (e - s < prefix.Length + 1)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < prefix.Length; i++)
+        {
+            if (source[s + i] != prefix[i])
+            {
+                return false;
+            }
+        }
+
+        if (source[e - 1] != ')')
+        {
+            return false;
+        }
+
+        // The closing paren must be the one that matches the opener at s. Walk parens
+        // between them and confirm depth stays >0 until the very end. A nested
+        // `:global(.a:not(.b))` keeps depth alive through the inner `.b` close.
+        var depth = 1;
+        for (var i = s + prefix.Length; i < e - 1; i++)
+        {
+            var c = source[i];
+            if (c == '(')
+            {
+                depth++;
+            }
+            else if (c == ')')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (depth != 1)
+        {
+            return false;
+        }
+
+        innerStart = s + prefix.Length;
+        innerEnd = e - 1;
+        return true;
     }
 
     private static IEnumerable<(int Start, int End)> SplitTopLevelCommas(string s)

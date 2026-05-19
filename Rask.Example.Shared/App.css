@@ -44,3 +44,16 @@ pre { margin: 0; }
     color: var(--rask-accent);
 }
 .text-accent { color: var(--rask-accent) !important; }
+
+/* App-global rules — shell tags (html, body, button, a) are excluded from
+   data-r-* stamping by HtmlSerializer, so :global() opts these selectors out of
+   the scope rewrite. Without :global() the scoper would append [data-r-{App}] to
+   `body` etc. and the rule would never match. */
+:global(html) { -webkit-text-size-adjust: 100%; }
+:global(body) {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+:global(button), :global(a), :global([role="button"]) { touch-action: manipulation; }

@@ -5,6 +5,7 @@
 let dotnetExports = null;
 let root = null;
 let lastCssHash = null;
+let lastJsHash = null;
 let basePath = null;
 
 // Read once from <base href> (or the page URL if no <base> is set) so the
@@ -40,6 +41,15 @@ export function setExports(exports) {
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
     console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
+    // Initial walk: the page DOM (from the WASM page shell + the first applyRender)
+    // never went through morph, so insertion-time `rendered` hooks never fired. Walk
+    // once now so every data-rask-mount element gets rendered() called against it.
+    // The bundle is inlined into <script id="rask-scoped-js"> by applyScopedJs; the
+    // first walk here is a no-op if the bundle hasn't been delivered yet, and
+    // applyScopedJs re-walks after each bundle update.
+    if (window.Rask && window.Rask.scoped) {
+        window.Rask.scoped.walkRendered(document.documentElement);
+    }
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
@@ -167,8 +177,116 @@ function applyScopedCss(hash, cssText) {
     if (typeof cssText === "string") style.textContent = cssText;
 }
 
-// reviveScript() + morph() are concatenated in at build time from
-// Rask.Core/Resources/rask-morph.js by the _RaskBuildClientJs target.
+function applyScopedJs(hash, jsText) {
+    if (hash === lastJsHash && jsText == null) return;
+    if (typeof jsText !== "string" || jsText.length === 0) return;
+    lastJsHash = hash;
+    // Replace the script element rather than mutate textContent — re-assigning a
+    // script's textContent does NOT re-execute it. A fresh <script> with the new
+    // body runs the new Rask.scoped.register(...) calls, then we walkUnmount +
+    // walkMount to refresh live elements' hooks (hot-reload story).
+    const existing = document.getElementById("rask-scoped-js");
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    const script = document.createElement("script");
+    script.id = "rask-scoped-js";
+    script.setAttribute("data-rask-managed", "");
+    script.textContent = jsText;
+    document.head.appendChild(script);
+    if (window.Rask && window.Rask.scoped) {
+        window.Rask.scoped.walkRemoved(document.documentElement);
+        window.Rask.scoped.walkRendered(document.documentElement);
+    }
+}
+
+// The Rask.scoped dispatcher + reviveScript() + morph() are concatenated in at
+// build time by the _RaskSpliceClientJs target. Order matters: the dispatcher
+// must be defined before morph() references it.
+// Scoped-JS dispatcher. Concatenated into both rask.js (Server) and rask.wasm.js (WASM)
+// at build time via the @@RASK_SCOPED@@ marker — see _RaskBuildClientJs / _RaskSpliceClientJs
+// in Rask.Server.csproj and Rask.Wasm.csproj.
+//
+// Public author surface (sibling `.js` next to a Component):
+//   export function rendered(el) {
+//       // do something with el; return a cleanup function if you need teardown.
+//       return () => { /* cleanup runs before el leaves the DOM */ };
+//   }
+//
+// The bundle delivered from the server / inlined on WASM consists of per-component
+// `Rask.scoped.register(scopeId, factory)` calls (one per .js sibling). The morph
+// algorithm in rask-morph.js calls `Rask.scoped.walkRendered` / `Rask.scoped.walkRemoved`
+// against every inserted / removed subtree; the server runtime walks the initial DOM
+// once after WS open, the WASM runtime walks once after setExports.
+window.Rask = window.Rask || {};
+Rask.scoped = (function () {
+    var registry = new Map();    // scopeId -> rendered fn
+    var cleanups = new WeakMap(); // element -> cleanup fn returned by rendered()
+
+    function register(scopeId, factory) {
+        var hook;
+        try {
+            hook = (typeof factory === 'function') ? factory() : factory;
+        } catch (e) {
+            console.error('[Rask] scoped-js factory failed for ' + scopeId, e);
+            return;
+        }
+        if (typeof hook === 'function') {
+            registry.set(scopeId, hook);
+        }
+    }
+
+    function dispatch(node, phase) {
+        if (!node || node.nodeType !== 1) return;
+        var scopeId = node.getAttribute && node.getAttribute('data-rask-mount');
+        if (!scopeId) return;
+        if (phase === 'rendered') {
+            var fn = registry.get(scopeId);
+            if (typeof fn !== 'function') return;
+            // Each render re-runs the hook (mirrors Blazor's OnAfterRender semantics + the
+            // React useEffect-with-no-deps shape). Tear down the previous render's effect
+            // before kicking off the new one so listeners / timers don't accumulate.
+            var prevCleanup = cleanups.get(node);
+            if (prevCleanup) {
+                cleanups.delete(node);
+                try { prevCleanup(node); }
+                catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
+            }
+            try {
+                var result = fn(node);
+                if (typeof result === 'function') {
+                    cleanups.set(node, result);
+                }
+            } catch (e) {
+                console.error('[Rask] rendered failed for ' + scopeId, e);
+            }
+        } else {
+            // Element is leaving the DOM. Only fire cleanup; no rendered to invoke.
+            var c = cleanups.get(node);
+            if (!c) return;
+            cleanups.delete(node);
+            try { c(node); }
+            catch (e) { console.error('[Rask] cleanup failed for ' + scopeId, e); }
+        }
+    }
+
+    function walk(root, phase) {
+        if (!root) return;
+        if (root.nodeType === 1 && root.hasAttribute && root.hasAttribute('data-rask-mount')) {
+            dispatch(root, phase);
+        }
+        if (root.querySelectorAll) {
+            var nodes = root.querySelectorAll('[data-rask-mount]');
+            for (var i = 0; i < nodes.length; i++) dispatch(nodes[i], phase);
+        }
+    }
+
+    return {
+        register: register,
+        dispatch: dispatch,
+        walkRendered: function (r) { walk(r, 'rendered'); },
+        walkRemoved: function (r) { walk(r, 'removed'); }
+    };
+})();
+
 // Shared client-side morph algorithm consumed by both rask.js (Server) and
 // rask.wasm.js (WASM). Concatenated into each runtime at build time — see the
 // MSBuild "_RaskBuildClientJs" target in Rask.Server.csproj and Rask.Wasm.csproj.
@@ -202,9 +320,31 @@ function reviveScript(node) {
     return s;
 }
 
+// Wrappers around the underlying DOM mutation primitives that dispatch the
+// scoped-js mount/unmount hooks at the right moment. Unmount runs BEFORE removal
+// so the hook still sees the node attached; mount runs AFTER insertion so the
+// node is in the live DOM when the hook reads it.
+function _raskInsertBefore(parent, dst, anchor) {
+    parent.insertBefore(dst, anchor);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+function _raskAppendChild(parent, dst) {
+    parent.appendChild(dst);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+function _raskRemoveChild(parent, src) {
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
+    parent.removeChild(src);
+}
+function _raskReplaceChild(parent, dst, src) {
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
+    parent.replaceChild(dst, src);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
-        from.parentNode.replaceChild(to, from);
+        _raskReplaceChild(from.parentNode, to, from);
         return;
     }
     if (from.nodeType === 3 || from.nodeType === 8) {
@@ -285,10 +425,10 @@ function morph(from, to) {
                 src = unkeyedFrom[unkeyedCursor++] || null;
             }
             if (src === null) {
-                from.insertBefore(reviveScript(dst), anchor);
+                _raskInsertBefore(from, reviveScript(dst), anchor);
             } else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) {
-                from.insertBefore(reviveScript(dst), anchor);
-                from.removeChild(src);
+                _raskInsertBefore(from, reviveScript(dst), anchor);
+                _raskRemoveChild(from, src);
             } else {
                 if (src !== anchor) from.insertBefore(src, anchor);
                 else anchor = anchor.nextSibling;
@@ -296,11 +436,11 @@ function morph(from, to) {
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
-        keyMap.forEach(function (n) { if (n.parentNode === from) from.removeChild(n); });
+        keyMap.forEach(function (n) { if (n.parentNode === from) _raskRemoveChild(from, n); });
         // Drop trailing unkeyed nodes too.
         while (unkeyedCursor < unkeyedFrom.length) {
             var leftover = unkeyedFrom[unkeyedCursor++];
-            if (leftover.parentNode === from) from.removeChild(leftover);
+            if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         return;
     }
@@ -308,9 +448,9 @@ function morph(from, to) {
     var max = Math.max(fc.length, tc.length);
     for (var k = 0; k < max; k++) {
         var src = fc[k], dst = tc[k];
-        if (!src) from.appendChild(reviveScript(dst));
-        else if (!dst) from.removeChild(src);
-        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) from.replaceChild(reviveScript(dst), src);
+        if (!src) _raskAppendChild(from, reviveScript(dst));
+        else if (!dst) _raskRemoveChild(from, src);
+        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
         else morph(src, dst);
     }
 }
@@ -343,6 +483,12 @@ function handle(reply) {
             root = document.querySelector("[data-rask-root]") || document.body;
         }
         applyHistory(reply.history);
+        // Re-fire rendered() against every data-rask-mount element after morph
+        // completes — morph may have rewritten attributes the prior rendered() call
+        // set (e.g. highlight.js's added `hljs` class). Cleanup runs first if present.
+        if (window.Rask && window.Rask.scoped) {
+            window.Rask.scoped.walkRendered(document.documentElement);
+        }
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     // Animate navigations (renders carrying a history block) with the View
@@ -355,6 +501,8 @@ function handle(reply) {
     }
     if (typeof reply.cssHash === "string" || reply.cssHash === null)
         applyScopedCss(reply.cssHash, reply.cssText);
+    if (typeof reply.jsHash === "string" || reply.jsHash === null)
+        applyScopedJs(reply.jsHash, reply.jsText);
     if (reply.download) triggerDownload(reply.download);
 }
 

@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
 {
+    protected override Component? Head => Title()["Not found — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

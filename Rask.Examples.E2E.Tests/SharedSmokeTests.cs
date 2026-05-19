@@ -53,6 +53,86 @@ public abstract class SharedSmokeTests : IAsyncLifetime
         }
     }
 
+    // ---------- Scoped JS ----------
+
+    // ---------- Head asset feature ----------
+
+    [Fact]
+    public Task Head_PageTitleOverridesAppDefault() => RunAsync(async () =>
+    {
+        // App.Head contributes Title="Rask — feature showcase" as a fallback. Each page
+        // contributes its own Title via Head. The registry's singleton dedup means
+        // exactly one <title> lands in <head>, and the page's contribution wins.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page).ToHaveTitleAsync("Two-way binding — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Head_RouteParamFlowsIntoTitle() => RunAsync(async () =>
+    {
+        // UserDetailPage interpolates the RouteParam Id into the Title via
+        // `Title()[$"User #{Id} — Rask"]`. Head is a property getter on the instance,
+        // so it can read fields/properties set by PageBinder before render.
+        await NavigateToAsync("/users/42");
+        await Expect(Page.Locator("main h1.h2, main h1.h3, main h1.h4, main h1").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await Expect(Page).ToHaveTitleAsync("User #42 — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
+    });
+
+    [Fact]
+    public Task Head_TitleUpdatesOnNavigation() => RunAsync(async () =>
+    {
+        // Cross-nav check: a page change must update the document title because the
+        // unmounting page's Head contribution drops out of the registry and the new
+        // page's contribution takes over. If the morph clobbered the registry's
+        // contribution or the post-process didn't re-splice, the title would stick at
+        // the previous page's value.
+        await NavigateToAsync("/binding");
+        await Expect(Page).ToHaveTitleAsync("Two-way binding — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 30_000 });
+
+        await NavigateToAsync("/scoped-css");
+        await Expect(Page).ToHaveTitleAsync("Scoped CSS — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task Head_ExactlyOneTitleInHead() => RunAsync(async () =>
+    {
+        // Spec compliance: HTML 4.2.2 says at most one <title> per document. App.Head
+        // + Page.Head both contributing must collapse to a single tag via the
+        // HeadAssetRegistry's singleton-tag handling.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var titleCount = await Page.Locator("head title").CountAsync();
+        Assert.Equal(1, titleCount);
+    });
+
+    [Fact]
+    public Task ScopedJs_CodeSampleGetsHighlightAfterRender() => RunAsync(async () =>
+    {
+        // /binding renders ~8 CodeSample instances. Each carries data-rask-mount="r-..."
+        // on its outermost <div>, and CodeSample.js exports a `rendered(el)` hook that
+        // calls hljs.highlightElement on the nested `<code class="language-csharp">`.
+        // Highlight.js adds the `hljs` class to the code element on success — that's
+        // what we wait for. If the scoped-JS pipeline isn't firing (initial walk
+        // missing, bundle not delivered, dispatcher broken, or morph clobbering the
+        // class on a subsequent render), the .hljs class never appears and the test
+        // times out.
+        await NavigateToAsync("/binding");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("pre code.language-csharp.hljs").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    });
+
     // ---------- Binding ----------
 
     [Fact]

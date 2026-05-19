@@ -7,6 +7,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class HomePage(Navigator nav) : Component
 {
+    protected override Component? Head => Title()["Welcome — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[

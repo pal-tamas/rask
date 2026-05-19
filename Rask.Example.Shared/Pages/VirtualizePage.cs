@@ -29,6 +29,8 @@ public sealed class VirtualizePage : Component
         return rows;
     }
 
+    protected override Component? Head => Title()["Virtualize — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

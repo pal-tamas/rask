@@ -29,6 +29,13 @@
             for (var i = 0; i < queue.length; i++) ws.send(queue[i]);
             queue.length = 0;
             hideOverlay();
+            // Initial walk: the page DOM came from the HTTP GET and never went through
+            // morph, so insertion-time `rendered` hooks never fired. Walk once now so
+            // every data-rask-mount element gets rendered() called against it. The bundle
+            // <script> is added by applyScopedJs below; if it isn't loaded yet, register()
+            // calls run later and the walk this triggers is a no-op for those scopes —
+            // the applyScopedJs onload handler re-walks once registration completes.
+            if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(document.documentElement);
         });
 
         ws.addEventListener("message", function (e) {
@@ -59,6 +66,12 @@
                         history.pushState({rask: true}, "", data.history.url);
                     }
                 }
+                // Re-fire rendered() against every data-rask-mount element after morph
+                // completes. Morph may have rewritten attributes set by the previous
+                // rendered() invocation (e.g. highlight.js's added `hljs` class), so the
+                // hook needs to run again to re-establish them. The cleanup fn returned
+                // from the prior call (if any) is invoked first.
+                if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(root);
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
             // Animate navigations (renders carrying a history block) with the View
@@ -70,6 +83,7 @@
                 applyDom();
             }
             if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
+            if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }
@@ -149,6 +163,28 @@
         link.setAttribute("data-rask-scoped", "");
         link.href = url;
         document.head.appendChild(link);
+    }
+
+    function applyScopedJs(hash) {
+        var url = "/_rask/scoped.js?v=" + hash;
+        var existing = document.querySelector("script[data-rask-scoped-js]");
+        if (existing && existing.getAttribute("src") === url) return;
+        // Replace rather than mutate src — browsers don't re-evaluate a <script>
+        // on src change. The newly inserted script runs Rask.scoped.register(...)
+        // calls; once loaded, force a walkUnmount + walkMount cycle so already-
+        // mounted elements pick up new hook bodies after a hot-reload.
+        var script = document.createElement("script");
+        script.setAttribute("data-rask-scoped-js", "");
+        script.defer = true;
+        script.src = url;
+        script.addEventListener("load", function () {
+            if (window.Rask && Rask.scoped) {
+                Rask.scoped.walkRemoved(document.documentElement);
+                Rask.scoped.walkRendered(document.documentElement);
+            }
+        }, { once: true });
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+        document.head.appendChild(script);
     }
 
     function send(payload) {
@@ -381,7 +417,9 @@
         });
     }
 
-    // The reviveScript() + morph() definitions are concatenated in at build time
-    // from Rask.Core/Resources/rask-morph.js by the _RaskBuildClientJs target.
+    // The Rask.scoped dispatcher and the reviveScript() + morph() definitions are
+    // concatenated in at build time by the _RaskBuildClientJs target. Order matters:
+    // the dispatcher must be defined before morph() references it.
+    // @@RASK_SCOPED@@
     // @@RASK_MORPH@@
 })();

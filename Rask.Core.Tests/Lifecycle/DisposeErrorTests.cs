@@ -7,6 +7,7 @@ using Rask.Server;
 
 namespace Rask.Core.Tests.Lifecycle;
 
+[Collection("ConsoleRedirect")]
 public class DisposeErrorTests
 {
     [Fact]

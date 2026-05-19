@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
 {
+    protected override Component? Head => Title()["Navigator — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

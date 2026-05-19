@@ -11,6 +11,8 @@ public sealed class UserDetailPage(Navigator nav) : Component
     [RouteParam] public string Id { get; set; } = string.Empty;
     [QueryParam("tab")] public string? Tab { get; set; }
 
+    protected override Component? Head => Title()[$"User #{Id} — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

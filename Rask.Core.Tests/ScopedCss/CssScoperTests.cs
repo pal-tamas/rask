@@ -12,6 +12,62 @@ public class CssScoperTests
     }
 
     [Fact]
+    public void Rewrite_GlobalWrapper_EmitsInnerSelectorUnscoped()
+    {
+        // Shell tags (html/body) are never stamped data-r-* by HtmlSerializer, so a
+        // scoped `body { ... }` rule would never match. :global() is the opt-out.
+        var result = CssScoper.Rewrite(":global(body) { color: red; }", "r-x");
+        Assert.Equal("body { color: red; }", result);
+    }
+
+    [Fact]
+    public void Rewrite_GlobalWrapper_AppliesPerCommaSelector()
+    {
+        // Each comma-separated selector decides independently. A `:global()` wrap on
+        // some-but-not-all is a valid mix.
+        var result = CssScoper.Rewrite(":global(html), .scoped { font-size: 16px; }", "r-x");
+        Assert.Equal("html, .scoped[data-r-x] { font-size: 16px; }", result);
+    }
+
+    [Fact]
+    public void Rewrite_GlobalWrapper_HandlesAttributeSelector()
+    {
+        // `:global([role="button"])` mirrors the user's App.css use-case.
+        var result = CssScoper.Rewrite(":global([role=\"button\"]) { touch-action: manipulation; }", "r-x");
+        Assert.Equal("[role=\"button\"] { touch-action: manipulation; }", result);
+    }
+
+    [Fact]
+    public void Rewrite_GlobalWrapper_HandlesNestedParens()
+    {
+        // `:global(.a:not(.b))` keeps the inner paren depth open; the outer `)` is what
+        // matches the `:global(` opener.
+        var result = CssScoper.Rewrite(":global(.a:not(.b)) { color: red; }", "r-x");
+        Assert.Equal(".a:not(.b) { color: red; }", result);
+    }
+
+    [Fact]
+    public void Rewrite_GlobalWrapper_WithinMediaQuery_StillUnscoped()
+    {
+        // @media recurses into its body with the same scoping rules; :global() must
+        // continue to work inside.
+        var result = CssScoper.Rewrite("@media (min-width: 800px) { :global(body) { color: red; } }", "r-x");
+        Assert.Contains("@media (min-width: 800px)", result);
+        Assert.Contains("body { color: red; }", result);
+        Assert.DoesNotContain("body[data-", result);
+    }
+
+    [Fact]
+    public void Rewrite_PartialGlobalWrapper_DoesNotMatch_FallsBackToScoping()
+    {
+        // The whole trimmed selector must be `:global(X)`. A trailing combinator
+        // disqualifies it — we don't try to handle `:global(body) .foo`-style mixes in v1.
+        var result = CssScoper.Rewrite(":global(body) .foo { color: red; }", "r-x");
+        // The selector isn't unwrapped; normal scoping applies — suffix on last compound.
+        Assert.Contains("[data-r-x]", result);
+    }
+
+    [Fact]
     public void Rewrite_CommaSeparatedSelectors_ScopesEachIndependently()
     {
         var result = CssScoper.Rewrite(".a, .b, .c { color: red; }", "r-x");

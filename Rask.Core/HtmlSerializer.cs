@@ -56,10 +56,18 @@ internal static class HtmlSerializer
                 sb.Append('<').Append(tagName);
                 el.WriteAttributesInternal(sb);
 
-                var scopeId = LiveRenderContext.Current?.CurrentScopeId;
-                if (scopeId is not null && !_shellTags.Contains(tagName))
+                var live = LiveRenderContext.Current;
+                var scopeId = live?.CurrentScopeId;
+                var isShell = _shellTags.Contains(tagName);
+                if (scopeId is not null && !isShell)
                 {
                     sb.Append(" data-").Append(scopeId);
+                }
+
+                if (live?.PendingMountScopeId is { } mountScope && !isShell)
+                {
+                    sb.Append(" data-rask-mount=\"").Append(mountScope).Append('"');
+                    live.PendingMountScopeId = null;
                 }
 
                 if (el.SelfClosingInternal)
@@ -85,16 +93,25 @@ internal static class HtmlSerializer
                 // component — including the walk of its rendered subtree. That way
                 // factories called from inside its Render AND handlers registered on
                 // elements deep in its rendered tree both attribute back to this component.
-                var live = LiveRenderContext.Current;
-                if (live is not null && component.Boundary is null)
+                var liveCtx = LiveRenderContext.Current;
+                if (liveCtx is not null && component.Boundary is null)
                 {
                     // Stamp the nearest enclosing boundary on first traversal so async
                     // lifecycle and event-handler catch sites can find it later.
-                    component.Boundary = live.CurrentBoundary;
+                    component.Boundary = liveCtx.CurrentBoundary;
                 }
 
-                using (live?.PushScope(component))
-                using (live?.EnterParentScope(component))
+                // Collect this component's Head contribution before entering its render
+                // scope. The registry is consumed once at the end of RenderAsLiveRoot when
+                // it replaces the RaskHeadAssets sentinel — components that go away on the
+                // next render just stop contributing and their head tags fall out naturally.
+                if (liveCtx is not null && component.HeadInternal is { } head)
+                {
+                    liveCtx.HeadAssets.Add(head);
+                }
+
+                using (liveCtx?.PushScope(component))
+                using (liveCtx?.EnterParentScope(component))
                 using (component.EnterChildrenScopeInternal())
                 {
                     Serialize(component.RenderForLive(), sb);

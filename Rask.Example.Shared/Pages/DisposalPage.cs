@@ -18,6 +18,8 @@ public sealed class DisposalPage : Component
     private int _nextSyncId;
     private bool _syncMounted;
 
+    protected override Component? Head => Title()["Disposal — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

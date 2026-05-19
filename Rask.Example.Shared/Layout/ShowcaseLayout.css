@@ -110,4 +110,11 @@ main {
         opacity: 1;
         pointer-events: auto;
     }
+    /* Lock body scroll while the drawer is open. :has() reaches up from the
+       drawer-open descendant; :global() opts the body selector out of the
+       scope rewrite (body is a shell tag, never stamped data-r-*). */
+    :global(body):has(.drawer-open) {
+        overflow: hidden;
+        height: 100vh;
+    }
 }

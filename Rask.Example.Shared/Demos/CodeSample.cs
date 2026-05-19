@@ -2,10 +2,25 @@ namespace Rask.Example.Shared.Demos;
 
 public sealed class CodeSample : Component
 {
+    private const string HljsBase = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/";
+
     public string? Title { get; set; }
     public required string Source { get; set; }
     public Component? Result { get; set; }
     public string? Notes { get; set; }
+
+    // The framework collects Head contributions from every component currently in the
+    // tree, dedupes by rendered HTML, and splices them into <head> via the
+    // RaskHeadAssets() sentinel placed in App.cs. Multiple CodeSample instances on a
+    // page share the same hljs <link> and <script>; navigating to a page without any
+    // CodeSample drops them out of <head>.
+    protected override Component? Head => Fragment()[
+        Link(Rel: "stylesheet",
+            Href: HljsBase + "styles/atom-one-dark.min.css",
+            CrossOrigin: "anonymous"),
+        Script(Src: HljsBase + "highlight.min.js",
+            CrossOrigin: "anonymous")
+    ];
 
     protected override Component Render() =>
         Div(Class: "card shadow-sm border-0 mb-4 sample-card")[

@@ -9,6 +9,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NestedFormPage : Component
 {
+    protected override Component? Head => Title()["Complex models — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

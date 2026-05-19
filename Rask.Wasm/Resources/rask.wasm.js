@@ -5,6 +5,7 @@
 let dotnetExports = null;
 let root = null;
 let lastCssHash = null;
+let lastJsHash = null;
 let basePath = null;
 
 // Read once from <base href> (or the page URL if no <base> is set) so the
@@ -40,6 +41,15 @@ export function setExports(exports) {
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
     console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
+    // Initial walk: the page DOM (from the WASM page shell + the first applyRender)
+    // never went through morph, so insertion-time `rendered` hooks never fired. Walk
+    // once now so every data-rask-mount element gets rendered() called against it.
+    // The bundle is inlined into <script id="rask-scoped-js"> by applyScopedJs; the
+    // first walk here is a no-op if the bundle hasn't been delivered yet, and
+    // applyScopedJs re-walks after each bundle update.
+    if (window.Rask && window.Rask.scoped) {
+        window.Rask.scoped.walkRendered(document.documentElement);
+    }
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
@@ -167,8 +177,31 @@ function applyScopedCss(hash, cssText) {
     if (typeof cssText === "string") style.textContent = cssText;
 }
 
-// reviveScript() + morph() are concatenated in at build time from
-// Rask.Core/Resources/rask-morph.js by the _RaskBuildClientJs target.
+function applyScopedJs(hash, jsText) {
+    if (hash === lastJsHash && jsText == null) return;
+    if (typeof jsText !== "string" || jsText.length === 0) return;
+    lastJsHash = hash;
+    // Replace the script element rather than mutate textContent — re-assigning a
+    // script's textContent does NOT re-execute it. A fresh <script> with the new
+    // body runs the new Rask.scoped.register(...) calls, then we walkUnmount +
+    // walkMount to refresh live elements' hooks (hot-reload story).
+    const existing = document.getElementById("rask-scoped-js");
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    const script = document.createElement("script");
+    script.id = "rask-scoped-js";
+    script.setAttribute("data-rask-managed", "");
+    script.textContent = jsText;
+    document.head.appendChild(script);
+    if (window.Rask && window.Rask.scoped) {
+        window.Rask.scoped.walkRemoved(document.documentElement);
+        window.Rask.scoped.walkRendered(document.documentElement);
+    }
+}
+
+// The Rask.scoped dispatcher + reviveScript() + morph() are concatenated in at
+// build time by the _RaskSpliceClientJs target. Order matters: the dispatcher
+// must be defined before morph() references it.
+// @@RASK_SCOPED@@
 // @@RASK_MORPH@@
 
 function applyHistory(history) {
@@ -198,6 +231,12 @@ function handle(reply) {
             root = document.querySelector("[data-rask-root]") || document.body;
         }
         applyHistory(reply.history);
+        // Re-fire rendered() against every data-rask-mount element after morph
+        // completes — morph may have rewritten attributes the prior rendered() call
+        // set (e.g. highlight.js's added `hljs` class). Cleanup runs first if present.
+        if (window.Rask && window.Rask.scoped) {
+            window.Rask.scoped.walkRendered(document.documentElement);
+        }
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     // Animate navigations (renders carrying a history block) with the View
@@ -210,6 +249,8 @@ function handle(reply) {
     }
     if (typeof reply.cssHash === "string" || reply.cssHash === null)
         applyScopedCss(reply.cssHash, reply.cssText);
+    if (typeof reply.jsHash === "string" || reply.jsHash === null)
+        applyScopedJs(reply.jsHash, reply.jsText);
     if (reply.download) triggerDownload(reply.download);
 }
 

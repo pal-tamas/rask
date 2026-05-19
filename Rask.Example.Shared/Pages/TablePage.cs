@@ -59,6 +59,8 @@ public sealed class TablePage(Navigator nav) : Component
     [QueryParam] public int? Page { get; set; }
     [QueryParam] public int? Size { get; set; }
 
+    protected override Component? Head => Title()["Data table — Rask"];
+
     protected override Component Render()
     {
         var sizeRaw = Size ?? 10;

@@ -31,9 +31,31 @@ function reviveScript(node) {
     return s;
 }
 
+// Wrappers around the underlying DOM mutation primitives that dispatch the
+// scoped-js mount/unmount hooks at the right moment. Unmount runs BEFORE removal
+// so the hook still sees the node attached; mount runs AFTER insertion so the
+// node is in the live DOM when the hook reads it.
+function _raskInsertBefore(parent, dst, anchor) {
+    parent.insertBefore(dst, anchor);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+function _raskAppendChild(parent, dst) {
+    parent.appendChild(dst);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+function _raskRemoveChild(parent, src) {
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
+    parent.removeChild(src);
+}
+function _raskReplaceChild(parent, dst, src) {
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRemoved(src);
+    parent.replaceChild(dst, src);
+    if (window.Rask && Rask.scoped) Rask.scoped.walkRendered(dst);
+}
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
-        from.parentNode.replaceChild(to, from);
+        _raskReplaceChild(from.parentNode, to, from);
         return;
     }
     if (from.nodeType === 3 || from.nodeType === 8) {
@@ -114,10 +136,10 @@ function morph(from, to) {
                 src = unkeyedFrom[unkeyedCursor++] || null;
             }
             if (src === null) {
-                from.insertBefore(reviveScript(dst), anchor);
+                _raskInsertBefore(from, reviveScript(dst), anchor);
             } else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) {
-                from.insertBefore(reviveScript(dst), anchor);
-                from.removeChild(src);
+                _raskInsertBefore(from, reviveScript(dst), anchor);
+                _raskRemoveChild(from, src);
             } else {
                 if (src !== anchor) from.insertBefore(src, anchor);
                 else anchor = anchor.nextSibling;
@@ -125,11 +147,11 @@ function morph(from, to) {
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
-        keyMap.forEach(function (n) { if (n.parentNode === from) from.removeChild(n); });
+        keyMap.forEach(function (n) { if (n.parentNode === from) _raskRemoveChild(from, n); });
         // Drop trailing unkeyed nodes too.
         while (unkeyedCursor < unkeyedFrom.length) {
             var leftover = unkeyedFrom[unkeyedCursor++];
-            if (leftover.parentNode === from) from.removeChild(leftover);
+            if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         return;
     }
@@ -137,9 +159,9 @@ function morph(from, to) {
     var max = Math.max(fc.length, tc.length);
     for (var k = 0; k < max; k++) {
         var src = fc[k], dst = tc[k];
-        if (!src) from.appendChild(reviveScript(dst));
-        else if (!dst) from.removeChild(src);
-        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) from.replaceChild(reviveScript(dst), src);
+        if (!src) _raskAppendChild(from, reviveScript(dst));
+        else if (!dst) _raskRemoveChild(from, src);
+        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
         else morph(src, dst);
     }
 }

@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ValidationPage : Component
 {
+    protected override Component? Head => Title()["Validation — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

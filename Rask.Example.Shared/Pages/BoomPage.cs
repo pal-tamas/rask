@@ -10,6 +10,8 @@ public sealed class BoomPage : Component
 {
     private bool _throwOnRender;
 
+    protected override Component? Head => Title()["Error boundary — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

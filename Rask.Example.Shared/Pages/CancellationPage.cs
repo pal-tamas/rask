@@ -12,6 +12,8 @@ public sealed class CancellationPage : Component
     private bool _mounted;
     private int _nextInstance;
 
+    protected override Component? Head => Title()["Cancellation — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

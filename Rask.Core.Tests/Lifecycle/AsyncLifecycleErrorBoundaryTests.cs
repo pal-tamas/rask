@@ -6,6 +6,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Lifecycle;
 
+[Collection("ConsoleRedirect")]
 public class AsyncLifecycleErrorBoundaryTests
 {
     [Fact]

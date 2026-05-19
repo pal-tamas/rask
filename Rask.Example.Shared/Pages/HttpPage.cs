@@ -20,6 +20,8 @@ public sealed class HttpPage(HttpClient http) : Component
         catch (Exception ex) { _error = ex.Message; }
     }
 
+    protected override Component? Head => Title()["HttpClient + DI — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

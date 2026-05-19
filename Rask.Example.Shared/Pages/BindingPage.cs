@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class BindingPage : Component
 {
+    protected override Component? Head => Title()["Two-way binding — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

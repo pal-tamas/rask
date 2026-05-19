@@ -8,6 +8,7 @@ using Rask.Core.Authorization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
+using Rask.Core.ScopedJs;
 
 namespace Rask.Wasm;
 
@@ -25,6 +26,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
     // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
     private string? _lastCssHashSent;
+    private string? _lastJsHashSent;
 
     // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
     // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
@@ -351,6 +353,14 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             _lastCssHashSent = currentHash;
         }
 
+        var currentJsHash = ScopedJsRegistry.CurrentHash;
+        string? jsText = null;
+        if (currentJsHash != _lastJsHashSent)
+        {
+            jsText = ScopedJsRegistry.GetBundle().Js;
+            _lastJsHashSent = currentJsHash;
+        }
+
         Rask.Core.Routing.PendingDownload? download = null;
         if (Services.GetService<Rask.Core.Routing.IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
         {
@@ -364,7 +374,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // ToArray at the end is still needed today because the JS interop boundary
         // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
         _writeBuffer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download);
+        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download, jsText);
         return _writeBuffer.WrittenSpan.ToArray();
     }
 }

@@ -20,6 +20,7 @@ using Rask.Core.Live;
 using Rask.Core.Forms;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
+using Rask.Core.ScopedJs;
 using Rask.Server.Authentication;
 using Rask.Server.Files;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
@@ -52,6 +53,7 @@ public static class RaskEndpointExtensions
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
         services.AddSingleton<IRaskScopedStyles, ServerScopedStyles>();
+        services.AddSingleton<IRaskScopedScripts, ServerScopedScripts>();
         services.AddSingleton<SessionUploadStore>();
         services.AddSingleton<SessionDownloadStore>();
         services.TryAddSingleton<RaskUploadOptions>();
@@ -195,6 +197,7 @@ public static class RaskEndpointExtensions
         endpoints.MapGet(RuntimePath, () => Results.Text(script, "text/javascript; charset=utf-8"));
 
         endpoints.MapGet("/_rask/scoped.css", static ctx => ServeScopedCssAsync(ctx));
+        endpoints.MapGet("/_rask/scoped.js", static ctx => ServeScopedJsAsync(ctx));
 
         endpoints.MapPost("/_rask/auth/redeem",
                 (HttpContext ctx, IAuthTicketStore tickets) => RedeemAuthTicketAsync(ctx, tickets))
@@ -212,6 +215,7 @@ public static class RaskEndpointExtensions
 
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         ScopedCssRegistry.BundleChanged += () => _ = sessionStore.RerenderAllAsync();
+        ScopedJsRegistry.BundleChanged += () => _ = sessionStore.RerenderAllAsync();
         TryEnableSourceWatcher(sessionStore);
     }
 
@@ -691,6 +695,21 @@ public static class RaskEndpointExtensions
         return ctx.Response.Body.WriteAsync(css).AsTask();
     }
 
+    internal static Task ServeScopedJsAsync(HttpContext ctx)
+    {
+        var (js, etag) = ScopedJsRegistry.GetBundleUtf8();
+        if (string.Equals(ctx.Request.Headers.IfNoneMatch.ToString(), etag, StringComparison.Ordinal))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status304NotModified;
+            return Task.CompletedTask;
+        }
+
+        ctx.Response.ContentType = "text/javascript; charset=utf-8";
+        ctx.Response.Headers.ETag = etag;
+        ctx.Response.Headers.CacheControl = "no-cache";
+        return ctx.Response.Body.WriteAsync(js).AsTask();
+    }
+
     private static string LoadEmbeddedScript()
     {
         var asm = typeof(RaskEndpointExtensions).Assembly;
@@ -846,6 +865,17 @@ public static class RaskEndpointExtensions
         public Component Render(string hash) => Rask.Core.Components.Components.Link(
             Rel: "stylesheet",
             Href: $"/_rask/scoped.css?v={hash}",
+            Data: _marker);
+    }
+
+    private sealed class ServerScopedScripts : IRaskScopedScripts
+    {
+        private static readonly IReadOnlyDictionary<string, string?> _marker =
+            new Dictionary<string, string?> { ["rask-scoped-js"] = "" };
+
+        public Component Render(string hash) => Rask.Core.Components.Components.Script(
+            Src: $"/_rask/scoped.js?v={hash}",
+            Defer: true,
             Data: _marker);
     }
 

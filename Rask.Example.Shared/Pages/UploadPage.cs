@@ -30,6 +30,8 @@ public sealed class UploadPage : Component
         _modified = file.LastModified;
     }
 
+    protected override Component? Head => Title()["File upload — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

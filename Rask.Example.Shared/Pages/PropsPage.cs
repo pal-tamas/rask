@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PropsPage : Component
 {
+    protected override Component? Head => Title()["Universal props — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

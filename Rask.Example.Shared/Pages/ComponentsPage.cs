@@ -8,6 +8,8 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ComponentsPage : Component
 {
+    protected override Component? Head => Title()["User components — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

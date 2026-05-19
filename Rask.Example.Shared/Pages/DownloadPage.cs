@@ -19,6 +19,8 @@ public sealed class DownloadPage(Navigator nav) : Component
         nav.Download("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
     }
 
+    protected override Component? Head => Title()["File download — Rask"];
+
     protected override Component Render() =>
         Fragment()[
             PageHeader.Render(

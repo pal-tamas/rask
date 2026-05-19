@@ -156,6 +156,23 @@ public abstract class Component
 
     protected virtual Component Render() => this;
 
+    /// <summary>
+    ///     Override to declare resources this component needs in the page <c>&lt;head&gt;</c>
+    ///     (stylesheets, scripts, meta tags, the document title). The framework collects the
+    ///     output from every component currently in the tree, dedupes top-level children by
+    ///     their rendered HTML, and substitutes the result for the
+    ///     <see cref="Components.RaskHeadAssets"/> placeholder. When a component goes away on
+    ///     a subsequent render, its head contribution drops out automatically — the registry
+    ///     is rebuilt from scratch each pass.
+    ///     <para>
+    ///     Default is <c>null</c> — no head contribution. Typical override returns a
+    ///     <c>Fragment</c> of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls.
+    ///     </para>
+    /// </summary>
+    protected virtual Component? Head => null;
+
+    internal Component? HeadInternal => Head;
+
     public string ToHtml()
     {
         // Rent a StringBuilder from the shared pool instead of allocating per call. The
@@ -688,6 +705,14 @@ public abstract class Component
         _stateDirty = true;
         RaiseLifecycleBeforeRender(false);
         var html = ToHtml();
+        // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
+        // The registry was populated by HtmlSerializer as it descended through user
+        // components; we resolve the active context (still live before the using-disposal
+        // below) and apply once.
+        if (LiveRenderContext.Current is { } liveCtx)
+        {
+            html = liveCtx.HeadAssets.ApplyTo(html);
+        }
 
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.

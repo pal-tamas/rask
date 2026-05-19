@@ -84,10 +84,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                         Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]
                     ]
                 ]
-            ],
-            _drawerOpen
-                ? (Component)Style()[Raw("body { overflow: hidden; height: 100vh; }")]
-                : Fragment()
+            ]
         ];
 
     private List<Child> BuildGroups()
