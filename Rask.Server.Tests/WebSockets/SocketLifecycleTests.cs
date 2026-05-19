@@ -5,6 +5,7 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
+[Collection("SessionGracePeriod")]
 public class SocketLifecycleTests
 {
     [Fact]
@@ -171,4 +172,9 @@ public class SocketLifecycleTests
 
     private static string ExtractSessionId(string html) =>
         Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
+}
+
+[CollectionDefinition("SessionGracePeriod", DisableParallelization = true)]
+public class SessionGracePeriodCollectionDef
+{
 }

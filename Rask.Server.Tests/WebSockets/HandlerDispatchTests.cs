@@ -6,6 +6,7 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
+[Collection("SessionGracePeriod")]
 public class HandlerDispatchTests
 {
     [Fact]
