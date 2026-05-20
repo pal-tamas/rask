@@ -336,9 +336,6 @@ public sealed class BindingMultiDemo : Component
                 ]
             ]];
 
-    // Bound by Input/Select via expression trees; Rider doesn't see the setter
-    // path so its "unused setter" cleanup will silently strip these — keep
-    // {get;set;} explicit and don't let the IDE downgrade them.
     private sealed class Holder
     {
         public bool Subscribe { get; set; }

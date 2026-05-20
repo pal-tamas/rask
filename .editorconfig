@@ -27,6 +27,12 @@ end_of_line = crlf
 # repo-wide — the framework cannot work without these setters.
 resharper_unused_auto_property_accessor_local_highlighting = none
 resharper_unused_auto_property_accessor_global_highlighting = none
+# Same root cause, different inspection: Rider's "auto-property can be made
+# get-only" suggestion downgrades `{ get; set; }` to `{ get; }` when it can't
+# see a setter call — and Code Cleanup applies it silently. Bind targets break
+# at runtime with `ArgumentException: Property set method not found.`
+resharper_auto_property_can_be_made_get_only_local_highlighting = none
+resharper_auto_property_can_be_made_get_only_global_highlighting = none
 
 # The JSImport source generator (Rask.Wasm/JSInterop.cs) implements partial
 # methods in a generated file Rider doesn't always see, so its "redundant
