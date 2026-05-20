@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using Rask.Core;
 using Rask.Core.Forms;
 using Rask.Core.Live;
@@ -44,12 +45,7 @@ public class CustomAttributeTests
     {
         // MatchesProperty reads ValidationContext.ObjectInstance to fetch the sibling Password
         // value and compare. With mismatched values the rule must fire on ConfirmPassword.
-        var m = new Account
-        {
-            Username = "alice",
-            Password = "Strong1Pass",
-            ConfirmPassword = "Different1"
-        };
+        var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Different1" };
         var ctx = RegisterValidator(m);
 
         ctx.Validate();
@@ -69,12 +65,7 @@ public class CustomAttributeTests
     {
         // ValidateField sets ValidationContext.MemberName so the attribute can decide which
         // field its result lands on. Assert the message lands on ConfirmPassword only.
-        var m = new Account
-        {
-            Username = "alice",
-            Password = "Strong1Pass",
-            ConfirmPassword = "Different1"
-        };
+        var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Different1" };
         var ctx = RegisterValidator(m);
 
         ctx.ValidateField(new FieldIdentifier(m, nameof(Account.ConfirmPassword)));
@@ -94,12 +85,7 @@ public class CustomAttributeTests
         // NOT around Validate (handler invocation doesn't re-enter LiveRenderContext, just
         // like the production path).
         var sp = new StubServices(new BannedWords("admin", "root"));
-        var m = new Account
-        {
-            Username = "admin",
-            Password = "Strong1Pass",
-            ConfirmPassword = "Strong1Pass"
-        };
+        var m = new Account { Username = "admin", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
 
         EditContext ctx;
         using (LiveRenderContext.Begin(new NoOpRoot(), sp))
@@ -135,6 +121,7 @@ public class CustomAttributeTests
         {
             DataAnnotationsValidator().ToHtml();
         }
+
         return ctx;
     }
 
@@ -147,6 +134,7 @@ public class CustomAttributeTests
     {
         private readonly object _value;
         public StubServices(object value) => _value = value;
+
         public object? GetService(Type serviceType) =>
             serviceType == typeof(IBannedWords) ? _value : null;
     }
@@ -174,8 +162,10 @@ internal interface IBannedWords
 internal sealed class BannedWords : IBannedWords
 {
     private readonly HashSet<string> _set;
+
     public BannedWords(params string[] words) =>
         _set = new HashSet<string>(words, StringComparer.OrdinalIgnoreCase);
+
     public bool IsBanned(string word) => _set.Contains(word);
 }
 
@@ -183,21 +173,36 @@ internal sealed class StrongPasswordAttribute : ValidationAttribute
 {
     public override bool IsValid(object? value)
     {
-        if (value is not string s || s.Length < 8) return false;
+        if (value is not string s || s.Length < 8)
+        {
+            return false;
+        }
+
         bool letter = false, digit = false;
         foreach (var ch in s)
         {
-            if (char.IsLetter(ch)) letter = true;
-            else if (char.IsDigit(ch)) digit = true;
-            if (letter && digit) return true;
+            if (char.IsLetter(ch))
+            {
+                letter = true;
+            }
+            else if (char.IsDigit(ch))
+            {
+                digit = true;
+            }
+
+            if (letter && digit)
+            {
+                return true;
+            }
         }
+
         return false;
     }
 }
 
 internal sealed class MatchesPropertyAttribute(string otherProperty) : ValidationAttribute
 {
-    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2075",
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
         Justification = "Test-fixture model is preserved by the test project's compile-time references.")]
     protected override ValidationResult? IsValid(object? value, ValidationContext ctx)
     {
@@ -215,7 +220,11 @@ internal sealed class BannedAttribute : ValidationAttribute
     protected override ValidationResult? IsValid(object? value, ValidationContext ctx)
     {
         var svc = ctx.GetService(typeof(IBannedWords)) as IBannedWords;
-        if (svc is null || value is not string s) return ValidationResult.Success;
+        if (svc is null || value is not string s)
+        {
+            return ValidationResult.Success;
+        }
+
         return svc.IsBanned(s)
             ? new ValidationResult(FormatErrorMessage(s),
                 ctx.MemberName is null ? null : new[] { ctx.MemberName })

@@ -17,7 +17,7 @@ public interface IRaskScopedStyles
 /// <summary>
 ///     Host strategy for emitting the scoped-js bundle reference inside the
 ///     framework-managed <c>&lt;head&gt;</c>. Same shape as
-///     <see cref="IRaskScopedStyles"/> for the scoped-js bundle.
+///     <see cref="IRaskScopedStyles" /> for the scoped-js bundle.
 /// </summary>
 public interface IRaskScopedScripts
 {

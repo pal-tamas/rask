@@ -26,5 +26,5 @@ export function rendered(el, firstRender) {
         if (!window.hljs) return;
         delete code.dataset.highlighted;
         window.hljs.highlightElement(code);
-    }, { once: true });
+    }, {once: true});
 }

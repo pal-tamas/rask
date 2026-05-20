@@ -16,10 +16,29 @@ public sealed class Track : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Kind is not null) AppendAttr(sb, "kind", Kind);
-        if (Src is not null) AppendAttr(sb, "src", Src);
-        if (Srclang is not null) AppendAttr(sb, "srclang", Srclang);
-        if (Label is not null) AppendAttr(sb, "label", Label);
-        if (Default) AppendAttr(sb, "default", null);
+        if (Kind is not null)
+        {
+            AppendAttr(sb, "kind", Kind);
+        }
+
+        if (Src is not null)
+        {
+            AppendAttr(sb, "src", Src);
+        }
+
+        if (Srclang is not null)
+        {
+            AppendAttr(sb, "srclang", Srclang);
+        }
+
+        if (Label is not null)
+        {
+            AppendAttr(sb, "label", Label);
+        }
+
+        if (Default)
+        {
+            AppendAttr(sb, "default", null);
+        }
     }
 }

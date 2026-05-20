@@ -7,6 +7,9 @@ namespace Rask.Core.Components;
 
 public sealed class NavLink : Element
 {
+    // Cached at mount because LiveRenderContext.Current is null during disposal, so
+    // OnUnmount can't re-resolve RouteState from the render scope.
+    private RouteState? _route;
     protected override string TagName => "a";
 
     public RouteUrl? Href { get; set; }
@@ -19,23 +22,27 @@ public sealed class NavLink : Element
     // default(NavLinkMatch) == Exact (enum's 0th value), so no initializer is needed here.
     public NavLinkMatch ActiveMatch { get; set; }
 
-    // Cached at mount because LiveRenderContext.Current is null during disposal, so
-    // OnUnmount can't re-resolve RouteState from the render scope.
-    private RouteState? _route;
-
     protected override void OnMount()
     {
         // Subscribe to RouteState.Changed so a NavLink rendered outside the Router
         // subtree (e.g. a top-level sidebar in App.cs) still re-evaluates its active
         // state when navigation happens.
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed += StateHasChanged;
     }
 
     protected override void OnUnmount()
     {
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed -= StateHasChanged;
     }
 
@@ -54,7 +61,11 @@ public sealed class NavLink : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Href is not null) AppendAttr(sb, "href", Href.Value.ToString());
+        if (Href is not null)
+        {
+            AppendAttr(sb, "href", Href.Value.ToString());
+        }
+
         AppendAttr(sb, "data-rask-nav", null);
     }
 

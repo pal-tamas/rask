@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class EmTests
@@ -11,8 +9,8 @@ public class EmTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<em id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></em>",
-            Em(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<em id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></em>",
+            Em("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

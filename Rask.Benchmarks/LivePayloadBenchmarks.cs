@@ -1,3 +1,4 @@
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using Rask.Core.Live;
 
@@ -16,7 +17,7 @@ public class LivePayloadBenchmarks
     public void Setup()
     {
         // Approximate ~20 KB of rendered HTML body — representative of a moderately complex page.
-        var rows = new System.Text.StringBuilder();
+        var rows = new StringBuilder();
         for (var i = 0; i < 200; i++)
         {
             rows.Append("<div class=\"row\" id=\"r").Append(i)

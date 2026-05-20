@@ -8,7 +8,7 @@ namespace Rask.Core.ScopedJs;
 /// <summary>
 ///     Per-component JS module registry. A user drops <c>Component.js</c> next to
 ///     <c>Component.cs</c>; the source generator emits a module initializer that calls
-///     <see cref="RegisterType"/> here. The bundle is concatenated, hashed, and served
+///     <see cref="RegisterType" /> here. The bundle is concatenated, hashed, and served
 ///     to the browser by the host (server: <c>/_rask/scoped.js?v={hash}</c>; WASM: inline
 ///     <c>&lt;script id="rask-scoped-js"&gt;</c>). The dispatcher in
 ///     <c>Rask.Core/Resources/rask-scoped.js</c> calls <c>mount(el)</c> / <c>unmount(el)</c>
@@ -23,6 +23,23 @@ public static class ScopedJsRegistry
     private static string? _cachedHash;
     private static byte[]? _cachedBundleUtf8;
     private static string? _cachedEtag;
+
+    // The author writes idiomatic ES-module syntax — any number of named exports:
+    //   export function rendered(el, firstRender) { ... }
+    //   export function highlight(el, language) { ... }
+    // The wrapper strips `export` keywords (so the declarations are local) and then
+    // returns an object literal mapping each exported function name to the
+    // declaration in the closure. C# user code invokes individual methods by name
+    // via InvokeJs("rendered", args...), routed through Rask.scoped.invoke.
+    private static readonly Regex _exportStrip =
+        new(@"(^|\n)\s*export\s+(default\s+)?(?=(function|const|let|var)\b)",
+            RegexOptions.Compiled);
+
+    // Locate `export function NAME(` declarations — these become methods on the
+    // returned module object. Non-exported helpers stay in the closure scope.
+    private static readonly Regex _exportedFunctionNames =
+        new(@"(^|\n)\s*export\s+(?:default\s+)?function\s+(\w+)\s*\(",
+            RegexOptions.Compiled);
 
     public static string? CurrentHash
     {
@@ -66,7 +83,7 @@ public static class ScopedJsRegistry
     ///     Registers (or replaces) the JS module source for a component type. Called by
     ///     generator-emitted module initializers and by the hot-reload handler when the
     ///     generated source for a <c>.js</c> sibling is re-emitted. Whitespace-only source
-    ///     unregisters the type — symmetric with <see cref="ScopedCssRegistry.RegisterType"/>.
+    ///     unregisters the type — symmetric with <see cref="ScopedCssRegistry.RegisterType" />.
     /// </summary>
     public static void RegisterType(Type componentType, string source)
     {
@@ -212,23 +229,6 @@ public static class ScopedJsRegistry
 
         return sb.ToString();
     }
-
-    // The author writes idiomatic ES-module syntax — any number of named exports:
-    //   export function rendered(el, firstRender) { ... }
-    //   export function highlight(el, language) { ... }
-    // The wrapper strips `export` keywords (so the declarations are local) and then
-    // returns an object literal mapping each exported function name to the
-    // declaration in the closure. C# user code invokes individual methods by name
-    // via InvokeJs("rendered", args...), routed through Rask.scoped.invoke.
-    private static readonly Regex _exportStrip =
-        new(@"(^|\n)\s*export\s+(default\s+)?(?=(function|const|let|var)\b)",
-            RegexOptions.Compiled);
-
-    // Locate `export function NAME(` declarations — these become methods on the
-    // returned module object. Non-exported helpers stay in the closure scope.
-    private static readonly Regex _exportedFunctionNames =
-        new(@"(^|\n)\s*export\s+(?:default\s+)?function\s+(\w+)\s*\(",
-            RegexOptions.Compiled);
 
     private static string WrapModule(string scopeId, string source)
     {

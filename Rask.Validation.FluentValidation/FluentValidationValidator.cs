@@ -1,7 +1,7 @@
 using FluentValidation;
 using FluentValidation.Internal;
+using FluentValidation.Results;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 
 namespace Rask.Validation.FluentValidation;
@@ -27,7 +27,7 @@ public sealed class FluentValidationValidator : Component
     protected override Component Render()
     {
         EditContextScope.Current?.AddValidator(new Inner(Validator));
-        return Rask.Core.Components.Components.Fragment();
+        return Core.Components.Components.Fragment();
     }
 
     private sealed class Inner : IAsyncFieldValidator
@@ -38,7 +38,7 @@ public sealed class FluentValidationValidator : Component
 
         public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
         {
-            var validationContext = new global::FluentValidation.ValidationContext<object>(context.Model);
+            var validationContext = new ValidationContext<object>(context.Model);
             var result = await _validator.ValidateAsync(validationContext, cancellationToken).ConfigureAwait(false);
 
             foreach (var error in result.Errors)
@@ -61,7 +61,7 @@ public sealed class FluentValidationValidator : Component
             if (ReferenceEquals(field.Model, context.Model))
             {
                 var selector = new MemberNameValidatorSelector(new[] { field.FieldName });
-                var rootCtx = new global::FluentValidation.ValidationContext<object>(
+                var rootCtx = new ValidationContext<object>(
                     context.Model, new PropertyChain(), selector);
 
                 var rootResult = await _validator.ValidateAsync(rootCtx, cancellationToken).ConfigureAwait(false);
@@ -80,7 +80,7 @@ public sealed class FluentValidationValidator : Component
             // so we can't easily target a single rule under a SetValidator / RuleForEach chain
             // with a selector. Run the full validator and filter results whose resolved owner
             // + terminal property match `field`.
-            var fullCtx = new global::FluentValidation.ValidationContext<object>(context.Model);
+            var fullCtx = new ValidationContext<object>(context.Model);
             var fullResult = await _validator.ValidateAsync(fullCtx, cancellationToken).ConfigureAwait(false);
 
             foreach (var error in fullResult.Errors)
@@ -105,7 +105,7 @@ public sealed class FluentValidationValidator : Component
         // the actual sub-instance, not on (rootModel, "Address.Street"). Falls back to a
         // form-level message on the root when the path can't be resolved to a terminal
         // property (empty path, bare collection item, stale index, …).
-        private static void RouteError(EditContext context, global::FluentValidation.Results.ValidationFailure error)
+        private static void RouteError(EditContext context, ValidationFailure error)
         {
             var name = error.PropertyName ?? string.Empty;
             if (name.Length == 0)

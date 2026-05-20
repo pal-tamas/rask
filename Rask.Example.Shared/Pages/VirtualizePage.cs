@@ -1,5 +1,4 @@
 using Rask.Core.Routing;
-using Rask.Core.Virtualization;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
 
@@ -9,27 +8,35 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class VirtualizePage : Component
 {
-    private sealed record Row(int Index, string Name, string City, decimal Balance);
-
     private static readonly Row[] _rows = BuildRows(10_000);
+
+    protected override Component? Head => Title()["Virtualize — Rask"];
 
     private static Row[] BuildRows(int count)
     {
-        var firsts = new[] { "Ada", "Grace", "Linus", "Margaret", "Donald", "Barbara", "Edsger", "Tony", "Alan", "John" };
-        var lasts = new[] { "Lovelace", "Hopper", "Torvalds", "Hamilton", "Knuth", "Liskov", "Dijkstra", "Hoare", "Turing", "Backus" };
-        var cities = new[] { "London", "New York", "Helsinki", "Boston", "Stanford", "Cambridge", "Amsterdam", "Oxford", "Manchester", "Berkeley" };
+        var firsts = new[]
+        {
+            "Ada", "Grace", "Linus", "Margaret", "Donald", "Barbara", "Edsger", "Tony", "Alan", "John"
+        };
+        var lasts = new[]
+        {
+            "Lovelace", "Hopper", "Torvalds", "Hamilton", "Knuth", "Liskov", "Dijkstra", "Hoare", "Turing", "Backus"
+        };
+        var cities = new[]
+        {
+            "London", "New York", "Helsinki", "Boston", "Stanford", "Cambridge", "Amsterdam", "Oxford",
+            "Manchester", "Berkeley"
+        };
         var rng = new Random(42);
         var rows = new Row[count];
         for (var i = 0; i < count; i++)
         {
-            var name = $"{firsts[i % firsts.Length]} {lasts[(i / firsts.Length) % lasts.Length]} #{i + 1:D5}";
+            var name = $"{firsts[i % firsts.Length]} {lasts[i / firsts.Length % lasts.Length]} #{i + 1:D5}";
             rows[i] = new Row(i + 1, name, cities[rng.Next(cities.Length)], rng.Next(0, 100000) / 100m);
         }
 
         return rows;
     }
-
-    protected override Component? Head => Title()["Virtualize — Rask"];
 
     protected override Component Render() =>
         Fragment()[
@@ -43,7 +50,7 @@ public sealed class VirtualizePage : Component
                 Code()["VisibleItems"], " only emits the rows currently on screen."
             ],
             Virtualize<Row>(
-                Render: ctx => Div(
+                ctx => Div(
                     Class: "border rounded bg-white",
                     Style: "height:400px; overflow:auto;",
                     Data: new Dictionary<string, string?> { ["testid"] = "virtualize-scroller" },
@@ -69,8 +76,7 @@ public sealed class VirtualizePage : Component
                                     // survive the re-render.
                                     Data: new Dictionary<string, string?>
                                     {
-                                        ["row-index"] = item.Index.ToString(),
-                                        ["rask-key"] = item.Index.ToString()
+                                        ["row-index"] = item.Index.ToString(), ["rask-key"] = item.Index.ToString()
                                     })[
                                     Td()[item.Value?.Index.ToString() ?? ""],
                                     Td()[item.Value?.Name ?? ""],
@@ -81,12 +87,16 @@ public sealed class VirtualizePage : Component
                     ],
                     Div(Style: $"height:{ctx.OffsetAfter}px")
                 ],
-                Items: _rows,
+                _rows,
                 ItemSize: 32,
                 OverscanCount: 4,
                 InitialClientHeight: 400),
             P(Class: "small text-secondary mt-3 mb-0")[
-                Code()["data-row-index"], " on each row lets you eyeball which slice is rendered. Open DevTools and inspect — only ~", Strong()["20–30"], " rows live in the DOM at any time."
+                Code()["data-row-index"],
+                " on each row lets you eyeball which slice is rendered. Open DevTools and inspect — only ~",
+                Strong()["20–30"], " rows live in the DOM at any time."
             ]
         ];
+
+    private sealed record Row(int Index, string Name, string City, decimal Balance);
 }

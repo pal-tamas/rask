@@ -12,12 +12,12 @@ public class ComponentScopedCssGeneratorTests
     public void Generator_EmitsRegistrationForMatchingComponentAndCssSibling()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -37,12 +37,12 @@ public class ComponentScopedCssGeneratorTests
         // Counter.css under /proj/Pages/ should not bind to /proj/Other/Counter (same simple
         // name, different directory) — they're orphan from each other's perspective.
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Other/Counter.cs", source) },
@@ -55,12 +55,12 @@ public class ComponentScopedCssGeneratorTests
     public void Generator_RaisesRASK015_ForOrphanCssFile()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -73,12 +73,12 @@ public class ComponentScopedCssGeneratorTests
     public void Generator_EscapesQuotesInCssContent()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -94,12 +94,12 @@ public class ComponentScopedCssGeneratorTests
     public void Generator_IgnoresWhitespaceOnlyCssFile()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -121,12 +121,12 @@ public class ComponentScopedCssGeneratorTests
         // abstract classes can't be instantiated and shouldn't host scoped styles. The
         // pairing rule excludes them; the .css file becomes an orphan (RASK015).
         const string source = """
-            namespace Foo;
-            public abstract class Base : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public abstract class Base : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Base.cs", source) },
@@ -143,7 +143,7 @@ public class ComponentScopedCssGeneratorTests
             .Select(s => CSharpSyntaxTree.ParseText(
                 s.Source,
                 new CSharpParseOptions(LanguageVersion.Latest),
-                path: s.Path))
+                s.Path))
             .ToArray();
 
         var references = BuildReferences();
@@ -184,6 +184,7 @@ public class ComponentScopedCssGeneratorTests
     private sealed class InMemoryAdditionalText : AdditionalText
     {
         private readonly string _contents;
+
         public InMemoryAdditionalText(string path, string contents)
         {
             Path = path;

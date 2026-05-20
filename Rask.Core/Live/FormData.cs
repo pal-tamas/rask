@@ -8,7 +8,6 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
 {
     private static readonly IReadOnlyList<RaskFile> EmptyFiles = Array.Empty<RaskFile>();
 
-    private readonly IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> _files;
     private readonly IReadOnlyDictionary<string, string> _values;
 
     public FormData(IReadOnlyDictionary<string, string> values)
@@ -21,8 +20,12 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
         IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> files)
     {
         _values = values;
-        _files = files;
+        FilesByField = files;
     }
+
+    public IEnumerable<string> FileKeys => FilesByField.Keys;
+
+    internal IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> FilesByField { get; }
 
     public string this[string key] => _values[key];
     public IEnumerable<string> Keys => _values.Keys;
@@ -36,11 +39,9 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
     public string Get(string key) => _values.TryGetValue(key, out var v) ? v : string.Empty;
 
     public IReadOnlyList<RaskFile> Files(string key) =>
-        _files.TryGetValue(key, out var f) ? f : EmptyFiles;
+        FilesByField.TryGetValue(key, out var f) ? f : EmptyFiles;
 
-    public bool HasFiles(string key) => _files.TryGetValue(key, out var f) && f.Count > 0;
-
-    public IEnumerable<string> FileKeys => _files.Keys;
+    public bool HasFiles(string key) => FilesByField.TryGetValue(key, out var f) && f.Count > 0;
 
     internal static FormData FromJson(JsonElement payload)
     {
@@ -98,6 +99,4 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
 
         return new FormData(dict, fileDict);
     }
-
-    internal IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> FilesByField => _files;
 }

@@ -88,15 +88,18 @@ public static class LivePayload
         string? jsText = null,
         IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
-        var buffer = new ArrayBufferWriter<byte>(initialCapacity: 4096);
+        var buffer = new ArrayBufferWriter<byte>(4096);
         BuildPayloadUtf8(buffer, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
         return buffer.WrittenSpan.ToArray();
     }
 
     /// <summary>
-    /// Pooled-writer overload of <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload,string,IReadOnlyList{ScopedJsInvoke})"/>.
-    /// Writes the JSON payload into the caller-supplied buffer; callers reuse the writer
-    /// across frames (Clear / ResetWrittenCount) to avoid the per-frame 4 KiB allocation.
+    ///     Pooled-writer overload of
+    ///     <see
+    ///         cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload,string,IReadOnlyList{ScopedJsInvoke})" />
+    ///     .
+    ///     Writes the JSON payload into the caller-supplied buffer; callers reuse the writer
+    ///     across frames (Clear / ResetWrittenCount) to avoid the per-frame 4 KiB allocation.
     /// </summary>
     public static void BuildPayloadUtf8(
         ArrayBufferWriter<byte> output,
@@ -114,13 +117,14 @@ public static class LivePayload
     }
 
     /// <summary>
-    /// Server live-path payload builder. Encodes <paramref name="html"/> to UTF-8 once,
-    /// locates the <c>&lt;body&gt;</c> / <c>&lt;/body&gt;</c> bounds on the byte span via
-    /// vectorized <see cref="MemoryExtensions.IndexOf{T}(System.ReadOnlySpan{T}, T)"/> (no
-    /// UTF-16 char-by-char scan), splices <c>data-rask-root="..."</c> on the opening tag,
-    /// and writes the JSON payload containing **only the body**. Replaces the prior
-    /// <see cref="InjectRootAttr"/> + <see cref="ExtractBody"/> + <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload)"/>
-    /// chain in one pass.
+    ///     Server live-path payload builder. Encodes <paramref name="html" /> to UTF-8 once,
+    ///     locates the <c>&lt;body&gt;</c> / <c>&lt;/body&gt;</c> bounds on the byte span via
+    ///     vectorized <see cref="MemoryExtensions.IndexOf{T}(System.ReadOnlySpan{T}, T)" /> (no
+    ///     UTF-16 char-by-char scan), splices <c>data-rask-root="..."</c> on the opening tag,
+    ///     and writes the JSON payload containing **only the body**. Replaces the prior
+    ///     <see cref="InjectRootAttr" /> + <see cref="ExtractBody" /> +
+    ///     <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload)" />
+    ///     chain in one pass.
     /// </summary>
     public static byte[] BuildPayloadUtf8WithBody(
         string html,
@@ -133,17 +137,21 @@ public static class LivePayload
         string? jsText = null,
         IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
-        var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
+        var output = new ArrayBufferWriter<byte>(4096);
+        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText,
+            scopedJsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
     /// <summary>
-    /// Pooled-writer overload of <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>.
-    /// Writes the JSON payload into <paramref name="output"/>; the caller owns the buffer
-    /// and is expected to <c>ResetWrittenCount()</c> between frames so the rented array is
-    /// reused. Lets <see cref="System.Net.WebSockets.WebSocket.SendAsync(ReadOnlyMemory{byte}, System.Net.WebSockets.WebSocketMessageType, bool, CancellationToken)"/>
-    /// consume <see cref="ArrayBufferWriter{T}.WrittenMemory"/> directly — no per-frame copy.
+    ///     Pooled-writer overload of
+    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)" />.
+    ///     Writes the JSON payload into <paramref name="output" />; the caller owns the buffer
+    ///     and is expected to <c>ResetWrittenCount()</c> between frames so the rented array is
+    ///     reused. Lets
+    ///     <see
+    ///         cref="System.Net.WebSockets.WebSocket.SendAsync(ReadOnlyMemory{byte}, System.Net.WebSockets.WebSocketMessageType, bool, CancellationToken)" />
+    ///     consume <see cref="ArrayBufferWriter{T}.WrittenMemory" /> directly — no per-frame copy.
     /// </summary>
     public static void BuildPayloadUtf8WithBody(
         ArrayBufferWriter<byte> output,
@@ -156,16 +164,16 @@ public static class LivePayload
         PendingDownload? download = null,
         string? jsText = null,
         IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
-        => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: true,
+        => BuildPayloadUtf8Spliced(output, html, sessionId, true,
             historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
 
     /// <summary>
-    /// WASM live-path payload builder. Same UTF-8 splice as
-    /// <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>,
-    /// but emits the **whole document** (Doctype, Html, Head, Body) so the JS-side morph
-    /// against <c>document.documentElement</c> can update head children too — title,
-    /// stylesheet <c>&lt;link&gt;</c>s, the scoped-css link. The data-rask-root marker is
-    /// still spliced onto the opening <c>&lt;body&gt;</c>.
+    ///     WASM live-path payload builder. Same UTF-8 splice as
+    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)" />,
+    ///     but emits the **whole document** (Doctype, Html, Head, Body) so the JS-side morph
+    ///     against <c>document.documentElement</c> can update head children too — title,
+    ///     stylesheet <c>&lt;link&gt;</c>s, the scoped-css link. The data-rask-root marker is
+    ///     still spliced onto the opening <c>&lt;body&gt;</c>.
     /// </summary>
     public static byte[] BuildPayloadUtf8WithRoot(
         string html,
@@ -178,13 +186,15 @@ public static class LivePayload
         string? jsText = null,
         IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
     {
-        var output = new ArrayBufferWriter<byte>(initialCapacity: 4096);
-        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
+        var output = new ArrayBufferWriter<byte>(4096);
+        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText,
+            scopedJsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
     /// <summary>
-    /// Pooled-writer overload of <see cref="BuildPayloadUtf8WithRoot(string,string,string,bool,string,AuthInstruction,PendingDownload)"/>.
+    ///     Pooled-writer overload of
+    ///     <see cref="BuildPayloadUtf8WithRoot(string,string,string,bool,string,AuthInstruction,PendingDownload)" />.
     /// </summary>
     public static void BuildPayloadUtf8WithRoot(
         ArrayBufferWriter<byte> output,
@@ -197,7 +207,7 @@ public static class LivePayload
         PendingDownload? download = null,
         string? jsText = null,
         IReadOnlyList<ScopedJsInvoke>? scopedJsInvokes = null)
-        => BuildPayloadUtf8Spliced(output, html, sessionId, includeOnlyBody: false,
+        => BuildPayloadUtf8Spliced(output, html, sessionId, false,
             historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
 
     private static void BuildPayloadUtf8Spliced(
@@ -236,7 +246,8 @@ public static class LivePayload
                 var tagEndRel = htmlBytes[bodyOpen..].IndexOf((byte)'>');
                 if (tagEndRel < 0)
                 {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText,
+                        scopedJsInvokes);
                     return;
                 }
 
@@ -244,7 +255,8 @@ public static class LivePayload
                 var closeIdx = IndexOfIgnoreCaseUtf8(htmlBytes, "</body>"u8, afterOpenTag);
                 if (closeIdx < 0)
                 {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
+                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText,
+                        scopedJsInvokes);
                     return;
                 }
 
@@ -285,7 +297,8 @@ public static class LivePayload
                 slice[headLen..].CopyTo(spliced[cursor..]);
 
                 using var writer = new Utf8JsonWriter(output);
-                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download, jsText, scopedJsInvokes);
+                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download, jsText,
+                    scopedJsInvokes);
             }
             finally
             {
@@ -299,8 +312,8 @@ public static class LivePayload
     }
 
     /// <summary>
-    /// UTF-8 byte-span variant of <see cref="ExtractBody"/>. Returns a slice of the input —
-    /// no allocation. If no <c>&lt;body&gt;</c> tag is present, returns the input unchanged.
+    ///     UTF-8 byte-span variant of <see cref="ExtractBody" />. Returns a slice of the input —
+    ///     no allocation. If no <c>&lt;body&gt;</c> tag is present, returns the input unchanged.
     /// </summary>
     public static ReadOnlySpan<byte> ExtractBodyUtf8(ReadOnlySpan<byte> html)
     {
@@ -421,6 +434,7 @@ public static class LivePayload
 
                 writer.WriteEndObject();
             }
+
             writer.WriteEndArray();
         }
 
@@ -550,10 +564,25 @@ public static class LivePayload
         {
             var a = source[sourceIndex + j];
             var b = value[j];
-            if (a == b) continue;
-            if (a >= 'A' && a <= 'Z') a = (char)(a + 32);
-            if (b >= 'A' && b <= 'Z') b = (char)(b + 32);
-            if (a != b) return false;
+            if (a == b)
+            {
+                continue;
+            }
+
+            if (a >= 'A' && a <= 'Z')
+            {
+                a = (char)(a + 32);
+            }
+
+            if (b >= 'A' && b <= 'Z')
+            {
+                b = (char)(b + 32);
+            }
+
+            if (a != b)
+            {
+                return false;
+            }
         }
 
         return true;
@@ -563,7 +592,7 @@ public static class LivePayload
     {
         // Scan UTF-8 bytes for "<body" followed by a tag boundary. Uses MemoryExtensions.IndexOf
         // for the initial '<' search (vectorized via Vector128/Vector256 on supported hardware).
-        ReadOnlySpan<byte> bodyName = "body"u8;
+        var bodyName = "body"u8;
         var offset = 0;
         while (true)
         {
@@ -615,13 +644,13 @@ public static class LivePayload
         }
 
         var first = value[0];
-        var firstUpper = (first >= (byte)'a' && first <= (byte)'z') ? (byte)(first - 32) : first;
-        var firstLower = (first >= (byte)'A' && first <= (byte)'Z') ? (byte)(first + 32) : first;
+        var firstUpper = first >= (byte)'a' && first <= (byte)'z' ? (byte)(first - 32) : first;
+        var firstLower = first >= (byte)'A' && first <= (byte)'Z' ? (byte)(first + 32) : first;
         var end = source.Length - value.Length;
         var i = startIndex;
         while (i <= end)
         {
-            var rel = (firstUpper == firstLower)
+            var rel = firstUpper == firstLower
                 ? source[i..].IndexOf(first)
                 : source[i..].IndexOfAny(firstUpper, firstLower);
             if (rel < 0)
@@ -657,10 +686,25 @@ public static class LivePayload
         {
             var x = a[j];
             var y = b[j];
-            if (x == y) continue;
-            if (x >= (byte)'A' && x <= (byte)'Z') x = (byte)(x + 32);
-            if (y >= (byte)'A' && y <= (byte)'Z') y = (byte)(y + 32);
-            if (x != y) return false;
+            if (x == y)
+            {
+                continue;
+            }
+
+            if (x >= (byte)'A' && x <= (byte)'Z')
+            {
+                x = (byte)(x + 32);
+            }
+
+            if (y >= (byte)'A' && y <= (byte)'Z')
+            {
+                y = (byte)(y + 32);
+            }
+
+            if (x != y)
+            {
+                return false;
+            }
         }
 
         return true;

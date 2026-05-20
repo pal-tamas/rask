@@ -18,7 +18,7 @@ public sealed class CodeSample : Component
         Link(Rel: "stylesheet",
             Href: HljsBase + "styles/atom-one-dark.min.css",
             CrossOrigin: "anonymous"),
-        Script(Src: HljsBase + "highlight.min.js",
+        Script(HljsBase + "highlight.min.js",
             CrossOrigin: "anonymous")
     ];
 

@@ -16,7 +16,7 @@ public class InputDelegateValidateTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Name,
-                Validate: v =>
+                v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -47,10 +47,10 @@ public class InputDelegateValidateTests
             p,
             _ => validCalled++,
             _ => invalidCalled++)[
-                Input(() => p.Name,
-                    Validate: _ => new[] { "always-fail" }),
-                new ContextCapture(ctx => captured = ctx)
-            ]);
+            Input(() => p.Name,
+                _ => new[] { "always-fail" }),
+            new ContextCapture(ctx => captured = ctx)
+        ]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = ExtractAttr(html, "data-rask-on-submit")!;
@@ -74,7 +74,7 @@ public class InputDelegateValidateTests
         var view = new StubComponent(() => Form(p)[
             includeValidator
                 ? Input(() => p.Name,
-                    Validate: v =>
+                    v =>
                         v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
                 : Input(() => p.Name),
             new ContextCapture(ctx => captured = ctx)
@@ -111,7 +111,7 @@ public class InputDelegateValidateTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Name,
-                Validate: async (v, ct) =>
+                async (v, ct) =>
                 {
                     await Task.Yield();
                     ct.ThrowIfCancellationRequested();
@@ -139,7 +139,7 @@ public class InputDelegateValidateTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Name,
-                Validate: async (v, ct) =>
+                async (v, ct) =>
                 {
                     await Task.Yield();
                     ct.ThrowIfCancellationRequested();
@@ -162,7 +162,11 @@ public class InputDelegateValidateTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
@@ -181,6 +185,7 @@ public class InputDelegateValidateTests
             {
                 capture(c);
             }
+
             return Fragment();
         }
     }

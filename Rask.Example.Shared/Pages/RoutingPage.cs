@@ -63,7 +63,8 @@ public sealed class RoutingPage(Navigator nav) : Component
                 Button(
                     Class: "btn btn-outline-primary btn-sm",
                     OnClick: () =>
-                        nav.Navigate("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[I(Class: "bi bi-link-45deg me-1"), "/users/ada?tab=profile"]
+                        nav.Navigate("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[
+                    I(Class: "bi bi-link-45deg me-1"), "/users/ada?tab=profile"]
             ],
             H2(Class: "h4 mt-5 mb-3")["Reacting to navigation: RouteState.Changed"],
             P(Class: "text-secondary")[

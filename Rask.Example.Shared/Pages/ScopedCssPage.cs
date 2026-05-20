@@ -15,7 +15,6 @@ public sealed class ScopedCssPage : Component
             PageHeader.Render(
                 "Scoped CSS",
                 "Drop a sibling {Component}.css file next to {Component}.cs and Rask pairs them at compile time. The framework hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component — no class-name discipline, no BEM, no leaks."),
-
             H2(Class: "h4 mt-4 mb-3")["Two components, same selector, no conflict"],
             CodeSample(
                 """""
@@ -44,7 +43,6 @@ public sealed class ScopedCssPage : Component
                     ScopedRed(),
                     ScopedBlue()
                 ]),
-
             H2(Class: "h4 mt-5 mb-3")["How it ships"],
             P()[
                 "Put ", Code()["RaskScopedStyles()"],
@@ -59,7 +57,6 @@ public sealed class ScopedCssPage : Component
                 Code()["?v="],
                 " — hot reload without a page refresh."
             ],
-
             H2(Class: "h4 mt-5 mb-3")["What gets rewritten"],
             Div(Class: "list-group list-group-flush mb-3")[
                 Li(Class: "list-group-item d-flex align-items-start")[
@@ -83,7 +80,6 @@ public sealed class ScopedCssPage : Component
                     Div()["Shell tags (html, head, body, title, meta, link, script, style, base) are not stamped"]
                 ]
             ],
-
             H2(Class: "h4 mt-5 mb-3")["Diagnostics"],
             P()[
                 "A ", Code()[".css"], " file with no matching ", Code()[".cs"],

@@ -1,8 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using FluentValidation;
-using Rask.Core.Forms;
-using static Rask.Validation.DataAnnotations.Components;
-using static Rask.Validation.FluentValidation.Components;
 
 namespace Rask.Example.Shared.Demos;
 
@@ -20,48 +17,49 @@ public sealed class NestedSubObjectDemo : Component
         Fragment()[
             Form<CheckoutModel>(
                 _model,
-                m => _submission = $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).",
+                m => _submission =
+                    $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("nf-name", Class: "form-label small mb-1")["Name"],
-                        Input(() => _model.Name, Id: "nf-name", Class: "form-control"),
-                        ValidationMessage(() => _model.Name, FieldError)
-                    ],
-                    Div()[
-                        Label("nf-email", Class: "form-label small mb-1")["Email"],
-                        Input(() => _model.Email, Id: "nf-email", Type: "email",
-                            Class: "form-control"),
-                        ValidationMessage(() => _model.Email, FieldError)
-                    ],
-                    Fieldset(Class: "border rounded p-3 mt-2")[
-                        Legend(Class: "h6 fw-semibold")["Shipping address"],
-                        Div(Class: "vstack gap-3")[
-                            Div()[
-                                Label("nf-street", Class: "form-label small mb-1")["Street"],
-                                Input(() => _model.Address.Street, Id: "nf-street",
-                                    Class: "form-control"),
-                                ValidationMessage(() => _model.Address.Street, FieldError)
-                            ],
-                            Div()[
-                                Label("nf-city", Class: "form-label small mb-1")["City"],
-                                Input(() => _model.Address.City, Id: "nf-city",
-                                    Class: "form-control"),
-                                ValidationMessage(() => _model.Address.City, FieldError)
-                            ],
-                            Div()[
-                                Label("nf-country", Class: "form-label small mb-1")["Country (ISO)"],
-                                Input(() => _model.Address.Country, Id: "nf-country",
-                                    Class: "form-control", MaxLength: 2),
-                                ValidationMessage(() => _model.Address.Country, FieldError)
-                            ]
+                DataAnnotationsValidator(),
+                Div()[
+                    Label("nf-name", Class: "form-label small mb-1")["Name"],
+                    Input(() => _model.Name, Id: "nf-name", Class: "form-control"),
+                    ValidationMessage(() => _model.Name, FieldError)
+                ],
+                Div()[
+                    Label("nf-email", Class: "form-label small mb-1")["Email"],
+                    Input(() => _model.Email, Id: "nf-email", Type: "email",
+                        Class: "form-control"),
+                    ValidationMessage(() => _model.Email, FieldError)
+                ],
+                Fieldset(Class: "border rounded p-3 mt-2")[
+                    Legend(Class: "h6 fw-semibold")["Shipping address"],
+                    Div(Class: "vstack gap-3")[
+                        Div()[
+                            Label("nf-street", Class: "form-label small mb-1")["Street"],
+                            Input(() => _model.Address.Street, Id: "nf-street",
+                                Class: "form-control"),
+                            ValidationMessage(() => _model.Address.Street, FieldError)
+                        ],
+                        Div()[
+                            Label("nf-city", Class: "form-label small mb-1")["City"],
+                            Input(() => _model.Address.City, Id: "nf-city",
+                                Class: "form-control"),
+                            ValidationMessage(() => _model.Address.City, FieldError)
+                        ],
+                        Div()[
+                            Label("nf-country", Class: "form-label small mb-1")["Country (ISO)"],
+                            Input(() => _model.Address.Country, Id: "nf-country",
+                                Class: "form-control", MaxLength: 2),
+                            ValidationMessage(() => _model.Address.Country, FieldError)
                         ]
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary", Id: "nf-submit")[
-                            I(Class: "bi bi-check2-circle me-1"), "Place order"]
                     ]
                 ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary", Id: "nf-submit")[
+                        I(Class: "bi bi-check2-circle me-1"), "Place order"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-result")[
@@ -72,16 +70,14 @@ public sealed class NestedSubObjectDemo : Component
 public sealed class NestedListForeachDemo : Component
 {
     private readonly CartModel _model = new();
-    private string? _submission;
     private int _seq = 2;
+    private string? _submission;
+
+    public NestedListForeachDemo() =>
+        _model.Items.Add(new LineItem { Description = "Coffee beans (250g)", Quantity = 2 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
-
-    public NestedListForeachDemo()
-    {
-        _model.Items.Add(new LineItem { Description = "Coffee beans (250g)", Quantity = 2 });
-    }
 
     protected override Component Render()
     {
@@ -99,7 +95,7 @@ public sealed class NestedListForeachDemo : Component
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
-                    Button(Type: "button",
+                    Button("button",
                         Class: "btn btn-outline-danger btn-sm",
                         OnClick: () => _model.Items.Remove(captured))[I(Class: "bi bi-x-lg")]
                 ]
@@ -111,21 +107,22 @@ public sealed class NestedListForeachDemo : Component
                 _model,
                 m => _submission = $"Submitted {m.Items.Count} line item(s).",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Table(Class: "table table-sm align-middle mb-0")[
-                        Thead()[Tr()[Th()["Description"], Th()["Quantity"], Th()]],
-                        Tbody()[rows]
-                    ],
-                    Div(Class: "d-flex gap-2")[
-                        Button(Type: "button",
-                            Class: "btn btn-outline-secondary btn-sm",
-                            Id: "nf-list-add",
-                            OnClick: () => _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
-                                I(Class: "bi bi-plus-lg me-1"), "Add row"],
-                        Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-list-submit")[
-                            I(Class: "bi bi-check2-circle me-1"), "Submit"]
-                    ]
+                DataAnnotationsValidator(),
+                Table(Class: "table table-sm align-middle mb-0")[
+                    Thead()[Tr()[Th()["Description"], Th()["Quantity"], Th()]],
+                    Tbody()[rows]
                 ],
+                Div(Class: "d-flex gap-2")[
+                    Button("button",
+                        Class: "btn btn-outline-secondary btn-sm",
+                        Id: "nf-list-add",
+                        OnClick: () =>
+                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
+                        I(Class: "bi bi-plus-lg me-1"), "Add row"],
+                    Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-list-submit")[
+                        I(Class: "bi bi-check2-circle me-1"), "Submit"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-list-result")[_submission]];
@@ -138,16 +135,13 @@ public sealed class NestedListForeachDemo : Component
 public sealed class NestedListIndexerDemo : Component
 {
     private readonly InvoiceModel _model = new();
-    private string? _submission;
     private int _seq = 2;
+    private string? _submission;
+
+    public NestedListIndexerDemo() => _model.Skus.Add(new SkuRow { Code = "WIDGET-1", Price = 9.99m });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
-
-    public NestedListIndexerDemo()
-    {
-        _model.Skus.Add(new SkuRow { Code = "WIDGET-1", Price = 9.99m });
-    }
 
     protected override Component Render()
     {
@@ -166,12 +160,12 @@ public sealed class NestedListIndexerDemo : Component
                     ValidationMessage(() => _model.Skus[i].Price, FieldError)
                 ],
                 Td(Style: "width: 5rem;")[
-                    Button(Type: "button",
+                    Button("button",
                         Class: "btn btn-outline-secondary btn-sm me-1",
                         Disabled: i == 0,
                         OnClick: () => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                            I(Class: "bi bi-arrow-up")],
-                    Button(Type: "button",
+                        I(Class: "bi bi-arrow-up")],
+                    Button("button",
                         Class: "btn btn-outline-danger btn-sm",
                         OnClick: () => _model.Skus.RemoveAt(i))[I(Class: "bi bi-x-lg")]
                 ]
@@ -181,23 +175,24 @@ public sealed class NestedListIndexerDemo : Component
         return Fragment()[
             Form<InvoiceModel>(
                 _model,
-                m => _submission = $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price * 1):F2}",
+                m => _submission =
+                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price * 1):F2}",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Table(Class: "table table-sm align-middle mb-0")[
-                        Thead()[Tr()[Th(Style: "width: 3rem;")["#"], Th()["SKU"], Th()["Price"], Th()]],
-                        Tbody()[rows]
-                    ],
-                    Div(Class: "d-flex gap-2")[
-                        Button(Type: "button",
-                            Class: "btn btn-outline-secondary btn-sm",
-                            Id: "nf-idx-add",
-                            OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                                I(Class: "bi bi-plus-lg me-1"), "Add row"],
-                        Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-idx-submit")[
-                            I(Class: "bi bi-check2-circle me-1"), "Submit"]
-                    ]
+                DataAnnotationsValidator(),
+                Table(Class: "table table-sm align-middle mb-0")[
+                    Thead()[Tr()[Th(Style: "width: 3rem;")["#"], Th()["SKU"], Th()["Price"], Th()]],
+                    Tbody()[rows]
                 ],
+                Div(Class: "d-flex gap-2")[
+                    Button("button",
+                        Class: "btn btn-outline-secondary btn-sm",
+                        Id: "nf-idx-add",
+                        OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
+                        I(Class: "bi bi-plus-lg me-1"), "Add row"],
+                    Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-idx-submit")[
+                        I(Class: "bi bi-check2-circle me-1"), "Submit"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-idx-result")[_submission]];
@@ -210,16 +205,13 @@ public sealed class NestedFluentValidationDemo : Component
 {
     private readonly NestedOrderModel _model = new();
     private readonly NestedOrderValidator _validator = new();
-    private string? _submission;
     private int _seq = 2;
+    private string? _submission;
+
+    public NestedFluentValidationDemo() => _model.Lines.Add(new NestedOrderLine { Sku = "BOX-1", Quantity = 3 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
-
-    public NestedFluentValidationDemo()
-    {
-        _model.Lines.Add(new NestedOrderLine { Sku = "BOX-1", Quantity = 3 });
-    }
 
     protected override Component Render()
     {
@@ -237,7 +229,7 @@ public sealed class NestedFluentValidationDemo : Component
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
-                    Button(Type: "button",
+                    Button("button",
                         Class: "btn btn-outline-danger btn-sm",
                         OnClick: () => _model.Lines.Remove(captured))[I(Class: "bi bi-x-lg")]
                 ]
@@ -249,39 +241,39 @@ public sealed class NestedFluentValidationDemo : Component
                 _model,
                 m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)",
                 Class: "vstack gap-3")[
-                    FluentValidationValidator(_validator),
-                    Div()[
-                        Label("nf-fv-name", Class: "form-label small mb-1")["Customer"],
-                        Input(() => _model.CustomerName, Id: "nf-fv-name", Class: "form-control"),
-                        ValidationMessage(() => _model.CustomerName, FieldError)
-                    ],
-                    Fieldset(Class: "border rounded p-3")[
-                        Legend(Class: "h6 fw-semibold")["Address"],
-                        Div(Class: "vstack gap-2")[
-                            Div()[
-                                Input(() => _model.Address.Street, Class: "form-control"),
-                                ValidationMessage(() => _model.Address.Street, FieldError)
-                            ],
-                            Div()[
-                                Input(() => _model.Address.City, Class: "form-control"),
-                                ValidationMessage(() => _model.Address.City, FieldError)
-                            ]
+                FluentValidationValidator(_validator),
+                Div()[
+                    Label("nf-fv-name", Class: "form-label small mb-1")["Customer"],
+                    Input(() => _model.CustomerName, Id: "nf-fv-name", Class: "form-control"),
+                    ValidationMessage(() => _model.CustomerName, FieldError)
+                ],
+                Fieldset(Class: "border rounded p-3")[
+                    Legend(Class: "h6 fw-semibold")["Address"],
+                    Div(Class: "vstack gap-2")[
+                        Div()[
+                            Input(() => _model.Address.Street, Class: "form-control"),
+                            ValidationMessage(() => _model.Address.Street, FieldError)
+                        ],
+                        Div()[
+                            Input(() => _model.Address.City, Class: "form-control"),
+                            ValidationMessage(() => _model.Address.City, FieldError)
                         ]
-                    ],
-                    Table(Class: "table table-sm align-middle mb-0 mt-2")[
-                        Thead()[Tr()[Th()["SKU"], Th()["Qty"], Th()]],
-                        Tbody()[rows]
-                    ],
-                    Div(Class: "d-flex gap-2")[
-                        Button(Type: "button",
-                            Class: "btn btn-outline-secondary btn-sm",
-                            Id: "nf-fv-add",
-                            OnClick: () => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                                I(Class: "bi bi-plus-lg me-1"), "Add line"],
-                        Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-fv-submit")[
-                            I(Class: "bi bi-check2-circle me-1"), "Place"]
                     ]
                 ],
+                Table(Class: "table table-sm align-middle mb-0 mt-2")[
+                    Thead()[Tr()[Th()["SKU"], Th()["Qty"], Th()]],
+                    Tbody()[rows]
+                ],
+                Div(Class: "d-flex gap-2")[
+                    Button("button",
+                        Class: "btn btn-outline-secondary btn-sm",
+                        Id: "nf-fv-add",
+                        OnClick: () => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
+                        I(Class: "bi bi-plus-lg me-1"), "Add line"],
+                    Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-fv-submit")[
+                        I(Class: "bi bi-check2-circle me-1"), "Place"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-fv-result")[_submission]];

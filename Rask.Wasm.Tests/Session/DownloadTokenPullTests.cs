@@ -1,11 +1,11 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using Rask.Wasm.Files;
-using Rask.Wasm.Tests.Infrastructure;
 using static Rask.Core.Components.Components;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
@@ -26,7 +26,8 @@ public class DownloadTokenPullTests
         var initial = await session.InitialRenderAsync();
         var handlerId = ExtractFirstHandlerId(initial);
 
-        var payload = await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
+        var payload =
+            await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         using var doc = JsonDocument.Parse(payload.AsMemory());
         var download = doc.RootElement.GetProperty("download");
@@ -45,7 +46,8 @@ public class DownloadTokenPullTests
 
         var initial = await session.InitialRenderAsync();
         var handlerId = ExtractFirstHandlerId(initial);
-        var payload = await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
+        var payload =
+            await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
         var token = ExtractToken(payload);
 
         var pulled = JSInterop.PullDownload(token);
@@ -82,7 +84,7 @@ public class DownloadTokenPullTests
     {
         using var doc = JsonDocument.Parse(payload.AsMemory());
         var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
+        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
         Assert.True(match.Success);
         return match.Groups[1].Value;
     }
@@ -95,10 +97,10 @@ public class DownloadTokenPullTests
 
     private sealed class DownloadStubApp : Component
     {
-        private readonly Navigator _nav;
-        private readonly string _filename;
         private readonly byte[] _bytes;
         private readonly string? _contentType;
+        private readonly string _filename;
+        private readonly Navigator _nav;
 
         public DownloadStubApp(Navigator nav, string filename, byte[] bytes, string? contentType)
         {

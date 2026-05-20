@@ -12,23 +12,23 @@ namespace Rask.Core.Live;
 // post-render lifecycle (OnRendered, etc.).
 internal sealed class RootErrorBoundary : Component
 {
-    private readonly Component _inner;
-
-    public RootErrorBoundary(Component inner) => _inner = inner;
+    public RootErrorBoundary(Component inner) => Inner = inner;
 
     // Exposed so the host can forward the IRenderHandle assignment to the inner App after
     // wrapping. Without this, App.StateHasChanged() would no-op (its handle is null) until
     // the first GetOrCreate inside Render() lazily forwards the handle.
-    internal Component Inner => _inner;
+    internal Component Inner { get; }
 
     protected override bool BypassRenderCache => true;
+
+    private static LiveRenderContext? Current => LiveRenderContext.Current;
 
     protected override Component Render()
     {
         var ctx = Current
                   ?? throw new InvalidOperationException(
                       "RootErrorBoundary requires an active LiveRenderContext.");
-        var inner = ctx.GetOrCreate(_inner.GetType(), _ => _inner);
+        var inner = ctx.GetOrCreate(Inner.GetType(), _ => Inner);
 
         // Propagate the "force the root to re-execute this frame" contract that
         // RenderAsLiveRootCore applies to its own root. Without this the inner App would
@@ -44,19 +44,16 @@ internal sealed class RootErrorBoundary : Component
         // OnPropsChanged still fire on the App exactly as they used to.
         ctx.NotifyParameters(inner, false);
 
-        return F.ErrorBoundary(
-            Fallback: (ex, _) => F.Fragment()[
-                F.Doctype(),
-                F.Html(Lang: "en")[
-                    F.Head()[
-                        F.Meta(Charset: "utf-8"),
-                        F.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
-                        F.Title()["Application error"]
-                    ],
-                    F.Body()[new DefaultErrorPage(ex)]
-                ]
-            ])[inner];
+        return F.ErrorBoundary((ex, _) => F.Fragment()[
+            F.Doctype(),
+            F.Html("en")[
+                F.Head()[
+                    F.Meta("utf-8"),
+                    F.Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+                    F.Title()["Application error"]
+                ],
+                F.Body()[new DefaultErrorPage(ex)]
+            ]
+        ])[inner];
     }
-
-    private static LiveRenderContext? Current => LiveRenderContext.Current;
 }

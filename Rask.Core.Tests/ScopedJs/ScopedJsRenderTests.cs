@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 
@@ -92,7 +91,7 @@ public class ScopedJsRenderTests
         ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
         var services = new ServiceCollection();
         services.AddSingleton<IRaskScopedScripts>(
-            new ScriptProvider(h => Script(Src: $"/_rask/scoped.js?v={h}", Defer: true)));
+            new ScriptProvider(h => Script($"/_rask/scoped.js?v={h}", Defer: true)));
         var sp = services.BuildServiceProvider();
 
         var view = new PageRoot(new JsWrapper(Div(Class: "x")));
@@ -111,6 +110,7 @@ public class ScopedJsRenderTests
     {
         private readonly Component _body;
         public PageRoot(Component body) => _body = body;
+
         protected override Component Render() =>
             Fragment()[
                 Doctype(),

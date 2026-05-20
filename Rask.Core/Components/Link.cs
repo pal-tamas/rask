@@ -22,16 +22,59 @@ public sealed class Link : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Href is not null) AppendAttr(sb, "href", Href);
-        if (Rel is not null) AppendAttr(sb, "rel", Rel);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Media is not null) AppendAttr(sb, "media", Media);
-        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
-        if (Hreflang is not null) AppendAttr(sb, "hreflang", Hreflang);
-        if (As is not null) AppendAttr(sb, "as", As);
-        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
-        if (ReferrerPolicy is not null) AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (Color is not null) AppendAttr(sb, "color", Color);
+        if (Href is not null)
+        {
+            AppendAttr(sb, "href", Href);
+        }
+
+        if (Rel is not null)
+        {
+            AppendAttr(sb, "rel", Rel);
+        }
+
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Media is not null)
+        {
+            AppendAttr(sb, "media", Media);
+        }
+
+        if (Sizes is not null)
+        {
+            AppendAttr(sb, "sizes", Sizes);
+        }
+
+        if (Hreflang is not null)
+        {
+            AppendAttr(sb, "hreflang", Hreflang);
+        }
+
+        if (As is not null)
+        {
+            AppendAttr(sb, "as", As);
+        }
+
+        if (CrossOrigin is not null)
+        {
+            AppendAttr(sb, "crossorigin", CrossOrigin);
+        }
+
+        if (ReferrerPolicy is not null)
+        {
+            AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
+        }
+
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (Color is not null)
+        {
+            AppendAttr(sb, "color", Color);
+        }
     }
 }

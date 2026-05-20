@@ -11,6 +11,9 @@ public sealed class Dialog : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Open) AppendAttr(sb, "open", null);
+        if (Open)
+        {
+            AppendAttr(sb, "open", null);
+        }
     }
 }

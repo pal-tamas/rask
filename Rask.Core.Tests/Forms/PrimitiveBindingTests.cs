@@ -1,9 +1,6 @@
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Text.Json;
-using Rask.Core.Components;
 using Rask.Core.Forms;
-using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-helper subclasses have no generated factory
 
@@ -52,10 +49,8 @@ public class PrimitiveBindingTests
     [InlineData(typeof(string), "text")]
     [InlineData(typeof(char), "text")]
     [InlineData(typeof(Guid), "text")]
-    public void DefaultInputType_MapsEveryPrimitive(Type clrType, string expected)
-    {
+    public void DefaultInputType_MapsEveryPrimitive(Type clrType, string expected) =>
         Assert.Equal(expected, BindingHelpers.DefaultInputType(clrType));
-    }
 
     [Theory]
     [InlineData(typeof(int?), "number")]
@@ -65,10 +60,8 @@ public class PrimitiveBindingTests
     [InlineData(typeof(Half?), "number")]
     [InlineData(typeof(bool?), "checkbox")]
     [InlineData(typeof(DateOnly?), "date")]
-    public void DefaultInputType_UnwrapsNullable(Type clrType, string expected)
-    {
+    public void DefaultInputType_UnwrapsNullable(Type clrType, string expected) =>
         Assert.Equal(expected, BindingHelpers.DefaultInputType(clrType));
-    }
 
     [Fact]
     public async Task FloatProperty_OnChange_RoundTripsThroughInvariantCulture()
@@ -297,7 +290,11 @@ public class PrimitiveBindingTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);

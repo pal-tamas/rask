@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Rask.Core.Components;
+using System.Text.RegularExpressions;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
@@ -28,7 +28,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: v =>
+                v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -55,7 +55,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: v =>
+                v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -88,7 +88,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: _ => new[] { "always-fail" }),
+                _ => new[] { "always-fail" }),
             new ContextCapture(ctx => captured = ctx)
         ]);
         var html = view.RenderAsLiveRoot();
@@ -119,7 +119,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form<Person>(p, Context: ctx)[
             Input(() => p.Address.Street,
-                Validate: _ => new[] { "model-plus-context" }),
+                _ => new[] { "model-plus-context" }),
             ValidationMessage(() => p.Address.Street,
                 msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
         ]);
@@ -146,7 +146,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(Context: ctx)[
             Input(() => p.Address.Street,
-                Validate: _ => new[] { "nested-explicit-ctx" }),
+                _ => new[] { "nested-explicit-ctx" }),
             new ContextCapture(c => captured = c)
         ]);
         var html = view.RenderAsLiveRoot();
@@ -171,7 +171,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: v =>
+                v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -204,13 +204,20 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form<StorefrontModel>(m)[
             Input(() => m.Address.PostalCode,
-                Validate: async (string v, System.Threading.CancellationToken ct) =>
+                async (v, ct) =>
                 {
-                    if (string.IsNullOrWhiteSpace(v)) return new[] { "Postal code is required." };
-                    if (!System.Text.RegularExpressions.Regex.IsMatch(v, @"^\d{5}$"))
+                    if (string.IsNullOrWhiteSpace(v))
+                    {
+                        return new[] { "Postal code is required." };
+                    }
+
+                    if (!Regex.IsMatch(v, @"^\d{5}$"))
+                    {
                         return new[] { "Postal code must be 5 digits." };
+                    }
+
                     await Task.Delay(50, ct).ConfigureAwait(false);
-                    return v == "99999" ? new[] { "We don't ship to this area." } : System.Array.Empty<string>();
+                    return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             ValidationMessage(() => m.Address.PostalCode,
                 msgs => Fragment()[msgs.Select(s => (Child)Div(Class: "err")[s])])
@@ -247,15 +254,22 @@ public class NestedBindingValidationTests
         // see error clear after async settles".
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var view = new StubComponent(() => Form<StorefrontModel>(m)[
+        var view = new StubComponent(() => Form(m)[
             Input(() => m.Address.PostalCode,
-                Validate: async (string v, System.Threading.CancellationToken ct) =>
+                async (v, ct) =>
                 {
-                    if (string.IsNullOrWhiteSpace(v)) return new[] { "Postal code is required." };
-                    if (!System.Text.RegularExpressions.Regex.IsMatch(v, @"^\d{5}$"))
+                    if (string.IsNullOrWhiteSpace(v))
+                    {
+                        return new[] { "Postal code is required." };
+                    }
+
+                    if (!Regex.IsMatch(v, @"^\d{5}$"))
+                    {
                         return new[] { "Postal code must be 5 digits." };
+                    }
+
                     await Task.Delay(20, ct).ConfigureAwait(false);
-                    return v == "99999" ? new[] { "We don't ship to this area." } : System.Array.Empty<string>();
+                    return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             ValidationMessage(() => m.Address.PostalCode,
                 msgs => Fragment()[msgs.Select(s => (Child)Div(Class: "err")[s])])
@@ -267,15 +281,24 @@ public class NestedBindingValidationTests
 
         // Step 1: blur with "99999" → undeliverable message lands.
         using (var d = JsonDocument.Parse("{\"value\":\"99999\"}"))
+        {
             await view.TryInvokeHandlerAsync(inputId, d.RootElement);
+        }
+
         using (var d = JsonDocument.Parse("{\"value\":\"99999\"}"))
+        {
             await view.TryInvokeHandlerAsync(changeId, d.RootElement);
+        }
+
         Assert.Contains("ship to this area", view.RenderAsLiveRoot());
 
         // Step 2: now-touched field, type a valid value via OnInput. Async validator runs and
         // returns success; the message must clear.
         using (var d = JsonDocument.Parse("{\"value\":\"12345\"}"))
+        {
             await view.TryInvokeHandlerAsync(inputId, d.RootElement);
+        }
+
         Assert.DoesNotContain("ship to this area", view.RenderAsLiveRoot());
     }
 
@@ -289,17 +312,21 @@ public class NestedBindingValidationTests
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
 
-        var view = new StubComponent(() => Form<StorefrontModel>(
+        var view = new StubComponent(() => Form(
             m,
-            (StorefrontModel mm) => submitted = $"Charged to {mm.CustomerName}")[
+            mm => submitted = $"Charged to {mm.CustomerName}")[
             Input(() => m.CustomerName,
-                Validate: v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : System.Array.Empty<string>()),
+                v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
             Input(() => m.Address.PostalCode,
-                Validate: async (string v, System.Threading.CancellationToken ct) =>
+                async (v, ct) =>
                 {
-                    if (string.IsNullOrWhiteSpace(v)) return new[] { "Postal required" };
+                    if (string.IsNullOrWhiteSpace(v))
+                    {
+                        return new[] { "Postal required" };
+                    }
+
                     await Task.Delay(20, ct).ConfigureAwait(false);
-                    return System.Array.Empty<string>();
+                    return Array.Empty<string>();
                 })
         ]);
 
@@ -311,9 +338,14 @@ public class NestedBindingValidationTests
         Assert.NotNull(postalInputId);
 
         using (var d = JsonDocument.Parse("{\"value\":\"Ada\"}"))
+        {
             await view.TryInvokeHandlerAsync(nameInputId, d.RootElement);
+        }
+
         using (var d = JsonDocument.Parse("{\"value\":\"12345\"}"))
+        {
             await view.TryInvokeHandlerAsync(postalInputId!, d.RootElement);
+        }
 
         var submitId = ExtractAttr(initial, "data-rask-on-submit")!;
         using var submit = JsonDocument.Parse("{}");
@@ -334,7 +366,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: v =>
+                v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             ValidationMessage(() => p.Address.Street,
                 msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
@@ -360,7 +392,7 @@ public class NestedBindingValidationTests
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Street,
-                Validate: v =>
+                v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             ValidationMessage(() => p.Address.Street,
                 msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
@@ -386,18 +418,13 @@ public class NestedBindingValidationTests
         // The walker is BFS over public properties — confirm a two-hop chain still resolves.
         var p = new Person
         {
-            Name = "Ada",
-            Address = new Address
-            {
-                Street = "x",
-                Postal = new PostalInfo { Code = "" }
-            }
+            Name = "Ada", Address = new Address { Street = "x", Postal = new PostalInfo { Code = "" } }
         };
         EditContext? captured = null;
 
         var view = new StubComponent(() => Form(p)[
             Input(() => p.Address.Postal.Code,
-                Validate: v =>
+                v =>
                     string.IsNullOrEmpty(v) ? new[] { "postal required" } : Array.Empty<string>()),
             new ContextCapture(ctx => captured = ctx)
         ]);
@@ -416,7 +443,11 @@ public class NestedBindingValidationTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
@@ -429,12 +460,24 @@ public class NestedBindingValidationTests
         while (true)
         {
             var i = html.IndexOf(marker, cursor, StringComparison.Ordinal);
-            if (i < 0) return null;
+            if (i < 0)
+            {
+                return null;
+            }
+
             var start = i + marker.Length;
             var end = html.IndexOf('"', start);
-            if (end < 0) return null;
+            if (end < 0)
+            {
+                return null;
+            }
+
             var value = html.Substring(start, end - start);
-            if (value != skipValue) return value;
+            if (value != skipValue)
+            {
+                return value;
+            }
+
             cursor = end + 1;
         }
     }
@@ -475,6 +518,7 @@ public class NestedBindingValidationTests
             {
                 capture(c);
             }
+
             return Fragment();
         }
     }

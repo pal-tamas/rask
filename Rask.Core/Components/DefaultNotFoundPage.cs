@@ -15,13 +15,21 @@ public sealed class DefaultNotFoundPage : Component
         // Re-render when the route changes so the displayed missing-path stays accurate
         // for in-session navigations into other unknown routes.
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed += StateHasChanged;
     }
 
     protected override void OnUnmount()
     {
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed -= StateHasChanged;
     }
 
@@ -40,9 +48,10 @@ public sealed class DefaultNotFoundPage : Component
                 ],
                 "."
             ],
-            Components.A(Href: "/",
-                Style:
-                "display:inline-block;padding:0.5rem 0.9rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.375rem;")["Back to home"]
+            Components.A("/",
+                    Style:
+                    "display:inline-block;padding:0.5rem 0.9rem;background:#2563eb;color:#fff;text-decoration:none;border-radius:0.375rem;")
+                ["Back to home"]
         ];
     }
 }

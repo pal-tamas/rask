@@ -29,15 +29,16 @@ public sealed class BoomPage : Component
                     ]
                 """,
                 Result: ErrorBoundary(
-                    Fallback: BoundaryFallback)[
-                        Div(Class: "p-3 border rounded bg-white", Id: "boom-handler-host")[
-                            P(Class: "text-secondary small mb-2")["Healthy subtree — click to throw."],
-                            Button(
-                                Class: "btn btn-danger",
-                                Id: "boom-throw",
-                                OnClick: ThrowFromHandler)[I(Class: "bi bi-exclamation-triangle me-2"), "Throw a handler exception"]
-                        ]
-                    ]),
+                    BoundaryFallback)[
+                    Div(Class: "p-3 border rounded bg-white", Id: "boom-handler-host")[
+                        P(Class: "text-secondary small mb-2")["Healthy subtree — click to throw."],
+                        Button(
+                            Class: "btn btn-danger",
+                            Id: "boom-throw",
+                            OnClick: ThrowFromHandler)[I(Class: "bi bi-exclamation-triangle me-2"),
+                            "Throw a handler exception"]
+                    ]
+                ]),
             H2(Class: "h4 mt-5 mb-3")["Render-time throw"],
             CodeSample(
                 """
@@ -58,7 +59,7 @@ public sealed class BoomPage : Component
                     //                         RenderThrower.
                     // The handler-throw demo above doesn't need this because the underlying
                     // state isn't stale across the trip.
-                    Fallback: (ex, recover) => BoundaryFallback(ex, () =>
+                    (ex, recover) => BoundaryFallback(ex, () =>
                     {
                         // Order matters: dirty-mark BoomPage FIRST so its re-render calls
                         // the ErrorBoundary factory → boundary.SetProps with fresh Children
@@ -71,20 +72,20 @@ public sealed class BoomPage : Component
                         StateHasChanged();
                         recover();
                     }))[
-                        Div(Class: "p-3 border rounded bg-white", Id: "boom-render-host")[
-                            P(Class: "text-secondary small mb-2")["Healthy. Click below to make my next render throw."],
-                            Button(
-                                Class: "btn btn-warning",
-                                Id: "boom-render-trigger",
-                                OnClick: () => _throwOnRender = true)[I(Class: "bi bi-bug me-2"), "Throw on next render"],
+                    Div(Class: "p-3 border rounded bg-white", Id: "boom-render-host")[
+                        P(Class: "text-secondary small mb-2")["Healthy. Click below to make my next render throw."],
+                        Button(
+                            Class: "btn btn-warning",
+                            Id: "boom-render-trigger",
+                            OnClick: () => _throwOnRender = true)[I(Class: "bi bi-bug me-2"), "Throw on next render"],
 #pragma warning disable RASK014
-                            // Intentionally bypass the factory: RenderThrower is [SkipFactory] and
-                            // exists only to demonstrate that a descendant whose Render() throws is
-                            // caught by the enclosing ErrorBoundary.
-                            _throwOnRender ? (Child)new RenderThrower() : Text(string.Empty)
+                        // Intentionally bypass the factory: RenderThrower is [SkipFactory] and
+                        // exists only to demonstrate that a descendant whose Render() throws is
+                        // caught by the enclosing ErrorBoundary.
+                        _throwOnRender ? (Child)new RenderThrower() : Text(string.Empty)
 #pragma warning restore RASK014
-                        ]
-                    ]),
+                    ]
+                ]),
             H2(Class: "h4 mt-5 mb-3")["Nested boundaries — inner catches first"],
             CodeSample(
                 """
@@ -101,24 +102,23 @@ public sealed class BoomPage : Component
                 """,
                 Notes:
                 "The inner boundary catches first — the outer healthy region (and its sibling paragraph) stays mounted. If the inner fallback itself throws, the outer boundary catches the escalation.",
-                Result: ErrorBoundary(
-                    Fallback: (ex, _) => OuterFallback(ex))[
-                        Div(Class: "p-3 border rounded bg-white", Id: "boom-nested-host")[
-                            P(Class: "mb-2 small text-secondary",
-                                Id: "boom-nested-outer-healthy")["Outer healthy region — stays mounted while the inner boundary trips."],
-                            ErrorBoundary(
-                                Fallback: (ex, recover) => InnerFallback(ex, recover))[
-                                    Div(Class: "p-3 border rounded bg-light")[
-                                        P(Class: "small text-secondary mb-2")["Inner boundary subtree."],
-                                        Button(
-                                            Class: "btn btn-danger btn-sm",
-                                            Id: "boom-nested-throw",
-                                            OnClick: ThrowFromInnerHandler)[I(Class: "bi bi-exclamation-triangle me-2"),
-                                                       "Throw inside inner boundary"]
-                                    ]
-                                ]
+                Result: ErrorBoundary((ex, _) => OuterFallback(ex))[
+                    Div(Class: "p-3 border rounded bg-white", Id: "boom-nested-host")[
+                        P(Class: "mb-2 small text-secondary",
+                            Id: "boom-nested-outer-healthy")[
+                            "Outer healthy region — stays mounted while the inner boundary trips."],
+                        ErrorBoundary((ex, recover) => InnerFallback(ex, recover))[
+                            Div(Class: "p-3 border rounded bg-light")[
+                                P(Class: "small text-secondary mb-2")["Inner boundary subtree."],
+                                Button(
+                                    Class: "btn btn-danger btn-sm",
+                                    Id: "boom-nested-throw",
+                                    OnClick: ThrowFromInnerHandler)[I(Class: "bi bi-exclamation-triangle me-2"),
+                                    "Throw inside inner boundary"]
+                            ]
                         ]
-                    ])
+                    ]
+                ])
         ];
 
     private static Child InnerFallback(Exception ex, Action recover) =>

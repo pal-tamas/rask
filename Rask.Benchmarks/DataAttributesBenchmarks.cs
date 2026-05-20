@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using Rask.Core.Components;
 using C = Rask.Core.Components.Components;
 
 namespace Rask.Benchmarks;
@@ -13,9 +12,9 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class DataAttributesBenchmarks
 {
-    private Component _small = null!;
-    private Component _medium = null!;
     private Component _large = null!;
+    private Component _medium = null!;
+    private Component _small = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -36,15 +35,12 @@ public class DataAttributesBenchmarks
 
     private static Component BuildTree(int rowCount)
     {
-        var rows = new List<Child>(capacity: rowCount);
+        var rows = new List<Child>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             var data = new Dictionary<string, string?>
             {
-                ["rask-key"] = $"k{i}",
-                ["index"] = i.ToString(),
-                ["state"] = "idle",
-                ["test-id"] = $"row-{i}"
+                ["rask-key"] = $"k{i}", ["index"] = i.ToString(), ["state"] = "idle", ["test-id"] = $"row-{i}"
             };
             rows.Add(C.Div(Class: "row", Data: data)[
                 C.Span(Data: new Dictionary<string, string?> { ["label"] = "x" })[$"Item {i}"]

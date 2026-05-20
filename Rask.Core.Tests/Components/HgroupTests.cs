@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class HgroupTests
@@ -11,8 +9,8 @@ public class HgroupTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<hgroup id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></hgroup>",
-            Hgroup(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<hgroup id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></hgroup>",
+            Hgroup("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

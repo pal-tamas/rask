@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class SpanTests
@@ -10,10 +8,9 @@ public class SpanTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        
         Assert.Equal(
             "<span id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></span>",
-            Span(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Span("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

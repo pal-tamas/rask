@@ -10,10 +10,12 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class UploadPage : Component
 {
-    private string? _name;
-    private long _size;
     private string? _contentType;
     private DateTimeOffset _modified;
+    private string? _name;
+    private long _size;
+
+    protected override Component? Head => Title()["File upload — Rask"];
 
     private void OnFiles(IReadOnlyList<RaskFile> files)
     {
@@ -29,8 +31,6 @@ public sealed class UploadPage : Component
         _contentType = file.ContentType;
         _modified = file.LastModified;
     }
-
-    protected override Component? Head => Title()["File upload — Rask"];
 
     protected override Component Render() =>
         Fragment()[
@@ -71,11 +71,13 @@ public sealed class UploadPage : Component
                     Dt(Class: "col-4 text-secondary")["Name"],
                     Dd(Class: "col-8 text-break", Data: Meta("name"))[_name],
                     Dt(Class: "col-4 text-secondary")["Size"],
-                    Dd(Class: "col-8", Data: Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture), " bytes"],
+                    Dd(Class: "col-8", Data: Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
+                        " bytes"],
                     Dt(Class: "col-4 text-secondary")["Type"],
                     Dd(Class: "col-8", Data: Meta("type"))[_contentType ?? string.Empty],
                     Dt(Class: "col-4 text-secondary")["Modified"],
-                    Dd(Class: "col-8 mb-0", Data: Meta("modified"))[_modified.ToString("u", CultureInfo.InvariantCulture)]
+                    Dd(Class: "col-8 mb-0", Data: Meta("modified"))[
+                        _modified.ToString("u", CultureInfo.InvariantCulture)]
                 ]
         ];
 

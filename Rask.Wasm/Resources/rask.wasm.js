@@ -67,6 +67,7 @@ export function setExports(exports) {
 // shape as the WS frame the server emits. One TextDecoder pass + JSON.parse
 // replaces the previous 5-string marshal across the JS boundary.
 const _payloadDecoder = new TextDecoder("utf-8");
+
 export function applyRender(payload) {
     if (!payload || payload.length === 0) return;
     let reply;
@@ -139,7 +140,10 @@ function triggerDownload(download) {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-        try { document.body.removeChild(a); } catch (_) {}
+        try {
+            document.body.removeChild(a);
+        } catch (_) {
+        }
         URL.revokeObjectURL(url);
     }, 0);
 }
@@ -210,7 +214,10 @@ function applyScopedJs(hash, jsText) {
     const seen = new Set();
     for (const node of marked) {
         const s = node.getAttribute("data-rask-mount");
-        if (s && !seen.has(s)) { seen.add(s); window.Rask.scoped.invoke(s, "rendered", null, [true]); }
+        if (s && !seen.has(s)) {
+            seen.add(s);
+            window.Rask.scoped.invoke(s, "rendered", null, [true]);
+        }
     }
 }
 
@@ -343,8 +350,10 @@ document.addEventListener("click", (e) => {
     if (!t || !inRoot(t)) return;
     e.preventDefault();
     flushInputsNow();
-    send({id: t.getAttribute("data-rask-on-click"), type: "click",
-          shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey});
+    send({
+        id: t.getAttribute("data-rask-on-click"), type: "click",
+        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+    });
 });
 
 // Input events fire per keystroke — on fast typing that's 5–10 messages over the
@@ -359,6 +368,7 @@ document.addEventListener("click", (e) => {
 // input, and any validator the change kicks off reads the stale model value.
 const inputPending = new Set();
 let inputRaf = 0;
+
 function flushInputs() {
     inputRaf = 0;
     inputPending.forEach((el) => {
@@ -369,14 +379,20 @@ function flushInputs() {
     });
     inputPending.clear();
 }
+
 function flushInputsNow() {
-    if (inputRaf) { cancelAnimationFrame(inputRaf); inputRaf = 0; }
+    if (inputRaf) {
+        cancelAnimationFrame(inputRaf);
+        inputRaf = 0;
+    }
     if (inputPending.size > 0) flushInputs();
 }
+
 function queueInput(el) {
     inputPending.add(el);
     if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
 }
+
 document.addEventListener("input", (e) => {
     const t = e.target.closest("[data-rask-on-input]");
     if (!t || !inRoot(t)) return;
@@ -417,6 +433,7 @@ document.addEventListener("change", (e) => {
 // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
 const scrollPending = new Set();
 let scrollRaf = 0;
+
 function flushScroll() {
     scrollRaf = 0;
     scrollPending.forEach((el) => {
@@ -433,6 +450,7 @@ function flushScroll() {
     });
     scrollPending.clear();
 }
+
 document.addEventListener("scroll", (e) => {
     const t = e.target;
     if (!t || t.nodeType !== 1) return;

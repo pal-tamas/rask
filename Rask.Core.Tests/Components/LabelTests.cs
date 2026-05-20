@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class LabelTests
@@ -11,9 +9,9 @@ public class LabelTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal(
+        Assert.Equal(
             "<label id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" for=\"name\" form=\"f\"></label>",
-            Label(For: "name", Form: "f", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Label("name", "f", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

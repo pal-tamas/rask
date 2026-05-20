@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
+using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.ScopedCss;
@@ -12,6 +13,17 @@ namespace Rask.Core;
 
 public abstract class Component
 {
+    // Pre-built "h0".."h255" so handler registration in the common case (small forms,
+    // typical pages) doesn't pay a string-concat allocation per call. Overflow above
+    // 256 handlers per render falls back to the concat path.
+    private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(256);
+    private HashSet<Component>? _aliveNow;
+
+    // Pooled scratch buffers reused across renders when this component is acting as a
+    // render root (only RenderAsLiveRootCore touches them). Lazily allocated on first
+    // root render; cleared in place each subsequent frame. Saves three Dictionary/HashSet
+    // allocations per render after warmup.
+    private HashSet<Component>? _alivePrev;
     private Component? _cachedRenderResult;
 
     private int _childPositions;
@@ -20,28 +32,27 @@ public abstract class Component
     // Keys are local — position N is the Nth GetOrCreate call inside this component's Render,
     // not the Nth call across the whole tree — so a sibling skipping its render never collides.
     private Dictionary<(Type, int), Component> _children = new();
-    private Dictionary<string, (Component Owner, Delegate Handler)>? _handlers;
-    private bool _hasInitialized;
-    private bool _hasRenderedOnce;
-    private int _nextHandlerId;
-    private Dictionary<LiveRenderContext.ObjectKey, EditContext> _persistedEditContexts = new();
+
     // Sibling pool dict: gets passed as the next frame's `current` so the per-render
     // EditContext dictionary allocation is gone. RenderAsLiveRootCore swaps the two after
     // each render — the just-snapshotted current becomes the next frame's previous, and
     // the now-stale previous gets Clear()ed and reused as next frame's current.
     private Dictionary<LiveRenderContext.ObjectKey, EditContext>? _editContextsPool;
+    private Dictionary<string, (Component Owner, Delegate Handler)>? _handlers;
+    private bool _hasInitialized;
+    private bool _hasRenderedOnce;
+    private CancellationTokenSource? _lifetimeCts;
+    private int _nextHandlerId;
+    private Dictionary<Component, Component>? _parentMap;
+
+    // Captured by RenderAsLiveRootCore from LiveRenderContext.ScopedJsInvokes BEFORE
+    // the ctx is disposed at end of scope. The host's payload builder reads this off
+    // the root component after RenderAsLiveRoot returns and emits the scopedJsInvokes
+    // JSON field. Per-render — reset at the top of each RenderAsLiveRootCore call.
+    private Dictionary<LiveRenderContext.ObjectKey, EditContext> _persistedEditContexts = new();
     private Dictionary<(Type, int), Component> _previousChildren = new();
     private bool _propsDirty;
     private bool _stateDirty;
-    private CancellationTokenSource? _lifetimeCts;
-
-    // Pooled scratch buffers reused across renders when this component is acting as a
-    // render root (only RenderAsLiveRootCore touches them). Lazily allocated on first
-    // root render; cleared in place each subsequent frame. Saves three Dictionary/HashSet
-    // allocations per render after warmup.
-    private HashSet<Component>? _alivePrev;
-    private HashSet<Component>? _aliveNow;
-    private Dictionary<Component, Component>? _parentMap;
 
     // Set by the children indexer below. Factories no longer expose Children as a
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
@@ -56,7 +67,11 @@ public abstract class Component
     // in directly.
     public Component this[params IEnumerable<Child> children]
     {
-        get { Children = children; return this; }
+        get
+        {
+            Children = children;
+            return this;
+        }
     }
 
     // Overload so call sites that build children via LINQ (`items.Select(x => Foo(x))`)
@@ -65,7 +80,11 @@ public abstract class Component
     // for Component-typed inputs and falls back to the Child indexer for strings or mixes.
     public Component this[params IEnumerable<Component> children]
     {
-        get { Children = children.Select(c => (Child)c); return this; }
+        get
+        {
+            Children = children.Select(c => (Child)c);
+            return this;
+        }
     }
 
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
@@ -76,6 +95,59 @@ public abstract class Component
 
     internal string? TagNameInternal => TagName;
     internal bool SelfClosingInternal => SelfClosing;
+
+    // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
+    // default branch). Async lifecycle continuations + dispatcher catch sites consult this
+    // pointer to trip the right boundary; null means no ancestor boundary registered.
+    internal ErrorBoundary? Boundary { get; set; }
+
+    // Components that read mutable state the framework doesn't observe (e.g. RouteState in
+    // Router/Outlet) must opt out of render caching: without this their cached subtree gets
+    // reused even after the global state changed. User code should set internal state +
+    // call StateHasChanged() instead — only opt in if you genuinely cannot.
+    protected virtual bool BypassRenderCache => false;
+
+    /// <summary>
+    ///     The current user, resolved from <see cref="IUserProvider" /> in the active render scope.
+    ///     Returns an unauthenticated <see cref="ClaimsPrincipal" /> when no provider is registered.
+    /// </summary>
+    protected ClaimsPrincipal User =>
+        LiveRenderContext.Current?.Services?.GetService<IUserProvider>()?.Current
+        ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+    /// <summary>
+    ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
+    ///     Cancelled exactly once when the component is unmounted (navigation away, parent
+    ///     removed, or session teardown). Pass into <c>HttpClient</c> calls, <c>Task.Delay</c>,
+    ///     or any other cancellable async work started inside a lifecycle hook so it aborts
+    ///     cleanly when the component goes away.
+    /// </summary>
+    protected CancellationToken CancellationToken =>
+        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
+
+    internal IRenderHandle? RenderHandle { get; set; }
+
+    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _children;
+
+    /// <summary>
+    ///     Override to declare resources this component needs in the page <c>&lt;head&gt;</c>
+    ///     (stylesheets, scripts, meta tags, the document title). The framework collects the
+    ///     output from every component currently in the tree, dedupes top-level children by
+    ///     their rendered HTML, and substitutes the result for the
+    ///     <see cref="Components.RaskHeadAssets" /> placeholder. When a component goes away on
+    ///     a subsequent render, its head contribution drops out automatically — the registry
+    ///     is rebuilt from scratch each pass.
+    ///     <para>
+    ///         Default is <c>null</c> — no head contribution. Typical override returns a
+    ///         <c>Fragment</c> of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls.
+    ///     </para>
+    /// </summary>
+    protected virtual Component? Head => null;
+
+    internal Component? HeadInternal => Head;
+
+    internal IReadOnlyList<ScopedJsInvoke> PendingScopedJsInvokes { get; private set; } = Array.Empty<ScopedJsInvoke>();
+
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
@@ -117,39 +189,6 @@ public abstract class Component
     // (e.g. Form pushes an EditContext for descendant fields to consume).
     protected virtual IDisposable? EnterChildrenScope() => null;
 
-    // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
-    // default branch). Async lifecycle continuations + dispatcher catch sites consult this
-    // pointer to trip the right boundary; null means no ancestor boundary registered.
-    internal Components.ErrorBoundary? Boundary { get; set; }
-
-    // Components that read mutable state the framework doesn't observe (e.g. RouteState in
-    // Router/Outlet) must opt out of render caching: without this their cached subtree gets
-    // reused even after the global state changed. User code should set internal state +
-    // call StateHasChanged() instead — only opt in if you genuinely cannot.
-    protected virtual bool BypassRenderCache => false;
-
-    /// <summary>
-    ///     The current user, resolved from <see cref="IUserProvider" /> in the active render scope.
-    ///     Returns an unauthenticated <see cref="ClaimsPrincipal" /> when no provider is registered.
-    /// </summary>
-    protected ClaimsPrincipal User =>
-        LiveRenderContext.Current?.Services?.GetService<IUserProvider>()?.Current
-        ?? new ClaimsPrincipal(new ClaimsIdentity());
-
-    /// <summary>
-    ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
-    ///     Cancelled exactly once when the component is unmounted (navigation away, parent
-    ///     removed, or session teardown). Pass into <c>HttpClient</c> calls, <c>Task.Delay</c>,
-    ///     or any other cancellable async work started inside a lifecycle hook so it aborts
-    ///     cleanly when the component goes away.
-    /// </summary>
-    protected CancellationToken CancellationToken =>
-        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
-
-    internal IRenderHandle? RenderHandle { get; set; }
-
-    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _children;
-
     // Test seam: used by ReconciliationTests to inject a "previous render" snapshot
     // for this component before a render begins.
     internal void SeedPreviousChildren(Dictionary<(Type, int), Component> previous) =>
@@ -158,38 +197,21 @@ public abstract class Component
     protected virtual Component Render() => this;
 
     /// <summary>
-    ///     Override to declare resources this component needs in the page <c>&lt;head&gt;</c>
-    ///     (stylesheets, scripts, meta tags, the document title). The framework collects the
-    ///     output from every component currently in the tree, dedupes top-level children by
-    ///     their rendered HTML, and substitutes the result for the
-    ///     <see cref="Components.RaskHeadAssets"/> placeholder. When a component goes away on
-    ///     a subsequent render, its head contribution drops out automatically — the registry
-    ///     is rebuilt from scratch each pass.
-    ///     <para>
-    ///     Default is <c>null</c> — no head contribution. Typical override returns a
-    ///     <c>Fragment</c> of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls.
-    ///     </para>
-    /// </summary>
-    protected virtual Component? Head => null;
-
-    internal Component? HeadInternal => Head;
-
-    /// <summary>
     ///     Schedules a call to the named function on this component's scoped-JS
     ///     module. Each function the sibling <c>.js</c> exports becomes invocable by
-    ///     name — typically called from <see cref="OnRendered"/> /
-    ///     <see cref="OnRenderedAsync"/> but valid from any C# lifecycle hook. The
+    ///     name — typically called from <see cref="OnRendered" /> /
+    ///     <see cref="OnRenderedAsync" /> but valid from any C# lifecycle hook. The
     ///     queued invocations ride out in the next render payload and the client
     ///     dispatcher calls <c>methods[name](el, ...args)</c> against every
     ///     <c>data-rask-mount</c> element matching this component's scope id.
     ///     <para>
-    ///     Args must be JSON-primitives (bool, int, long, double, string, null) for
-    ///     trim-safety. Complex objects should be serialised to JSON in C# first.
+    ///         Args must be JSON-primitives (bool, int, long, double, string, null) for
+    ///         trim-safety. Complex objects should be serialised to JSON in C# first.
     ///     </para>
     ///     <para>
-    ///     The framework does NOT auto-fire scoped-JS hooks any more — opt in by
-    ///     declaring a sibling <c>.js</c> with <c>export function name(el, …)</c>
-    ///     and calling this from whichever C# hook suits your timing.
+    ///         The framework does NOT auto-fire scoped-JS hooks any more — opt in by
+    ///         declaring a sibling <c>.js</c> with <c>export function name(el, …)</c>
+    ///         and calling this from whichever C# hook suits your timing.
     ///     </para>
     /// </summary>
     protected void InvokeJs(string method)
@@ -205,7 +227,7 @@ public abstract class Component
 
     /// <summary>
     ///     Schedules a call to the named function on this component's scoped-JS
-    ///     module with the supplied arguments. See <see cref="InvokeJs(string)"/>.
+    ///     module with the supplied arguments. See <see cref="InvokeJs(string)" />.
     /// </summary>
     protected void InvokeJs(string method, params object?[] args)
     {
@@ -219,18 +241,18 @@ public abstract class Component
     }
 
     /// <summary>
-    ///     Round-trip variant of <see cref="InvokeJs(string)"/> — schedules the
+    ///     Round-trip variant of <see cref="InvokeJs(string)" /> — schedules the
     ///     call, awaits the JS function's return value (or the resolved value of
     ///     its Promise if async), and returns the first matching element's result
-    ///     deserialised into <typeparamref name="T"/>. When the scope has no
+    ///     deserialised into <typeparamref name="T" />. When the scope has no
     ///     matching <c>data-rask-mount</c> element the task completes with
     ///     <c>default(T)</c>; when the JS function throws, the task faults with
-    ///     <see cref="InvalidOperationException"/>.
+    ///     <see cref="InvalidOperationException" />.
     ///     <para>
-    ///     <typeparamref name="T"/> must be a JSON primitive (<c>bool</c>,
-    ///     <c>int</c>, <c>long</c>, <c>double</c>, <c>string</c>) for trim-safety.
-    ///     Complex shapes should be returned as a JSON string from JS and parsed
-    ///     in C#.
+    ///         <typeparamref name="T" /> must be a JSON primitive (<c>bool</c>,
+    ///         <c>int</c>, <c>long</c>, <c>double</c>, <c>string</c>) for trim-safety.
+    ///         Complex shapes should be returned as a JSON string from JS and parsed
+    ///         in C#.
     ///     </para>
     /// </summary>
     protected Task<T?> InvokeJsAsync<T>(string method, params object?[] args)
@@ -289,15 +311,15 @@ public abstract class Component
                 {
                     JsonValueKind.True => true,
                     JsonValueKind.False => false,
-                    _ => default(bool)
+                    _ => default
                 },
-            _ when underlying == typeof(int) => el.ValueKind == JsonValueKind.Number ? el.GetInt32() : default(int),
-            _ when underlying == typeof(long) => el.ValueKind == JsonValueKind.Number ? el.GetInt64() : default(long),
-            _ when underlying == typeof(double) => el.ValueKind == JsonValueKind.Number ? el.GetDouble() : default(double),
-            _ when underlying == typeof(float) => el.ValueKind == JsonValueKind.Number ? el.GetSingle() : default(float),
-            _ when underlying == typeof(decimal) => el.ValueKind == JsonValueKind.Number ? el.GetDecimal() : default(decimal),
-            _ when underlying == typeof(byte) => el.ValueKind == JsonValueKind.Number ? el.GetByte() : default(byte),
-            _ when underlying == typeof(short) => el.ValueKind == JsonValueKind.Number ? el.GetInt16() : default(short),
+            _ when underlying == typeof(int) => el.ValueKind == JsonValueKind.Number ? el.GetInt32() : default,
+            _ when underlying == typeof(long) => el.ValueKind == JsonValueKind.Number ? el.GetInt64() : default,
+            _ when underlying == typeof(double) => el.ValueKind == JsonValueKind.Number ? el.GetDouble() : default,
+            _ when underlying == typeof(float) => el.ValueKind == JsonValueKind.Number ? el.GetSingle() : default,
+            _ when underlying == typeof(decimal) => el.ValueKind == JsonValueKind.Number ? el.GetDecimal() : default,
+            _ when underlying == typeof(byte) => el.ValueKind == JsonValueKind.Number ? el.GetByte() : default,
+            _ when underlying == typeof(short) => el.ValueKind == JsonValueKind.Number ? el.GetInt16() : default,
             _ => throw new NotSupportedException(
                 $"InvokeJsAsync<T>: type '{target}' is not a supported JSON primitive. " +
                 "Return a string from JS and parse in C# for complex shapes.")
@@ -305,14 +327,6 @@ public abstract class Component
 
         return (T?)value;
     }
-
-    // Captured by RenderAsLiveRootCore from LiveRenderContext.ScopedJsInvokes BEFORE
-    // the ctx is disposed at end of scope. The host's payload builder reads this off
-    // the root component after RenderAsLiveRoot returns and emits the scopedJsInvokes
-    // JSON field. Per-render — reset at the top of each RenderAsLiveRootCore call.
-    private IReadOnlyList<ScopedJsInvoke> _pendingScopedJsInvokes = Array.Empty<ScopedJsInvoke>();
-
-    internal IReadOnlyList<ScopedJsInvoke> PendingScopedJsInvokes => _pendingScopedJsInvokes;
 
     public string ToHtml()
     {
@@ -384,7 +398,11 @@ public abstract class Component
     internal void CancelLifetimeToken()
     {
         var cts = Volatile.Read(ref _lifetimeCts);
-        if (cts is null) return;
+        if (cts is null)
+        {
+            return;
+        }
+
         try { cts.Cancel(); }
         catch (ObjectDisposedException) { }
     }
@@ -402,22 +420,38 @@ public abstract class Component
     // a component that never mounted has no unmount counterpart, symmetric with OnMount.
     internal Task? RaiseUnmount()
     {
-        if (!_hasInitialized) return null;
+        if (!_hasInitialized)
+        {
+            return null;
+        }
 
         try { OnUnmount(); }
         catch (Exception ex) { LogUnmountError(this, ex); }
 
         Task task;
         try { task = OnUnmountAsync(); }
-        catch (Exception ex) { LogUnmountError(this, ex); return null; }
+        catch (Exception ex)
+        {
+            LogUnmountError(this, ex);
+            return null;
+        }
 
-        if (task.IsCompletedSuccessfully) return null;
+        if (task.IsCompletedSuccessfully)
+        {
+            return null;
+        }
+
         if (task.IsFaulted)
         {
             LogUnmountError(this, (Exception?)task.Exception?.InnerException ?? task.Exception!);
             return null;
         }
-        if (task.IsCanceled) return null;
+
+        if (task.IsCanceled)
+        {
+            return null;
+        }
+
         return task;
     }
 
@@ -463,12 +497,12 @@ public abstract class Component
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
 
-    private static Components.ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
-        owner as Components.ErrorBoundary ?? owner.Boundary;
+    private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
+        owner as ErrorBoundary ?? owner.Boundary;
 
     private static void ReportLifecycleFault(Component comp, AggregateException? ex)
     {
-        var actual = (Exception?)ex?.InnerException ?? ex;
+        var actual = ex?.InnerException ?? ex;
         if (actual is null)
         {
             return;
@@ -644,15 +678,14 @@ public abstract class Component
         return id;
     }
 
-    // Pre-built "h0".."h255" so handler registration in the common case (small forms,
-    // typical pages) doesn't pay a string-concat allocation per call. Overflow above
-    // 256 handlers per render falls back to the concat path.
-    private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(256);
-
     private static string[] BuildSmallHandlerIds(int n)
     {
         var arr = new string[n];
-        for (var i = 0; i < n; i++) arr[i] = "h" + i;
+        for (var i = 0; i < n; i++)
+        {
+            arr[i] = "h" + i;
+        }
+
         return arr;
     }
 
@@ -725,6 +758,7 @@ public abstract class Component
                     var files = FileListReader.Read(payload);
                     try { a(files); }
                     finally { ReleaseFiles(files); }
+
                     return true;
                 }
                 case Func<IReadOnlyList<RaskFile>, Task> f:
@@ -735,6 +769,7 @@ public abstract class Component
                         await InvokeWithRenderingAsync(() => f(files)).ConfigureAwait(false);
                     }
                     finally { ReleaseFiles(files); }
+
                     owner._stateDirty = true;
                     return true;
                 }
@@ -844,7 +879,7 @@ public abstract class Component
         // this, a second RenderAsLiveRoot call with no descendant marked dirty would skip the
         // root, never re-binding closure-captured state or reading external mutable state.
         _stateDirty = true;
-        _pendingScopedJsInvokes = Array.Empty<ScopedJsInvoke>();
+        PendingScopedJsInvokes = Array.Empty<ScopedJsInvoke>();
         RaiseLifecycleBeforeRender(false);
         var html = ToHtml();
         // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
@@ -878,7 +913,7 @@ public abstract class Component
         // past an await on OnRenderedAsync land too late for this render.
         if (LiveRenderContext.Current is { ScopedJsInvokes.Count: > 0 } ctxWithInvokes)
         {
-            _pendingScopedJsInvokes = ctxWithInvokes.ScopedJsInvokes.ToArray();
+            PendingScopedJsInvokes = ctxWithInvokes.ScopedJsInvokes.ToArray();
         }
 
         // DisposeComponentTree recurses through PersistedChildren — so disposing a parent

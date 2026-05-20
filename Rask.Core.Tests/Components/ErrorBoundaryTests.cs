@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -12,7 +11,7 @@ public class ErrorBoundaryTests
     public void Render_NoError_RendersChildren()
     {
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { Span()[Text("ok")] }, fallback: null);
+        boundary.SetProps(new Child[] { Span()[Text("ok")] }, null);
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
     }
@@ -50,7 +49,7 @@ public class ErrorBoundaryTests
         var boundary = ErrorBoundary();
         boundary.SetProps(
             new Child[] { new ThrowingRender("dflt") },
-            fallback: null);
+            null);
 
         var html = boundary.ToHtml();
         Assert.Contains("rask-error-boundary", html);
@@ -102,7 +101,7 @@ public class ErrorBoundaryTests
     {
         var boundary = ErrorBoundary();
         boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: true) },
+            new Child[] { new ConditionalThrow(true) },
             (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
 
         // First render: boundary trips on the throw, emits fallback.
@@ -111,7 +110,7 @@ public class ErrorBoundaryTests
 
         // Now simulate "fix the cause" then call Recover.
         boundary.SetProps(
-            new Child[] { new ConditionalThrow(shouldThrow: false) },
+            new Child[] { new ConditionalThrow(false) },
             (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
         boundary.Recover();
 
@@ -127,7 +126,7 @@ public class ErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var probe = new BoundaryProbe();
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { probe }, fallback: null);
+        boundary.SetProps(new Child[] { probe }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -145,7 +144,7 @@ public class ErrorBoundaryTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var probe = new BoundaryProbe();
         var first = ErrorBoundary();
-        first.SetProps(new Child[] { probe }, fallback: null);
+        first.SetProps(new Child[] { probe }, null);
         using (LiveRenderContext.Begin(first, sp))
         {
             _ = first.ToHtml();
@@ -155,7 +154,7 @@ public class ErrorBoundaryTests
 
         // Now reparent the probe under a different boundary. The stamp should NOT change.
         var second = ErrorBoundary();
-        second.SetProps(new Child[] { probe }, fallback: null);
+        second.SetProps(new Child[] { probe }, null);
         using (LiveRenderContext.Begin(second, sp))
         {
             _ = second.ToHtml();

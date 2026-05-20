@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
@@ -25,11 +24,11 @@ public class RaskFileDispatchTests
         view.RenderAsLiveRoot();
 
         var payload = JsonDocument.Parse("""
-            { "id": "h0", "type": "files", "files": [
-                { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 },
-                { "token": "t2", "name": "b.txt", "size": 3, "type": "text/plain", "lastModified": 2 }
-            ]}
-            """).RootElement;
+                                         { "id": "h0", "type": "files", "files": [
+                                             { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 },
+                                             { "token": "t2", "name": "b.txt", "size": 3, "type": "text/plain", "lastModified": 2 }
+                                         ]}
+                                         """).RootElement;
 
         var ok = await view.TryInvokeHandlerAsync("h0", payload, services);
 
@@ -49,7 +48,7 @@ public class RaskFileDispatchTests
             .AddSingleton<IBrowserFileBackend>(backend)
             .BuildServiceProvider();
 
-        int seen = 0;
+        var seen = 0;
         Func<IReadOnlyList<RaskFile>, Task> handler = files =>
         {
             seen = files.Count;
@@ -60,10 +59,10 @@ public class RaskFileDispatchTests
         view.RenderAsLiveRoot();
 
         var payload = JsonDocument.Parse("""
-            { "id": "h0", "type": "files", "files": [
-                { "token": "x", "name": "x.txt", "size": 1, "type": "text/plain", "lastModified": 0 }
-            ]}
-            """).RootElement;
+                                         { "id": "h0", "type": "files", "files": [
+                                             { "token": "x", "name": "x.txt", "size": 1, "type": "text/plain", "lastModified": 0 }
+                                         ]}
+                                         """).RootElement;
 
         await view.TryInvokeHandlerAsync("h0", payload, services);
 
@@ -75,7 +74,7 @@ public class RaskFileDispatchTests
     public void Input_Emits_DataRaskOnFiles_Attribute_When_OnFiles_Set()
     {
         Action<IReadOnlyList<RaskFile>> handler = _ => { };
-        var view = new StubComponent(() => Input(Type: "file", OnFiles: handler));
+        var view = new StubComponent(() => Input("file", OnFiles: handler));
         var html = view.RenderAsLiveRoot();
         Assert.Contains("data-rask-on-files=", html);
         Assert.Contains("type=\"file\"", html);
@@ -94,7 +93,10 @@ public class RaskFileDispatchTests
 
         public void Release(IEnumerable<RaskFile> files)
         {
-            foreach (var f in files) Released.Add(f);
+            foreach (var f in files)
+            {
+                Released.Add(f);
+            }
         }
     }
 
@@ -115,7 +117,8 @@ public class RaskFileDispatchTests
         public override string ContentType { get; }
         public override DateTimeOffset LastModified { get; }
 
-        public override Stream OpenReadStream(long maxAllowedSize = 524288, CancellationToken cancellationToken = default) =>
+        public override Stream OpenReadStream(long maxAllowedSize = 524288,
+            CancellationToken cancellationToken = default) =>
             new MemoryStream(new byte[Size]);
     }
 }

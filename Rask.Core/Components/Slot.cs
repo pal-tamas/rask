@@ -11,6 +11,9 @@ public sealed class Slot : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
     }
 }

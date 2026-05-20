@@ -9,6 +9,20 @@ namespace Rask.Core.Components;
 
 public sealed class Select : Element
 {
+    protected override string TagName => "select";
+
+    public string? Name { get; set; }
+    public bool Multiple { get; set; }
+    public bool Required { get; set; }
+    public bool Disabled { get; set; }
+    public int? Size { get; set; }
+    public string? Form { get; set; }
+    public bool Autofocus { get; set; }
+    public string? Autocomplete { get; set; }
+    public Action<string>? OnChange { get; set; }
+
+    public Func<string, Task>? OnChangeAsync { get; set; }
+
     // Expression-driven factory; pre-marks the matching <option> as selected so the
     // initial render reflects the bound value without round-tripping through the browser.
     // `Validate` ships as three overloads to avoid the `(Func<…>)` call-site cast — see
@@ -30,7 +44,7 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: null, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
+            null, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
@@ -50,7 +64,7 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
+            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
@@ -70,7 +84,7 @@ public sealed class Select : Element
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
         => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
+            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
 
     private static Select BoundCore<TProp>(
         Expression<Func<TProp>> Bind,
@@ -99,7 +113,7 @@ public sealed class Select : Element
         var preselected = MarkSelected(Children, current);
 
         return (Select)C.Select(
-            Name: name, Required: Required, Disabled: Disabled, Size: Size,
+            name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true, afterBind),
             Id: Id, Class: Class, Style: Style, Data: Data)[preselected];
@@ -169,30 +183,48 @@ public sealed class Select : Element
         };
     }
 
-    protected override string TagName => "select";
-
-    public string? Name { get; set; }
-    public bool Multiple { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
-    public int? Size { get; set; }
-    public string? Form { get; set; }
-    public bool Autofocus { get; set; }
-    public string? Autocomplete { get; set; }
-    public Action<string>? OnChange { get; set; }
-    public Func<string, Task>? OnChangeAsync { get; set; }
-
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Name is not null) AppendAttr(sb, "name", Name);
-        if (Multiple) AppendAttr(sb, "multiple", null);
-        if (Required) AppendAttr(sb, "required", null);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (Size is not null) AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
-        if (Form is not null) AppendAttr(sb, "form", Form);
-        if (Autofocus) AppendAttr(sb, "autofocus", null);
-        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
+
+        if (Multiple)
+        {
+            AppendAttr(sb, "multiple", null);
+        }
+
+        if (Required)
+        {
+            AppendAttr(sb, "required", null);
+        }
+
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (Size is not null)
+        {
+            AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (Autofocus)
+        {
+            AppendAttr(sb, "autofocus", null);
+        }
+
+        if (Autocomplete is not null)
+        {
+            AppendAttr(sb, "autocomplete", Autocomplete);
+        }
 
         var change = (Delegate?)OnChange ?? OnChangeAsync;
         if (change is not null && LiveRenderContext.Current is { } ctx)

@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using Rask.Core.Components;
 using C = Rask.Core.Components.Components;
 using B = Rask.Benchmarks.Components;
 
@@ -20,6 +19,12 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class LiveRenderRoundTripBenchmarks
 {
+    // 100-row list with data-rask-key emission per row. Mirrors the Virtualize / sortable
+    // table pattern: every render shuffles the row order so the keyed-morph branch (in
+    // rask-morph.js) would do an O(k) reorder client-side instead of replacing every node.
+    // The C# side measures the server-render allocation cost of producing the keyed HTML;
+    // actual reorder-vs-replace cost lives in the browser and is harness-measured.
+    private int _reorderSeed;
     private Component _tree = null!;
 
     [IterationSetup]
@@ -36,15 +41,9 @@ public class LiveRenderRoundTripBenchmarks
         {
             last = _tree.RenderAsLiveRoot();
         }
+
         return last!;
     }
-
-    // 100-row list with data-rask-key emission per row. Mirrors the Virtualize / sortable
-    // table pattern: every render shuffles the row order so the keyed-morph branch (in
-    // rask-morph.js) would do an O(k) reorder client-side instead of replacing every node.
-    // The C# side measures the server-render allocation cost of producing the keyed HTML;
-    // actual reorder-vs-replace cost lives in the browser and is harness-measured.
-    private int _reorderSeed;
 
     [Benchmark]
     public string RenderKeyedList100_ShuffledEachIteration()
@@ -56,10 +55,10 @@ public class LiveRenderRoundTripBenchmarks
 
     private static Component BuildTree()
     {
-        var rows = new List<Child>(capacity: 20);
+        var rows = new List<Child>(20);
         for (var i = 0; i < 20; i++)
         {
-            rows.Add(B.RowItem(Index: i));
+            rows.Add(B.RowItem(i));
         }
 
         return C.Fragment()[
@@ -80,7 +79,11 @@ public class LiveRenderRoundTripBenchmarks
         // Deterministic shuffle so the benchmark output is reproducible while still
         // exercising the morph reorder branch on every iteration.
         var order = new int[count];
-        for (var i = 0; i < count; i++) order[i] = i;
+        for (var i = 0; i < count; i++)
+        {
+            order[i] = i;
+        }
+
         var rnd = new Random(seed);
         for (var i = count - 1; i > 0; i--)
         {
@@ -88,7 +91,7 @@ public class LiveRenderRoundTripBenchmarks
             (order[i], order[j]) = (order[j], order[i]);
         }
 
-        var rows = new List<Child>(capacity: count);
+        var rows = new List<Child>(count);
         for (var i = 0; i < count; i++)
         {
             var idx = order[i];
@@ -117,7 +120,7 @@ public sealed class RowItem : Component
     protected override Component Render() =>
         C.Div(Class: "row", Id: $"r{Index}")[
             C.Span(Class: "label")[$"Item {Index}"],
-            C.A(Href: $"/item/{Index}", Class: "lnk")[$"open {Index}"],
-            C.Button(Type: "button", OnClick: () => { })["go"]
+            C.A($"/item/{Index}", Class: "lnk")[$"open {Index}"],
+            C.Button("button", OnClick: () => { })["go"]
         ];
 }

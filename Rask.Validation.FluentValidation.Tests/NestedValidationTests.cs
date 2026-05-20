@@ -1,7 +1,7 @@
 using System.Text.Json;
 using FluentValidation;
+using FluentValidation.Results;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
@@ -31,10 +31,7 @@ public class NestedValidationTests
     {
         var p = new Person
         {
-            Address = new Address
-            {
-                Postal = new PostalInfo { Country = new Country { Code = "" } }
-            }
+            Address = new Address { Postal = new PostalInfo { Country = new Country { Code = "" } } }
         };
         var ctx = RegisterValidator(p, new PersonValidator());
 
@@ -51,7 +48,7 @@ public class NestedValidationTests
         var beta = new LineItem { Name = "ok" };
         var gamma = new LineItem { Name = "" };
 
-        var p = new Person { Items = new() { alpha, beta, gamma } };
+        var p = new Person { Items = new List<LineItem> { alpha, beta, gamma } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
         await ctx.ValidateAsync();
@@ -70,11 +67,7 @@ public class NestedValidationTests
     {
         var alpha = new LineItem { Name = "" };
         var beta = new LineItem { Name = "" };
-        var p = new Person
-        {
-            Address = new Address { Street = "" },
-            Items = new() { alpha, beta }
-        };
+        var p = new Person { Address = new Address { Street = "" }, Items = new List<LineItem> { alpha, beta } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
         await ctx.ValidateFieldAsync(new FieldIdentifier(beta, "Name"));
@@ -90,11 +83,7 @@ public class NestedValidationTests
     [Fact]
     public async Task ValidateFieldAsync_SubObjectField_OnlyTouchesThatField()
     {
-        var p = new Person
-        {
-            Name = "",
-            Address = new Address { Street = "" }
-        };
+        var p = new Person { Name = "", Address = new Address { Street = "" } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
         await ctx.ValidateFieldAsync(new FieldIdentifier(p.Address!, "Street"));
@@ -138,7 +127,7 @@ public class NestedValidationTests
         // Hand-craft an error whose property path can't resolve (no Items[7]). The router
         // must NOT crash and must NOT silently drop the message — it lands on the root's
         // form-level slot so it surfaces in ValidationSummary.
-        var p = new Person { Items = new() { new LineItem { Name = "alpha" } } };
+        var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
         var ctx = RegisterValidator(p, new StaleIndexValidator());
 
         await ctx.ValidateAsync();
@@ -160,7 +149,7 @@ public class NestedValidationTests
         var p = new Person { Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form<Person>(p)[
+        var view = new StubComponent(() => Form(p)[
             FluentValidationValidator(new PersonValidator()),
             Input(() => p.Address!.Street),
             new ContextCapture(ctx => captured = ctx)
@@ -182,10 +171,25 @@ public class NestedValidationTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
+    }
+
+    private static EditContext RegisterValidator<T>(T model, IValidator validator) where T : class
+    {
+        var ctx = new EditContext(model);
+        using (EditContextScope.Push(ctx))
+        {
+            FluentValidationValidator(validator).ToHtml();
+        }
+
+        return ctx;
     }
 
     private sealed class StubComponent : Component
@@ -203,18 +207,9 @@ public class NestedValidationTests
             {
                 capture(c);
             }
+
             return Fragment();
         }
-    }
-
-    private static EditContext RegisterValidator<T>(T model, IValidator validator) where T : class
-    {
-        var ctx = new EditContext(model);
-        using (EditContextScope.Push(ctx))
-        {
-            FluentValidationValidator(validator).ToHtml();
-        }
-        return ctx;
     }
 
     private sealed class Person
@@ -268,26 +263,18 @@ public class NestedValidationTests
 
     private sealed class PostalValidator : AbstractValidator<PostalInfo>
     {
-        public PostalValidator()
-        {
-            RuleFor(x => x.Country!).SetValidator(new CountryValidator()).When(x => x.Country is not null);
-        }
+        public PostalValidator() => RuleFor(x => x.Country!).SetValidator(new CountryValidator())
+            .When(x => x.Country is not null);
     }
 
     private sealed class CountryValidator : AbstractValidator<Country>
     {
-        public CountryValidator()
-        {
-            RuleFor(x => x.Code).NotEmpty().WithMessage("Code required");
-        }
+        public CountryValidator() => RuleFor(x => x.Code).NotEmpty().WithMessage("Code required");
     }
 
     private sealed class LineItemValidator : AbstractValidator<LineItem>
     {
-        public LineItemValidator()
-        {
-            RuleFor(x => x.Name).NotEmpty().WithMessage("Item name required");
-        }
+        public LineItemValidator() => RuleFor(x => x.Name).NotEmpty().WithMessage("Item name required");
     }
 
     // A validator that produces an error whose PropertyName can't be resolved (stale index).
@@ -297,7 +284,7 @@ public class NestedValidationTests
         {
             RuleFor(x => x).Custom((model, ctx) =>
             {
-                ctx.AddFailure(new global::FluentValidation.Results.ValidationFailure(
+                ctx.AddFailure(new ValidationFailure(
                     "Items[7].Name", "stale-index error"));
             });
         }

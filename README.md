@@ -671,7 +671,8 @@ a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-r
 ### Scoped CSS
 
 Drop a sibling `{Component}.css` file next to `{Component}.cs` and the source generator pairs them at compile time —
-selectors are auto-scoped to that component type, served from `/_rask/scoped.css`, and hot-reloaded under `dotnet watch`.
+selectors are auto-scoped to that component type, served from `/_rask/scoped.css`, and hot-reloaded under
+`dotnet watch`.
 
 ```csharp
 // Card.cs
@@ -688,7 +689,8 @@ public sealed class Card : Component
 .card:hover { background: #f7f7f7; }
 ```
 
-The showcase uses this throughout: `App.css`, `HomePage.css`, `ScopedRed.css` / `ScopedBlue.css`, `ViewTransitionsPage.css`,
+The showcase uses this throughout: `App.css`, `HomePage.css`, `ScopedRed.css` / `ScopedBlue.css`,
+`ViewTransitionsPage.css`,
 and the `Layout/ShowcaseLayout.css` for the sidebar. Two components can use the same `.box` selector — the framework
 rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` file with no matching component raises
 `RASK015`; two `.css` files claiming the same component raise `RASK016`; opt the whole project out with
@@ -783,13 +785,13 @@ first one's result wins; when none match the task completes with `default(T)`.
 
 ### Lifecycle reference
 
-| Hook                                     | When                                                                                |
-|------------------------------------------|-------------------------------------------------------------------------------------|
-| `OnMount` / `OnMountAsync`               | Once, on first instance creation                                                    |
-| `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied                                                |
-| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag                                       |
+| Hook                                     | When                                                                                        |
+|------------------------------------------|---------------------------------------------------------------------------------------------|
+| `OnMount` / `OnMountAsync`               | Once, on first instance creation                                                            |
+| `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied                                                        |
+| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag                                               |
 | `OnUnmount` / `OnUnmountAsync`           | Once, on disposal (children before parents); the lifetime `CancellationToken` is still live |
-| `StateHasChanged()`                      | Call to force a re-render outside an event handler                                  |
+| `StateHasChanged()`                      | Call to force a re-render outside an event handler                                          |
 
 ## Status
 

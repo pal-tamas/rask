@@ -45,7 +45,7 @@ public sealed class DisposalPage : Component
                             OnClick: UnmountSync)[I(Class: "bi bi-stop-circle me-1"), "Unmount sync probe"]
                     ],
                     _syncMounted
-                        ? DisposableTimerProbe(Log: AppendSyncLog, InstanceId: _nextSyncId)
+                        ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
                         : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
                     LogList(_syncLog, "dispose-sync-log")
                 ]
@@ -87,7 +87,7 @@ public sealed class DisposalPage : Component
                             OnClick: UnmountAsync)[I(Class: "bi bi-stop-circle me-1"), "Unmount async probe"]
                     ],
                     _asyncMounted
-                        ? DisposableAsyncProbe(Log: AppendAsyncLog, InstanceId: _nextAsyncId)
+                        ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
                         : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
                     LogList(_asyncLog, "dispose-async-log")
                 ]
@@ -127,7 +127,7 @@ public sealed class DisposalPage : Component
                             OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
                     ],
                     _hookMounted
-                        ? UnmountTimerProbe(Log: AppendHookLog, InstanceId: _nextHookId)
+                        ? UnmountTimerProbe(AppendHookLog, _nextHookId)
                         : P(Class: "text-secondary fst-italic mb-0")["Ticker not running."],
                     LogList(_hookLog, "unmount-hook-log")
                 ]
@@ -170,11 +170,15 @@ public sealed class DisposalPage : Component
                 ? P(Class: "text-secondary small mb-0")["Empty — mount and unmount the probe."]
                 : Ol(Class: "list-group list-group-numbered list-group-flush",
                     Id: id)[entries.Select(line => (Child)Li(
-                        Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]];
+                    Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]];
 
     private void MountSync()
     {
-        if (_syncMounted) return;
+        if (_syncMounted)
+        {
+            return;
+        }
+
         _nextSyncId++;
         _syncMounted = true;
         StateHasChanged();
@@ -182,14 +186,22 @@ public sealed class DisposalPage : Component
 
     private void UnmountSync()
     {
-        if (!_syncMounted) return;
+        if (!_syncMounted)
+        {
+            return;
+        }
+
         _syncMounted = false;
         StateHasChanged();
     }
 
     private void MountAsync()
     {
-        if (_asyncMounted) return;
+        if (_asyncMounted)
+        {
+            return;
+        }
+
         _nextAsyncId++;
         _asyncMounted = true;
         StateHasChanged();
@@ -197,7 +209,11 @@ public sealed class DisposalPage : Component
 
     private void UnmountAsync()
     {
-        if (!_asyncMounted) return;
+        if (!_asyncMounted)
+        {
+            return;
+        }
+
         _asyncMounted = false;
         StateHasChanged();
     }
@@ -218,7 +234,11 @@ public sealed class DisposalPage : Component
 
     private void MountHook()
     {
-        if (_hookMounted) return;
+        if (_hookMounted)
+        {
+            return;
+        }
+
         _nextHookId++;
         _hookMounted = true;
         StateHasChanged();
@@ -226,7 +246,11 @@ public sealed class DisposalPage : Component
 
     private void UnmountHook()
     {
-        if (!_hookMounted) return;
+        if (!_hookMounted)
+        {
+            return;
+        }
+
         _hookMounted = false;
         StateHasChanged();
     }

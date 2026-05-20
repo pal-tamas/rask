@@ -12,7 +12,14 @@ public sealed class Optgroup : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (Label is not null) AppendAttr(sb, "label", Label);
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (Label is not null)
+        {
+            AppendAttr(sb, "label", Label);
+        }
     }
 }

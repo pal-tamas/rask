@@ -36,7 +36,8 @@ public sealed class LifecycleProbe : Component
                     OnClick: () => StateHasChanged())[I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"]
             ],
             H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
-            Ol(Class: "list-group list-group-numbered list-group-flush")[_log.Select(l => (Child)Li(Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+            Ol(Class: "list-group list-group-numbered list-group-flush")[
+                _log.Select(l => (Child)Li(Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
         ];
     }
 }

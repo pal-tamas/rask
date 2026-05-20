@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class BTests
@@ -11,8 +9,8 @@ public class BTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<b id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></b>",
-            B(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<b id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></b>",
+            B("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

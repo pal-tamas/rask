@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.Core.Components;
 
 #pragma warning disable RASK014
 
@@ -14,7 +13,8 @@ public class MouseModifiersHandlerTests
         var component = new StubComponent(Span());
         component.RegisterTestHandler("h0", new Action<MouseModifiers>(m => captured = m));
 
-        var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":false,\"altKey\":false,\"metaKey\":false}").RootElement;
+        var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":false,\"altKey\":false,\"metaKey\":false}")
+            .RootElement;
         var ok = await component.TryInvokeHandlerAsync("h0", payload);
 
         Assert.True(ok);
@@ -28,7 +28,8 @@ public class MouseModifiersHandlerTests
         var component = new StubComponent(Span());
         component.RegisterTestHandler("h0", new Action<MouseModifiers>(m => captured = m));
 
-        var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":true,\"altKey\":true,\"metaKey\":true}").RootElement;
+        var payload = JsonDocument.Parse("{\"shiftKey\":true,\"ctrlKey\":true,\"altKey\":true,\"metaKey\":true}")
+            .RootElement;
         await component.TryInvokeHandlerAsync("h0", payload);
 
         Assert.Equal(new MouseModifiers(true, true, true, true), captured);

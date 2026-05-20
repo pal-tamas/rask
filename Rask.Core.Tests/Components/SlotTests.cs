@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class SlotTests
@@ -11,8 +9,8 @@ public class SlotTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<slot id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"s\"></slot>",
-            Slot(Name: "s", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<slot id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"s\"></slot>",
+            Slot("s", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

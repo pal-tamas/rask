@@ -4,10 +4,10 @@ namespace Rask.Core.Forms;
 
 public sealed class EditContext
 {
-    private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
-    private readonly List<IFieldValidator> _validators = new();
     private readonly List<IAsyncFieldValidator> _asyncValidators = new();
     private readonly Dictionary<FieldIdentifier, DelegateRegistration> _fieldDelegates = new();
+    private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
+    private readonly List<IFieldValidator> _validators = new();
     private Delegate? _formDelegate;
 
     public EditContext(object model) => Model = model ?? throw new ArgumentNullException(nameof(model));
@@ -15,6 +15,45 @@ public sealed class EditContext
     public object Model { get; }
 
     internal IEnumerable<FieldIdentifier> RegisteredFields => _states.Keys;
+
+    public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
+
+    public bool HasAsyncDelegateValidators
+    {
+        get
+        {
+            if (_formDelegate is not null && DelegateValidator.IsAsync(_formDelegate))
+            {
+                return true;
+            }
+
+            foreach (var reg in _fieldDelegates.Values)
+            {
+                if (DelegateValidator.IsAsync(reg.Validate))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    public bool IsValidatingAny
+    {
+        get
+        {
+            foreach (var s in _states.Values)
+            {
+                if (s.PendingCount > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
 
     public event Action<FieldIdentifier>? FieldChanged;
     public event Action? ValidationStateChanged;
@@ -78,43 +117,8 @@ public sealed class EditContext
     // Form-level inline Validate delegate. Null clears.
     public void RegisterFormValidator(Delegate? validate) => _formDelegate = validate;
 
-    public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
-
-    public bool HasAsyncDelegateValidators
-    {
-        get
-        {
-            if (_formDelegate is not null && DelegateValidator.IsAsync(_formDelegate))
-            {
-                return true;
-            }
-
-            foreach (var reg in _fieldDelegates.Values)
-            {
-                if (DelegateValidator.IsAsync(reg.Validate))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-    }
-
     public bool IsValidating(FieldIdentifier field) =>
         _states.TryGetValue(field, out var s) && s.PendingCount > 0;
-
-    public bool IsValidatingAny
-    {
-        get
-        {
-            foreach (var s in _states.Values)
-            {
-                if (s.PendingCount > 0) return true;
-            }
-            return false;
-        }
-    }
 
     public bool IsModified(FieldIdentifier field) =>
         _states.TryGetValue(field, out var s) && s.Modified;
@@ -311,7 +315,8 @@ public sealed class EditContext
                 }
                 catch (Exception)
                 {
-                    AddValidationMessage(new FieldIdentifier(Model, string.Empty), "Validation could not be completed.");
+                    AddValidationMessage(new FieldIdentifier(Model, string.Empty),
+                        "Validation could not be completed.");
                 }
 
                 TrimGatedMessages(pre);
@@ -323,7 +328,8 @@ public sealed class EditContext
         return !HasValidationMessages();
     }
 
-    public async ValueTask<bool> ValidateFieldAsync(FieldIdentifier field, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> ValidateFieldAsync(FieldIdentifier field,
+        CancellationToken cancellationToken = default)
     {
         var state = GetOrCreate(field);
 
@@ -364,6 +370,7 @@ public sealed class EditContext
             {
                 state.Cts = null;
             }
+
             cts.Dispose();
             return state.Messages.Count == 0;
         }
@@ -467,6 +474,7 @@ public sealed class EditContext
                 {
                     state.Cts = null;
                 }
+
                 ValidationStateChanged?.Invoke();
             }
 
@@ -621,7 +629,8 @@ public sealed class EditContext
         {
             try
             {
-                var msgs = await DelegateValidator.InvokeAsync(validate, Model, cancellationToken).ConfigureAwait(false);
+                var msgs = await DelegateValidator.InvokeAsync(validate, Model, cancellationToken)
+                    .ConfigureAwait(false);
                 foreach (var m in msgs)
                 {
                     AddValidationMessage(formField, m);
@@ -644,11 +653,11 @@ public sealed class EditContext
 
     internal sealed class FieldState
     {
+        public CancellationTokenSource? Cts;
         public List<string> Messages = new();
         public bool Modified;
-        public bool Touched;
         public int PendingCount;
-        public CancellationTokenSource? Cts;
+        public bool Touched;
     }
 
     private readonly struct DelegateRegistration

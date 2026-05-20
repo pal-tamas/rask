@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using FluentValidation;
 using Rask.Core.Forms;
-using static Rask.Validation.DataAnnotations.Components;
-using static Rask.Validation.FluentValidation.Components;
 
 namespace Rask.Example.Shared.Demos;
 
@@ -20,37 +21,37 @@ public sealed class ValidationFieldsDemo : Component
                 _model,
                 m => _submission = $"Registered: {m.Name} <{m.Email}>",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("v1-name", Class: "form-label small mb-1")["Name"],
-                        Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
-                        ValidationMessage(() => _model.Name, FieldError)
-                    ],
-                    Div()[
-                        Label("v1-email", Class: "form-label small mb-1")["Email"],
-                        Input(() => _model.Email, Id: "v1-email", Type: "email",
-                            Class: "form-control"),
-                        ValidationMessage(() => _model.Email, FieldError)
-                    ],
-                    Div()[
-                        Label("v1-age", Class: "form-label small mb-1")["Age"],
-                        Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
-                        ValidationMessage(() => _model.Age, FieldError)
-                    ],
-                    Div()[
-                        Label("v1-plan", Class: "form-label small mb-1")["Plan"],
-                        Select(() => _model.Plan, Id: "v1-plan", Class: "form-select")[
-                                Option("")["— choose —"],
-                                Option("free")["Free"],
-                                Option("pro")["Pro"],
-                                Option("team")["Team"]
-                            ],
-                        ValidationMessage(() => _model.Plan, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
-                    ]
+                DataAnnotationsValidator(),
+                Div()[
+                    Label("v1-name", Class: "form-label small mb-1")["Name"],
+                    Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
+                    ValidationMessage(() => _model.Name, FieldError)
                 ],
+                Div()[
+                    Label("v1-email", Class: "form-label small mb-1")["Email"],
+                    Input(() => _model.Email, Id: "v1-email", Type: "email",
+                        Class: "form-control"),
+                    ValidationMessage(() => _model.Email, FieldError)
+                ],
+                Div()[
+                    Label("v1-age", Class: "form-label small mb-1")["Age"],
+                    Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
+                    ValidationMessage(() => _model.Age, FieldError)
+                ],
+                Div()[
+                    Label("v1-plan", Class: "form-label small mb-1")["Plan"],
+                    Select(() => _model.Plan, Id: "v1-plan", Class: "form-select")[
+                        Option("")["— choose —"],
+                        Option("free")["Free"],
+                        Option("pro")["Pro"],
+                        Option("team")["Team"]
+                    ],
+                    ValidationMessage(() => _model.Plan, FieldError)
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -82,34 +83,34 @@ public sealed class ValidationSummaryDemo : Component
                 _model,
                 m => _submission = $"Registered: {m.Name} <{m.Email}>",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    ValidationSummary(SummaryAlert),
-                    Div()[
-                        Label("v2-name", Class: "form-label small mb-1")["Name"],
-                        Input(() => _model.Name, Id: "v2-name", Class: "form-control")
-                    ],
-                    Div()[
-                        Label("v2-email", Class: "form-label small mb-1")["Email"],
-                        Input(() => _model.Email, Id: "v2-email", Type: "email",
-                            Class: "form-control")
-                    ],
-                    Div()[
-                        Label("v2-age", Class: "form-label small mb-1")["Age"],
-                        Input(() => _model.Age, Id: "v2-age", Class: "form-control")
-                    ],
-                    Div()[
-                        Label("v2-plan", Class: "form-label small mb-1")["Plan"],
-                        Select(() => _model.Plan, Id: "v2-plan", Class: "form-select")[
-                                Option("")["— choose —"],
-                                Option("free")["Free"],
-                                Option("pro")["Pro"],
-                                Option("team")["Team"]
-                            ]
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+                DataAnnotationsValidator(),
+                ValidationSummary(SummaryAlert),
+                Div()[
+                    Label("v2-name", Class: "form-label small mb-1")["Name"],
+                    Input(() => _model.Name, Id: "v2-name", Class: "form-control")
+                ],
+                Div()[
+                    Label("v2-email", Class: "form-label small mb-1")["Email"],
+                    Input(() => _model.Email, Id: "v2-email", Type: "email",
+                        Class: "form-control")
+                ],
+                Div()[
+                    Label("v2-age", Class: "form-label small mb-1")["Age"],
+                    Input(() => _model.Age, Id: "v2-age", Class: "form-control")
+                ],
+                Div()[
+                    Label("v2-plan", Class: "form-label small mb-1")["Plan"],
+                    Select(() => _model.Plan, Id: "v2-plan", Class: "form-select")[
+                        Option("")["— choose —"],
+                        Option("free")["Free"],
+                        Option("pro")["Pro"],
+                        Option("team")["Team"]
                     ]
                 ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -142,33 +143,33 @@ public sealed class InlineValidateDemo : Component
     protected override Component Render() =>
         Fragment()[
             Form(
-                Model: _model,
+                _model,
                 OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
                 Class: "vstack gap-3",
                 Validate: m =>
                     m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
-                    Div()[
-                        Label("v4-email", Class: "form-label small mb-1")["Email"],
-                        Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
-                            Validate: v =>
-                                v.Contains('@')
-                                    ? Array.Empty<string>()
-                                    : new[] { "Email looks wrong." }),
-                        ValidationMessage(() => _model.Email, FieldError)
-                    ],
-                    Div()[
-                        Label("v4-password", Class: "form-label small mb-1")["Password"],
-                        Input(() => _model.Password, Id: "v4-password", Type: "password", Class: "form-control")
-                    ],
-                    Div()[
-                        Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
-                        Input(() => _model.Confirm, Id: "v4-confirm", Type: "password", Class: "form-control")
-                    ],
-                    ValidationSummary(SummaryAlert),
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
-                    ]
+                Div()[
+                    Label("v4-email", Class: "form-label small mb-1")["Email"],
+                    Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
+                        Validate: v =>
+                            v.Contains('@')
+                                ? Array.Empty<string>()
+                                : new[] { "Email looks wrong." }),
+                    ValidationMessage(() => _model.Email, FieldError)
                 ],
+                Div()[
+                    Label("v4-password", Class: "form-label small mb-1")["Password"],
+                    Input(() => _model.Password, Id: "v4-password", Type: "password", Class: "form-control")
+                ],
+                Div()[
+                    Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
+                    Input(() => _model.Confirm, Id: "v4-confirm", Type: "password", Class: "form-control")
+                ],
+                ValidationSummary(SummaryAlert),
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -200,11 +201,11 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
     private readonly StorefrontModel _model = new()
     {
         CustomerName = "",
-        Address = new() { PostalCode = "" },
+        Address = new StorefrontAddress { PostalCode = "" },
         Items =
         {
-            new() { Name = "Widget", Quantity = 1, UnitPrice = 9.99m },
-            new() { Name = "Gadget", Quantity = 2, UnitPrice = 14.99m }
+            new StorefrontLineItem { Name = "Widget", Quantity = 1, UnitPrice = 9.99m },
+            new StorefrontLineItem { Name = "Gadget", Quantity = 2, UnitPrice = 14.99m }
         },
         DiscountCode = ""
     };
@@ -227,7 +228,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
             return new[] { "Postal code is required." };
         }
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(code, @"^\d{5}$"))
+        if (!Regex.IsMatch(code, @"^\d{5}$"))
         {
             return new[] { "Postal code must be 5 digits." };
         }
@@ -256,90 +257,90 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
         var total = afterDiscount + tax;
 
         return Fragment()[
-            Form<StorefrontModel>(
+            Form(
                 _model,
-                m => _submission = $"Charged ${total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)} to {m.CustomerName}",
+                m => _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}",
                 Class: "vstack gap-3")[
-                    Div()[
-                        Label("v-nlive-name", Class: "form-label small mb-1")["Customer name"],
-                        Input(() => _model.CustomerName, Id: "v-nlive-name", Class: "form-control",
-                            Validate: v =>
-                                string.IsNullOrWhiteSpace(v)
-                                    ? new[] { "Name is required." }
-                                    : Array.Empty<string>()),
-                        ValidationMessage(() => _model.CustomerName, FieldError)
+                Div()[
+                    Label("v-nlive-name", Class: "form-label small mb-1")["Customer name"],
+                    Input(() => _model.CustomerName, Id: "v-nlive-name", Class: "form-control",
+                        Validate: v =>
+                            string.IsNullOrWhiteSpace(v)
+                                ? new[] { "Name is required." }
+                                : Array.Empty<string>()),
+                    ValidationMessage(() => _model.CustomerName, FieldError)
+                ],
+                Div()[
+                    Label("v-nlive-postal", Class: "form-label small mb-1")[
+                        "Postal code ", Span(Class: "text-muted")["(try 12345, 99999, or any 5-digit code)"]
                     ],
-                    Div()[
-                        Label("v-nlive-postal", Class: "form-label small mb-1")[
-                            "Postal code ", Span(Class: "text-muted")["(try 12345, 99999, or any 5-digit code)"]
+                    Input(() => _model.Address.PostalCode, Id: "v-nlive-postal", Class: "form-control",
+                        Validate: ValidatePostalAsync),
+                    ValidatingIndicator(() => _model.Address.PostalCode, Checking),
+                    ValidationMessage(() => _model.Address.PostalCode, FieldError)
+                ],
+                Div(Class: "border rounded p-3")[
+                    Div(Class: "fw-semibold small mb-2")["Items"],
+                    Div(Class: "row g-2 mb-2 align-items-center")[
+                        Div(Class: "col-6")[
+                            Input(() => _model.Items[0].Name,
+                                Id: "v-nlive-item0-name", Class: "form-control form-control-sm")
                         ],
-                        Input(() => _model.Address.PostalCode, Id: "v-nlive-postal", Class: "form-control",
-                            Validate: ValidatePostalAsync),
-                        ValidatingIndicator(() => _model.Address.PostalCode, Checking),
-                        ValidationMessage(() => _model.Address.PostalCode, FieldError)
-                    ],
-                    Div(Class: "border rounded p-3")[
-                        Div(Class: "fw-semibold small mb-2")["Items"],
-                        Div(Class: "row g-2 mb-2 align-items-center")[
-                            Div(Class: "col-6")[
-                                Input(() => _model.Items[0].Name,
-                                    Id: "v-nlive-item0-name", Class: "form-control form-control-sm")
-                            ],
-                            Div(Class: "col-3")[
-                                Input(() => _model.Items[0].Quantity,
-                                    Id: "v-nlive-item0-qty", Class: "form-control form-control-sm", Min: "0")
-                            ],
-                            Div(Class: "col-3")[
-                                Input(() => _model.Items[0].UnitPrice,
-                                    Id: "v-nlive-item0-price", Class: "form-control form-control-sm", Step: "0.01")
-                            ]
+                        Div(Class: "col-3")[
+                            Input(() => _model.Items[0].Quantity,
+                                Id: "v-nlive-item0-qty", Class: "form-control form-control-sm", Min: "0")
                         ],
-                        Div(Class: "row g-2 align-items-center")[
-                            Div(Class: "col-6")[
-                                Input(() => _model.Items[1].Name,
-                                    Id: "v-nlive-item1-name", Class: "form-control form-control-sm")
-                            ],
-                            Div(Class: "col-3")[
-                                Input(() => _model.Items[1].Quantity,
-                                    Id: "v-nlive-item1-qty", Class: "form-control form-control-sm", Min: "0")
-                            ],
-                            Div(Class: "col-3")[
-                                Input(() => _model.Items[1].UnitPrice,
-                                    Id: "v-nlive-item1-price", Class: "form-control form-control-sm", Step: "0.01")
-                            ]
+                        Div(Class: "col-3")[
+                            Input(() => _model.Items[0].UnitPrice,
+                                Id: "v-nlive-item0-price", Class: "form-control form-control-sm", Step: "0.01")
                         ]
                     ],
-                    Div()[
-                        Label("v-nlive-promo", Class: "form-label small mb-1")[
-                            "Promo code ", Span(Class: "text-muted")["(try SAVE10 or SAVE25)"]
+                    Div(Class: "row g-2 align-items-center")[
+                        Div(Class: "col-6")[
+                            Input(() => _model.Items[1].Name,
+                                Id: "v-nlive-item1-name", Class: "form-control form-control-sm")
                         ],
-                        Input(() => _model.DiscountCode, Id: "v-nlive-promo", Class: "form-control")
-                    ],
-                    Div(Id: "v-nlive-totals", Class: "bg-light rounded p-3 small")[
-                        Div(Class: "d-flex justify-content-between")[
-                            Span()["Subtotal"],
-                            Span(Id: "v-nlive-subtotal")[$"${subtotal.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}"]
+                        Div(Class: "col-3")[
+                            Input(() => _model.Items[1].Quantity,
+                                Id: "v-nlive-item1-qty", Class: "form-control form-control-sm", Min: "0")
                         ],
-                        Div(Class: "d-flex justify-content-between")[
-                            Span()[discountPct > 0m
-                                ? $"Discount ({(int)(discountPct * 100)}%)"
-                                : "Discount"],
-                            Span(Id: "v-nlive-discount")[$"-${discount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}"]
-                        ],
-                        Div(Class: "d-flex justify-content-between")[
-                            Span()["Tax (8%)"],
-                            Span(Id: "v-nlive-tax")[$"${tax.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}"]
-                        ],
-                        Hr(Class: "my-2"),
-                        Div(Class: "d-flex justify-content-between fw-bold")[
-                            Span()["Total"],
-                            Span(Id: "v-nlive-total")[$"${total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}"]
+                        Div(Class: "col-3")[
+                            Input(() => _model.Items[1].UnitPrice,
+                                Id: "v-nlive-item1-price", Class: "form-control form-control-sm", Step: "0.01")
                         ]
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-credit-card me-1"), "Pay"]
                     ]
                 ],
+                Div()[
+                    Label("v-nlive-promo", Class: "form-label small mb-1")[
+                        "Promo code ", Span(Class: "text-muted")["(try SAVE10 or SAVE25)"]
+                    ],
+                    Input(() => _model.DiscountCode, Id: "v-nlive-promo", Class: "form-control")
+                ],
+                Div(Id: "v-nlive-totals", Class: "bg-light rounded p-3 small")[
+                    Div(Class: "d-flex justify-content-between")[
+                        Span()["Subtotal"],
+                        Span("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
+                    ],
+                    Div(Class: "d-flex justify-content-between")[
+                        Span()[discountPct > 0m
+                            ? $"Discount ({(int)(discountPct * 100)}%)"
+                            : "Discount"],
+                        Span("v-nlive-discount")[$"-${discount.ToString("F2", CultureInfo.InvariantCulture)}"]
+                    ],
+                    Div(Class: "d-flex justify-content-between")[
+                        Span()["Tax (8%)"],
+                        Span("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
+                    ],
+                    Hr(Class: "my-2"),
+                    Div(Class: "d-flex justify-content-between fw-bold")[
+                        Span()["Total"],
+                        Span("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
+                    ]
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-credit-card me-1"), "Pay"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Id: "v-nlive-submission", Class: "alert alert-success small mt-3 mb-0")[
@@ -417,7 +418,7 @@ public sealed class InlineAsyncValidateDemo : Component
     protected override Component Render() =>
         Fragment()[
             Form<PromoModel>(
-                Model: _model,
+                _model,
                 OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
                 Class: "vstack gap-3",
                 Validate: async (m, ct) =>
@@ -428,18 +429,18 @@ public sealed class InlineAsyncValidateDemo : Component
                         ? new[] { "Code is required." }
                         : Array.Empty<string>();
                 })[
-                    Div()[
-                        Label("v10-code", Class: "form-label small mb-1")["Promo code"],
-                        Input(() => _model.Code, Id: "v10-code", Class: "form-control",
-                            Validate: CheckCodeAsync),
-                        ValidatingIndicator(() => _model.Code, Checking),
-                        ValidationMessage(() => _model.Code, FieldError)
-                    ],
-                    ValidationSummary(SummaryAlert),
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
-                    ]
+                Div()[
+                    Label("v10-code", Class: "form-label small mb-1")["Promo code"],
+                    Input(() => _model.Code, Id: "v10-code", Class: "form-control",
+                        Validate: CheckCodeAsync),
+                    ValidatingIndicator(() => _model.Code, Checking),
+                    ValidationMessage(() => _model.Code, FieldError)
                 ],
+                ValidationSummary(SummaryAlert),
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -452,8 +453,8 @@ public sealed class PromoModel
 
 public sealed class AsyncValidationDemo : Component
 {
-    private readonly SignupModel _model = new();
     private readonly EditContext _ctx;
+    private readonly SignupModel _model = new();
     private string? _submission;
 
     public AsyncValidationDemo()
@@ -474,18 +475,18 @@ public sealed class AsyncValidationDemo : Component
                 m => _submission = $"Signed up: {m.Username}",
                 Context: _ctx,
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("v3-username", Class: "form-label small mb-1")["Username"],
-                        Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Username, Checking),
-                        ValidationMessage(() => _model.Username,
-                            msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])])
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
-                    ]
+                DataAnnotationsValidator(),
+                Div()[
+                    Label("v3-username", Class: "form-label small mb-1")["Username"],
+                    Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
+                    ValidatingIndicator(() => _model.Username, Checking),
+                    ValidationMessage(() => _model.Username,
+                        msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])])
                 ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -506,11 +507,13 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
     {
         if (context.Model is SignupModel m)
         {
-            await CheckAsync(context, new FieldIdentifier(m, nameof(SignupModel.Username)), m.Username, cancellationToken).ConfigureAwait(false);
+            await CheckAsync(context, new FieldIdentifier(m, nameof(SignupModel.Username)), m.Username,
+                cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        CancellationToken cancellationToken)
     {
         if (context.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
         {
@@ -518,7 +521,8 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
         }
     }
 
-    private static async Task CheckAsync(EditContext context, FieldIdentifier field, string username, CancellationToken ct)
+    private static async Task CheckAsync(EditContext context, FieldIdentifier field, string username,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -579,26 +583,26 @@ public sealed class CrossFieldSummaryDemo : Component
     protected override Component Render() =>
         Fragment()[
             Form<TripModel>(
-                Model: _model,
+                _model,
                 OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
                 Class: "vstack gap-3",
                 Validate: m =>
                     m.Return > m.Depart
                         ? Array.Empty<string>()
                         : new[] { "Return date must be after departure." })[
-                    ValidationSummary(SummaryAlert),
-                    Div()[
-                        Label("v5-depart", Class: "form-label small mb-1")["Departure"],
-                        Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
-                    ],
-                    Div()[
-                        Label("v5-return", Class: "form-label small mb-1")["Return"],
-                        Input(() => _model.Return, Id: "v5-return", Class: "form-control")
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
-                    ]
+                ValidationSummary(SummaryAlert),
+                Div()[
+                    Label("v5-depart", Class: "form-label small mb-1")["Departure"],
+                    Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
                 ],
+                Div()[
+                    Label("v5-return", Class: "form-label small mb-1")["Return"],
+                    Input(() => _model.Return, Id: "v5-return", Class: "form-control")
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -642,27 +646,27 @@ public sealed class ValidatableObjectDemo : Component
                 _model,
                 m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    ValidationSummary(SummaryAlert),
-                    Div()[
-                        Label("v11-name", Class: "form-label small mb-1")["Name"],
-                        Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
-                        ValidationMessage(() => _model.Name, FieldError)
-                    ],
-                    Div()[
-                        Label("v11-departure", Class: "form-label small mb-1")["Departure"],
-                        Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
-                        ValidationMessage(() => _model.Departure, FieldError)
-                    ],
-                    Div()[
-                        Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
-                        Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
-                        ValidationMessage(() => _model.Arrival, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
-                    ]
+                DataAnnotationsValidator(),
+                ValidationSummary(SummaryAlert),
+                Div()[
+                    Label("v11-name", Class: "form-label small mb-1")["Name"],
+                    Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
+                    ValidationMessage(() => _model.Name, FieldError)
                 ],
+                Div()[
+                    Label("v11-departure", Class: "form-label small mb-1")["Departure"],
+                    Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
+                    ValidationMessage(() => _model.Departure, FieldError)
+                ],
+                Div()[
+                    Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
+                    Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
+                    ValidationMessage(() => _model.Arrival, FieldError)
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -696,8 +700,8 @@ public sealed class BookingModel : IValidatableObject
 
 public sealed class ProgrammaticValidateDemo : Component
 {
-    private readonly TaskModel _model = new();
     private readonly EditContext _ctx;
+    private readonly TaskModel _model = new();
     private string? _submission;
 
     public ProgrammaticValidateDemo()
@@ -714,10 +718,7 @@ public sealed class ProgrammaticValidateDemo : Component
             I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
         ];
 
-    private async Task ValidateNowAsync()
-    {
-        await _ctx.ValidateAsync().ConfigureAwait(false);
-    }
+    private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
     protected override Component Render() =>
         Fragment()[
@@ -726,27 +727,27 @@ public sealed class ProgrammaticValidateDemo : Component
                 m => _submission = $"Saved task: {m.Title}",
                 Context: _ctx,
                 Class: "vstack gap-3")[
-                    Div()[
-                        Label("v6-title", Class: "form-label small mb-1")["Title"],
-                        Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Title, Checking),
-                        ValidationMessage(() => _model.Title, FieldError)
-                    ],
-                    Div(Class: "d-flex gap-2")[
-                        Button(
-                            "button",
-                            Id: "v6-validate-now",
-                            Class: "btn btn-outline-secondary",
-                            OnClickAsync: ValidateNowAsync)[
-                                I(Class: "bi bi-search me-1"), "Validate now"
-                            ],
-                        Button(
-                            "submit",
-                            Id: "v6-submit",
-                            Disabled: _ctx.IsValidatingAny,
-                            Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
-                    ]
+                Div()[
+                    Label("v6-title", Class: "form-label small mb-1")["Title"],
+                    Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
+                    ValidatingIndicator(() => _model.Title, Checking),
+                    ValidationMessage(() => _model.Title, FieldError)
                 ],
+                Div(Class: "d-flex gap-2")[
+                    Button(
+                        "button",
+                        Id: "v6-validate-now",
+                        Class: "btn btn-outline-secondary",
+                        OnClickAsync: ValidateNowAsync)[
+                        I(Class: "bi bi-search me-1"), "Validate now"
+                    ],
+                    Button(
+                        "submit",
+                        Id: "v6-submit",
+                        Disabled: _ctx.IsValidatingAny,
+                        Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -767,11 +768,13 @@ public sealed class SlowTitleValidator : IAsyncFieldValidator
     {
         if (context.Model is TaskModel m)
         {
-            await CheckAsync(context, new FieldIdentifier(m, nameof(TaskModel.Title)), m.Title, cancellationToken).ConfigureAwait(false);
+            await CheckAsync(context, new FieldIdentifier(m, nameof(TaskModel.Title)), m.Title, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        CancellationToken cancellationToken)
     {
         if (context.Model is TaskModel m && field.FieldName == nameof(TaskModel.Title))
         {
@@ -808,21 +811,21 @@ public sealed class FluentValidationDemo : Component
                 _model,
                 m => _submission = $"Ordered {m.Quantity} × {m.Product}",
                 Class: "vstack gap-3")[
-                    FluentValidationValidator(new OrderValidator()),
-                    Div()[
-                        Label("v7-product", Class: "form-label small mb-1")["Product"],
-                        Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
-                        ValidationMessage(() => _model.Product, FieldError)
-                    ],
-                    Div()[
-                        Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
-                        Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
-                        ValidationMessage(() => _model.Quantity, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-bag-check me-1"), "Order"]
-                    ]
+                FluentValidationValidator(new OrderValidator()),
+                Div()[
+                    Label("v7-product", Class: "form-label small mb-1")["Product"],
+                    Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
+                    ValidationMessage(() => _model.Product, FieldError)
                 ],
+                Div()[
+                    Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
+                    Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
+                    ValidationMessage(() => _model.Quantity, FieldError)
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-bag-check me-1"), "Order"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -861,20 +864,20 @@ public sealed class FirstErrorWinsDemo : Component
                 _model,
                 m => _submission = $"Activated: {m.Code}",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("v8-code", Class: "form-label small mb-1")["License code"],
-                        Input(() => _model.Code, Id: "v8-code", Class: "form-control",
-                            Validate: v =>
-                                string.IsNullOrWhiteSpace(v)
-                                    ? new[] { "Code is required." }
-                                    : Array.Empty<string>()),
-                        ValidationMessage(() => _model.Code, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
-                    ]
+                DataAnnotationsValidator(),
+                Div()[
+                    Label("v8-code", Class: "form-label small mb-1")["License code"],
+                    Input(() => _model.Code, Id: "v8-code", Class: "form-control",
+                        Validate: v =>
+                            string.IsNullOrWhiteSpace(v)
+                                ? new[] { "Code is required." }
+                                : Array.Empty<string>()),
+                    ValidationMessage(() => _model.Code, FieldError)
                 ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -909,17 +912,17 @@ public sealed class FluentValidationAsyncDemo : Component
                 _model,
                 m => _submission = $"Reserved: {m.Code}",
                 Class: "vstack gap-3")[
-                    FluentValidationValidator(new TicketValidator()),
-                    Div()[
-                        Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
-                        Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
-                        ValidatingIndicator(() => _model.Code, Checking),
-                        ValidationMessage(() => _model.Code, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
-                    ]
+                FluentValidationValidator(new TicketValidator()),
+                Div()[
+                    Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
+                    Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
+                    ValidatingIndicator(() => _model.Code, Checking),
+                    ValidationMessage(() => _model.Code, FieldError)
                 ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -974,26 +977,26 @@ public sealed class CustomAttributeDemo : Component
                 _model,
                 m => _submission = $"Welcome, {m.Username}!",
                 Class: "vstack gap-3")[
-                    DataAnnotationsValidator(),
-                    Div()[
-                        Label("v12-username", Class: "form-label small mb-1")["Username"],
-                        Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
-                        ValidationMessage(() => _model.Username, FieldError)
-                    ],
-                    Div()[
-                        Label("v12-password", Class: "form-label small mb-1")["Password"],
-                        Input(() => _model.Password, Id: "v12-password", Type: "password", Class: "form-control"),
-                        ValidationMessage(() => _model.Password, FieldError)
-                    ],
-                    Div()[
-                        Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
-                        Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: "password", Class: "form-control"),
-                        ValidationMessage(() => _model.ConfirmPassword, FieldError)
-                    ],
-                    Div()[
-                        Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-shield-check me-1"), "Create account"]
-                    ]
+                DataAnnotationsValidator(),
+                Div()[
+                    Label("v12-username", Class: "form-label small mb-1")["Username"],
+                    Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
+                    ValidationMessage(() => _model.Username, FieldError)
                 ],
+                Div()[
+                    Label("v12-password", Class: "form-label small mb-1")["Password"],
+                    Input(() => _model.Password, Id: "v12-password", Type: "password", Class: "form-control"),
+                    ValidationMessage(() => _model.Password, FieldError)
+                ],
+                Div()[
+                    Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
+                    Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: "password", Class: "form-control"),
+                    ValidationMessage(() => _model.ConfirmPassword, FieldError)
+                ],
+                Div()[
+                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-shield-check me-1"), "Create account"]
+                ]
+            ],
             _submission is null
                 ? Fragment()
                 : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
@@ -1022,13 +1025,11 @@ public interface IBannedWordService
 
 public sealed class BannedWordService : IBannedWordService
 {
-    public IReadOnlyCollection<string> Words { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "admin", "root", "test"
-    };
+    public IReadOnlyCollection<string> Words { get; } =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "admin", "root", "test" };
 }
 
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property)]
 public sealed class StrongPasswordAttribute : ValidationAttribute
 {
     public override bool IsValid(object? value)
@@ -1041,21 +1042,33 @@ public sealed class StrongPasswordAttribute : ValidationAttribute
         bool hasLetter = false, hasDigit = false;
         foreach (var ch in s)
         {
-            if (char.IsLetter(ch)) hasLetter = true;
-            else if (char.IsDigit(ch)) hasDigit = true;
-            if (hasLetter && hasDigit) return true;
+            if (char.IsLetter(ch))
+            {
+                hasLetter = true;
+            }
+            else if (char.IsDigit(ch))
+            {
+                hasDigit = true;
+            }
+
+            if (hasLetter && hasDigit)
+            {
+                return true;
+            }
         }
+
         return false;
     }
 }
 
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property)]
 public sealed class MatchesPropertyAttribute(string otherProperty) : ValidationAttribute
 {
     public string OtherProperty { get; } = otherProperty;
 
-    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2075",
-        Justification = "GetProperty on the model's runtime type — the model is preserved by the user's binding setup, same contract as the validator itself.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification =
+            "GetProperty on the model's runtime type — the model is preserved by the user's binding setup, same contract as the validator itself.")]
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         var instance = validationContext.ObjectInstance;
@@ -1073,7 +1086,7 @@ public sealed class MatchesPropertyAttribute(string otherProperty) : ValidationA
     }
 }
 
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property)]
 public sealed class NotBannedAttribute : ValidationAttribute
 {
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
@@ -32,10 +31,7 @@ public class NestedValidationTests
     {
         var p = new Person
         {
-            Address = new Address
-            {
-                Postal = new PostalInfo { Country = new Country { Code = "" } }
-            }
+            Address = new Address { Postal = new PostalInfo { Country = new Country { Code = "" } } }
         };
         var ctx = RegisterValidator(p);
 
@@ -52,7 +48,7 @@ public class NestedValidationTests
         var beta = new LineItem { Name = "beta", Quantity = -1 };
         var gamma = new LineItem { Name = "gamma", Quantity = 5 };
 
-        var p = new Person { Items = new() { alpha, beta, gamma } };
+        var p = new Person { Items = new List<LineItem> { alpha, beta, gamma } };
         var ctx = RegisterValidator(p);
 
         ctx.Validate();
@@ -69,14 +65,7 @@ public class NestedValidationTests
     [Fact]
     public void Validate_ArrayItems_Walked()
     {
-        var p = new Person
-        {
-            Tags = new[]
-            {
-                new Tag { Label = "" },
-                new Tag { Label = "ok" }
-            }
-        };
+        var p = new Person { Tags = new[] { new Tag { Label = "" }, new Tag { Label = "ok" } } };
         var ctx = RegisterValidator(p);
 
         ctx.Validate();
@@ -91,10 +80,9 @@ public class NestedValidationTests
     {
         var p = new Person
         {
-            Settings = new()
+            Settings = new Dictionary<string, ServerConfig>
             {
-                ["smtp"] = new ServerConfig { Host = "" },
-                ["http"] = new ServerConfig { Host = "api.example.com" }
+                ["smtp"] = new() { Host = "" }, ["http"] = new() { Host = "api.example.com" }
             }
         };
         var ctx = RegisterValidator(p);
@@ -137,10 +125,7 @@ public class NestedValidationTests
     public void Validate_NullListItem_SkippedCleanly()
     {
         var alpha = new LineItem { Name = "alpha", Quantity = 1 };
-        var p = new Person
-        {
-            Items = new() { alpha, null!, new LineItem { Name = "gamma", Quantity = 2 } }
-        };
+        var p = new Person { Items = new List<LineItem> { alpha, null!, new() { Name = "gamma", Quantity = 2 } } };
         var ctx = RegisterValidator(p);
 
         var ok = ctx.Validate();
@@ -157,10 +142,7 @@ public class NestedValidationTests
             Address = new Address
             {
                 Street = "Elm",
-                Postal = new PostalInfo
-                {
-                    Country = new Country { Code = "INVALID", RaiseFormLevel = false }
-                }
+                Postal = new PostalInfo { Country = new Country { Code = "INVALID", RaiseFormLevel = false } }
             }
         };
         var ctx = RegisterValidator(p);
@@ -180,10 +162,7 @@ public class NestedValidationTests
             Address = new Address
             {
                 Street = "Elm",
-                Postal = new PostalInfo
-                {
-                    Country = new Country { Code = "NL", RaiseFormLevel = true }
-                }
+                Postal = new PostalInfo { Country = new Country { Code = "NL", RaiseFormLevel = true } }
             }
         };
         var ctx = RegisterValidator(p);
@@ -223,7 +202,7 @@ public class NestedValidationTests
     {
         var alpha = new LineItem { Name = "", Quantity = 0 };
         var beta = new LineItem { Name = "", Quantity = 0 };
-        var p = new Person { Items = new() { alpha, beta } };
+        var p = new Person { Items = new List<LineItem> { alpha, beta } };
         var ctx = RegisterValidator(p);
 
         ctx.ValidateField(new FieldIdentifier(beta, "Name"));
@@ -236,7 +215,7 @@ public class NestedValidationTests
     public void Validate_ReplacedRecord_NewInstanceValidated()
     {
         var first = new LineRecord("", 0);
-        var p = new RecordPerson { Items = new() { first } };
+        var p = new RecordPerson { Items = new List<LineRecord> { first } };
         var ctx = RegisterValidator(p);
 
         ctx.Validate();
@@ -265,7 +244,7 @@ public class NestedValidationTests
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var view = new StubComponent(() => Form<Person>(p)[
+        var view = new StubComponent(() => Form(p)[
             DataAnnotationsValidator(),
             Input(() => p.Address!.Street),
             new ContextCapture(ctx => captured = ctx)
@@ -292,7 +271,7 @@ public class NestedValidationTests
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var view = new StubComponent(() => Form<Person>(p)[
+        var view = new StubComponent(() => Form(p)[
             DataAnnotationsValidator(),
             Input(() => p.Address!.Street),
             ValidationMessage(() => p.Address!.Street,
@@ -314,10 +293,25 @@ public class NestedValidationTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
+    }
+
+    private static EditContext RegisterValidator<T>(T model) where T : class
+    {
+        var ctx = new EditContext(model);
+        using (EditContextScope.Push(ctx))
+        {
+            DataAnnotationsValidator().ToHtml();
+        }
+
+        return ctx;
     }
 
     private sealed class StubComponent : Component
@@ -335,23 +329,16 @@ public class NestedValidationTests
             {
                 capture(c);
             }
+
             return Fragment();
         }
     }
 
-    private static EditContext RegisterValidator<T>(T model) where T : class
-    {
-        var ctx = new EditContext(model);
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-        }
-        return ctx;
-    }
-
     private sealed class Person
     {
-        [Required(ErrorMessage = "Name required")] public string Name { get; set; } = "Ada";
+        [Required(ErrorMessage = "Name required")]
+        public string Name { get; set; } = "Ada";
+
         public Address? Address { get; set; }
         public List<LineItem>? Items { get; set; }
         public Tag[]? Tags { get; set; }
@@ -361,7 +348,9 @@ public class NestedValidationTests
 
     private sealed class Address
     {
-        [Required(ErrorMessage = "Street required")] public string Street { get; set; } = "";
+        [Required(ErrorMessage = "Street required")]
+        public string Street { get; set; } = "";
+
         public PostalInfo? Postal { get; set; }
     }
 
@@ -372,7 +361,8 @@ public class NestedValidationTests
 
     private sealed class Country : IValidatableObject
     {
-        [Required(ErrorMessage = "Code required")] public string Code { get; set; } = "";
+        [Required(ErrorMessage = "Code required")]
+        public string Code { get; set; } = "";
 
         public bool RaiseFormLevel { get; set; }
 
@@ -392,23 +382,28 @@ public class NestedValidationTests
 
     private sealed class LineItem
     {
-        [Required(ErrorMessage = "Name required")] public string Name { get; set; } = "";
+        [Required(ErrorMessage = "Name required")]
+        public string Name { get; set; } = "";
+
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be positive")]
         public int Quantity { get; set; }
     }
 
     private sealed class Tag
     {
-        [Required(ErrorMessage = "Label required")] public string Label { get; set; } = "";
+        [Required(ErrorMessage = "Label required")]
+        public string Label { get; set; } = "";
     }
 
     private sealed class ServerConfig
     {
-        [Required(ErrorMessage = "Host required")] public string Host { get; set; } = "";
+        [Required(ErrorMessage = "Host required")]
+        public string Host { get; set; } = "";
     }
 
     private sealed record LineRecord(
-        [property: Required(ErrorMessage = "Name required")] string Name,
+        [property: Required(ErrorMessage = "Name required")]
+        string Name,
         int Quantity);
 
     private sealed class RecordPerson

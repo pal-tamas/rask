@@ -62,6 +62,7 @@ public class FluentValidationValidatorTests
         {
             FluentValidationValidator(validator).ToHtml();
         }
+
         return ctx;
     }
 
@@ -82,9 +83,6 @@ public class FluentValidationValidatorTests
 
     private sealed class ThrowingValidator : AbstractValidator<Person>
     {
-        public ThrowingValidator()
-        {
-            RuleFor(x => x.Name).Must(_ => throw new InvalidOperationException("boom"));
-        }
+        public ThrowingValidator() => RuleFor(x => x.Name).Must(_ => throw new InvalidOperationException("boom"));
     }
 }

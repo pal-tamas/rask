@@ -15,13 +15,21 @@ public sealed class Outlet : Component
         // route chain changes. Without this, Router's re-render would walk past a cached
         // Outlet whose ctx.Route snapshot is stale.
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed += StateHasChanged;
     }
 
     protected override void OnUnmount()
     {
-        if (_route is null) return;
+        if (_route is null)
+        {
+            return;
+        }
+
         _route.Changed -= StateHasChanged;
     }
 

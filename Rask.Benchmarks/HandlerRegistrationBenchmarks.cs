@@ -11,14 +11,11 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class HandlerRegistrationBenchmarks
 {
-    private RegHost _host = null!;
     private Action _action = null!;
+    private RegHost _host = null!;
 
     [GlobalSetup]
-    public void GlobalSetup()
-    {
-        _action = () => { };
-    }
+    public void GlobalSetup() => _action = () => { };
 
     // Fresh host per iteration: avoids needing private-field reset access on Component
     // and keeps each [Benchmark] starting from _nextHandlerId == 0. The allocation is
@@ -37,6 +34,7 @@ public class HandlerRegistrationBenchmarks
         {
             last = _host.RegisterHandler(_action);
         }
+
         return last!;
     }
 
@@ -50,6 +48,7 @@ public class HandlerRegistrationBenchmarks
         {
             last = _host.RegisterHandler(_action);
         }
+
         return last!;
     }
 }

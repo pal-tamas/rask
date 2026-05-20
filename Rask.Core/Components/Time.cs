@@ -11,6 +11,9 @@ public sealed class Time : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (DateTime is not null) AppendAttr(sb, "datetime", DateTime);
+        if (DateTime is not null)
+        {
+            AppendAttr(sb, "datetime", DateTime);
+        }
     }
 }

@@ -11,6 +11,17 @@ namespace Rask.Wasm.Hosting;
 
 public static class RaskWasmEndpointExtensions
 {
+    // Matches Blazor/WASM SDK fingerprinted asset names: <stem>.<10+ hex/alphanumeric>.<ext>.
+    // The hash segment is at least 10 chars to avoid false positives on filenames like
+    // System.IO.Pipelines.wasm (where "Pipelines" is alphanumeric but isn't a content hash).
+    // When <WasmFingerprintAssets>true</WasmFingerprintAssets> is enabled on the consumer's
+    // WASM project, the SDK emits names like dotnet.7a8b9c2d3e4f5061.js and this regex hits.
+    // The default SDK output (filenames like dotnet.js, Rask.Core.wasm) doesn't fingerprint
+    // and falls through to no-cache.
+    private static readonly Regex _fingerprintRegex = new(
+        @"\.[0-9a-z]{10,}\.[^.]+$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     /// <summary>
     ///     Serves a published Rask WASM AppBundle as a SPA: <c>UseDefaultFiles</c> +
     ///     <c>UseStaticFiles</c> with the right MIME types for <c>.wasm</c>/<c>.js</c>, plus a
@@ -99,6 +110,7 @@ public static class RaskWasmEndpointExtensions
                 {
                     name = name[..^3];
                 }
+
                 var ext = Path.GetExtension(name);
                 if (ext.Equals(".wasm", StringComparison.OrdinalIgnoreCase))
                 {
@@ -136,17 +148,6 @@ public static class RaskWasmEndpointExtensions
 
         return endpoints;
     }
-
-    // Matches Blazor/WASM SDK fingerprinted asset names: <stem>.<10+ hex/alphanumeric>.<ext>.
-    // The hash segment is at least 10 chars to avoid false positives on filenames like
-    // System.IO.Pipelines.wasm (where "Pipelines" is alphanumeric but isn't a content hash).
-    // When <WasmFingerprintAssets>true</WasmFingerprintAssets> is enabled on the consumer's
-    // WASM project, the SDK emits names like dotnet.7a8b9c2d3e4f5061.js and this regex hits.
-    // The default SDK output (filenames like dotnet.js, Rask.Core.wasm) doesn't fingerprint
-    // and falls through to no-cache.
-    private static readonly Regex _fingerprintRegex = new(
-        @"\.[0-9a-z]{10,}\.[^.]+$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     internal static bool IsFingerprintedAsset(string fileName)
         => _fingerprintRegex.IsMatch(fileName);

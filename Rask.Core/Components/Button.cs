@@ -17,10 +17,25 @@ public sealed class Button : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (Name is not null) AppendAttr(sb, "name", Name);
-        if (Value is not null) AppendAttr(sb, "value", Value);
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
+
+        if (Value is not null)
+        {
+            AppendAttr(sb, "value", Value);
+        }
 
         var click = (Delegate?)OnClick ?? OnClickAsync;
         if (click is not null && LiveRenderContext.Current is { } ctx)

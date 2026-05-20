@@ -19,7 +19,8 @@ internal sealed class WasmRaskFile : RaskFile
     public override string ContentType { get; }
     public override DateTimeOffset LastModified { get; }
 
-    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024, CancellationToken cancellationToken = default)
+    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
+        CancellationToken cancellationToken = default)
     {
         if (Size > maxAllowedSize)
         {

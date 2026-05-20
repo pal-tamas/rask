@@ -1,3 +1,4 @@
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using Rask.Core.Live;
 
@@ -19,7 +20,7 @@ public class WasmInteropPayloadBenchmarks
     {
         // Approximate WASM render output: full document (Doctype + Html + Head + Body),
         // since WASM morphs document.documentElement and needs head children too.
-        var rows = new System.Text.StringBuilder();
+        var rows = new StringBuilder();
         for (var i = 0; i < 200; i++)
         {
             rows.Append("<div class=\"row\" id=\"r").Append(i)
@@ -29,8 +30,8 @@ public class WasmInteropPayloadBenchmarks
         }
 
         _html = "<!doctype html><html><head><title>Bench</title><link rel=\"stylesheet\" href=\"x.css\"></head><body>"
-            + rows
-            + "</body></html>";
+                + rows
+                + "</body></html>";
     }
 
     [Benchmark(Baseline = true)]

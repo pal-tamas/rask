@@ -61,10 +61,10 @@ public sealed class EventsPage : Component
                     Select(
                         Class: "form-select mb-2",
                         OnChange: v => _pick = v)[
-                            Option("rask", _pick == "rask")["Rask"],
-                            Option("blazor", _pick == "blazor")["Blazor"],
-                            Option("htmx", _pick == "htmx")["htmx"]
-                        ],
+                        Option("rask", _pick == "rask")["Rask"],
+                        Option("blazor", _pick == "blazor")["Blazor"],
+                        Option("htmx", _pick == "htmx")["htmx"]
+                    ],
                     P(Class: "small mb-0")["Picked: ", Strong()[_pick]]]),
             H2(Class: "h4 mt-5 mb-3")["Form — onSubmit"],
             CodeSample(

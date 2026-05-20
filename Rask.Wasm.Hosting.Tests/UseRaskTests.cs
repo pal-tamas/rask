@@ -153,8 +153,8 @@ public class UseRaskTests
     {
         // Pad the .wasm to 8 KiB so the body crosses ResponseCompression's minimum-size
         // threshold (otherwise small payloads are passed through unchanged).
-        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
-        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: true);
+        using var bundle = new FakeBundleDirectory(8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, true);
 
         var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
         req.Headers.AcceptEncoding.ParseAdd("br");
@@ -172,8 +172,8 @@ public class UseRaskTests
     [Fact]
     public async Task AddRaskRegistered_NoAcceptEncoding_NoCompression()
     {
-        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
-        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: true);
+        using var bundle = new FakeBundleDirectory(8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, true);
 
         var response = await host.Http.GetAsync("/_framework/foo.wasm");
 
@@ -184,8 +184,8 @@ public class UseRaskTests
     [Fact]
     public async Task AddRaskNotRegistered_BrotliRequested_NoCompression()
     {
-        using var bundle = new FakeBundleDirectory(wasmPaddingBytes: 8 * 1024);
-        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, withCompression: false);
+        using var bundle = new FakeBundleDirectory(8 * 1024);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, false);
 
         var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
         req.Headers.AcceptEncoding.ParseAdd("br");

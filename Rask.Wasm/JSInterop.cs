@@ -129,6 +129,7 @@ internal static partial class JSInterop
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
     public static void PushHistory(string url, bool replace) { }
+
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());
 
@@ -139,7 +140,11 @@ internal static partial class JSInterop
 
     public static byte[] PullDownload(string token)
     {
-        if (_session is null || string.IsNullOrEmpty(token)) return Array.Empty<byte>();
+        if (_session is null || string.IsNullOrEmpty(token))
+        {
+            return Array.Empty<byte>();
+        }
+
         var sink = _session.Services.GetService<IDownloadSink>() as WasmDownloadSink;
         return sink?.Pull(token) ?? Array.Empty<byte>();
     }

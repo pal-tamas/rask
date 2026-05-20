@@ -76,6 +76,7 @@ public sealed class WasmHostBuilder
         {
             JSInterop.ApplyRender(payload);
         }
+
         Console.WriteLine("[Rask.Wasm] first render applied");
     }
 }

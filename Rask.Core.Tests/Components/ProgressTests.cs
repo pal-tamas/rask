@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class ProgressTests
@@ -11,9 +9,9 @@ public class ProgressTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal(
+        Assert.Equal(
             "<progress id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"50.5\" max=\"100\"></progress>",
-            Progress(Value: 50.5, Max: 100, Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Progress(50.5, 100, "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
 namespace Rask.Wasm.Hosting;
@@ -21,8 +22,8 @@ namespace Rask.Wasm.Hosting;
 // classification from PR7) handle the actual byte serving.
 internal sealed class PrecompressedFileMiddleware
 {
-    private readonly RequestDelegate _next;
     private readonly IFileProvider _fileProvider;
+    private readonly RequestDelegate _next;
 
     public PrecompressedFileMiddleware(RequestDelegate next, IFileProvider fileProvider)
     {
@@ -72,7 +73,7 @@ internal sealed class PrecompressedFileMiddleware
         return _next(context);
     }
 
-    private static string? SelectEncoding(Microsoft.Extensions.Primitives.StringValues acceptHeader)
+    private static string? SelectEncoding(StringValues acceptHeader)
     {
         // Header parsing is intentionally minimal: a substring contains-check is enough for
         // the common "gzip, deflate, br" / "br;q=1.0, gzip;q=0.9" shapes. Doesn't honor
@@ -81,7 +82,11 @@ internal sealed class PrecompressedFileMiddleware
         var preferGz = false;
         foreach (var header in acceptHeader)
         {
-            if (header is null) continue;
+            if (header is null)
+            {
+                continue;
+            }
+
             if (!preferBr && header.Contains("br", StringComparison.OrdinalIgnoreCase))
             {
                 preferBr = true;
@@ -93,8 +98,16 @@ internal sealed class PrecompressedFileMiddleware
             }
         }
 
-        if (preferBr) return "br";
-        if (preferGz) return "gzip";
+        if (preferBr)
+        {
+            return "br";
+        }
+
+        if (preferGz)
+        {
+            return "gzip";
+        }
+
         return null;
     }
 }

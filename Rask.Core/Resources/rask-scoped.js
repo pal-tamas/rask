@@ -48,7 +48,11 @@ Rask.scoped = (function () {
         // handles primitives directly and falls back to the JSON raw text for string T.
         var t = typeof value;
         if (t === 'boolean' || t === 'number' || t === 'string' || value === null) return value;
-        try { return JSON.stringify(value); } catch (e) { return String(value); }
+        try {
+            return JSON.stringify(value);
+        } catch (e) {
+            return String(value);
+        }
     }
 
     function invoke(scopeId, method, id, args) {
@@ -72,13 +76,20 @@ Rask.scoped = (function () {
         var nodes = document.querySelectorAll('[data-rask-mount="' + scopeId + '"]');
         if (hasId) {
             var node = nodes[0];
-            if (!node) { _sendResult(id, null, null); return; }
+            if (!node) {
+                _sendResult(id, null, null);
+                return;
+            }
             try {
                 var result = fn.apply(null, [node].concat(extra));
                 if (result && typeof result.then === 'function') {
                     result.then(
-                        function (v) { _sendResult(id, _serializeResult(v), null); },
-                        function (err) { _sendResult(id, null, (err && err.message) || String(err)); }
+                        function (v) {
+                            _sendResult(id, _serializeResult(v), null);
+                        },
+                        function (err) {
+                            _sendResult(id, null, (err && err.message) || String(err));
+                        }
                     );
                 } else {
                     _sendResult(id, _serializeResult(result), null);
@@ -102,7 +113,11 @@ Rask.scoped = (function () {
         register: register,
         invoke: invoke,
         // The host runtime patches this with a transport-specific sender.
-        set _sendResult(fn) { _sendResult = fn; },
-        get _sendResult() { return _sendResult; }
+        set _sendResult(fn) {
+            _sendResult = fn;
+        },
+        get _sendResult() {
+            return _sendResult;
+        }
     };
 })();

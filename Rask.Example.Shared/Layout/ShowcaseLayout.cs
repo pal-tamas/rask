@@ -32,11 +32,11 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/download", "File download", "bi-cloud-download", "Files")
     ];
 
+    private bool _drawerOpen;
+
     // Sidebar active-class is computed from route.Path inside Render(), which the framework
     // can't observe — opt out of the render cache so the active link updates on every nav.
     protected override bool BypassRenderCache => true;
-
-    private bool _drawerOpen;
 
     protected override Component Render() =>
         Fragment()[
@@ -46,8 +46,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                         Class: "hamburger-btn",
                         Type: "button",
                         OnClick: () => _drawerOpen = !_drawerOpen)[
-                            I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
-                        ],
+                        I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
+                    ],
                     Button(
                         Class: "navbar-brand fw-semibold border-0 bg-transparent",
                         OnClick: () =>
@@ -55,9 +55,9 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                             _drawerOpen = false;
                             nav.Navigate("/");
                         })[
-                            "Rask ",
-                            Span(Class: "badge rounded-pill rask-badge ms-1")["showcase"]
-                        ],
+                        "Rask ",
+                        Span(Class: "badge rounded-pill rask-badge ms-1")["showcase"]
+                    ],
                     Div(Class: "d-flex align-items-center gap-2 ms-auto")[
                         Span(Class: "text-secondary small d-none d-md-inline")[
                             "path: ",
@@ -109,9 +109,9 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     _drawerOpen = false;
                     nav.Navigate(path);
                 })[
-                    I(Class: $"bi {icon} me-2"),
-                    Span()[label]
-                ]);
+                I(Class: $"bi {icon} me-2"),
+                Span()[label]
+            ]);
         }
 
         return children;

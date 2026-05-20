@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.ScopedCss;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -106,6 +105,7 @@ public class ScopedCssRenderTests
     {
         private readonly Component _body;
         public PageRoot(Component body) => _body = body;
+
         protected override Component Render() =>
             Fragment()[
                 Doctype(),

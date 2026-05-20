@@ -16,10 +16,29 @@ public sealed class Th : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Colspan is not null) AppendAttr(sb, "colspan", Colspan.Value.ToString(CultureInfo.InvariantCulture));
-        if (Rowspan is not null) AppendAttr(sb, "rowspan", Rowspan.Value.ToString(CultureInfo.InvariantCulture));
-        if (Headers is not null) AppendAttr(sb, "headers", Headers);
-        if (Scope is not null) AppendAttr(sb, "scope", Scope);
-        if (Abbr is not null) AppendAttr(sb, "abbr", Abbr);
+        if (Colspan is not null)
+        {
+            AppendAttr(sb, "colspan", Colspan.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Rowspan is not null)
+        {
+            AppendAttr(sb, "rowspan", Rowspan.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Headers is not null)
+        {
+            AppendAttr(sb, "headers", Headers);
+        }
+
+        if (Scope is not null)
+        {
+            AppendAttr(sb, "scope", Scope);
+        }
+
+        if (Abbr is not null)
+        {
+            AppendAttr(sb, "abbr", Abbr);
+        }
     }
 }

@@ -89,7 +89,7 @@ public static class ModelGraphWalker
             return null;
         }
 
-        object? current = root;
+        var current = root;
         for (var i = 0; i < segments.Count - 1; i++)
         {
             if (current is null)

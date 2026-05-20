@@ -164,9 +164,9 @@ internal static class CssScoper
             // component's sibling .css (e.g. `:global(body) { ... }`), where the target
             // tag is a shell tag the framework never stamps data-rask-* on anyway.
             if (TryUnwrapGlobal(prelude, range.Start, range.End,
-                out var leadStart, out var leadEnd,
-                out var innerStart, out var innerEnd,
-                out var trailStart, out var trailEnd))
+                    out var leadStart, out var leadEnd,
+                    out var innerStart, out var innerEnd,
+                    out var trailStart, out var trailEnd))
             {
                 sb.Append(prelude, leadStart, leadEnd - leadStart);
                 sb.Append(prelude, innerStart, innerEnd - innerStart);

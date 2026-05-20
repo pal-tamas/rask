@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
@@ -76,13 +75,13 @@ public class FormBindingTests
         var invalidCalled = 0;
 
         var view = new StubComponent(() => Form<Person>(
-            Model: p,
+            p,
             OnValidSubmit: _ => validCalled++,
             OnInvalidSubmit: _ => invalidCalled++,
             Validate: m =>
                 string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
-                    Input(() => p.Name), Input(() => p.Age)
-                ]);
+            Input(() => p.Name), Input(() => p.Age)
+        ]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = ExtractAttr(html, "data-rask-on-submit");
@@ -104,8 +103,8 @@ public class FormBindingTests
         EditContext? captured = null;
 
         var view = new StubComponent(() => Form<Person>(
-            Model: p,
-            Validate: async (m, ct) =>
+            p,
+            async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
@@ -113,9 +112,9 @@ public class FormBindingTests
                     ? new[] { "async-form-rule" }
                     : Array.Empty<string>();
             })[
-                Input(() => p.Name),
-                new ContextCapture(c => captured = c)
-            ]);
+            Input(() => p.Name),
+            new ContextCapture(c => captured = c)
+        ]);
         var html = view.RenderAsLiveRoot();
         Assert.NotNull(captured);
 
@@ -436,7 +435,7 @@ public class FormBindingTests
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
         Assert.True(ok);
-        Assert.Equal(default(DateOnly), p.HireDate);
+        Assert.Equal(default, p.HireDate);
     }
 
     [Fact]
@@ -451,7 +450,7 @@ public class FormBindingTests
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
         Assert.True(ok);
-        Assert.Equal(default(PersonStatus), p.CurrentStatus);
+        Assert.Equal(default, p.CurrentStatus);
     }
 
     [Fact]

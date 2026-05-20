@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Encodings.Web;
 using Rask.Core.Components;
+using Rask.Core.HeadAssets;
 using Rask.Core.Live;
-
 
 namespace Rask.Core;
 
@@ -92,7 +92,7 @@ internal static class HtmlSerializer
                 // slip past the RASK019 analyzer) render first; the sentinel follows.
                 if (tagName == "head" && live is not null)
                 {
-                    sb.Append(HeadAssets.HeadAssetRegistry.Sentinel);
+                    sb.Append(HeadAssetRegistry.Sentinel);
                 }
 
                 sb.Append("</").Append(tagName).Append('>');

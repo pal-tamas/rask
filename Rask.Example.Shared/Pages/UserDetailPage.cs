@@ -62,9 +62,9 @@ public sealed class UserDetailPage(Navigator nav) : Component
                 Button(
                     Class: "btn btn-primary btn-sm",
                     OnClick: () => nav.SetQuery("tab", Tab == "profile" ? "activity" : "profile"))[
-                        I(Class: "bi bi-toggle-on me-1"),
-                        "Toggle ?tab=", Tab == "profile" ? "activity" : "profile"
-                    ]
+                    I(Class: "bi bi-toggle-on me-1"),
+                    "Toggle ?tab=", Tab == "profile" ? "activity" : "profile"
+                ]
             ]
         ];
 }

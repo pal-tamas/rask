@@ -95,8 +95,7 @@ public class UploadDownloadEndpointTests
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         var form = new MultipartFormDataContent
         {
-            { fileContent, "f0", filename },
-            { new StringContent("0"), "f0__lastModified" }
+            { fileContent, "f0", filename }, { new StringContent("0"), "f0__lastModified" }
         };
         return form;
     }

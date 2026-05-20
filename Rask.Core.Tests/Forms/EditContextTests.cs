@@ -43,14 +43,6 @@ public class EditContextTests
         Assert.Single(ctx.GetValidationMessages(fid));
     }
 
-    private sealed class MessageStampingValidator : IFieldValidator
-    {
-        public void Validate(EditContext context) =>
-            context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "stamp");
-
-        public void ValidateField(EditContext context, FieldIdentifier field) { }
-    }
-
     [Fact]
     public void AddValidationMessage_FiresValidationStateChanged()
     {
@@ -74,6 +66,14 @@ public class EditContextTests
         ctx.AddValidationMessage(fid, "stale");
         ctx.Validate(); // no validators registered → no messages
         Assert.Empty(ctx.GetValidationMessages(fid));
+    }
+
+    private sealed class MessageStampingValidator : IFieldValidator
+    {
+        public void Validate(EditContext context) =>
+            context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "stamp");
+
+        public void ValidateField(EditContext context, FieldIdentifier field) { }
     }
 
     private sealed class Model

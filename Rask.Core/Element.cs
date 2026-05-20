@@ -19,11 +19,27 @@ public abstract class Element : Component
 
     protected override void WriteAttributes(StringBuilder sb)
     {
-        if (Id is not null) AppendAttr(sb, "id", Id);
+        if (Id is not null)
+        {
+            AppendAttr(sb, "id", Id);
+        }
+
         var cls = ResolveClass();
-        if (cls is not null) AppendAttr(sb, "class", cls);
-        if (Style is not null) AppendAttr(sb, "style", Style);
-        if (Data is null) return;
+        if (cls is not null)
+        {
+            AppendAttr(sb, "class", cls);
+        }
+
+        if (Style is not null)
+        {
+            AppendAttr(sb, "style", Style);
+        }
+
+        if (Data is null)
+        {
+            return;
+        }
+
         foreach (var kv in Data)
         {
             AppendAttr(sb, "data-", kv.Key, kv.Value);

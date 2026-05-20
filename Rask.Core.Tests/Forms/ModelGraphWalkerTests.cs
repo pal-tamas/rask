@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
@@ -6,10 +5,7 @@ namespace Rask.Core.Tests.Forms;
 public class ModelGraphWalkerTests
 {
     [Fact]
-    public void Walk_NullRoot_YieldsNothing()
-    {
-        Assert.Empty(ModelGraphWalker.Walk(null!));
-    }
+    public void Walk_NullRoot_YieldsNothing() => Assert.Empty(ModelGraphWalker.Walk(null!));
 
     [Fact]
     public void Walk_LeafOnlyRoot_YieldsRootOnly()
@@ -45,8 +41,7 @@ public class ModelGraphWalkerTests
         {
             Address = new Address
             {
-                Street = "Elm",
-                Postal = new PostalInfo { Country = new Country { Code = "NL" } }
+                Street = "Elm", Postal = new PostalInfo { Country = new Country { Code = "NL" } }
             }
         };
 
@@ -60,14 +55,7 @@ public class ModelGraphWalkerTests
     [Fact]
     public void Walk_ListItems_AreEnumerated()
     {
-        var p = new Person
-        {
-            Items = new List<LineItem>
-            {
-                new() { Name = "alpha" },
-                new() { Name = "beta" }
-            }
-        };
+        var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } } };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
         Assert.Contains(p.Items![0], nodes);
@@ -77,15 +65,7 @@ public class ModelGraphWalkerTests
     [Fact]
     public void Walk_ListContainingNulls_SkipsNullsButContinues()
     {
-        var p = new Person
-        {
-            Items = new List<LineItem>
-            {
-                new() { Name = "alpha" },
-                null!,
-                new() { Name = "gamma" }
-            }
-        };
+        var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, null!, new() { Name = "gamma" } } };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
         Assert.Contains(p.Items![0]!, nodes);
@@ -100,8 +80,7 @@ public class ModelGraphWalkerTests
         {
             Settings = new Dictionary<string, ServerConfig>
             {
-                ["smtp"] = new() { Host = "smtp.example.com" },
-                ["http"] = new() { Host = "api.example.com" }
+                ["smtp"] = new() { Host = "smtp.example.com" }, ["http"] = new() { Host = "api.example.com" }
             }
         };
 
@@ -190,14 +169,7 @@ public class ModelGraphWalkerTests
     [Fact]
     public void Resolve_IndexerPath_TargetsListItemProperty()
     {
-        var p = new Person
-        {
-            Items = new List<LineItem>
-            {
-                new() { Name = "alpha" },
-                new() { Name = "beta" }
-            }
-        };
+        var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } } };
 
         var r = ModelGraphWalker.Resolve(p, "Items[1].Name");
         Assert.NotNull(r);
@@ -208,14 +180,7 @@ public class ModelGraphWalkerTests
     [Fact]
     public void Resolve_ArrayIndexerPath_TargetsArrayItemProperty()
     {
-        var p = new Person
-        {
-            ItemsArray = new[]
-            {
-                new LineItem { Name = "alpha" },
-                new LineItem { Name = "beta" }
-            }
-        };
+        var p = new Person { ItemsArray = new[] { new LineItem { Name = "alpha" }, new LineItem { Name = "beta" } } };
 
         var r = ModelGraphWalker.Resolve(p, "ItemsArray[0].Name");
         Assert.NotNull(r);
@@ -228,10 +193,7 @@ public class ModelGraphWalkerTests
     {
         var p = new Person
         {
-            Settings = new Dictionary<string, ServerConfig>
-            {
-                ["smtp"] = new() { Host = "smtp.example.com" }
-            }
+            Settings = new Dictionary<string, ServerConfig> { ["smtp"] = new() { Host = "smtp.example.com" } }
         };
 
         // FluentValidation's standard format for collection-indexed paths uses [N];
@@ -245,13 +207,7 @@ public class ModelGraphWalkerTests
     [Fact]
     public void Resolve_DeepIndexerChain_TargetsTerminal()
     {
-        var p = new Person
-        {
-            Items = new List<LineItem>
-            {
-                new() { Vendor = new Vendor { Name = "Acme" } }
-            }
-        };
+        var p = new Person { Items = new List<LineItem> { new() { Vendor = new Vendor { Name = "Acme" } } } };
 
         var r = ModelGraphWalker.Resolve(p, "Items[0].Vendor.Name");
         Assert.NotNull(r);

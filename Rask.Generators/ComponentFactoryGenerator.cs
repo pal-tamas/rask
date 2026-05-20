@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -225,7 +226,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             bool b => b ? "true" : "false",
             string s => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"",
             char c => "'" + c + "'",
-            IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? "default"
         };
     }
@@ -252,12 +253,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     {
                         modelProperty = mp;
                     }
+
                     break;
                 case "Constraint":
                     if (named.Value.Value is string ct && ct.Length > 0)
                     {
                         constraint = ct;
                     }
+
                     break;
                 case "TypedDelegateProperties":
                     if (!named.Value.IsNull)
@@ -268,6 +271,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                             .Select(s => s!)
                             .ToArray();
                     }
+
                     break;
                 case "TypedValidatorProperties":
                     if (!named.Value.IsNull)
@@ -278,6 +282,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                             .Select(s => s!)
                             .ToArray();
                     }
+
                     break;
             }
         }
@@ -442,7 +447,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Children property is filtered out below — it's reached via the indexer, not a
         // factory parameter.
         var depth = 0;
-        for (var current = symbol; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType, depth++)
+        for (var current = symbol;
+             current is not null && current.SpecialType != SpecialType.System_Object;
+             current = current.BaseType, depth++)
         {
             foreach (var member in current.GetMembers())
             {
@@ -457,88 +464,89 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-            if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
-            {
-                continue;
-            }
-
-            if (prop.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            if (prop.SetMethod is null)
-            {
-                continue;
-            }
-
-            if (prop.SetMethod.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            if (HasSkipFactoryAttribute(prop))
-            {
-                continue;
-            }
-
-            if (IsOverrideOfRaskCoreMember(prop))
-            {
-                continue;
-            }
-
-            // Children is exposed via the `Component this[params Child[]]` indexer, not as
-            // a factory parameter. Skip any property that matches the standard Children shape
-            // so subclasses can't accidentally bring it back into the factory signature.
-            if (prop.Name == "Children" && IsChildCollectionType(
-                    prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                        .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                                  | SymbolDisplayMiscellaneousOptions.UseSpecialTypes))))
-            {
-                continue;
-            }
-
-            var filePath = string.Empty;
-            var spanStart = 0;
-            var spanLength = 0;
-            var hasInitializer = false;
-            if (prop.DeclaringSyntaxReferences.Length > 0)
-            {
-                var syntaxRef = prop.DeclaringSyntaxReferences[0];
-                filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
-                spanStart = syntaxRef.Span.Start;
-                spanLength = syntaxRef.Span.Length;
-                if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
+                if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
                 {
-                    hasInitializer = pds.Initializer is not null;
+                    continue;
                 }
-            }
 
-            var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
-                             || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
-                                 SpecialType.System_Nullable_T);
+                if (prop.DeclaredAccessibility != Accessibility.Public)
+                {
+                    continue;
+                }
 
-            // Non-nullable value types (bool, int, enums, etc.) carry an implicit `default(T)`
-            // — emit them as optional factory parameters with `default` as the literal default
-            // rather than forcing the caller to pass a value. Matches the hand-written facade
-            // pattern where `bool Disabled = false`, `int Width = 0`, etc.
-            var hasImplicitDefault = !isNullable && prop.Type.IsValueType;
+                if (prop.SetMethod is null)
+                {
+                    continue;
+                }
 
-            var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                          | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                if (prop.SetMethod.DeclaredAccessibility != Accessibility.Public)
+                {
+                    continue;
+                }
 
-            result.Add(new PropInfo(
-                prop.Name,
-                typeFqn,
-                isNullable,
-                hasInitializer,
-                prop.IsRequired,
-                hasImplicitDefault,
-                depth,
-                filePath,
-                spanStart,
-                spanLength));
+                if (HasSkipFactoryAttribute(prop))
+                {
+                    continue;
+                }
+
+                if (IsOverrideOfRaskCoreMember(prop))
+                {
+                    continue;
+                }
+
+                // Children is exposed via the `Component this[params Child[]]` indexer, not as
+                // a factory parameter. Skip any property that matches the standard Children shape
+                // so subclasses can't accidentally bring it back into the factory signature.
+                if (prop.Name == "Children" && IsChildCollectionType(
+                        prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                            .WithMiscellaneousOptions(
+                                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                | SymbolDisplayMiscellaneousOptions.UseSpecialTypes))))
+                {
+                    continue;
+                }
+
+                var filePath = string.Empty;
+                var spanStart = 0;
+                var spanLength = 0;
+                var hasInitializer = false;
+                if (prop.DeclaringSyntaxReferences.Length > 0)
+                {
+                    var syntaxRef = prop.DeclaringSyntaxReferences[0];
+                    filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
+                    spanStart = syntaxRef.Span.Start;
+                    spanLength = syntaxRef.Span.Length;
+                    if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
+                    {
+                        hasInitializer = pds.Initializer is not null;
+                    }
+                }
+
+                var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
+                                 || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
+                                     SpecialType.System_Nullable_T);
+
+                // Non-nullable value types (bool, int, enums, etc.) carry an implicit `default(T)`
+                // — emit them as optional factory parameters with `default` as the literal default
+                // rather than forcing the caller to pass a value. Matches the hand-written facade
+                // pattern where `bool Disabled = false`, `int Width = 0`, etc.
+                var hasImplicitDefault = !isNullable && prop.Type.IsValueType;
+
+                var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+
+                result.Add(new PropInfo(
+                    prop.Name,
+                    typeFqn,
+                    isNullable,
+                    hasInitializer,
+                    prop.IsRequired,
+                    hasImplicitDefault,
+                    depth,
+                    filePath,
+                    spanStart,
+                    spanLength));
             }
         }
 
@@ -764,6 +772,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                         "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
                     .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
             }
+
             sb.AppendLine("            __ctx.NotifyParameters(__c, propsChanged: false);");
             sb.AppendLine("            return __c;");
             sb.AppendLine("        }");
@@ -869,8 +878,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine(");");
     }
 
-    private enum ValidatorShape { None, Sync, Async }
-
     private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf)
     {
         var visibility = c.IsPublic ? "public" : "internal";
@@ -957,7 +964,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             foreach (var vp in typedValidators)
             {
-                if (!first) sb.Append(", ");
+                if (!first)
+                {
+                    sb.Append(", ");
+                }
+
                 first = false;
                 sb.Append("global::System.Func<").Append(gf.TypeParameter)
                     .Append(", global::System.Collections.Generic.IEnumerable<string>> ").Append(vp);
@@ -967,11 +978,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             foreach (var vp in typedValidators)
             {
-                if (!first) sb.Append(", ");
+                if (!first)
+                {
+                    sb.Append(", ");
+                }
+
                 first = false;
                 sb.Append("global::System.Func<").Append(gf.TypeParameter)
                     .Append(", global::System.Threading.CancellationToken, ")
-                    .Append("global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> ")
+                    .Append(
+                        "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> ")
                     .Append(vp);
             }
         }
@@ -980,14 +996,22 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // grouped by side (sync first then async) for readability.
         foreach (var dp in typedDelegates)
         {
-            if (!first) sb.Append(", ");
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
             first = false;
             sb.Append("global::System.Action<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
         }
 
         foreach (var dp in typedDelegates)
         {
-            if (!first) sb.Append(", ");
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
             first = false;
             sb.Append("global::System.Func<").Append(gf.TypeParameter)
                 .Append(", global::System.Threading.Tasks.Task>? ").Append(dp).Append("Async = null");
@@ -1002,7 +1026,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (!first) sb.Append(", ");
+            if (!first)
+            {
+                sb.Append(", ");
+            }
+
             first = false;
             sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
             if (!IsRequiredFactoryParam(p))
@@ -1169,6 +1197,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             new TextSpan(p.DeclaringSpanStart, p.DeclaringSpanLength),
             new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
     }
+
+    private enum ValidatorShape { None, Sync, Async }
 
     private sealed record Candidate(
         string Namespace,

@@ -16,8 +16,8 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class WsDispatchBenchmarks
 {
-    private byte[] _payload = null!;
     private byte[][] _fragments = null!;
+    private byte[] _payload = null!;
 
     [GlobalSetup]
     public void GlobalSetup()

@@ -729,7 +729,7 @@ public class ComponentFactoryGeneratorTests
         Assert.DoesNotContain("params", output);
     }
 
-[Fact]
+    [Fact]
     public void TenProperties_FactoryParameterOrderMatchesDeclaration()
     {
         var src = """

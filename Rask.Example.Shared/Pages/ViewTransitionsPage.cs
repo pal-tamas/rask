@@ -24,9 +24,11 @@ public sealed class ViewTransitionsPage(Navigator nav) : Component
                     Button(Class: "btn btn-light btn-sm",
                         OnClick: () => nav.Navigate("/binding"))[I(Class: "bi bi-arrow-right me-1"), "Go to /binding"],
                     Button(Class: "btn btn-light btn-sm",
-                        OnClick: () => nav.Navigate("/validation"))[I(Class: "bi bi-arrow-right me-1"), "Go to /validation"],
+                        OnClick: () => nav.Navigate("/validation"))[I(Class: "bi bi-arrow-right me-1"),
+                        "Go to /validation"],
                     Button(Class: "btn btn-outline-light btn-sm",
-                        OnClick: () => nav.Navigate("/scoped-css"))[I(Class: "bi bi-arrow-right me-1"), "Go to /scoped-css"]
+                        OnClick: () => nav.Navigate("/scoped-css"))[I(Class: "bi bi-arrow-right me-1"),
+                        "Go to /scoped-css"]
                 ]
             ],
             H2(Class: "h4 mt-5 mb-3")["How it works"],

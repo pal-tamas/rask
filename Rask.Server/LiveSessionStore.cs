@@ -57,6 +57,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         {
             sessionCtx.Id = sessionId;
         }
+
         Component view;
         try
         {

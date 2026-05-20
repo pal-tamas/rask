@@ -11,6 +11,9 @@ public sealed class Bdo : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Dir is not null) AppendAttr(sb, "dir", Dir);
+        if (Dir is not null)
+        {
+            AppendAttr(sb, "dir", Dir);
+        }
     }
 }

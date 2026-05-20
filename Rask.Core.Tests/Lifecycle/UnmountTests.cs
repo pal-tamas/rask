@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Server;
 
@@ -14,7 +13,7 @@ public class UnmountTests
     public void OnUnmount_FiresOnce_OnDisposeComponentTree()
     {
         var c = new LifecycleTrackingComponent();
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         ComponentLifecycle.DisposeComponentTree(c);
 
@@ -26,7 +25,7 @@ public class UnmountTests
     public async Task OnUnmount_FiresOnce_OnDisposeComponentTreeAsync()
     {
         var c = new LifecycleTrackingComponent();
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         await ComponentLifecycle.DisposeComponentTreeAsync(c);
 
@@ -54,7 +53,7 @@ public class UnmountTests
         // moment of unmount, so it can clean up resources that need the token (e.g. wait
         // for an in-flight task to acknowledge cancellation via a separate signal).
         var c = new TokenObservingUnmount();
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
         _ = c.GrabToken(); // Force CTS allocation so we can observe it.
 
         ComponentLifecycle.DisposeComponentTree(c);
@@ -68,7 +67,7 @@ public class UnmountTests
     {
         var order = new List<string>();
         var c = new UnmountThenDisposable(order);
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         ComponentLifecycle.DisposeComponentTree(c);
 
@@ -118,7 +117,7 @@ public class UnmountTests
     {
         var tcs = new TaskCompletionSource();
         var c = new LifecycleTrackingComponent { OnUnmountAsyncImpl = () => tcs.Task };
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         var disposeTask = ComponentLifecycle.DisposeComponentTreeAsync(c);
         await Task.Delay(50);
@@ -141,7 +140,7 @@ public class UnmountTests
                 throw new InvalidOperationException("async-unmount-fault");
             }
         };
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         var origErr = Console.Error;
         var sw = new StringWriter();
@@ -209,13 +208,13 @@ public class UnmountTests
             OnUnmountImpl = () => throw new InvalidOperationException("unmount-boom")
         };
         var boundary = new ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, fallback: null);
+        boundary.SetProps(new Child[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
             // Render walk stamps `child.Boundary = boundary`.
             _ = boundary.ToHtml();
-            child.RaiseLifecycleBeforeRender(propsChanged: true);
+            child.RaiseLifecycleBeforeRender(true);
         }
 
         var origErr = Console.Error;
@@ -239,7 +238,7 @@ public class UnmountTests
     {
         var order = new List<string>();
         var c = new HybridCleanup(order);
-        c.RaiseLifecycleBeforeRender(propsChanged: true);
+        c.RaiseLifecycleBeforeRender(true);
 
         ComponentLifecycle.DisposeComponentTree(c);
 
@@ -273,23 +272,34 @@ public class UnmountTests
 
     private sealed class OrderingUnmount : Component
     {
-        private readonly List<string> _order;
         private readonly string _name;
-        public OrderingUnmount(List<string> order, string name) { _order = order; _name = name; }
+        private readonly List<string> _order;
+
+        public OrderingUnmount(List<string> order, string name)
+        {
+            _order = order;
+            _name = name;
+        }
+
         protected override void OnUnmount() => _order.Add(_name);
         protected override Component Render() => Span();
     }
 
     private sealed class OrderingMiddle : Component
     {
-        private readonly List<string> _order;
-        private readonly string _name;
         private readonly Component _child;
+        private readonly string _name;
+        private readonly List<string> _order;
+
         public OrderingMiddle(List<string> order, string name, Component child)
         {
-            _order = order; _name = name; _child = child;
+            _order = order;
+            _name = name;
+            _child = child;
         }
+
         protected override void OnUnmount() => _order.Add(_name);
+
         protected override Component Render()
         {
             var ctx = LiveRenderContext.Current!;
@@ -324,7 +334,12 @@ public class UnmountTests
         private readonly Component _a;
         private readonly Component _b;
         public bool IncludeChildren;
-        public TwoChildHost(Component a, Component b) { _a = a; _b = b; }
+
+        public TwoChildHost(Component a, Component b)
+        {
+            _a = a;
+            _b = b;
+        }
 
         protected override Component Render()
         {

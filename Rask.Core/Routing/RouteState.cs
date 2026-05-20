@@ -5,14 +5,16 @@ public sealed class RouteState
     private string _path = "/";
     private IQueryCollection _query = QueryCollection.Empty;
 
-    public event Action? Changed;
-
     public string Path
     {
         get => _path;
         set
         {
-            if (_path == value) return;
+            if (_path == value)
+            {
+                return;
+            }
+
             _path = value;
             Changed?.Invoke();
         }
@@ -23,9 +25,15 @@ public sealed class RouteState
         get => _query;
         set
         {
-            if (ReferenceEquals(_query, value)) return;
+            if (ReferenceEquals(_query, value))
+            {
+                return;
+            }
+
             _query = value;
             Changed?.Invoke();
         }
     }
+
+    public event Action? Changed;
 }

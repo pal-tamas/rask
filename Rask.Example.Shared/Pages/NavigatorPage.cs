@@ -39,21 +39,27 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
                 "Watch the URL bar — every button below mutates state and the page re-renders to reflect it."
             ],
             Div(Class: "btn-group flex-wrap mb-3")[
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "1"))["SetQuery page=1"],
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "2"))["SetQuery page=2"],
-                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("sort", "asc"))["SetQuery sort=asc"],
-                Button(Class: "btn btn-outline-secondary btn-sm", OnClick: () => nav.RemoveQuery("page"))["RemoveQuery page"],
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "1"))[
+                    "SetQuery page=1"],
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "2"))[
+                    "SetQuery page=2"],
+                Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("sort", "asc"))[
+                    "SetQuery sort=asc"],
+                Button(Class: "btn btn-outline-secondary btn-sm", OnClick: () => nav.RemoveQuery("page"))[
+                    "RemoveQuery page"],
                 Button(Class: "btn btn-outline-danger btn-sm", OnClick: () => nav.ClearQuery())["ClearQuery"]
             ],
             H2(Class: "h4 mt-4 mb-3")["Path navigation"],
             Div(Class: "d-flex flex-wrap gap-2 mb-4")[
                 Button(
                     Class: "btn btn-outline-primary btn-sm",
-                    OnClick: () => nav.Navigate("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"), "Navigate(\"/navigator\")"],
+                    OnClick: () => nav.Navigate("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
+                    "Navigate(\"/navigator\")"],
                 Button(
                     Class: "btn btn-outline-primary btn-sm",
                     OnClick: () =>
-                        nav.Navigate("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[I(Class: "bi bi-arrow-up-right me-1"), "Navigate(path, query)"]
+                        nav.Navigate("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[
+                    I(Class: "bi bi-arrow-up-right me-1"), "Navigate(path, query)"]
             ],
             Div(Class: "alert alert-info d-flex align-items-start")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),

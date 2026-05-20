@@ -9,7 +9,7 @@ namespace Rask.Examples.E2E.Tests;
 ///     Smoke tests for the standalone <c>Rask.Example.Wasm</c> example, served by
 ///     WasmAppHost (the dev launcher used by <c>dotnet run</c>). WasmAppHost has no
 ///     SPA fallback for unknown paths, so the inherited <c>SharedSmokeTests</c>
-///     forms suite is reached by overriding <see cref="NavigateToAsync"/> to load
+///     forms suite is reached by overriding <see cref="NavigateToAsync" /> to load
 ///     <c>/index.html</c> once and click the sidebar entry for the requested route.
 ///     Any test in this class itself (i.e. not inherited) targets behaviour that's
 ///     specific to the WasmAppHost launcher.
@@ -43,7 +43,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/view-transitions"] = "View transitions",
         ["/http"] = "HttpClient + DI",
         ["/upload"] = "File upload",
-        ["/download"] = "File download",
+        ["/download"] = "File download"
     };
 
     private readonly StandaloneWasmAppFixture _app;

@@ -1,6 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -172,7 +172,7 @@ public class AsyncFormBindingTests
         var model = new SignupModel { Username = "ada" };
         var ctx = new EditContext(model);
         var fid = new FieldIdentifier(model, "Username");
-        var state = ctx.GetType().GetField("_states", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var state = ctx.GetType().GetField("_states", BindingFlags.Instance | BindingFlags.NonPublic)!;
         // Simulate an in-flight async validation by bumping PendingCount through ValidateFieldAsync.
         // (We don't await; we just observe the indicator's render against a forced pending state.)
         ctx.AddValidator(new NeverCompletingAsyncValidator());
@@ -207,7 +207,11 @@ public class AsyncFormBindingTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
@@ -228,6 +232,7 @@ public class AsyncFormBindingTests
             {
                 context.AddValidationMessage(field, message);
             }
+
             return ValueTask.CompletedTask;
         }
     }
@@ -264,10 +269,8 @@ public class AsyncFormBindingTests
     {
         public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
-        {
+        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct) =>
             await new TaskCompletionSource().Task.ConfigureAwait(false);
-        }
     }
 
     private sealed class DelayedRejectValidator(string reject, string message, int delayMs) : IAsyncFieldValidator
@@ -305,8 +308,8 @@ public class AsyncFormBindingTests
     [SkipFactory]
     public sealed class RouterOutletFormPage : Component
     {
-        private readonly SignupModel _model = new();
         private readonly EditContext _ctx;
+        private readonly SignupModel _model = new();
 
         public RouterOutletFormPage()
         {

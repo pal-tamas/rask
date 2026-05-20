@@ -101,10 +101,8 @@ public sealed class BindingNullableDemo : Component
                     Class: "form-select",
                     Children: new Child[]
                     {
-                        Option(Value: "")["— none —"],
-                        Option(Value: "Red")["Red"],
-                        Option(Value: "Green")["Green"],
-                        Option(Value: "Blue")["Blue"]
+                        Option("")["— none —"], Option("Red")["Red"], Option("Green")["Green"],
+                        Option("Blue")["Blue"]
                     })
             ],
             Div(Class: "mb-3")[
@@ -117,9 +115,9 @@ public sealed class BindingNullableDemo : Component
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
                 Code()[
-                    $"OptionalAge = {(_model.OptionalAge?.ToString() ?? "null")}\n" +
-                    $"StartDate   = {(_model.StartDate?.ToString("yyyy-MM-dd") ?? "null")}\n" +
-                    $"Favorite    = {(_model.Favorite?.ToString() ?? "null")}\n" +
+                    $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}\n" +
+                    $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd") ?? "null"}\n" +
+                    $"Favorite    = {_model.Favorite?.ToString() ?? "null"}\n" +
                     $"Nickname    = {(_model.Nickname is null ? "null" : "\"" + _model.Nickname + "\"")}"
                 ]
             ]];
@@ -155,9 +153,9 @@ public sealed class BindingClearDefaultDemo : Component
                     Placeholder: "leave empty for null")
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
-                Code(Id: "bind-clear-echo")[
+                Code("bind-clear-echo")[
                     $"Age         = {_model.Age}\n" +
-                    $"OptionalAge = {(_model.OptionalAge?.ToString() ?? "null")}"
+                    $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}"
                 ]
             ]];
 
@@ -170,9 +168,6 @@ public sealed class BindingClearDefaultDemo : Component
 
 public sealed class BindingAfterBindDemo : Component
 {
-    private readonly Holder _model = new();
-    private string[] _cities = Cities["US"];
-
     private static readonly Dictionary<string, string[]> Cities = new()
     {
         ["US"] = new[] { "New York", "Los Angeles", "Chicago" },
@@ -180,35 +175,38 @@ public sealed class BindingAfterBindDemo : Component
         ["JP"] = new[] { "Tokyo", "Osaka", "Kyoto" }
     };
 
+    private readonly Holder _model = new();
+    private string[] _cities = Cities["US"];
+
     protected override Component Render() =>
         Fragment()[
             Div(Class: "mb-3")[
                 Label("bind-after-country", Class: "form-label small")["Country"],
                 Select(
-                    Bind: () => _model.Country,
-                    AfterBind: c =>
+                    () => _model.Country,
+                    c =>
                     {
                         _cities = Cities[c];
                         _model.City = _cities[0];
                     },
                     Id: "bind-after-country",
                     Class: "form-select")[
-                        Option(Value: "US")["United States"],
-                        Option(Value: "DE")["Germany"],
-                        Option(Value: "JP")["Japan"]
-                    ]
+                    Option("US")["United States"],
+                    Option("DE")["Germany"],
+                    Option("JP")["Japan"]
+                ]
             ],
             Div(Class: "mb-3")[
                 Label("bind-after-city", Class: "form-label small")["City"],
                 Select(
-                    Bind: () => _model.City,
+                    () => _model.City,
                     Id: "bind-after-city",
                     Class: "form-select")[
-                        _cities.Select(c => Option(Value: c)[c])
-                    ]
+                    _cities.Select(c => Option(c)[c])
+                ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
-                Code(Id: "bind-after-echo")[
+                Code("bind-after-echo")[
                     $"Country = {_model.Country}\n" +
                     $"City    = {_model.City}"
                 ]
@@ -223,23 +221,23 @@ public sealed class BindingAfterBindDemo : Component
 
 public sealed class BindingAfterBindAsyncDemo : Component
 {
-    private readonly Holder _model = new();
-    private string[] _languages = [];
-    private bool _loading;
-
     private static readonly Dictionary<string, string[]> _catalog = new()
     {
         ["frontend"] = ["TypeScript", "JavaScript", "HTML", "CSS"],
-        ["backend"]  = ["C#", "Rust", "Go", "Python"],
-        ["data"]     = ["SQL", "Python", "R", "Scala"]
+        ["backend"] = ["C#", "Rust", "Go", "Python"],
+        ["data"] = ["SQL", "Python", "R", "Scala"]
     };
+
+    private readonly Holder _model = new();
+    private string[] _languages = [];
+    private bool _loading;
 
     protected override Component Render() =>
         Fragment()[
             Div(Class: "mb-3")[
                 Label("bind-async-track", Class: "form-label small")["Track"],
                 Select(
-                    Bind: () => _model.Track,
+                    () => _model.Track,
                     AfterBindAsync: async track =>
                     {
                         _loading = true;
@@ -252,27 +250,27 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     },
                     Id: "bind-async-track",
                     Class: "form-select")[
-                        Option(Value: "frontend")["Frontend"],
-                        Option(Value: "backend")["Backend"],
-                        Option(Value: "data")["Data"]
-                    ]
+                    Option("frontend")["Frontend"],
+                    Option("backend")["Backend"],
+                    Option("data")["Data"]
+                ]
             ],
             Div(Class: "mb-3")[
                 Label("bind-async-lang", Class: "form-label small")[
                     _loading ? "Language (loading…)" : "Language"
                 ],
                 Select(
-                    Bind: () => _model.Language,
+                    () => _model.Language,
                     Id: "bind-async-lang",
                     Class: "form-select",
                     Disabled: _loading || _languages.Length == 0)[
-                        _languages.Length == 0
-                            ? [Option(Value: "")["— pick a track —"]]
-                            : _languages.Select(l => Option(Value: l)[l])
-                    ]
+                    _languages.Length == 0
+                        ? [Option("")["— pick a track —"]]
+                        : _languages.Select(l => Option(l)[l])
+                ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
-                Code(Id: "bind-async-echo")[
+                Code("bind-async-echo")[
                     $"Track    = {_model.Track}\n" +
                     $"Language = {_model.Language}"
                 ]
@@ -322,10 +320,10 @@ public sealed class BindingMultiDemo : Component
                     () => _model.Favorite,
                     Id: "bind-favorite",
                     Class: "form-select")[
-                        Option("Red")["Red"],
-                        Option("Green")["Green"],
-                        Option("Blue")["Blue"]
-                    ]
+                    Option("Red")["Red"],
+                    Option("Green")["Green"],
+                    Option("Blue")["Blue"]
+                ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
                 Code()[

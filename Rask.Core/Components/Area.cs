@@ -18,12 +18,39 @@ public sealed class Area : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Alt is not null) AppendAttr(sb, "alt", Alt);
-        if (Coords is not null) AppendAttr(sb, "coords", Coords);
-        if (Shape is not null) AppendAttr(sb, "shape", Shape);
-        if (Href is not null) AppendAttr(sb, "href", Href);
-        if (Target is not null) AppendAttr(sb, "target", Target);
-        if (Rel is not null) AppendAttr(sb, "rel", Rel);
-        if (Download is not null) AppendAttr(sb, "download", Download);
+        if (Alt is not null)
+        {
+            AppendAttr(sb, "alt", Alt);
+        }
+
+        if (Coords is not null)
+        {
+            AppendAttr(sb, "coords", Coords);
+        }
+
+        if (Shape is not null)
+        {
+            AppendAttr(sb, "shape", Shape);
+        }
+
+        if (Href is not null)
+        {
+            AppendAttr(sb, "href", Href);
+        }
+
+        if (Target is not null)
+        {
+            AppendAttr(sb, "target", Target);
+        }
+
+        if (Rel is not null)
+        {
+            AppendAttr(sb, "rel", Rel);
+        }
+
+        if (Download is not null)
+        {
+            AppendAttr(sb, "download", Download);
+        }
     }
 }

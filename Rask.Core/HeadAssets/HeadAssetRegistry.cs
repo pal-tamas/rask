@@ -7,20 +7,22 @@ using Rask.Core.ScopedJs;
 namespace Rask.Core.HeadAssets;
 
 /// <summary>
-///     Per-render collector for <see cref="Component.Head"/> declarations. Components
+///     Per-render collector for <see cref="Component.Head" /> declarations. Components
 ///     contribute <c>&lt;link&gt;</c> / <c>&lt;script&gt;</c> / <c>&lt;meta&gt;</c> / etc.
-///     declarations while the tree is serialized; <see cref="RaskHeadAssets"/> emits a
-///     sentinel placeholder, and <see cref="Component.RenderAsLiveRoot()"/> post-processes
+///     declarations while the tree is serialized; <see cref="RaskHeadAssets" /> emits a
+///     sentinel placeholder, and <see cref="Component.RenderAsLiveRoot()" /> post-processes
 ///     the final HTML to replace the sentinel with the deduplicated asset markup.
 ///     <para>
-///     Dedup unit is the top-level child of each <see cref="Component.Head"/> override:
-///     two components contributing identical <c>&lt;link href="x"&gt;</c> entries share
-///     a single emission in <c>&lt;head&gt;</c>. Insertion order is preserved.
+///         Dedup unit is the top-level child of each <see cref="Component.Head" /> override:
+///         two components contributing identical <c>&lt;link href="x"&gt;</c> entries share
+///         a single emission in <c>&lt;head&gt;</c>. Insertion order is preserved.
 ///     </para>
 /// </summary>
 internal sealed class HeadAssetRegistry
 {
     internal const string Sentinel = "<!--__rask_head_assets__-->";
+    private readonly List<string> _orderedHtml = new();
+    private readonly List<string> _orderedKeys = new();
 
     // Dedup key per ordered entry: either the verbatim HTML (default — two different
     // <link>s with the same href dedup; two different ones don't), or a singleton key
@@ -28,8 +30,6 @@ internal sealed class HeadAssetRegistry
     // document. Singleton keys collapse multiple contributions into one slot and the
     // LATEST one wins — so a page's Title in Head supersedes the App's.
     private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
-    private readonly List<string> _orderedHtml = new();
-    private readonly List<string> _orderedKeys = new();
 
     public void Add(Component head)
     {
@@ -84,8 +84,16 @@ internal sealed class HeadAssetRegistry
     // lose legitimately-repeated entries (og:image, etc.).
     private static string? SingletonKey(string html)
     {
-        if (StartsWithOpenTag(html, "title")) return "tag:title";
-        if (StartsWithOpenTag(html, "base")) return "tag:base";
+        if (StartsWithOpenTag(html, "title"))
+        {
+            return "tag:title";
+        }
+
+        if (StartsWithOpenTag(html, "base"))
+        {
+            return "tag:base";
+        }
+
         return null;
     }
 
@@ -113,7 +121,7 @@ internal sealed class HeadAssetRegistry
     ///     Replaces the framework-managed <c>&lt;head&gt;</c> sentinel with:
     ///     user-declared <c>Component.Head</c> contributions (deduped, singleton
     ///     tags resolved), then the scoped-css <c>&lt;link&gt;</c> (via
-    ///     <c>IRaskScopedStyles</c> from <paramref name="services"/>), then the
+    ///     <c>IRaskScopedStyles</c> from <paramref name="services" />), then the
     ///     scoped-js <c>&lt;script&gt;</c> (via <c>IRaskScopedScripts</c>). User
     ///     contributions go first so an App.css scoped rule wins the cascade over
     ///     an externally-loaded Bootstrap.
@@ -133,13 +141,13 @@ internal sealed class HeadAssetRegistry
         var cssHash = ScopedCssRegistry.CurrentHash;
         var jsHash = ScopedJsRegistry.CurrentHash;
         if (services is not null && cssHash is not null
-            && services.GetService<IRaskScopedStyles>() is { } cssStrategy)
+                                 && services.GetService<IRaskScopedStyles>() is { } cssStrategy)
         {
             scopedCssHtml = cssStrategy.Render(cssHash).ToHtml();
         }
 
         if (services is not null && jsHash is not null
-            && services.GetService<IRaskScopedScripts>() is { } jsStrategy)
+                                 && services.GetService<IRaskScopedScripts>() is { } jsStrategy)
         {
             scopedJsHtml = jsStrategy.Render(jsHash).ToHtml();
         }
@@ -150,15 +158,38 @@ internal sealed class HeadAssetRegistry
         }
 
         var totalLen = html.Length - Sentinel.Length;
-        foreach (var asset in _orderedHtml) totalLen += asset.Length;
-        if (scopedCssHtml is not null) totalLen += scopedCssHtml.Length;
-        if (scopedJsHtml is not null) totalLen += scopedJsHtml.Length;
+        foreach (var asset in _orderedHtml)
+        {
+            totalLen += asset.Length;
+        }
+
+        if (scopedCssHtml is not null)
+        {
+            totalLen += scopedCssHtml.Length;
+        }
+
+        if (scopedJsHtml is not null)
+        {
+            totalLen += scopedJsHtml.Length;
+        }
 
         var sb = new StringBuilder(totalLen);
         sb.Append(html, 0, idx);
-        foreach (var asset in _orderedHtml) sb.Append(asset);
-        if (scopedCssHtml is not null) sb.Append(scopedCssHtml);
-        if (scopedJsHtml is not null) sb.Append(scopedJsHtml);
+        foreach (var asset in _orderedHtml)
+        {
+            sb.Append(asset);
+        }
+
+        if (scopedCssHtml is not null)
+        {
+            sb.Append(scopedCssHtml);
+        }
+
+        if (scopedJsHtml is not null)
+        {
+            sb.Append(scopedJsHtml);
+        }
+
         sb.Append(html, idx + Sentinel.Length, html.Length - idx - Sentinel.Length);
         return sb.ToString();
     }

@@ -5,6 +5,7 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Server.Files;
 
 namespace Rask.Server;
 
@@ -12,14 +13,23 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
     private static readonly AsyncLocal<bool> _inHandlerScope = new();
 
+    // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
+    // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
+    // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on
+    // thread-pool workers from a user `await Task.Yield()` posting back through the captured
+    // sync context). Two concurrent View.RenderAsLiveRoot walks on different threads otherwise
+    // mutate the same Component state — _children, _stateDirty, _cachedRenderResult — and one
+    // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
+    private readonly SemaphoreSlim _renderLock = new(1, 1);
+    private ArrayBufferWriter<byte>? _lastSentBuffer;
+    private WebSocket? _socket;
+    private CancellationToken _socketCt;
+
     // Two-buffer swap: `_writeBuffer` receives the next frame, `_lastSentBuffer` holds the
     // previous send (dedup compare target). After SendAsync the references swap so the just-
     // sent buffer becomes the dedup baseline without any byte[] copy. Both writers persist
     // across the session's lifetime; ResetWrittenCount keeps the underlying rented array hot.
-    private ArrayBufferWriter<byte> _writeBuffer = new(initialCapacity: 4096);
-    private ArrayBufferWriter<byte>? _lastSentBuffer;
-    private WebSocket? _socket;
-    private CancellationToken _socketCt;
+    private ArrayBufferWriter<byte> _writeBuffer = new(4096);
 
     public LiveSession(string id, Component view, IServiceScope scope)
     {
@@ -44,15 +54,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     public IServiceProvider Services => Scope.ServiceProvider;
     public SemaphoreSlim Lock { get; } = new(1, 1);
 
-    // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
-    // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
-    // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on
-    // thread-pool workers from a user `await Task.Yield()` posting back through the captured
-    // sync context). Two concurrent View.RenderAsLiveRoot walks on different threads otherwise
-    // mutate the same Component state — _children, _stateDirty, _cachedRenderResult — and one
-    // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
-    private readonly SemaphoreSlim _renderLock = new(1, 1);
-
     public bool InHandlerScope
     {
         get => _inHandlerScope.Value;
@@ -75,19 +76,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         Lock.Dispose();
         _renderLock.Dispose();
         Scope.Dispose();
-    }
-
-    private void ReleaseFileStores()
-    {
-        try
-        {
-            Services.GetService<Files.SessionUploadStore>()?.ReleaseSession(Id);
-            Services.GetService<Files.SessionDownloadStore>()?.ReleaseSession(Id);
-        }
-        catch
-        {
-            // best-effort cleanup; do not let store errors mask disposal
-        }
     }
 
     public async Task RequestRenderAsync()
@@ -117,6 +105,19 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     }
 
     Task IRenderHandle.RenderInScopeAsync() => RenderAndSendAsync(null, false);
+
+    private void ReleaseFileStores()
+    {
+        try
+        {
+            Services.GetService<SessionUploadStore>()?.ReleaseSession(Id);
+            Services.GetService<SessionDownloadStore>()?.ReleaseSession(Id);
+        }
+        catch
+        {
+            // best-effort cleanup; do not let store errors mask disposal
+        }
+    }
 
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
@@ -183,7 +184,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
             // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous
             // baseline (or a fresh writer on first send) is reused as the next write target.
-            (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(initialCapacity: 4096));
+            (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
         }
         finally
         {

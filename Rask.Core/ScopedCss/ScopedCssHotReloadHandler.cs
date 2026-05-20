@@ -31,8 +31,8 @@ internal static class ScopedCssHotReloadHandler
         //     class. The full clear handles deleted/renamed .css files; the re-invoke
         //     repopulates from the new IL.
         var hasGeneratedUpdate = updatedTypes is null
-            || updatedTypes.Length == 0
-            || updatedTypes.Any(t => t.Name == GeneratedRegistrationTypeName);
+                                 || updatedTypes.Length == 0
+                                 || updatedTypes.Any(t => t.Name == GeneratedRegistrationTypeName);
 
         if (!hasGeneratedUpdate)
         {
@@ -45,7 +45,7 @@ internal static class ScopedCssHotReloadHandler
         {
             try
             {
-                var t = asm.GetType(GeneratedRegistrationTypeName, throwOnError: false);
+                var t = asm.GetType(GeneratedRegistrationTypeName, false);
                 if (t is null)
                 {
                     continue;

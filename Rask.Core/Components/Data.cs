@@ -11,6 +11,9 @@ public sealed class Data : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Value is not null) AppendAttr(sb, "value", Value);
+        if (Value is not null)
+        {
+            AppendAttr(sb, "value", Value);
+        }
     }
 }

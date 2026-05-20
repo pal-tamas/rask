@@ -6,22 +6,26 @@ internal sealed class SessionUploadStore : IDisposable
 {
     private readonly ConcurrentDictionary<string, Entry> _entries = new();
 
-    public sealed record Entry(
-        string SessionId,
-        string Token,
-        string Path,
-        string Name,
-        long Size,
-        string ContentType,
-        DateTimeOffset LastModified);
+    public void Dispose()
+    {
+        foreach (var key in _entries.Keys.ToArray())
+        {
+            if (_entries.TryRemove(key, out var entry))
+            {
+                TryDelete(entry.Path);
+            }
+        }
+    }
 
-    public Entry Stage(string sessionId, string name, string contentType, long size, DateTimeOffset lastModified, Func<string, Task> writeToPath)
+    public Entry Stage(string sessionId, string name, string contentType, long size, DateTimeOffset lastModified,
+        Func<string, Task> writeToPath)
     {
         var token = Guid.NewGuid().ToString("N");
-        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"rask-upload-{token}.bin");
+        var path = Path.Combine(Path.GetTempPath(), $"rask-upload-{token}.bin");
         writeToPath(path).GetAwaiter().GetResult();
         var info = new FileInfo(path);
-        var entry = new Entry(sessionId, token, path, name, info.Exists ? info.Length : size, contentType, lastModified);
+        var entry = new Entry(sessionId, token, path, name, info.Exists ? info.Length : size, contentType,
+            lastModified);
         _entries[Key(sessionId, token)] = entry;
         return entry;
     }
@@ -53,17 +57,6 @@ internal sealed class SessionUploadStore : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        foreach (var key in _entries.Keys.ToArray())
-        {
-            if (_entries.TryRemove(key, out var entry))
-            {
-                TryDelete(entry.Path);
-            }
-        }
-    }
-
     private static string Key(string sessionId, string token) => sessionId + ":" + token;
 
     private static void TryDelete(string path)
@@ -80,4 +73,13 @@ internal sealed class SessionUploadStore : IDisposable
             // best-effort cleanup; ignore
         }
     }
+
+    public sealed record Entry(
+        string SessionId,
+        string Token,
+        string Path,
+        string Name,
+        long Size,
+        string ContentType,
+        DateTimeOffset LastModified);
 }

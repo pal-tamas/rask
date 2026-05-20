@@ -16,7 +16,7 @@ internal sealed class WasmDownloadSink : IDownloadSink
     {
         var token = Guid.NewGuid().ToString("N");
         _bytesByToken[token] = bytes;
-        _pending = new PendingDownload(filename, contentType ?? "application/octet-stream", Url: null, Bytes: null, Token: token);
+        _pending = new PendingDownload(filename, contentType ?? "application/octet-stream", null, null, token);
     }
 
     public void Stage(string filename, Stream stream, string? contentType)

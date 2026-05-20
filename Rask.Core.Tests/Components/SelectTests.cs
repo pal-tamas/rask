@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.Core.Components;
 using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -18,11 +17,7 @@ public class SelectTests
     {
         var model = new ColorPicker { Color = null };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "red")
-            })
+            Select(() => model.Color, Children: new Child[] { Option(""), Option("red") })
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -37,12 +32,7 @@ public class SelectTests
     {
         var model = new ColorPicker { Color = "red" };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "red"),
-                Option(Value: "blue")
-            })
+            Select(() => model.Color, Children: new Child[] { Option(""), Option("red"), Option("blue") })
         ]);
 
         var html = view.RenderAsLiveRoot();
@@ -61,11 +51,7 @@ public class SelectTests
         // (see OnInput_NonNullableString_EmptyInput_SetsEmptyString in FormBindingTests).
         var model = new ColorPicker { Color = "red" };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "red")
-            })
+            Select(() => model.Color, Children: new Child[] { Option(""), Option("red") })
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -84,12 +70,7 @@ public class SelectTests
     {
         var model = new ChoiceModel { Choice = null };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Choice, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "5"),
-                Option(Value: "10")
-            })
+            Select(() => model.Choice, Children: new Child[] { Option(""), Option("5"), Option("10") })
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -106,11 +87,7 @@ public class SelectTests
     {
         var model = new ChoiceModel { Choice = 5 };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Choice, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "5")
-            })
+            Select(() => model.Choice, Children: new Child[] { Option(""), Option("5") })
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -127,12 +104,7 @@ public class SelectTests
     {
         var model = new StatusModel { Status = null };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Status, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "Active"),
-                Option(Value: "Inactive")
-            })
+            Select(() => model.Status, Children: new Child[] { Option(""), Option("Active"), Option("Inactive") })
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -149,11 +121,7 @@ public class SelectTests
     {
         var model = new StatusModel { Status = SelectStatus.Active };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Status, Children: new Child[]
-            {
-                Option(Value: ""),
-                Option(Value: "Active")
-            })
+            Select(() => model.Status, Children: new Child[] { Option(""), Option("Active") })
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -175,17 +143,14 @@ public class SelectTests
         // NOT match a null bound value.
         var model = new ColorPicker { Color = null };
         var view = new StubComponent(() => Form(model)[
-            Select(() => model.Color, Children: new Child[]
-            {
-                Option()["placeholder"],
-                Option(Value: "red")
-            })
+            Select(() => model.Color, Children: new Child[] { Option()["placeholder"], Option("red") })
         ]);
 
         var html = view.RenderAsLiveRoot();
 
         Assert.DoesNotContain("selected", html);
     }
+
     [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
         Assert.Equal("<select></select>", Select().ToHtml());
@@ -193,9 +158,10 @@ public class SelectTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal(
+        Assert.Equal(
             "<select id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" multiple required disabled size=\"5\" form=\"f\" autofocus autocomplete=\"off\"></select>",
-            Select(Name: "n", Multiple: true, Required: true, Disabled: true, Size: 5, Form: "f", Autofocus: true, Autocomplete: "off", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Select("n", true, true, true, 5, "f", true, "off", Id: "i", Class: "c", Style: "s",
+                Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

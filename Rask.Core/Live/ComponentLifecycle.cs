@@ -80,6 +80,7 @@ internal static class ComponentLifecycle
     {
         try { await ad.DisposeAsync().ConfigureAwait(false); }
         catch (Exception ex) { LogDisposeError(component, ex); }
+
         component.DisposeLifetimeToken();
     }
 

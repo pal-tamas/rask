@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using Rask.Core.ScopedCss;
 
@@ -108,8 +109,8 @@ public class ScopedCssRegistryTests
         // doesn't expose identity directly; comparing the backing arrays is fine because
         // GetBundleUtf8 stores _cachedBundleUtf8 as a byte[].
         var (utf8b, etagB) = ScopedCssRegistry.GetBundleUtf8();
-        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8, out var seg1));
-        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8b, out var seg2));
+        Assert.True(MemoryMarshal.TryGetArray(utf8, out var seg1));
+        Assert.True(MemoryMarshal.TryGetArray(utf8b, out var seg2));
         Assert.Same(seg1.Array, seg2.Array);
         Assert.Same(etag, etagB);
     }

@@ -16,13 +16,14 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Components;
-using Rask.Core.Live;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 using Rask.Server.Authentication;
 using Rask.Server.Files;
+using Components = Rask.Core.Components.Components;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -205,7 +206,7 @@ public static class RaskEndpointExtensions
 
         endpoints.MapPost("/_rask/upload/{sessionId}",
                 (HttpContext ctx, string sessionId, LiveSessionStore sessionStore,
-                    SessionUploadStore uploadStore, RaskUploadOptions options) =>
+                        SessionUploadStore uploadStore, RaskUploadOptions options) =>
                     HandleUploadAsync(ctx, sessionId, sessionStore, uploadStore, options))
             .DisableAntiforgery();
 
@@ -282,7 +283,7 @@ public static class RaskEndpointExtensions
         });
         LiveSession? session = null;
         var buffer = new byte[16 * 1024];
-        var message = new ArrayBufferWriter<byte>(initialCapacity: 16 * 1024);
+        var message = new ArrayBufferWriter<byte>(16 * 1024);
 
         try
         {
@@ -827,7 +828,7 @@ public static class RaskEndpointExtensions
 
         ctx.Response.ContentType = "application/json; charset=utf-8";
         using var ms = new MemoryStream();
-        using (var writer = new System.Text.Json.Utf8JsonWriter(ms))
+        using (var writer = new Utf8JsonWriter(ms))
         {
             writer.WriteStartObject();
             writer.WriteStartArray("files");
@@ -891,7 +892,7 @@ public static class RaskEndpointExtensions
 
     private sealed class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Rask.Core.Components.Components.Script(Src: RuntimePath);
+        public Component Render() => Components.Script(RuntimePath);
     }
 
     private sealed class ServerScopedStyles : IRaskScopedStyles
@@ -899,7 +900,7 @@ public static class RaskEndpointExtensions
         private static readonly IReadOnlyDictionary<string, string?> _marker =
             new Dictionary<string, string?> { ["rask-scoped"] = "" };
 
-        public Component Render(string hash) => Rask.Core.Components.Components.Link(
+        public Component Render(string hash) => Components.Link(
             Rel: "stylesheet",
             Href: $"/_rask/scoped.css?v={hash}",
             Data: _marker);
@@ -910,8 +911,8 @@ public static class RaskEndpointExtensions
         private static readonly IReadOnlyDictionary<string, string?> _marker =
             new Dictionary<string, string?> { ["rask-scoped-js"] = "" };
 
-        public Component Render(string hash) => Rask.Core.Components.Components.Script(
-            Src: $"/_rask/scoped.js?v={hash}",
+        public Component Render(string hash) => Components.Script(
+            $"/_rask/scoped.js?v={hash}",
             Defer: true,
             Data: _marker);
     }

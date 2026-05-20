@@ -15,9 +15,24 @@ public sealed class Meta : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Charset is not null) AppendAttr(sb, "charset", Charset);
-        if (Name is not null) AppendAttr(sb, "name", Name);
-        if (Content is not null) AppendAttr(sb, "content", Content);
-        if (HttpEquiv is not null) AppendAttr(sb, "http-equiv", HttpEquiv);
+        if (Charset is not null)
+        {
+            AppendAttr(sb, "charset", Charset);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
+
+        if (Content is not null)
+        {
+            AppendAttr(sb, "content", Content);
+        }
+
+        if (HttpEquiv is not null)
+        {
+            AppendAttr(sb, "http-equiv", HttpEquiv);
+        }
     }
 }

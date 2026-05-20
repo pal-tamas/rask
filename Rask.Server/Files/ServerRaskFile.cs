@@ -21,7 +21,8 @@ internal sealed class ServerRaskFile : RaskFile
     internal string Token => _entry.Token;
     internal string SessionId => _entry.SessionId;
 
-    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024, CancellationToken cancellationToken = default)
+    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
+        CancellationToken cancellationToken = default)
     {
         if (_entry.Size > maxAllowedSize)
         {

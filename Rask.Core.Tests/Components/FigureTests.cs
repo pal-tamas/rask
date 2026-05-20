@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class FigureTests
@@ -11,8 +9,8 @@ public class FigureTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<figure id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></figure>",
-            Figure(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<figure id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></figure>",
+            Figure("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

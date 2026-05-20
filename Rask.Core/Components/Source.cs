@@ -16,10 +16,29 @@ public sealed class Source : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Src is not null) AppendAttr(sb, "src", Src);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Srcset is not null) AppendAttr(sb, "srcset", Srcset);
-        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
-        if (Media is not null) AppendAttr(sb, "media", Media);
+        if (Src is not null)
+        {
+            AppendAttr(sb, "src", Src);
+        }
+
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Srcset is not null)
+        {
+            AppendAttr(sb, "srcset", Srcset);
+        }
+
+        if (Sizes is not null)
+        {
+            AppendAttr(sb, "sizes", Sizes);
+        }
+
+        if (Media is not null)
+        {
+            AppendAttr(sb, "media", Media);
+        }
     }
 }

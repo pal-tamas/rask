@@ -12,8 +12,8 @@ namespace Rask.Server.Tests.Infrastructure;
 // the validator's terminal message and removes the in-flight indicator.
 public sealed class AsyncValidationApp : Component
 {
-    private readonly SignupModel _model = new();
     private readonly EditContext _ctx;
+    private readonly SignupModel _model = new();
 
     public AsyncValidationApp()
     {

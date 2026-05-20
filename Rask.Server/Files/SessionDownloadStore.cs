@@ -6,7 +6,16 @@ internal sealed class SessionDownloadStore : IDisposable
 {
     private readonly ConcurrentDictionary<string, Entry> _entries = new();
 
-    public sealed record Entry(string SessionId, string Token, string Filename, string ContentType, byte[]? Bytes, string? TempPath);
+    public void Dispose()
+    {
+        foreach (var key in _entries.Keys.ToArray())
+        {
+            if (_entries.TryRemove(key, out var entry) && entry.TempPath is { } path)
+            {
+                TryDelete(path);
+            }
+        }
+    }
 
     public Entry StageBytes(string sessionId, string filename, byte[] bytes, string? contentType)
     {
@@ -65,17 +74,6 @@ internal sealed class SessionDownloadStore : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        foreach (var key in _entries.Keys.ToArray())
-        {
-            if (_entries.TryRemove(key, out var entry) && entry.TempPath is { } path)
-            {
-                TryDelete(path);
-            }
-        }
-    }
-
     private static string Key(string sessionId, string token) => sessionId + ":" + token;
 
     private static void TryDelete(string path)
@@ -92,4 +90,12 @@ internal sealed class SessionDownloadStore : IDisposable
             // best-effort cleanup; ignore
         }
     }
+
+    public sealed record Entry(
+        string SessionId,
+        string Token,
+        string Filename,
+        string ContentType,
+        byte[]? Bytes,
+        string? TempPath);
 }

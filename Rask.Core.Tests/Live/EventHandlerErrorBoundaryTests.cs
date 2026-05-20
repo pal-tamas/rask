@@ -1,6 +1,4 @@
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -13,9 +11,9 @@ public class EventHandlerErrorBoundaryTests
     public async Task SyncHandlerThrow_TripsAncestorBoundary()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
-        var handlerOwner = new HandlerOwner(throwsSync: true);
+        var handlerOwner = new HandlerOwner(true);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, fallback: null);
+        boundary.SetProps(new Child[] { handlerOwner }, null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
         // root's handler dict. RegisterHandler happens during the serialization walk via
@@ -37,9 +35,9 @@ public class EventHandlerErrorBoundaryTests
     public async Task AsyncHandlerThrow_TripsAncestorBoundary()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
-        var handlerOwner = new HandlerOwner(throwsSync: false);
+        var handlerOwner = new HandlerOwner(false);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, fallback: null);
+        boundary.SetProps(new Child[] { handlerOwner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
         _ = boundary.ToHtml();
@@ -59,7 +57,7 @@ public class EventHandlerErrorBoundaryTests
         // When the handler's owner has no Boundary, TryInvokeHandlerAsync re-throws so
         // the dispatcher (server/WASM) can apply its own catch-and-log fallback.
         var sp = new ServiceCollection().BuildServiceProvider();
-        var owner = new HandlerOwner(throwsSync: true);
+        var owner = new HandlerOwner(true);
 
         using var ctx = LiveRenderContext.Begin(owner, sp);
         _ = owner.ToHtml();
@@ -74,9 +72,9 @@ public class EventHandlerErrorBoundaryTests
     private sealed class HandlerOwner : Component
     {
         private readonly bool _throwsSync;
-        public string? RegisteredHandlerId { get; private set; }
 
         public HandlerOwner(bool throwsSync) => _throwsSync = throwsSync;
+        public string? RegisteredHandlerId { get; private set; }
 
         protected override Component Render()
         {

@@ -13,7 +13,14 @@ public sealed class Base : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Href is not null) AppendAttr(sb, "href", Href);
-        if (Target is not null) AppendAttr(sb, "target", Target);
+        if (Href is not null)
+        {
+            AppendAttr(sb, "href", Href);
+        }
+
+        if (Target is not null)
+        {
+            AppendAttr(sb, "target", Target);
+        }
     }
 }

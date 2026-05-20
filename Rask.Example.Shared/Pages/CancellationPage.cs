@@ -41,12 +41,13 @@ public sealed class CancellationPage : Component
                             OnClick: Unmount)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
                     ],
                     _mounted
-                        ? CancellationProbe(Log: AppendLog, InstanceId: _nextInstance)
+                        ? CancellationProbe(AppendLog, _nextInstance)
                         : P(Class: "text-secondary fst-italic mb-0")["Probe is not mounted."],
                     H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
                     _log.Count == 0
                         ? P(Class: "text-secondary small mb-0")["Mount and unmount the probe to populate this log."]
-                        : Ol(Class: "list-group list-group-numbered list-group-flush cancel-log")[_log.Select(line => (Child)Li(
+                        : Ol(Class: "list-group list-group-numbered list-group-flush cancel-log")[_log.Select(line =>
+                            (Child)Li(
                                 Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]
                 ]
             ],
@@ -87,7 +88,11 @@ public sealed class CancellationPage : Component
 
     private void Mount()
     {
-        if (_mounted) return;
+        if (_mounted)
+        {
+            return;
+        }
+
         _nextInstance++;
         _mounted = true;
         StateHasChanged();
@@ -95,7 +100,11 @@ public sealed class CancellationPage : Component
 
     private void Unmount()
     {
-        if (!_mounted) return;
+        if (!_mounted)
+        {
+            return;
+        }
+
         _mounted = false;
         // The probe leaves the tree on the next render, the framework cancels its
         // lifetime token, OnMountAsync's await throws OperationCanceledException,

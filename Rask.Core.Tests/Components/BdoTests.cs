@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class BdoTests
@@ -11,8 +9,8 @@ public class BdoTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<bdo id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" dir=\"rtl\"></bdo>",
-            Bdo(Dir: "rtl", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<bdo id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" dir=\"rtl\"></bdo>",
+            Bdo("rtl", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

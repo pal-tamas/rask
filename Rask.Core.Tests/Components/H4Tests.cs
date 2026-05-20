@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class H4Tests
@@ -11,8 +9,8 @@ public class H4Tests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<h4 id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></h4>",
-            H4(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<h4 id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></h4>",
+            H4("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

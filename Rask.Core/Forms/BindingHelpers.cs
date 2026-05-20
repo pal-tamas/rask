@@ -15,6 +15,12 @@ namespace Rask.Core.Forms;
 // field NotifyFieldChanged / ValidateField from input handlers land in the right context.
 internal static class BindingHelpers
 {
+    // Determines whether an empty form value should round-trip to `null`. Value types use
+    // Nullable<T>; reference types (notably `string?`) carry C# nullable-annotation metadata
+    // that NullabilityInfoContext reads off the PropertyInfo. Unknown (NRT disabled in the
+    // model's compilation context) is treated as non-nullable, matching pre-NRT behavior.
+    private static readonly NullabilityInfoContext _nullabilityCtx = new();
+
     public static EditContext? ResolveBindingContext(object model) =>
         EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
 
@@ -32,12 +38,12 @@ internal static class BindingHelpers
         }
 
         if (t == typeof(byte) || t == typeof(sbyte)
-            || t == typeof(short) || t == typeof(ushort)
-            || t == typeof(int) || t == typeof(uint)
-            || t == typeof(long) || t == typeof(ulong)
-            || t == typeof(nint) || t == typeof(nuint)
-            || t == typeof(float) || t == typeof(double)
-            || t == typeof(decimal) || t == typeof(Half))
+                              || t == typeof(short) || t == typeof(ushort)
+                              || t == typeof(int) || t == typeof(uint)
+                              || t == typeof(long) || t == typeof(ulong)
+                              || t == typeof(nint) || t == typeof(nuint)
+                              || t == typeof(float) || t == typeof(double)
+                              || t == typeof(decimal) || t == typeof(Half))
         {
             return "number";
         }
@@ -262,12 +268,6 @@ internal static class BindingHelpers
 
         return false;
     }
-
-    // Determines whether an empty form value should round-trip to `null`. Value types use
-    // Nullable<T>; reference types (notably `string?`) carry C# nullable-annotation metadata
-    // that NullabilityInfoContext reads off the PropertyInfo. Unknown (NRT disabled in the
-    // model's compilation context) is treated as non-nullable, matching pre-NRT behavior.
-    private static readonly NullabilityInfoContext _nullabilityCtx = new();
 
     private static bool IsNullableProperty(PropertyInfo prop, Type? underlying, Type type)
     {

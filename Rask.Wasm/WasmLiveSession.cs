@@ -15,10 +15,11 @@ namespace Rask.Wasm;
 internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
+
     // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented
     // backing array hot. Eliminates the per-render ArrayBufferWriter allocation that
     // BuildPayloadUtf8WithRoot's byte[]-returning overload would otherwise make.
-    private readonly ArrayBufferWriter<byte> _writeBuffer = new(initialCapacity: 4096);
+    private readonly ArrayBufferWriter<byte> _writeBuffer = new(4096);
     private byte[]? _lastAppliedPayload;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
@@ -210,7 +211,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                         historyReplace = replace;
                     }
 
-                    var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
+                        .ConfigureAwait(false);
                     // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
                     // The JS host treats an empty byte array as "no-op." Always send when historyUrl is set.
                     if (historyUrl is null
@@ -361,8 +363,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             _lastJsHashSent = currentJsHash;
         }
 
-        Rask.Core.Routing.PendingDownload? download = null;
-        if (Services.GetService<Rask.Core.Routing.IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
+        PendingDownload? download = null;
+        if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
         {
             download = pd;
         }
@@ -374,8 +376,9 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // ToArray at the end is still needed today because the JS interop boundary
         // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
         _writeBuffer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download, jsText,
-            scopedJsInvokes: View.PendingScopedJsInvokes);
+        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download,
+            jsText,
+            View.PendingScopedJsInvokes);
         return _writeBuffer.WrittenSpan.ToArray();
     }
 }

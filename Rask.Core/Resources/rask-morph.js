@@ -25,7 +25,7 @@ function reviveScript(node) {
         s.async = false;
         s.addEventListener("load", function () {
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
-        }, { once: true });
+        }, {once: true});
     }
     s.text = node.textContent;
     return s;
@@ -41,12 +41,15 @@ function reviveScript(node) {
 function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
 }
+
 function _raskAppendChild(parent, dst) {
     parent.appendChild(dst);
 }
+
 function _raskRemoveChild(parent, src) {
     parent.removeChild(src);
 }
+
 function _raskReplaceChild(parent, dst, src) {
     parent.replaceChild(dst, src);
 }
@@ -145,7 +148,9 @@ function morph(from, to) {
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
-        keyMap.forEach(function (n) { if (n.parentNode === from) _raskRemoveChild(from, n); });
+        keyMap.forEach(function (n) {
+            if (n.parentNode === from) _raskRemoveChild(from, n);
+        });
         // Drop trailing unkeyed nodes too.
         while (unkeyedCursor < unkeyedFrom.length) {
             var leftover = unkeyedFrom[unkeyedCursor++];

@@ -21,7 +21,7 @@ public class AfterBindTests
         var observed = new List<string>();
 
         var view = new StubComponent(() => Form(m)[
-            Input(() => m.Name, AfterBind: v => observed.Add(v))
+            Input(() => m.Name, v => observed.Add(v))
         ]);
         var html = view.RenderAsLiveRoot();
         var inputId = ExtractAttr(html, "data-rask-on-input")!;
@@ -42,7 +42,7 @@ public class AfterBindTests
         int? captured = null;
 
         var view = new StubComponent(() => Form(m)[
-            Input(() => m.Age, AfterBind: v => captured = v)
+            Input(() => m.Age, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
         var changeId = ExtractAttr(html, "data-rask-on-change")!;
@@ -61,7 +61,7 @@ public class AfterBindTests
         var fired = false;
 
         var view = new StubComponent(() => Form(m)[
-            Input(() => m.Age, AfterBind: _ => fired = true)
+            Input(() => m.Age, _ => fired = true)
         ]);
         var html = view.RenderAsLiveRoot();
         var changeId = ExtractAttr(html, "data-rask-on-change")!;
@@ -84,7 +84,11 @@ public class AfterBindTests
 
         var view = new StubComponent(() => Form(m)[
             Input(() => m.Age,
-                Validate: (int _) => { order.Add("validate"); return Array.Empty<string>(); },
+                _ =>
+                {
+                    order.Add("validate");
+                    return Array.Empty<string>();
+                },
                 AfterBindAsync: async _ =>
                 {
                     order.Add("afterBindAsync:start");
@@ -101,7 +105,11 @@ public class AfterBindTests
         // Spin until the async handler reaches the gate. The dispatcher does an extra
         // Task.Yield inside InvokeWithRenderingAsync, so a single Task.Yield here may not
         // be enough.
-        for (var i = 0; i < 20 && order.Count == 0; i++) await Task.Yield();
+        for (var i = 0; i < 20 && order.Count == 0; i++)
+        {
+            await Task.Yield();
+        }
+
         Assert.Equal(new[] { "afterBindAsync:start" }, order);
 
         gate.SetResult();
@@ -119,8 +127,12 @@ public class AfterBindTests
 
         var view = new StubComponent(() => Form(m)[
             Input(() => m.Age,
-                Validate: (int _) => { order.Add("validate"); return Array.Empty<string>(); },
-                AfterBind: _ =>
+                _ =>
+                {
+                    order.Add("validate");
+                    return Array.Empty<string>();
+                },
+                _ =>
                 {
                     order.Add("afterBind");
                     // The field must already be marked modified at this point.
@@ -145,8 +157,12 @@ public class AfterBindTests
 
         var view = new StubComponent(() => Form(m)[
             Input(() => m.Name,
-                AfterBind: _ => order.Add("sync"),
-                AfterBindAsync: async _ => { await Task.Yield(); order.Add("async"); })
+                _ => order.Add("sync"),
+                async _ =>
+                {
+                    await Task.Yield();
+                    order.Add("async");
+                })
         ]);
         var html = view.RenderAsLiveRoot();
         var inputId = ExtractAttr(html, "data-rask-on-input")!;
@@ -164,9 +180,9 @@ public class AfterBindTests
         Color? captured = null;
 
         var view = new StubComponent(() => Form(m)[
-            Select(Bind: () => m.Favorite, AfterBind: v => captured = v)[
-                Option(Value: nameof(Color.Red))["Red"],
-                Option(Value: nameof(Color.Blue))["Blue"]
+            Select(() => m.Favorite, v => captured = v)[
+                Option(nameof(Color.Red))["Red"],
+                Option(nameof(Color.Blue))["Blue"]
             ]
         ]);
         var html = view.RenderAsLiveRoot();
@@ -187,13 +203,13 @@ public class AfterBindTests
         List<string>? cities = null;
 
         var view = new StubComponent(() => Form(m)[
-            Select(Bind: () => m.Country, AfterBindAsync: async c =>
+            Select(() => m.Country, AfterBindAsync: async c =>
             {
                 await Task.Yield();
                 cities = c == "US" ? new List<string> { "NYC", "LA" } : new List<string> { "Berlin" };
             })[
-                Option(Value: "US")["US"],
-                Option(Value: "DE")["DE"]
+                Option("US")["US"],
+                Option("DE")["DE"]
             ]
         ]);
         var html = view.RenderAsLiveRoot();
@@ -214,7 +230,7 @@ public class AfterBindTests
         string? captured = null;
 
         var view = new StubComponent(() => Form(m)[
-            Textarea(() => m.Name, AfterBind: v => captured = v)
+            Textarea(() => m.Name, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
         var inputId = ExtractAttr(html, "data-rask-on-input")!;
@@ -233,7 +249,7 @@ public class AfterBindTests
         bool? captured = null;
 
         var view = new StubComponent(() => Form(m)[
-            Input(() => m.Enabled, AfterBind: v => captured = v)
+            Input(() => m.Enabled, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
         var changeId = ExtractAttr(html, "data-rask-on-change")!;
@@ -256,7 +272,7 @@ public class AfterBindTests
         var fires = 0;
 
         var view = new StubComponent(() => Form(m)[
-            Input(() => m.Name, AfterBind: _ => fires++)
+            Input(() => m.Name, _ => fires++)
         ]);
         var html = view.RenderAsLiveRoot();
         var inputId = ExtractAttr(html, "data-rask-on-input")!;
@@ -272,17 +288,41 @@ public class AfterBindTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
     }
 
-    private sealed class TextModel { public string Name { get; set; } = ""; }
-    private sealed class NumberModel { public int Age { get; set; } }
-    private sealed class FlagModel { public bool Enabled { get; set; } }
-    private sealed class ColorModel { public Color Favorite { get; set; } }
-    private sealed class RegionModel { public string Country { get; set; } = ""; }
+    private sealed class TextModel
+    {
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class NumberModel
+    {
+        public int Age { get; set; }
+    }
+
+    private sealed class FlagModel
+    {
+        public bool Enabled { get; set; }
+    }
+
+    private sealed class ColorModel
+    {
+        public Color Favorite { get; set; }
+    }
+
+    private sealed class RegionModel
+    {
+        public string Country { get; set; } = "";
+    }
+
     private enum Color { Red, Blue }
 
     private sealed class ContextCapture(Action<EditContext> capture) : Component
@@ -293,6 +333,7 @@ public class AfterBindTests
             {
                 capture(c);
             }
+
             return Fragment();
         }
     }

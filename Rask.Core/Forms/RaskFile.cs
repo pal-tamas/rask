@@ -7,5 +7,6 @@ public abstract class RaskFile
     public abstract string ContentType { get; }
     public abstract DateTimeOffset LastModified { get; }
 
-    public abstract Stream OpenReadStream(long maxAllowedSize = 512 * 1024, CancellationToken cancellationToken = default);
+    public abstract Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
+        CancellationToken cancellationToken = default);
 }

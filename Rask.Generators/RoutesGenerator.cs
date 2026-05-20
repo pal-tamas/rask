@@ -148,11 +148,15 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         {
             var routeType = compilation.GetTypeByMetadataName("Rask.Core.Routing.Route");
             return routeType is not null
-                && SymbolEqualityComparer.Default.Equals(routeType.ContainingAssembly, compilation.Assembly);
+                   && SymbolEqualityComparer.Default.Equals(routeType.ContainingAssembly, compilation.Assembly);
         });
         context.RegisterSourceOutput(ownsRoute, static (spc, owns) =>
         {
-            if (!owns) return;
+            if (!owns)
+            {
+                return;
+            }
+
             EmitRouteHelpers(spc);
         });
     }

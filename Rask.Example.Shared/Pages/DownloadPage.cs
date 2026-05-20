@@ -12,14 +12,15 @@ public sealed class DownloadPage(Navigator nav) : Component
 {
     private int _reportCount;
 
+    protected override Component? Head => Title()["File download — Rask"];
+
     private void DownloadReport()
     {
         _reportCount++;
-        var report = $"Rask download demo\nGenerated at {DateTimeOffset.UtcNow.ToString("u", CultureInfo.InvariantCulture)}\nCount: {_reportCount}\n";
+        var report =
+            $"Rask download demo\nGenerated at {DateTimeOffset.UtcNow.ToString("u", CultureInfo.InvariantCulture)}\nCount: {_reportCount}\n";
         nav.Download("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
     }
-
-    protected override Component? Head => Title()["File download — Rask"];
 
     protected override Component Render() =>
         Fragment()[
@@ -54,14 +55,15 @@ public sealed class DownloadPage(Navigator nav) : Component
     private Component RenderReport() =>
         Div()[
             Button(
-                Type: "button",
+                "button",
                 Class: "btn btn-primary",
                 Id: "download-report",
                 OnClick: DownloadReport)[
-                    I(Class: "bi bi-file-earmark-text me-2"),
-                    "Download report"
-                ],
-            Div(Class: "small text-secondary mt-2", Data: new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
+                I(Class: "bi bi-file-earmark-text me-2"),
+                "Download report"
+            ],
+            Div(Class: "small text-secondary mt-2",
+                Data: new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
                 $"Generated {_reportCount} time(s)."
             ]
         ];

@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Rask.Core;
 
 namespace Rask.Server.Tests.Infrastructure;
@@ -30,7 +28,7 @@ internal sealed class RaskTestHost : IDisposable
     public void Dispose()
     {
         Http.Dispose();
-        ((IAsyncDisposable)_app).DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _app.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 
     public static RaskTestHost Create<TApp>(

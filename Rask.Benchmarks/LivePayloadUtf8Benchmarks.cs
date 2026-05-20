@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using Rask.Core.Live;
 
@@ -19,9 +20,9 @@ public class LivePayloadUtf8Benchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _pooledWriter = new ArrayBufferWriter<byte>(initialCapacity: 32 * 1024);
+        _pooledWriter = new ArrayBufferWriter<byte>(32 * 1024);
 
-        var rows = new System.Text.StringBuilder();
+        var rows = new StringBuilder();
         for (var i = 0; i < 200; i++)
         {
             rows.Append("<div class=\"row\" id=\"r").Append(i)

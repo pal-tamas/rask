@@ -14,8 +14,19 @@ public sealed class Ol : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Reversed) AppendAttr(sb, "reversed", null);
-        if (Start is not null) AppendAttr(sb, "start", Start.Value.ToString(CultureInfo.InvariantCulture));
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Reversed)
+        {
+            AppendAttr(sb, "reversed", null);
+        }
+
+        if (Start is not null)
+        {
+            AppendAttr(sb, "start", Start.Value.ToString(CultureInfo.InvariantCulture));
+        }
     }
 }

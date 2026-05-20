@@ -13,14 +13,14 @@ public sealed class HttpPage(HttpClient http) : Component
     private string? _error;
     private Post? _post;
 
+    protected override Component? Head => Title()["HttpClient + DI — Rask"];
+
     protected override async Task OnMountAsync()
     {
         try { _post = await http.GetFromJsonAsync("posts/1", HttpJsonContext.Default.Post, CancellationToken); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { _error = ex.Message; }
     }
-
-    protected override Component? Head => Title()["HttpClient + DI — Rask"];
 
     protected override Component Render() =>
         Fragment()[

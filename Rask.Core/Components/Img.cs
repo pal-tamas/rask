@@ -24,17 +24,64 @@ public sealed class Img : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Src is not null) AppendAttr(sb, "src", Src);
-        if (Alt is not null) AppendAttr(sb, "alt", Alt);
-        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        if (Loading is not null) AppendAttr(sb, "loading", Loading);
-        if (Srcset is not null) AppendAttr(sb, "srcset", Srcset);
-        if (Sizes is not null) AppendAttr(sb, "sizes", Sizes);
-        if (CrossOrigin is not null) AppendAttr(sb, "crossorigin", CrossOrigin);
-        if (ReferrerPolicy is not null) AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
-        if (Decoding is not null) AppendAttr(sb, "decoding", Decoding);
-        if (UseMap is not null) AppendAttr(sb, "usemap", UseMap);
-        if (Ismap) AppendAttr(sb, "ismap", null);
+        if (Src is not null)
+        {
+            AppendAttr(sb, "src", Src);
+        }
+
+        if (Alt is not null)
+        {
+            AppendAttr(sb, "alt", Alt);
+        }
+
+        if (Width is not null)
+        {
+            AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Height is not null)
+        {
+            AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Loading is not null)
+        {
+            AppendAttr(sb, "loading", Loading);
+        }
+
+        if (Srcset is not null)
+        {
+            AppendAttr(sb, "srcset", Srcset);
+        }
+
+        if (Sizes is not null)
+        {
+            AppendAttr(sb, "sizes", Sizes);
+        }
+
+        if (CrossOrigin is not null)
+        {
+            AppendAttr(sb, "crossorigin", CrossOrigin);
+        }
+
+        if (ReferrerPolicy is not null)
+        {
+            AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
+        }
+
+        if (Decoding is not null)
+        {
+            AppendAttr(sb, "decoding", Decoding);
+        }
+
+        if (UseMap is not null)
+        {
+            AppendAttr(sb, "usemap", UseMap);
+        }
+
+        if (Ismap)
+        {
+            AppendAttr(sb, "ismap", null);
+        }
     }
 }

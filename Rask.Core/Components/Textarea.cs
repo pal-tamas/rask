@@ -9,6 +9,28 @@ namespace Rask.Core.Components;
 
 public sealed class Textarea : Element
 {
+    protected override string TagName => "textarea";
+
+    public string? Name { get; set; }
+    public int? Rows { get; set; }
+    public int? Cols { get; set; }
+    public string? Placeholder { get; set; }
+    public bool Required { get; set; }
+    public bool Disabled { get; set; }
+    public bool ReadOnly { get; set; }
+    public int? MaxLength { get; set; }
+    public int? MinLength { get; set; }
+    public string? Wrap { get; set; }
+    public bool Autofocus { get; set; }
+    public string? Autocomplete { get; set; }
+    public string? Form { get; set; }
+    public string? Dirname { get; set; }
+    public Action<string>? OnInput { get; set; }
+    public Action<string>? OnChange { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
+
+    public Func<string, Task>? OnChangeAsync { get; set; }
+
     // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
     // updates per-keystroke (OnInput) since textareas are inherently string-valued.
     // `Validate` ships as three overloads (none / typed sync / typed async) so callers can
@@ -36,7 +58,7 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: null, AfterBind, AfterBindAsync, Id, Class, Style, Data);
+            null, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
@@ -62,7 +84,7 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
+            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
@@ -88,7 +110,7 @@ public sealed class Textarea : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
             MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            validate: Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
+            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     private static Textarea BoundCore<TProp>(
         Expression<Func<TProp>> Bind,
@@ -121,61 +143,101 @@ public sealed class Textarea : Element
         var stringValue = BindingHelpers.FormatValue(acc.Getter());
 
         return (Textarea)C.Textarea(
-            Name: name, Rows: Rows, Cols: Cols, Placeholder: Placeholder,
-            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
-            MaxLength: MaxLength, MinLength: MinLength, Wrap: Wrap,
-            Autofocus: Autofocus, Autocomplete: Autocomplete,
+            name, Rows, Cols, Placeholder,
+            Required, Disabled, ReadOnly,
+            MaxLength, MinLength, Wrap,
+            Autofocus, Autocomplete,
             OnInputAsync: BindingHelpers.StringSetHandler(acc, ctx, fid, false, afterBind),
             OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
             Id: Id, Class: Class, Style: Style, Data: Data)[stringValue];
     }
 
-    protected override string TagName => "textarea";
-
-    public string? Name { get; set; }
-    public int? Rows { get; set; }
-    public int? Cols { get; set; }
-    public string? Placeholder { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
-    public bool ReadOnly { get; set; }
-    public int? MaxLength { get; set; }
-    public int? MinLength { get; set; }
-    public string? Wrap { get; set; }
-    public bool Autofocus { get; set; }
-    public string? Autocomplete { get; set; }
-    public string? Form { get; set; }
-    public string? Dirname { get; set; }
-    public Action<string>? OnInput { get; set; }
-    public Action<string>? OnChange { get; set; }
-    public Func<string, Task>? OnInputAsync { get; set; }
-    public Func<string, Task>? OnChangeAsync { get; set; }
-
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Name is not null) AppendAttr(sb, "name", Name);
-        if (Rows is not null) AppendAttr(sb, "rows", Rows.Value.ToString(CultureInfo.InvariantCulture));
-        if (Cols is not null) AppendAttr(sb, "cols", Cols.Value.ToString(CultureInfo.InvariantCulture));
-        if (Placeholder is not null) AppendAttr(sb, "placeholder", Placeholder);
-        if (Required) AppendAttr(sb, "required", null);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (ReadOnly) AppendAttr(sb, "readonly", null);
-        if (MaxLength is not null) AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (MinLength is not null) AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (Wrap is not null) AppendAttr(sb, "wrap", Wrap);
-        if (Autofocus) AppendAttr(sb, "autofocus", null);
-        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
-        if (Form is not null) AppendAttr(sb, "form", Form);
-        if (Dirname is not null) AppendAttr(sb, "dirname", Dirname);
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
+
+        if (Rows is not null)
+        {
+            AppendAttr(sb, "rows", Rows.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Cols is not null)
+        {
+            AppendAttr(sb, "cols", Cols.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Placeholder is not null)
+        {
+            AppendAttr(sb, "placeholder", Placeholder);
+        }
+
+        if (Required)
+        {
+            AppendAttr(sb, "required", null);
+        }
+
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (ReadOnly)
+        {
+            AppendAttr(sb, "readonly", null);
+        }
+
+        if (MaxLength is not null)
+        {
+            AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (MinLength is not null)
+        {
+            AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Wrap is not null)
+        {
+            AppendAttr(sb, "wrap", Wrap);
+        }
+
+        if (Autofocus)
+        {
+            AppendAttr(sb, "autofocus", null);
+        }
+
+        if (Autocomplete is not null)
+        {
+            AppendAttr(sb, "autocomplete", Autocomplete);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (Dirname is not null)
+        {
+            AppendAttr(sb, "dirname", Dirname);
+        }
 
         if (LiveRenderContext.Current is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
-            if (input is not null) AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            if (input is not null)
+            {
+                AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            }
 
             var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null) AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            if (change is not null)
+            {
+                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            }
         }
     }
 }

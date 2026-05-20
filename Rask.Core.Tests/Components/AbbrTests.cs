@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class AbbrTests
@@ -11,8 +9,8 @@ public class AbbrTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<abbr id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></abbr>",
-            Abbr(Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<abbr id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></abbr>",
+            Abbr("i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

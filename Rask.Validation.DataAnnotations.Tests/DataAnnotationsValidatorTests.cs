@@ -25,10 +25,10 @@ public class DataAnnotationsValidatorTests
         var view = new StubComponent(() => Form<Person>(
             p,
             (Action<Person>)(m => captured = m))[
-                DataAnnotationsValidator(),
-                Input(() => p.Name),
-                Input(() => p.Age)
-            ]);
+            DataAnnotationsValidator(),
+            Input(() => p.Name),
+            Input(() => p.Age)
+        ]);
 
         var html1 = view.RenderAsLiveRoot();
         var submit1 = ExtractAttr(html1, "data-rask-on-submit");
@@ -38,6 +38,7 @@ public class DataAnnotationsValidatorTests
         {
             await view.TryInvokeHandlerAsync(submit1!, doc.RootElement);
         }
+
         Assert.Null(captured);
 
         // Mutate the model out-of-band to simulate the user filling fields between renders
@@ -54,6 +55,7 @@ public class DataAnnotationsValidatorTests
         {
             await view.TryInvokeHandlerAsync(submit2!, doc.RootElement);
         }
+
         Assert.Same(p, captured);
     }
 
@@ -61,17 +63,14 @@ public class DataAnnotationsValidatorTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
-    }
-
-    private sealed class StubComponent : Component
-    {
-        private readonly Func<Component> _factory;
-        public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override Component Render() => _factory();
     }
 
     [Fact]
@@ -113,12 +112,16 @@ public class DataAnnotationsValidatorTests
     {
         // Model.Validate returns a ValidationResult with empty MemberNames — should land on
         // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
-        var m = new BookingModel { Departure = new DateOnly(2026, 6, 1), Arrival = new DateOnly(2026, 6, 5), RaiseFormLevel = true };
+        var m = new BookingModel
+        {
+            Departure = new DateOnly(2026, 6, 1), Arrival = new DateOnly(2026, 6, 5), RaiseFormLevel = true
+        };
         var ctx = RegisterValidatorFor(m);
 
         ctx.Validate();
 
-        Assert.Contains("Booking spans a blackout window.", ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
+        Assert.Contains("Booking spans a blackout window.",
+            ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
     }
 
     [Fact]
@@ -128,9 +131,7 @@ public class DataAnnotationsValidatorTests
         // land on that field's messages.
         var m = new BookingModel
         {
-            Name = "Ada",
-            Departure = new DateOnly(2020, 1, 1),
-            Arrival = new DateOnly(2026, 6, 5)
+            Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
         };
         var ctx = RegisterValidatorFor(m);
 
@@ -170,9 +171,7 @@ public class DataAnnotationsValidatorTests
         // whose MemberNames include Departure.
         var m = new BookingModel
         {
-            Name = "Ada",
-            Departure = new DateOnly(2020, 1, 1),
-            Arrival = new DateOnly(2026, 6, 5)
+            Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
         };
         var ctx = RegisterValidatorFor(m);
 
@@ -210,33 +209,8 @@ public class DataAnnotationsValidatorTests
         {
             DataAnnotationsValidator().ToHtml();
         }
+
         return ctx;
-    }
-
-    private sealed class BookingModel : IValidatableObject
-    {
-        [Required(ErrorMessage = "Name is required.")]
-        public string Name { get; set; } = "";
-
-        public DateOnly Departure { get; set; }
-        public DateOnly Arrival { get; set; }
-
-        public bool RaiseFormLevel { get; set; }
-
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
-            if (Departure < new DateOnly(2026, 1, 1))
-            {
-                yield return new ValidationResult(
-                    "Departure cannot be in the past.",
-                    new[] { nameof(Departure) });
-            }
-
-            if (RaiseFormLevel)
-            {
-                yield return new ValidationResult("Booking spans a blackout window.");
-            }
-        }
     }
 
     [Fact]
@@ -267,12 +241,48 @@ public class DataAnnotationsValidatorTests
         {
             DataAnnotationsValidator().ToHtml();
         }
+
         return ctx;
+    }
+
+    private sealed class StubComponent : Component
+    {
+        private readonly Func<Component> _factory;
+        public StubComponent(Func<Component> factory) => _factory = factory;
+        protected override Component Render() => _factory();
+    }
+
+    private sealed class BookingModel : IValidatableObject
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        public string Name { get; set; } = "";
+
+        public DateOnly Departure { get; set; }
+        public DateOnly Arrival { get; set; }
+
+        public bool RaiseFormLevel { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Departure < new DateOnly(2026, 1, 1))
+            {
+                yield return new ValidationResult(
+                    "Departure cannot be in the past.",
+                    new[] { nameof(Departure) });
+            }
+
+            if (RaiseFormLevel)
+            {
+                yield return new ValidationResult("Booking spans a blackout window.");
+            }
+        }
     }
 
     private sealed class Person
     {
-        [Required(ErrorMessage = "Name is required")] public string Name { get; set; } = "";
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = "";
+
         [Range(1, 120)] public int Age { get; set; }
         [StringLength(5)] public string Code { get; set; } = "";
     }

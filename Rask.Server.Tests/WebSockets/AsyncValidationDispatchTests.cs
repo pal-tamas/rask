@@ -41,7 +41,11 @@ public class AsyncValidationDispatchTests
         while (true)
         {
             var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
-            if (frame is null) break;
+            if (frame is null)
+            {
+                break;
+            }
+
             last = frame;
         }
 
@@ -58,7 +62,11 @@ public class AsyncValidationDispatchTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);

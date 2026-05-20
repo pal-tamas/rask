@@ -15,6 +15,13 @@ namespace Rask.Benchmarks;
 // If no path is given, looks in the standard publish locations.
 internal static class BundleSizeReport
 {
+    // Mirrors Rask.Wasm.Hosting.RaskWasmEndpointExtensions.IsFingerprintedAsset — kept
+    // duplicated rather than pulled in via InternalsVisibleTo to keep the report's
+    // dependency surface small (no Rask.Wasm.Hosting reference).
+    private static readonly Regex _fingerprintRegex = new(
+        @"\.[0-9a-z]{10,}\.[^.]+$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     public static int Run(string[] args)
     {
         var frameworkDir = args.Length > 1
@@ -40,12 +47,12 @@ internal static class BundleSizeReport
         // Group by stem so .wasm + .wasm.br + .wasm.gz line up on one row.
         var rows = files
             .Where(f => !f.Name.EndsWith(".br", StringComparison.Ordinal)
-                     && !f.Name.EndsWith(".gz", StringComparison.Ordinal))
+                        && !f.Name.EndsWith(".gz", StringComparison.Ordinal))
             .Select(f => new Row(
-                Name: f.Name,
-                Raw: f.Length,
-                Br: TryLength(Path.Combine(frameworkDir, f.Name + ".br")),
-                Gz: TryLength(Path.Combine(frameworkDir, f.Name + ".gz"))))
+                f.Name,
+                f.Length,
+                TryLength(Path.Combine(frameworkDir, f.Name + ".br")),
+                TryLength(Path.Combine(frameworkDir, f.Name + ".gz"))))
             .OrderByDescending(r => r.Raw)
             .ToList();
 
@@ -55,11 +62,15 @@ internal static class BundleSizeReport
         Console.WriteLine(new string('-', 100));
 
         long totalRaw = 0, totalBr = 0, totalGz = 0;
-        int immutableCount = 0;
+        var immutableCount = 0;
         foreach (var r in rows)
         {
             var cache = IsFingerprinted(r.Name) ? "immutable" : "no-cache";
-            if (cache == "immutable") immutableCount++;
+            if (cache == "immutable")
+            {
+                immutableCount++;
+            }
+
             Console.WriteLine($"{Trim(r.Name, 50),-50} {Fmt(r.Raw),12} {Fmt(r.Br),12} {Fmt(r.Gz),12} {cache,-10}");
             totalRaw += r.Raw;
             totalBr += r.Br ?? r.Raw;
@@ -97,7 +108,11 @@ internal static class BundleSizeReport
 
     private static string Fmt(long? bytes)
     {
-        if (bytes is null) return "-";
+        if (bytes is null)
+        {
+            return "-";
+        }
+
         var n = bytes.Value;
         return n switch
         {
@@ -117,13 +132,19 @@ internal static class BundleSizeReport
         // Walk up from the running assembly's location to find the repo root, then check
         // the standard publish output locations.
         var root = FindRepoRoot();
-        if (root is null) return null;
+        if (root is null)
+        {
+            return null;
+        }
 
         string[] candidates =
         [
-            Path.Combine(root, "Rask.Example.Wasm.Host", "bin", "Release", "net10.0", "publish", "wwwroot", "_framework"),
-            Path.Combine(root, "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "publish", "wwwroot", "_framework"),
-            Path.Combine(root, "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "browser-wasm", "publish", "wwwroot", "_framework")
+            Path.Combine(root, "Rask.Example.Wasm.Host", "bin", "Release", "net10.0", "publish", "wwwroot",
+                "_framework"),
+            Path.Combine(root, "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "publish", "wwwroot",
+                "_framework"),
+            Path.Combine(root, "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "browser-wasm", "publish",
+                "wwwroot", "_framework")
         ];
 
         return candidates.FirstOrDefault(Directory.Exists);
@@ -134,18 +155,16 @@ internal static class BundleSizeReport
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            if (Directory.GetFiles(dir.FullName, "Rask.sln").Length > 0) return dir.FullName;
+            if (Directory.GetFiles(dir.FullName, "Rask.sln").Length > 0)
+            {
+                return dir.FullName;
+            }
+
             dir = dir.Parent;
         }
+
         return null;
     }
-
-    // Mirrors Rask.Wasm.Hosting.RaskWasmEndpointExtensions.IsFingerprintedAsset — kept
-    // duplicated rather than pulled in via InternalsVisibleTo to keep the report's
-    // dependency surface small (no Rask.Wasm.Hosting reference).
-    private static readonly Regex _fingerprintRegex = new(
-        @"\.[0-9a-z]{10,}\.[^.]+$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static bool IsFingerprinted(string fileName) => _fingerprintRegex.IsMatch(fileName);
 

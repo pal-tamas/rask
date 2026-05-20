@@ -1,4 +1,3 @@
-using Rask.Core.Components;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories

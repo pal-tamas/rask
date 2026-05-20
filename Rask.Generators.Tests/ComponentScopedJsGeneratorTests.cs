@@ -12,12 +12,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_EmitsRegistrationForMatchingComponentAndJsSibling()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -36,12 +36,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_DoesNotPairJsWithComponentInDifferentDirectory()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Other/Counter.cs", source) },
@@ -54,12 +54,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_RaisesRASK017_ForOrphanJsFile()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -72,12 +72,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_EscapesQuotesInJsContent()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -93,12 +93,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_IgnoresWhitespaceOnlyJsFile()
     {
         const string source = """
-            namespace Foo;
-            public sealed class Counter : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
@@ -115,12 +115,12 @@ public class ComponentScopedJsGeneratorTests
     public void Generator_SkipsAbstractComponents()
     {
         const string source = """
-            namespace Foo;
-            public abstract class Base : Rask.Core.Component
-            {
-                protected override Rask.Core.Component Render() => this;
-            }
-            """;
+                              namespace Foo;
+                              public abstract class Base : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component Render() => this;
+                              }
+                              """;
 
         var run = Run(
             new[] { ("/proj/Base.cs", source) },
@@ -137,7 +137,7 @@ public class ComponentScopedJsGeneratorTests
             .Select(s => CSharpSyntaxTree.ParseText(
                 s.Source,
                 new CSharpParseOptions(LanguageVersion.Latest),
-                path: s.Path))
+                s.Path))
             .ToArray();
 
         var references = BuildReferences();
@@ -178,6 +178,7 @@ public class ComponentScopedJsGeneratorTests
     private sealed class InMemoryAdditionalText : AdditionalText
     {
         private readonly string _contents;
+
         public InMemoryAdditionalText(string path, string contents)
         {
             Path = path;

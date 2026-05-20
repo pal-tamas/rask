@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
@@ -33,7 +32,7 @@ public sealed class DataAnnotationsValidator : Component
         // session (same DI scope), so the first registration's snapshot is durable;
         // AddValidator's type-dedup discards subsequent re-registrations anyway.
         EditContextScope.Current?.AddValidator(new Inner(LiveRenderContext.Current?.Services));
-        return Rask.Core.Components.Components.Fragment();
+        return Core.Components.Components.Fragment();
     }
 
     private sealed class Inner : IFieldValidator
@@ -55,48 +54,6 @@ public sealed class DataAnnotationsValidator : Component
             foreach (var node in ModelGraphWalker.Walk(context.Model))
             {
                 ValidateNode(context, node);
-            }
-        }
-
-        [UnconditionalSuppressMessage("Trimming", "IL2026",
-            Justification = "TryValidateObject reflects over the node's runtime type — same trim contract " +
-                            "as the root: the consumer is responsible for preserving every reachable model " +
-                            "type's public properties, typically via [DynamicallyAccessedMembers].")]
-        private void ValidateNode(EditContext context, object node)
-        {
-            var results = new List<ValidationResult>();
-            var ctx = NewValidationContext(node);
-            Validator.TryValidateObject(node, ctx, results, true);
-
-            // BCL's TryValidateObject short-circuits IValidatableObject.Validate as soon as any
-            // attribute-level error is found. ASP.NET Core MVC's DefaultObjectValidator does not
-            // — attribute and IValidatableObject errors accumulate together. Invoke the interface
-            // method ourselves to match that experience.
-            if (node is IValidatableObject validatable)
-            {
-                foreach (var r in validatable.Validate(ctx))
-                {
-                    results.Add(r);
-                }
-            }
-
-            foreach (var r in results)
-            {
-                var members = r.MemberNames.ToList();
-                if (members.Count == 0)
-                {
-                    context.AddValidationMessage(
-                        new FieldIdentifier(node, string.Empty),
-                        r.ErrorMessage ?? "Invalid value.");
-                    continue;
-                }
-
-                foreach (var m in members)
-                {
-                    context.AddValidationMessage(
-                        new FieldIdentifier(node, m),
-                        r.ErrorMessage ?? "Invalid value.");
-                }
             }
         }
 
@@ -142,6 +99,48 @@ public sealed class DataAnnotationsValidator : Component
             }
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "TryValidateObject reflects over the node's runtime type — same trim contract " +
+                            "as the root: the consumer is responsible for preserving every reachable model " +
+                            "type's public properties, typically via [DynamicallyAccessedMembers].")]
+        private void ValidateNode(EditContext context, object node)
+        {
+            var results = new List<ValidationResult>();
+            var ctx = NewValidationContext(node);
+            Validator.TryValidateObject(node, ctx, results, true);
+
+            // BCL's TryValidateObject short-circuits IValidatableObject.Validate as soon as any
+            // attribute-level error is found. ASP.NET Core MVC's DefaultObjectValidator does not
+            // — attribute and IValidatableObject errors accumulate together. Invoke the interface
+            // method ourselves to match that experience.
+            if (node is IValidatableObject validatable)
+            {
+                foreach (var r in validatable.Validate(ctx))
+                {
+                    results.Add(r);
+                }
+            }
+
+            foreach (var r in results)
+            {
+                var members = r.MemberNames.ToList();
+                if (members.Count == 0)
+                {
+                    context.AddValidationMessage(
+                        new FieldIdentifier(node, string.Empty),
+                        r.ErrorMessage ?? "Invalid value.");
+                    continue;
+                }
+
+                foreach (var m in members)
+                {
+                    context.AddValidationMessage(
+                        new FieldIdentifier(node, m),
+                        r.ErrorMessage ?? "Invalid value.");
+                }
+            }
+        }
+
         // ASP.NET Core / Blazor parity: ValidationContext is constructed with the render-scoped
         // IServiceProvider so custom ValidationAttribute subclasses can call
         // validationContext.GetService<T>() at validation time. _services is captured once at
@@ -153,6 +152,6 @@ public sealed class DataAnnotationsValidator : Component
                             "model — same constraint as Validate/ValidateField: the user-owned model type is " +
                             "preserved through the consumer's binding/page annotations.")]
         private ValidationContext NewValidationContext(object model) =>
-            new(model, _services, items: null);
+            new(model, _services, null);
     }
 }

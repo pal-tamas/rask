@@ -18,13 +18,13 @@ public class FormDataFilesTests
         using var scope = DispatchServicesScope.Push(services);
 
         var payload = JsonDocument.Parse("""
-            { "form": {
-                "name": "Ada",
-                "__files": {
-                    "avatar": [{ "token": "t1", "name": "a.png", "size": 100, "type": "image/png", "lastModified": 1 }]
-                }
-            }}
-            """).RootElement;
+                                         { "form": {
+                                             "name": "Ada",
+                                             "__files": {
+                                                 "avatar": [{ "token": "t1", "name": "a.png", "size": 100, "type": "image/png", "lastModified": 1 }]
+                                             }
+                                         }}
+                                         """).RootElement;
 
         var fd = FormData.FromJson(payload);
 
@@ -54,12 +54,19 @@ public class FormDataFilesTests
 
     private sealed class TestFile : RaskFile
     {
-        public TestFile(string name, long size) { Name = name; Size = size; }
+        public TestFile(string name, long size)
+        {
+            Name = name;
+            Size = size;
+        }
+
         public override string Name { get; }
         public override long Size { get; }
         public override string ContentType => "application/octet-stream";
         public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
-        public override Stream OpenReadStream(long maxAllowedSize = 524288, CancellationToken cancellationToken = default) =>
+
+        public override Stream OpenReadStream(long maxAllowedSize = 524288,
+            CancellationToken cancellationToken = default) =>
             Stream.Null;
     }
 }

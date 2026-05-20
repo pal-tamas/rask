@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -39,10 +38,7 @@ public class NestedBindingTests
     {
         var p = new Person
         {
-            Address = new Address
-            {
-                Postal = new PostalInfo { Country = new Country { Code = "NL" } }
-            }
+            Address = new Address { Postal = new PostalInfo { Country = new Country { Code = "NL" } } }
         };
 
         var acc = ExpressionAccessor.Parse(
@@ -56,12 +52,7 @@ public class NestedBindingTests
     [Fact]
     public void Parse_ForeachCapturedLocal_TargetsCurrentItem()
     {
-        var items = new List<LineItem>
-        {
-            new() { Name = "alpha" },
-            new() { Name = "beta" },
-            new() { Name = "gamma" }
-        };
+        var items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" }, new() { Name = "gamma" } };
 
         var captured = new List<ExpressionAccessor.Accessor>();
         foreach (var item in items)
@@ -82,11 +73,7 @@ public class NestedBindingTests
     [Fact]
     public void Parse_ListIndexer_TargetsItemAtIndex()
     {
-        var items = new List<LineItem>
-        {
-            new() { Name = "alpha" },
-            new() { Name = "beta" }
-        };
+        var items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } };
         var i = 1;
 
         var acc = ExpressionAccessor.Parse((Expression<Func<string>>)(() => items[i].Name));
@@ -99,11 +86,7 @@ public class NestedBindingTests
     [Fact]
     public void Parse_ArrayIndexer_TargetsItemAtIndex()
     {
-        var items = new[]
-        {
-            new LineItem { Name = "alpha" },
-            new LineItem { Name = "beta" }
-        };
+        var items = new[] { new LineItem { Name = "alpha" }, new LineItem { Name = "beta" } };
         var i = 0;
 
         var acc = ExpressionAccessor.Parse((Expression<Func<string>>)(() => items[i].Name));
@@ -117,8 +100,7 @@ public class NestedBindingTests
     {
         var settings = new Dictionary<string, ServerConfig>
         {
-            ["smtp"] = new() { Host = "smtp.example.com" },
-            ["http"] = new() { Host = "api.example.com" }
+            ["smtp"] = new() { Host = "smtp.example.com" }, ["http"] = new() { Host = "api.example.com" }
         };
 
         var acc = ExpressionAccessor.Parse(
@@ -134,11 +116,7 @@ public class NestedBindingTests
         // Record items are immutable — the user replaces a slot rather than mutating it.
         // Calling Parse again after replacement must return an accessor whose Target is the
         // NEW record instance, not the discarded one.
-        var items = new List<LineRecord>
-        {
-            new("alpha", 1),
-            new("beta", 2)
-        };
+        var items = new List<LineRecord> { new("alpha", 1), new("beta", 2) };
         var i = 0;
 
         var first = ExpressionAccessor.Parse((Expression<Func<string>>)(() => items[i].Name));

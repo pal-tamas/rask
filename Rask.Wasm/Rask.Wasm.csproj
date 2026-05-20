@@ -18,15 +18,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8"/>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8"/>
     <!--
       Rask.Core uses Microsoft.AspNetCore.Authorization (in RouteAuthorizationGuard).
       On the WASM track there's no Microsoft.AspNetCore.App framework reference, so we
       surface this dep at the package boundary so consumers can restore it.
     -->
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.8" />
-    <PackageReference Update="MinVer" Version="7.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.8"/>
+    <PackageReference Update="MinVer" Version="7.0.0"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -64,7 +64,7 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
-  <Import Project="..\build\Rask.MinifyJs.targets" />
+  <Import Project="..\build\Rask.MinifyJs.targets"/>
 
   <!--
     Always write the unminified spliced JS to Browser/rask.wasm.js — that's the file the
@@ -80,7 +80,7 @@
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_SCOPED@@', '$(_RaskScopedBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskWasmJs>
     </PropertyGroup>
-    <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
 
   <!--
@@ -97,10 +97,10 @@
           Condition=" '$(Configuration)' == 'Release' "
           Inputs="Browser\rask.wasm.js"
           Outputs="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js">
-    <MakeDir Directories="$(IntermediateOutputPath)" />
-    <Copy SourceFiles="Browser\rask.wasm.js" DestinationFiles="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js" />
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <Copy SourceFiles="Browser\rask.wasm.js" DestinationFiles="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
     <RaskMinifyJs InputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
-                  OutputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js" />
+                  OutputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
   </Target>
 
   <!--

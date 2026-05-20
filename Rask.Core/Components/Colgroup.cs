@@ -12,6 +12,9 @@ public sealed class Colgroup : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Span is not null) AppendAttr(sb, "span", Span.Value.ToString(CultureInfo.InvariantCulture));
+        if (Span is not null)
+        {
+            AppendAttr(sb, "span", Span.Value.ToString(CultureInfo.InvariantCulture));
+        }
     }
 }

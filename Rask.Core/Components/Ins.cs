@@ -12,7 +12,14 @@ public sealed class Ins : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Cite is not null) AppendAttr(sb, "cite", Cite);
-        if (DateTime is not null) AppendAttr(sb, "datetime", DateTime);
+        if (Cite is not null)
+        {
+            AppendAttr(sb, "cite", Cite);
+        }
+
+        if (DateTime is not null)
+        {
+            AppendAttr(sb, "datetime", DateTime);
+        }
     }
 }

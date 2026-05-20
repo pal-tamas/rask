@@ -13,8 +13,19 @@ public sealed class Fieldset : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (Form is not null) AppendAttr(sb, "form", Form);
-        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
     }
 }

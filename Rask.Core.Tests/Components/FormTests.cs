@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Tests.Live;
 
@@ -17,9 +16,10 @@ public class FormTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal(
+        Assert.Equal(
             "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" enctype=\"multipart/form-data\" target=\"_blank\" accept-charset=\"utf-8\" autocomplete=\"off\" novalidate name=\"n\"></form>",
-            Form(Enctype: "multipart/form-data", Target: "_blank", AcceptCharset: "utf-8", Autocomplete: "off", Novalidate: true, Name: "n", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Form(Enctype: "multipart/form-data", "_blank", "utf-8", "off", true, "n", Id: "i", Class: "c", Style: "s",
+                Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]
@@ -79,7 +79,11 @@ public class FormTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
@@ -99,7 +103,8 @@ public class FormTests
             context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "remote check failed");
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken) =>
+        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+            CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }
 }

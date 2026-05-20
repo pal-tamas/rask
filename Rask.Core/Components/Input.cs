@@ -10,6 +10,47 @@ namespace Rask.Core.Components;
 
 public sealed class Input : Element
 {
+    protected override string TagName => "input";
+    protected override bool SelfClosing => true;
+
+    public string? Type { get; set; }
+    public string? Name { get; set; }
+    public string? Value { get; set; }
+    public string? Placeholder { get; set; }
+    public bool Required { get; set; }
+    public bool Disabled { get; set; }
+    public bool ReadOnly { get; set; }
+    public bool Checked { get; set; }
+    public string? Min { get; set; }
+    public string? Max { get; set; }
+    public string? Step { get; set; }
+    public string? Pattern { get; set; }
+    public int? Size { get; set; }
+    public int? MaxLength { get; set; }
+    public int? MinLength { get; set; }
+    public bool Multiple { get; set; }
+    public string? Accept { get; set; }
+    public string? Alt { get; set; }
+    public string? Autocomplete { get; set; }
+    public bool Autofocus { get; set; }
+    public string? Form { get; set; }
+    public string? FormAction { get; set; }
+    public string? FormEnctype { get; set; }
+    public string? FormMethod { get; set; }
+    public bool FormNovalidate { get; set; }
+    public string? FormTarget { get; set; }
+    public string? List { get; set; }
+    public string? Src { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public Action<string>? OnInput { get; set; }
+    public Action<string>? OnChange { get; set; }
+    public Func<string, Task>? OnInputAsync { get; set; }
+    public Func<string, Task>? OnChangeAsync { get; set; }
+    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+
+    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
+
     // Expression-driven factory. The generator picks up [GenerateForwarderFactory] and emits
     // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers
     // write `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field,
@@ -49,7 +90,7 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: null,
+            Autocomplete, Autofocus, List, null,
             AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
@@ -80,7 +121,7 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: Validate,
+            Autocomplete, Autofocus, List, Validate,
             AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     [GenerateForwarderFactory]
@@ -111,7 +152,7 @@ public sealed class Input : Element
         IReadOnlyDictionary<string, string?>? Data = null)
         => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
             Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, validate: Validate,
+            Autocomplete, Autofocus, List, Validate,
             AfterBind, AfterBindAsync, Id, Class, Style, Data);
 
     private static Input BoundCore<TProp>(
@@ -157,7 +198,7 @@ public sealed class Input : Element
         {
             var isChecked = current is bool b && b;
             return C.Input(
-                Type: "checkbox", Name: name,
+                "checkbox", name,
                 Checked: isChecked,
                 Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
                 Min: Min, Max: Max, Step: Step, Pattern: Pattern,
@@ -171,8 +212,8 @@ public sealed class Input : Element
         var isImmediate = BindingHelpers.IsImmediateUpdateType(acc.PropertyType);
 
         return C.Input(
-            Type: resolvedType, Name: name, Value: stringValue, Placeholder: Placeholder,
-            Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
+            resolvedType, name, stringValue, Placeholder,
+            Required, Disabled, ReadOnly,
             Min: Min, Max: Max, Step: Step, Pattern: Pattern,
             Size: Size, MaxLength: MaxLength, MinLength: MinLength,
             Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
@@ -181,90 +222,178 @@ public sealed class Input : Element
             Id: Id, Class: Class, Style: Style, Data: Data);
     }
 
-    protected override string TagName => "input";
-    protected override bool SelfClosing => true;
-
-    public string? Type { get; set; }
-    public string? Name { get; set; }
-    public string? Value { get; set; }
-    public string? Placeholder { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
-    public bool ReadOnly { get; set; }
-    public bool Checked { get; set; }
-    public string? Min { get; set; }
-    public string? Max { get; set; }
-    public string? Step { get; set; }
-    public string? Pattern { get; set; }
-    public int? Size { get; set; }
-    public int? MaxLength { get; set; }
-    public int? MinLength { get; set; }
-    public bool Multiple { get; set; }
-    public string? Accept { get; set; }
-    public string? Alt { get; set; }
-    public string? Autocomplete { get; set; }
-    public bool Autofocus { get; set; }
-    public string? Form { get; set; }
-    public string? FormAction { get; set; }
-    public string? FormEnctype { get; set; }
-    public string? FormMethod { get; set; }
-    public bool FormNovalidate { get; set; }
-    public string? FormTarget { get; set; }
-    public string? List { get; set; }
-    public string? Src { get; set; }
-    public int? Width { get; set; }
-    public int? Height { get; set; }
-    public Action<string>? OnInput { get; set; }
-    public Action<string>? OnChange { get; set; }
-    public Func<string, Task>? OnInputAsync { get; set; }
-    public Func<string, Task>? OnChangeAsync { get; set; }
-    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
-    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
-
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Name is not null) AppendAttr(sb, "name", Name);
-        if (Value is not null) AppendAttr(sb, "value", Value);
-        if (Placeholder is not null) AppendAttr(sb, "placeholder", Placeholder);
-        if (Required) AppendAttr(sb, "required", null);
-        if (Disabled) AppendAttr(sb, "disabled", null);
-        if (ReadOnly) AppendAttr(sb, "readonly", null);
-        if (Checked) AppendAttr(sb, "checked", null);
-        if (Min is not null) AppendAttr(sb, "min", Min);
-        if (Max is not null) AppendAttr(sb, "max", Max);
-        if (Step is not null) AppendAttr(sb, "step", Step);
-        if (Pattern is not null) AppendAttr(sb, "pattern", Pattern);
-        if (Size is not null) AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
-        if (MaxLength is not null) AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (MinLength is not null) AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
-        if (Multiple) AppendAttr(sb, "multiple", null);
-        if (Accept is not null) AppendAttr(sb, "accept", Accept);
-        if (Alt is not null) AppendAttr(sb, "alt", Alt);
-        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
-        if (Autofocus) AppendAttr(sb, "autofocus", null);
-        if (Form is not null) AppendAttr(sb, "form", Form);
-        if (FormAction is not null) AppendAttr(sb, "formaction", FormAction);
-        if (FormEnctype is not null) AppendAttr(sb, "formenctype", FormEnctype);
-        if (FormMethod is not null) AppendAttr(sb, "formmethod", FormMethod);
-        if (FormNovalidate) AppendAttr(sb, "formnovalidate", null);
-        if (FormTarget is not null) AppendAttr(sb, "formtarget", FormTarget);
-        if (List is not null) AppendAttr(sb, "list", List);
-        if (Src is not null) AppendAttr(sb, "src", Src);
-        if (Width is not null) AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
-        if (Height is not null) AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
+
+        if (Value is not null)
+        {
+            AppendAttr(sb, "value", Value);
+        }
+
+        if (Placeholder is not null)
+        {
+            AppendAttr(sb, "placeholder", Placeholder);
+        }
+
+        if (Required)
+        {
+            AppendAttr(sb, "required", null);
+        }
+
+        if (Disabled)
+        {
+            AppendAttr(sb, "disabled", null);
+        }
+
+        if (ReadOnly)
+        {
+            AppendAttr(sb, "readonly", null);
+        }
+
+        if (Checked)
+        {
+            AppendAttr(sb, "checked", null);
+        }
+
+        if (Min is not null)
+        {
+            AppendAttr(sb, "min", Min);
+        }
+
+        if (Max is not null)
+        {
+            AppendAttr(sb, "max", Max);
+        }
+
+        if (Step is not null)
+        {
+            AppendAttr(sb, "step", Step);
+        }
+
+        if (Pattern is not null)
+        {
+            AppendAttr(sb, "pattern", Pattern);
+        }
+
+        if (Size is not null)
+        {
+            AppendAttr(sb, "size", Size.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (MaxLength is not null)
+        {
+            AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (MinLength is not null)
+        {
+            AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Multiple)
+        {
+            AppendAttr(sb, "multiple", null);
+        }
+
+        if (Accept is not null)
+        {
+            AppendAttr(sb, "accept", Accept);
+        }
+
+        if (Alt is not null)
+        {
+            AppendAttr(sb, "alt", Alt);
+        }
+
+        if (Autocomplete is not null)
+        {
+            AppendAttr(sb, "autocomplete", Autocomplete);
+        }
+
+        if (Autofocus)
+        {
+            AppendAttr(sb, "autofocus", null);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (FormAction is not null)
+        {
+            AppendAttr(sb, "formaction", FormAction);
+        }
+
+        if (FormEnctype is not null)
+        {
+            AppendAttr(sb, "formenctype", FormEnctype);
+        }
+
+        if (FormMethod is not null)
+        {
+            AppendAttr(sb, "formmethod", FormMethod);
+        }
+
+        if (FormNovalidate)
+        {
+            AppendAttr(sb, "formnovalidate", null);
+        }
+
+        if (FormTarget is not null)
+        {
+            AppendAttr(sb, "formtarget", FormTarget);
+        }
+
+        if (List is not null)
+        {
+            AppendAttr(sb, "list", List);
+        }
+
+        if (Src is not null)
+        {
+            AppendAttr(sb, "src", Src);
+        }
+
+        if (Width is not null)
+        {
+            AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Height is not null)
+        {
+            AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
+        }
 
         if (LiveRenderContext.Current is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
-            if (input is not null) AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            if (input is not null)
+            {
+                AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            }
 
             var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null) AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            if (change is not null)
+            {
+                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            }
 
             var files = (Delegate?)OnFiles ?? OnFilesAsync;
-            if (files is not null) AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+            if (files is not null)
+            {
+                AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+            }
         }
     }
 }

@@ -7,6 +7,9 @@ public sealed class DisposableTimerProbe : Component, IDisposable
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
+    public void Dispose() =>
+        Log($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+
     protected override void OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
@@ -18,17 +21,14 @@ public sealed class DisposableTimerProbe : Component, IDisposable
             Span(Class: "badge text-bg-warning dispose-probe-pill")[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire Dispose()."]
         ];
-
-    public void Dispose() =>
-        Log($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
 }
 
 // Holds a Timer started in OnMount and stopped in OnUnmount. Demonstrates the "use the
 // lifecycle hook for things that mirror OnMount" pattern — no IDisposable required.
 public sealed class UnmountTimerProbe : Component
 {
-    private Timer? _timer;
     private int _ticks;
+    private Timer? _timer;
 
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
@@ -64,6 +64,12 @@ public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
+    public ValueTask DisposeAsync()
+    {
+        Log($"#{InstanceId} async-disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+        return ValueTask.CompletedTask;
+    }
+
     protected override void OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
@@ -73,12 +79,7 @@ public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
     protected override Component Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             Span(Class: "badge text-bg-info dispose-async-pill")[$"#{InstanceId} alive"],
-            Span(Class: "text-secondary small")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
+            Span(Class: "text-secondary small")[
+                $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];
-
-    public ValueTask DisposeAsync()
-    {
-        Log($"#{InstanceId} async-disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
-        return ValueTask.CompletedTask;
-    }
 }

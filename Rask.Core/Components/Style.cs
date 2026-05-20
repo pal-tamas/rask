@@ -14,9 +14,24 @@ public sealed class Style : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Type is not null) AppendAttr(sb, "type", Type);
-        if (Media is not null) AppendAttr(sb, "media", Media);
-        if (Title is not null) AppendAttr(sb, "title", Title);
-        if (Nonce is not null) AppendAttr(sb, "nonce", Nonce);
+        if (Type is not null)
+        {
+            AppendAttr(sb, "type", Type);
+        }
+
+        if (Media is not null)
+        {
+            AppendAttr(sb, "media", Media);
+        }
+
+        if (Title is not null)
+        {
+            AppendAttr(sb, "title", Title);
+        }
+
+        if (Nonce is not null)
+        {
+            AppendAttr(sb, "nonce", Nonce);
+        }
     }
 }

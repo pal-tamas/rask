@@ -17,7 +17,10 @@ internal sealed class FakeBundleDirectory : IDisposable
         // payload above ResponseCompression's minimum body-size threshold; default keeps
         // the existing 4-byte file for the original MIME/cache tests.
         var wasmBytes = new byte[4 + wasmPaddingBytes];
-        wasmBytes[0] = 0x00; wasmBytes[1] = 0x61; wasmBytes[2] = 0x73; wasmBytes[3] = 0x6D;
+        wasmBytes[0] = 0x00;
+        wasmBytes[1] = 0x61;
+        wasmBytes[2] = 0x73;
+        wasmBytes[3] = 0x6D;
         // Repeating zeroes compress extremely well — brotli output is tens of bytes vs the
         // raw KB, so the assertions reading Content-Length see a clear win.
         File.WriteAllBytes(System.IO.Path.Combine(Path, "_framework", "foo.wasm"), wasmBytes);

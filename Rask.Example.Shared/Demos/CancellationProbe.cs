@@ -35,8 +35,16 @@ public sealed class CancellationProbe : Component
         using var registration = token.Register(static state =>
         {
             var probe = (CancellationProbe)state!;
-            if (Interlocked.Exchange(ref probe._logged, 1) != 0) return;
-            if (probe._watch.IsRunning) probe._watch.Stop();
+            if (Interlocked.Exchange(ref probe._logged, 1) != 0)
+            {
+                return;
+            }
+
+            if (probe._watch.IsRunning)
+            {
+                probe._watch.Stop();
+            }
+
             probe.Log($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
         }, this);
 
@@ -49,10 +57,17 @@ public sealed class CancellationProbe : Component
         while (_watch.ElapsedMilliseconds < 2500)
         {
             await Task.Delay(100);
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
         }
 
-        if (Interlocked.Exchange(ref _logged, 1) != 0) return;
+        if (Interlocked.Exchange(ref _logged, 1) != 0)
+        {
+            return;
+        }
+
         _watch.Stop();
         _status = "completed";
         Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");

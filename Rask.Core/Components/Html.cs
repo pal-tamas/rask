@@ -13,8 +13,19 @@ public sealed class Html : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Lang is not null) AppendAttr(sb, "lang", Lang);
-        if (Dir is not null) AppendAttr(sb, "dir", Dir);
-        if (Xmlns is not null) AppendAttr(sb, "xmlns", Xmlns);
+        if (Lang is not null)
+        {
+            AppendAttr(sb, "lang", Lang);
+        }
+
+        if (Dir is not null)
+        {
+            AppendAttr(sb, "dir", Dir);
+        }
+
+        if (Xmlns is not null)
+        {
+            AppendAttr(sb, "xmlns", Xmlns);
+        }
     }
 }

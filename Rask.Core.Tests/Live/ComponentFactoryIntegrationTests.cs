@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 

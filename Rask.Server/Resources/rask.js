@@ -95,6 +95,7 @@
                 }
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
+
             // Animate navigations (renders carrying a history block) with the View
             // Transitions API when the browser supports it. State-only re-renders
             // (no history) skip the wrap to keep event-handler latency tight.
@@ -175,7 +176,7 @@
     // type. The framework's WS handler matches `id` and completes the awaiting TCS.
     if (window.Rask && Rask.scoped) {
         Rask.scoped._sendResult = function (id, value, error) {
-            send({ type: "invokeResult", id: id, result: value, error: error });
+            send({type: "invokeResult", id: id, result: value, error: error});
         };
     }
 
@@ -217,9 +218,12 @@
             var seen = new Set();
             for (var i = 0; i < marked.length; i++) {
                 var s = marked[i].getAttribute("data-rask-mount");
-                if (s && !seen.has(s)) { seen.add(s); Rask.scoped.invoke(s, "rendered", null, [true]); }
+                if (s && !seen.has(s)) {
+                    seen.add(s);
+                    Rask.scoped.invoke(s, "rendered", null, [true]);
+                }
             }
-        }, { once: true });
+        }, {once: true});
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
         document.head.appendChild(script);
     }
@@ -287,8 +291,10 @@
         if (!t || !inRoot(t)) return;
         e.preventDefault();
         flushInputsNow();
-        send({id: t.getAttribute("data-rask-on-click"), type: "click",
-              shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey});
+        send({
+            id: t.getAttribute("data-rask-on-click"), type: "click",
+            shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+        });
     });
 
     // Input events fire per keystroke — on fast typing that's 5–10 WS frames per
@@ -303,6 +309,7 @@
     // any validator the change kicks off reads the stale model value.
     var inputPending = new Set();
     var inputRaf = 0;
+
     function flushInputs() {
         inputRaf = 0;
         inputPending.forEach(function (el) {
@@ -313,14 +320,20 @@
         });
         inputPending.clear();
     }
+
     function flushInputsNow() {
-        if (inputRaf) { cancelAnimationFrame(inputRaf); inputRaf = 0; }
+        if (inputRaf) {
+            cancelAnimationFrame(inputRaf);
+            inputRaf = 0;
+        }
         if (inputPending.size > 0) flushInputs();
     }
+
     function queueInput(el) {
         inputPending.add(el);
         if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
     }
+
     document.addEventListener("input", function (e) {
         var t = e.target.closest("[data-rask-on-input]");
         if (!t || !inRoot(t)) return;
@@ -386,7 +399,10 @@
         document.body.appendChild(a);
         a.click();
         setTimeout(function () {
-            try { document.body.removeChild(a); } catch (_) {}
+            try {
+                document.body.removeChild(a);
+            } catch (_) {
+            }
         }, 0);
     }
 
@@ -395,6 +411,7 @@
     // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
     var scrollPending = new Set();
     var scrollRaf = 0;
+
     function flushScroll() {
         scrollRaf = 0;
         scrollPending.forEach(function (el) {
@@ -411,6 +428,7 @@
         });
         scrollPending.clear();
     }
+
     document.addEventListener("scroll", function (e) {
         var t = e.target;
         if (!t || t.nodeType !== 1) return;

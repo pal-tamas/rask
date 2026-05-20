@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
 namespace Rask.Core.Tests.HeadAssets;
@@ -116,8 +114,8 @@ public class HeadAssetRenderTests
 
     private sealed class ShellWithTitle : Component
     {
-        private readonly string _title;
         private readonly Component _body;
+        private readonly string _title;
 
         public ShellWithTitle(string title, Component body)
         {

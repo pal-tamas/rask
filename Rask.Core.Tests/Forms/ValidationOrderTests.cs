@@ -259,7 +259,8 @@ public class ValidationOrderTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+            CancellationToken cancellationToken)
         {
             context.AddValidationMessage(field, message);
             return ValueTask.CompletedTask;
@@ -303,7 +304,8 @@ public class ValidationOrderTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+            CancellationToken cancellationToken)
         {
             trace.Add(tag);
             return ValueTask.CompletedTask;

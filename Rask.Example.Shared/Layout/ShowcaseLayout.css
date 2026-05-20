@@ -1,6 +1,7 @@
 .side-nav {
     min-height: calc(100vh - 56px);
 }
+
 .nav-item-btn {
     display: flex;
     align-items: center;
@@ -16,25 +17,30 @@
     margin-bottom: 0.15rem;
     transition: background-color 120ms ease, color 120ms ease;
 }
+
 .nav-item-btn:hover {
     background: var(--rask-accent-soft);
     color: var(--rask-accent-strong);
 }
+
 .nav-item-btn-active {
     background: var(--rask-accent-soft);
     color: var(--rask-accent);
     font-weight: 600;
 }
+
 .nav-item-btn .bi {
     font-size: 1rem;
     opacity: 0.85;
 }
+
 .navbar.sticky-top {
     background: rgba(28, 30, 36, 0.78) !important;
     backdrop-filter: saturate(180%) blur(14px);
     -webkit-backdrop-filter: saturate(180%) blur(14px);
     padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
+
 .hamburger-btn {
     display: none;
     min-width: 44px;
@@ -48,25 +54,33 @@
     margin-right: 0.25rem;
     padding: 0;
 }
+
 .hamburger-btn:hover, .hamburger-btn:focus {
     background: rgba(255, 255, 255, 0.08);
     outline: none;
 }
+
 .hamburger-btn .bi {
     font-size: 1.4rem;
     line-height: 1;
 }
+
 .nav-backdrop {
     display: none;
     border: 0;
     padding: 0;
     margin: 0;
 }
+
 main {
     padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
+
 @media (max-width: 767.98px) {
-    .hamburger-btn { display: inline-flex; }
+    .hamburger-btn {
+        display: inline-flex;
+    }
+
     .side-nav {
         position: fixed;
         top: 0;
@@ -88,14 +102,17 @@ main {
         border-right: 1px solid var(--bs-border-color);
         min-height: auto;
     }
+
     .side-nav.drawer-open {
         transform: translateX(0);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
     }
+
     .side-nav .position-sticky {
         position: static !important;
         top: auto !important;
     }
+
     .nav-backdrop {
         display: block;
         position: fixed;
@@ -106,10 +123,12 @@ main {
         pointer-events: none;
         transition: opacity 200ms ease;
     }
+
     .nav-backdrop.drawer-open {
         opacity: 1;
         pointer-events: auto;
     }
+
     /* Lock body scroll while the drawer is open. :has() reaches up from the
        drawer-open descendant; :global() opts the body selector out of the
        scope rewrite (body is a shell tag, never stamped data-r-*). */

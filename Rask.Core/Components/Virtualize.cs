@@ -95,7 +95,7 @@ public sealed class Virtualize : Component
             throw new InvalidOperationException("Virtualize: Render delegate is required.");
         }
 
-        if ((Items is null) == (ItemsProvider is null))
+        if (Items is null == ItemsProvider is null)
         {
             throw new InvalidOperationException(
                 "Virtualize: provide exactly one of Items or ItemsProvider.");
@@ -124,10 +124,10 @@ public sealed class Virtualize : Component
             totalCount = _totalCountKnown ? _totalCount : 0;
         }
 
-        var startIndex = Math.Max(0, _scrollTop / itemSize - overscan);
+        var startIndex = Math.Max(0, (_scrollTop / itemSize) - overscan);
         var endIndex = Math.Min(
             totalCount,
-            (_scrollTop + clientHeight + itemSize - 1) / itemSize + overscan);
+            ((_scrollTop + clientHeight + itemSize - 1) / itemSize) + overscan);
         if (endIndex < startIndex)
         {
             endIndex = startIndex;
@@ -248,7 +248,7 @@ public sealed class Virtualize : Component
         if (!_totalCountKnown)
         {
             var visibleRows = (clientHeight + itemSize - 1) / itemSize;
-            var probeCount = Math.Max(visibleRows + overscan * 2, 1);
+            var probeCount = Math.Max(visibleRows + (overscan * 2), 1);
             _ = FetchAsync(0, probeCount);
             return;
         }

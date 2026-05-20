@@ -20,6 +20,9 @@ namespace Rask.Core.Components;
     TypedValidatorProperties = new[] { nameof(Validate) })]
 public sealed class Form : Element
 {
+    private EditContext? _context;
+
+    private object? _model;
     protected override string TagName => "form";
 
     public string? Enctype { get; set; }
@@ -29,9 +32,9 @@ public sealed class Form : Element
     public bool Novalidate { get; set; }
     public string? Name { get; set; }
     public Action<FormData>? OnSubmit { get; set; }
+
     public Func<FormData, Task>? OnSubmitAsync { get; set; }
 
-    private object? _model;
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
     // this, a nested binding like Input(() => model.Address.Street) — whose acc.Target is
@@ -64,7 +67,6 @@ public sealed class Form : Element
     // ValidationSummary and any field-less ValidationMessage, not against a specific input.
     public Delegate? Validate { get; set; }
 
-    private EditContext? _context;
     public EditContext? Context
     {
         get => _context;
@@ -163,12 +165,35 @@ public sealed class Form : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Enctype is not null) AppendAttr(sb, "enctype", Enctype);
-        if (Target is not null) AppendAttr(sb, "target", Target);
-        if (AcceptCharset is not null) AppendAttr(sb, "accept-charset", AcceptCharset);
-        if (Autocomplete is not null) AppendAttr(sb, "autocomplete", Autocomplete);
-        if (Novalidate) AppendAttr(sb, "novalidate", null);
-        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (Enctype is not null)
+        {
+            AppendAttr(sb, "enctype", Enctype);
+        }
+
+        if (Target is not null)
+        {
+            AppendAttr(sb, "target", Target);
+        }
+
+        if (AcceptCharset is not null)
+        {
+            AppendAttr(sb, "accept-charset", AcceptCharset);
+        }
+
+        if (Autocomplete is not null)
+        {
+            AppendAttr(sb, "autocomplete", Autocomplete);
+        }
+
+        if (Novalidate)
+        {
+            AppendAttr(sb, "novalidate", null);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
 
         Delegate? submit;
         if (Model is not null || Context is not null)

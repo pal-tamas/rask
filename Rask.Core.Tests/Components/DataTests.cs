@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class DataTests
@@ -11,8 +9,8 @@ public class DataTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-                Assert.Equal("<data id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"42\"></data>",
-            Data(Value: "42", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+        Assert.Equal("<data id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"42\"></data>",
+            Data("42", "i", "c", "s", new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

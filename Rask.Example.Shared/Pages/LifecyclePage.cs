@@ -21,8 +21,8 @@ public sealed class LifecyclePage : Component
                 "Every Component can override the lifecycle hooks below. Async hooks install a synchronization context that triggers a re-render after each in-method await, plus one terminal render on completion."),
             H2(Class: "h4 mt-4 mb-3")["Live probe"],
             P(Class: "text-secondary")[
-                    "The component below records every hook invocation into a list and re-renders so you can watch the order."
-                ],
+                "The component below records every hook invocation into a list and re-renders so you can watch the order."
+            ],
             Div(Class: "card shadow-sm border-0 mb-4")[
                 Div(Class: "card-body")[LifecycleProbe()]
             ],
@@ -46,7 +46,7 @@ public sealed class LifecyclePage : Component
                             OnClick: UnmountCycle)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
                     ],
                     _cycleMounted
-                        ? LifecycleCycleProbe(Log: AppendCycleLog, InstanceId: _nextCycleId)
+                        ? LifecycleCycleProbe(AppendCycleLog, _nextCycleId)
                         : P(Class: "text-secondary fst-italic mb-0")["Probe not mounted."],
                     H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
                     _cycleLog.Count == 0
@@ -54,8 +54,8 @@ public sealed class LifecyclePage : Component
                         : Ol(
                             Class: "list-group list-group-numbered list-group-flush",
                             Id: "lifecycle-cycle-log")[
-                                _cycleLog.Select(l => (Child)Li(
-                                    Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+                            _cycleLog.Select(l => (Child)Li(
+                                Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
                 ]
             ],
             H2(Class: "h4 mt-5 mb-3")["Source"],
@@ -122,7 +122,11 @@ public sealed class LifecyclePage : Component
 
     private void MountCycle()
     {
-        if (_cycleMounted) return;
+        if (_cycleMounted)
+        {
+            return;
+        }
+
         _nextCycleId++;
         _cycleMounted = true;
         StateHasChanged();
@@ -130,7 +134,11 @@ public sealed class LifecyclePage : Component
 
     private void UnmountCycle()
     {
-        if (!_cycleMounted) return;
+        if (!_cycleMounted)
+        {
+            return;
+        }
+
         _cycleMounted = false;
         StateHasChanged();
     }

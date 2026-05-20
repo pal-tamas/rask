@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Rask.Core.Components;
-using Rask.Core.Live;
 using Rask.Core.Tests.Live;
 using Rask.Core.Virtualization;
 
@@ -13,9 +11,9 @@ public class VirtualizeTests
     [Fact]
     public void Render_HeadlessNoOwnDom_OnlyEmitsUserMarkup()
     {
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => Div()["x"],
-            Items: new List<int> { 1, 2, 3 },
+        var view = new StubComponent(() => Virtualize(
+            ctx => Div()["x"],
+            new List<int> { 1, 2, 3 },
             ItemSize: 20,
             InitialClientHeight: 100));
 
@@ -27,9 +25,13 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => { captured = ctx; return Div(); },
-            Items: items,
+        var view = new StubComponent(() => Virtualize(
+            ctx =>
+            {
+                captured = ctx;
+                return Div();
+            },
+            items,
             ItemSize: 20,
             OverscanCount: 2,
             InitialClientHeight: 100));
@@ -54,9 +56,13 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => { captured = ctx; return Div()[Div(OnScroll: ctx.OnScroll)]; },
-            Items: items,
+        var view = new StubComponent(() => Virtualize(
+            ctx =>
+            {
+                captured = ctx;
+                return Div()[Div(OnScroll: ctx.OnScroll)];
+            },
+            items,
             ItemSize: 20,
             OverscanCount: 2,
             InitialClientHeight: 100));
@@ -91,7 +97,11 @@ public class VirtualizeTests
         var requests = new List<ItemsProviderRequest>();
         VirtualizationContext<string>? captured = null;
         var view = new StubComponent(() => Virtualize<string>(
-            Render: ctx => { captured = ctx; return Div(); },
+            ctx =>
+            {
+                captured = ctx;
+                return Div();
+            },
             ItemsProvider: req =>
             {
                 requests.Add(req);
@@ -99,7 +109,7 @@ public class VirtualizeTests
                     .Select(i => $"row-{i}")
                     .ToList();
                 return new ValueTask<ItemsProviderResult<string>>(
-                    new ItemsProviderResult<string>(items, TotalItemCount: 50));
+                    new ItemsProviderResult<string>(items, 50));
             },
             ItemSize: 20,
             OverscanCount: 2,
@@ -126,7 +136,7 @@ public class VirtualizeTests
     public void Render_NoItemsAndNoProvider_Throws()
     {
         var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => Div(),
+            ctx => Div(),
             ItemSize: 20));
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
@@ -135,11 +145,11 @@ public class VirtualizeTests
     [Fact]
     public void Render_BothItemsAndProvider_Throws()
     {
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => Div(),
-            Items: new List<int> { 1 },
-            ItemsProvider: req => ValueTask.FromResult(new ItemsProviderResult<int>(Array.Empty<int>(), 0)),
-            ItemSize: 20));
+        var view = new StubComponent(() => Virtualize(
+            ctx => Div(),
+            new List<int> { 1 },
+            req => ValueTask.FromResult(new ItemsProviderResult<int>(Array.Empty<int>(), 0)),
+            20));
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
     }
@@ -147,9 +157,9 @@ public class VirtualizeTests
     [Fact]
     public void Render_ItemSizeZero_Throws()
     {
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => Div(),
-            Items: new List<int> { 1 },
+        var view = new StubComponent(() => Virtualize(
+            ctx => Div(),
+            new List<int> { 1 },
             ItemSize: 0));
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
@@ -160,9 +170,13 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = new List<int> { 1, 2, 3 };
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => { captured = ctx; return Div(); },
-            Items: items,
+        var view = new StubComponent(() => Virtualize(
+            ctx =>
+            {
+                captured = ctx;
+                return Div();
+            },
+            items,
             ItemSize: 20,
             OverscanCount: 0,
             InitialClientHeight: 500));
@@ -181,15 +195,13 @@ public class VirtualizeTests
         // path so reordered / scrolled rows keep their DOM identity (focus, scroll
         // state, view-transition animations) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
-        var view = new StubComponent(() => Virtualize<int>(
-            Render: ctx => Div()[
+        var view = new StubComponent(() => Virtualize(
+            ctx => Div()[
                 ctx.VisibleItems.Select(item =>
-                    (Child)Div(Data: new Dictionary<string, string?>
-                    {
-                        ["rask-key"] = item.Index.ToString()
-                    })[item.Value!.ToString()])
+                    (Child)Div(Data: new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
+                        item.Value!.ToString()])
             ],
-            Items: items,
+            items,
             ItemSize: 20,
             InitialClientHeight: 100));
 
@@ -203,7 +215,11 @@ public class VirtualizeTests
     {
         var marker = attr + "=\"";
         var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0) return null;
+        if (i < 0)
+        {
+            return null;
+        }
+
         var start = i + marker.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);

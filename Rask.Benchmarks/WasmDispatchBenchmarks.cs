@@ -22,7 +22,8 @@ public class WasmDispatchBenchmarks
     {
         // Representative input event: click on a handler with a small value payload.
         // rask.wasm.js currently fires this shape for click / input / change / submit.
-        const string json = "{\"type\":\"event\",\"id\":\"h42\",\"value\":\"hello world\",\"target\":{\"checked\":false}}";
+        const string json =
+            "{\"type\":\"event\",\"id\":\"h42\",\"value\":\"hello world\",\"target\":{\"checked\":false}}";
         _eventBytes = Encoding.UTF8.GetBytes(json);
         _eventString = json;
     }

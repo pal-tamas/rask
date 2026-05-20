@@ -1,4 +1,3 @@
-using System.Net.Http;
 using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
@@ -32,8 +31,14 @@ public class AsyncValidatorTests
         {
             OnFinish = (c, f, c2) =>
             {
-                if (c == 1) c2.AddValidationMessage(f, "first");
-                else if (c == 2) c2.AddValidationMessage(f, "second");
+                if (c == 1)
+                {
+                    c2.AddValidationMessage(f, "first");
+                }
+                else if (c == 2)
+                {
+                    c2.AddValidationMessage(f, "second");
+                }
             }
         };
         ctx.AddValidator(validator);
@@ -157,7 +162,8 @@ public class AsyncValidatorTests
             context.AddValidationMessage(new FieldIdentifier(context.Model, addMessageOnField), message);
         }
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+            CancellationToken cancellationToken)
         {
             await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
             if (field.FieldName == addMessageOnField)
@@ -183,7 +189,8 @@ public class AsyncValidatorTests
             await userTask.ConfigureAwait(false);
         }
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
+        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+            CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _callCount);
             var userTask = wait(n, field, cancellationToken);
@@ -195,4 +202,3 @@ public class AsyncValidatorTests
         }
     }
 }
-

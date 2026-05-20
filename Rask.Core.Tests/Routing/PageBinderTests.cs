@@ -1,6 +1,5 @@
 using System.Globalization;
 using Microsoft.Extensions.Primitives;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories

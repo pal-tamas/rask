@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Components;
 
@@ -28,13 +27,13 @@ public class RenderRoundTripBenchmarks
 
     private static Component BuildTree()
     {
-        var rows = new List<Child>(capacity: 15);
+        var rows = new List<Child>(15);
         for (var i = 0; i < 15; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}")[
                 C.Span(Class: "label")[$"Item {i}"],
-                C.A(Href: $"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Input(Type: "text", Name: $"f{i}", Value: $"v{i}")
+                C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
+                C.Input("text", $"f{i}", $"v{i}")
             ]);
         }
 

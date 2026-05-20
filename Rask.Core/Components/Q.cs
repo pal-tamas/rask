@@ -11,6 +11,9 @@ public sealed class Q : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Cite is not null) AppendAttr(sb, "cite", Cite);
+        if (Cite is not null)
+        {
+            AppendAttr(sb, "cite", Cite);
+        }
     }
 }

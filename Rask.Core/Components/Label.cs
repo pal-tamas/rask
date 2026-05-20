@@ -12,7 +12,14 @@ public sealed class Label : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (For is not null) AppendAttr(sb, "for", For);
-        if (Form is not null) AppendAttr(sb, "form", Form);
+        if (For is not null)
+        {
+            AppendAttr(sb, "for", For);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
     }
 }

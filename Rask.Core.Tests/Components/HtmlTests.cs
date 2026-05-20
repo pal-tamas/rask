@@ -1,5 +1,3 @@
-using Rask.Core.Components;
-
 namespace Rask.Core.Tests.Components;
 
 public class HtmlTests
@@ -10,10 +8,10 @@ public class HtmlTests
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
     {
-        
         Assert.Equal(
             "<html id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" lang=\"en\" dir=\"ltr\" xmlns=\"http://www.w3.org/1999/xhtml\"></html>",
-            Html(Lang: "en", Dir: "ltr", Xmlns: "http://www.w3.org/1999/xhtml", Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
+            Html("en", "ltr", "http://www.w3.org/1999/xhtml", "i", "c", "s",
+                new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
     [Fact]

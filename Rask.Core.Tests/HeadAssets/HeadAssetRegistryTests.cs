@@ -1,4 +1,3 @@
-using Rask.Core.Components;
 using Rask.Core.HeadAssets;
 
 namespace Rask.Core.Tests.HeadAssets;
@@ -68,8 +67,8 @@ public class HeadAssetRegistryTests
     public void Add_BaseTagIsSingleton_LastWins()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Base(Href: "/old/"));
-        registry.Add(Base(Href: "/new/"));
+        registry.Add(Base("/old/"));
+        registry.Add(Base("/new/"));
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
@@ -85,7 +84,7 @@ public class HeadAssetRegistryTests
         var registry = new HeadAssetRegistry();
         registry.Add(Fragment()[
             Link(Rel: "stylesheet", Href: "/x.css"),
-            Script(Src: "/x.js")
+            Script("/x.js")
         ]);
 
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";

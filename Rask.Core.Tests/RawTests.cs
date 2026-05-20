@@ -10,9 +10,9 @@ public class RawTests
 
     [Fact]
     public void GeneratedFactory_ReturnsRawInstanceWithVerbatimHtml() =>
-        Assert.Equal("<b>x</b>", Raw(Value: "<b>x</b>").ToHtml());
+        Assert.Equal("<b>x</b>", Raw("<b>x</b>").ToHtml());
 
     [Fact]
     public void GeneratedFactory_EmptyString_ReturnsEmpty() =>
-        Assert.Equal("", Raw(Value: "").ToHtml());
+        Assert.Equal("", Raw("").ToHtml());
 }

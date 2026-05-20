@@ -1,4 +1,3 @@
-using Rask.Core.Components;
 using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -32,7 +31,7 @@ public class ButtonTests
     {
         Assert.Equal(
             "<button type=\"submit\"></button>",
-            Button(Type: "submit").ToHtml());
+            Button("submit").ToHtml());
     }
 
     [Fact]
@@ -46,10 +45,10 @@ public class ButtonTests
     [Fact]
     public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder()
     {
-        
         Assert.Equal(
             "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
-            Button(Type: "submit", Disabled: true, Name: "action", Value: "save", Id: "go", Class: "btn", Style: "color:red", Data: new Dictionary<string, string?> { ["test-id"] = "primary" }).ToHtml());
+            Button("submit", true, "action", "save", Id: "go", Class: "btn", Style: "color:red",
+                Data: new Dictionary<string, string?> { ["test-id"] = "primary" }).ToHtml());
     }
 
     [Fact]
@@ -86,10 +85,8 @@ public class ButtonTests
     }
 
     [Fact]
-    public void Render_OnClickOutsideLiveContext_OmitsHandlerAttribute()
-    {
-                Assert.Equal("<button></button>", Button(OnClick: () => { }).ToHtml());
-    }
+    public void Render_OnClickOutsideLiveContext_OmitsHandlerAttribute() =>
+        Assert.Equal("<button></button>", Button(OnClick: () => { }).ToHtml());
 
     [Fact]
     public void Render_OnClickInsideLiveContext_EmitsDataRaskOnClick()

@@ -13,8 +13,19 @@ public sealed class Output : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (For is not null) AppendAttr(sb, "for", For);
-        if (Form is not null) AppendAttr(sb, "form", Form);
-        if (Name is not null) AppendAttr(sb, "name", Name);
+        if (For is not null)
+        {
+            AppendAttr(sb, "for", For);
+        }
+
+        if (Form is not null)
+        {
+            AppendAttr(sb, "form", Form);
+        }
+
+        if (Name is not null)
+        {
+            AppendAttr(sb, "name", Name);
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
@@ -8,50 +9,7 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class TablePage(Navigator nav) : Component
 {
-    private sealed record Person(
-        int Id,
-        string Name,
-        string City,
-        string Department,
-        decimal Salary,
-        DateOnly Joined);
-
     private static readonly Person[] _people = BuildPeople(120);
-
-    private static Person[] BuildPeople(int count)
-    {
-        var firsts = new[]
-        {
-            "Ada", "Grace", "Linus", "Margaret", "Donald", "Barbara", "Edsger", "Tony",
-            "Alan", "John", "Niklaus", "Bjarne", "Anders", "James", "Brendan", "Guido"
-        };
-        var lasts = new[]
-        {
-            "Lovelace", "Hopper", "Torvalds", "Hamilton", "Knuth", "Liskov", "Dijkstra",
-            "Hoare", "Turing", "Backus", "Wirth", "Stroustrup", "Hejlsberg", "Gosling",
-            "Eich", "van Rossum"
-        };
-        var cities = new[]
-        {
-            "London", "New York", "Helsinki", "Boston", "Stanford", "Cambridge",
-            "Amsterdam", "Oxford", "Berlin", "Tokyo", "Sydney", "Toronto"
-        };
-        var departments = new[] { "Engineering", "Research", "Platform", "Data", "Design", "Ops" };
-
-        var rng = new Random(42);
-        var rows = new Person[count];
-        for (var i = 0; i < count; i++)
-        {
-            var name = $"{firsts[i % firsts.Length]} {lasts[(i / firsts.Length) % lasts.Length]}";
-            var city = cities[rng.Next(cities.Length)];
-            var dept = departments[rng.Next(departments.Length)];
-            var salary = 45000m + rng.Next(0, 8500) * 10m;
-            var joined = new DateOnly(2015 + rng.Next(0, 10), 1 + rng.Next(0, 12), 1 + rng.Next(0, 28));
-            rows[i] = new Person(i + 1, name, city, dept, salary, joined);
-        }
-
-        return rows;
-    }
 
     [QueryParam] public string? Filter { get; set; }
     [QueryParam("sort")] public string? SortKey { get; set; }
@@ -60,6 +18,40 @@ public sealed class TablePage(Navigator nav) : Component
     [QueryParam] public int? Size { get; set; }
 
     protected override Component? Head => Title()["Data table — Rask"];
+
+    private static Person[] BuildPeople(int count)
+    {
+        var firsts = new[]
+        {
+            "Ada", "Grace", "Linus", "Margaret", "Donald", "Barbara", "Edsger", "Tony", "Alan", "John", "Niklaus",
+            "Bjarne", "Anders", "James", "Brendan", "Guido"
+        };
+        var lasts = new[]
+        {
+            "Lovelace", "Hopper", "Torvalds", "Hamilton", "Knuth", "Liskov", "Dijkstra", "Hoare", "Turing",
+            "Backus", "Wirth", "Stroustrup", "Hejlsberg", "Gosling", "Eich", "van Rossum"
+        };
+        var cities = new[]
+        {
+            "London", "New York", "Helsinki", "Boston", "Stanford", "Cambridge", "Amsterdam", "Oxford", "Berlin",
+            "Tokyo", "Sydney", "Toronto"
+        };
+        var departments = new[] { "Engineering", "Research", "Platform", "Data", "Design", "Ops" };
+
+        var rng = new Random(42);
+        var rows = new Person[count];
+        for (var i = 0; i < count; i++)
+        {
+            var name = $"{firsts[i % firsts.Length]} {lasts[i / firsts.Length % lasts.Length]}";
+            var city = cities[rng.Next(cities.Length)];
+            var dept = departments[rng.Next(departments.Length)];
+            var salary = 45000m + (rng.Next(0, 8500) * 10m);
+            var joined = new DateOnly(2015 + rng.Next(0, 10), 1 + rng.Next(0, 12), 1 + rng.Next(0, 28));
+            rows[i] = new Person(i + 1, name, city, dept, salary, joined);
+        }
+
+        return rows;
+    }
 
     protected override Component Render()
     {
@@ -80,13 +72,13 @@ public sealed class TablePage(Navigator nav) : Component
 
         view = sortKey switch
         {
-            "id"         => dirAsc ? view.OrderBy(p => p.Id)          : view.OrderByDescending(p => p.Id),
-            "name"       => dirAsc ? view.OrderBy(p => p.Name)        : view.OrderByDescending(p => p.Name),
-            "city"       => dirAsc ? view.OrderBy(p => p.City)        : view.OrderByDescending(p => p.City),
-            "department" => dirAsc ? view.OrderBy(p => p.Department)  : view.OrderByDescending(p => p.Department),
-            "salary"     => dirAsc ? view.OrderBy(p => p.Salary)      : view.OrderByDescending(p => p.Salary),
-            "joined"     => dirAsc ? view.OrderBy(p => p.Joined)      : view.OrderByDescending(p => p.Joined),
-            _            => view,
+            "id" => dirAsc ? view.OrderBy(p => p.Id) : view.OrderByDescending(p => p.Id),
+            "name" => dirAsc ? view.OrderBy(p => p.Name) : view.OrderByDescending(p => p.Name),
+            "city" => dirAsc ? view.OrderBy(p => p.City) : view.OrderByDescending(p => p.City),
+            "department" => dirAsc ? view.OrderBy(p => p.Department) : view.OrderByDescending(p => p.Department),
+            "salary" => dirAsc ? view.OrderBy(p => p.Salary) : view.OrderByDescending(p => p.Salary),
+            "joined" => dirAsc ? view.OrderBy(p => p.Joined) : view.OrderByDescending(p => p.Joined),
+            _ => view
         };
 
         var filtered = view.ToArray();
@@ -95,7 +87,7 @@ public sealed class TablePage(Navigator nav) : Component
         var pageRaw = Page ?? 1;
         var page = Math.Clamp(pageRaw < 1 ? 1 : pageRaw, 1, totalPages);
         var visible = filtered.Skip((page - 1) * size).Take(size).ToArray();
-        var from = totalFiltered == 0 ? 0 : (page - 1) * size + 1;
+        var from = totalFiltered == 0 ? 0 : ((page - 1) * size) + 1;
         var to = totalFiltered == 0 ? 0 : from + visible.Length - 1;
 
         return Fragment()[
@@ -107,7 +99,7 @@ public sealed class TablePage(Navigator nav) : Component
                     Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[
                         Span(Class: "input-group-text bg-white")[I(Class: "bi bi-search")],
                         Input(
-                            Type: "search",
+                            "search",
                             Class: "form-control",
                             Placeholder: "Filter name, city, department…",
                             Value: Filter ?? string.Empty,
@@ -123,7 +115,7 @@ public sealed class TablePage(Navigator nav) : Component
                             OnChange: v => nav.SetQuery(
                                 KeyValuePair.Create<string, string?>("size", v),
                                 KeyValuePair.Create<string, string?>("page", "1")))[
-                            Option("5",  size == 5)["5"],
+                            Option("5", size == 5)["5"],
                             Option("10", size == 10)["10"],
                             Option("25", size == 25)["25"],
                             Option("50", size == 50)["50"]
@@ -134,18 +126,18 @@ public sealed class TablePage(Navigator nav) : Component
                     Table(Class: "table table-hover table-striped align-middle mb-0")[
                         Thead(Class: "table-light")[
                             Tr()[
-                                SortHeader("id",         "#",          "width:80px;",  sortKey, dirAsc),
-                                SortHeader("name",       "Name",       null,           sortKey, dirAsc),
-                                SortHeader("city",       "City",       "width:160px;", sortKey, dirAsc),
+                                SortHeader("id", "#", "width:80px;", sortKey, dirAsc),
+                                SortHeader("name", "Name", null, sortKey, dirAsc),
+                                SortHeader("city", "City", "width:160px;", sortKey, dirAsc),
                                 SortHeader("department", "Department", "width:160px;", sortKey, dirAsc),
-                                SortHeader("salary",     "Salary",     "width:140px; text-align:right;", sortKey, dirAsc, rightAlign: true),
-                                SortHeader("joined",     "Joined",     "width:140px;", sortKey, dirAsc)
+                                SortHeader("salary", "Salary", "width:140px; text-align:right;", sortKey, dirAsc, true),
+                                SortHeader("joined", "Joined", "width:140px;", sortKey, dirAsc)
                             ]
                         ],
                         Tbody()[
                             totalFiltered == 0
                                 ? (Child)Tr()[
-                                    Td(Colspan: 6, Class: "text-center text-secondary py-4")[
+                                    Td(6, Class: "text-center text-secondary py-4")[
                                         I(Class: "bi bi-search me-2"),
                                         "No people match your search."
                                     ]
@@ -160,7 +152,7 @@ public sealed class TablePage(Navigator nav) : Component
                                                 Span(Class: $"badge {DeptBadge(p.Department)}")[p.Department]
                                             ],
                                             Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
-                                                "$" + p.Salary.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)
+                                                "$" + p.Salary.ToString("N0", CultureInfo.InvariantCulture)
                                             ],
                                             Td(Class: "text-secondary small")[p.Joined.ToString("yyyy-MM-dd")]
                                         ])
@@ -196,7 +188,8 @@ public sealed class TablePage(Navigator nav) : Component
         ];
     }
 
-    private Component SortHeader(string key, string label, string? style, string sortKey, bool dirAsc, bool rightAlign = false)
+    private Component SortHeader(string key, string label, string? style, string sortKey, bool dirAsc,
+        bool rightAlign = false)
     {
         var active = sortKey == key;
         var activeAsc = active && dirAsc;
@@ -204,11 +197,17 @@ public sealed class TablePage(Navigator nav) : Component
 
         string icon;
         if (!active)
+        {
             icon = "bi-chevron-expand text-secondary opacity-50";
+        }
         else if (dirAsc)
+        {
             icon = "bi-chevron-up";
+        }
         else
+        {
             icon = "bi-chevron-down";
+        }
 
         string nextSort;
         string nextDir;
@@ -228,12 +227,16 @@ public sealed class TablePage(Navigator nav) : Component
             nextDir = "asc";
         }
 
-        var btnClass = "btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex align-items-center gap-1";
-        if (rightAlign) btnClass += " ms-auto";
+        var btnClass =
+            "btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex align-items-center gap-1";
+        if (rightAlign)
+        {
+            btnClass += " ms-auto";
+        }
 
         return Th(Style: style, Scope: "col")[
             Button(
-                Type: "button",
+                "button",
                 Class: btnClass,
                 OnClick: () => nav.SetQuery(
                     KeyValuePair.Create<string, string?>("sort", nextSort),
@@ -249,12 +252,11 @@ public sealed class TablePage(Navigator nav) : Component
     {
         var items = new List<Child>
         {
-            PageItem("«", 1, page == 1, label: "First"),
-            PageItem("‹", Math.Max(1, page - 1), page == 1, label: "Prev")
+            PageItem("«", 1, page == 1, "First"), PageItem("‹", Math.Max(1, page - 1), page == 1, "Prev")
         };
 
         var windowSize = 5;
-        var start = Math.Max(1, page - windowSize / 2);
+        var start = Math.Max(1, page - (windowSize / 2));
         var end = Math.Min(totalPages, start + windowSize - 1);
         start = Math.Max(1, end - windowSize + 1);
 
@@ -262,21 +264,28 @@ public sealed class TablePage(Navigator nav) : Component
         {
             items.Add(NumberItem(1, page));
             if (start > 2)
+            {
                 items.Add(Li(Class: "page-item disabled")[Span(Class: "page-link")["…"]]);
+            }
         }
 
         for (var i = start; i <= end; i++)
+        {
             items.Add(NumberItem(i, page));
+        }
 
         if (end < totalPages)
         {
             if (end < totalPages - 1)
+            {
                 items.Add(Li(Class: "page-item disabled")[Span(Class: "page-link")["…"]]);
+            }
+
             items.Add(NumberItem(totalPages, page));
         }
 
-        items.Add(PageItem("›", Math.Min(totalPages, page + 1), page == totalPages, label: "Next"));
-        items.Add(PageItem("»", totalPages, page == totalPages, label: "Last"));
+        items.Add(PageItem("›", Math.Min(totalPages, page + 1), page == totalPages, "Next"));
+        items.Add(PageItem("»", totalPages, page == totalPages, "Last"));
         return items;
     }
 
@@ -284,7 +293,7 @@ public sealed class TablePage(Navigator nav) : Component
     {
         return Li(Class: disabled ? "page-item disabled" : "page-item")[
             Button(
-                Type: "button",
+                "button",
                 Class: "page-link",
                 Disabled: disabled,
                 OnClick: () => nav.SetQuery("page", targetPage.ToString()))[
@@ -299,7 +308,7 @@ public sealed class TablePage(Navigator nav) : Component
         var active = n == current;
         return Li(Class: active ? "page-item active" : "page-item")[
             Button(
-                Type: "button",
+                "button",
                 Class: "page-link",
                 OnClick: () => nav.SetQuery("page", n.ToString()))[
                 n.ToString()
@@ -310,10 +319,18 @@ public sealed class TablePage(Navigator nav) : Component
     private static string DeptBadge(string department) => department switch
     {
         "Engineering" => "text-bg-primary",
-        "Research"    => "text-bg-info",
-        "Platform"    => "text-bg-success",
-        "Data"        => "text-bg-warning",
-        "Design"      => "text-bg-danger",
-        _             => "text-bg-secondary",
+        "Research" => "text-bg-info",
+        "Platform" => "text-bg-success",
+        "Data" => "text-bg-warning",
+        "Design" => "text-bg-danger",
+        _ => "text-bg-secondary"
     };
+
+    private sealed record Person(
+        int Id,
+        string Name,
+        string City,
+        string Department,
+        decimal Salary,
+        DateOnly Joined);
 }

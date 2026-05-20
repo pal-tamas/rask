@@ -25,10 +25,12 @@ public sealed class HomePage(Navigator nav) : Component
                     Div(Class: "d-flex flex-wrap gap-2")[
                         Button(
                             Class: "btn btn-primary btn-lg",
-                            OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"), "Start with Tags"],
+                            OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                            "Start with Tags"],
                         A("https://github.com/pal-tamas/rask",
                             "_blank",
-                            Class: "btn btn-outline-secondary btn-lg")[I(Class: "bi bi-github me-2"), "Source on GitHub"]
+                            Class: "btn btn-outline-secondary btn-lg")[I(Class: "bi bi-github me-2"),
+                            "Source on GitHub"]
                     ]
                 ]
             ],

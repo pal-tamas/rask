@@ -6,6 +6,11 @@ public sealed class ErrorBoundary : Component
 
     internal Exception? Error { get; private set; }
 
+    // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
+    // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
+    // every frame — same opt-out Router/DefaultNotFoundPage use for context-derived state.
+    protected override bool BypassRenderCache => true;
+
     // Sugar for tests that construct an ErrorBoundary directly and need to seed both
     // props in one call.
     internal void SetProps(
@@ -15,11 +20,6 @@ public sealed class ErrorBoundary : Component
         Children = children;
         Fallback = fallback;
     }
-
-    // Boundary state (Error) lives outside the framework's prop/state diff, so the cached
-    // render result would never reflect a Trip(). BypassRenderCache forces Render() to run
-    // every frame — same opt-out Router/DefaultNotFoundPage use for context-derived state.
-    protected override bool BypassRenderCache => true;
 
     internal void Trip(Exception ex)
     {

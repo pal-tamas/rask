@@ -9,7 +9,9 @@ public static class ScopedCssRegistry
     private static readonly Dictionary<Type, Entry> _entries = new();
     private static readonly List<Type> _order = new();
     private static string? _cachedBundle;
+
     private static string? _cachedHash;
+
     // Cached UTF-8 encoding and pre-quoted ETag for the served path. The bundle string is
     // computed on first GetBundle() or GetBundleUtf8() call after an invalidation; the
     // bytes/etag are computed lazily on first GetBundleUtf8(). All three fields share the
@@ -50,7 +52,7 @@ public static class ScopedCssRegistry
     /// <summary>
     ///     Returns the scope id stamped on body elements rendered under a component of the
     ///     given type, or null/empty when no CSS has been registered for that type. Called
-    ///     from <see cref="Live.LiveRenderContext.PushScope"/> on every render.
+    ///     from <see cref="Live.LiveRenderContext.PushScope" /> on every render.
     /// </summary>
     internal static bool TryRegister(Type componentType, out string scopeId)
     {
@@ -70,7 +72,7 @@ public static class ScopedCssRegistry
     /// <summary>
     ///     Registers (or replaces) the CSS for a component type. Called by generator-emitted
     ///     module initializers and by the hot-reload handler when the generated source for a
-    ///     `.css` sibling is re-emitted. No-op when <paramref name="css"/> equals the previously
+    ///     `.css` sibling is re-emitted. No-op when <paramref name="css" /> equals the previously
     ///     registered source (same string, same hash, same scope id).
     /// </summary>
     public static void RegisterType(Type componentType, string css)
@@ -165,7 +167,7 @@ public static class ScopedCssRegistry
     }
 
     /// <summary>
-    ///     UTF-8 byte view of <see cref="GetBundle"/> plus a pre-formatted ETag header value
+    ///     UTF-8 byte view of <see cref="GetBundle" /> plus a pre-formatted ETag header value
     ///     (already wrapped in double quotes). Both are cached alongside the string bundle and
     ///     invalidated together — the served endpoint can write the bytes straight to the
     ///     response body without re-encoding UTF-8 per request.

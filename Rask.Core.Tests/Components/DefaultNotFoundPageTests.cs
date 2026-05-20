@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.Tests.Live;

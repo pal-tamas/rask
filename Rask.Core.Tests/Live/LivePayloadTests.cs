@@ -141,14 +141,14 @@ public class LivePayloadTests
 
         var legacy = LivePayload.BuildPayloadUtf8(
             LivePayload.ExtractBody(LivePayload.InjectRootAttr(html, "session-123")),
-            historyUrl: null,
-            replace: false);
+            null,
+            false);
 
         var direct = LivePayload.BuildPayloadUtf8WithBody(
             html,
             "session-123",
-            historyUrl: null,
-            replace: false);
+            null,
+            false);
 
         Assert.Equal(Encoding.UTF8.GetString(legacy), Encoding.UTF8.GetString(direct));
     }

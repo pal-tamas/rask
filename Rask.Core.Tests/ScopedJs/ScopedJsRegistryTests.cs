@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using Rask.Core.ScopedJs;
 
@@ -131,8 +132,8 @@ public class ScopedJsRegistryTests
         Assert.Equal($"\"{hash}\"", etag);
 
         var (utf8b, etagB) = ScopedJsRegistry.GetBundleUtf8();
-        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8, out var seg1));
-        Assert.True(System.Runtime.InteropServices.MemoryMarshal.TryGetArray(utf8b, out var seg2));
+        Assert.True(MemoryMarshal.TryGetArray(utf8, out var seg1));
+        Assert.True(MemoryMarshal.TryGetArray(utf8b, out var seg2));
         Assert.Same(seg1.Array, seg2.Array);
         Assert.Same(etag, etagB);
     }

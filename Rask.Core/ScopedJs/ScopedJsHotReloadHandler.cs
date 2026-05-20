@@ -19,8 +19,8 @@ internal static class ScopedJsHotReloadHandler
     public static void UpdateApplication(Type[]? updatedTypes)
     {
         var hasGeneratedUpdate = updatedTypes is null
-            || updatedTypes.Length == 0
-            || updatedTypes.Any(t => t.Name == GeneratedRegistrationTypeName);
+                                 || updatedTypes.Length == 0
+                                 || updatedTypes.Any(t => t.Name == GeneratedRegistrationTypeName);
 
         if (!hasGeneratedUpdate)
         {
@@ -33,7 +33,7 @@ internal static class ScopedJsHotReloadHandler
         {
             try
             {
-                var t = asm.GetType(GeneratedRegistrationTypeName, throwOnError: false);
+                var t = asm.GetType(GeneratedRegistrationTypeName, false);
                 if (t is null)
                 {
                     continue;
