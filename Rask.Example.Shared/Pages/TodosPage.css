@@ -1,0 +1,8 @@
+.todo-title {
+    flex: 1 1 auto;
+}
+
+.todo-title.completed {
+    text-decoration: line-through;
+    color: var(--bs-secondary-color);
+}

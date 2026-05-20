@@ -83,6 +83,33 @@ public class RouterTests
     }
 
     [Fact]
+    public void Router_PathChangeWithoutParamChange_RefiresOnPropsChanged()
+    {
+        // Two routes pointing at the same page type with no [RouteParam] differences
+        // (e.g., `/todos` ↔ `/todos/new`). PageBinder.Bind alone would report propsChanged
+        // = false on the second navigation, so the render cache would hand back the prior
+        // result and OnPropsChanged would never refire. RouteChainRenderer's per-instance
+        // path snapshot is what forces both the cache invalidation and the lifecycle hook.
+        var routes = new[] { Route<MultiUrlPage>("/m/a"), Route<MultiUrlPage>("/m/b") };
+        var (view, state, sp) = BuildView(routes);
+
+        state.Path = "/m/a";
+        var first = Render(view, sp);
+        Assert.Equal("<span>props:1 renders:1 path:/m/a</span>", first);
+
+        state.Path = "/m/b";
+        var second = Render(view, sp);
+        Assert.Equal("<span>props:2 renders:2 path:/m/b</span>", second);
+
+        // Re-rendering at the same URL (no path change, no prop change) must NOT refire
+        // OnPropsChanged — the cache should return the prior result and PropsChanges
+        // stays at 2. The render here is "different" only because we're invoking it from
+        // the harness; the dispatcher hasn't marked the page dirty.
+        var third = Render(view, sp);
+        Assert.Equal("<span>props:2 renders:2 path:/m/b</span>", third);
+    }
+
+    [Fact]
     public void Router_TypeSwap_DiscardsPreviousInstance()
     {
         var routes = new[] { Route<CounterPage>("/c/{label}"), Route<HomePage>("/h") };
@@ -273,6 +300,21 @@ public class RouterTests
         {
             Bumps++;
             return Span()[$"{Label ?? "x"}:{Bumps}"];
+        }
+    }
+
+    [SkipFactory]
+    public sealed class MultiUrlPage(RouteState state) : Component
+    {
+        public int PropsChanges { get; private set; }
+        public int Renders { get; private set; }
+
+        protected override void OnPropsChanged() => PropsChanges++;
+
+        protected override Component Render()
+        {
+            Renders++;
+            return Span()[$"props:{PropsChanges} renders:{Renders} path:{state.Path}"];
         }
     }
 

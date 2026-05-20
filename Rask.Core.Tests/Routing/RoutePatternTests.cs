@@ -33,6 +33,31 @@ public class RoutePatternTests
     }
 
     [Fact]
+    public void TypeConstraint_StrippedFromCaptureKey()
+    {
+        // {id:guid} is a generator-side type hint — the runtime doesn't enforce the
+        // constraint, but it MUST strip ":guid" off the captured key. Otherwise
+        // PageBinder.Bind looks up "Id" in the values dictionary, finds nothing under
+        // "id:guid", and the property stays at its default — silently breaking routes
+        // like /todos/{id:guid}/edit that look correct on the page but don't bind.
+        var p = ParseInternal("/todos/{id:guid}/edit");
+        Assert.True(TryMatch(p, "/todos/3e18ad13-d95e-4808-97bd-918b457c006b/edit", out var values));
+        Assert.Equal("3e18ad13-d95e-4808-97bd-918b457c006b", values["id"]);
+        Assert.False(values.ContainsKey("id:guid"));
+    }
+
+    [Fact]
+    public void TypeConstraint_StrippedFromOptionalCaptureKey()
+    {
+        var p = ParseInternal("/items/{count:int?}");
+        Assert.True(TryMatch(p, "/items/42", out var withValue));
+        Assert.Equal("42", withValue["count"]);
+
+        Assert.True(TryMatch(p, "/items", out var without));
+        Assert.Null(without["count"]);
+    }
+
+    [Fact]
     public void OptionalParameter_AllowsAbsence()
     {
         var p = ParseInternal("/counter/{name?}");

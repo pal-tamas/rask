@@ -79,6 +79,17 @@ internal sealed class RoutePattern
 
         var optional = inner[^1] == '?';
         var paramName = optional ? inner[..^1] : inner;
+        // Type constraints (`{id:guid}`, `{count:int}`, …) are a generator-side hint —
+        // RoutesGenerator parses them for the typed URL-formatter signature and runtime
+        // bindability checks, but the live router doesn't enforce them. Strip the
+        // `:constraint` suffix here so the segment param name matches the binding name
+        // (`Id`, `Count`, …) that PageBinder will look up in the values dictionary.
+        var colon = paramName.IndexOf(':');
+        if (colon >= 0)
+        {
+            paramName = paramName[..colon];
+        }
+
         if (paramName.Length == 0)
         {
             throw new InvalidOperationException($"Parameter must have a name in '{raw}'.");

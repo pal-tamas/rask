@@ -209,8 +209,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return null;
         }
 
-        string? template = null;
-        Location? routeAttrLocation = null;
+        var templates = new List<string>();
+        Location? firstRouteAttrLocation = null;
         Location? notFoundAttrLocation = null;
         string? parentTypeFqn = null;
         var hasNotFound = false;
@@ -222,10 +222,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             {
                 if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string t)
                 {
-                    template = t;
+                    templates.Add(t);
                 }
 
-                routeAttrLocation = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+                firstRouteAttrLocation ??= attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
             }
             else if (name == NotFoundAttrFullName)
             {
@@ -252,15 +252,15 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 ns,
                 symbol.Name,
                 symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                NotFoundTemplate,
+                new EquatableArray<string>(new List<string> { NotFoundTemplate }),
                 parentTypeFqn,
                 new EquatableArray<RoutePropInfo>(properties),
                 new LocationInfo(notFoundAttrLocation),
                 true,
-                template is not null);
+                templates.Count > 0);
         }
 
-        if (template is null)
+        if (templates.Count == 0)
         {
             return null;
         }
@@ -269,10 +269,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             ns,
             symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            template,
+            new EquatableArray<string>(templates),
             parentTypeFqn,
             new EquatableArray<RoutePropInfo>(properties),
-            new LocationInfo(routeAttrLocation),
+            new LocationInfo(firstRouteAttrLocation),
             false,
             true);
     }
@@ -658,21 +658,27 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine("        {");
         foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
         {
-            sb.Append("            new(typeof(")
-                .Append(c.FullyQualifiedName)
-                .Append("), \"")
-                .Append(EscapeForCSharpStringLiteral(c.Template))
-                .Append("\", ");
-            if (c.ParentTypeFqn is null)
+            // One RouteRegistration per [Route] attribute. RouteRegistry.BuildTree groups
+            // by parent — duplicates of the same PageType under the same parent surface as
+            // distinct Route nodes the router can match independently.
+            foreach (var template in c.Templates)
             {
-                sb.Append("null");
-            }
-            else
-            {
-                sb.Append("typeof(").Append(c.ParentTypeFqn).Append(')');
-            }
+                sb.Append("            new(typeof(")
+                    .Append(c.FullyQualifiedName)
+                    .Append("), \"")
+                    .Append(EscapeForCSharpStringLiteral(template))
+                    .Append("\", ");
+                if (c.ParentTypeFqn is null)
+                {
+                    sb.Append("null");
+                }
+                else
+                {
+                    sb.Append("typeof(").Append(c.ParentTypeFqn).Append(')');
+                }
 
-            sb.AppendLine("),");
+                sb.AppendLine("),");
+            }
         }
 
         sb.AppendLine("        });");
@@ -709,62 +715,77 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return;
         }
 
-        if (!TryResolveFullTemplate(spc, c, byFqn, out var fullTemplate))
-        {
-            EmitStub(sb, c);
-            return;
-        }
+        // Multi-route: validate EVERY declared template (so RASK004/005/006 fire on any
+        // misconfigured template) and aggregate the set of matched RouteParam property names
+        // across all of them. A RouteParam that appears in at least one template's segments
+        // is considered bound — RASK008 only fires for properties that no template references.
+        List<TemplatePart>? firstParts = null;
+        List<ResolvedPathParam>? firstResolved = null;
+        var matchedAcrossTemplates = new HashSet<string>(StringComparer.Ordinal);
 
-        if (!TryParseTemplate(fullTemplate, out var parts, out var error))
+        for (var i = 0; i < c.Templates.Count; i++)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask003, c.RouteAttrLocation.ToLocation(), fullTemplate,
-                c.FullyQualifiedName, error));
-            EmitStub(sb, c);
-            return;
-        }
-
-        var pathParams = parts.OfType<ParamPart>().ToList();
-
-        // Validate path params: each must match a [RouteParam] property by RouteParamName (or property name as fallback).
-        var resolved = new List<ResolvedPathParam>();
-        var matchedProps = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var p in pathParams)
-        {
-            var prop = c.Properties.FirstOrDefault(x =>
-                x.HasRouteParam &&
-                string.Equals(x.RouteParamName ?? x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
-            if (prop.Name is null)
+            if (!TryResolveFullTemplate(spc, c, byFqn, i, out var fullTemplate))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
-                    c.FullyQualifiedName));
                 EmitStub(sb, c);
                 return;
             }
 
-            if (prop.HasQueryParam)
+            if (!TryParseTemplate(fullTemplate, out var parts, out var error))
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
-                    prop.Name, p.Name));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask003, c.RouteAttrLocation.ToLocation(), fullTemplate,
+                    c.FullyQualifiedName, error));
                 EmitStub(sb, c);
                 return;
             }
 
-            if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
+            var pathParams = parts.OfType<ParamPart>().ToList();
+            var resolved = new List<ResolvedPathParam>();
+
+            foreach (var p in pathParams)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
-                    prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
-                EmitStub(sb, c);
-                return;
+                var prop = c.Properties.FirstOrDefault(x =>
+                    x.HasRouteParam &&
+                    string.Equals(x.RouteParamName ?? x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+                if (prop.Name is null)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
+                        c.FullyQualifiedName));
+                    EmitStub(sb, c);
+                    return;
+                }
+
+                if (prop.HasQueryParam)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
+                        prop.Name, p.Name));
+                    EmitStub(sb, c);
+                    return;
+                }
+
+                if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
+                        prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
+                    EmitStub(sb, c);
+                    return;
+                }
+
+                matchedAcrossTemplates.Add(prop.Name);
+                resolved.Add(new ResolvedPathParam(p, prop));
             }
 
-            matchedProps.Add(prop.Name);
-            resolved.Add(new ResolvedPathParam(p, prop));
+            if (i == 0)
+            {
+                firstParts = parts;
+                firstResolved = resolved;
+            }
         }
 
-        // Diagnose orphan [RouteParam] properties.
+        // RASK008: orphan [RouteParam] = a property no template segment binds.
         foreach (var prop in c.Properties)
         {
-            if (prop.HasRouteParam && !matchedProps.Contains(prop.Name))
+            if (prop.HasRouteParam && !matchedAcrossTemplates.Contains(prop.Name))
             {
                 spc.ReportDiagnostic(Diagnostic.Create(Rask008, prop.Location.ToLocation(), c.FullyQualifiedName,
                     prop.Name, prop.RouteParamName ?? prop.Name));
@@ -773,10 +794,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
-        // Query params: every property with [QueryParam].
         var queryProps = c.Properties.Where(p => p.HasQueryParam).ToList();
 
-        EmitFactoryBody(sb, c, parts, resolved, queryProps);
+        // URL formatter is built from the first template only — see TryResolveFullTemplate's
+        // index-0 comment for the rationale.
+        EmitFactoryBody(sb, c, firstParts!, firstResolved!, queryProps);
     }
 
     private static void EmitStub(StringBuilder sb, Candidate c)
@@ -963,11 +985,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     }
 
     private static bool TryResolveFullTemplate(SourceProductionContext spc, Candidate c,
-        Dictionary<string, Candidate> byFqn, out string fullTemplate)
+        Dictionary<string, Candidate> byFqn, int leafTemplateIndex, out string fullTemplate)
     {
         var parts = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var current = c;
+        var isLeaf = true;
         while (current is not null)
         {
             if (!seen.Add(current.FullyQualifiedName))
@@ -978,7 +1001,13 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 return false;
             }
 
-            parts.Insert(0, current.Template);
+            // The leaf composes with whichever of its own templates we're resolving (each
+            // call to this helper resolves ONE concrete URL). Parents always contribute
+            // their first declared [Route] template — multi-route parents would otherwise
+            // explode the chain combinatorially, and the URL formatter has no way to pick.
+            var localTemplate = isLeaf ? current.Templates[leafTemplateIndex] : current.Templates[0];
+            parts.Insert(0, localTemplate);
+            isLeaf = false;
             if (current.ParentTypeFqn is null)
             {
                 break;
@@ -1138,7 +1167,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         string Namespace,
         string TypeName,
         string FullyQualifiedName,
-        string Template,
+        EquatableArray<string> Templates,
         string? ParentTypeFqn,
         EquatableArray<RoutePropInfo> Properties,
         LocationInfo RouteAttrLocation,

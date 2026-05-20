@@ -542,12 +542,8 @@ function handle(reply) {
         freshHtml = doc.documentElement;
     }
     // All post-morph work (history push, scoped CSS/JS apply, scoped-JS dispatch,
-    // raskAfterMorph hook) runs INSIDE the applyDom callback. document.startViewTransition
-    // schedules the callback so the DOM mutations are batched with snapshot capture —
-    // code sitting outside it would run on the OLD DOM and dispatch against stale
-    // data-rask-mount elements (or none on a from-empty navigation). Bundling
-    // everything inside the same callback guarantees morph completes before dispatch
-    // reads the DOM, with or without view transitions.
+    // raskAfterMorph hook) runs inside the applyDom callback so dispatch reads the
+    // freshly-morphed DOM rather than the pre-morph one.
     const applyDom = () => {
         if (freshHtml) {
             morph(document.documentElement, freshHtml);
@@ -574,14 +570,7 @@ function handle(reply) {
         }
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
-    // Animate navigations (renders carrying a history block) with the View
-    // Transitions API when the browser supports it. State-only re-renders skip
-    // the wrap so event-handler latency stays tight.
-    if (reply.history && typeof document.startViewTransition === "function") {
-        document.startViewTransition(applyDom);
-    } else {
-        applyDom();
-    }
+    applyDom();
     if (reply.download) triggerDownload(reply.download);
 }
 

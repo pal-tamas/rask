@@ -56,12 +56,8 @@
                 freshHtml = doc.documentElement;
             }
             // All post-morph work (history push, scoped CSS/JS apply, scoped-JS
-            // dispatch, raskAfterMorph hook) runs INSIDE the applyDom callback.
-            // When morph is wrapped in document.startViewTransition the callback
-            // executes asynchronously — code sitting outside it would run on the
-            // OLD DOM and dispatch against stale data-rask-mount elements (or none
-            // on a from-empty nav). Bundling everything inside the same callback
-            // guarantees morph completes before dispatch reads the DOM.
+            // dispatch, raskAfterMorph hook) runs inside the applyDom callback so
+            // dispatch reads the freshly-morphed DOM rather than the pre-morph one.
             function applyDom() {
                 if (freshHtml) {
                     morph(document.documentElement, freshHtml);
@@ -96,14 +92,7 @@
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
 
-            // Animate navigations (renders carrying a history block) with the View
-            // Transitions API when the browser supports it. State-only re-renders
-            // (no history) skip the wrap to keep event-handler latency tight.
-            if (data.history && typeof document.startViewTransition === "function") {
-                document.startViewTransition(applyDom);
-            } else {
-                applyDom();
-            }
+            applyDom();
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }

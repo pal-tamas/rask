@@ -49,7 +49,7 @@ public sealed class Router : Component
                   ?? throw new InvalidOperationException(
                       "Router() must render under a Rask live root. Call this through MapRask<TApp>.");
 
-        ctx.Route = new RouteRenderState(chain, values, _state.Query);
+        ctx.Route = new RouteRenderState(_state.Path, chain, values, _state.Query);
         return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

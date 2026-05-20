@@ -423,29 +423,6 @@ public abstract class ExampleSmokeTests : SharedSmokeTests
     });
 
     [Fact]
-    public Task ViewTransitions_NavigateButton_LandsOnTarget() => RunAsync(async () =>
-    {
-        // Smoke for the view-transitions demo: Navigator.Navigate in a handler must
-        // still reach its destination on browsers without startViewTransition (the
-        // runtime should fall back to a direct morph) — Chromium-with-it is the
-        // happy path, but the assertion only cares about the final URL + DOM.
-        await Page.GotoAsync("/view-transitions");
-        await Expect(Page.Locator("main h1.h2"))
-            .ToHaveTextAsync("View transitions",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        await Page.GetByRole(AriaRole.Button,
-                new PageGetByRoleOptions { Name = "Go to /binding" })
-            .ClickAsync();
-
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/binding$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("main h1.h2"))
-            .ToHaveTextAsync("Two-way binding",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-    });
-
-    [Fact]
     public Task Cancellation_UnmountWhileRunning_LogsCancelled() => RunAsync(async () =>
     {
         // Validates Component.CancellationToken end-to-end through the showcase:

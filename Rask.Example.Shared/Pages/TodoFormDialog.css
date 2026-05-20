@@ -1,0 +1,9 @@
+dialog {
+    margin: 2rem auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    padding: 1.25rem;
+    min-width: 320px;
+    max-width: 480px;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+}

@@ -193,7 +193,7 @@ public class VirtualizeTests
         // Documents the recommended keying pattern for Virtualize rows: setting
         // Data["rask-key"] makes the client-side morph engage its keyed reconciliation
         // path so reordered / scrolled rows keep their DOM identity (focus, scroll
-        // state, view-transition animations) across re-renders.
+        // state) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
         var view = new StubComponent(() => Virtualize(
             ctx => Div()[

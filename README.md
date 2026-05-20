@@ -59,8 +59,6 @@ What makes it different from other component frameworks:
   `[Inject]` properties, no boilerplate.
 - **Error boundaries.** `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree
   and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.
-- **Animated route transitions.** `Navigator.Navigate(...)` wraps the next morph in the browser's View Transitions
-  API, so route changes crossfade by default (customisable per-element via the CSS `view-transition-name` property).
 - **Forms with async validation.** `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt
   into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form as children.
   Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing,
@@ -83,8 +81,8 @@ If you've worked in Blazor, here's how the day-to-day differs in Rask:
   under `dotnet watch`, with no `.razor.css` association ceremony. Same idea for JS: a sibling `{Component}.js` is
   bundled and dispatched by the framework.
 - **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when
-  switching render mode. Server-only behaviours (multipart upload, view-transition wrapping) and WASM-only
-  behaviours (chunked file reads, inline downloads) live in the hosts, not in your tree.
+  switching render mode. Server-only behaviours (multipart upload) and WASM-only behaviours (chunked file reads,
+  inline downloads) live in the hosts, not in your tree.
 
 Rask isn't a Blazor replacement so much as a different take on the same problem space. If those trade-offs appeal, the
 rest of this README walks through what they look like in practice.
@@ -367,8 +365,7 @@ NavLink(UserPage(id: 42))["View user"];
 ```
 
 Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigate(HomePage())`,
-`nav.SetQuery("tab", "settings")`, etc. Inject it through the constructor like any other service. Navigations
-animate by default — the morph is wrapped in `document.startViewTransition()` when the browser supports it.
+`nav.SetQuery("tab", "settings")`, etc. Inject it through the constructor like any other service.
 
 Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal
 built-in page if no app-defined one exists.
@@ -690,7 +687,6 @@ public sealed class Card : Component
 ```
 
 The showcase uses this throughout: `App.css`, `HomePage.css`, `ScopedRed.css` / `ScopedBlue.css`,
-`ViewTransitionsPage.css`,
 and the `Layout/ShowcaseLayout.css` for the sidebar. Two components can use the same `.box` selector — the framework
 rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` file with no matching component raises
 `RASK015`; two `.css` files claiming the same component raise `RASK016`; opt the whole project out with

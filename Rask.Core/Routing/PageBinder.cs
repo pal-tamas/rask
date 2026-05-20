@@ -23,12 +23,22 @@ internal static class PageBinder
 
         foreach (var property in properties)
         {
-            if (!TryGetRawValue(property, values, query, out var raw))
+            // Multi-route pages reuse the same Component instance across templates that
+            // bind different parameter sets. If the new URL's values/query don't carry
+            // this property's key, the binding has to RESET it to default — otherwise
+            // it stays sticky with the previous URL's value (e.g., Id=guidA carrying
+            // across /todos/{guidA}/edit → /todos, which keeps EditingItem populated
+            // and the dialog stuck open).
+            object? converted;
+            if (TryGetRawValue(property, values, query, out var raw))
             {
-                continue;
+                converted = ConvertValue(raw, property.Property.PropertyType, property.Property.Name);
+            }
+            else
+            {
+                converted = DefaultValue(property.Property.PropertyType);
             }
 
-            var converted = ConvertValue(raw, property.Property.PropertyType, property.Property.Name);
             var previous = property.Property.GetValue(page);
             if (!Equals(previous, converted))
             {
@@ -40,6 +50,14 @@ internal static class PageBinder
 
         return anyChanged;
     }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2067",
+        Justification = "Activator.CreateInstance is only invoked when t is a non-nullable value type. " +
+                        "Value types always carry a public parameterless constructor, so the trimmer's " +
+                        "PublicParameterlessConstructor demand is satisfied independently of the static " +
+                        "annotation on this method.")]
+    private static object? DefaultValue(Type t) =>
+        t.IsValueType && Nullable.GetUnderlyingType(t) is null ? Activator.CreateInstance(t) : null;
 
     [UnconditionalSuppressMessage("Trimming", "IL2070",
         Justification = "Page concrete type's public properties are preserved via the [DynamicDependency] entries " +

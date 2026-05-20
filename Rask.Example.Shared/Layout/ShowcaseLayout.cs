@@ -26,10 +26,10 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/validation", "Validation", "bi-shield-check", "Forms"),
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms"),
         ("/scoped-css", "Scoped CSS", "bi-palette", "Styling"),
-        ("/view-transitions", "View transitions", "bi-stars", "Styling"),
         ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data"),
         ("/upload", "File upload", "bi-upload", "Files"),
-        ("/download", "File download", "bi-cloud-download", "Files")
+        ("/download", "File download", "bi-cloud-download", "Files"),
+        ("/todos", "Todos", "bi-check2-square", "Apps")
     ];
 
     private bool _drawerOpen;

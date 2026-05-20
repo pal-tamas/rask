@@ -192,14 +192,32 @@ public class PageBinderTests
     }
 
     [Fact]
-    public void Bind_NoParamsResolved_ReportsUnchanged()
+    public void Bind_NoParamsResolved_ResetsBoundPropertyToDefault()
     {
+        // Multi-route pages reuse the same Component instance across templates that
+        // bind different parameter sets — `/todos/{id}/edit` sets Id, then navigating
+        // to `/todos` (with no `id` segment) MUST clear Id so EditingItem stops
+        // resolving and the dialog closes. Sticky binding is the bug; reset-to-default
+        // is the contract.
         var page = new StringPage { Name = "alice" };
 
         var changed = PageBinder.Bind(page, Values(), new QueryCollection());
 
+        Assert.True(changed);
+        Assert.Null(page.Name);
+    }
+
+    [Fact]
+    public void Bind_NoParamsResolved_AlreadyAtDefault_ReportsUnchanged()
+    {
+        // The reset still goes through, but Equals(null, null) means no change is
+        // reported — keeps render-cache invalidation tied to a real diff.
+        var page = new StringPage();
+
+        var changed = PageBinder.Bind(page, Values(), new QueryCollection());
+
         Assert.False(changed);
-        Assert.Equal("alice", page.Name);
+        Assert.Null(page.Name);
     }
 
     public readonly record struct CustomerId(int Value) : IParsable<CustomerId>

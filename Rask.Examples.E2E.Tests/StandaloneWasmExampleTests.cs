@@ -40,7 +40,6 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/validation"] = "Validation",
         ["/nested-forms"] = "Complex models",
         ["/scoped-css"] = "Scoped CSS",
-        ["/view-transitions"] = "View transitions",
         ["/http"] = "HttpClient + DI",
         ["/upload"] = "File upload",
         ["/download"] = "File download"

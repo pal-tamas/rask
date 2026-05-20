@@ -536,6 +536,64 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
+    public void MultipleRouteAttributes_RegisterEveryTemplateUnderSameType()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/todos")]
+                  [Route("/todos/new")]
+                  [Route("/todos/{id:guid}/edit")]
+                  public sealed class TodosPage : Component
+                  {
+                      [RouteParam] public System.Guid? Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var registry = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
+        Assert.Contains("new(typeof(global::Demo.TodosPage), \"/todos\", null)", registry);
+        Assert.Contains("new(typeof(global::Demo.TodosPage), \"/todos/new\", null)", registry);
+        Assert.Contains("new(typeof(global::Demo.TodosPage), \"/todos/{id:guid}/edit\", null)", registry);
+
+        // DynamicDependency is per-type, not per-template — exactly one entry per type.
+        var dynDepCount = System.Text.RegularExpressions.Regex
+            .Matches(registry, "typeof\\(global::Demo\\.TodosPage\\)\\)\\]").Count;
+        Assert.Equal(1, dynDepCount);
+    }
+
+    [Fact]
+    public void MultipleRouteAttributes_UrlFormatterUsesFirstTemplateOnly()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/todos")]
+                  [Route("/todos/new")]
+                  [Route("/todos/{id:guid}/edit")]
+                  public sealed class TodosPage : Component
+                  {
+                      [RouteParam] public System.Guid? Id { get; set; }
+                      public override Component Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        // Canonical formatter derives from the first template (/todos), which takes no params.
+        Assert.Contains("public static global::Rask.Core.Routing.RouteUrl TodosPage()", output);
+        // No extra overloads/suffixed formatters for the other templates.
+        Assert.DoesNotContain("TodosPage_", output);
+        Assert.DoesNotContain("TodosPage(global::System.Guid", output);
+    }
+
+    [Fact]
     public void IdenticalSource_ProducesByteIdenticalOutput()
     {
         var src = """
