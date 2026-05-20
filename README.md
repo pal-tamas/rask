@@ -12,6 +12,29 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
+## Contents
+
+- [What is Rask?](#what-is-rask)
+- [Compared to Blazor](#compared-to-blazor)
+- [Install](#install)
+- [Quick Start — Server](#quick-start--server)
+- [Quick Start — WASM](#quick-start--wasm)
+- [Core concepts](#core-concepts)
+    - [Components](#components)
+    - [Interactivity](#interactivity)
+    - [Async data](#async-data)
+    - [Routing](#routing)
+    - [Page head contributions](#page-head-contributions)
+    - [Error boundaries](#error-boundaries)
+    - [Forms & validation](#forms--validation)
+    - [Files: upload and download](#files-upload-and-download)
+    - [Virtualization](#virtualization)
+    - [Scoped CSS](#scoped-css)
+    - [Scoped JS](#scoped-js)
+    - [Lifecycle reference](#lifecycle-reference)
+- [Status](#status)
+- [License](#license)
+
 ## What is Rask?
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast** or **quick**.
@@ -42,6 +65,29 @@ What makes it different from other component frameworks:
   into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form as children.
   Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing,
   and rapid keystrokes cancel any prior in-flight validation (latest-wins).
+
+## Compared to Blazor
+
+If you've worked in Blazor, here's how the day-to-day differs in Rask:
+
+- **No `.razor`.** Components are plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]` instead
+  of mixed markup + code. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just
+  work.
+- **No `[Inject]`.** Services come in through the constructor (`Counter(IClock clock) : Component`), exactly like
+  anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way.
+- **No `@page "/path"`.** `[Route("/path")]` goes on the class, and every route gets a generated **type-safe URL
+  builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes.
+- **No `RenderFragment` / `EventCallback`.** Children are `IEnumerable<Child>` and event handlers are plain delegates
+  (`OnClick: () => _count++`). No specialised types, no `@bind-Value:event`.
+- **Scoped CSS via sibling `.css`** (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded
+  under `dotnet watch`, with no `.razor.css` association ceremony. Same idea for JS: a sibling `{Component}.js` is
+  bundled and dispatched by the framework.
+- **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when
+  switching render mode. Server-only behaviours (multipart upload, view-transition wrapping) and WASM-only
+  behaviours (chunked file reads, inline downloads) live in the hosts, not in your tree.
+
+Rask isn't a Blazor replacement so much as a different take on the same problem space. If those trade-offs appeal, the
+rest of this README walks through what they look like in practice.
 
 ## Install
 
@@ -84,10 +130,9 @@ dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentM
 dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
 ```
 
-`Rask.Server` and `Rask.Wasm` each bundle the core component types and source generators. `Rask.Wasm.Hosting` depends on
-`Rask.Wasm` and pulls those in transitively. The validation packages depend only on `Rask.Core` and add a global
-`using static` for their factory namespace, so `DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in
-scope without any extra `using` lines.
+`Rask.Server` and `Rask.Wasm` each pull in `Rask.Core` and the source generators transitively; `Rask.Wasm.Hosting`
+pulls in `Rask.Wasm`. The validation packages add a global `using static` for their factory namespace, so
+`DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in scope without extra `using` lines.
 
 ## Quick Start — Server
 
@@ -168,8 +213,34 @@ Run `dotnet run` and open the printed URL.
 
 ## Quick Start — WASM
 
-Two projects: the WASM client itself, and an ASP.NET host that serves the published bundle. The `App.cs` from the server
-quick start works here unchanged.
+Two flavours: a **standalone** SPA that ships as a static bundle, or a **hosted** variant where an ASP.NET project
+serves the published WASM bundle alongside your own `/api/...` endpoints. The `App.cs` and `HomePage.cs` from the
+server quick start work under both, unchanged.
+
+### Standalone (`rask-wasm`)
+
+One `net10.0-browser` project. `Program.cs`:
+
+```csharp
+using Rask.Wasm;
+using MyApp;
+
+var host = WasmHostBuilder.CreateDefault();
+host.Services.AddSingleton(_ =>
+    new HttpClient { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
+
+await host.RunAsync<App>();
+```
+
+`dotnet publish -c Release` emits a static `wwwroot/` directory you can serve from any static host (GitHub Pages, S3,
+nginx). No runtime server process is required for the framework itself — bring your own host for whatever public APIs
+the client calls.
+
+### Hosted (`rask-wasm-hosted`)
+
+Two projects: the WASM client itself, and an ASP.NET host that serves the published bundle. The host project takes a
+cross-TFM `<ProjectReference>` to the WASM project; the auto-imported targets discover the bundle and bake the path
+into an assembly attribute at publish.
 
 **WASM client `Program.cs`** (`net10.0-browser`):
 
@@ -190,15 +261,20 @@ await host.RunAsync<App>();
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddRask();              // opt-in: brotli/gzip response compression of the AppBundle
+
 var app = builder.Build();
 app.UseRask();
 app.Run();
 ```
 
-`app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation, and
-a SPA fallback so client-side routes resolve. Precompressed `.br` / `.gz` siblings (emitted by the WASM publish step
-next to `_framework/*` assets) are served with the right `Content-Encoding` automatically — no extra config, no runtime
-compression cost on the framework payload. Add your `/api/...` endpoints alongside it.
+`AddRask()` is optional but recommended — it wires `UseResponseCompression` ahead of `UseStaticFiles` so the
+precompressed `.br` / `.gz` siblings emitted by the WASM publish step go out with the right `Content-Encoding` and
+no runtime compression cost on the framework payload. Skip it and the host still works; you just lose the compression
+layer.
+
+`app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation,
+and a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alongside it.
 
 ## Core concepts
 
@@ -297,6 +373,34 @@ animate by default — the morph is wrapped in `document.startViewTransition()` 
 Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal
 built-in page if no app-defined one exists.
 
+### Page head contributions
+
+Any component can override `protected virtual Component? Head` to declare what belongs in `<head>` while that component
+is in the tree:
+
+```csharp
+public sealed class UserDetailPage : Component
+{
+    [RouteParam] public int Id { get; set; }
+
+    // The framework dedupes by rendered HTML; <title> and <base> are singleton
+    // tags — last contributor wins. So this page's Title overrides App's
+    // fallback when the user lands on /users/42.
+    protected override Component? Head => Fragment()[
+        Title()[$"User #{Id} — My Rask App"],
+        Meta(Name: "description", Content: $"Profile for user {Id}"),
+        Link(Rel: "stylesheet", Href: "https://cdn.example.com/profile.css")
+    ];
+
+    protected override Component Render() => /* … */;
+}
+```
+
+When the user navigates away, the page leaves the tree, its contributions drop from the registry, and the next
+render's `<head>` reflects whatever components remain. Multiple instances of the same `Link(Href: "...")` dedupe to
+a single emission. The `Head()` HTML element itself is **framework-managed** — passing it children is a `RASK019`
+compile error; everything goes through the override.
+
 ### Error boundaries
 
 Wrap any subtree in `ErrorBoundary(...)` to catch render-time, sync/async lifecycle, and event-handler exceptions
@@ -363,6 +467,8 @@ public sealed class SignupPage : Component
 }
 ```
 
+#### Async validation
+
 For ad-hoc async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a manually
 built `EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
 in-flight per-field check (latest-wins). `ValidatingIndicator` is headless too — pass a `Template:` lambda for
@@ -380,6 +486,43 @@ Two lighter-weight alternatives, when a full `IAsyncFieldValidator` is overkill:
 
 Reach for `IAsyncFieldValidator` when the rule needs DI (an `HttpClient`, a repository) or when you want to reuse it
 across forms.
+
+```csharp
+public sealed class UniqueUsernameValidator : IAsyncFieldValidator
+{
+    public async ValueTask ValidateFieldAsync(
+        EditContext ctx, FieldIdentifier field, CancellationToken ct)
+    {
+        if (ctx.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
+        {
+            await Task.Delay(400, ct);                    // pretend it's an API call
+            if (await IsTakenAsync(m.Username))
+                ctx.AddValidationMessage(field, "Already taken.");
+        }
+    }
+    public ValueTask ValidateAsync(EditContext c, CancellationToken ct) => default;
+}
+
+private readonly SignupModel _model = new();
+private EditContext? _ctx;
+
+protected override void OnMount()
+{
+    _ctx = new EditContext(_model);
+    _ctx.AddValidator(new UniqueUsernameValidator());
+}
+
+protected override Component Render() =>
+    Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
+        DataAnnotationsValidator(),
+        Input(Bind: () => _model.Username),
+        ValidatingIndicator(For: () => _model.Username,
+            Template: () => Span(Class: "spinner")["Checking..."]),
+        ValidationMessage(For: () => _model.Username,
+            Template: errs => Div(Class: "field-error")[errs[0]]),
+        Button(Type: "submit")["Sign up"]
+    ];
+```
 
 #### Complex models — sub-objects and lists
 
@@ -460,44 +603,6 @@ instance so `ValidationMessage(For: () => _model.Address.Street, ...)` reads it 
 already applies to the root model (preserve its public properties via `[DynamicallyAccessedMembers]` or a
 `<TrimmerRootDescriptor>`) extends to every nested type. The full Forms/Complex-models showcase under `/nested-forms`
 demonstrates all four patterns side-by-side.
-
-
-```csharp
-public sealed class UniqueUsernameValidator : IAsyncFieldValidator
-{
-    public async ValueTask ValidateFieldAsync(
-        EditContext ctx, FieldIdentifier field, CancellationToken ct)
-    {
-        if (ctx.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
-        {
-            await Task.Delay(400, ct);                    // pretend it's an API call
-            if (await IsTakenAsync(m.Username))
-                ctx.AddValidationMessage(field, "Already taken.");
-        }
-    }
-    public ValueTask ValidateAsync(EditContext c, CancellationToken ct) => default;
-}
-
-private readonly SignupModel _model = new();
-private EditContext? _ctx;
-
-protected override void OnMount()
-{
-    _ctx = new EditContext(_model);
-    _ctx.AddValidator(new UniqueUsernameValidator());
-}
-
-protected override Component Render() =>
-    Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
-        DataAnnotationsValidator(),
-        Input(Bind: () => _model.Username),
-        ValidatingIndicator(For: () => _model.Username,
-            Template: () => Span(Class: "spinner")["Checking..."]),
-        ValidationMessage(For: () => _model.Username,
-            Template: errs => Div(Class: "field-error")[errs[0]]),
-        Button(Type: "submit")["Sign up"]
-    ];
-```
 
 ### Files: upload and download
 
@@ -591,7 +696,7 @@ rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` 
 
 The bundle is delivered automatically — on the server as a `<link rel="stylesheet" href="/_rask/scoped.css?v=…">`
 inside `<head>`, on WASM through the page shell's `<style id="rask-scoped">` slot. No call site or placement is
-required; the framework-managed `<head>` (see *Page head contributions* below) splices it in for you.
+required; the framework-managed `<head>` (see *Page head contributions* above) splices it in for you.
 
 **Targeting shell tags** — selectors like `body`, `html`, `button` don't carry `data-{scopeId}` (those tags are
 intentionally excluded from stamping), so a sibling rule like `body { ... }` would never match. Wrap the selector in
@@ -647,35 +752,7 @@ outermost element of each rendered component instance that has a sibling `.js`; 
 Orphan `.js` files (no matching `.cs` in the same folder) raise `RASK017`; ambiguous matches raise `RASK018`. Opt
 out per-project with `<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude>`.
 
-### Page head contributions
-
-Any component can override `protected virtual Component? Head` to declare what belongs in `<head>` while that component
-is in the tree:
-
-```csharp
-public sealed class UserDetailPage : Component
-{
-    [RouteParam] public int Id { get; set; }
-
-    // The framework dedupes by rendered HTML; <title> and <base> are singleton
-    // tags — last contributor wins. So this page's Title overrides App's
-    // fallback when the user lands on /users/42.
-    protected override Component? Head => Fragment()[
-        Title()[$"User #{Id} — My Rask App"],
-        Meta(Name: "description", Content: $"Profile for user {Id}"),
-        Link(Rel: "stylesheet", Href: "https://cdn.example.com/profile.css")
-    ];
-
-    protected override Component Render() => /* … */;
-}
-```
-
-When the user navigates away, the page leaves the tree, its contributions drop from the registry, and the next
-render's `<head>` reflects whatever components remain. Multiple instances of the same `Link(Href: "...")` dedupe to
-a single emission. The `Head()` HTML element itself is **framework-managed** — passing it children is a `RASK019`
-compile error; everything goes through the override.
-
-### Async JS interop
+#### Async JS interop
 
 For round-trips where C# needs a value back from JS, use `InvokeJsAsync<T>(method, args)`:
 
@@ -718,6 +795,14 @@ first one's result wins; when none match the task completes with `default(T)`.
 
 Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** (`net10.0` for ASP.NET hosts,
 `net10.0-browser` for WASM projects). Production use at your own discretion — issues and PRs welcome.
+
+- **Test coverage:** unit suites across `Rask.Core.Tests`, `Rask.Generators.Tests`, host-specific test projects, and
+  the validation packages, plus a Playwright E2E smoke suite (`Rask.Examples.E2E.Tests`) that runs against both
+  example hosts.
+- **Benchmarks:** baselines for the render hot path live in `Rask.Benchmarks` (BenchmarkDotNet); committed reports
+  under `BenchmarkDotNet.Artifacts/results/`.
+- **Trimming:** `Rask.Example.Wasm` publishes with zero IL warnings. See `CLAUDE.md` for the contract that keeps it
+  that way.
 
 ## License
 
