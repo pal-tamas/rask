@@ -120,6 +120,17 @@
     }
 
     function installOverlay() {
+        // The overlay's <style> and <div> are framework-managed siblings of the
+        // server-rendered tree, but the morph walks documentElement's children
+        // positionally — anything not in the server payload (which the overlay
+        // never is) gets removed on the first render. We clear and reinstall
+        // here so the function is idempotent and the next disconnect always
+        // gets a fresh, attached overlay.
+        var oldStyle = document.querySelector("style[data-rask-overlay]");
+        if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
+        var oldEl = document.querySelector(".rask-overlay");
+        if (oldEl && oldEl.parentNode) oldEl.parentNode.removeChild(oldEl);
+
         var style = document.createElement("style");
         style.setAttribute("data-rask-overlay", "");
         style.textContent =
@@ -149,6 +160,10 @@
     }
 
     function showOverlay() {
+        // The first WS render morphs documentElement and rips out the overlay
+        // div + style. Reinstall whenever the cached reference is detached so
+        // subsequent disconnects still surface the spinner.
+        if (!overlay || !overlay.isConnected) overlay = installOverlay();
         overlay.setAttribute("data-show", "");
         overlay.setAttribute("aria-hidden", "false");
         if ("inert" in document.body) document.body.inert = true;
