@@ -89,10 +89,31 @@
                         }
                     }
                 }
+                // IJSRuntime.InvokeAsync<T> dispatch: each entry resolves a dotted
+                // identifier on window, invokes it with the JSON-decoded args, and
+                // ships the result back as a jsResult message keyed by taskId.
+                if (Array.isArray(data.jsInvokes)) {
+                    for (var ji = 0; ji < data.jsInvokes.length; ji++) {
+                        dispatchJsInvoke(data.jsInvokes[ji]);
+                    }
+                }
+                // dotNetResult: reply to a JS-initiated DotNet.invokeMethodAsync call.
+                // Routed by the DotNet shim's pending-call table to resolve/reject
+                // the matching JS Promise.
+                if (data.type === "dotNetResult" && typeof data.callId === "string") {
+                    window.DotNet._endInvokeDotNet(data);
+                }
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
             }
 
             applyDom();
+            // Out-of-band frames carry no html — process the supplemental fields and
+            // bail before any morph-related work runs.
+            if (data.type === "dotNetResult" && typeof data.callId === "string"
+                && typeof data.html !== "string") {
+                window.DotNet._endInvokeDotNet(data);
+                return;
+            }
             if (data.auth && typeof data.auth.ticket === "string") {
                 redeemAuthTicket(data.auth);
             }
@@ -466,6 +487,144 @@
             send({id: form.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
         });
     }
+
+    // ----- IJSRuntime global-JS dispatcher -----------------------------------
+    // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
+    // "sessionStorage.getItem", we resolve it on window, invoke it with args, then
+    // ship a jsResult back keyed by the server-assigned taskId. JSObjectReference
+    // returns get a stable handle id; DotNetObjectReference values flow back via a
+    // {__dotNetObject:<id>} placeholder so the .NET side can re-hydrate them.
+
+    var jsObjectRefs = new Map();   // id -> target
+    var nextJsObjectRefId = 1;
+
+    function resolveIdentifier(target, identifier) {
+        // Walk a dotted JS path on the given target (typically window). Returns
+        // [parentObject, lastSegment] so the caller can preserve `this` when
+        // calling methods (e.g. sessionStorage.setItem must run with sessionStorage
+        // as `this`). Returns null on miss — caller throws.
+        if (typeof identifier !== "string" || identifier.length === 0) return null;
+        var parts = identifier.split(".");
+        var parent = target;
+        for (var i = 0; i < parts.length - 1; i++) {
+            if (parent == null) return null;
+            parent = parent[parts[i]];
+        }
+        if (parent == null) return null;
+        var last = parts[parts.length - 1];
+        return [parent, last];
+    }
+
+    function dispatchJsInvoke(inv) {
+        if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
+        var taskId = inv.id;
+        var resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
+        var argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
+        var targetInstanceId = (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0;
+
+        Promise.resolve().then(function () {
+            var args;
+            try {
+                args = JSON.parse(argsJson, jsonReviver);
+            } catch (e) {
+                throw new Error("Failed to parse argsJson: " + e.message);
+            }
+
+            var target = window;
+            if (targetInstanceId !== 0) {
+                target = jsObjectRefs.get(targetInstanceId);
+                if (!target) throw new Error("Unknown JS object reference: " + targetInstanceId);
+            }
+
+            var resolved = resolveIdentifier(target, inv.identifier);
+            if (!resolved) throw new Error("Could not find '" + inv.identifier + "' on target");
+            var parent = resolved[0];
+            var key = resolved[1];
+            var fn = parent[key];
+
+            var result;
+            if (typeof fn === "function") {
+                result = fn.apply(parent, args);
+            } else {
+                // Identifier names a property (not a method) — return its value. This is
+                // how blazor handles e.g. `localStorage.length`.
+                result = fn;
+            }
+            return result;
+        }).then(function (value) {
+            // Mirrors Microsoft.JSInterop.JSCallResultType:
+            //   0 = Default            — ship the value as-is.
+            //   1 = JSObjectReference  — mint a handle id, send {__jsObjectId:<id>}.
+            //   2 = JSStreamReference  — not supported yet; fall through to Default.
+            //   3 = JSVoidResult       — drop the value, only the success ack matters.
+            if (resultType === 3) {
+                sendJsResult(taskId, true, null);
+                return;
+            }
+            if (resultType === 1) {
+                var refId = nextJsObjectRefId++;
+                jsObjectRefs.set(refId, value);
+                sendJsResult(taskId, true, {"__jsObjectId": refId});
+                return;
+            }
+            sendJsResult(taskId, true, value);
+        }).catch(function (err) {
+            sendJsResult(taskId, false, null, (err && err.message) || String(err));
+        });
+    }
+
+    function jsonReviver(key, value) {
+        // Inverse of the placeholder write: replace {__jsObjectId:<id>} from the .NET
+        // side with the live JS object. Skips other shapes.
+        if (value && typeof value === "object" && typeof value.__jsObjectId === "number") {
+            return jsObjectRefs.get(value.__jsObjectId);
+        }
+        return value;
+    }
+
+    function sendJsResult(id, success, result, error) {
+        var msg = {type: "jsResult", id: id, success: success};
+        if (success) {
+            msg.result = result;
+        } else {
+            msg.error = error || "JS invocation failed";
+        }
+        send(msg);
+    }
+
+    // ----- DotNet shim (mirror of Blazor's window.DotNet) --------------------
+    // [JSInvokable] callbacks. JS code calls `DotNet.invokeMethodAsync("MyApp",
+    // "MyMethod", arg1, arg2)`; we serialise args, ship a dotNetInvoke message,
+    // and resolve the returned Promise when the server replies with dotNetResult.
+    var dotNetPending = new Map();    // callId -> {resolve, reject}
+    var nextDotNetCallId = 1;
+
+    window.DotNet = window.DotNet || {
+        invokeMethodAsync: function (assemblyName, methodIdentifier /*, ...args */) {
+            var args = Array.prototype.slice.call(arguments, 2);
+            var callId = String(nextDotNetCallId++);
+            return new Promise(function (resolve, reject) {
+                dotNetPending.set(callId, {resolve: resolve, reject: reject});
+                send({
+                    type: "dotNetInvoke",
+                    callId: callId,
+                    assemblyName: assemblyName,
+                    methodIdentifier: methodIdentifier,
+                    argsJson: JSON.stringify(args)
+                });
+            });
+        },
+        _endInvokeDotNet: function (msg) {
+            var pending = dotNetPending.get(msg.callId);
+            if (!pending) return;
+            dotNetPending.delete(msg.callId);
+            if (msg.success) {
+                pending.resolve(msg.result);
+            } else {
+                pending.reject(new Error(msg.error || "DotNet invocation failed"));
+            }
+        }
+    };
 
     // The Rask.scoped dispatcher and the reviveScript() + morph() definitions are
     // concatenated in at build time by the _RaskBuildClientJs target. Order matters:

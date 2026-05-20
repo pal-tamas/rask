@@ -392,7 +392,16 @@ public abstract class Component
         var firstRender = !_hasRenderedOnce;
         _hasRenderedOnce = true;
         OnRendered(firstRender);
-        ScheduleAsyncContinuation(this, OnRenderedAsync(firstRender), false);
+        // rerender=true: when OnRenderedAsync awaits and then mutates state on the
+        // continuation, fire StateHasChanged so the UI picks the change up. Matches
+        // OnMountAsync / OnPropsChangedAsync / event handlers, which all auto-render
+        // on async completion — and matches CLAUDE.md's documented async lifecycle.
+        // The canonical guard `if (!firstRender) return;` short-circuits on subsequent
+        // renders (task is synchronously completed, so ScheduleAsyncContinuation no-ops),
+        // so the canonical pattern doesn't loop. Users who do unconditional state
+        // mutation on every OnRenderedAsync would loop — same gotcha as Blazor's
+        // OnAfterRenderAsync, and the documentation calls it out the same way.
+        ScheduleAsyncContinuation(this, OnRenderedAsync(firstRender), true);
     }
 
     internal void CancelLifetimeToken()

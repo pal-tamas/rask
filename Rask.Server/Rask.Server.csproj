@@ -18,6 +18,14 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
   </ItemGroup>
 
+  <!--
+    Microsoft.JSInterop (IJSRuntime + JSRuntime base + DotNetDispatcher) is already supplied
+    transitively by the Microsoft.AspNetCore.App framework reference above, so no explicit
+    PackageReference is needed. This is the abstractions-only surface — it does not drag in
+    the Blazor renderer or circuit, so Rask's component model stays independent of
+    Microsoft.AspNetCore.Components.
+  -->
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
 using Rask.Server.Files;
+using Rask.Server.JSInterop;
 
 namespace Rask.Server;
 
@@ -70,6 +71,13 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
 
         var session = new LiveSession(sessionId, view, scope);
+        // Bind the per-scope LiveSessionAccessor so RaskJSRuntime (resolved from the same
+        // scope) can find this session when components inject IJSRuntime.
+        if (scope.ServiceProvider.GetService<LiveSessionAccessor>() is { } accessor)
+        {
+            accessor.Session = session;
+        }
+
         _sessions[session.Id] = session;
         return session;
     }

@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
+using Microsoft.JSInterop;
+using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
@@ -23,6 +25,7 @@ using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 using Rask.Server.Authentication;
 using Rask.Server.Files;
+using Rask.Server.JSInterop;
 using Components = Rask.Core.Components.Components;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
@@ -66,6 +69,17 @@ public static class RaskEndpointExtensions
         services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<SessionUserProvider>());
         services.TryAddSingleton<RaskAuthorizationOptions>();
         services.AddAuthorization();
+
+        // IJSRuntime compatibility. RaskJSRuntime + LiveSessionAccessor are scoped — one
+        // pair per LiveSession DI scope. LiveSessionStore.Create sets accessor.Session
+        // immediately after constructing the session, so any component that takes IJSRuntime
+        // via ctor injection sees a runtime bound to the correct session. Self-binding via
+        // GetRequiredService keeps a single instance shared between IJSRuntime resolution
+        // and any direct RaskJSRuntime resolution (e.g. from the WS message handler when
+        // dispatching dotNetInvoke / jsResult).
+        services.AddScoped<LiveSessionAccessor>();
+        services.AddScoped<RaskJSRuntime>();
+        services.AddScoped<IJSRuntime>(sp => sp.GetRequiredService<RaskJSRuntime>());
         return services;
     }
 
@@ -398,6 +412,27 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
+                if (type == "jsResult")
+                {
+                    // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base
+                    // JSRuntime class manages its own pending-task dictionary keyed by the
+                    // taskId we passed out in jsInvokes; calling EndInvokeJS with the
+                    // serialised [taskId, success, result|error] triple completes the
+                    // awaiting ValueTask. No render needed.
+                    HandleJsResult(session, root);
+                    continue;
+                }
+
+                if (type == "dotNetInvoke")
+                {
+                    // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method.
+                    // Hand off to the public DotNetDispatcher; the runtime completes the
+                    // call asynchronously and EndInvokeDotNet fires our SendOutOfBandAsync
+                    // to deliver the result back to the client. No render needed.
+                    HandleDotNetInvoke(session, root);
+                    continue;
+                }
+
                 var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
                     ? idEl.GetString()
                     : null;
@@ -406,72 +441,19 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                await session.Lock.WaitAsync(ct);
-                session.InHandlerScope = true;
-                try
-                {
-                    var navigator = session.Services.GetRequiredService<Navigator>();
-                    var authSignIn = session.Services.GetRequiredService<AuthSignIn>();
-                    var ticketStore = session.Services.GetRequiredService<IAuthTicketStore>();
-                    try
-                    {
-                        using (navigator.EnterHandler())
-                        using (authSignIn.EnterHandler())
-                        {
-                            if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
-                            {
-                                string? historyUrl = null;
-                                var historyReplace = false;
-                                AuthInstruction? authInstruction = null;
-
-                                if (authSignIn.TryConsume(out var pending))
-                                {
-                                    var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
-                                    var ticketId = ticketStore.Issue(
-                                        pending.Action,
-                                        pending.Principal,
-                                        pending.Scheme,
-                                        session.Id);
-                                    authInstruction = new AuthInstruction(ticketId, safeReturn);
-
-                                    var routeState = session.Services.GetRequiredService<RouteState>();
-                                    var (path, query) = SplitUrl(safeReturn);
-                                    routeState.Path = path;
-                                    routeState.Query = query;
-                                    historyUrl = safeReturn;
-                                    historyReplace = true;
-                                }
-
-                                if (navigator.TryConsumeHistory(out var url, out var replace))
-                                {
-                                    if (authInstruction is null)
-                                    {
-                                        historyUrl = url;
-                                        historyReplace = replace;
-                                    }
-                                }
-
-                                await EnforceAuthAndRenderAsync(
-                                        session, historyUrl, historyReplace, authInstruction)
-                                    .ConfigureAwait(false);
-
-                                if (authInstruction is not null)
-                                {
-                                    session.SuppressEventsUntilReconnect = true;
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        Console.Error.WriteLine($"Rask Live handler '{handlerId}' threw: {ex}");
-                    }
-                }
-                finally
-                {
-                    session.InHandlerScope = false;
-                    session.Lock.Release();
-                }
+                // Spawn the handler dispatch as a fire-and-forget task and KEEP THE RECEIVE
+                // LOOP RUNNING. Without this, an async handler that awaits an inbound WS
+                // message — e.g. `await js.InvokeVoidAsync("sessionStorage.setItem", …)` from
+                // inside an OnClickAsync — would deadlock: the handler can't complete until
+                // the jsResult arrives, but the receive loop can't pull the jsResult until
+                // the handler completes. Cross-handler ordering on the same session is still
+                // preserved by session.Lock — tasks queue FIFO on the semaphore so events
+                // process in arrival order. We clone the JSON element because the
+                // JsonDocument's backing buffer is disposed at the bottom of the iteration.
+                var capturedSession = session;
+                var capturedHandlerId = handlerId;
+                var capturedRoot = root.Clone();
+                _ = Task.Run(() => DispatchHandlerAsync(capturedSession, capturedHandlerId, capturedRoot, ct), ct);
             }
         }
         catch (OperationCanceledException) { }
@@ -490,6 +472,88 @@ public static class RaskEndpointExtensions
                 try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token); }
                 catch { }
             }
+        }
+    }
+
+    private static async Task DispatchHandlerAsync(
+        LiveSession session,
+        string handlerId,
+        JsonElement root,
+        CancellationToken ct)
+    {
+        try
+        {
+            await session.Lock.WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        session.InHandlerScope = true;
+        try
+        {
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            var authSignIn = session.Services.GetRequiredService<AuthSignIn>();
+            var ticketStore = session.Services.GetRequiredService<IAuthTicketStore>();
+            try
+            {
+                using (navigator.EnterHandler())
+                using (authSignIn.EnterHandler())
+                {
+                    if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
+                    {
+                        string? historyUrl = null;
+                        var historyReplace = false;
+                        AuthInstruction? authInstruction = null;
+
+                        if (authSignIn.TryConsume(out var pending))
+                        {
+                            var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
+                            var ticketId = ticketStore.Issue(
+                                pending.Action,
+                                pending.Principal,
+                                pending.Scheme,
+                                session.Id);
+                            authInstruction = new AuthInstruction(ticketId, safeReturn);
+
+                            var routeState = session.Services.GetRequiredService<RouteState>();
+                            var (path, query) = SplitUrl(safeReturn);
+                            routeState.Path = path;
+                            routeState.Query = query;
+                            historyUrl = safeReturn;
+                            historyReplace = true;
+                        }
+
+                        if (navigator.TryConsumeHistory(out var url, out var replace))
+                        {
+                            if (authInstruction is null)
+                            {
+                                historyUrl = url;
+                                historyReplace = replace;
+                            }
+                        }
+
+                        await EnforceAuthAndRenderAsync(
+                                session, historyUrl, historyReplace, authInstruction)
+                            .ConfigureAwait(false);
+
+                        if (authInstruction is not null)
+                        {
+                            session.SuppressEventsUntilReconnect = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Console.Error.WriteLine($"Rask Live handler '{handlerId}' threw: {ex}");
+            }
+        }
+        finally
+        {
+            session.InHandlerScope = false;
+            session.Lock.Release();
         }
     }
 
@@ -527,6 +591,111 @@ public static class RaskEndpointExtensions
         }
 
         JsInvokeResultStore.TryResolve(id, result, error);
+    }
+
+    private static void HandleJsResult(LiveSession session, JsonElement root)
+    {
+        // Expected payload: { type: "jsResult", id: <long>, success: <bool>,
+        //                     result?: <any-json>, error?: <string> }
+        // Repackage as the [taskId, success, result|error] triple that
+        // JSRuntime.EndInvokeJS(string) expects.
+        if (!root.TryGetProperty("id", out var idEl)
+            || idEl.ValueKind != JsonValueKind.Number
+            || !idEl.TryGetInt64(out var taskId))
+        {
+            return;
+        }
+
+        var success = root.TryGetProperty("success", out var sEl) && sEl.ValueKind == JsonValueKind.True;
+
+        var runtime = session.Services.GetService<RaskJSRuntime>();
+        if (runtime is null)
+        {
+            return;
+        }
+
+        using var stream = new MemoryStream(128);
+        using (var w = new Utf8JsonWriter(stream))
+        {
+            w.WriteStartArray();
+            w.WriteNumberValue(taskId);
+            w.WriteBooleanValue(success);
+            if (success)
+            {
+                if (root.TryGetProperty("result", out var resEl))
+                {
+                    resEl.WriteTo(w);
+                }
+                else
+                {
+                    w.WriteNullValue();
+                }
+            }
+            else
+            {
+                w.WriteStringValue(root.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String
+                    ? errEl.GetString()
+                    : "JS invocation failed");
+            }
+
+            w.WriteEndArray();
+        }
+
+        try
+        {
+            DotNetDispatcher.EndInvokeJS(runtime, Encoding.UTF8.GetString(stream.ToArray()));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Rask jsResult dispatch for taskId={taskId} threw: {ex}");
+        }
+    }
+
+    private static void HandleDotNetInvoke(LiveSession session, JsonElement root)
+    {
+        // Expected payload: { type: "dotNetInvoke", callId: <string>,
+        //                     assemblyName: <string>, methodIdentifier: <string>,
+        //                     dotNetObjectId?: <long>, argsJson: <string> }
+        var assemblyName = root.TryGetProperty("assemblyName", out var aEl) && aEl.ValueKind == JsonValueKind.String
+            ? aEl.GetString()
+            : null;
+        var methodIdentifier = root.TryGetProperty("methodIdentifier", out var mEl)
+                               && mEl.ValueKind == JsonValueKind.String
+            ? mEl.GetString()
+            : null;
+        if (methodIdentifier is null)
+        {
+            return;
+        }
+
+        long dotNetObjectId = 0;
+        if (root.TryGetProperty("dotNetObjectId", out var oEl) && oEl.ValueKind == JsonValueKind.Number)
+        {
+            oEl.TryGetInt64(out dotNetObjectId);
+        }
+
+        var callId = root.TryGetProperty("callId", out var cEl) && cEl.ValueKind == JsonValueKind.String
+            ? cEl.GetString()
+            : null;
+        var argsJson = root.TryGetProperty("argsJson", out var argEl) && argEl.ValueKind == JsonValueKind.String
+            ? argEl.GetString() ?? "[]"
+            : "[]";
+
+        var runtime = session.Services.GetService<RaskJSRuntime>();
+        if (runtime is null)
+        {
+            return;
+        }
+
+        var invocationInfo = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
+        try
+        {
+            DotNetDispatcher.BeginInvokeDotNet(runtime, invocationInfo, argsJson);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Rask dotNetInvoke '{assemblyName}.{methodIdentifier}' threw: {ex}");
+        }
     }
 
     private static async Task HandleNavigateAsync(LiveSession session, JsonElement root, CancellationToken ct)

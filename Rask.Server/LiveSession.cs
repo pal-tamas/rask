@@ -21,6 +21,12 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // mutate the same Component state — _children, _stateDirty, _cachedRenderResult — and one
     // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
     private readonly SemaphoreSlim _renderLock = new(1, 1);
+
+    // IJSRuntime queue. Calls land here via RaskJSRuntime.BeginInvokeJS and get drained
+    // into the next outbound payload by RenderAndSendAsync. A plain List under lock —
+    // contention is bounded by the session's outer Lock semaphore (one handler at a time),
+    // so writes only race with the drain at flush time.
+    private readonly List<PendingJsInvoke> _pendingJsInvokes = new();
     private ArrayBufferWriter<byte>? _lastSentBuffer;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
@@ -136,6 +142,48 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         _socketCt = default;
     }
 
+    /// <summary>
+    ///     Queue a global-JS interop call (from <see cref="JSInterop.RaskJSRuntime" />) to be
+    ///     emitted on the next outbound frame. Thread-safe — calls can arrive from awaited
+    ///     continuations on thread-pool workers.
+    /// </summary>
+    internal void EnqueueJsInvoke(PendingJsInvoke invoke)
+    {
+        lock (_pendingJsInvokes)
+        {
+            _pendingJsInvokes.Add(invoke);
+        }
+    }
+
+    /// <summary>
+    ///     Out-of-band WS send for messages that aren't part of a render frame — currently
+    ///     just <c>[JSInvokable]</c> .NET-call results pushed from
+    ///     <see cref="JSInterop.RaskJSRuntime.EndInvokeDotNet" />. Single-writer-at-a-time via
+    ///     the render lock so we don't interleave with an in-flight SendAsync.
+    /// </summary>
+    internal async Task SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
+    {
+        if (_socket is null || _socket.State != WebSocketState.Open)
+        {
+            return;
+        }
+
+        await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
+        try
+        {
+            if (_socket is null || _socket.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            await _socket.SendAsync(payload, WebSocketMessageType.Text, true, _socketCt).ConfigureAwait(false);
+        }
+        finally
+        {
+            _renderLock.Release();
+        }
+    }
+
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null)
     {
         if (_socket is null || _socket.State != WebSocketState.Open)
@@ -163,9 +211,20 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // the initial HTTP GET produced, so a per-page Title declared via
             // Component.Head never made it to the browser tab on SPA-style navigation.
             // The added head bytes (~2-3 KB) compress away under permessage-deflate.
+            PendingJsInvoke[]? jsInvokes = null;
+            lock (_pendingJsInvokes)
+            {
+                if (_pendingJsInvokes.Count > 0)
+                {
+                    jsInvokes = _pendingJsInvokes.ToArray();
+                    _pendingJsInvokes.Clear();
+                }
+            }
+
             _writeBuffer.ResetWrittenCount();
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
-                scopedJsInvokes: View.PendingScopedJsInvokes);
+                scopedJsInvokes: View.PendingScopedJsInvokes,
+                jsInvokes: jsInvokes);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
