@@ -120,19 +120,13 @@
     }
 
     function installOverlay() {
-        // The overlay's <style> and <div> are framework-managed siblings of the
-        // server-rendered tree, but the morph walks documentElement's children
-        // positionally — anything not in the server payload (which the overlay
-        // never is) gets removed on the first render. We clear and reinstall
-        // here so the function is idempotent and the next disconnect always
-        // gets a fresh, attached overlay.
-        var oldStyle = document.querySelector("style[data-rask-overlay]");
-        if (oldStyle && oldStyle.parentNode) oldStyle.parentNode.removeChild(oldStyle);
-        var oldEl = document.querySelector(".rask-overlay");
-        if (oldEl && oldEl.parentNode) oldEl.parentNode.removeChild(oldEl);
-
+        // data-rask-managed tells rask-morph.js's diff to treat this node as
+        // invisible — these are framework-managed siblings of the server-rendered
+        // tree and would otherwise get trimmed on the first morph that doesn't
+        // include them. data-rask-overlay is just a query selector tag.
         var style = document.createElement("style");
         style.setAttribute("data-rask-overlay", "");
+        style.setAttribute("data-rask-managed", "");
         style.textContent =
             ".rask-overlay{position:fixed;inset:0;background:rgba(20,20,20,.45);" +
             "display:none;align-items:center;justify-content:center;z-index:2147483647;" +
@@ -148,6 +142,7 @@
 
         var el = document.createElement("div");
         el.className = "rask-overlay";
+        el.setAttribute("data-rask-managed", "");
         el.setAttribute("aria-live", "polite");
         el.setAttribute("aria-hidden", "true");
         el.innerHTML =
@@ -160,10 +155,6 @@
     }
 
     function showOverlay() {
-        // The first WS render morphs documentElement and rips out the overlay
-        // div + style. Reinstall whenever the cached reference is detached so
-        // subsequent disconnects still surface the spinner.
-        if (!overlay || !overlay.isConnected) overlay = installOverlay();
         overlay.setAttribute("data-show", "");
         overlay.setAttribute("aria-hidden", "false");
         if ("inert" in document.body) document.body.inert = true;

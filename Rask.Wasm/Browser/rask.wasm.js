@@ -442,8 +442,10 @@ function morph(from, to) {
     }
     // Skip JS-owned elements (marked data-rask-managed) — they're not part of
     // the .NET render tree, so pairing them against the incoming children would
-    // either trim them off or replace them with something unrelated. The server
-    // runtime emits no such nodes today; the filter is a no-op there.
+    // either trim them off or replace them with something unrelated. Used by
+    // the Server overlay (reconnect spinner sibling of <html>) and the WASM
+    // scoped-css / scoped-js bundle tags (head children that don't appear in
+    // the .NET-rendered HTML payload).
     var fc = [], tc = [];
     for (var n = from.firstChild; n; n = n.nextSibling) {
         if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
