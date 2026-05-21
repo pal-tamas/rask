@@ -438,19 +438,34 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                // Spawn the handler dispatch as a fire-and-forget task and KEEP THE RECEIVE
-                // LOOP RUNNING. Without this, an async handler that awaits an inbound WS
-                // message — e.g. `await js.InvokeVoidAsync("sessionStorage.setItem", …)` from
-                // inside an OnClickAsync — would deadlock: the handler can't complete until
-                // the jsResult arrives, but the receive loop can't pull the jsResult until
-                // the handler completes. Cross-handler ordering on the same session is still
-                // preserved by session.Lock — tasks queue FIFO on the semaphore so events
-                // process in arrival order. We clone the JSON element because the
-                // JsonDocument's backing buffer is disposed at the bottom of the iteration.
+                // Dispatch the handler in WS-arrival order while keeping the receive
+                // loop alive so async handlers can interleave with the jsResult /
+                // dotNetInvoke frames they're awaiting (those paths run inline above —
+                // never through DispatchHandlerAsync). The chain is rebuilt per
+                // message: capture the prior tail, assign a new continuation that
+                // awaits it before dispatching, and store the new continuation as
+                // the next tail.
+                //
+                // Why not Task.Run + session.Lock.WaitAsync (the prior shape):
+                // SemaphoreSlim is FIFO based on the order callers invoke WaitAsync,
+                // not the order Task.Run was invoked. Under ThreadPool contention,
+                // two messages spawned input→submit can race and acquire the lock
+                // submit→input — letting submit handlers read a stale EditContext
+                // that the preceding input handler hadn't applied yet. The async
+                // chaining below pins start-of-dispatch order to WS-arrival order
+                // without blocking the receive loop.
+                //
+                // We clone the JSON element because the JsonDocument's backing
+                // buffer is disposed at the bottom of the iteration.
                 var capturedSession = session;
                 var capturedHandlerId = handlerId;
                 var capturedRoot = root.Clone();
-                _ = Task.Run(() => DispatchHandlerAsync(capturedSession, capturedHandlerId, capturedRoot, ct), ct);
+                capturedSession.LastHandlerTask = ChainHandlerDispatchAsync(
+                    capturedSession.LastHandlerTask,
+                    capturedSession,
+                    capturedHandlerId,
+                    capturedRoot,
+                    ct);
             }
         }
         catch (OperationCanceledException) { }
@@ -470,6 +485,27 @@ public static class RaskEndpointExtensions
                 catch { }
             }
         }
+    }
+
+    private static async Task ChainHandlerDispatchAsync(
+        Task previous,
+        LiveSession session,
+        string handlerId,
+        JsonElement root,
+        CancellationToken ct)
+    {
+        try
+        {
+            await previous.ConfigureAwait(false);
+        }
+        catch
+        {
+            // Previous handler's exceptions are already observed and logged inside
+            // DispatchHandlerAsync — swallow here so a faulted predecessor doesn't
+            // prevent this dispatch from running. The chain is for ordering only.
+        }
+
+        await DispatchHandlerAsync(session, handlerId, root, ct).ConfigureAwait(false);
     }
 
     private static async Task DispatchHandlerAsync(

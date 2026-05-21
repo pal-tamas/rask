@@ -76,6 +76,16 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         set => _inHandlerScope.Value = value;
     }
 
+    /// <summary>
+    ///     Tail of the WS-message handler chain. Each inbound handler dispatch awaits
+    ///     this task before running, then assigns its own continuation back here, so
+    ///     handlers run strictly in WS-arrival order. The WS receive loop is single-
+    ///     threaded for this session, so reads / writes of this property don't race —
+    ///     no synchronisation needed. <see cref="Task.CompletedTask" /> initially so
+    ///     the first handler runs immediately.
+    /// </summary>
+    internal Task LastHandlerTask { get; set; } = Task.CompletedTask;
+
     public async ValueTask DisposeAsync()
     {
         await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
