@@ -65,7 +65,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         _lock.Dispose();
     }
 
-    public async Task RequestRenderAsync()
+    public Task RequestRenderAsync() => RequestRenderInternalAsync(publishOnly: false);
+
+    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(publishOnly: true);
+
+    private async Task RequestRenderInternalAsync(bool publishOnly)
     {
         if (InHandlerScope)
         {
@@ -81,7 +85,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         InHandlerScope = true;
         try
         {
-            var payload = await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false);
+            var payload = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
+                .ConfigureAwait(false);
             // Skip the JS interop call when nothing changed since the last apply. Catches
             // StateHasChanged calls that didn't ultimately modify any visible output.
             // SequenceEqual is SIMD-accelerated on byte[] — equivalent to the prior string compare.
@@ -287,7 +292,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    private async Task<byte[]> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace)
+    private async Task<byte[]> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace,
+        bool publishOnly = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
@@ -296,18 +302,18 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // the navigator's pending history entry was already consumed by the first build, and
         // re-passing historyUrl/replace would emit a duplicate history.pushState.
         _pendingRenderInScope = false;
-        var payload = await BuildPayloadAsync(historyUrl, replace).ConfigureAwait(false);
+        var payload = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            payload = await BuildPayloadAsync(null, false, publishOnly).ConfigureAwait(false);
         }
 
         return payload;
     }
 
-    internal async Task<byte[]> BuildPayloadAsync(string? historyUrl, bool replace)
+    internal async Task<byte[]> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false)
     {
         await Task.Yield();
 
@@ -345,7 +351,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // The App component owns the full page (Doctype + Html + Head + Body). Send the whole
         // document so the JS runtime can morph <head> too — title, stylesheet <link>s, and the
         // scoped-css <link> would otherwise stay frozen at whatever the static index.html shipped.
-        var html = View.RenderAsLiveRoot(Services);
+        var html = View.RenderAsLiveRoot(Services, publishOnly);
 
         var currentHash = ScopedCssRegistry.CurrentHash;
         string? cssText = null;
@@ -377,8 +383,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
         _writeBuffer.ResetWrittenCount();
         LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download,
-            jsText,
-            View.PendingScopedJsInvokes);
+            jsText);
         return _writeBuffer.WrittenSpan.ToArray();
     }
 }

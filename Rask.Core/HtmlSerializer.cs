@@ -64,12 +64,6 @@ internal static class HtmlSerializer
                     sb.Append(" data-").Append(scopeId);
                 }
 
-                if (live?.PendingMountScopeId is { } mountScope && !isShell)
-                {
-                    sb.Append(" data-rask-mount=\"").Append(mountScope).Append('"');
-                    live.PendingMountScopeId = null;
-                }
-
                 if (el.SelfClosingInternal)
                 {
                     sb.Append(" />");

@@ -1,11 +1,22 @@
+using Microsoft.JSInterop;
+
 namespace Rask.Example.Shared.Demos;
 
-public sealed class CodeSample : Component
+public sealed class CodeSample(IJSRuntime js) : Component
 {
     private const string HljsBase = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/";
 
     public string? Title { get; set; }
-    public required string Source { get; set; }
+
+    // Non-nullable + no initializer + no `required` keyword: the factory generator emits
+    // Source as the first required positional parameter (no default), preserving the
+    // existing 63 call-site shapes. The CS8618 warning is intentional — Rask's
+    // ActivatorUtilities + post-render property assignment satisfies it at runtime.
+    // `required` cannot be used because IJSRuntime is now ctor-injected (RASK002).
+#pragma warning disable CS8618
+    public string Source { get; set; }
+#pragma warning restore CS8618
+
     public Component? Result { get; set; }
     public string? Notes { get; set; }
 
@@ -22,14 +33,13 @@ public sealed class CodeSample : Component
             CrossOrigin: "anonymous")
     ];
 
-    // The framework no longer auto-fires scoped-JS hooks. Opt in by calling
-    // InvokeJs from a lifecycle hook — OnRendered fires after every render with a
-    // firstRender flag we plumb through to rendered(el, firstRender) in CodeSample.js.
-    // The hook itself is idempotent for hljs so re-firing on subsequent renders is
-    // harmless. The method name "rendered" is a CodeSample convention — any name
-    // works because InvokeJs dispatches by name to the corresponding `export
-    // function` in the sibling .js.
-    protected override void OnRendered(bool firstRender) => InvokeJs("rendered", firstRender);
+    // The sibling `CodeSample.js` exports a `rendered` function that walks every
+    // `.sample-card` on the page and highlights its <code> child via hljs. The
+    // generator wraps that file as `window.Rask.CodeSample`, so a plain
+    // `IJSRuntime.InvokeVoidAsync` is enough to invoke it. The hook is idempotent
+    // (hljs.highlightElement re-runs safely) so firing on every render is fine.
+    protected override async Task OnRenderedAsync(bool firstRender) =>
+        await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
     protected override Component Render() =>
         Div(Class: "card shadow-sm border-0 mb-4 sample-card")[

@@ -402,16 +402,6 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                if (type == "invokeResult")
-                {
-                    // Round-trip reply for an InvokeJsAsync<T> call. Carries the
-                    // correlation id assigned by JsInvokeResultStore.Register plus
-                    // either a JSON result or an error string. Skip the handler
-                    // pipeline entirely — no render is needed.
-                    HandleInvokeResult(root);
-                    continue;
-                }
-
                 if (type == "jsResult")
                 {
                     // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base
@@ -564,33 +554,6 @@ public static class RaskEndpointExtensions
             await ws.SendAsync(SessionUnknownPayload, WebSocketMessageType.Text, true, ct).ConfigureAwait(false);
         }
         catch { }
-    }
-
-    private static void HandleInvokeResult(JsonElement root)
-    {
-        // Expected payload: { type: "invokeResult", id: <number>, result?: <any>, error?: <string> }
-        if (!root.TryGetProperty("id", out var idEl)
-            || idEl.ValueKind != JsonValueKind.Number
-            || !idEl.TryGetInt32(out var id))
-        {
-            return;
-        }
-
-        string? error = null;
-        if (root.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String)
-        {
-            error = errEl.GetString();
-        }
-
-        JsonElement? result = null;
-        if (root.TryGetProperty("result", out var resEl))
-        {
-            // Clone so the JsonDocument disposal below doesn't pull the rug under
-            // the awaiting Task continuation.
-            result = resEl.Clone();
-        }
-
-        JsInvokeResultStore.TryResolve(id, result, error);
     }
 
     private static void HandleJsResult(LiveSession session, JsonElement root)

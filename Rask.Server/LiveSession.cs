@@ -1,11 +1,15 @@
 using System.Buffers;
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Files;
+using Rask.Server.JSInterop;
 
 namespace Rask.Server;
 
@@ -84,7 +88,11 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         Scope.Dispose();
     }
 
-    public async Task RequestRenderAsync()
+    public Task RequestRenderAsync() => RequestRenderInternalAsync(publishOnly: false);
+
+    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(publishOnly: true);
+
+    private async Task RequestRenderInternalAsync(bool publishOnly)
     {
         if (_socket is null || _socket.State != WebSocketState.Open)
         {
@@ -93,7 +101,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
         if (InHandlerScope)
         {
-            await RenderAndSendAsync(null, false).ConfigureAwait(false);
+            await RenderAndSendAsync(null, false, publishOnly: publishOnly).ConfigureAwait(false);
             return;
         }
 
@@ -101,7 +109,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         InHandlerScope = true;
         try
         {
-            await RenderAndSendAsync(null, false).ConfigureAwait(false);
+            await RenderAndSendAsync(null, false, publishOnly: publishOnly).ConfigureAwait(false);
         }
         finally
         {
@@ -184,7 +192,8 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         }
     }
 
-    internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null)
+    internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
+        bool publishOnly = false)
     {
         if (_socket is null || _socket.State != WebSocketState.Open)
         {
@@ -194,7 +203,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
         {
-            var html = View.RenderAsLiveRoot(Services);
+            var html = View.RenderAsLiveRoot(Services, publishOnly);
 
             PendingDownload? download = null;
             if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
@@ -223,7 +232,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
             _writeBuffer.ResetWrittenCount();
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
-                scopedJsInvokes: View.PendingScopedJsInvokes,
                 jsInvokes: jsInvokes);
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
@@ -238,8 +246,21 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 return;
             }
 
-            await _socket.SendAsync(_writeBuffer.WrittenMemory, WebSocketMessageType.Text, true, _socketCt)
-                .ConfigureAwait(false);
+            try
+            {
+                await _socket.SendAsync(_writeBuffer.WrittenMemory, WebSocketMessageType.Text, true, _socketCt)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex) when (jsInvokes is not null)
+            {
+                // The queue was already drained at line ~225, so any taskIds in this batch
+                // would otherwise hang their awaiting Task<T> forever — the JS side never
+                // received the request, so no jsResult is coming back. Fail them locally
+                // with the send error before letting the exception propagate so callers see
+                // a meaningful JSException instead of an infinite await.
+                FailPendingJsInvokes(jsInvokes, ex);
+                throw;
+            }
 
             // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous
             // baseline (or a fresh writer on first send) is reused as the next write target.
@@ -248,6 +269,49 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         finally
         {
             _renderLock.Release();
+        }
+    }
+
+    // Synthesises a [taskId, false, error] reply for every drained invoke and feeds it
+    // back into DotNetDispatcher.EndInvokeJS — same shape RaskEndpointExtensions.HandleJsResult
+    // uses for an honest browser-supplied jsResult. Used when the WS send fails after the
+    // queue is already cleared. Best-effort: a missing runtime / dispatcher throw means we
+    // log and move on; the original send exception is the meaningful one for the caller.
+    private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)
+    {
+        var runtime = Services.GetService<RaskJSRuntime>();
+        if (runtime is null)
+        {
+            return;
+        }
+
+        var message = cause.Message;
+        if (string.IsNullOrEmpty(message))
+        {
+            message = "Rask: WebSocket send failed before JS invoke could be dispatched";
+        }
+
+        foreach (var invoke in invokes)
+        {
+            try
+            {
+                using var stream = new MemoryStream(128);
+                using (var w = new Utf8JsonWriter(stream))
+                {
+                    w.WriteStartArray();
+                    w.WriteNumberValue(invoke.TaskId);
+                    w.WriteBooleanValue(false);
+                    w.WriteStringValue(message);
+                    w.WriteEndArray();
+                }
+
+                DotNetDispatcher.EndInvokeJS(runtime, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(
+                    $"Rask: failed to surface JS invoke fault for taskId={invoke.TaskId}: {ex}");
+            }
         }
     }
 }

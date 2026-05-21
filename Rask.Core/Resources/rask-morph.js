@@ -32,12 +32,14 @@ function reviveScript(node) {
 }
 
 // Wrappers around the underlying DOM mutation primitives. Scoped-JS hooks are
-// NOT auto-fired by morph any more — C# code drives invocations explicitly via
-// InvokeJs(name, ...args) from a lifecycle hook (typically OnRendered); the
-// resulting `scopedJsInvokes` payload field is dispatched by the runtime after
-// morph completes. If a user needs teardown on element removal, they should use
-// a MutationObserver inside their hook or expose an explicit "removed" method
-// and call it from OnUnmount via InvokeJs.
+// not auto-fired by morph — C# components drive invocations explicitly via
+// `IJSRuntime.InvokeVoidAsync("Rask.{TypeName}.{method}", ...args)` from a
+// lifecycle hook (typically OnRenderedAsync). Calls land in RaskJSRuntime
+// (Server) or WasmJSRuntime (WASM), are dispatched against the freshly-morphed
+// DOM, and Rask.*-prefixed identifiers are gated by a pending queue so calls
+// that race the scoped-JS bundle drain after it loads. If a component needs
+// teardown on element removal, install a MutationObserver inside the hook or
+// expose an explicit "removed" method and call it from OnUnmount.
 function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
 }

@@ -16,20 +16,17 @@ public class ScopedJsRenderTests
     }
 
     [Fact]
-    public void Render_ComponentWithJs_StampsMountAttributeOnRootElement()
+    public void Render_ComponentWithJs_DoesNotStampMountAttribute()
     {
+        // Under the post-`Component.InvokeJs` model, scoped-JS modules register on
+        // `window.Rask.{TypeName}` and user JS queries the DOM by user-controlled
+        // classes. Rask no longer stamps data-rask-mount — there's nothing on the
+        // client looking for it.
         ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
 
         var view = new JsWrapper(Div(Class: "tag")[Span()[Text("hi")]]);
         var html = view.RenderAsLiveRoot();
-        var scopeId = CssScoper.ScopeIdFor(typeof(JsWrapper));
-
-        // The outermost element of the component's render gets data-rask-mount.
-        Assert.Contains($"data-rask-mount=\"{scopeId}\"", html);
-        // Only ONE element carries the mount stamp — the root. Descendants don't.
-        var firstIdx = html.IndexOf("data-rask-mount=", StringComparison.Ordinal);
-        var nextIdx = html.IndexOf("data-rask-mount=", firstIdx + 1, StringComparison.Ordinal);
-        Assert.Equal(-1, nextIdx);
+        Assert.DoesNotContain("data-rask-mount", html);
     }
 
     [Fact]
@@ -41,7 +38,7 @@ public class ScopedJsRenderTests
     }
 
     [Fact]
-    public void Render_ComponentWithBothJsAndCss_StampsBothAttributes()
+    public void Render_ComponentWithBothJsAndCss_StampsCssAttributeOnly()
     {
         ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
         ScopedCssRegistry.RegisterType(typeof(JsWrapper), ".tag { color: red; }");
@@ -50,19 +47,10 @@ public class ScopedJsRenderTests
         var html = view.RenderAsLiveRoot();
         var scopeId = CssScoper.ScopeIdFor(typeof(JsWrapper));
 
-        // CSS data-{scopeId} stamps every descendant; JS data-rask-mount only stamps the root.
+        // CSS data-{scopeId} stamps every descendant; data-rask-mount is gone.
         Assert.Contains($"data-{scopeId}", html);
-        Assert.Contains($"data-rask-mount=\"{scopeId}\"", html);
-        Assert.Contains($"<span data-{scopeId}>", html);
-    }
-
-    [Fact]
-    public void Render_ShellTagsDoNotGetMountStamp()
-    {
-        ScopedJsRegistry.RegisterType(typeof(JsWrapper), "export function rendered(el) {}");
-        var view = new JsWrapper(Style()[Text("body{}")]);
-        var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("data-rask-mount", html);
+        Assert.Contains($"<span data-{scopeId}>", html);
     }
 
     [Fact]

@@ -133,6 +133,74 @@ public class RaskJSRuntimeTests
     }
 
     [Fact]
+    public async Task InvokeVoidAsync_FromOnRenderedAsync_NoFirstRenderGuard_DoesNotRenderStorm()
+    {
+        // Regression for the memory leak: a component that does
+        //     protected override async Task OnRenderedAsync(bool firstRender) =>
+        //         await js.InvokeVoidAsync("foo");
+        // (no `if (!firstRender) return;` guard) used to drive an infinite render
+        // loop. Two paths fed it: (1) the OnRenderedAsync continuation auto-rerendered
+        // on completion; (2) BeginInvokeJS unconditionally called RequestRenderAsync,
+        // which scheduled another render → another OnRenderedAsync → another
+        // BeginInvokeJS → loop. Both paths are closed; this test exercises the
+        // in-render-walk path through a real session.
+        using var host = RaskTestHost.Create<JsRenderStormApp>();
+        var initialHtml = await host.Http.GetStringAsync("/");
+        var sessionId = ExtractSessionId(initialHtml);
+
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        // First post-hello frame: server renders, OnRenderedAsync fires, queues one jsInvoke.
+        var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        Assert.NotNull(first);
+        // First frame typically carries 2 jsInvokes — one from the HTTP GET render
+        // (firstRender=true) and one from the post-hello re-render (firstRender=false),
+        // because OnRenderedAsync runs unconditionally. Reply to all of them.
+        long[] taskIds;
+        using (var doc = JsonDocument.Parse(first!))
+        {
+            var jsInvokes = doc.RootElement.GetProperty("jsInvokes");
+            taskIds = new long[jsInvokes.GetArrayLength()];
+            for (var i = 0; i < taskIds.Length; i++)
+            {
+                taskIds[i] = jsInvokes[i].GetProperty("id").GetInt64();
+            }
+        }
+
+        // Reply to every pending invoke. Pre-fix: each reply triggers a fresh
+        // render → re-fires OnRenderedAsync → fresh jsInvoke → another reply needed
+        // → forever. Post-fix: no extra render scheduled.
+        foreach (var id in taskIds)
+        {
+            await ws.SendJsonAsync(new { type = "jsResult", id, success = true });
+        }
+
+        // Drain anything that arrives in the next 500 ms. A correctly-behaving server
+        // ships at most one trailing frame (the no-op "everything's flushed" rerender);
+        // a looping server ships an unbounded stream and we'd see double-digit frames.
+        var trailing = 0;
+        var trailingInvokes = 0;
+        var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(500);
+        while (DateTime.UtcNow < deadline)
+        {
+            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100));
+            if (frame is null) continue;
+            trailing++;
+            using var doc = JsonDocument.Parse(frame);
+            if (doc.RootElement.TryGetProperty("jsInvokes", out var arr))
+            {
+                trailingInvokes += arr.GetArrayLength();
+            }
+        }
+
+        Assert.True(trailing < 5,
+            $"render storm: received {trailing} trailing frames carrying {trailingInvokes} jsInvokes");
+        Assert.True(trailingInvokes < 5,
+            $"render storm: {trailingInvokes} extra jsInvokes queued after a single reply");
+    }
+
+    [Fact]
     public async Task InvokeAsync_OutsideSessionScope_Throws()
     {
         // Resolve RaskJSRuntime from a DI scope that doesn't go through LiveSessionStore.Create —
@@ -220,6 +288,27 @@ internal sealed class JsClickApp : Component
         LastStatus = "done";
         Completed.TrySetResult();
     }
+}
+
+internal sealed class JsRenderStormApp : Component
+{
+    private readonly IJSRuntime _js;
+
+    public JsRenderStormApp(IJSRuntime js)
+    {
+        _js = js;
+    }
+
+    protected override Component Render() =>
+        Fragment()[
+            Doctype(),
+            new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
+
+    // Intentionally NO firstRender guard — the whole point is to assert the framework
+    // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
+    // that triggered the leak.
+    protected override async Task OnRenderedAsync(bool firstRender) =>
+        await _js.InvokeVoidAsync("noop");
 }
 
 internal sealed class JsErrorApp : Component

@@ -20,8 +20,16 @@ public sealed class LiveRenderContext : IDisposable
 
     private readonly Component _root;
 
-    private readonly List<ScopedJsInvoke> _scopedJsInvokes = new();
     private readonly Stack<string> _scopeStack = new();
+
+    // Distinguishes "we're inside the synchronous render walk" from "we're in an async
+    // continuation that captured this ctx via AsyncLocal but the walk already finished".
+    // AsyncLocal-captured ctx refs survive past Dispose: a continuation that fires after
+    // the using-block exits still observes `Current == this`. Callers that need the
+    // narrower meaning (e.g. RaskJSRuntime.BeginInvokeJS deciding whether the current
+    // frame will drain a queued invoke for them) check IsActive instead of Current.
+    private bool _active = true;
+    internal bool IsActive => _active;
 
     private LiveRenderContext(
         Component root,
@@ -47,72 +55,33 @@ public sealed class LiveRenderContext : IDisposable
     public string? CurrentScopeId => _scopeStack.Count > 0 ? _scopeStack.Peek() : null;
 
     /// <summary>
-    ///     Scope id awaiting attribution to the next body element written by HtmlSerializer.
-    ///     Set by <see cref="PushScope" /> when the component type has registered JS; consumed
-    ///     (and cleared) by the first body-element write of that component's render. The
-    ///     consumer writes <c>data-rask-mount="{scopeId}"</c> so the browser-side dispatcher
-    ///     can route <c>mount</c>/<c>unmount</c> calls to the right module.
-    /// </summary>
-    internal string? PendingMountScopeId { get; set; }
-
-    /// <summary>
     ///     Per-render collector for <see cref="Component.Head" /> contributions. The
     ///     <see cref="Components.RaskHeadAssets" /> placeholder is replaced with this
     ///     registry's content during <see cref="Component.RenderAsLiveRoot()" />.
     /// </summary>
     internal HeadAssetRegistry HeadAssets { get; } = new();
 
-    /// <summary>
-    ///     Per-render queue of explicit scoped-JS invocations. Populated by
-    ///     <see cref="Component.InvokeScopedJs" /> calls from inside
-    ///     <c>OnRendered</c> / <c>OnRenderedAsync</c>; consumed by the host's payload
-    ///     builder which writes them as the <c>scopedJsInvokes</c> JSON field so the
-    ///     client dispatcher fires <c>rendered(el, firstRender)</c> against matching
-    ///     <c>data-rask-mount</c> elements after morph completes.
-    /// </summary>
-    internal IReadOnlyList<ScopedJsInvoke> ScopedJsInvokes => _scopedJsInvokes;
-
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
-    public void Dispose() => _current.Value = _previous;
-
-    internal void QueueScopedJsInvoke(string scopeId, string method, object?[]? args, int? invokeId = null) =>
-        _scopedJsInvokes.Add(new ScopedJsInvoke(scopeId, method, args, invokeId));
+    public void Dispose()
+    {
+        _active = false;
+        _current.Value = _previous;
+    }
 
     internal IDisposable? PushScope(Component instance)
     {
         var type = instance.GetType();
         var hasCss = ScopedCssRegistry.TryRegister(type, out var scopeId);
-        var hasJs = ScopedJsRegistry.IsRegistered(type);
-        if (!hasCss && !hasJs)
+        if (!hasCss)
         {
             return null;
         }
 
-        // CSS and JS share the same scope id (both derived from CssScoper.ScopeIdFor). When
-        // only JS is registered the CSS lookup misses; compute the id from the type directly
-        // so the data-rask-mount stamp still lands on the right element.
-        if (!hasCss)
-        {
-            scopeId = CssScoper.ScopeIdFor(type);
-        }
-
-        if (hasJs)
-        {
-            PendingMountScopeId = scopeId;
-        }
-
-        if (hasCss)
-        {
-            _scopeStack.Push(scopeId);
-            return new ScopePopper(this);
-        }
-
-        // JS-only component: no CSS attr to stamp on descendants, so don't push a scope. The
-        // pending-mount stamp is consumed by the first body element written below.
-        return null;
+        _scopeStack.Push(scopeId);
+        return new ScopePopper(this);
     }
 
     internal IDisposable EnterParentScope(Component parent)

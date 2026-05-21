@@ -69,9 +69,21 @@ internal sealed class RaskJSRuntime : JSRuntime
         var session = CurrentSession;
         var invoke = new PendingJsInvoke(taskId, identifier, argsJson, (int)resultType, targetInstanceId);
         session.EnqueueJsInvoke(invoke);
-        // Fire and forget: the actual flush happens in RenderAndSendAsync. The ValueTask
-        // returned to the caller (via the base class's TCS) completes when the client's
-        // jsResult message comes back, regardless of how the render cycle interleaves.
+        // Skip RequestRenderAsync when we're already mid-render: the current frame's
+        // payload builder drains _pendingJsInvokes after the walk, so the invoke ships
+        // on this frame anyway. Requesting another render here would re-fire every
+        // lifecycle hook (most notably OnRenderedAsync), which would call into us
+        // again → infinite render loop. Check IsActive rather than just Current — an
+        // async continuation that captured a ctx via AsyncLocal still observes Current
+        // after the walk disposed; only the live walk's drain will pick up our invoke.
+        if (LiveRenderContext.Current is { IsActive: true })
+        {
+            return;
+        }
+
+        // Fire and forget: the ValueTask returned to the caller (via the base class's
+        // TCS) completes when the client's jsResult message comes back, regardless of
+        // how the render cycle interleaves.
         _ = session.RequestRenderAsync();
     }
 

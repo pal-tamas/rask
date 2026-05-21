@@ -1,18 +1,23 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using Rask.Core.ScopedCss;
 
 namespace Rask.Core.ScopedJs;
 
 /// <summary>
 ///     Per-component JS module registry. A user drops <c>Component.js</c> next to
 ///     <c>Component.cs</c>; the source generator emits a module initializer that calls
-///     <see cref="RegisterType" /> here. The bundle is concatenated, hashed, and served
-///     to the browser by the host (server: <c>/_rask/scoped.js?v={hash}</c>; WASM: inline
-///     <c>&lt;script id="rask-scoped-js"&gt;</c>). The dispatcher in
-///     <c>Rask.Core/Resources/rask-scoped.js</c> calls <c>mount(el)</c> / <c>unmount(el)</c>
-///     against elements tagged with <c>data-rask-mount="{scopeId}"</c>.
+///     <see cref="RegisterType" /> here. Each entry's exports are wrapped as an IIFE
+///     assigned to <c>window.Rask.{TypeName}</c>; the bundle is concatenated, hashed,
+///     and served to the browser by the host (server:
+///     <c>/_rask/scoped.js?v={hash}</c>; WASM: inline
+///     <c>&lt;script id="rask-scoped-js"&gt;</c>).
+///     <para>
+///         User C# code dispatches via the standard <see cref="Microsoft.JSInterop.IJSRuntime" /> —
+///         e.g. <c>js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender)</c>.
+///         The JS module retrieves its own elements (no auto-<c>el</c> arg); user JS
+///         queries the DOM by a marker class it controls.
+///     </para>
 /// </summary>
 public static class ScopedJsRegistry
 {
@@ -103,16 +108,15 @@ public static class ScopedJsRegistry
                     return;
                 }
 
-                var wrapped = WrapModule(existing.ScopeId, source);
-                _entries[componentType] = new Entry(existing.ScopeId, wrapped, source);
+                var wrapped = WrapModule(componentType.Name, source);
+                _entries[componentType] = new Entry(wrapped, source);
                 InvalidateBundle();
                 changed = true;
             }
             else
             {
-                var scopeId = CssScoper.ScopeIdFor(componentType);
-                var wrapped = WrapModule(scopeId, source);
-                _entries[componentType] = new Entry(scopeId, wrapped, source);
+                var wrapped = WrapModule(componentType.Name, source);
+                _entries[componentType] = new Entry(wrapped, source);
                 _order.Add(componentType);
                 InvalidateBundle();
                 changed = true;
@@ -230,7 +234,7 @@ public static class ScopedJsRegistry
         return sb.ToString();
     }
 
-    private static string WrapModule(string scopeId, string source)
+    private static string WrapModule(string typeName, string source)
     {
         // Capture the set of exported function names BEFORE stripping the `export`
         // keyword — once stripped, the marker is gone and we can't tell exports
@@ -247,7 +251,15 @@ public static class ScopedJsRegistry
 
         var stripped = _exportStrip.Replace(source, "$1");
         var sb = new StringBuilder(stripped.Length + 128);
-        sb.Append("Rask.scoped.register(\"").Append(scopeId).Append("\", function () {\n");
+        // Wrap the module body in an IIFE assigned to `window.Rask.{TypeName}` so user
+        // C# code can call into it through standard IJSRuntime against `window` —
+        // e.g. `js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender)`.
+        // Components with colliding short names should differentiate by namespacing
+        // their exports themselves; the registry guards by `componentType` (full type)
+        // but the JS-side namespace is the simple type name for ergonomics.
+        sb.Append("(function () {\n");
+        sb.Append("window.Rask = window.Rask || {};\n");
+        sb.Append("window.Rask[\"").Append(typeName).Append("\"] = (function () {\n");
         sb.Append(stripped);
         if (!stripped.EndsWith('\n'))
         {
@@ -257,7 +269,7 @@ public static class ScopedJsRegistry
         sb.Append("    return {");
         if (exportedNames.Count == 0)
         {
-            sb.Append("};\n});\n");
+            sb.Append("};\n})();\n})();\n");
             return sb.ToString();
         }
 
@@ -275,9 +287,9 @@ public static class ScopedJsRegistry
             sb.Append('\n');
         }
 
-        sb.Append("    };\n});\n");
+        sb.Append("    };\n})();\n})();\n");
         return sb.ToString();
     }
 
-    private readonly record struct Entry(string ScopeId, string WrappedJs, string Source);
+    private readonly record struct Entry(string WrappedJs, string Source);
 }

@@ -12,6 +12,12 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8"/>
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.8"/>
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.8"/>
+    <!--
+      IJSRuntime abstractions only — pulls in the contract + base JSRuntime class so user
+      components can take IJSRuntime via ctor injection and Rask.Core can ship
+      InvokeScopedAsync extensions. Does NOT drag in the Blazor renderer/circuit.
+    -->
+    <PackageReference Include="Microsoft.JSInterop" Version="10.0.0"/>
   </ItemGroup>
 
   <ItemGroup>

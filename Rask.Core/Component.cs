@@ -146,8 +146,6 @@ public abstract class Component
 
     internal Component? HeadInternal => Head;
 
-    internal IReadOnlyList<ScopedJsInvoke> PendingScopedJsInvokes { get; private set; } = Array.Empty<ScopedJsInvoke>();
-
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
@@ -197,137 +195,6 @@ public abstract class Component
     protected virtual Component Render() => this;
 
     /// <summary>
-    ///     Schedules a call to the named function on this component's scoped-JS
-    ///     module. Each function the sibling <c>.js</c> exports becomes invocable by
-    ///     name — typically called from <see cref="OnRendered" /> /
-    ///     <see cref="OnRenderedAsync" /> but valid from any C# lifecycle hook. The
-    ///     queued invocations ride out in the next render payload and the client
-    ///     dispatcher calls <c>methods[name](el, ...args)</c> against every
-    ///     <c>data-rask-mount</c> element matching this component's scope id.
-    ///     <para>
-    ///         Args must be JSON-primitives (bool, int, long, double, string, null) for
-    ///         trim-safety. Complex objects should be serialised to JSON in C# first.
-    ///     </para>
-    ///     <para>
-    ///         The framework does NOT auto-fire scoped-JS hooks any more — opt in by
-    ///         declaring a sibling <c>.js</c> with <c>export function name(el, …)</c>
-    ///         and calling this from whichever C# hook suits your timing.
-    ///     </para>
-    /// </summary>
-    protected void InvokeJs(string method)
-    {
-        var ctx = LiveRenderContext.Current;
-        if (ctx is null || string.IsNullOrEmpty(method))
-        {
-            return;
-        }
-
-        ctx.QueueScopedJsInvoke(CssScoper.ScopeIdFor(GetType()), method, null);
-    }
-
-    /// <summary>
-    ///     Schedules a call to the named function on this component's scoped-JS
-    ///     module with the supplied arguments. See <see cref="InvokeJs(string)" />.
-    /// </summary>
-    protected void InvokeJs(string method, params object?[] args)
-    {
-        var ctx = LiveRenderContext.Current;
-        if (ctx is null || string.IsNullOrEmpty(method))
-        {
-            return;
-        }
-
-        ctx.QueueScopedJsInvoke(CssScoper.ScopeIdFor(GetType()), method, args);
-    }
-
-    /// <summary>
-    ///     Round-trip variant of <see cref="InvokeJs(string)" /> — schedules the
-    ///     call, awaits the JS function's return value (or the resolved value of
-    ///     its Promise if async), and returns the first matching element's result
-    ///     deserialised into <typeparamref name="T" />. When the scope has no
-    ///     matching <c>data-rask-mount</c> element the task completes with
-    ///     <c>default(T)</c>; when the JS function throws, the task faults with
-    ///     <see cref="InvalidOperationException" />.
-    ///     <para>
-    ///         <typeparamref name="T" /> must be a JSON primitive (<c>bool</c>,
-    ///         <c>int</c>, <c>long</c>, <c>double</c>, <c>string</c>) for trim-safety.
-    ///         Complex shapes should be returned as a JSON string from JS and parsed
-    ///         in C#.
-    ///     </para>
-    /// </summary>
-    protected Task<T?> InvokeJsAsync<T>(string method, params object?[] args)
-    {
-        var ctx = LiveRenderContext.Current;
-        if (ctx is null || string.IsNullOrEmpty(method))
-        {
-            return Task.FromResult<T?>(default);
-        }
-
-        var tcs = new TaskCompletionSource<T?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var id = JsInvokeResultStore.Register((json, error) =>
-        {
-            if (error is not null)
-            {
-                tcs.TrySetException(new InvalidOperationException(
-                    $"Scoped-JS call '{method}' threw: {error}"));
-                return;
-            }
-
-            try
-            {
-                tcs.TrySetResult(ConvertJsonElement<T>(json));
-            }
-            catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
-            }
-        });
-
-        ctx.QueueScopedJsInvoke(CssScoper.ScopeIdFor(GetType()), method, args, id);
-        return tcs.Task;
-    }
-
-    // Trim-safe JSON-to-CLR converter for the JSON-primitive subset supported by
-    // InvokeJsAsync<T>. Avoids JsonSerializer<T>.Deserialize (which requires
-    // JsonSerializerContext for trim-safety) and the reflection-driven path
-    // entirely — switches on typeof(T) up front.
-    private static T? ConvertJsonElement<T>(JsonElement? json)
-    {
-        if (json is not { } el || el.ValueKind == JsonValueKind.Null
-                               || el.ValueKind == JsonValueKind.Undefined)
-        {
-            return default;
-        }
-
-        var target = typeof(T);
-        var underlying = Nullable.GetUnderlyingType(target) ?? target;
-
-        object? value = underlying switch
-        {
-            _ when underlying == typeof(string) =>
-                el.ValueKind == JsonValueKind.String ? el.GetString() : el.GetRawText(),
-            _ when underlying == typeof(bool) =>
-                el.ValueKind switch
-                {
-                    JsonValueKind.True => true,
-                    JsonValueKind.False => false,
-                    _ => default
-                },
-            _ when underlying == typeof(int) => el.ValueKind == JsonValueKind.Number ? el.GetInt32() : default,
-            _ when underlying == typeof(long) => el.ValueKind == JsonValueKind.Number ? el.GetInt64() : default,
-            _ when underlying == typeof(double) => el.ValueKind == JsonValueKind.Number ? el.GetDouble() : default,
-            _ when underlying == typeof(float) => el.ValueKind == JsonValueKind.Number ? el.GetSingle() : default,
-            _ when underlying == typeof(decimal) => el.ValueKind == JsonValueKind.Number ? el.GetDecimal() : default,
-            _ when underlying == typeof(byte) => el.ValueKind == JsonValueKind.Number ? el.GetByte() : default,
-            _ when underlying == typeof(short) => el.ValueKind == JsonValueKind.Number ? el.GetInt16() : default,
-            _ => throw new NotSupportedException(
-                $"InvokeJsAsync<T>: type '{target}' is not a supported JSON primitive. " +
-                "Return a string from JS and parse in C# for complex shapes.")
-        };
-
-        return (T?)value;
-    }
-
     public string ToHtml()
     {
         // Rent a StringBuilder from the shared pool instead of allocating per call. The
@@ -387,21 +254,66 @@ public abstract class Component
         }
     }
 
-    internal void RaiseOnRendered()
+    internal void RaiseOnRendered(bool publishOnly = false)
     {
+        // publishOnly: this is the render walk triggered by a previous OnRenderedAsync
+        // continuation's auto-rerender. Skip OnRendered / OnRenderedAsync on components
+        // that already rendered at least once — re-entering the hook would re-await
+        // whatever it awaits (e.g. js.InvokeVoidAsync), enqueue another pending task,
+        // schedule another publish render, complete → loop. First-time renders still
+        // fire so newly-mounted components on the same walk get their first
+        // OnRendered(firstRender:true) — they don't have a prior continuation in flight,
+        // so they can't loop.
+        if (publishOnly && _hasRenderedOnce)
+        {
+            return;
+        }
+
         var firstRender = !_hasRenderedOnce;
         _hasRenderedOnce = true;
         OnRendered(firstRender);
-        // rerender=true: when OnRenderedAsync awaits and then mutates state on the
-        // continuation, fire StateHasChanged so the UI picks the change up. Matches
-        // OnMountAsync / OnPropsChangedAsync / event handlers, which all auto-render
-        // on async completion — and matches CLAUDE.md's documented async lifecycle.
-        // The canonical guard `if (!firstRender) return;` short-circuits on subsequent
-        // renders (task is synchronously completed, so ScheduleAsyncContinuation no-ops),
-        // so the canonical pattern doesn't loop. Users who do unconditional state
-        // mutation on every OnRenderedAsync would loop — same gotcha as Blazor's
-        // OnAfterRenderAsync, and the documentation calls it out the same way.
-        ScheduleAsyncContinuation(this, OnRenderedAsync(firstRender), true);
+
+        var task = OnRenderedAsync(firstRender);
+        if (task.IsCompleted)
+        {
+            if (task.IsFaulted)
+            {
+                ReportLifecycleFault(this, task.Exception);
+            }
+
+            return;
+        }
+
+        // Auto-rerender on continuation completion so users get OnMountAsync-style
+        // "mutate state after the await and it paints" without explicit StateHasChanged.
+        // RequestPublishRenderAsync flags the resulting walk as publishOnly so the
+        // publish render skips this same hook on every already-rendered component (see
+        // top of method). Without that flag, multi-component trees cascade infinitely:
+        // A's publish render fires B's OnRenderedAsync, B's continuation publishes,
+        // which fires A's OnRenderedAsync again, ad infinitum.
+        task.ContinueWith(static (t, state) =>
+        {
+            var comp = (Component)state!;
+            if (t.IsFaulted)
+            {
+                ReportLifecycleFault(comp, t.Exception);
+                return;
+            }
+
+            if (t.IsCanceled)
+            {
+                return;
+            }
+
+            var handle = comp.RenderHandle;
+            if (handle is null)
+            {
+                return;
+            }
+
+            comp._stateDirty = true;
+            _ = handle.RequestPublishRenderAsync();
+        }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
 
     internal void CancelLifetimeToken()
@@ -846,11 +758,14 @@ public abstract class Component
         }
     }
 
-    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null);
+    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null, publishOnly: false);
 
-    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services);
+    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services, publishOnly: false);
 
-    private string RenderAsLiveRootCore(IServiceProvider? services)
+    internal string RenderAsLiveRoot(IServiceProvider services, bool publishOnly) =>
+        RenderAsLiveRootCore(services, publishOnly);
+
+    private string RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly)
     {
         // Reuse the handler dictionary across renders — IDs are reissued from 0 every
         // root render, so the prior frame's contents are irrelevant. Lazy-init only on
@@ -888,7 +803,6 @@ public abstract class Component
         // this, a second RenderAsLiveRoot call with no descendant marked dirty would skip the
         // root, never re-binding closure-captured state or reading external mutable state.
         _stateDirty = true;
-        PendingScopedJsInvokes = Array.Empty<ScopedJsInvoke>();
         RaiseLifecycleBeforeRender(false);
         var html = ToHtml();
         // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
@@ -908,22 +822,11 @@ public abstract class Component
         {
             if (!ReferenceEquals(child, this))
             {
-                child.RaiseOnRendered();
+                child.RaiseOnRendered(publishOnly);
             }
         }
 
-        RaiseOnRendered();
-
-        // Snapshot the queue NOW — after every OnRendered (sync portion) had its chance
-        // to call InvokeScopedJs — but before the ctx exits the using block. The ctx
-        // instance survives Dispose (Dispose just restores AsyncLocal), but copying off
-        // here keeps the read explicit and lets the root component expose
-        // PendingScopedJsInvokes to the host's payload builder. Async continuations
-        // past an await on OnRenderedAsync land too late for this render.
-        if (LiveRenderContext.Current is { ScopedJsInvokes.Count: > 0 } ctxWithInvokes)
-        {
-            PendingScopedJsInvokes = ctxWithInvokes.ScopedJsInvokes.ToArray();
-        }
+        RaiseOnRendered(publishOnly);
 
         // DisposeComponentTree recurses through PersistedChildren — so disposing a parent
         // ALSO disposes its descendants. To avoid disposing each descendant twice, only

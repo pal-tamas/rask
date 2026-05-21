@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
@@ -26,6 +27,10 @@ public sealed class WasmHostBuilder
         Services.TryAddSingleton<RaskAuthorizationOptions>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();
+        // IJSRuntime backed by the WASM JSImport/JSExport bridge. Singleton — one
+        // runtime per app instance. JSInterop.Init(...) binds it to the bridge.
+        Services.AddSingleton<WasmJSRuntime>();
+        Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<WasmJSRuntime>());
     }
 
     public IServiceCollection Services { get; }
@@ -47,6 +52,10 @@ public sealed class WasmHostBuilder
         Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
 
         var provider = Services.BuildServiceProvider();
+
+        // Bind the singleton JSRuntime into the static [JSImport]/[JSExport] bridge
+        // BEFORE any user code can resolve IJSRuntime and start dispatching.
+        JSInterop.Init(provider.GetRequiredService<WasmJSRuntime>());
 
         var app = ActivatorUtilities.CreateInstance<TApp>(provider);
         // Wrap the App in an implicit RootErrorBoundary so an uncaught render / lifecycle /

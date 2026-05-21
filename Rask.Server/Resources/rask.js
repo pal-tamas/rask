@@ -29,10 +29,6 @@
             for (var i = 0; i < queue.length; i++) ws.send(queue[i]);
             queue.length = 0;
             hideOverlay();
-            // The framework no longer auto-fires scoped-JS `rendered` hooks. C# user
-            // code invokes them via `InvokeScopedJs(firstRender)` from OnRendered /
-            // OnRenderedAsync; the resulting `scopedJsInvokes` payload field is
-            // dispatched below in the WS message handler after each morph.
         });
 
         ws.addEventListener("message", function (e) {
@@ -72,26 +68,12 @@
                 }
                 if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
                 if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
-                // Dispatch any queued scoped-JS invocations against the freshly-morphed
-                // DOM. Each entry calls `Rask.scoped.invoke(scope, method, id, args)`.
-                // When `id` is present the dispatcher ships the result back via the
-                // _sendResult bridge; otherwise it's fire-and-forget. The bundle
-                // script is `defer`red and may not have loaded on the initial frame —
-                // if so, the registry lookup misses and the dispatcher no-ops; the
-                // applyScopedJs onload handler retries every registered scope.
-                if (Array.isArray(data.scopedJsInvokes) && window.Rask && Rask.scoped) {
-                    for (var si = 0; si < data.scopedJsInvokes.length; si++) {
-                        var inv = data.scopedJsInvokes[si];
-                        if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
-                            var args = Array.isArray(inv.args) ? inv.args : [];
-                            var invId = (typeof inv.id === "number") ? inv.id : null;
-                            Rask.scoped.invoke(inv.scope, inv.method, invId, args);
-                        }
-                    }
-                }
                 // IJSRuntime.InvokeAsync<T> dispatch: each entry resolves a dotted
-                // identifier on window, invokes it with the JSON-decoded args, and
-                // ships the result back as a jsResult message keyed by taskId.
+                // identifier on `window` (e.g. `sessionStorage.getItem` or
+                // `Rask.{TypeName}.{method}`), invokes it with the JSON-decoded args,
+                // and ships the result back as a jsResult message keyed by taskId.
+                // Rask.*-prefixed identifiers are deferred via dispatchJsInvoke's
+                // pendingScopedInvokes queue until the scoped-JS bundle has loaded.
                 if (Array.isArray(data.jsInvokes)) {
                     for (var ji = 0; ji < data.jsInvokes.length; ji++) {
                         dispatchJsInvoke(data.jsInvokes[ji]);
@@ -187,15 +169,6 @@
         if ("inert" in document.body) document.body.inert = false;
     }
 
-    // Install the InvokeJsAsync result-shipper. Server-side: route the result back
-    // to the .NET JsInvokeResultStore over the live WS using a dedicated message
-    // type. The framework's WS handler matches `id` and completes the awaiting TCS.
-    if (window.Rask && Rask.scoped) {
-        Rask.scoped._sendResult = function (id, value, error) {
-            send({type: "invokeResult", id: id, result: value, error: error});
-        };
-    }
-
     function applyScopedCss(hash) {
         var url = "/_rask/scoped.css?v=" + hash;
         var link = document.querySelector("link[data-rask-scoped]");
@@ -210,34 +183,30 @@
         document.head.appendChild(link);
     }
 
+    var scopedJsReady = false;
+    var pendingScopedInvokes = [];
+
     function applyScopedJs(hash) {
         var url = "/_rask/scoped.js?v=" + hash;
         var existing = document.querySelector("script[data-rask-scoped-js]");
         if (existing && existing.getAttribute("src") === url) return;
         // Replace rather than mutate src — browsers don't re-evaluate a <script>
-        // on src change. The newly inserted script runs Rask.scoped.register(...)
-        // calls; once loaded, force a walkUnmount + walkMount cycle so already-
-        // mounted elements pick up new hook bodies after a hot-reload.
+        // on src change. The newly inserted script's IIFEs assign each module to
+        // `window.Rask.{TypeName}`; until it executes those globals don't exist
+        // and identifier resolution for any `Rask.X.Y` call will throw "Could not
+        // find 'Rask.X.Y' on target", which faults the awaiting InvokeAsync<T>.
+        // Defer Rask.* invokes until the script has loaded, then drain them.
+        scopedJsReady = false;
         var script = document.createElement("script");
         script.setAttribute("data-rask-scoped-js", "");
         script.defer = true;
         script.src = url;
         script.addEventListener("load", function () {
-            // Bundle just loaded — register() calls have populated the registry. Any
-            // C#-queued invocations that arrived before this point hit an empty
-            // registry and no-op'd; re-invoke "rendered" against every registered
-            // scope with firstRender=true (the bundle-load moment is the first time
-            // these elements see their hook). Modules without a "rendered" export
-            // silently no-op in the dispatcher.
-            if (!window.Rask || !Rask.scoped) return;
-            var marked = document.querySelectorAll("[data-rask-mount]");
-            var seen = new Set();
-            for (var i = 0; i < marked.length; i++) {
-                var s = marked[i].getAttribute("data-rask-mount");
-                if (s && !seen.has(s)) {
-                    seen.add(s);
-                    Rask.scoped.invoke(s, "rendered", null, [true]);
-                }
+            scopedJsReady = true;
+            var pending = pendingScopedInvokes;
+            pendingScopedInvokes = [];
+            for (var i = 0; i < pending.length; i++) {
+                dispatchJsInvoke(pending[i]);
             }
         }, {once: true});
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
@@ -517,6 +486,14 @@
 
     function dispatchJsInvoke(inv) {
         if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
+        // Hold scoped-JS invokes until the bundle script has executed and the
+        // window.Rask.{TypeName} globals exist. Only Rask.* identifiers carry
+        // this risk — `sessionStorage.getItem`, `localStorage.length`, etc. are
+        // browser-builtin and always present.
+        if (!scopedJsReady && inv.identifier.indexOf("Rask.") === 0) {
+            pendingScopedInvokes.push(inv);
+            return;
+        }
         var taskId = inv.id;
         var resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
         var argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
@@ -626,9 +603,7 @@
         }
     };
 
-    // The Rask.scoped dispatcher and the reviveScript() + morph() definitions are
-    // concatenated in at build time by the _RaskBuildClientJs target. Order matters:
-    // the dispatcher must be defined before morph() references it.
-    // @@RASK_SCOPED@@
+    // The reviveScript() + morph() definitions are concatenated in at build time by
+    // the _RaskBuildClientJs target.
     // @@RASK_MORPH@@
 })();

@@ -8,6 +8,18 @@ let lastCssHash = null;
 let lastJsHash = null;
 let basePath = null;
 
+// Scoped-JS bundle gate. The bundle script is appended by applyScopedJs() and
+// executes synchronously upon insertion — that's the point at which
+// window.Rask.{TypeName} globals exist. Component lifecycle hooks (especially
+// the first OnRenderedAsync) can race the bundle: they call into beginInvokeJS
+// before the bundle has been injected, and identifier resolution for
+// "Rask.X.method" would otherwise fault the awaiting Task with "Could not
+// find ... on target". Defer Rask.*-prefixed calls until the gate opens, then
+// drain. Non-Rask identifiers (sessionStorage.*, localStorage.*) are browser
+// builtins and always present.
+let scopedJsReady = false;
+let pendingScopedInvokes = [];
+
 // Read once from <base href> (or the page URL if no <base> is set) so the
 // runtime can host under a sub-path like /Rask/ on GitHub Pages without the
 // .NET side ever seeing the prefix. Resolves to the directory portion so a
@@ -41,24 +53,6 @@ export function setExports(exports) {
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
     console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
-    // Install the InvokeJsAsync result-shipper. WASM routes results back through
-    // the ResolveJsInvoke JSExport — .NET-side calls JsInvokeResultStore.TryResolve
-    // to complete the awaiting Task<T>.
-    if (window.Rask && window.Rask.scoped && exports && exports.Rask
-        && exports.Rask.Wasm && exports.Rask.Wasm.JSInterop
-        && typeof exports.Rask.Wasm.JSInterop.ResolveJsInvoke === "function") {
-        window.Rask.scoped._sendResult = function (id, value, error) {
-            let payload;
-            if (value === null || value === undefined) payload = null;
-            else if (typeof value === "string") payload = value;
-            else payload = JSON.stringify(value);
-            exports.Rask.Wasm.JSInterop.ResolveJsInvoke(id, payload, error || null);
-        };
-    }
-    // The framework no longer auto-fires scoped-JS `rendered` hooks. C# user code
-    // invokes them via `InvokeJs(method, args)` from a C# lifecycle hook (typically
-    // OnRendered); the resulting `scopedJsInvokes` payload field is dispatched
-    // inside handle() after each morph.
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
@@ -196,35 +190,34 @@ function applyScopedJs(hash, jsText) {
     lastJsHash = hash;
     // Replace the script element rather than mutate textContent — re-assigning a
     // script's textContent does NOT re-execute it. A fresh <script> with the new
-    // body runs the new Rask.scoped.register(...) calls, then we walkUnmount +
-    // walkMount to refresh live elements' hooks (hot-reload story).
+    // body runs the new `window.Rask[TypeName] = ...` assignments so user JS
+    // modules pick up hot-reloaded code.
     const existing = document.getElementById("rask-scoped-js");
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    // Close the gate before injecting — even on hot reload the window.Rask
+    // bindings briefly disappear while the new script body executes.
+    scopedJsReady = false;
     const script = document.createElement("script");
     script.id = "rask-scoped-js";
     script.setAttribute("data-rask-managed", "");
     script.textContent = jsText;
+    // Inline scripts execute synchronously on insertion, so by the time
+    // appendChild returns the window.Rask.{TypeName} globals exist. Open the
+    // gate and drain any calls queued during the closed window.
     document.head.appendChild(script);
-    // Bundle just (re-)evaluated — register() calls have populated the registry.
-    // C#-queued invocations that arrived before this point hit an empty registry
-    // and no-op'd; re-invoke "rendered" against every registered scope with
-    // firstRender=true. Modules without a "rendered" export silently no-op.
-    if (!window.Rask || !window.Rask.scoped) return;
-    const marked = document.querySelectorAll("[data-rask-mount]");
-    const seen = new Set();
-    for (const node of marked) {
-        const s = node.getAttribute("data-rask-mount");
-        if (s && !seen.has(s)) {
-            seen.add(s);
-            window.Rask.scoped.invoke(s, "rendered", null, [true]);
+    scopedJsReady = true;
+    if (pendingScopedInvokes.length > 0) {
+        const drained = pendingScopedInvokes;
+        pendingScopedInvokes = [];
+        for (let i = 0; i < drained.length; i++) {
+            const c = drained[i];
+            beginInvokeJS(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
         }
     }
 }
 
-// The Rask.scoped dispatcher + reviveScript() + morph() are concatenated in at
-// build time by the _RaskSpliceClientJs target. Order matters: the dispatcher
-// must be defined before morph() references it.
-// @@RASK_SCOPED@@
+// reviveScript() + morph() are concatenated in at build time by the
+// _RaskSpliceClientJs target.
 // @@RASK_MORPH@@
 
 function applyHistory(history) {
@@ -261,20 +254,6 @@ function handle(reply) {
             applyScopedCss(reply.cssHash, reply.cssText);
         if (typeof reply.jsHash === "string" || reply.jsHash === null)
             applyScopedJs(reply.jsHash, reply.jsText);
-        // Scoped-JS `rendered` hooks are NOT auto-fired — dispatched here based on
-        // the `scopedJsInvokes` payload field. Each entry calls
-        // `methods[inv.method](el, ...inv.args)`; when `id` is present the
-        // dispatcher ships the result back through the _sendResult bridge to
-        // complete the awaiting Task<T>.
-        if (Array.isArray(reply.scopedJsInvokes) && window.Rask && window.Rask.scoped) {
-            for (const inv of reply.scopedJsInvokes) {
-                if (inv && typeof inv.scope === "string" && typeof inv.method === "string") {
-                    const args = Array.isArray(inv.args) ? inv.args : [];
-                    const invId = (typeof inv.id === "number") ? inv.id : null;
-                    window.Rask.scoped.invoke(inv.scope, inv.method, invId, args);
-                }
-            }
-        }
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     applyDom();
@@ -469,3 +448,124 @@ document.addEventListener("submit", (e) => {
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
 });
+
+// ----- IJSRuntime bridge -----------------------------------------------------
+// Called by Rask.Wasm.JSInterop.BeginInvokeJSImport (a [JSImport]). Walks the
+// dotted identifier on `window`, invokes it with the JSON-decoded args, then
+// ships the result back through the EndInvokeJSResult JSExport — same shape as
+// the server-side dispatcher in rask.js.
+
+const jsObjectRefs = new Map();
+let nextJsObjectRefId = 1;
+
+function jsResolveIdentifier(target, identifier) {
+    if (typeof identifier !== "string" || identifier.length === 0) return null;
+    const parts = identifier.split(".");
+    let parent = target;
+    for (let i = 0; i < parts.length - 1; i++) {
+        if (parent == null) return null;
+        parent = parent[parts[i]];
+    }
+    if (parent == null) return null;
+    return [parent, parts[parts.length - 1]];
+}
+
+function jsReviver(_key, value) {
+    if (value && typeof value === "object" && typeof value.__jsObjectId === "number") {
+        return jsObjectRefs.get(value.__jsObjectId);
+    }
+    return value;
+}
+
+function endInvokeJSResult(taskId, success, result, error) {
+    if (!dotnetExports || !dotnetExports.Rask || !dotnetExports.Rask.Wasm
+        || !dotnetExports.Rask.Wasm.JSInterop) return;
+    const payload = success
+        ? [Number(taskId), true, (result === undefined ? null : result)]
+        : [Number(taskId), false, error || "JS invocation failed"];
+    try {
+        dotnetExports.Rask.Wasm.JSInterop.EndInvokeJSResult(JSON.stringify(payload));
+    } catch (e) {
+        console.error("[Rask] EndInvokeJSResult failed", e);
+    }
+}
+
+export function beginInvokeJS(taskId, identifier, argsJson, resultType, targetInstanceId) {
+    // Pre-bundle gate: a Rask.* identifier resolved against window before
+    // applyScopedJs has executed the bundle returns null, which would surface
+    // as a "Could not find ..." JSException on the awaiting Task. Park the
+    // call until the gate opens, then replay it as if it had arrived later.
+    if (!scopedJsReady && typeof identifier === "string" && identifier.indexOf("Rask.") === 0) {
+        pendingScopedInvokes.push({taskId, identifier, argsJson, resultType, targetInstanceId});
+        return;
+    }
+    Promise.resolve().then(() => {
+        let args;
+        try {
+            args = JSON.parse(argsJson || "[]", jsReviver);
+        } catch (e) {
+            throw new Error("Failed to parse argsJson: " + e.message);
+        }
+
+        let target = window;
+        const targetId = Number(targetInstanceId);
+        if (targetId !== 0) {
+            target = jsObjectRefs.get(targetId);
+            if (!target) throw new Error("Unknown JS object reference: " + targetInstanceId);
+        }
+
+        const resolved = jsResolveIdentifier(target, identifier);
+        if (!resolved) throw new Error("Could not find '" + identifier + "' on target");
+        const parent = resolved[0];
+        const key = resolved[1];
+        const fn = parent[key];
+        return (typeof fn === "function") ? fn.apply(parent, args) : fn;
+    }).then((value) => {
+        if (resultType === 3) {
+            endInvokeJSResult(taskId, true, null);
+            return;
+        }
+        if (resultType === 1) {
+            const refId = nextJsObjectRefId++;
+            jsObjectRefs.set(refId, value);
+            endInvokeJSResult(taskId, true, {"__jsObjectId": refId});
+            return;
+        }
+        endInvokeJSResult(taskId, true, value);
+    }).catch((err) => {
+        endInvokeJSResult(taskId, false, null, (err && err.message) || String(err));
+    });
+}
+
+// ----- DotNet shim (mirror of Blazor's window.DotNet, for [JSInvokable]) -----
+const dotNetPending = new Map();
+let nextDotNetCallId = 1;
+
+window.DotNet = window.DotNet || {
+    invokeMethodAsync(assemblyName, methodIdentifier /*, ...args */) {
+        const args = Array.prototype.slice.call(arguments, 2);
+        const callId = String(nextDotNetCallId++);
+        return new Promise((resolve, reject) => {
+            dotNetPending.set(callId, {resolve, reject});
+            if (!dotnetExports || !dotnetExports.Rask || !dotnetExports.Rask.Wasm
+                || !dotnetExports.Rask.Wasm.JSInterop) {
+                dotNetPending.delete(callId);
+                reject(new Error("Rask.Wasm.JSInterop not ready"));
+                return;
+            }
+            dotnetExports.Rask.Wasm.JSInterop.BeginDotNetInvoke(
+                callId, assemblyName, methodIdentifier, 0, JSON.stringify(args));
+        });
+    }
+};
+
+export function endDotNetInvoke(resultJson) {
+    let msg;
+    try { msg = JSON.parse(resultJson); }
+    catch (e) { console.error("[Rask] endDotNetInvoke: malformed JSON", e); return; }
+    const pending = dotNetPending.get(msg.callId);
+    if (!pending) return;
+    dotNetPending.delete(msg.callId);
+    if (msg.success) pending.resolve(msg.result);
+    else pending.reject(new Error(msg.error || "DotNet invocation failed"));
+}

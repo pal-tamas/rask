@@ -31,7 +31,10 @@ public class ScopedJsRegistryTests
             Assert.True(fired);
             Assert.NotNull(ScopedJsRegistry.CurrentHash);
             var (js, hash) = ScopedJsRegistry.GetBundle();
-            Assert.Contains("Rask.scoped.register(", js);
+            // Wrapped as an IIFE assignment on window.Rask.{TypeName}; user JS calls
+            // into it via `js.InvokeVoidAsync("Rask.HasJs.rendered", ...)`.
+            Assert.Contains("window.Rask = window.Rask || {};", js);
+            Assert.Contains("window.Rask[\"HasJs\"]", js);
             Assert.Contains("function rendered(el) {}", js);
             // The wrapper returns the rendered function directly (or undefined when absent).
             Assert.Contains("typeof rendered === 'function'", js);
@@ -39,20 +42,22 @@ public class ScopedJsRegistryTests
             Assert.DoesNotContain("typeof mount === 'function'", js);
             Assert.DoesNotContain("typeof unmount === 'function'", js);
             // The export keyword is stripped before wrapping so the function is in the
-            // closure scope of the register() factory.
+            // closure scope of the IIFE.
             Assert.DoesNotContain("export function", js);
+            // The legacy Rask.scoped.register dispatcher is gone.
+            Assert.DoesNotContain("Rask.scoped.register", js);
             Assert.NotEqual("empty", hash);
         }
         finally { ScopedJsRegistry.BundleChanged -= handler; }
     }
 
     [Fact]
-    public void RegisterType_IncludesScopeIdInWrapper()
+    public void RegisterType_UsesTypeNameAsWindowKey()
     {
         ScopedJsRegistry.RegisterType(typeof(HasJs), "export function rendered(el) {}");
         var (js, _) = ScopedJsRegistry.GetBundle();
-        // Scope ids are formed by CssScoper.ScopeIdFor — `r-` + 8 hex chars.
-        Assert.Matches(@"Rask\.scoped\.register\(""r-[0-9a-f]{8}""", js);
+        // The wrapper namespaces under the simple type name on `window.Rask`.
+        Assert.Matches(@"window\.Rask\[""HasJs""\]\s*=", js);
     }
 
     [Fact]

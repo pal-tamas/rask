@@ -1,9 +1,8 @@
 #if RASK_BROWSER
 using System.Runtime.InteropServices.JavaScript;
 #endif
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Live;
+using Microsoft.JSInterop.Infrastructure;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
 
@@ -18,8 +17,17 @@ internal static partial class JSInterop
 {
     private const string ModuleName = "rask";
     private static WasmLiveSession? _session;
+    private static WasmJSRuntime? _runtime;
 
     public static void Init(WasmLiveSession session) => _session = session;
+
+    /// <summary>
+    ///     Bind the singleton <see cref="WasmJSRuntime" /> so the <c>[JSExport]</c>
+    ///     entry points below can route inbound results / DotNet invocations to it.
+    ///     Called once from <c>WasmHostBuilder.RunAsync</c> after the DI container
+    ///     resolves the runtime.
+    /// </summary>
+    public static void Init(WasmJSRuntime runtime) => _runtime = runtime;
 
 #if RASK_BROWSER
     public static Task ImportJsModuleAsync() =>
@@ -42,38 +50,54 @@ internal static partial class JSInterop
         }
     }
 
-    // Routes InvokeJsAsync<T> results back from the JS-side scoped-JS dispatcher
-    // to the C# JsInvokeResultStore. `payload` is either null, a JSON-primitive
-    // value as string (the JS shim JSON-stringifies non-string results), or a
-    // raw string. The store deserializes per the awaiting Task's T.
+    /// <summary>
+    ///     Inbound result for an <c>IJSRuntime.InvokeAsync</c> call. <paramref name="arguments" />
+    ///     is the canonical <c>[taskId, success, result|error]</c> triple that
+    ///     <see cref="DotNetDispatcher.EndInvokeJS" /> parses to complete the
+    ///     awaiting <c>ValueTask&lt;T&gt;</c>.
+    /// </summary>
     [JSExport]
-    public static void ResolveJsInvoke(int id, string? payload, string? error)
+    public static void EndInvokeJSResult(string arguments)
     {
-        if (error is not null)
-        {
-            JsInvokeResultStore.TryResolve(id, null, error);
-            return;
-        }
-
-        if (payload is null)
-        {
-            JsInvokeResultStore.TryResolve(id, null, null);
-            return;
-        }
-
+        if (_runtime is null) return;
         try
         {
-            // payload is JSON.stringify output OR a string passed through. Try
-            // parsing as JSON; on failure, treat as a raw string and re-encode
-            // as a JSON string literal with a hand-rolled escape (trim-safe).
-            using var doc = JsonDocument.Parse(payload);
-            JsInvokeResultStore.TryResolve(id, doc.RootElement.Clone(), null);
+            DotNetDispatcher.EndInvokeJS(_runtime, arguments);
         }
-        catch (JsonException)
+        catch (Exception ex)
         {
-            var quoted = JsonEncodedText.Encode(payload).ToString();
-            using var doc = JsonDocument.Parse("\"" + quoted + "\"");
-            JsInvokeResultStore.TryResolve(id, doc.RootElement.Clone(), null);
+            Console.Error.WriteLine($"[Rask.Wasm] EndInvokeJSResult dispatch failed: {ex}");
+        }
+    }
+
+    /// <summary>
+    ///     JS-initiated <c>DotNet.invokeMethodAsync</c> entry point. Hands the call to
+    ///     <see cref="DotNetDispatcher.BeginInvokeDotNet" />; the runtime completes the
+    ///     call asynchronously and <see cref="WasmJSRuntime.EndInvokeDotNet" /> ships
+    ///     the result back via <see cref="EndDotNetInvokeImport" />.
+    /// </summary>
+    [JSExport]
+    public static void BeginDotNetInvoke(
+        string callId,
+        string? assemblyName,
+        string methodIdentifier,
+        // Travels as int — DotNetObjectReference handle ids are minted by the JSRuntime
+        // base class and bounded well below int.MaxValue in any realistic workload.
+        // Sidesteps SYSLIB1072 (JSExport doesn't marshal long without an explicit
+        // JSMarshalAsAttribute, which the source generator otherwise rejects).
+        int dotNetObjectId,
+        string argsJson)
+    {
+        if (_runtime is null) return;
+        try
+        {
+            var info = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
+            DotNetDispatcher.BeginInvokeDotNet(_runtime, info, argsJson);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[Rask.Wasm] BeginDotNetInvoke '{assemblyName}.{methodIdentifier}' failed: {ex}");
         }
     }
 
@@ -108,6 +132,27 @@ internal static partial class JSInterop
     [JSImport("readFileChunk", ModuleName)]
     public static partial Task<string> ReadFileChunkBase64Async(string @ref, int offset, int length);
 
+    /// <summary>
+    ///     Ship an IJSRuntime call to JS for dispatch. The id and target-instance values
+    ///     travel as strings to avoid BigInt marshalling — both fit easily in JS Numbers
+    ///     for any realistic call count.
+    /// </summary>
+    [JSImport("beginInvokeJS", ModuleName)]
+    public static partial void BeginInvokeJSImport(
+        string taskId,
+        string identifier,
+        string? argsJson,
+        int resultType,
+        string targetInstanceId);
+
+    /// <summary>
+    ///     Ship a <c>[JSInvokable]</c> .NET call's result to the JS-side <c>DotNet</c>
+    ///     shim. <paramref name="resultJson" /> is a fully-serialised
+    ///     <c>{ callId, success, result?, error? }</c> envelope.
+    /// </summary>
+    [JSImport("endDotNetInvoke", ModuleName)]
+    public static partial void EndDotNetInvokeImport(string resultJson);
+
     public static async Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length)
     {
         var b64 = await ReadFileChunkBase64Async(@ref, offset, length).ConfigureAwait(false);
@@ -133,10 +178,28 @@ internal static partial class JSInterop
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());
 
-    // Non-browser stub mirroring the JSExport above so tests can drive the same code path.
-    public static void ResolveJsInvoke(int id, string? payload, string? error) =>
-        JsInvokeResultStore.TryResolve(id,
-            payload is null ? null : JsonDocument.Parse(payload).RootElement.Clone(), error);
+    // Records the last BeginInvokeJSImport call so tests can assert dispatch shape.
+    public record BeginInvokeJsCall(string TaskId, string Identifier, string? ArgsJson, int ResultType, string TargetInstanceId);
+    public static BeginInvokeJsCall? LastBeginInvokeJsCall { get; private set; }
+
+    public static void BeginInvokeJSImport(string taskId, string identifier, string? argsJson, int resultType, string targetInstanceId) =>
+        LastBeginInvokeJsCall = new BeginInvokeJsCall(taskId, identifier, argsJson, resultType, targetInstanceId);
+
+    public static string? LastEndDotNetInvoke { get; private set; }
+    public static void EndDotNetInvokeImport(string resultJson) => LastEndDotNetInvoke = resultJson;
+
+    public static void EndInvokeJSResult(string arguments)
+    {
+        if (_runtime is null) return;
+        DotNetDispatcher.EndInvokeJS(_runtime, arguments);
+    }
+
+    public static void BeginDotNetInvoke(string callId, string? assemblyName, string methodIdentifier, int dotNetObjectId, string argsJson)
+    {
+        if (_runtime is null) return;
+        var info = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
+        DotNetDispatcher.BeginInvokeDotNet(_runtime, info, argsJson);
+    }
 
     public static byte[] PullDownload(string token)
     {
