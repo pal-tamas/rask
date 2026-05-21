@@ -176,7 +176,7 @@ public sealed class NestedListIndexerDemo : Component
             Form<InvoiceModel>(
                 _model,
                 m => _submission =
-                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price * 1):F2}",
+                    $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}",
                 Class: "vstack gap-3")[
                 DataAnnotationsValidator(),
                 Table(Class: "table table-sm align-middle mb-0")[

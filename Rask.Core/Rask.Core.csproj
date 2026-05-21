@@ -28,6 +28,9 @@
     <InternalsVisibleTo Include="Rask.Validation.FluentValidation.Tests"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Example.Shared.Tests"/>
+    <InternalsVisibleTo Include="Rask.Example.Server.Tests"/>
+    <InternalsVisibleTo Include="Rask.Example.Wasm.Tests"/>
+    <InternalsVisibleTo Include="Rask.Example.Wasm.Host.Tests"/>
   </ItemGroup>
 
   <ItemGroup>

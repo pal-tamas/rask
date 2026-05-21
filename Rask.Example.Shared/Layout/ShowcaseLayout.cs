@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using static Rask.Example.Shared.Layout.Components;
 
 namespace Rask.Example.Shared.Layout;
 
@@ -35,9 +36,13 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 
     private bool _drawerOpen;
 
-    // Sidebar active-class is computed from route.Path inside Render(), which the framework
-    // can't observe — opt out of the render cache so the active link updates on every nav.
-    protected override bool BypassRenderCache => true;
+    // Subscribe to RouteState.Changed so the sidebar's active-class computation refreshes
+    // on every nav (including browser back/forward) without resorting to BypassRenderCache.
+    // That keeps the layout's normal render-cache behaviour in place — it doesn't re-run on
+    // every form-input keystroke from a child page, only when the route actually changes.
+    protected override void OnMount() => route.Changed += StateHasChanged;
+
+    protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
     protected override Component Render() =>
         Fragment()[
@@ -60,10 +65,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                         Span(Class: "badge rounded-pill rask-badge ms-1")["showcase"]
                     ],
                     Div(Class: "d-flex align-items-center gap-2 ms-auto")[
-                        Span(Class: "text-secondary small d-none d-md-inline")[
-                            "path: ",
-                            Code(Class: "text-info")[route.Path]
-                        ],
+                        PathDisplay(),
                         A("https://github.com/pal-tamas/rask",
                             "_blank",
                             Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]

@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);RASK014</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.8"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
+    <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <!--
+    Share FakeHttp / FakeJsRuntime / LiveHost / TestServices / WaitFor with
+    Rask.Example.Shared.Tests via linked files. Avoids duplicating the same fakes
+    across every Example test project and keeps them in lockstep when one changes.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\FakeHttp.cs"
+             Link="Infrastructure\FakeHttp.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\FakeJsRuntime.cs"
+             Link="Infrastructure\FakeJsRuntime.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\RecordingHandle.cs"
+             Link="Infrastructure\RecordingHandle.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\LifecycleLog.cs"
+             Link="Infrastructure\LifecycleLog.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\WaitFor.cs"
+             Link="Infrastructure\WaitFor.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\LiveHost.cs"
+             Link="Infrastructure\LiveHost.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestServices.cs"
+             Link="Infrastructure\TestServices.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\CapturingDownloadSink.cs"
+             Link="Infrastructure\CapturingDownloadSink.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestNavigator.cs"
+             Link="Infrastructure\TestNavigator.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestRouteState.cs"
+             Link="Infrastructure\TestRouteState.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Server\Rask.Example.Server.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

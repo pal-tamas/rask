@@ -243,7 +243,17 @@ public sealed class BindingAfterBindAsyncDemo : Component
                         _loading = true;
                         await StateHasChangedAsync();
                         // Simulated remote fetch — swap for HttpClient.GetFromJsonAsync in real code.
-                        await Task.Delay(300);
+                        // Pass the component's CancellationToken so unmount-during-fetch aborts
+                        // the simulated work cleanly instead of mutating state on a stale instance.
+                        try
+                        {
+                            await Task.Delay(300, CancellationToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return;
+                        }
+
                         _languages = _catalog[track];
                         _model.Language = _languages[0];
                         _loading = false;
