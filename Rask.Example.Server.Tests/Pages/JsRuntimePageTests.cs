@@ -1,9 +1,13 @@
 using System.Reflection;
 using Rask.Core;
-using Rask.Example.Server.Pages;
+using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Server.Tests.Pages;
+
+// Originally test for Server-only JsRuntimePage; the page has been unified into
+// Rask.Example.Shared.Pages so it now runs on Server + WASM. The unit tests
+// stay on the Server-Tests project since they don't depend on host transport.
 
 public sealed class JsRuntimePageTests
 {

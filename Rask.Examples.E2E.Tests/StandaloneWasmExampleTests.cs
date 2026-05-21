@@ -43,7 +43,10 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/scoped-css"] = "Scoped CSS",
         ["/http"] = "HttpClient + DI",
         ["/upload"] = "File upload",
-        ["/download"] = "File download"
+        ["/download"] = "File download",
+        ["/table"] = "Data table",
+        ["/todos"] = "Todos",
+        ["/jsruntime"] = "IJSRuntime"
     };
 
     private readonly StandaloneWasmAppFixture _app;

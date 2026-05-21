@@ -2,19 +2,13 @@ using Microsoft.JSInterop;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Layout;
 
-namespace Rask.Example.Server.Pages;
+namespace Rask.Example.Shared.Pages;
 
 /// <summary>
-///     Server-only example: round-trip <see cref="IJSRuntime" /> against
-///     <c>sessionStorage</c>. Demonstrates that Blazor-style libraries depending on
-///     <see cref="IJSRuntime" /> (e.g. <c>ProtectedSessionStorage</c>) work on Rask.Server
-///     because <c>AddRask()</c> registers a <c>RaskJSRuntime</c> bound to the per-session
-///     WebSocket transport.
-///     <para>
-///         This page lives in <c>Rask.Example.Server</c> rather than the shared assembly
-///         because <see cref="IJSRuntime" /> is currently server-only — adding it to
-///         <c>Rask.Example.Shared</c> would break the WASM example's DI graph.
-///     </para>
+///     Round-trip <see cref="IJSRuntime" /> against <c>sessionStorage</c>. Works
+///     on both Server (per-session WS-bound <c>RaskJSRuntime</c>) and WASM (in-
+///     process bridge via <c>JSImport</c>) — the unified IJSRuntime surface
+///     keeps the component identical across hosts.
 /// </summary>
 [Route("jsruntime")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -64,20 +58,20 @@ public sealed class JsRuntimePage(IJSRuntime js) : Component
                             OnInput: v => _input = v)
                     ],
                     Div(Class: "d-flex gap-2 flex-wrap mb-3")[
-                        Button(Class: "btn btn-primary btn-sm", OnClickAsync: SetAsync)[
+                        Button(Class: "btn btn-primary btn-sm", Id: "demo-set", OnClickAsync: SetAsync)[
                             I(Class: "bi bi-save me-1"), "Set"],
-                        Button(Class: "btn btn-outline-primary btn-sm", OnClickAsync: ReadAsync)[
+                        Button(Class: "btn btn-outline-primary btn-sm", Id: "demo-read", OnClickAsync: ReadAsync)[
                             I(Class: "bi bi-arrow-clockwise me-1"), "Read"],
-                        Button(Class: "btn btn-outline-danger btn-sm", OnClickAsync: RemoveAsync)[
+                        Button(Class: "btn btn-outline-danger btn-sm", Id: "demo-remove", OnClickAsync: RemoveAsync)[
                             I(Class: "bi bi-trash me-1"), "Remove"]
                     ],
                     Div(Class: "mb-2")[
                         Span(Class: "text-secondary small text-uppercase")["Last read"],
-                        Div()[Code(Class: "fs-6")[_lastRead ?? "(null)"]]
+                        Div()[Code(Class: "fs-6", Id: "demo-last-read")[_lastRead ?? "(null)"]]
                     ],
                     Div()[
                         Span(Class: "text-secondary small text-uppercase")["Status"],
-                        Div()[Code(Class: "fs-6")[_status ?? "(idle)"]]
+                        Div()[Code(Class: "fs-6", Id: "demo-status")[_status ?? "(idle)"]]
                     ]
                 ]
             ],
@@ -85,8 +79,8 @@ public sealed class JsRuntimePage(IJSRuntime js) : Component
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[
                     Strong()["What's happening:"],
-                    " Each call queues a global-JS invoke onto the next outbound WS frame. ",
-                    "The client resolves the dotted identifier on ", Code()["window"], " (e.g. ",
+                    " On Server each call queues a global-JS invoke onto the next outbound WS frame; on WASM the call goes through the in-process JS bridge. ",
+                    "Either runtime resolves the dotted identifier on ", Code()["window"], " (e.g. ",
                     Code()["sessionStorage.getItem"], "), invokes it, then ships the result back ",
                     "to the awaiting ", Code()["ValueTask<T>"], "."
                 ]
