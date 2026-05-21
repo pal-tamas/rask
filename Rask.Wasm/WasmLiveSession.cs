@@ -322,16 +322,26 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
         // StateHasChanged, it set _pendingRenderInScope=true — rebuild so the dispatch's
-        // returned payload carries the post-dispose state. Pass (null, false) on the rebuild:
-        // the navigator's pending history entry was already consumed by the first build, and
-        // re-passing historyUrl/replace would emit a duplicate history.pushState.
+        // returned payload carries the post-dispose state.
+        //
+        // historyUrl/replace flow through every rebuild: only the LAST result is returned
+        // and sent, so re-passing the captured nav target is the only way for it to land
+        // in the actually-emitted frame. Dropping them on the rebuild (as the previous
+        // implementation did) silently swallowed handler-initiated navigation whenever a
+        // publish-render rebuild fired — e.g. clicking the "Live ticker" sidebar entry
+        // triggered LiveTicker.OnRenderedAsync, whose Chart.js-draw continuation requested
+        // a publish render via `_pendingRenderInScope`; the rebuild then produced a
+        // history-less payload and the URL stayed pinned to /index.html even though the
+        // page itself routed correctly. There's no "duplicate pushState" risk because the
+        // historyUrl here is a local captured before the call, not a fresh navigator
+        // consumption — passing it twice still lands exactly one pushState on the client.
         _pendingRenderInScope = false;
         var result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            result = await BuildPayloadAsync(null, false, publishOnly).ConfigureAwait(false);
+            result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
         }
 
         return result;

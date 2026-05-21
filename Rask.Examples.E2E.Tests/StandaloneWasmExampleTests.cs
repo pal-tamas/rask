@@ -15,7 +15,7 @@ namespace Rask.Examples.E2E.Tests;
 ///     specific to the WasmAppHost launcher.
 /// </summary>
 [Collection(StandaloneWasmExampleCollection.Name)]
-public sealed class StandaloneWasmExampleTests : SharedSmokeTests
+public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
 {
     // path → sidebar button label table. The labels come straight from ShowcaseLayout.Links.
     // A route not present here means the standalone collection cannot reach it — adding it
