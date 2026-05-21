@@ -32,8 +32,9 @@ public abstract partial class ExampleSmokeTests
     public Task Routing_LiveTicker_InvalidSymbol_RendersLoadingState() => RunAsync(async () =>
     {
         // Unknown symbol — the LiveTicker still mounts and the page header
-        // renders. The poll may fail (CoinCap returns 404), but the page must
-        // not crash.
+        // renders. CoinGecko returns an empty object for unknown ids, so the
+        // poll produces no points and the "Waiting for first tick…" state
+        // sticks — the page must not crash.
         await Page.GotoAsync("/realtime/UNKNOWN");
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("UNKNOWN",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });

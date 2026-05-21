@@ -17,13 +17,14 @@ internal sealed class FakeHttp : HttpMessageHandler
         {
             Handler = req =>
             {
-                var asset = req.RequestUri!.AbsolutePath.Split('/').Last();
-                if (!byAsset.TryGetValue(asset, out var price))
-                {
-                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-                }
-
-                var body = $"{{\"data\":{{\"priceUsd\":\"{price.ToString(CultureInfo.InvariantCulture)}\",\"symbol\":\"{asset}\"}}}}";
+                // CoinGecko: /api/v3/simple/price?ids={id}&vs_currencies=usd → {"id":{"usd":N}}.
+                // Unknown ids return an empty object (not 404), matching the live API.
+                var asset = req.RequestUri!.Query.TrimStart('?').Split('&')
+                    .Select(p => p.Split('=', 2))
+                    .FirstOrDefault(p => p.Length == 2 && p[0] == "ids")?[1] ?? string.Empty;
+                var body = byAsset.TryGetValue(asset, out var price)
+                    ? $"{{\"{asset}\":{{\"usd\":{price.ToString(CultureInfo.InvariantCulture)}}}}}"
+                    : "{}";
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent(body, Encoding.UTF8, "application/json")

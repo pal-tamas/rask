@@ -193,8 +193,8 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
         try
         {
             var resp = await http.GetFromJsonAsync(
-                $"https://api.coincap.io/v2/assets/{asset}",
-                LiveTickerJsonContext.Default.CoinCapResponse,
+                $"https://api.coingecko.com/api/v3/simple/price?ids={asset}&vs_currencies=usd",
+                LiveTickerJsonContext.Default.CoinGeckoPriceResponse,
                 ct).ConfigureAwait(true);
             // Symbol may have changed while the request was in flight; drop the
             // result so the chart isn't contaminated with the previous asset's data.
@@ -203,8 +203,9 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
                 return;
             }
 
-            if (resp?.Data?.PriceUsd is null ||
-                !decimal.TryParse(resp.Data.PriceUsd, NumberStyles.Float, CultureInfo.InvariantCulture, out var price))
+            if (resp is null ||
+                !resp.TryGetValue(asset, out var quote) ||
+                !quote.TryGetValue("usd", out var price))
             {
                 return;
             }
@@ -281,17 +282,14 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
 
 public readonly record struct PricePoint(DateTimeOffset Timestamp, decimal PriceUsd);
 
-internal sealed class CoinCapResponse
-{
-    [JsonPropertyName("data")] public CoinCapAsset? Data { get; set; }
-}
+// CoinGecko `simple/price` returns one entry per requested id, each a map of
+// vs_currency → price: {"bitcoin":{"usd":65000.5}}. Subclassing the nested
+// Dictionary types gives the source-generated JSON context a stable property
+// name to bind against.
+internal sealed class CoinGeckoPriceResponse : Dictionary<string, CoinGeckoPriceQuote>;
 
-internal sealed class CoinCapAsset
-{
-    [JsonPropertyName("priceUsd")] public string? PriceUsd { get; set; }
-    [JsonPropertyName("symbol")] public string? Symbol { get; set; }
-}
+internal sealed class CoinGeckoPriceQuote : Dictionary<string, decimal>;
 
-[JsonSerializable(typeof(CoinCapResponse))]
+[JsonSerializable(typeof(CoinGeckoPriceResponse))]
 [JsonSerializable(typeof(PricePoint[]))]
 internal sealed partial class LiveTickerJsonContext : JsonSerializerContext;

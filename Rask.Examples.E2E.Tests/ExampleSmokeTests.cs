@@ -609,11 +609,11 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
     [Fact]
     public Task LiveTicker_FirstRender_BootsAndLogsMountHooks() => RunAsync(async () =>
     {
-        // Mocks the CoinCap responses so the WASM-side fetch is hermetic. On the
+        // Mocks the CoinGecko responses so the WASM-side fetch is hermetic. On the
         // Server host the .NET-side HttpClient bypasses Playwright's route handler
         // and reaches the live API — both paths produce the same hook log shape,
         // which is what the assertions below check.
-        await MockCoinCapAsync(price: 65000m);
+        await MockCoinGeckoAsync(price: 65000m);
         await NavigateToAsync("/realtime/BTC");
 
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("BTC live ticker",
@@ -637,7 +637,7 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
     [Fact]
     public Task LiveTicker_SwitchingSymbol_FiresOnPropsChanged() => RunAsync(async () =>
     {
-        await MockCoinCapAsync(price: 65000m, ethPrice: 3200m);
+        await MockCoinGeckoAsync(price: 65000m, ethPrice: 3200m);
         await NavigateToAsync("/realtime/BTC");
 
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
@@ -662,7 +662,7 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
     [Fact]
     public Task LiveTicker_NavigateAway_TearsDownPageSubtree() => RunAsync(async () =>
     {
-        await MockCoinCapAsync(price: 65000m);
+        await MockCoinGeckoAsync(price: 65000m);
         await NavigateToAsync("/realtime/BTC");
 
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
@@ -700,7 +700,7 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
         // OnPropsChangedAsync re-hydrates from sessionStorage on symbol switch.
         // Seed a known three-point SOL entry, then switch to /SOL — the log
         // should report "loaded 3 persisted points".
-        await MockCoinCapAsync(price: 65000m);
+        await MockCoinGeckoAsync(price: 65000m);
         await NavigateToAsync("/realtime/BTC");
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -725,15 +725,18 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
     });
 
     // Playwright's RouteAsync only intercepts BROWSER-side requests. On WASM that
-    // covers the CoinCap fetch entirely; on Server the .NET-side HttpClient still
+    // covers the CoinGecko fetch entirely; on Server the .NET-side HttpClient still
     // hits the live API but the hook assertions don't depend on the price value,
     // only on the lifecycle log entries that fire regardless of network.
-    private async Task MockCoinCapAsync(decimal price = 65000m, decimal ethPrice = 3200m, decimal solPrice = 145m)
+    private async Task MockCoinGeckoAsync(decimal price = 65000m, decimal ethPrice = 3200m, decimal solPrice = 145m)
     {
-        await Page.RouteAsync("**/api.coincap.io/v2/assets/**", async route =>
+        await Page.RouteAsync("**/api.coingecko.com/api/v3/simple/price**", async route =>
         {
             var url = route.Request.Url;
-            var asset = url.Substring(url.LastIndexOf('/') + 1).Split('?')[0];
+            var query = url.Contains('?') ? url[(url.IndexOf('?') + 1)..] : string.Empty;
+            var asset = query.Split('&')
+                .Select(p => p.Split('=', 2))
+                .FirstOrDefault(p => p.Length == 2 && p[0] == "ids")?[1] ?? string.Empty;
             var p = asset switch
             {
                 "bitcoin" => price,
@@ -741,7 +744,9 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
                 "solana" => solPrice,
                 _ => price
             };
-            var body = $"{{\"data\":{{\"priceUsd\":\"{p.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"symbol\":\"{asset}\"}}}}";
+            var body = asset.Length == 0
+                ? "{}"
+                : $"{{\"{asset}\":{{\"usd\":{p.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}}}";
             await route.FulfillAsync(new RouteFulfillOptions
             {
                 Status = 200,

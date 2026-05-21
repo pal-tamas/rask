@@ -18,7 +18,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
         Fragment()[
             PageHeader.Render(
                 $"{Symbol} live ticker",
-                "A small real-world widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync calls api.coincap.io; the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
+                "A small real-world widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync calls api.coingecko.com; the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
             Div(Class: "btn-group mb-3", Id: "ticker-symbol-switcher")[
                 SwitchButton("BTC"),
                 SwitchButton("ETH"),
@@ -79,7 +79,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                         {
                             while (!ct.IsCancellationRequested)
                             {
-                                await PollOnceAsync(ct);          // CoinCap → history
+                                await PollOnceAsync(ct);          // CoinGecko → history
                                 await Task.Delay(Interval, ct);   // re-render after each await
                             }
                         }
@@ -116,7 +116,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 Div()[
                     Strong()["Real network."],
                     " Prices come from ",
-                    A("https://docs.coincap.io/", "_blank")["api.coincap.io"],
+                    A("https://www.coingecko.com/api/documentation", "_blank")["api.coingecko.com"],
                     " — public, CORS-enabled, no key. Under ",
                     Code()["Rask.Example.Server"], " the polls happen server-side; under ",
                     Code()["Rask.Example.Wasm"], " they run from the browser. The component is identical."

@@ -11,7 +11,7 @@ namespace Rask.Example.Shared.Tests.Demos;
 public sealed class LiveTickerTests
 {
     [Fact]
-    public async Task OnMountAsync_PollsCoinCap_AndPopulatesHistory()
+    public async Task OnMountAsync_PollsCoinGecko_AndPopulatesHistory()
     {
         var (http, fakeHttp) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
@@ -23,7 +23,7 @@ public sealed class LiveTickerTests
         await Task.Delay(120); // let a couple of polls run
 
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnMount:"));
-        Assert.True(fakeHttp.RequestCount >= 1, "expected at least one CoinCap poll");
+        Assert.True(fakeHttp.RequestCount >= 1, "expected at least one CoinGecko poll");
         Assert.NotEmpty(js.GetCalls("sessionStorage.setItem"));
     }
 
@@ -135,13 +135,13 @@ public sealed class LiveTickerTests
     }
 
     [Fact]
-    public void CoinCapResponse_DeserializesCleanly()
+    public void CoinGeckoPriceResponse_DeserializesCleanly()
     {
-        const string json = """{"data":{"priceUsd":"65123.45","symbol":"BTC"}}""";
-        var resp = JsonSerializer.Deserialize(json, LiveTickerJsonContext.Default.CoinCapResponse);
+        const string json = """{"bitcoin":{"usd":65123.45}}""";
+        var resp = JsonSerializer.Deserialize(json, LiveTickerJsonContext.Default.CoinGeckoPriceResponse);
         Assert.NotNull(resp);
-        Assert.Equal("65123.45", resp!.Data!.PriceUsd);
-        Assert.Equal("BTC", resp.Data.Symbol);
+        Assert.True(resp!.TryGetValue("bitcoin", out var quote));
+        Assert.Equal(65123.45m, quote!["usd"]);
     }
 
     [Fact]
