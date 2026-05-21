@@ -64,7 +64,7 @@ jobs:
         run: dotnet pack Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nupkgs
           path: ./artifacts/*.*nupkg
