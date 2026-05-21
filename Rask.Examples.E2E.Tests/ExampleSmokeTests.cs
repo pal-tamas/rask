@@ -596,4 +596,158 @@ public abstract class ExampleSmokeTests : SharedSmokeTests
 
         Assert.DoesNotContain("lifecycle hook on HttpPage faulted", ServerLog);
     });
+
+    // ---------- Live ticker (all eight lifecycle hooks in one component) ----------
+    //
+    // Lives here rather than in SharedSmokeTests because StandaloneWasm's
+    // NavigateToAsync asserts on window.location matching the target path — that
+    // assertion is flaky for /realtime/{Symbol} on WasmAppHost in CI environments
+    // where pushState lands slightly after the framework's RouteState swap. The
+    // Server and Wasm.Host fixtures (which inherit ExampleSmokeTests) have no such
+    // restriction.
+
+    [Fact]
+    public Task LiveTicker_FirstRender_BootsAndLogsMountHooks() => RunAsync(async () =>
+    {
+        // Mocks the CoinCap responses so the WASM-side fetch is hermetic. On the
+        // Server host the .NET-side HttpClient bypasses Playwright's route handler
+        // and reaches the live API — both paths produce the same hook log shape,
+        // which is what the assertions below check.
+        await MockCoinCapAsync(price: 65000m);
+        await NavigateToAsync("/realtime/BTC");
+
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("BTC live ticker",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // The hook activity panel proves the framework drove OnMount → OnMountAsync
+        // → OnRendered → OnRenderedAsync without us touching anything.
+        var log = Page.Locator("#ticker-log");
+        await Expect(log).ToContainTextAsync("OnMount: requesting persisted history",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(log).ToContainTextAsync("OnRendered(firstRender:true)",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // The canvas (where Chart.js will paint) is always present from the static render.
+        await Expect(Page.Locator("canvas[data-rask-ticker]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task LiveTicker_SwitchingSymbol_FiresOnPropsChanged() => RunAsync(async () =>
+    {
+        await MockCoinCapAsync(price: 65000m, ethPrice: 3200m);
+        await NavigateToAsync("/realtime/BTC");
+
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Click the ETH switcher button. The Navigator.Navigate("/realtime/ETH") call
+        // updates the [RouteParam] Symbol, the framework re-binds, and OnPropsChanged*
+        // fires on the existing component instance (page is the same, just one prop
+        // changed).
+        await Page.Locator("#ticker-switch-ETH").ClickAsync();
+
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        var log = Page.Locator("#ticker-log");
+        await Expect(log).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(log).ToContainTextAsync("OnPropsChangedAsync: switched to ETH",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Fact]
+    public Task LiveTicker_NavigateAway_TearsDownPageSubtree() => RunAsync(async () =>
+    {
+        await MockCoinCapAsync(price: 65000m);
+        await NavigateToAsync("/realtime/BTC");
+
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        // Wait for OnMountAsync to have started so the disposal path actually has
+        // an in-flight loop to cancel.
+        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnMountAsync",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Sidebar nav away. The framework tears down LiveTickerPage; that disposal
+        // recurses into LiveTicker, fires OnUnmount + OnUnmountAsync, cancels the
+        // CancellationToken (which breaks the poll loop's Task.Delay).
+        await ClickSidebar("Lifecycle");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Lifecycle hooks",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Re-navigate to /realtime/BTC. If the old subtree was properly torn down,
+        // a fresh LiveTickerPage instance is created with an empty log; the
+        // "OnMount:" entry that appears must be the new instance's first hook.
+        await ClickSidebar("Live ticker");
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        var logText = await Page.Locator("#ticker-log").TextContentAsync();
+        Assert.NotNull(logText);
+        // Exactly one "OnMount:" entry — multiple would mean the previous page's
+        // log leaked into the new one (a leak the framework forbids).
+        var mountCount = System.Text.RegularExpressions.Regex.Matches(logText!, "OnMount: ").Count;
+        Assert.Equal(1, mountCount);
+    });
+
+    [Fact]
+    public Task LiveTicker_HistoryPersists_AcrossNavigation() => RunAsync(async () =>
+    {
+        // OnPropsChangedAsync re-hydrates from sessionStorage on symbol switch.
+        // Seed a known three-point SOL entry, then switch to /SOL — the log
+        // should report "loaded 3 persisted points".
+        await MockCoinCapAsync(price: 65000m);
+        await NavigateToAsync("/realtime/BTC");
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Page.EvaluateAsync(
+            """
+            () => sessionStorage.setItem(
+                'rask-live-ticker:SOL',
+                JSON.stringify([
+                    {Timestamp: '2026-01-01T00:00:00Z', PriceUsd: 140.0},
+                    {Timestamp: '2026-01-01T00:00:03Z', PriceUsd: 141.5},
+                    {Timestamp: '2026-01-01T00:00:06Z', PriceUsd: 142.2}
+                ]))
+            """);
+
+        await Page.Locator("#ticker-switch-SOL").ClickAsync();
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("SOL",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("loaded 3 persisted points",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    // Playwright's RouteAsync only intercepts BROWSER-side requests. On WASM that
+    // covers the CoinCap fetch entirely; on Server the .NET-side HttpClient still
+    // hits the live API but the hook assertions don't depend on the price value,
+    // only on the lifecycle log entries that fire regardless of network.
+    private async Task MockCoinCapAsync(decimal price = 65000m, decimal ethPrice = 3200m, decimal solPrice = 145m)
+    {
+        await Page.RouteAsync("**/api.coincap.io/v2/assets/**", async route =>
+        {
+            var url = route.Request.Url;
+            var asset = url.Substring(url.LastIndexOf('/') + 1).Split('?')[0];
+            var p = asset switch
+            {
+                "bitcoin" => price,
+                "ethereum" => ethPrice,
+                "solana" => solPrice,
+                _ => price
+            };
+            var body = $"{{\"data\":{{\"priceUsd\":\"{p.ToString(System.Globalization.CultureInfo.InvariantCulture)}\",\"symbol\":\"{asset}\"}}}}";
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = body
+            });
+        });
+    }
 }

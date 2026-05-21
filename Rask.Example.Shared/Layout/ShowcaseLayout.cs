@@ -16,6 +16,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/users/42", "Route + query params", "bi-link-45deg", "Components"),
         ("/navigator", "Navigator", "bi-compass", "Components"),
         ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components"),
+        ("/realtime/BTC", "Live ticker", "bi-graph-up-arrow", "Components"),
         ("/cancellation", "Cancellation", "bi-x-circle", "Components"),
         ("/disposal", "Disposal", "bi-trash", "Components"),
         ("/events", "Events", "bi-mouse", "Components"),

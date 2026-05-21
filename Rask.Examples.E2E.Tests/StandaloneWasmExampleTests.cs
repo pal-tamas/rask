@@ -31,6 +31,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         ["/users/42"] = "Route + query params",
         ["/navigator"] = "Navigator",
         ["/lifecycle"] = "Lifecycle",
+        ["/realtime/BTC"] = "Live ticker",
         ["/cancellation"] = "Cancellation",
         ["/disposal"] = "Disposal",
         ["/events"] = "Events",

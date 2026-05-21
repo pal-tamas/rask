@@ -1883,4 +1883,5 @@ public abstract class SharedSmokeTests : IAsyncLifetime
             .ToContainTextAsync("Generated 1 time(s).",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
+
 }
