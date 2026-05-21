@@ -84,8 +84,34 @@ public sealed class Virtualize : Component
         _cache = null;
         _totalCount = 0;
         _totalCountKnown = false;
-        _activeFetch?.Cancel();
+        CancelAndDisposeActiveFetch();
+    }
+
+    protected override void OnUnmount()
+    {
+        // Cancel any in-flight fetch when the component leaves the tree so the
+        // provider's await unwinds promptly and the CTS doesn't leak through GC.
+        // Without this, a Virtualize whose ItemsProvider is mid-`await` keeps the
+        // CTS rooted via the captured request.CancellationToken and the
+        // FetchAsync continuation still tries to update _cache + call
+        // StateHasChanged after disposal — wasted work and a small unmanaged
+        // resource leak per CTS.
+        CancelAndDisposeActiveFetch();
+    }
+
+    private void CancelAndDisposeActiveFetch()
+    {
+        var fetch = _activeFetch;
+        if (fetch is null)
+        {
+            return;
+        }
+
         _activeFetch = null;
+        try { fetch.Cancel(); }
+        catch (ObjectDisposedException) { }
+
+        fetch.Dispose();
     }
 
     protected override Component Render()
@@ -317,11 +343,18 @@ public sealed class Virtualize : Component
 
         // Cancel any prior fetch so rapid scroll doesn't keep stale work running. Take the new
         // CTS before cancelling so a continuation observing _activeFetch can't race onto the
-        // cancelled one.
+        // cancelled one. Also dispose the prior CTS — without this, every fetch leaks one
+        // CancellationTokenSource (rapid scrolling = dozens per second) until GC reclaims it.
         var prev = _activeFetch;
         var cts = new CancellationTokenSource();
         _activeFetch = cts;
-        prev?.Cancel();
+        if (prev is not null)
+        {
+            try { prev.Cancel(); }
+            catch (ObjectDisposedException) { }
+
+            prev.Dispose();
+        }
 
         ItemsProviderResultErased result;
         try
@@ -339,7 +372,10 @@ public sealed class Virtualize : Component
             return;
         }
 
-        if (cts.IsCancellationRequested)
+        // If we were superseded by a newer fetch (or unmounted) while awaiting,
+        // _activeFetch no longer points at our cts. Drop the result so we don't
+        // clobber the cache with a stale window.
+        if (cts.IsCancellationRequested || !ReferenceEquals(_activeFetch, cts))
         {
             return;
         }

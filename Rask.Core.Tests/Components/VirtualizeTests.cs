@@ -211,6 +211,53 @@ public class VirtualizeTests
         Assert.Contains("data-rask-key=\"4\"", html);
     }
 
+    [Fact]
+    public async Task ItemsProvider_Unmount_CancelsInFlightFetch()
+    {
+        // Regression: Virtualize's in-flight ItemsProvider fetch must be
+        // cancelled when the component leaves the parent's tree. Pre-fix the
+        // _activeFetch CTS was orphaned on unmount — the provider's await kept
+        // running until it produced its own result, then tried to update _cache
+        // and call StateHasChanged on a disposed component.
+        var fetchObservedCt = CancellationToken.None;
+        var providerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<string>>> provider = async req =>
+        {
+            fetchObservedCt = req.CancellationToken;
+            providerStarted.TrySetResult();
+            try { await Task.Delay(Timeout.Infinite, req.CancellationToken); }
+            catch (OperationCanceledException) { }
+            return new ItemsProviderResult<string>(Array.Empty<string>(), 0);
+        };
+
+        var show = true;
+        var view = new StubComponent(() => show
+            ? Virtualize<string>(
+                ctx => Div(),
+                ItemsProvider: provider,
+                ItemSize: 20,
+                InitialClientHeight: 100)
+            : Div());
+
+        view.RenderAsLiveRoot();
+        await providerStarted.Task;
+        Assert.False(fetchObservedCt.IsCancellationRequested);
+
+        // Stop rendering Virtualize — the framework's diff fires OnUnmount on
+        // the Virtualize subtree, which should cancel the in-flight fetch.
+        show = false;
+        view.RenderAsLiveRoot();
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (!fetchObservedCt.IsCancellationRequested && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.True(fetchObservedCt.IsCancellationRequested);
+    }
+
     private static string? ExtractAttr(string html, string attr)
     {
         var marker = attr + "=\"";
