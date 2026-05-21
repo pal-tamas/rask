@@ -101,7 +101,11 @@ public class AsyncFormBindingTests
         // post-handler frame — must show the "taken" message and must NOT still show the
         // "Checking…" indicator.
         var model = new SignupModel { Username = "" };
-        var ctx = new EditContext(model);
+        // Opt out of the ValidatingIndicator sticky window so this test stays
+        // a strict assertion on the post-handler frame — sticky is a UI smoothing
+        // feature and overlaps the "no indicator after validation" check the test
+        // is pinning. Pre-sticky behaviour is preserved when ValidatingStickyMs=0.
+        var ctx = new EditContext(model) { ValidatingStickyMs = 0 };
         ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
 
         var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[
@@ -313,7 +317,9 @@ public class AsyncFormBindingTests
 
         public RouterOutletFormPage()
         {
-            _ctx = new EditContext(_model);
+            // ValidatingStickyMs=0 keeps the test a strict "no indicator after
+            // PendingCount drops to 0" assertion. See sibling test above.
+            _ctx = new EditContext(_model) { ValidatingStickyMs = 0 };
             _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
         }
 

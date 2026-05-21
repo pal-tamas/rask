@@ -17,7 +17,10 @@ public sealed class AsyncValidationApp : Component
 
     public AsyncValidationApp()
     {
-        _ctx = new EditContext(_model);
+        // ValidatingStickyMs=0 opts out of the 200ms post-validation sticky tail so
+        // this test stays a strict "no indicator after PendingCount drops to 0"
+        // assertion — see AsyncFormBindingTests for the same opt-out pattern.
+        _ctx = new EditContext(_model) { ValidatingStickyMs = 0 };
         _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
     }
 

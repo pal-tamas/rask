@@ -145,11 +145,13 @@ public sealed class LiveRenderContext : IDisposable
 
         if (_previousEditContexts.TryGetValue(key, out var existing))
         {
+            AttachRenderRequest(existing);
             _currentEditContexts[key] = existing;
             return existing;
         }
 
         var ctx = factory?.Invoke() ?? new EditContext(model);
+        AttachRenderRequest(ctx);
         _currentEditContexts[key] = ctx;
         return ctx;
     }
@@ -164,7 +166,26 @@ public sealed class LiveRenderContext : IDisposable
             throw new ArgumentNullException(nameof(ctx));
         }
 
+        AttachRenderRequest(ctx);
         _currentEditContexts[new ObjectKey(ctx.Model)] = ctx;
+    }
+
+    // Wire EditContext's RequestRender hook to the root component's handle so
+    // background events inside the context (currently the sticky-dismissal
+    // timer the ValidatingIndicator depends on) can ask the live render to
+    // re-paint. Idempotent — once attached, re-registering the same context
+    // across renders skips. Skipped entirely for contexts created outside a
+    // live render (unit tests build their own RenderingHandle and wire it
+    // manually if they want the sticky-driven render).
+    private void AttachRenderRequest(EditContext ctx)
+    {
+        if (_handle is null || ctx.RequestRender is not null)
+        {
+            return;
+        }
+
+        var handle = _handle;
+        ctx.RequestRender = () => _ = handle.RequestRenderAsync();
     }
 
     // Used by Form to make a sub-object reachable through the same EditContext as its root

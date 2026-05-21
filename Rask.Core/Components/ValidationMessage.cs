@@ -73,10 +73,18 @@ public sealed class ValidationSummary : Component
 
 public sealed class ValidatingIndicator : Component
 {
+    // After EditContext.IsValidating(field) flips back to false, keep the
+    // template rendered for ValidatingStickinessMs after the last
+    // PendingCount > 0 reading. Smooths out very-short validation windows (a
+    // 400ms async check would otherwise leave just a ~400ms DOM presence —
+    // too brief for screen-readers / load-balanced Playwright polling to
+    // reliably catch). The sticky state lives on the EditContext's FieldState
+    // (see <see cref="EditContext.IsValidating(FieldIdentifier)" />) so it
+    // survives the generic factory's per-render `new()` instantiation; the
+    // EditContext also schedules a single timer-driven dismissal render at
+    // sticky-window expiry.
     public LambdaExpression? For { get; set; }
 
-    // Headless: caller owns the markup. Invoked only while EditContext.IsValidating(field)
-    // is true for the bound field; the idle case renders nothing.
     public required Func<Component> Template { get; set; }
 
     // Reads EditContext.IsValidating(field) — see ValidationMessage for the rationale.
@@ -97,11 +105,6 @@ public sealed class ValidatingIndicator : Component
         }
 
         var acc = ExpressionAccessor.Parse(For);
-        if (!ctx.IsValidating(acc.Field))
-        {
-            return new Fragment();
-        }
-
-        return Template();
+        return ctx.ShouldShowValidatingIndicator(acc.Field) ? Template() : new Fragment();
     }
 }

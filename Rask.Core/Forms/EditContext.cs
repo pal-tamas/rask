@@ -4,6 +4,21 @@ namespace Rask.Core.Forms;
 
 public sealed class EditContext
 {
+    // Default sticky window for the ValidatingIndicator. After PendingCount
+    // drops to 0, the field stays "validating" for this many milliseconds —
+    // smooths over very-short async checks (100-400ms validators) that would
+    // otherwise leave a DOM footprint too brief for screen-readers and for
+    // load-balanced Playwright polling to reliably observe. Per-instance via
+    // <see cref="ValidatingStickyMs" />; set to 0 to opt out.
+    public const int DefaultValidatingStickyMs = 200;
+
+    /// <summary>
+    ///     Override the sticky window for this context. Default 200 ms.
+    ///     Set to 0 to disable (the indicator disappears immediately when
+    ///     PendingCount drops to 0 — the pre-sticky behaviour).
+    /// </summary>
+    public int ValidatingStickyMs { get; set; } = DefaultValidatingStickyMs;
+
     private readonly List<IAsyncFieldValidator> _asyncValidators = new();
     private readonly Dictionary<FieldIdentifier, DelegateRegistration> _fieldDelegates = new();
     private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
@@ -57,6 +72,18 @@ public sealed class EditContext
 
     public event Action<FieldIdentifier>? FieldChanged;
     public event Action? ValidationStateChanged;
+
+    /// <summary>
+    ///     Optional fire-and-forget render-request callback wired by the
+    ///     framework (LiveRenderContext) when this context is attached to a
+    ///     live render. Currently invoked by the sticky-dismissal timer so the
+    ///     UI re-renders to drop the ValidatingIndicator when the sticky tail
+    ///     expires — without this hook the indicator would only disappear on
+    ///     the next unrelated render. Null on unit-test contexts; sticky still
+    ///     functions correctly there (IsValidating + sticky-tail observation),
+    ///     it just won't proactively re-render on its own.
+    /// </summary>
+    internal Action? RequestRender { get; set; }
 
     public void AddValidator(IFieldValidator validator)
     {
@@ -119,6 +146,35 @@ public sealed class EditContext
 
     public bool IsValidating(FieldIdentifier field) =>
         _states.TryGetValue(field, out var s) && s.PendingCount > 0;
+
+    /// <summary>
+    ///     <see cref="IsValidating(FieldIdentifier)" /> extended with a short
+    ///     sticky tail (<see cref="ValidatingStickyMs" />, default 200 ms): a
+    ///     validator that finishes inside the sticky window still reads as
+    ///     "showing" so the <see cref="Components.ValidatingIndicator" />
+    ///     gives screen-readers and Playwright a reliably observable footprint
+    ///     for sub-second async checks. The dismissal is a single timer-driven
+    ///     re-render at window expiry — see ArmStickyDismissal.
+    ///     <para>
+    ///         Use <see cref="IsValidating" /> for control-flow decisions
+    ///         (submit gating, message clearing) where you want the exact
+    ///         "no validator currently in flight" answer.
+    ///     </para>
+    /// </summary>
+    public bool ShouldShowValidatingIndicator(FieldIdentifier field)
+    {
+        if (!_states.TryGetValue(field, out var s))
+        {
+            return false;
+        }
+
+        if (s.PendingCount > 0)
+        {
+            return true;
+        }
+
+        return s.StickyUntilUtc is { } until && until > DateTimeOffset.UtcNow;
+    }
 
     public bool IsModified(FieldIdentifier field) =>
         _states.TryGetValue(field, out var s) && s.Modified;
@@ -475,11 +531,56 @@ public sealed class EditContext
                     state.Cts = null;
                 }
 
+                ArmStickyDismissal(field, state);
                 ValidationStateChanged?.Invoke();
             }
 
             cts.Dispose();
         }
+    }
+
+    // Stamps the sticky deadline and schedules a one-shot dismissal render so the
+    // ValidatingIndicator gets removed promptly when the sticky tail expires
+    // (without this timer the IsValidating(field) flip from true to false would
+    // only land on the next unrelated render). The render is requested via
+    // <see cref="ValidationStateChanged" /> — LiveRenderContext wires that event
+    // to the root component's render handle when the EditContext is first
+    // attached to a live render.
+    private void ArmStickyDismissal(FieldIdentifier field, FieldState state)
+    {
+        var sticky = ValidatingStickyMs;
+        if (sticky <= 0)
+        {
+            state.StickyUntilUtc = null;
+            return;
+        }
+
+        state.StickyUntilUtc = DateTimeOffset.UtcNow.AddMilliseconds(sticky);
+        state.StickyTimer?.Dispose();
+        state.StickyTimer = new Timer(static s =>
+        {
+            var (ctx, fid) = ((EditContext, FieldIdentifier))s!;
+            if (!ctx._states.TryGetValue(fid, out var inner))
+            {
+                return;
+            }
+
+            // Only clear if we're still in the same sticky window: a fresh
+            // PendingCount > 0 in the meantime resets StickyUntilUtc and the
+            // new cycle owns the dismissal.
+            if (inner.PendingCount > 0)
+            {
+                return;
+            }
+
+            inner.StickyUntilUtc = null;
+            ctx.ValidationStateChanged?.Invoke();
+            // Drive the sticky-dismissal render through the host so the
+            // indicator actually leaves the DOM. ValidationStateChanged is a
+            // user-facing notification; the render request itself goes via the
+            // injected callback that LiveRenderContext wires on attach.
+            ctx.RequestRender?.Invoke();
+        }, (this, field), sticky, Timeout.Infinite);
     }
 
     public void TouchAllRegisteredFields()
@@ -658,6 +759,15 @@ public sealed class EditContext
         public bool Modified;
         public int PendingCount;
         public bool Touched;
+        // Sticky window. When PendingCount drops to 0 the EditContext stamps
+        // a UTC deadline here so IsValidating(field) keeps returning true for
+        // a short tail after the validator finishes — gives a 400ms async
+        // check a visible footprint screen-readers and Playwright polling
+        // can reliably observe. StickyTimer schedules the dismissal render
+        // and gets disposed when the next PendingCount > 0 starts or when
+        // the field is no longer alive.
+        public DateTimeOffset? StickyUntilUtc;
+        public Timer? StickyTimer;
     }
 
     private readonly struct DelegateRegistration
