@@ -163,7 +163,7 @@ public sealed class ValidationPage : Component
                 ]
                 """,
                 Notes:
-                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. The literal \"explode\" forces the demo validator to throw mid-await so you can see the generic \"Validation could not be completed.\" fallback that the framework surfaces when a validator faults.",
+                "Try \"admin\" or \"taken\" — the ValidatingIndicator shows while the 400ms check runs, then a message appears. Per-keystroke calls cancel any prior in-flight check (latest-wins). Submit awaits all validators before routing to OnValidSubmit vs OnInvalidSubmit. The literal \"explode\" forces the demo validator to throw mid-await so you can see the generic \"Validation could not be completed.\" fallback that the framework surfaces when a validator faults. The indicator stays visible for ~200 ms after the check completes — EditContext.ValidatingStickyMs (default 200) smooths over sub-second validators that would otherwise flash on/off; set it to 0 on a manually-built EditContext to opt out.",
                 Result: AsyncValidationDemo()),
             H2(Class: "h4 mt-5 mb-3")["Cross-field — Form-level Validate feeding ValidationSummary"],
             CodeSample(

@@ -715,69 +715,74 @@ The wrapper is stripped at compile time and the rule emits exactly the inner sel
 
 Drop a sibling `{Component}.js` file next to `{Component}.cs` to colocate behavior with markup. The file exports any
 number of named functions; the framework bundles them, ships the bundle (server: `/_rask/scoped.js?v={hash}`; WASM:
-inline), and dispatches calls when the C# side asks.
+inline), and wraps each file as `window.Rask["{TypeName}"] = (function () { /* exports */ return { … }; })();` — so
+each `export function rendered(...) { ... }` becomes `window.Rask.{TypeName}.rendered`.
+
+Dispatch goes through the standard `Microsoft.JSInterop.IJSRuntime`. Inject it via constructor and call
+`InvokeVoidAsync("Rask.{TypeName}.{method}", args...)` from a lifecycle hook (typically `OnRenderedAsync`). The
+framework does not pass an `el` argument — user JS queries the DOM itself, via a marker class or attribute the
+component renders.
 
 ```js
 // CodeSample.js — sibling of CodeSample.cs
-export function rendered(el, firstRender) {
-    const code = el.querySelector('code[class*="language-"]');
-    if (code && window.hljs) {
+export function rendered(firstRender) {
+    const codes = document.querySelectorAll('.sample-card code[class*="language-"]');
+    codes.forEach(code => {
         delete code.dataset.highlighted;
         window.hljs.highlightElement(code);
+    });
+}
+```
+
+```csharp
+public sealed class CodeSample(IJSRuntime js) : Component
+{
+    // The framework does NOT auto-fire scoped-JS hooks. OnRenderedAsync is the
+    // typical hook — it gets a firstRender bool that flows straight through to
+    // your `rendered(firstRender)` function.
+    protected override async Task OnRenderedAsync(bool firstRender) =>
+        await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
+
+    protected override Component Render() =>
+        Div(Class: "sample-card")[ /* the marker class user JS will query */ ];
+}
+```
+
+You can call from any lifecycle hook (`OnMount*`, `OnRendered*`, event handlers, …) and from anywhere else where
+`IJSRuntime` is in scope. Orphan `.js` files (no matching `.cs` in the same folder) raise `RASK017`; ambiguous matches
+raise `RASK018`. Opt out per-project with `<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude>`.
+
+#### Async JS interop
+
+For round-trips where C# needs a value back from JS, use `IJSRuntime.InvokeAsync<T>`:
+
+```csharp
+public sealed class Measure(IJSRuntime js) : Component
+{
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        int height = await js.InvokeAsync<int>("Rask.Measure.getScrollHeight");
+        // … do something with height
     }
 }
 ```
 
-```csharp
-public sealed class CodeSample : Component
-{
-    // Frame the call site: the framework does NOT auto-fire scoped-JS hooks.
-    // OnRendered is the typical hook — it gets a firstRender bool that flows
-    // straight through to your `rendered(el, firstRender)` function.
-    protected override void OnRendered(bool firstRender) =>
-        InvokeJs("rendered", firstRender);
-
-    protected override Component Render() => /* … */;
-}
-```
-
-The `"rendered"` name is a convention — `InvokeJs(methodName, args...)` dispatches against any function you exported.
-You can call from any lifecycle hook (`OnMount`, `OnRendered`, event handlers, etc.); the C# side queues the invocation
-and the client runtime fires it after morph completes. The framework stamps `data-rask-mount="{scopeId}"` on the
-outermost element of each rendered component instance that has a sibling `.js`; the dispatcher calls
-`methodName(el, ...args)` against every matching element in the scope.
-
-Orphan `.js` files (no matching `.cs` in the same folder) raise `RASK017`; ambiguous matches raise `RASK018`. Opt
-out per-project with `<RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude>`.
-
-#### Async JS interop
-
-For round-trips where C# needs a value back from JS, use `InvokeJsAsync<T>(method, args)`:
-
-```csharp
-protected override async Task OnRenderedAsync(bool firstRender)
-{
-    if (!firstRender) return;
-    int height = await InvokeJsAsync<int>("getScrollHeight");
-    // … do something with height
-}
-```
-
 ```js
-// MyComponent.js
-export function getScrollHeight(el) {
-    return el.scrollHeight;        // sync return is fine
+// Measure.js
+export function getScrollHeight() {
+    return document.querySelector('.measure-target').scrollHeight;   // sync return is fine
 }
 // async functions also work — the dispatcher awaits the returned Promise
-export async function loadFromCdn(el, url) {
+export async function loadFromCdn(url) {
     const r = await fetch(url);
     return await r.text();
 }
 ```
 
-`T` must be a JSON primitive (`bool`, `int`, `long`, `double`, `string`) for trim-safety; for complex shapes,
-return a JSON string from JS and parse in C#. When a scope has multiple matching `data-rask-mount` elements the
-first one's result wins; when none match the task completes with `default(T)`.
+On **WASM**, the standard Blazor-WASM trimming constraint applies: `T` in `InvokeAsync<T>` must be kept rooted on the
+call site (via `[DynamicallyAccessedMembers]` or a `JsonSerializerContext`). JSON primitives (`bool`, `int`, `long`,
+`double`, `string`) are always safe. Server has no such constraint.
 
 ### Lifecycle reference
 
