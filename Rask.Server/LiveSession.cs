@@ -32,6 +32,12 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // so writes only race with the drain at flush time.
     private readonly List<PendingJsInvoke> _pendingJsInvokes = new();
     private ArrayBufferWriter<byte>? _lastSentBuffer;
+    // Last rendered HTML (the `html` string the framework produced last time we
+    // sent a frame). Used to skip noop publish-renders that would otherwise
+    // re-morph identical HTML and clobber JS-applied DOM state (e.g. the
+    // `.hljs` class hljs added to <code> elements after the previous
+    // OnRenderedAsync invoke completed). Set after a successful send.
+    private string? _lastSentHtml;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -230,6 +236,20 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 }
             }
 
+            // Noop publish-render guard: an auto-publish triggered by a completed
+            // OnRenderedAsync that didn't mutate any tracked state produces the
+            // same HTML and has no invokes to ship. Sending it anyway forces the
+            // client to morph identical HTML, which strips out any DOM state JS
+            // applied between the previous frame and now — most visibly the
+            // `.hljs` class hljs added to <code> elements during the previous
+            // frame's dispatch. Skip such frames entirely.
+            if (publishOnly && jsInvokes is null
+                && historyUrl is null && auth is null && download is null
+                && _lastSentHtml is not null && string.Equals(html, _lastSentHtml, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             _writeBuffer.ResetWrittenCount();
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
                 jsInvokes: jsInvokes);
@@ -265,6 +285,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous
             // baseline (or a fresh writer on first send) is reused as the next write target.
             (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
+            _lastSentHtml = html;
         }
         finally
         {

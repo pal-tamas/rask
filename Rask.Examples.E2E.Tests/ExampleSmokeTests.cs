@@ -11,7 +11,7 @@ namespace Rask.Examples.E2E.Tests;
 // because they rely on deep links — some paths (e.g. /this-route-definitely-does-not-exist)
 // have no sidebar entry, so this layer is intentionally NOT shared with the standalone
 // collection.
-public abstract class ExampleSmokeTests : SharedSmokeTests
+public abstract partial class ExampleSmokeTests : SharedSmokeTests
 {
     protected ExampleSmokeTests(PlaywrightFixture pw) : base(pw) { }
 

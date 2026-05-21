@@ -21,6 +21,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // BuildPayloadUtf8WithRoot's byte[]-returning overload would otherwise make.
     private readonly ArrayBufferWriter<byte> _writeBuffer = new(4096);
     private byte[]? _lastAppliedPayload;
+    // Last rendered HTML string, used to suppress noop publish-renders that
+    // would otherwise re-morph identical HTML and strip JS-applied DOM state
+    // (e.g. the `.hljs` class hljs added in a prior frame's OnRenderedAsync).
+    // Set after a successful ApplyRender.
+    private string? _lastAppliedHtml;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
@@ -85,8 +90,22 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         InHandlerScope = true;
         try
         {
-            var payload = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
+            var (payload, html) = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
+
+            // Noop publish-render guard: an auto-publish triggered by a completed
+            // OnRenderedAsync that didn't mutate any tracked state produces the
+            // same HTML. Sending it forces the JS side to morph identical HTML,
+            // which strips any DOM state JS applied between the previous frame
+            // and now — most visibly the `.hljs` class hljs added during the
+            // previous frame's dispatch. Skip such frames entirely.
+            if (publishOnly
+                && _lastAppliedHtml is not null
+                && string.Equals(html, _lastAppliedHtml, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             // Skip the JS interop call when nothing changed since the last apply. Catches
             // StateHasChanged calls that didn't ultimately modify any visible output.
             // SequenceEqual is SIMD-accelerated on byte[] — equivalent to the prior string compare.
@@ -97,6 +116,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             JSInterop.ApplyRender(payload);
             _lastAppliedPayload = payload;
+            _lastAppliedHtml = html;
         }
         finally
         {
@@ -123,7 +143,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
             if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
             {
                 return;
@@ -131,6 +151,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             JSInterop.ApplyRender(payload);
             _lastAppliedPayload = payload;
+            _lastAppliedHtml = html;
         }
         finally
         {
@@ -146,8 +167,9 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         InHandlerScope = true;
         try
         {
-            var payload = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
             _lastAppliedPayload = payload;
+            _lastAppliedHtml = html;
             return payload;
         }
         finally
@@ -216,7 +238,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                         historyReplace = replace;
                     }
 
-                    var payload = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
+                    var (payload, html) = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
                         .ConfigureAwait(false);
                     // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
                     // The JS host treats an empty byte array as "no-op." Always send when historyUrl is set.
@@ -228,6 +250,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                     }
 
                     _lastAppliedPayload = payload;
+                    _lastAppliedHtml = html;
                     return payload;
                 }
             }
@@ -275,8 +298,9 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             try
             {
-                var payload = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
+                var (payload, html) = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 _lastAppliedPayload = payload;
+                _lastAppliedHtml = html;
                 return payload;
             }
             catch (Exception ex)
@@ -292,8 +316,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
     }
 
-    private async Task<byte[]> BuildPayloadCoalescingRerendersAsync(string? historyUrl, bool replace,
-        bool publishOnly = false)
+    private async Task<(byte[] Payload, string Html)> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
+        bool replace, bool publishOnly = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
@@ -302,18 +326,18 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // the navigator's pending history entry was already consumed by the first build, and
         // re-passing historyUrl/replace would emit a duplicate history.pushState.
         _pendingRenderInScope = false;
-        var payload = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
+        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            payload = await BuildPayloadAsync(null, false, publishOnly).ConfigureAwait(false);
+            result = await BuildPayloadAsync(null, false, publishOnly).ConfigureAwait(false);
         }
 
-        return payload;
+        return result;
     }
 
-    internal async Task<byte[]> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false)
+    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false)
     {
         await Task.Yield();
 
@@ -384,6 +408,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         _writeBuffer.ResetWrittenCount();
         LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download,
             jsText);
-        return _writeBuffer.WrittenSpan.ToArray();
+        return (_writeBuffer.WrittenSpan.ToArray(), html);
     }
 }

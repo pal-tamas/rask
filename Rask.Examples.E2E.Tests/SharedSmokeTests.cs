@@ -13,7 +13,7 @@ namespace Rask.Examples.E2E.Tests;
 // Page.GotoAsync(path), which works for the ASP.NET hosts that install a SPA fallback.
 // StandaloneWasmExampleTests overrides it to home-then-sidebar because WasmAppHost has no
 // SPA fallback (deep links 404).
-public abstract class SharedSmokeTests : IAsyncLifetime
+public abstract partial class SharedSmokeTests : IAsyncLifetime
 {
     private readonly PlaywrightFixture _pw;
     private IBrowserContext _ctx = default!;

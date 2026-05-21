@@ -186,10 +186,67 @@
     var scopedJsReady = false;
     var pendingScopedInvokes = [];
 
+    function markScopedJsReady() {
+        if (scopedJsReady) return;
+        scopedJsReady = true;
+        var pending = pendingScopedInvokes;
+        pendingScopedInvokes = [];
+        for (var i = 0; i < pending.length; i++) {
+            dispatchJsInvoke(pending[i]);
+        }
+    }
+
+    function attachScopedJsLoadListener(scriptEl) {
+        // `defer` scripts emitted in the initial HTML have typically already
+        // executed by the time rask.js runs — there's no future "load" event
+        // to wait for. Detect that state via the `Rask.{TypeName}` IIFE having
+        // populated `window.Rask` at least once. Falls back to a load listener
+        // for the rarer case where the script tag has been inserted (or
+        // re-inserted by applyScopedJs) and hasn't fired its load event yet.
+        if (window.Rask && Object.keys(window.Rask).length > 0) {
+            markScopedJsReady();
+            return;
+        }
+        scriptEl.addEventListener("load", markScopedJsReady, {once: true});
+        // Edge: the IIFE assigns `window.Rask.{TypeName}` synchronously, but
+        // the load event hasn't fired yet (e.g. during the deferred-script
+        // execution gap). Poll briefly to catch this — once the global is
+        // populated we're ready regardless of whether `load` fired.
+        var attempts = 0;
+        var poll = setInterval(function () {
+            attempts++;
+            if (window.Rask && Object.keys(window.Rask).length > 0) {
+                clearInterval(poll);
+                markScopedJsReady();
+            } else if (attempts > 200) {
+                // Give up after ~10s — bundle likely failed to load; the load
+                // listener above is still active for late successes.
+                clearInterval(poll);
+            }
+        }, 50);
+    }
+
+    // The initial HTML carries a `data-rask-scoped-js` tag rendered by the
+    // server's first GET. Wire up the readiness signal for it on boot so the
+    // first WS frame's pending Rask.* invokes can fire as soon as the IIFE
+    // executes. Without this, `applyScopedJs(hash)` later early-returns
+    // because the URL already matches the existing tag, and `scopedJsReady`
+    // never flips to true — every Rask.* invoke queues forever.
+    (function bootstrapScopedJsReady() {
+        var existing = document.querySelector("script[data-rask-scoped-js]");
+        if (!existing) return;
+        attachScopedJsLoadListener(existing);
+    })();
+
     function applyScopedJs(hash) {
         var url = "/_rask/scoped.js?v=" + hash;
         var existing = document.querySelector("script[data-rask-scoped-js]");
-        if (existing && existing.getAttribute("src") === url) return;
+        if (existing && existing.getAttribute("src") === url) {
+            // Same bundle already in the page — bootstrapScopedJsReady (or a
+            // prior applyScopedJs call) already hooked up the readiness
+            // signal. Nothing to do.
+            return;
+        }
         // Replace rather than mutate src — browsers don't re-evaluate a <script>
         // on src change. The newly inserted script's IIFEs assign each module to
         // `window.Rask.{TypeName}`; until it executes those globals don't exist
@@ -201,14 +258,7 @@
         script.setAttribute("data-rask-scoped-js", "");
         script.defer = true;
         script.src = url;
-        script.addEventListener("load", function () {
-            scopedJsReady = true;
-            var pending = pendingScopedInvokes;
-            pendingScopedInvokes = [];
-            for (var i = 0; i < pending.length; i++) {
-                dispatchJsInvoke(pending[i]);
-            }
-        }, {once: true});
+        script.addEventListener("load", markScopedJsReady, {once: true});
         if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
         document.head.appendChild(script);
     }

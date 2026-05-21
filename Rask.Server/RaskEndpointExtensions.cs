@@ -149,6 +149,13 @@ public static class RaskEndpointExtensions
             var content = LivePayload.InjectRootAttr(html, session.Id);
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
+            // Schedule cleanup in case no WS ever connects for this session.
+            // Browsers / probes can hit the catch-all for resources that don't
+            // need a live session (favicon.ico, robots.txt, scanner traffic) —
+            // without this guard those sessions stay in the store forever.
+            // When a legitimate WS hello arrives within the grace window,
+            // LiveSessionStore.Get cancels the pending removal automatically.
+            store.ScheduleRemoval(session.Id, SessionGracePeriod);
         });
         return endpoints;
     }
