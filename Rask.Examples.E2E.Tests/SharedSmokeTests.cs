@@ -1250,11 +1250,18 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
                 new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
 
         // Fix the DA rule too — both stages now pass and the success banner lands.
+        // Wait for the prior error to clear before submitting so the server-side
+        // validation cycle from the FillAsync round-trip has settled. On CI the
+        // input → validate → render → assertion sequence can otherwise race the
+        // immediately-following submit click, leaving submit to read a stale
+        // EditContext that still flags the (now-corrected) field as invalid.
         await field.FillAsync("ABC-123");
+        await Expect(form.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         await form.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.Locator(".sample-result-body:has(#v8-code) .alert-success"))
             .ToContainTextAsync("Activated: ABC-123",
-                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 
     [Fact]
@@ -1464,8 +1471,13 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // Step 4 — fix the confirm so it matches. All custom-attribute messages clear and the
-        // success banner lands.
+        // success banner lands. Wait for the prior "Passwords don't match" error to clear
+        // first so the server-side validation cycle from the FillAsync round-trip has
+        // settled before submit; without this, on CI the submit can race the input update
+        // and read a stale EditContext that still flags MatchesProperty as failing.
         await form.Locator("#v12-confirm").FillAsync("Strong1Pass");
+        await Expect(form.Locator(".text-danger"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         await form.Locator("button[type=submit]").ClickAsync();
 
         await Expect(demo.Locator(".alert-success"))
