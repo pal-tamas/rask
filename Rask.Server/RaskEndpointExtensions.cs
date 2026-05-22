@@ -796,7 +796,7 @@ public static class RaskEndpointExtensions
             }
         }
 
-        await session.RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth).ConfigureAwait(false);
     }
 
     private static (string Path, QueryCollection Query) SplitUrl(string url)

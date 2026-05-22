@@ -15,8 +15,6 @@ namespace Rask.Server;
 
 internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
-    private static readonly AsyncLocal<bool> _inHandlerScope = new();
-
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
     // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on
@@ -50,6 +48,17 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
+    // Set by RequestRenderInternalAsync when StateHasChanged fires while a handler
+    // dispatch is mid-flight (InHandlerScope=true). RenderAndSendCoalescingAsync
+    // reads and clears it to rebuild the payload before releasing the dispatch lock —
+    // captures state mutated by RouteState.Changed subscribers / dispose callbacks
+    // that fire after the first ToHtml walk but before the dispatch returns. Without
+    // this, every in-handler StateHasChanged emits a separate intermediate payload,
+    // double-morphing <head> on every nav and momentarily orphaning the scoped-css
+    // <link> (visible as a one-frame flash of the sidebar's .nav-item-btn styling).
+    // Mirrors WasmLiveSession._pendingRenderInScope (Rask.Wasm/WasmLiveSession.cs:41).
+    private bool _pendingRenderInScope;
+
     // Two-buffer swap: `_writeBuffer` receives the next frame, `_lastSentBuffer` holds the
     // previous send (dedup compare target). After SendAsync the references swap so the just-
     // sent buffer becomes the dedup baseline without any byte[] copy. Both writers persist
@@ -79,11 +88,14 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     public IServiceProvider Services => Scope.ServiceProvider;
     public SemaphoreSlim Lock { get; } = new(1, 1);
 
-    public bool InHandlerScope
-    {
-        get => _inHandlerScope.Value;
-        set => _inHandlerScope.Value = value;
-    }
+    // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
+    // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
+    // dispatch — those captured ExecutionContexts would later report InHandlerScope=true forever,
+    // making background StateHasChanged calls (e.g. EditContext's sticky-dismissal Timer or a
+    // user component's Timer) hit the in-scope branch — which under the coalescing model just
+    // sets _pendingRenderInScope and returns, leaving the render to no one. WASM uses the same
+    // plain-bool approach for the same reason (Rask.Wasm/WasmLiveSession.cs:30-33).
+    public bool InHandlerScope { get; set; }
 
     /// <summary>
     ///     Tail of the WS-message handler chain. Each inbound handler dispatch awaits
@@ -127,7 +139,14 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
         if (InHandlerScope)
         {
-            await RenderAndSendAsync(null, false, publishOnly: publishOnly).ConfigureAwait(false);
+            // Defer to the dispatch's final RenderAndSendCoalescingAsync so a single
+            // coalesced payload (carrying the captured historyUrl/replace/auth) reaches
+            // the wire — multiple in-handler StateHasChanged calls would otherwise emit
+            // intermediate payloads, double-morphing <head> and momentarily orphaning
+            // the scoped-css <link> during navigation. publishOnly intentionally
+            // dissolves into the dispatch's outer render flags, matching WASM
+            // (Rask.Wasm/WasmLiveSession.cs:79-87).
+            _pendingRenderInScope = true;
             return;
         }
 
@@ -385,6 +404,35 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         finally
         {
             _renderLock.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls into a
+    ///     single outbound payload. The first send emits the captured navigation/auth
+    ///     state; if an in-handler StateHasChanged set <see cref="_pendingRenderInScope" />
+    ///     (e.g. <c>RouteState.Changed</c> subscribers on a layout above the Router),
+    ///     rebuild up to twice — re-threading <paramref name="historyUrl" />, <paramref
+    ///     name="replace" />, and <paramref name="auth" /> so the actually-sent payload
+    ///     still carries them. Dropping any of those on a rebuild silently swallows
+    ///     handler-initiated navigation, the c11b61d invariant ported from
+    ///     <c>WasmLiveSession.BuildPayloadCoalescingRerendersAsync</c>. The
+    ///     <paramref name="historyUrl" /> here is a local captured before the loop, not
+    ///     a fresh <c>Navigator.TryConsumeHistory</c> call, so re-passing it on every
+    ///     iteration does not double-push history on the client — only one frame ever
+    ///     reaches the wire because <see cref="RenderAndSendAsync" />'s byte-dedup
+    ///     suppresses spurious identical rebuilds.
+    /// </summary>
+    internal async Task RenderAndSendCoalescingAsync(
+        string? historyUrl, bool replace, AuthInstruction? auth = null)
+    {
+        _pendingRenderInScope = false;
+        await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        var budget = 2;
+        while (_pendingRenderInScope && budget-- > 0)
+        {
+            _pendingRenderInScope = false;
+            await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
         }
     }
 

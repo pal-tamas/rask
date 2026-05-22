@@ -50,12 +50,19 @@ public abstract partial class SharedSmokeTests
     public Task RenderCount_LifecycleProbe_DirectNav_HookSequenceMatchesAcrossHosts() => RunAsync(async () =>
     {
         // Server and WASM must produce the same initial-mount hook sequence on the
-        // LifecycleProbe. Pre-fix, Server emitted an extra OnRendered(firstRender:false)
-        // mid-handoff because the WS-hello handler unconditionally re-rendered the tree
-        // even when no state mutated between GET and hello. The fix gates that catch-up
-        // render on FlushPendingRenderAsync, which is a no-op when nothing was dropped.
-        // The probe's OnMountAsync awaits 450ms with no state mutation, so the WASM
-        // contract — 1 OnRendered(True) + 2 OnRendered(False) — should hold on Server too.
+        // LifecycleProbe. The sequence ends at "OnMountAsync (after 450ms await)" because
+        // commit c923376 collapsed the LifecycleSyncContext.Post + terminal-ContinueWith
+        // double-StateHasChanged into a single post-await render: Post sets PostFired=true,
+        // the terminal ContinueWith short-circuits, and only Post's _component.StateHasChanged
+        // fires. That render's HTML captures _log through entry 6 ("OnMountAsync (after
+        // 450ms await)"); the trailing OnRendered(firstRender:false) is appended to _log
+        // AFTER the HTML is serialised, so it lives in component state but never reaches
+        // the browser — there is no subsequent render to re-serialise it.
+        //
+        // Pre-c923376 this test asserted two trailing OnRendered(False) entries because
+        // ContinueWith ALSO fired StateHasChanged, producing a second render whose HTML
+        // captured the first OnRendered(False) entry. That extra render is exactly what
+        // c923376 fixed (Render #1 → #3 skipping #2).
         await NavigateToAsync("/lifecycle");
         await Expect(Page.Locator("main h1.h2"))
             .ToHaveTextAsync("Lifecycle hooks",
@@ -67,10 +74,11 @@ public abstract partial class SharedSmokeTests
         var entries = await Page.Locator(".card-body ol.list-group").First
             .Locator("li code").AllInnerTextsAsync();
 
-        // Canonical sequence — must be identical on all three hosts (Server, Wasm,
-        // StandaloneWasm). The two trailing OnRendered(False) entries are the two
-        // StateHasChanged calls fired after the OnMountAsync await completes (one from
-        // LifecycleSyncContext.Post, one from the terminal ContinueWith).
+        // Canonical sequence — identical on all three hosts (Server, Wasm, StandaloneWasm).
+        // OnRendered(firstRender:True) appears in this list because the second render
+        // (driven by Post's StateHasChanged after the 450ms await) serialises _log after
+        // the initial RaiseOnRendered already appended it. The final OnRendered(False)
+        // is invisible by construction — see comment above.
         var expected = new[]
         {
             "OnMount",
@@ -78,9 +86,7 @@ public abstract partial class SharedSmokeTests
             "OnPropsChanged (render #1)",
             "OnPropsChangedAsync",
             "OnRendered(firstRender: True)",
-            "OnMountAsync (after 450ms await)",
-            "OnRendered(firstRender: False)",
-            "OnRendered(firstRender: False)"
+            "OnMountAsync (after 450ms await)"
         };
 
         Assert.Equal(expected, entries);
