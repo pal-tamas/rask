@@ -41,6 +41,7 @@ public abstract class Component
     private Dictionary<string, (Component Owner, Delegate Handler)>? _handlers;
     private bool _hasInitialized;
     private bool _hasRenderedOnce;
+    private bool _isUnmounted;
     private CancellationTokenSource? _lifetimeCts;
     private int _nextHandlerId;
     private Dictionary<Component, Component>? _parentMap;
@@ -305,6 +306,11 @@ public abstract class Component
                 return;
             }
 
+            if (comp._isUnmounted)
+            {
+                return;
+            }
+
             var handle = comp.RenderHandle;
             if (handle is null)
             {
@@ -345,6 +351,14 @@ public abstract class Component
         {
             return null;
         }
+
+        // Set BEFORE OnUnmount fires so any StateHasChanged inside the hook (or
+        // from in-flight async work — LifecycleSyncContext continuations from a
+        // long-running OnMountAsync — that settles during/after unmount) is
+        // silently swallowed instead of queuing ghost session renders against a
+        // disposed component. Matches the documented "StateHasChanged() inside
+        // OnUnmount is a no-op" contract.
+        _isUnmounted = true;
 
         try { OnUnmount(); }
         catch (Exception ex) { LogUnmountError(this, ex); }
@@ -555,6 +569,11 @@ public abstract class Component
 
     public void StateHasChanged()
     {
+        if (_isUnmounted)
+        {
+            return;
+        }
+
         _stateDirty = true;
         var handle = RenderHandle;
         if (handle is null)
@@ -573,6 +592,11 @@ public abstract class Component
 
     public Task StateHasChangedAsync()
     {
+        if (_isUnmounted)
+        {
+            return Task.CompletedTask;
+        }
+
         _stateDirty = true;
         return RenderHandle?.RequestRenderAsync() ?? Task.CompletedTask;
     }

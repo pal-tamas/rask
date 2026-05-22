@@ -99,15 +99,12 @@ public class RaskJSRuntimeTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        var helloFrame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(helloFrame);
 
-        // Extract the click handler id from the rendered button. helloFrame is the JSON
-        // payload — pull the html field out, then regex against the decoded HTML.
-        using var helloDoc = JsonDocument.Parse(helloFrame!);
-        var html = helloDoc.RootElement.GetProperty("html").GetString()!;
-        var clickIdMatch = Regex.Match(html, @"data-rask-on-click=""([^""]+)""");
-        Assert.True(clickIdMatch.Success, "expected data-rask-on-click in rendered HTML: " + html);
+        // No hello-time frame to drain: JsClickApp has no pending state mutations or JS
+        // invokes during the GET→hello handoff, so FlushPendingRenderAsync skips. Read
+        // the click handler id straight from the GET HTML.
+        var clickIdMatch = Regex.Match(initialHtml, @"data-rask-on-click=""([^""]+)""");
+        Assert.True(clickIdMatch.Success, "expected data-rask-on-click in initial HTML: " + initialHtml);
         var clickId = clickIdMatch.Groups[1].Value;
 
         // Click the button → handler runs SetAsync → awaits InvokeVoidAsync. With the

@@ -47,6 +47,94 @@ public abstract partial class SharedSmokeTests
     });
 
     [Fact]
+    public Task RenderCount_LifecycleProbe_DirectNav_HookSequenceMatchesAcrossHosts() => RunAsync(async () =>
+    {
+        // Server and WASM must produce the same initial-mount hook sequence on the
+        // LifecycleProbe. Pre-fix, Server emitted an extra OnRendered(firstRender:false)
+        // mid-handoff because the WS-hello handler unconditionally re-rendered the tree
+        // even when no state mutated between GET and hello. The fix gates that catch-up
+        // render on FlushPendingRenderAsync, which is a no-op when nothing was dropped.
+        // The probe's OnMountAsync awaits 450ms with no state mutation, so the WASM
+        // contract — 1 OnRendered(True) + 2 OnRendered(False) — should hold on Server too.
+        await NavigateToAsync("/lifecycle");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Lifecycle hooks",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Wait for the probe's 450ms OnMountAsync to settle plus tail renders.
+        await Page.WaitForTimeoutAsync(2000);
+
+        var entries = await Page.Locator(".card-body ol.list-group").First
+            .Locator("li code").AllInnerTextsAsync();
+
+        // Canonical sequence — must be identical on all three hosts (Server, Wasm,
+        // StandaloneWasm). The two trailing OnRendered(False) entries are the two
+        // StateHasChanged calls fired after the OnMountAsync await completes (one from
+        // LifecycleSyncContext.Post, one from the terminal ContinueWith).
+        var expected = new[]
+        {
+            "OnMount",
+            "OnMountAsync (start)",
+            "OnPropsChanged (render #1)",
+            "OnPropsChangedAsync",
+            "OnRendered(firstRender: True)",
+            "OnMountAsync (after 450ms await)",
+            "OnRendered(firstRender: False)",
+            "OnRendered(firstRender: False)"
+        };
+
+        Assert.Equal(expected, entries);
+    });
+
+    [Fact]
+    public Task RenderCount_LifecycleProbe_NavigatedFromRealtime_NoGhostRenders() => RunAsync(async () =>
+    {
+        // Regression: pre-fix, navigating from a page with a long-running async
+        // OnMountAsync (LiveTicker's poll loop) to /lifecycle produced 10+ ghost
+        // OnRendered(firstRender:false) entries on the freshly-mounted probe.
+        // Each in-flight Task.Delay/HTTP/JS continuation captured by
+        // LifecycleSyncContext was, on cancellation, calling StateHasChanged on
+        // the disposed LiveTicker — which still routed through the session's
+        // RenderHandle and queued a full root render. RaiseOnRendered fires on
+        // every alive component after each root render, so the new probe got
+        // pinged once per ghost render.
+        //
+        // Oracle: the probe's "Hook log" lists every OnRendered call. Direct
+        // navigation produces 1 OnRendered(True) + ~2 OnRendered(False). A leak
+        // from the previous page bumps the False count by 10+.
+        await NavigateToAsync("/realtime/BTC");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToContainTextAsync("live ticker",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+
+        // Let LiveTicker's poll loop suspend on at least one Task.Delay before
+        // navigating away — the bug only surfaces when there is in-flight async
+        // work to cancel.
+        await Page.WaitForTimeoutAsync(1000);
+
+        await ClickSidebar("Lifecycle");
+        await Expect(Page.Locator("main h1.h2"))
+            .ToHaveTextAsync("Lifecycle hooks",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Wait for the probe's 450ms OnMountAsync to settle plus tail renders.
+        await Page.WaitForTimeoutAsync(2000);
+
+        var entries = await Page.Locator(".card-body ol.list-group").First
+            .Locator("li code").AllInnerTextsAsync();
+        var falseCount = entries.Count(e => e.Contains("OnRendered(firstRender: False)"));
+
+        // The honest budget: 2 post-450ms-await renders (Post StateHasChanged +
+        // terminal ContinueWith StateHasChanged) plus up to 2 more for late
+        // async settle from the previous page's teardown. Anything beyond 4 is
+        // the ghost-render regression.
+        Assert.True(falseCount <= 4,
+            $"Ghost OnRendered renders detected after nav from /realtime/BTC. " +
+            $"False count = {falseCount}; full log:\n  - " +
+            string.Join("\n  - ", entries));
+    });
+
+    [Fact]
     public Task RenderCount_LifecycleProbe_TriggerReRender_AdvancesByExactlyOne() => RunAsync(async () =>
     {
         // One click on "Trigger re-render" must produce exactly one additional

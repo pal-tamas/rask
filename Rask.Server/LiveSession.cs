@@ -38,6 +38,15 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // `.hljs` class hljs added to <code> elements after the previous
     // OnRenderedAsync invoke completed). Set after a successful send.
     private string? _lastSentHtml;
+    // Set true whenever a render request lands with no live socket — async lifecycle
+    // continuations from OnMountAsync / OnRenderedAsync that resolve during the HTTP-GET-
+    // to-WS-hello handoff window, or while a session is between sockets across a
+    // reconnect. AttachSocket reads it from the hello handler to decide whether a
+    // catch-up render is actually needed: when nothing was dropped, the HTML the browser
+    // already has from the GET response (or the prior socket) still matches the session
+    // state and the hello-time render is redundant. Skipping the redundant render is
+    // what aligns Server's initial-mount OnRendered count with WASM's.
+    private bool _renderRequestedWhileDetached;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -112,6 +121,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     {
         if (_socket is null || _socket.State != WebSocketState.Open)
         {
+            _renderRequestedWhileDetached = true;
             return;
         }
 
@@ -149,6 +159,26 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         }
     }
 
+    /// <summary>
+    ///     Called by the HTTP-GET endpoint after the initial server-side render to seed
+    ///     this session's dedup baseline with the HTML the browser is about to receive.
+    ///     Without this, the first WS frame after hello has no baseline to compare
+    ///     against and a no-op handler click would re-send the GET HTML verbatim;
+    ///     seeding lets the HTML-level dedup in <see cref="RenderAndSendAsync" /> catch
+    ///     identical-state renders the same way WASM's <c>InitialRenderAsync</c> does
+    ///     via <c>_lastAppliedHtml</c>.
+    /// </summary>
+    internal void SeedInitialHtml(string html) => _lastSentHtml = html;
+
+    // True after the first socket has ever attached to this session. Lets AttachSocket
+    // distinguish the GET→hello first attach (where the browser's HTML is guaranteed to
+    // match the session's state because the browser literally just rendered the GET
+    // response) from a subsequent reconnect (where the browser may have missed the prior
+    // socket's last frame due to a partial send, a tab background, or any other transport
+    // gap we can't observe from this side). First-attach skips the redundant render;
+    // reconnect always renders.
+    private bool _hasAttachedBefore;
+
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
         _socket = socket;
@@ -158,6 +188,60 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         // even when it byte-matches the prior socket's last frame. Reset the dedup baseline
         // so the recovery render reliably emits.
         _lastSentBuffer = null;
+
+        if (_hasAttachedBefore)
+        {
+            // Reconnect path — force a catch-up regardless of whether anything was
+            // observably dropped, since the prior send chain may have lost a frame.
+            // Also drop the HTML dedup baseline so the catch-up render reliably
+            // emits even when the browser's stale HTML matches the session's current
+            // render verbatim (the new socket's browser tab needs the bytes either way).
+            _renderRequestedWhileDetached = true;
+            _lastSentHtml = null;
+        }
+
+        _hasAttachedBefore = true;
+    }
+
+    /// <summary>
+    ///     Catch-up render at WS-hello time: emit a frame only if at least one render
+    ///     request was dropped while the session had no live socket. Without a drop, the
+    ///     HTML the browser already has (from the HTTP GET response, or the prior socket's
+    ///     last frame on reconnect) still matches the session's state, so the hello-time
+    ///     render is redundant — it would re-fire <c>OnRendered</c> on every alive
+    ///     component for no observable change. Skipping it aligns Server's initial-mount
+    ///     hook count with WASM's.
+    /// </summary>
+    internal Task FlushPendingRenderAsync()
+    {
+        // Render at hello whenever something needs to flow over WS that the GET response
+        // couldn't carry: a dropped StateHasChanged from the handoff window, or a pending
+        // IJSRuntime.InvokeAsync queued by an OnRendered / OnMountAsync sync path during
+        // the GET render walk (the invoke sits in _pendingJsInvokes until the next outbound
+        // frame). When neither is true, the browser's GET HTML still matches and there's
+        // nothing for the WS to ship — skip the redundant render.
+        bool jsPending;
+        lock (_pendingJsInvokes)
+        {
+            jsPending = _pendingJsInvokes.Count > 0;
+        }
+
+        if (!_renderRequestedWhileDetached && !jsPending)
+        {
+            return Task.CompletedTask;
+        }
+
+        // When the catch-up is only there to ship a queued js.InvokeVoidAsync (e.g. the
+        // sibling-of-CodeSample case: CodeSample.OnRenderedAsync awaits IJSRuntime during
+        // the GET render walk, queuing the invoke), use a publish-only render so already-
+        // rendered components don't re-fire OnRendered. On WASM the same scenario routes
+        // through OnRenderedAsync's RequestPublishRenderAsync after the JS call completes
+        // — no extra OnRendered on siblings — so this keeps the initial-mount hook
+        // sequence aligned across hosts. A genuine dropped StateHasChanged still triggers
+        // a normal render (fires OnRendered) since that's the contract for state mutations.
+        var publishOnly = !_renderRequestedWhileDetached && jsPending;
+        _renderRequestedWhileDetached = false;
+        return publishOnly ? RequestPublishRenderAsync() : RequestRenderAsync();
     }
 
     public void DetachSocket()
@@ -246,14 +330,15 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                 }
             }
 
-            // Noop publish-render guard: an auto-publish triggered by a completed
-            // OnRenderedAsync that didn't mutate any tracked state produces the
-            // same HTML and has no invokes to ship. Sending it anyway forces the
-            // client to morph identical HTML, which strips out any DOM state JS
-            // applied between the previous frame and now — most visibly the
-            // `.hljs` class hljs added to <code> elements during the previous
-            // frame's dispatch. Skip such frames entirely.
-            if (publishOnly && jsInvokes is null
+            // HTML-level dedup: when the rendered HTML matches the last sent (or the
+            // HTTP-GET-time seeded baseline) and there's nothing out-of-band to flow,
+            // the resulting payload would be byte-identical to what we sent last —
+            // skip without even building the payload. Originally a publish-only-render
+            // guard (preserves JS-applied DOM state like hljs's `.hljs` class across
+            // noop publish-renders); generalised so a fresh socket can also dedup
+            // against the GET-time HTML the browser already has, matching WASM's
+            // InitialRenderAsync dedup-baseline behaviour.
+            if (jsInvokes is null
                 && historyUrl is null && auth is null && download is null
                 && _lastSentHtml is not null && string.Equals(html, _lastSentHtml, StringComparison.Ordinal))
             {

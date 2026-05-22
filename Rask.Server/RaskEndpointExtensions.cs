@@ -146,6 +146,11 @@ public static class RaskEndpointExtensions
             routeState.Path = path;
             routeState.Query = AdaptQuery(httpContext.Request.Query);
             var html = session.View.RenderAsLiveRoot(session.Services);
+            // Seed the dedup baseline so the first post-hello WS frame can dedup against
+            // the HTML the browser already has from this GET response (mirroring WASM's
+            // InitialRenderAsync, which populates `_lastAppliedHtml` for the same reason).
+            // Without this, a no-op click after hello would re-send the GET HTML verbatim.
+            session.SeedInitialHtml(html);
             var content = LivePayload.InjectRootAttr(html, session.Id);
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
@@ -380,14 +385,14 @@ public static class RaskEndpointExtensions
 
                     session.AttachSocket(ws, ct);
                     session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
-                    // Push a fresh render now that the socket is live: between the initial
-                    // HTTP GET and this hello, the page may have completed an async
-                    // OnMountAsync — that StateHasChanged fired with no socket
-                    // attached and was silently dropped. Re-render so the client picks up
-                    // the latest state. If the lifecycle is still in flight, this just
-                    // re-emits the Loading view; the lifecycle's terminal StateHasChanged
-                    // will then morph it into the loaded view through the live socket.
-                    await session.RequestRenderAsync().ConfigureAwait(false);
+                    // Only emit a catch-up render when something asked to render during the
+                    // GET→hello handoff window (or while detached across a reconnect). When
+                    // no drop happened, the browser's HTML still reflects the session state
+                    // and re-rendering would just re-fire OnRendered on every alive
+                    // component for no visible change — that's what made Server's initial-
+                    // mount hook count diverge from WASM's. FlushPendingRenderAsync is a
+                    // no-op when nothing's pending.
+                    await session.FlushPendingRenderAsync().ConfigureAwait(false);
                     continue;
                 }
 
