@@ -412,11 +412,18 @@ public abstract class Component
             return;
         }
 
-        // LifecycleSyncContext renders after each in-method await. Also re-render once on
-        // terminal completion: handles user code that returns a Task without awaiting it.
+        // LifecycleSyncContext renders after each in-method await. The terminal render
+        // here is the fallback for hooks that return a Task without awaiting it AND for
+        // ConfigureAwait(false)-only chains where Post never fires. When the user's last
+        // statement IS an await (the common case), Post already fired StateHasChanged
+        // for it — and the user's method body returns inside d(state), transitioning the
+        // task to Completed while still inside the Post lambda. ExecuteSynchronously
+        // would then fire THIS callback inline before Post's own StateHasChanged runs,
+        // producing two renders back-to-back. ctx.PostFired lets us short-circuit in
+        // that case.
         task.ContinueWith(static (t, state) =>
         {
-            var comp = (Component)state!;
+            var (comp, ctx) = ((Component, LifecycleSyncContext))state!;
             if (t.IsFaulted)
             {
                 ReportLifecycleFault(comp, t.Exception);
@@ -428,8 +435,13 @@ public abstract class Component
                 return;
             }
 
+            if (ctx.PostFired)
+            {
+                return;
+            }
+
             comp.StateHasChanged();
-        }, this, TaskContinuationOptions.ExecuteSynchronously);
+        }, (this, ctx), TaskContinuationOptions.ExecuteSynchronously);
     }
 
     private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>

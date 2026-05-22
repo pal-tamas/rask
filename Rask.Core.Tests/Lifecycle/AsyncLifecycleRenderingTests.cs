@@ -32,6 +32,56 @@ public class AsyncLifecycleRenderingTests
     }
 
     [Fact]
+    public async Task OnMountAsync_TrailingAwait_FiresExactlyOneRender()
+    {
+        // Regression: when the last statement of an async lifecycle hook is an await,
+        // the LifecycleSyncContext.Post path AND the terminal ContinueWith both used
+        // to fire StateHasChanged back-to-back — observable on the lifecycle showcase
+        // page as the Render #N badge jumping from #1 to #3 instead of #1 to #2 after
+        // OnMountAsync's await completed. Post sets PostFired before launching its
+        // Task.Run, so the terminal callback (which fires synchronously from inside
+        // d(state) when the user method's last statement is an await) reads the flag
+        // and short-circuits.
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var handle = new RecordingHandle();
+        var c = new SingleAwaitComponent { RenderHandle = handle };
+
+        using (var ctx = LiveRenderContext.Begin(c, sp))
+        {
+            var resolved = ctx.GetOrCreate(_ => c);
+            ctx.NotifyParameters(resolved, true);
+        }
+
+        await c.Done.Task;
+        await Task.Delay(50);
+
+        Assert.Equal(1, handle.RequestRenderCount);
+    }
+
+    [Fact]
+    public async Task OnMountAsync_ConfigureAwaitFalse_StillFiresTerminalRender()
+    {
+        // When the user uses ConfigureAwait(false) the continuation does NOT route
+        // through LifecycleSyncContext.Post, so PostFired stays false and the terminal
+        // ContinueWith MUST still fire its StateHasChanged — otherwise such hooks
+        // would never trigger a follow-up render at all.
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var handle = new RecordingHandle();
+        var c = new ConfigureAwaitFalseComponent { RenderHandle = handle };
+
+        using (var ctx = LiveRenderContext.Begin(c, sp))
+        {
+            var resolved = ctx.GetOrCreate(_ => c);
+            ctx.NotifyParameters(resolved, true);
+        }
+
+        await c.Done.Task;
+        await Task.Delay(50);
+
+        Assert.Equal(1, handle.RequestRenderCount);
+    }
+
+    [Fact]
     public async Task OnMountAsync_NoAwaits_DoesNotTriggerExtraRender()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
@@ -203,6 +253,32 @@ public class AsyncLifecycleRenderingTests
     private sealed class SyncCompletingComponent : Component
     {
         protected override Task OnMountAsync() => Task.CompletedTask;
+        protected override Component Render() => this;
+    }
+
+    private sealed class SingleAwaitComponent : Component
+    {
+        public TaskCompletionSource Done { get; } = new();
+
+        protected override async Task OnMountAsync()
+        {
+            await Task.Yield();
+            Done.TrySetResult();
+        }
+
+        protected override Component Render() => this;
+    }
+
+    private sealed class ConfigureAwaitFalseComponent : Component
+    {
+        public TaskCompletionSource Done { get; } = new();
+
+        protected override async Task OnMountAsync()
+        {
+            await Task.Delay(1).ConfigureAwait(false);
+            Done.TrySetResult();
+        }
+
         protected override Component Render() => this;
     }
 
