@@ -58,6 +58,10 @@
                 if (freshHtml) {
                     morph(document.documentElement, freshHtml);
                     root = document.querySelector("[data-rask-root]") || root;
+                    // Pick up any newly-inserted Head-declared external assets
+                    // (e.g., a page-specific Script in Component.Head) so their
+                    // load events feed into the Rask.* invoke gate.
+                    scanHeadAssets();
                 }
                 if (data.history && typeof data.history.url === "string") {
                     if (data.history.action === "replace") {
@@ -186,14 +190,73 @@
     var scopedJsReady = false;
     var pendingScopedInvokes = [];
 
-    function markScopedJsReady() {
-        if (scopedJsReady) return;
-        scopedJsReady = true;
+    // External Head-declared <script src> and <link rel=stylesheet> are tracked
+    // here so Rask.* JS invokes can wait until every declared dep has loaded
+    // before firing. Without this, a component invoking e.g. window.hljs in its
+    // OnRenderedAsync would have to hand-roll its own load-event workaround
+    // (CodeSample.js used to do exactly that). The gate is global on purpose:
+    // components don't know about each other's deps, and the alternative —
+    // per-invoke dependency declarations — pushes API surface back onto users.
+    var pendingHeadAssets = new Set();
+    var trackedHeadAssets = new WeakSet();
+    var HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
+
+    function isAssetAlreadyLoaded(url) {
+        if (!url || !window.performance || !performance.getEntriesByName) return false;
+        var entries = performance.getEntriesByName(url);
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i].responseEnd > 0) return true;
+        }
+        return false;
+    }
+
+    function trackHeadAsset(el) {
+        if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
+        // The scoped tags have their own gate (scopedJsReady / applyScopedCss
+        // bookkeeping); don't double-track.
+        if (el.hasAttribute("data-rask-scoped") || el.hasAttribute("data-rask-scoped-js")) return;
+        var url;
+        if (el.tagName === "SCRIPT" && el.src) url = el.src;
+        else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
+        else return;
+        trackedHeadAssets.add(el);
+        if (isAssetAlreadyLoaded(url)) return;
+        pendingHeadAssets.add(el);
+        var done = function () {
+            if (!pendingHeadAssets.delete(el)) return;
+            maybeDrainPendingInvokes();
+        };
+        el.addEventListener("load", done, {once: true});
+        el.addEventListener("error", done, {once: true});
+        // Safety: the load event may have fired between insertion and our
+        // listener attach (cache hit on a CDN). Performance.getEntriesByName
+        // covers the common case; the timeout covers everything else so a
+        // missed load doesn't hold Rask.* invokes forever.
+        setTimeout(done, HEAD_ASSET_LOAD_TIMEOUT_MS);
+    }
+
+    function scanHeadAssets() {
+        var els = document.head.querySelectorAll("script[src], link[rel=stylesheet]");
+        for (var i = 0; i < els.length; i++) trackHeadAsset(els[i]);
+    }
+
+    function headAssetsReady() {
+        return pendingHeadAssets.size === 0;
+    }
+
+    function maybeDrainPendingInvokes() {
+        if (!scopedJsReady || !headAssetsReady()) return;
         var pending = pendingScopedInvokes;
         pendingScopedInvokes = [];
         for (var i = 0; i < pending.length; i++) {
             dispatchJsInvoke(pending[i]);
         }
+    }
+
+    function markScopedJsReady() {
+        if (scopedJsReady) return;
+        scopedJsReady = true;
+        maybeDrainPendingInvokes();
     }
 
     function attachScopedJsLoadListener(scriptEl) {
@@ -237,6 +300,11 @@
         if (!existing) return;
         attachScopedJsLoadListener(existing);
     })();
+
+    // Initial sweep for Head-declared external assets emitted by the server's
+    // first GET. New assets added by morph (e.g., a page-specific Head script)
+    // are picked up in applyDom() after the morph completes.
+    scanHeadAssets();
 
     function applyScopedJs(hash) {
         var url = "/_rask/scoped.js?v=" + hash;
@@ -536,11 +604,12 @@
 
     function dispatchJsInvoke(inv) {
         if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
-        // Hold scoped-JS invokes until the bundle script has executed and the
-        // window.Rask.{TypeName} globals exist. Only Rask.* identifiers carry
-        // this risk — `sessionStorage.getItem`, `localStorage.length`, etc. are
-        // browser-builtin and always present.
-        if (!scopedJsReady && inv.identifier.indexOf("Rask.") === 0) {
+        // Hold scoped-JS invokes until (a) the bundle script has executed and
+        // the window.Rask.{TypeName} globals exist AND (b) every Head-declared
+        // external <script src>/<link rel=stylesheet> has loaded. Only Rask.*
+        // identifiers carry this risk — `sessionStorage.getItem`,
+        // `localStorage.length`, etc. are browser-builtin and always present.
+        if (inv.identifier.indexOf("Rask.") === 0 && (!scopedJsReady || !headAssetsReady())) {
             pendingScopedInvokes.push(inv);
             return;
         }

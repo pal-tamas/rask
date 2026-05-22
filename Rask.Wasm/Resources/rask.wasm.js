@@ -20,6 +20,74 @@ let basePath = null;
 let scopedJsReady = false;
 let pendingScopedInvokes = [];
 
+// External Head-declared <script src> and <link rel=stylesheet> are tracked
+// here so Rask.* JS invokes can wait until every declared dep has loaded
+// before firing. Without this, a component invoking e.g. window.hljs in its
+// OnRenderedAsync would have to hand-roll its own load-event workaround.
+// The gate is global on purpose: components don't know about each other's
+// deps, and per-invoke dependency declarations push API surface back onto
+// users.
+const pendingHeadAssets = new Set();
+const trackedHeadAssets = new WeakSet();
+const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
+
+function isAssetAlreadyLoaded(url) {
+    if (!url || !window.performance || !performance.getEntriesByName) return false;
+    const entries = performance.getEntriesByName(url);
+    for (let i = 0; i < entries.length; i++) {
+        if (entries[i].responseEnd > 0) return true;
+    }
+    return false;
+}
+
+function trackHeadAsset(el) {
+    if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
+    // The scoped tags have their own gate; don't double-track them. WASM marks
+    // them data-rask-managed (the inline <style id="rask-scoped"> + inline
+    // <script id="rask-scoped-js">); Server marks them data-rask-scoped.
+    if (el.hasAttribute("data-rask-managed")
+        || el.hasAttribute("data-rask-scoped")
+        || el.hasAttribute("data-rask-scoped-js")) return;
+    let url;
+    if (el.tagName === "SCRIPT" && el.src) url = el.src;
+    else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
+    else return;
+    trackedHeadAssets.add(el);
+    if (isAssetAlreadyLoaded(url)) return;
+    pendingHeadAssets.add(el);
+    const done = () => {
+        if (!pendingHeadAssets.delete(el)) return;
+        maybeDrainPendingInvokes();
+    };
+    el.addEventListener("load", done, {once: true});
+    el.addEventListener("error", done, {once: true});
+    // Safety: the load event may have fired between insertion and our listener
+    // attach (cache hit). The performance.getEntriesByName check covers most
+    // cases; the timeout covers everything else so a missed load doesn't hold
+    // Rask.* invokes forever.
+    setTimeout(done, HEAD_ASSET_LOAD_TIMEOUT_MS);
+}
+
+function scanHeadAssets() {
+    const els = document.head.querySelectorAll("script[src], link[rel=stylesheet]");
+    for (let i = 0; i < els.length; i++) trackHeadAsset(els[i]);
+}
+
+function headAssetsReady() {
+    return pendingHeadAssets.size === 0;
+}
+
+function maybeDrainPendingInvokes() {
+    if (!scopedJsReady || !headAssetsReady()) return;
+    if (pendingScopedInvokes.length === 0) return;
+    const drained = pendingScopedInvokes;
+    pendingScopedInvokes = [];
+    for (let i = 0; i < drained.length; i++) {
+        const c = drained[i];
+        beginInvokeJS(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
+    }
+}
+
 // Read once from <base href> (or the page URL if no <base> is set) so the
 // runtime can host under a sub-path like /Rask/ on GitHub Pages without the
 // .NET side ever seeing the prefix. Resolves to the directory portion so a
@@ -53,6 +121,10 @@ export function setExports(exports) {
     const ok = !!(exports && exports.Rask && exports.Rask.Wasm
         && exports.Rask.Wasm.JSInterop && typeof exports.Rask.Wasm.JSInterop.Dispatch === "function");
     console.log("[Rask] setExports — Dispatch reachable:", ok, "root:", root && root.tagName);
+    // Initial sweep for Head-declared external assets emitted by the browser's
+    // index.html (and any subsequent applyRender will re-sweep so morph-added
+    // assets get picked up too — see applyDom in handle()).
+    scanHeadAssets();
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
@@ -206,14 +278,7 @@ function applyScopedJs(hash, jsText) {
     // gate and drain any calls queued during the closed window.
     document.head.appendChild(script);
     scopedJsReady = true;
-    if (pendingScopedInvokes.length > 0) {
-        const drained = pendingScopedInvokes;
-        pendingScopedInvokes = [];
-        for (let i = 0; i < drained.length; i++) {
-            const c = drained[i];
-            beginInvokeJS(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
-        }
-    }
+    maybeDrainPendingInvokes();
 }
 
 // reviveScript() + morph() are concatenated in at build time by the
@@ -248,6 +313,9 @@ function handle(reply) {
         if (freshHtml) {
             morph(document.documentElement, freshHtml);
             root = document.querySelector("[data-rask-root]") || document.body;
+            // Pick up any newly-inserted Head-declared external assets so
+            // their load events feed into the Rask.* invoke gate.
+            scanHeadAssets();
         }
         applyHistory(reply.history);
         if (typeof reply.cssHash === "string" || reply.cssHash === null)
@@ -494,8 +562,11 @@ export function beginInvokeJS(taskId, identifier, argsJson, resultType, targetIn
     // Pre-bundle gate: a Rask.* identifier resolved against window before
     // applyScopedJs has executed the bundle returns null, which would surface
     // as a "Could not find ..." JSException on the awaiting Task. Park the
-    // call until the gate opens, then replay it as if it had arrived later.
-    if (!scopedJsReady && typeof identifier === "string" && identifier.indexOf("Rask.") === 0) {
+    // call until BOTH (a) the scoped-JS bundle has executed AND (b) every
+    // Head-declared external <script>/<link> has loaded, then replay it.
+    if (typeof identifier === "string"
+        && identifier.indexOf("Rask.") === 0
+        && (!scopedJsReady || !headAssetsReady())) {
         pendingScopedInvokes.push({taskId, identifier, argsJson, resultType, targetInstanceId});
         return;
     }

@@ -41,11 +41,44 @@ public sealed class JsBundleGateTests
         Assert.True(applyEnd > applyIdx, "applyScopedJs body not located");
         var body = js.Substring(applyIdx, applyEnd - applyIdx);
         // The drain must happen after the script injection (otherwise replayed
-        // calls would resolve against a still-empty window.Rask) and must
-        // re-enter beginInvokeJS so the original code path runs unchanged.
+        // calls would resolve against a still-empty window.Rask). It now goes
+        // through maybeDrainPendingInvokes() which combines the scoped-JS gate
+        // with the Head-asset-load gate — assert the helper is reached.
         Assert.Contains("scopedJsReady = true", body);
-        Assert.Contains("pendingScopedInvokes", body);
-        Assert.Contains("beginInvokeJS(", body);
+        Assert.Contains("maybeDrainPendingInvokes", body);
+
+        // And the helper itself must re-enter beginInvokeJS so the original
+        // code path runs unchanged when the gate opens.
+        var drainIdx = js.IndexOf("function maybeDrainPendingInvokes", StringComparison.Ordinal);
+        Assert.True(drainIdx >= 0, "maybeDrainPendingInvokes function not found in bundle");
+        var drainEnd = js.IndexOf("\n}\n", drainIdx, StringComparison.Ordinal);
+        Assert.True(drainEnd > drainIdx);
+        var drainBody = js.Substring(drainIdx, drainEnd - drainIdx);
+        Assert.Contains("pendingScopedInvokes", drainBody);
+        Assert.Contains("beginInvokeJS(", drainBody);
+    }
+
+    [Fact]
+    public void RaskWasmJs_GatesRaskInvokes_OnHeadAssetLoad()
+    {
+        // Regression: Rask.* invokes must also wait for Head-declared external
+        // <script src>/<link rel=stylesheet> to load. Without this, a
+        // CodeSample-like component would have to hand-roll its own load-event
+        // workaround (e.g. attaching a load listener to the hljs script).
+        var js = ReadBrowserBundle();
+        Assert.Contains("pendingHeadAssets", js);
+        Assert.Contains("trackHeadAsset", js);
+        Assert.Contains("scanHeadAssets", js);
+        Assert.Contains("headAssetsReady", js);
+
+        // beginInvokeJS must consult headAssetsReady() (not just scopedJsReady)
+        // when deciding whether to park a Rask.* identifier.
+        var beginIdx = js.IndexOf("function beginInvokeJS", StringComparison.Ordinal);
+        Assert.True(beginIdx >= 0);
+        var promiseIdx = js.IndexOf("Promise.resolve()", beginIdx, StringComparison.Ordinal);
+        Assert.True(promiseIdx > beginIdx);
+        var prelude = js.Substring(beginIdx, promiseIdx - beginIdx);
+        Assert.Contains("headAssetsReady", prelude);
     }
 
     private static string ReadBrowserBundle()

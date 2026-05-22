@@ -55,4 +55,95 @@ public abstract partial class ExampleSmokeTests
         var chartScripts = await Page.Locator("head script[src*='chart']").CountAsync();
         Assert.Equal(1, chartScripts);
     });
+
+    // Regression: navigating away from /realtime/BTC produced a visible
+    // flicker — LiveTicker's chart.js Head contribution disappeared from the
+    // registry, every later head sibling shifted by one slot, and the morph's
+    // positional walk hit tag-name mismatches and REPLACED nodes (including
+    // the Bootstrap CSS link and, on the Server runtime, the scoped-css link).
+    // Removing a stylesheet drops its rules immediately → unstyled page.
+    //
+    // The fix emits a stable data-rask-key on every head asset so the morph's
+    // keyed branch matches by identity. This test stamps a JS marker on the
+    // Bootstrap link before nav and asserts the marker survives — i.e., the
+    // morph moved the link rather than destroying and recreating it.
+    [Fact]
+    public Task Nav_AwayFromLiveTicker_PreservesHeadAssetNodeIdentity() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/realtime/BTC");
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        // Stamp a marker on the Bootstrap CSS link (present on every page via App.Head)
+        // and on the chart.js script (present only on the LiveTicker page). The
+        // Bootstrap link must survive nav; the chart.js script must be cleanly removed.
+        var stamped = await Page.EvaluateAsync<bool>(@"() => {
+            var bs = document.querySelector('link[href*=""bootstrap@5.3.3""]');
+            var chart = document.querySelector('script[src*=""chart.js@4.4.4""]');
+            if (!bs || !chart) return false;
+            bs.__raskFlickerProbe = 'bootstrap';
+            chart.__raskFlickerProbe = 'chart';
+            return true;
+        }");
+        Assert.True(stamped, "Pre-nav probes (bootstrap link + chart script) not found in <head>.");
+
+        await ClickSidebar("Lifecycle");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Lifecycle hooks",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        var preserved = await Page.EvaluateAsync<bool>(@"() => {
+            var bs = document.querySelector('link[href*=""bootstrap@5.3.3""]');
+            return !!(bs && bs.__raskFlickerProbe === 'bootstrap');
+        }");
+        Assert.True(preserved,
+            "Bootstrap <link> was replaced during nav from LiveTicker — head morph displaced " +
+            "an unchanged stylesheet, which drops its rules and produces a visible flicker.");
+
+        var chartGone = await Page.EvaluateAsync<int>(
+            "() => document.querySelectorAll('script[src*=\"chart.js@4.4.4\"]').length");
+        Assert.Equal(0, chartGone);
+    });
+
+    // Regression: highlight.js decorates the <code> blocks once after their
+    // first render. Subsequent server-driven re-renders ship plain-text markup,
+    // so the morph strips the spans; CodeSample.OnRenderedAsync re-invokes hljs
+    // immediately, which rebuilt the spans EVERY time because the JS deleted
+    // dataset.highlighted before calling highlightElement. That delete+rebuild
+    // cycle (combined with a burst of post-await re-renders from LifecyclePage's
+    // probe) was the visible flicker the user reported.
+    //
+    // The fix lives in CodeSample.js: the idempotency guard
+    //     if (code.dataset.highlighted) return;
+    // skips re-highlighting blocks hljs already decorated, so framework replays
+    // of OnRenderedAsync don't tear down and rebuild the spans.
+    //
+    // This test asserts the end state — the code block is still highlighted
+    // after a re-render burst triggered by the "Mount probe" button — and that
+    // the initial span count is preserved (hljs didn't tokenize the empty
+    // post-morph text or otherwise corrupt the highlight).
+    [Fact]
+    public Task Nav_LifecyclePageRerender_KeepsCodeBlockHighlighted() => RunAsync(async () =>
+    {
+        await NavigateToAsync("/lifecycle");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Lifecycle hooks",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator(".sample-card code.hljs span.hljs-keyword").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        var initialSpans = await Page.Locator(".sample-card code.hljs span").CountAsync();
+        Assert.True(initialSpans > 0, "Expected hljs spans before re-render trigger.");
+
+        // Trigger a re-render burst. The probe's OnMountAsync awaits 450 ms,
+        // then emits another render — each one previously caused hljs to
+        // tear down and rebuild the spans.
+        await Page.Locator("#lifecycle-cycle-mount").ClickAsync();
+        await Page.WaitForTimeoutAsync(1000);
+
+        // End state must still be highlighted and span count preserved.
+        await Expect(Page.Locator(".sample-card code.hljs"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        var finalSpans = await Page.Locator(".sample-card code.hljs span").CountAsync();
+        Assert.Equal(initialSpans, finalSpans);
+    });
 }

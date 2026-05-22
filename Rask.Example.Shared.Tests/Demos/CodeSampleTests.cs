@@ -56,6 +56,7 @@ public sealed class CodeSampleTests
         Assert.NotEmpty(js.GetCalls("Rask.CodeSample.rendered"));
     }
 
+
     [Fact]
     public void LiveRender_ThroughApp_HljsScriptAndCssLandInHead()
     {

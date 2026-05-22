@@ -125,6 +125,16 @@ internal sealed class HeadAssetRegistry
     ///     scoped-js <c>&lt;script&gt;</c> (via <c>IRaskScopedScripts</c>). User
     ///     contributions go first so an App.css scoped rule wins the cascade over
     ///     an externally-loaded Bootstrap.
+    ///     <para>
+    ///         Each emitted entry gets a stable <c>data-rask-key</c> so the client
+    ///         morph (rask-morph.js) reconciles head children by identity. Without
+    ///         the key, dropping a single contribution (e.g. LiveTicker's chart.js
+    ///         script unmounting on nav) shifts every later sibling by one slot;
+    ///         the positional walk then hits tag-name mismatches and replaces
+    ///         nodes — including the scoped-css <c>&lt;link&gt;</c>. Removing a
+    ///         stylesheet link drops its rules immediately and the page flickers
+    ///         un-styled until the new link is inserted and loaded.
+    ///     </para>
     /// </summary>
     public string ApplyTo(string html, IServiceProvider? services = null)
     {
@@ -143,13 +153,13 @@ internal sealed class HeadAssetRegistry
         if (services is not null && cssHash is not null
                                  && services.GetService<IRaskScopedStyles>() is { } cssStrategy)
         {
-            scopedCssHtml = cssStrategy.Render(cssHash).ToHtml();
+            scopedCssHtml = WithRaskKey(cssStrategy.Render(cssHash).ToHtml(), "rask-scoped-css");
         }
 
         if (services is not null && jsHash is not null
                                  && services.GetService<IRaskScopedScripts>() is { } jsStrategy)
         {
-            scopedJsHtml = jsStrategy.Render(jsHash).ToHtml();
+            scopedJsHtml = WithRaskKey(jsStrategy.Render(jsHash).ToHtml(), "rask-scoped-js");
         }
 
         if (_orderedHtml.Count == 0 && scopedCssHtml is null && scopedJsHtml is null)
@@ -157,10 +167,21 @@ internal sealed class HeadAssetRegistry
             return html.Remove(idx, Sentinel.Length);
         }
 
+        // Pre-key each user-declared entry. Singleton entries (title, base) use the
+        // singleton key so the morph matches them across renders even when their
+        // content/attrs change; other entries get a content-derived hash so an
+        // unchanged asset (Bootstrap link, viewport meta, …) keeps the same key
+        // across renders and is moved (not destroyed) when its sibling count shifts.
+        var keyedAssets = new string[_orderedHtml.Count];
         var totalLen = html.Length - Sentinel.Length;
-        foreach (var asset in _orderedHtml)
+        for (var i = 0; i < _orderedHtml.Count; i++)
         {
-            totalLen += asset.Length;
+            var raw = _orderedHtml[i];
+            var morphKey = _orderedKeys[i].StartsWith("tag:", StringComparison.Ordinal)
+                ? _orderedKeys[i]
+                : "h-" + ContentHash(raw);
+            keyedAssets[i] = WithRaskKey(raw, morphKey);
+            totalLen += keyedAssets[i].Length;
         }
 
         if (scopedCssHtml is not null)
@@ -175,7 +196,7 @@ internal sealed class HeadAssetRegistry
 
         var sb = new StringBuilder(totalLen);
         sb.Append(html, 0, idx);
-        foreach (var asset in _orderedHtml)
+        foreach (var asset in keyedAssets)
         {
             sb.Append(asset);
         }
@@ -192,5 +213,67 @@ internal sealed class HeadAssetRegistry
 
         sb.Append(html, idx + Sentinel.Length, html.Length - idx - Sentinel.Length);
         return sb.ToString();
+    }
+
+    // Inserts data-rask-key="..." right after the opening tag name. The client
+    // morph promotes <head>'s children to its keyed-reconciliation branch as soon
+    // as one child carries data-rask-key, so emitting it on every head asset lets
+    // the morph match by identity instead of by position. If the caller already
+    // placed a data-rask-key on the tag (very rare for head children, but legal
+    // for explicit morph identity), leave it alone.
+    private static string WithRaskKey(string html, string key)
+    {
+        if (html.Length < 2 || html[0] != '<')
+        {
+            return html;
+        }
+
+        if (html.IndexOf("data-rask-key=", StringComparison.Ordinal) >= 0)
+        {
+            return html;
+        }
+
+        var i = 1;
+        while (i < html.Length
+               && html[i] != ' ' && html[i] != '\t'
+               && html[i] != '\n' && html[i] != '\r'
+               && html[i] != '>' && html[i] != '/')
+        {
+            i++;
+        }
+
+        return html.Insert(i, $" data-rask-key=\"{HtmlAttrEscape(key)}\"");
+    }
+
+    private static string HtmlAttrEscape(string s)
+    {
+        if (s.IndexOfAny(_attrSpecials) < 0)
+        {
+            return s;
+        }
+
+        return s.Replace("&", "&amp;")
+                .Replace("\"", "&quot;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+    }
+
+    private static readonly char[] _attrSpecials = { '&', '"', '<', '>' };
+
+    // FNV-1a 32-bit content hash. Stable for a given string within the process so
+    // the same head asset (Bootstrap link, viewport meta, …) keeps the same key
+    // across renders. The morph compares keys as strings — collisions are vanishingly
+    // unlikely at 32-bit width for the small head-asset population, and would only
+    // cause an attribute morph instead of an insert+remove, which is still safe.
+    private static string ContentHash(string s)
+    {
+        uint hash = 2166136261u;
+        for (var i = 0; i < s.Length; i++)
+        {
+            hash ^= s[i];
+            hash *= 16777619u;
+        }
+
+        return hash.ToString("x8");
     }
 }

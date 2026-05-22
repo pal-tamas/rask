@@ -23,7 +23,9 @@ public sealed class AppTests
 
         // Title body content is HTML-encoded: literal "—" → "&#x2014;". HomePage
         // overrides App's fallback title via the framework's singleton-key dedupe.
-        Assert.Contains("<title>Welcome &#x2014; Rask</title>", html);
+        // <title> carries data-rask-key="tag:title" so we match the body, not the
+        // opening tag verbatim.
+        Assert.Contains(">Welcome &#x2014; Rask</title>", html);
         Assert.Contains("charset=\"utf-8\"", html);
         Assert.Contains("viewport", html);
         Assert.Contains("bootstrap@5.3.3", html);
@@ -48,6 +50,6 @@ public sealed class AppTests
         var html = new Rask.Example.Shared.App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.StartsWith("<!DOCTYPE html>", html);
-        Assert.Contains("<title>", html);
+        Assert.Contains("<title ", html);
     }
 }

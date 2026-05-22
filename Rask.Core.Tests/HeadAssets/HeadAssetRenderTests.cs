@@ -23,7 +23,7 @@ public class HeadAssetRenderTests
         var html = view.RenderAsLiveRoot();
 
         Assert.DoesNotContain("__rask_head_assets__", html);
-        Assert.Contains("<link href=\"/a.css\"", html);
+        Assert.Contains("href=\"/a.css\"", html);
         // Spliced into <head>, before the body opens.
         var assetIdx = html.IndexOf("/a.css", StringComparison.Ordinal);
         var bodyIdx = html.IndexOf("<body", StringComparison.Ordinal);
@@ -50,9 +50,9 @@ public class HeadAssetRenderTests
         var view = new ShellWithTitle("App", new ContributesTitle("Page"));
         var html = view.RenderAsLiveRoot();
 
-        Assert.Equal(1, CountOccurrences(html, "<title>"));
-        Assert.Contains("<title>Page</title>", html);
-        Assert.DoesNotContain("<title>App</title>", html);
+        Assert.Equal(1, CountOccurrences(html, "<title "));
+        Assert.Contains(">Page</title>", html);
+        Assert.DoesNotContain(">App</title>", html);
     }
 
     [Fact]
@@ -64,8 +64,8 @@ public class HeadAssetRenderTests
         var view = new ShellWithTitle("App", new NoHeadComponent());
         var html = view.RenderAsLiveRoot();
 
-        Assert.Equal(1, CountOccurrences(html, "<title>"));
-        Assert.Contains("<title>App</title>", html);
+        Assert.Equal(1, CountOccurrences(html, "<title "));
+        Assert.Contains(">App</title>", html);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class HeadAssetRenderTests
         // RouteParam-bound id).
         var view = new PageShell(new ContributesTitleWithId { Id = 42 });
         var html = view.RenderAsLiveRoot();
-        Assert.Contains("<title>User #42</title>", html);
+        Assert.Contains(">User #42</title>", html);
     }
 
     // ----- helpers -----

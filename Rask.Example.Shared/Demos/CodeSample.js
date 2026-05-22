@@ -5,27 +5,22 @@
 // `js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender)` from
 // CodeSample.OnRenderedAsync.
 //
-// The hljs <link> + <script> dependencies come in through CodeSample.Head —
-// by the time `rendered` first runs, hljs is either ready (sync <script> in
-// head) or about to be. The fallback subscribes to the script's load event.
-// firstRender is unused (hljs.highlightElement is idempotent) but the
-// parameter is preserved for forward-compat.
+// The hljs <link> + <script> dependencies come in through CodeSample.Head.
+// The Rask runtime gates every Rask.* JS invoke until all Head-declared
+// external <script src> tags have fired their load event AND all
+// <link rel=stylesheet> tags have loaded — so window.hljs is guaranteed to
+// be defined and the hljs stylesheet applied before this function runs. No
+// per-component load-event workaround is needed.
+//
+// The dataset.highlighted guard makes the function idempotent across the
+// framework's OnRenderedAsync replays so re-firing it on a cached instance
+// post-morph is a cheap no-op instead of tearing down and rebuilding the
+// spans.
 export function rendered(firstRender) {
     const codes = document.querySelectorAll('.sample-card code[class*="language-"]');
     if (codes.length === 0) return;
-    const apply = () => {
-        codes.forEach(code => {
-            delete code.dataset.highlighted;
-            window.hljs.highlightElement(code);
-        });
-    };
-    if (window.hljs) {
-        apply();
-        return;
-    }
-    const script = document.querySelector('script[src*="highlight.min.js"]');
-    if (!script) return;
-    script.addEventListener('load', () => {
-        if (window.hljs) apply();
-    }, {once: true});
+    codes.forEach(code => {
+        if (code.dataset.highlighted) return;
+        window.hljs.highlightElement(code);
+    });
 }

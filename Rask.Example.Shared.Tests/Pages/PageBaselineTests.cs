@@ -43,7 +43,9 @@ public sealed class PageBaselineTests
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.NotNull(pageType);
-        Assert.Contains("<title>", html);
+        // <title> now carries data-rask-key="tag:title" so the morph reconciles it by
+        // identity across navigations (regression: HeadAssetRegistry head-asset keying).
+        Assert.Contains("<title ", html);
         Assert.Contains(marker, html);
     }
 

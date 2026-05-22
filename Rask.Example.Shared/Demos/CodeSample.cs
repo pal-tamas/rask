@@ -36,8 +36,10 @@ public sealed class CodeSample(IJSRuntime js) : Component
     // The sibling `CodeSample.js` exports a `rendered` function that walks every
     // `.sample-card` on the page and highlights its <code> child via hljs. The
     // generator wraps that file as `window.Rask.CodeSample`, so a plain
-    // `IJSRuntime.InvokeVoidAsync` is enough to invoke it. The hook is idempotent
-    // (hljs.highlightElement re-runs safely) so firing on every render is fine.
+    // `IJSRuntime.InvokeVoidAsync` is enough to invoke it. The hook is
+    // idempotent on the JS side (skips blocks where dataset.highlighted is
+    // already set) so firing on every render — including replays of cached
+    // instances post-morph — does no extra work after the first highlight.
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
