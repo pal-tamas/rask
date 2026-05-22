@@ -71,6 +71,43 @@ public sealed class ShowcaseLayoutTests
         Assert.Equal(expected, InvokePrivateIsActive(layout, href));
     }
 
+    // Regression: the Live ticker sidebar entry hrefs "/realtime/BTC" but the
+    // page also lives at /realtime/ETH and /realtime/SOL. Switching symbol from
+    // inside the page must keep the sidebar entry highlighted. Same shape for
+    // /users/42 — any /users/* path should match.
+    [Theory]
+    [InlineData("/realtime/BTC", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/realtime/ETH", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/realtime/SOL", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/realtime", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/REALTIME/eth", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/realtime/BTC/", "/realtime/BTC", "/realtime", true)]
+    [InlineData("/users/42", "/users/42", "/users", true)]
+    [InlineData("/users/99", "/users/42", "/users", true)]
+    [InlineData("/realtimes/BTC", "/realtime/BTC", "/realtime", false)]    // prefix must be a full segment
+    [InlineData("/lifecycle", "/realtime/BTC", "/realtime", false)]
+    public void IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix(
+        string path, string href, string? matchPrefix, bool expected)
+    {
+        var routeState = new RouteState { Path = path };
+        var layout = new ShowcaseLayout(new Navigator(routeState), routeState);
+        Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
+    }
+
+    [Fact]
+    public void RenderThroughApp_RealtimeEthPath_KeepsLiveTickerNavActive()
+    {
+        // The actual bug surface: when the route is /realtime/ETH (after switching
+        // from BTC inside the LiveTickerPage), the sidebar's "Live ticker" item
+        // must still render with the active class.
+        var routeState = new RouteState { Path = "/realtime/ETH" };
+        var html = new Rask.Example.Shared.App()
+            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+
+        Assert.Matches("nav-item-btn-active[^>]*>[^<]*<i class=\"bi bi-graph-up-arrow",
+            CollapseWhitespace(html));
+    }
+
     [Fact]
     public void BypassRenderCache_Default_NotBypassed()
     {
@@ -112,11 +149,11 @@ public sealed class ShowcaseLayoutTests
     private static string CollapseWhitespace(string s) =>
         System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ");
 
-    private static bool InvokePrivateIsActive(ShowcaseLayout layout, string href)
+    private static bool InvokePrivateIsActive(ShowcaseLayout layout, string href, string? matchPrefix = null)
     {
         var mi = typeof(ShowcaseLayout).GetMethod("IsActive",
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(mi);
-        return (bool)mi!.Invoke(layout, [href])!;
+        return (bool)mi!.Invoke(layout, [href, matchPrefix])!;
     }
 }

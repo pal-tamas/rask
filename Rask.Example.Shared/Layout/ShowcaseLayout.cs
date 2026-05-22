@@ -6,33 +6,37 @@ namespace Rask.Example.Shared.Layout;
 [Route("/")]
 public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 {
-    private static readonly (string Path, string Label, string Icon, string Group)[] Links =
+    // MatchPrefix: optional section prefix for parameterised links. When set, the
+    // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
+    // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
+    // exact-match only.
+    private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] Links =
     [
-        ("/", "Welcome", "bi-house", "Start"),
-        ("/tags", "Tag factories", "bi-code-slash", "DSL"),
-        ("/primitives", "Primitives", "bi-asterisk", "DSL"),
-        ("/props", "Universal props", "bi-gear", "DSL"),
-        ("/components", "User components", "bi-boxes", "Components"),
-        ("/routing", "Routing", "bi-signpost-2", "Components"),
-        ("/users/42", "Route + query params", "bi-link-45deg", "Components"),
-        ("/navigator", "Navigator", "bi-compass", "Components"),
-        ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components"),
-        ("/realtime/BTC", "Live ticker", "bi-graph-up-arrow", "Components"),
-        ("/cancellation", "Cancellation", "bi-x-circle", "Components"),
-        ("/disposal", "Disposal", "bi-trash", "Components"),
-        ("/events", "Events", "bi-mouse", "Components"),
-        ("/virtualize", "Virtualize", "bi-list-ol", "Components"),
-        ("/table", "Data table", "bi-table", "Components"),
-        ("/boom", "Error boundary", "bi-shield-exclamation", "Components"),
-        ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms"),
-        ("/validation", "Validation", "bi-shield-check", "Forms"),
-        ("/nested-forms", "Complex models", "bi-diagram-3", "Forms"),
-        ("/scoped-css", "Scoped CSS", "bi-palette", "Styling"),
-        ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data"),
-        ("/upload", "File upload", "bi-upload", "Files"),
-        ("/download", "File download", "bi-cloud-download", "Files"),
-        ("/todos", "Todos", "bi-check2-square", "Apps"),
-        ("/jsruntime", "IJSRuntime", "bi-braces", "Apps")
+        ("/", "Welcome", "bi-house", "Start", null),
+        ("/tags", "Tag factories", "bi-code-slash", "DSL", null),
+        ("/primitives", "Primitives", "bi-asterisk", "DSL", null),
+        ("/props", "Universal props", "bi-gear", "DSL", null),
+        ("/components", "User components", "bi-boxes", "Components", null),
+        ("/routing", "Routing", "bi-signpost-2", "Components", null),
+        ("/users/42", "Route + query params", "bi-link-45deg", "Components", "/users"),
+        ("/navigator", "Navigator", "bi-compass", "Components", null),
+        ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components", null),
+        ("/realtime/BTC", "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
+        ("/cancellation", "Cancellation", "bi-x-circle", "Components", null),
+        ("/disposal", "Disposal", "bi-trash", "Components", null),
+        ("/events", "Events", "bi-mouse", "Components", null),
+        ("/virtualize", "Virtualize", "bi-list-ol", "Components", null),
+        ("/table", "Data table", "bi-table", "Components", null),
+        ("/boom", "Error boundary", "bi-shield-exclamation", "Components", null),
+        ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms", null),
+        ("/validation", "Validation", "bi-shield-check", "Forms", null),
+        ("/nested-forms", "Complex models", "bi-diagram-3", "Forms", null),
+        ("/scoped-css", "Scoped CSS", "bi-palette", "Styling", null),
+        ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data", null),
+        ("/upload", "File upload", "bi-upload", "Files", null),
+        ("/download", "File download", "bi-cloud-download", "Files", null),
+        ("/todos", "Todos", "bi-check2-square", "Apps", null),
+        ("/jsruntime", "IJSRuntime", "bi-braces", "Apps", null)
     ];
 
     private bool _drawerOpen;
@@ -95,7 +99,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
     {
         var children = new List<Child>();
         string? currentGroup = null;
-        foreach (var (path, label, icon, group) in Links)
+        foreach (var (path, label, icon, group, matchPrefix) in Links)
         {
             if (group != currentGroup)
             {
@@ -103,7 +107,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                 currentGroup = group;
             }
 
-            var active = IsActive(path);
+            var active = IsActive(path, matchPrefix);
             children.Add(Button(
                 Class: active
                     ? "nav-item-btn nav-item-btn-active"
@@ -121,7 +125,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         return children;
     }
 
-    private bool IsActive(string href)
+    private bool IsActive(string href, string? matchPrefix = null)
     {
         if (href == "/")
         {
@@ -129,6 +133,18 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         }
 
         var trimmed = route.Path.TrimEnd('/');
-        return string.Equals(trimmed, href, StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(trimmed, href, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (matchPrefix is null)
+        {
+            return false;
+        }
+
+        var trimmedPrefix = matchPrefix.TrimEnd('/');
+        return string.Equals(trimmed, trimmedPrefix, StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith(trimmedPrefix + "/", StringComparison.OrdinalIgnoreCase);
     }
 }
