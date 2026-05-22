@@ -7,23 +7,24 @@ namespace Rask.Example.Shared.Tests.Demos;
 
 // Each test drives the component through its parent wrapper (LiveHost), so the
 // real framework — render-walk, lifecycle dispatch, prop diff, unmount — is what
-// fires the hooks. The shared fakes only stand in for IJSRuntime and HttpClient.
+// fires the hooks. The shared FakeJsRuntime stands in for IJSRuntime; the price
+// feed is fully synthetic (see LiveTicker.PollOnceAsync) so no HttpClient mock
+// is needed.
 public sealed class LiveTickerTests
 {
     [Fact]
-    public async Task OnMountAsync_PollsCoinGecko_AndPopulatesHistory()
+    public async Task OnMountAsync_PopulatesHistoryFromSyntheticFeed()
     {
-        var (http, fakeHttp) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
+        var host = BuildHost(js, symbol, interval: 30);
 
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
-        await Task.Delay(120); // let a couple of polls run
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2));
 
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnMount:"));
-        Assert.True(fakeHttp.RequestCount >= 1, "expected at least one CoinGecko poll");
         Assert.NotEmpty(js.GetCalls("sessionStorage.setItem"));
     }
 
@@ -35,12 +36,11 @@ public sealed class LiveTickerTests
             new PricePoint(DateTimeOffset.UtcNow.AddSeconds(-3), 64500m),
             new PricePoint(DateTimeOffset.UtcNow.AddSeconds(-2), 64750m)
         });
-        var (http, _) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
         js.SetResponse("sessionStorage.getItem", stored);
 
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 1000);
+        var host = BuildHost(js, symbol, interval: 1000);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("loaded 2 persisted points"), TimeSpan.FromSeconds(2));
@@ -51,10 +51,9 @@ public sealed class LiveTickerTests
     [Fact]
     public async Task OnRenderedAsync_InvokesRaskLiveTickerDraw()
     {
-        var (http, _) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
+        var host = BuildHost(js, symbol, interval: 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => js.GetCalls("Rask.LiveTicker.draw").Count > 0, TimeSpan.FromSeconds(2));
@@ -65,10 +64,9 @@ public sealed class LiveTickerTests
     [Fact]
     public async Task OnPropsChanged_LogsSymbolSwitch()
     {
-        var (http, _) = FakeHttp.WithPrices(("bitcoin", 65000m), ("ethereum", 3200m));
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
+        var host = BuildHost(js, symbol, interval: 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("OnPropsChangedAsync"), TimeSpan.FromSeconds(2));
@@ -84,10 +82,9 @@ public sealed class LiveTickerTests
     [Fact]
     public async Task OnUnmount_FiresOnRemovalFromTree()
     {
-        var (http, _) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
+        var host = BuildHost(js, symbol, interval: 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("OnMountAsync"), TimeSpan.FromSeconds(2));
@@ -103,45 +100,20 @@ public sealed class LiveTickerTests
     [Fact]
     public async Task PollLoop_StopsAfterUnmount()
     {
-        var (http, fakeHttp) = FakeHttp.WithPrices(("bitcoin", 65000m));
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
+        var host = BuildHost(js, symbol, interval: 30);
 
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => js.GetCalls("sessionStorage.setItem").Count >= 1, TimeSpan.FromSeconds(2));
 
         host.Mounted = false;
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), TimeSpan.FromSeconds(2));
 
-        var snapshotAfterUnmount = fakeHttp.RequestCount;
+        var persistedAfterUnmount = js.GetCalls("sessionStorage.setItem").Count;
         await Task.Delay(200);
-        Assert.Equal(snapshotAfterUnmount, fakeHttp.RequestCount);
-    }
-
-    [Fact]
-    public async Task HttpFailure_ReportsError_AndKeepsLoopAlive()
-    {
-        var (http, fakeHttp) = FakeHttp.Throwing(new HttpRequestException("network down"));
-        var js = new FakeJsRuntime();
-        var symbol = new Box<string>("BTC");
-        var host = BuildHost(http, js, symbol, interval: 30);
-
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => fakeHttp.RequestCount > 1, TimeSpan.FromSeconds(2));
-
-        Assert.True(fakeHttp.RequestCount > 1, "expected the poll loop to keep retrying after a network error");
-    }
-
-    [Fact]
-    public void CoinGeckoPriceResponse_DeserializesCleanly()
-    {
-        const string json = """{"bitcoin":{"usd":65123.45}}""";
-        var resp = JsonSerializer.Deserialize(json, LiveTickerJsonContext.Default.CoinGeckoPriceResponse);
-        Assert.NotNull(resp);
-        Assert.True(resp!.TryGetValue("bitcoin", out var quote));
-        Assert.Equal(65123.45m, quote!["usd"]);
+        Assert.Equal(persistedAfterUnmount, js.GetCalls("sessionStorage.setItem").Count);
     }
 
     [Fact]
@@ -159,13 +131,52 @@ public sealed class LiveTickerTests
         Assert.Equal(65000.50m, roundTripped[0].PriceUsd);
     }
 
-    private static LiveHost BuildHost(HttpClient http, FakeJsRuntime js, Box<string> symbol, int interval)
+    // Regression: IJSRuntime serializes public property names with the
+    // camelCase JsonNamingPolicy, so a C# PricePoint(Timestamp, PriceUsd)
+    // lands in JS as { timestamp, priceUsd } — NOT PascalCase. The Chart.js
+    // bridge in LiveTicker.js was reading p.Timestamp / p.PriceUsd, which
+    // surfaced on the chart as "Invalid Date" and zero-valued bars. This
+    // pins the actual call sites (not comments) to the wire shape.
+    [Fact]
+    public void LiveTickerJs_ReadsCamelCasedPropertyNames()
+    {
+        var path = Path.Combine(LocateRepoRoot(),
+            "Rask.Example.Shared", "Demos", "LiveTicker.js");
+        var source = File.ReadAllText(path);
+
+        // Strip line and block comments so the test isn't fooled by the
+        // explainer comment that has to mention the PascalCase pitfall.
+        var lineCommentStripped = System.Text.RegularExpressions.Regex.Replace(
+            source, "//[^\n]*", "");
+        var code = System.Text.RegularExpressions.Regex.Replace(
+            lineCommentStripped, "/\\*.*?\\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+
+        Assert.Matches(@"\.map\(\s*p\s*=>\s*formatTime\(\s*p\.timestamp\s*\)\s*\)", code);
+        Assert.Matches(@"\.map\(\s*p\s*=>\s*Number\(\s*p\.priceUsd\s*\)\s*\)", code);
+        Assert.DoesNotContain("p.Timestamp", code);
+        Assert.DoesNotContain("p.PriceUsd", code);
+    }
+
+    private static LiveHost BuildHost(FakeJsRuntime js, Box<string> symbol, int interval)
     {
         LiveHost? host = null;
         host = new LiveHost(
             () => LiveTicker(Symbol: symbol.Value, Interval: interval, Log: host!.Log.Add),
-            LiveHost.Services(http, js));
+            LiveHost.Services((typeof(Microsoft.JSInterop.IJSRuntime), js)));
         return host;
+    }
+
+    private static string LocateRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "Rask.sln"))) return dir.FullName;
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not locate Rask.sln walking up from {AppContext.BaseDirectory}");
     }
 
     private sealed class Box<T>(T initial)

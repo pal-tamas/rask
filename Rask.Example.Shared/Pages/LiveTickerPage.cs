@@ -18,7 +18,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
         Fragment()[
             PageHeader.Render(
                 $"{Symbol} live ticker",
-                "A small real-world widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync calls api.coingecko.com; the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
+                "A widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync drifts a synthetic price each tick (so the demo is deterministic and offline-safe); the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
             Div(Class: "btn-group mb-3", Id: "ticker-symbol-switcher")[
                 SwitchButton("BTC"),
                 SwitchButton("ETH"),
@@ -61,7 +61,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
             ],
             CodeSample(
                 """
-                public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
+                public sealed class LiveTicker(IJSRuntime js) : Component
                 {
                     public string Symbol { get; set; } = "BTC";
                     public int Interval { get; set; } = 3000;
@@ -79,7 +79,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                         {
                             while (!ct.IsCancellationRequested)
                             {
-                                await PollOnceAsync(ct);          // CoinGecko → history
+                                await PollOnceAsync(ct);          // synthetic feed → history
                                 await Task.Delay(Interval, ct);   // re-render after each await
                             }
                         }
@@ -114,12 +114,12 @@ public sealed class LiveTickerPage(Navigator nav) : Component
             Div(Class: "alert alert-info d-flex align-items-start mt-3")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[
-                    Strong()["Real network."],
-                    " Prices come from ",
-                    A("https://www.coingecko.com/api/documentation", "_blank")["api.coingecko.com"],
-                    " — public, CORS-enabled, no key. Under ",
-                    Code()["Rask.Example.Server"], " the polls happen server-side; under ",
-                    Code()["Rask.Example.Wasm"], " they run from the browser. The component is identical."
+                    Strong()["Synthetic feed."],
+                    " The poll loop generates a random-walk price locally (with a 50 ms ",
+                    Code()["Task.Delay"], " to simulate latency) so the demo is offline-safe. ",
+                    "Switching to a real HTTP source is a one-line change in ",
+                    Code()["PollOnceAsync"], "; the rest of the component — lifecycle, ",
+                    "cancellation, sessionStorage, chart redraws — is identical."
                 ]
             ]
         ];

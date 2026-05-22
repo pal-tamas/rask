@@ -7,16 +7,18 @@
 // (__raskChart) so subsequent draws update the existing chart instead of
 // recreating it — `chart.update("none")` keeps the refresh jitter-free.
 //
-// `history` is an array of { Timestamp, PriceUsd } objects (PascalCase from
-// the C# record struct). Chart.js receives Timestamp as ISO strings on the
-// X axis labels and PriceUsd as numbers on the Y axis.
+// `history` is an array of { timestamp, priceUsd } objects. The framework's
+// IJSRuntime serializer camelCases public property names when marshalling
+// C# records over JSInterop — so the C# PricePoint(Timestamp, PriceUsd)
+// arrives in JS as { timestamp, priceUsd }. Reading p.Timestamp here would
+// surface as `Invalid Date` on the chart axis.
 
 export function draw(history) {
     const canvas = document.querySelector("[data-rask-ticker]");
     if (!canvas || typeof window.Chart !== "function") return;
 
-    const labels = (history || []).map(p => formatTime(p.Timestamp));
-    const data = (history || []).map(p => Number(p.PriceUsd));
+    const labels = (history || []).map(p => formatTime(p.timestamp));
+    const data = (history || []).map(p => Number(p.priceUsd));
 
     if (canvas.__raskChart) {
         canvas.__raskChart.data.labels = labels;

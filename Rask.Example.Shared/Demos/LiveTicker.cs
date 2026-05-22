@@ -1,13 +1,11 @@
 using System.Globalization;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
 
 namespace Rask.Example.Shared.Demos;
 
-// Real-life lifecycle showcase. Each override has a natural production job —
-// none of the hooks is here just to print a log entry.
+// Lifecycle showcase with a simulated price feed. Each hook has a natural job:
 //
 //   * OnMount             — synchronous local init (record mount time).
 //   * OnMountAsync        — re-hydrate persisted history from sessionStorage,
@@ -21,11 +19,15 @@ namespace Rask.Example.Shared.Demos;
 //                           render mechanism keeps the unguarded await safe.
 //   * OnUnmount*          — log teardown. The framework's CancellationToken
 //                           is already firing here, which is what cancels the
-//                           HttpClient request + Task.Delay above.
+//                           in-flight Task.Delay in the poll loop above.
 //
-// The component itself owns no disposable resources — every cleanup path is
-// driven by lifecycle hooks, which is the point of the demo.
-public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
+// The poll loop is fully synthetic — no external HTTP. Real public crypto
+// APIs (CoinCap, CoinGecko, Coinbase) all rate-limit or 403 server-to-server
+// traffic, which made the demo flaky. A local random-walk price source
+// preserves the lifecycle/async story end-to-end (the loop still yields on
+// every Task.Delay, the CancellationToken still cancels it on unmount) but
+// is deterministic and offline-safe.
+public sealed class LiveTicker(IJSRuntime js) : Component
 {
     // ~3 min of points at the default 3 s poll. Bounded so a long-running tab
     // doesn't grow the sessionStorage entry indefinitely.
@@ -189,27 +191,21 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
     private async Task PollOnceAsync(CancellationToken ct)
     {
         var symbolForRequest = Symbol;
-        var asset = ToAssetId(symbolForRequest);
         try
         {
-            var resp = await http.GetFromJsonAsync(
-                $"https://api.coingecko.com/api/v3/simple/price?ids={asset}&vs_currencies=usd",
-                LiveTickerJsonContext.Default.CoinGeckoPriceResponse,
-                ct).ConfigureAwait(true);
-            // Symbol may have changed while the request was in flight; drop the
+            // Pretend network latency so the lifecycle/cancellation story stays
+            // faithful: the loop yields here, the CancellationToken cancels the
+            // Task.Delay on unmount, and the post-await continuation re-renders.
+            await Task.Delay(50, ct).ConfigureAwait(true);
+
+            // Symbol may have changed during the simulated latency; drop the
             // result so the chart isn't contaminated with the previous asset's data.
             if (symbolForRequest != Symbol)
             {
                 return;
             }
 
-            if (resp is null ||
-                !resp.TryGetValue(asset, out var quote) ||
-                !quote.TryGetValue("usd", out var price))
-            {
-                return;
-            }
-
+            var price = SimulateNextPrice(symbolForRequest);
             _history.Add(new PricePoint(DateTimeOffset.UtcNow, price));
             if (_history.Count > HistoryCapacity)
             {
@@ -228,6 +224,23 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
             _error = ex.Message;
         }
     }
+
+    // Random-walk price source: each tick drifts the last value by ~+/- 0.4%.
+    // Seeded per symbol so BTC / ETH / SOL show recognisable magnitudes.
+    private decimal SimulateNextPrice(string symbol)
+    {
+        var previous = _history.Count > 0 ? _history[^1].PriceUsd : SeedPrice(symbol);
+        var step = (decimal)(Random.Shared.NextDouble() - 0.5) * 0.008m;
+        return Math.Round(previous * (1m + step), 2);
+    }
+
+    private static decimal SeedPrice(string symbol) => symbol switch
+    {
+        "BTC" => 70_000m,
+        "ETH" => 2_500m,
+        "SOL" => 150m,
+        _ => 100m
+    };
 
     private async Task LoadFromStorageAsync()
     {
@@ -269,27 +282,10 @@ public sealed class LiveTicker(HttpClient http, IJSRuntime js) : Component
 
     private string StorageKey => StorageKeyPrefix + Symbol;
 
-    private static string ToAssetId(string symbol) => symbol switch
-    {
-        "BTC" => "bitcoin",
-        "ETH" => "ethereum",
-        "SOL" => "solana",
-        _ => symbol.ToLowerInvariant()
-    };
-
     private void Emit(string entry) => Log?.Invoke(entry);
 }
 
 public readonly record struct PricePoint(DateTimeOffset Timestamp, decimal PriceUsd);
 
-// CoinGecko `simple/price` returns one entry per requested id, each a map of
-// vs_currency → price: {"bitcoin":{"usd":65000.5}}. Subclassing the nested
-// Dictionary types gives the source-generated JSON context a stable property
-// name to bind against.
-internal sealed class CoinGeckoPriceResponse : Dictionary<string, CoinGeckoPriceQuote>;
-
-internal sealed class CoinGeckoPriceQuote : Dictionary<string, decimal>;
-
-[JsonSerializable(typeof(CoinGeckoPriceResponse))]
 [JsonSerializable(typeof(PricePoint[]))]
 internal sealed partial class LiveTickerJsonContext : JsonSerializerContext;
