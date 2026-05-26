@@ -349,6 +349,18 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
         }
 
+        // Budget exhaustion surfaces a third queued in-dispatch render that won't
+        // flush — the next event picks up the trailing state. Match the server-side
+        // telemetry so dispatch-render-loop bugs are greppable on either runtime.
+        if (_pendingRenderInScope)
+        {
+            Console.Error.WriteLine(
+                "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
+                "in-dispatch render was queued and dropped. Inspect any handlers " +
+                "that re-trigger StateHasChanged in OnRenderedAsync / dispose " +
+                "callbacks during this dispatch.");
+        }
+
         return result;
     }
 
@@ -448,12 +460,14 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // flow — those aren't carried by the diff wire format yet.
         var usedDiff = false;
         // Conservative gate (mirrors server LiveSession): the diff path covers
-        // in-place state changes only. Side effects (cssText/jsText/download) and
-        // history changes (navigation) and structural ops route to the full-HTML
-        // morph path until a property/state-aware applier lands.
-        // `diffPathEntered` tracks whether we called TryComputeDiff (which internally
-        // rotates buffers regardless of return value) — important so the fallback
-        // Snapshot below doesn't double-rotate and strand _previous=null.
+        // in-place state changes only. Side effects (cssText/jsText/download),
+        // history changes (navigation), and structural ops (InsertSubtree/
+        // RemoveSubtree) route to the full-HTML morph path — see the server-side
+        // DiffOpsAreClientSupported note for the rationale (e2e showed 83/430
+        // failures when structural ops bypass morph). `diffPathEntered` tracks
+        // whether we called TryComputeDiff (which internally rotates buffers
+        // regardless of return value) so the fallback Snapshot doesn't double-
+        // rotate and strand _previous=null.
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null
             && cssText is null && jsText is null && download is null
@@ -505,6 +519,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         return (_writeBuffer.WrittenSpan.ToArray(), html);
     }
 
+    // Structural ops route to full-HTML morph. See LiveSession's identically-named
+    // helper for the e2e-driven rationale.
     private static bool DiffOpsAreClientSupported(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)

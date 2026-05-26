@@ -416,15 +416,17 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // than the full HTML.
             var usedDiff = false;
             var diffPathEntered = false;
-            // Out-of-band side effects (auth, download, jsInvokes) and history changes
-            // (navigation) need the full-HTML payload — the diff wire format doesn't
-            // carry those today, and structural transitions across routes routinely
-            // expose DOM-state corner cases (dialog open/closed, focus, input value
-            // desync) that morph-based application handles but a naive applyDiff
-            // doesn't. Restrict the diff path to in-place state changes for now.
-            // _forceFullHtmlNextRender: the render immediately after a jsInvokes
-            // payload also takes the full-HTML path so the await-resume continuation
-            // re-bases the client DOM via morph (see field comment).
+            // Out-of-band side effects (auth, download, jsInvokes), history changes
+            // (navigation), and structural ops (InsertSubtree/RemoveSubtree) still
+            // need the full-HTML payload. Why structural ops: e2e validation (83 of
+            // 430 tests failed when the structural gate was lifted) showed naive
+            // InsertSubtree/RemoveSubtree on top of the morph baseline produces DOM
+            // states the morph library wouldn't have — preserved focused inputs,
+            // event-listener identity on swapped elements, dialog open/close state.
+            // Until applyDiff reaches morph-quality book-keeping, full HTML wins for
+            // structural changes. _forceFullHtmlNextRender keeps the render
+            // immediately after a jsInvokes payload on the full-HTML path so the
+            // await-resume continuation re-bases the client DOM via morph.
             if (frameWriter is not null && _renderCache is not null
                 && auth is null && download is null && jsInvokes is null
                 && historyUrl is null
@@ -543,6 +545,19 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             _pendingRenderInScope = false;
             await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
         }
+
+        // Budget exhaustion was silent before: a third in-dispatch StateHasChanged
+        // never flushed, the next event's payload picked up the trailing state, and
+        // diagnosing "my UI is one render behind" required reading the source. A
+        // warning gives the user a single grep target.
+        if (_pendingRenderInScope)
+        {
+            Console.Error.WriteLine(
+                $"[Rask.LiveSession] Coalesce-loop budget exhausted for session {Id}; " +
+                "a third in-dispatch render was queued and dropped. Inspect any handlers " +
+                "that re-trigger StateHasChanged in OnRenderedAsync / dispose callbacks " +
+                "during this dispatch.");
+        }
     }
 
     // Synthesises a [taskId, false, error] reply for every drained invoke and feeds it
@@ -550,11 +565,14 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // uses for an honest browser-supplied jsResult. Used when the WS send fails after the
     // queue is already cleared. Best-effort: a missing runtime / dispatcher throw means we
     // log and move on; the original send exception is the meaningful one for the caller.
-    // Structural ops (InsertSubtree/RemoveSubtree) currently route to the full-HTML
-    // morph path. The naive applyDiff client correctly inserts/removes children, but
-    // the surrounding DOM-state contracts (dialog open/close, focus restoration, form
-    // value desync, conditional rendering across routes) require the morph library's
-    // book-keeping. Once a property/state-aware diff applier lands these will flip on.
+    // Structural ops (InsertSubtree/RemoveSubtree) route to the full-HTML morph
+    // path. Naive applyDiff inserts/removes children correctly, but the surrounding
+    // DOM-state contracts (focus restoration on a re-inserted input, dialog open
+    // state, event-listener identity on swapped subtrees, conditional rendering
+    // across routes) need morph-quality book-keeping. Removing this gate in an
+    // earlier iteration broke 83/430 e2e tests; reinstated until applyDiff hits
+    // morph parity. SetAttribute / RemoveAttribute / UpdateText are unaffected —
+    // those are in-place mutations applyDiff handles cleanly.
     private static bool DiffOpsAreClientSupported(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)
