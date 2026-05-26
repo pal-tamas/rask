@@ -177,6 +177,25 @@ public class LivePayloadTests
     }
 
     [Fact]
+    public void BuildPayloadUtf8WithBody_PreservesUnicodeContent()
+    {
+        // The single-pass refactor scans UTF-16 directly for <body bounds, then
+        // encodes head/tail slices into one rented UTF-8 buffer. Verify multi-byte
+        // codepoints (em-dash, emoji, CJK, combining marks) survive the encoding
+        // bytes-identical to a JSON-escaped UTF-8 of the original html.
+        const string html = "<html><head></head><body>" +
+                            "— Rask 中文 🚀 café résumé naïve" +
+                            "</body></html>";
+
+        var payload = LivePayload.BuildPayloadUtf8WithBody(html, "sid", null, false);
+
+        using var doc = JsonDocument.Parse(payload.AsMemory());
+        var bodyHtml = doc.RootElement.GetProperty("html").GetString()!;
+        Assert.Contains("— Rask 中文 🚀 café résumé naïve", bodyHtml);
+        Assert.Contains("data-rask-root=\"sid\"", bodyHtml);
+    }
+
+    [Fact]
     public void BuildPayloadUtf8WithBody_PreservesHistoryAndCssTextFields()
     {
         const string html = "<html><body></body></html>";
