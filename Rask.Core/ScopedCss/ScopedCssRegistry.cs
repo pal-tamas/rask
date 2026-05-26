@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,6 +12,15 @@ public static class ScopedCssRegistry
     private static string? _cachedBundle;
 
     private static string? _cachedHash;
+
+    // Lock-free read cache for the hot path: every user-component render hits
+    // TryRegister, which previously took _lock + dictionary lookup. Most calls are
+    // pure reads against a stable type→scopeId mapping, so a ConcurrentDictionary
+    // amortises the lookup. Hot-reload (RegisterType/UnregisterType) bumps the
+    // dictionary entries in lockstep so a fresh scope id propagates immediately.
+    // Sentinel value "" represents "type has no registered scope" — distinguishes
+    // the negative cache hit from "not yet observed".
+    private static readonly ConcurrentDictionary<Type, string> _scopeIdCache = new();
 
     // Cached UTF-8 encoding and pre-quoted ETag for the served path. The bundle string is
     // computed on first GetBundle() or GetBundleUtf8() call after an invalidation; the
@@ -56,15 +66,34 @@ public static class ScopedCssRegistry
     /// </summary>
     internal static bool TryRegister(Type componentType, out string scopeId)
     {
+        // Lock-free fast path. The cache is populated lazily on miss; subsequent
+        // renders of the same type skip the _lock entirely.
+        if (_scopeIdCache.TryGetValue(componentType, out var cached))
+        {
+            if (cached.Length == 0)
+            {
+                scopeId = string.Empty;
+                return false;
+            }
+
+            scopeId = cached;
+            return true;
+        }
+
         lock (_lock)
         {
             if (_entries.TryGetValue(componentType, out var existing))
             {
                 scopeId = existing.ScopeId;
+                _scopeIdCache[componentType] = scopeId;
                 return true;
             }
         }
 
+        // Negative cache: empty string means "no scope for this type". Register/Unregister
+        // invalidate this entry so a hot-reload that adds CSS to a component lights up
+        // on the next render.
+        _scopeIdCache[componentType] = string.Empty;
         scopeId = string.Empty;
         return false;
     }
@@ -109,6 +138,10 @@ public static class ScopedCssRegistry
             }
         }
 
+        // Invalidate the read cache so the next TryRegister picks up the new (or
+        // re-scoped) entry. Removes both positive- and negative-cache entries.
+        _scopeIdCache.TryRemove(componentType, out _);
+
         if (changed)
         {
             BundleChanged?.Invoke();
@@ -132,6 +165,8 @@ public static class ScopedCssRegistry
             }
         }
 
+        _scopeIdCache.TryRemove(componentType, out _);
+
         if (changed)
         {
             BundleChanged?.Invoke();
@@ -150,6 +185,8 @@ public static class ScopedCssRegistry
             _order.Clear();
             InvalidateBundle();
         }
+
+        _scopeIdCache.Clear();
 
         if (changed)
         {

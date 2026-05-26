@@ -16,7 +16,7 @@ public abstract class Component
     // Pre-built "h0".."h255" so handler registration in the common case (small forms,
     // typical pages) doesn't pay a string-concat allocation per call. Overflow above
     // 256 handlers per render falls back to the concat path.
-    private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(256);
+    private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(1024);
     private HashSet<Component>? _aliveNow;
 
     // Pooled scratch buffers reused across renders when this component is acting as a
@@ -79,11 +79,46 @@ public abstract class Component
     // don't need a per-item `(Child)` cast — `IEnumerable<Component>` doesn't lift through
     // the user-defined `Component -> Child` conversion. Overload resolution prefers this
     // for Component-typed inputs and falls back to the Child indexer for strings or mixes.
+    // Materialise eagerly: the prior `.Select(c => (Child)c)` allocated a Select-iterator
+    // state machine that every HtmlSerializer walk had to enumerate, paying a per-render
+    // boxed-iterator cost. Walking once at indexer time into a Child[] keeps subsequent
+    // foreach loops on a value-type array enumerator with no heap allocation.
     public Component this[params IEnumerable<Component> children]
     {
         get
         {
-            Children = children.Select(c => (Child)c);
+            if (children is Component[] arr)
+            {
+                var dst = new Child[arr.Length];
+                for (var i = 0; i < arr.Length; i++)
+                {
+                    dst[i] = arr[i];
+                }
+
+                Children = dst;
+            }
+            else if (children is IReadOnlyCollection<Component> coll)
+            {
+                var dst = new Child[coll.Count];
+                var i = 0;
+                foreach (var c in coll)
+                {
+                    dst[i++] = c;
+                }
+
+                Children = dst;
+            }
+            else
+            {
+                var list = new List<Child>();
+                foreach (var c in children)
+                {
+                    list.Add(c);
+                }
+
+                Children = list;
+            }
+
             return this;
         }
     }
@@ -160,14 +195,19 @@ public abstract class Component
 
     // Emit one attribute with the standard space prefix. Null value → bare attribute
     // (e.g. `required`, `disabled`); non-null → name="encoded-value" with full HTML escaping
-    // matching the prior HtmlSerializer behaviour.
+    // matching the prior HtmlSerializer behaviour. Fast-paths plain ASCII values through
+    // HtmlSerializer.AppendEncoded so encoder-no-op cases skip the allocation.
     protected static void AppendAttr(StringBuilder sb, string name, string? value)
     {
         sb.Append(' ').Append(name);
         if (value is not null)
         {
-            sb.Append("=\"").Append(HtmlEncoder.Default.Encode(value)).Append('"');
+            sb.Append("=\"");
+            HtmlSerializer.AppendEncoded(sb, value);
+            sb.Append('"');
         }
+
+        FrameSinkScope.Current?.Attribute(name, value);
     }
 
     // Overload that writes a two-part attribute name directly without allocating an
@@ -178,7 +218,16 @@ public abstract class Component
         sb.Append(' ').Append(namePrefix).Append(nameSuffix);
         if (value is not null)
         {
-            sb.Append("=\"").Append(HtmlEncoder.Default.Encode(value)).Append('"');
+            sb.Append("=\"");
+            HtmlSerializer.AppendEncoded(sb, value);
+            sb.Append('"');
+        }
+
+        if (FrameSinkScope.Current is { } fw)
+        {
+            // Only allocate the concatenated name when a frame writer is active. The
+            // common no-frames path stays zero-allocation.
+            fw.Attribute(namePrefix + nameSuffix, value);
         }
     }
 
@@ -630,7 +679,7 @@ public abstract class Component
 
         _handlers ??= new Dictionary<string, (Component, Delegate)>();
         var n = _nextHandlerId++;
-        var id = n < _smallHandlerIds.Length ? _smallHandlerIds[n] : "h" + n;
+        var id = n < _smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
         _handlers[id] = (owner, handler);
         return id;
     }
@@ -644,6 +693,19 @@ public abstract class Component
         }
 
         return arr;
+    }
+
+    // Overflow path for renders with > _smallHandlerIds.Length handlers in one root.
+    // The prebake covers 1024 handlers per render — orders of magnitude past anything
+    // realistic. When a Virtualize / huge keyed list pushes past that, stackalloc + a
+    // direct TryFormat skips the int.ToString allocation that `"h" + n` would force.
+    private static string CreateLargeHandlerId(int n)
+    {
+        Span<char> buf = stackalloc char[12];
+        buf[0] = 'h';
+        return n.TryFormat(buf[1..], out var written)
+            ? new string(buf[..(1 + written)])
+            : "h" + n;
     }
 
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)

@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -9,6 +10,10 @@ namespace Rask.Server.Tests.WebSockets;
 [Collection("SessionGracePeriod")]
 public class HandlerDispatchTests
 {
+    // Asserts against the `html` payload field — force the legacy full-HTML wire
+    // shape (framework default is now LiveDiffMode.Auto).
+    public HandlerDispatchTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+
     [Fact]
     public async Task HandlerId_KnownHandler_InvokesAndSendsRender()
     {

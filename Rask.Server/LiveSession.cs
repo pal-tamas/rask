@@ -65,6 +65,22 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // across the session's lifetime; ResetWrittenCount keeps the underlying rented array hot.
     private ArrayBufferWriter<byte> _writeBuffer = new(4096);
 
+    // Diff-codec state. Populated only when LiveOptions.DiffMode != DisabledFull, so
+    // the default path pays nothing for these. Both fields are lazy because the
+    // common production path today still ships full HTML.
+    private SessionRenderCache? _renderCache;
+    private List<EditOp>? _diffOps;
+
+    // Set when the previous render shipped full HTML with jsInvokes pending. The
+    // next render — the one that runs after the JS-side returns its jsResult and
+    // the awaiting handler resumes — must also ship full HTML, NOT a diff. Why:
+    // the await-resume continuation can land outside the dispatch's normal serial
+    // ordering (continuations on LifecycleSyncContext), and the cache rotation
+    // assumptions held by the diff path stop applying. Sticking with full HTML
+    // for one more render forces a morph that re-bases the client DOM, then the
+    // diff path can resume safely on the render after that.
+    private bool _forceFullHtmlNextRender;
+
     public LiveSession(string id, Component view, IServiceScope scope)
     {
         Id = id;
@@ -322,7 +338,34 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
         {
-            var html = View.RenderAsLiveRoot(Services, publishOnly);
+            // Diff-codec path: capture the parallel RenderFrame[] stream during render so
+            // we can produce a minimal edit-op payload instead of re-shipping the whole
+            // body. Default (LiveDiffMode.DisabledFull) bypasses this entirely — the
+            // ambient FrameSinkScope is null on entry and HtmlSerializer's frame emit
+            // is a single null check per branch. Only the opted-in path pays for the
+            // FrameWriter, the diff walk, and the SessionRenderCache buffer rotation.
+            var diffMode = LiveOptions.DiffMode;
+            FrameWriter? frameWriter = null;
+            FrameSinkScope.Popper framePopper = default;
+            if (diffMode != LiveDiffMode.DisabledFull)
+            {
+                _renderCache ??= new SessionRenderCache();
+                frameWriter = _renderCache.PrepareCurrentBuffer();
+                framePopper = FrameSinkScope.Push(frameWriter);
+            }
+
+            string html;
+            try
+            {
+                html = View.RenderAsLiveRoot(Services, publishOnly);
+            }
+            finally
+            {
+                if (frameWriter is not null)
+                {
+                    framePopper.Dispose();
+                }
+            }
 
             PendingDownload? download = null;
             if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
@@ -365,8 +408,74 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             }
 
             _writeBuffer.ResetWrittenCount();
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
-                jsInvokes: jsInvokes);
+
+            // Decide payload shape. Default (DisabledFull) and any case where we can't
+            // confidently ship a diff (first render, out-of-band side effects, ops we
+            // can't yet apply) routes to the full-HTML path. The diff path only fires
+            // when LiveOptions.DiffMode is Auto/Forced AND we have a clean diff smaller
+            // than the full HTML.
+            var usedDiff = false;
+            var diffPathEntered = false;
+            // Out-of-band side effects (auth, download, jsInvokes) and history changes
+            // (navigation) need the full-HTML payload — the diff wire format doesn't
+            // carry those today, and structural transitions across routes routinely
+            // expose DOM-state corner cases (dialog open/closed, focus, input value
+            // desync) that morph-based application handles but a naive applyDiff
+            // doesn't. Restrict the diff path to in-place state changes for now.
+            // _forceFullHtmlNextRender: the render immediately after a jsInvokes
+            // payload also takes the full-HTML path so the await-resume continuation
+            // re-bases the client DOM via morph (see field comment).
+            if (frameWriter is not null && _renderCache is not null
+                && auth is null && download is null && jsInvokes is null
+                && historyUrl is null
+                && !_forceFullHtmlNextRender)
+            {
+                _diffOps ??= new List<EditOp>();
+                diffPathEntered = true;
+                if (_renderCache.TryComputeDiff(_diffOps, html)
+                    && _diffOps.Count > 0
+                    && DiffOpsAreClientSupported(_diffOps))
+                {
+                    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
+                    var diffBytes = _writeBuffer.WrittenCount;
+
+                    // Pick diff when it's <= 25% of the rendered HTML byte size, or when
+                    // Forced (testing). The rendered HTML byte size is a fair lower
+                    // bound for the full-payload bytes (the JSON-escaped wire form is
+                    // ~2x the HTML for typical pages), so this heuristic is conservative.
+                    // Result: diff path takes over for typical small-state-change cases
+                    // (counter, text update, attribute toggle) while big structural
+                    // changes (navigation, large list refresh) keep the full-HTML path.
+                    if (diffMode == LiveDiffMode.Forced || diffBytes * 4 < html.Length)
+                    {
+                        usedDiff = true;
+                    }
+                    else
+                    {
+                        _writeBuffer.ResetWrittenCount();
+                    }
+                }
+            }
+
+            if (!usedDiff)
+            {
+                LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
+                    jsInvokes: jsInvokes);
+                // Cache stays in lockstep with the client even when we ship full HTML —
+                // promote current → previous so the NEXT diff's baseline matches what
+                // the client most recently received. Only when we did NOT enter the
+                // diff branch: TryComputeDiff already rotates buffers internally, so a
+                // second Snapshot here would double-rotate and strand _previous=null.
+                if (!diffPathEntered)
+                {
+                    _renderCache?.Snapshot();
+                }
+            }
+
+            // Update the one-render-grace flag. If we shipped with jsInvokes pending,
+            // the next render (the await-resume continuation) must also be full HTML.
+            // Otherwise, clear it so subsequent renders return to the diff path.
+            _forceFullHtmlNextRender = jsInvokes is not null;
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
@@ -441,6 +550,25 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // uses for an honest browser-supplied jsResult. Used when the WS send fails after the
     // queue is already cleared. Best-effort: a missing runtime / dispatcher throw means we
     // log and move on; the original send exception is the meaningful one for the caller.
+    // Structural ops (InsertSubtree/RemoveSubtree) currently route to the full-HTML
+    // morph path. The naive applyDiff client correctly inserts/removes children, but
+    // the surrounding DOM-state contracts (dialog open/close, focus restoration, form
+    // value desync, conditional rendering across routes) require the morph library's
+    // book-keeping. Once a property/state-aware diff applier lands these will flip on.
+    private static bool DiffOpsAreClientSupported(List<EditOp> ops)
+    {
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var kind = ops[i].Kind;
+            if (kind == EditOpKind.InsertSubtree || kind == EditOpKind.RemoveSubtree)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)
     {
         var runtime = Services.GetService<RaskJSRuntime>();

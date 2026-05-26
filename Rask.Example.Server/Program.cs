@@ -1,5 +1,17 @@
+using Rask.Core.Live;
 using Rask.Example.Shared;
 using Rask.Server;
+
+// The framework default since AddRask gained an options shape is
+// LiveDiffMode.Auto, so `services.AddRask()` already ships the diff codec out of
+// the box. The RASK_DIFF_MODE env var lets the Playwright suite (and curious
+// developers) flip modes without recompiling — useful for diff-vs-morph A/B
+// debugging.
+if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
+    && Enum.TryParse<LiveDiffMode>(diffModeName, ignoreCase: true, out var diffMode))
+{
+    LiveOptions.DiffMode = diffMode;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
+using Rask.Core.Live;
 using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 
@@ -48,7 +49,21 @@ internal sealed class HeadAssetRegistry
 
     private void AddOne(Component asset)
     {
-        var html = asset.ToHtml();
+        // Suppress the ambient FrameSinkScope: head-asset components render to an HTML
+        // string via Component.ToHtml() → HtmlSerializer.Serialize, which would
+        // otherwise emit frames INTO THE OUTER FRAME STREAM (the one capturing the
+        // main render tree). Those leaked frames put the head-asset elements at the
+        // TOP LEVEL of the diff codec's frame walk, shifting every subsequent
+        // domSlot by N — the click counter's UpdateText path ended up rooted at
+        // path[0]=6 (top-level slot past 5 leaked title/meta/link frames) instead
+        // of path[0]=1 (html). Push a null scope for the duration of the asset
+        // walk so its HTML emits cleanly without contaminating the main stream.
+        string html;
+        using (FrameSinkScope.Push(null))
+        {
+            html = asset.ToHtml();
+        }
+
         if (string.IsNullOrEmpty(html))
         {
             return;

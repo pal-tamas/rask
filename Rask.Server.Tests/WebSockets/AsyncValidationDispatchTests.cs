@@ -1,11 +1,18 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
+[Collection("SessionGracePeriod")]
 public class AsyncValidationDispatchTests
 {
+    // Asserts against the `html` payload field — force the legacy full-HTML wire
+    // shape (framework default is LiveDiffMode.Auto). SessionGracePeriod collection
+    // serialises with the other DiffMode-touching test classes.
+    public AsyncValidationDispatchTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+
     // Mirrors the failing E2E test Validation_AsyncDemo_ShowsCheckingThenTakenMessage:
     // OnInput "admin" then OnChange (blur). The async validator delays 20ms and then adds
     // "Already taken.". The post-handler render emitted after the OnChange must contain

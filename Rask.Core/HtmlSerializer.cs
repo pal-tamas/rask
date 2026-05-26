@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Encodings.Web;
 using Rask.Core.Components;
@@ -8,6 +10,44 @@ namespace Rask.Core;
 
 internal static class HtmlSerializer
 {
+    // Chars guaranteed to be left alone by HtmlEncoder.Default. The default encoder
+    // is XSS-conservative — it encodes everything outside this narrow safe list,
+    // including '+', '[', ']', '{', '}', ';', etc. plus any non-ASCII. Matching the
+    // encoder's *actual* output requires staying inside this set. The intersection
+    // covers the vast majority of attribute values and text content typical of a
+    // Rask render (ids, classes, label text, paths, numbers).
+    internal static readonly SearchValues<char> SafeAsciiForHtml = SearchValues.Create(
+        "abcdefghijklmnopqrstuvwxyz" +
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+        "0123456789" +
+        " -._/:,?!()*=#%");
+
+    /// <summary>
+    ///     Append <paramref name="value" /> to <paramref name="sb" /> HTML-encoded.
+    ///     Fast path: when every char is in the safe-ASCII set the
+    ///     <see cref="HtmlEncoder.Default" /> output is byte-identical to the input,
+    ///     so we skip the encoder call (and its per-call string allocation) entirely.
+    ///     Anything outside the safe set — including '+', '[', ']', '{', '}', ';',
+    ///     non-ASCII — falls through to the encoder. Output matches the prior
+    ///     <c>sb.Append(HtmlEncoder.Default.Encode(value))</c> sequence exactly.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void AppendEncoded(StringBuilder sb, string value)
+    {
+        if (value.Length == 0)
+        {
+            return;
+        }
+
+        if (value.AsSpan().IndexOfAnyExcept(SafeAsciiForHtml) < 0)
+        {
+            sb.Append(value);
+            return;
+        }
+
+        sb.Append(HtmlEncoder.Default.Encode(value));
+    }
+
     private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
     {
         "html",
@@ -23,19 +63,37 @@ internal static class HtmlSerializer
 
     public static void Serialize(Component component, StringBuilder sb)
     {
+        // FrameSinkScope.Current is the ambient frame writer set by the caller when it
+        // wants a parallel RenderFrame[] alongside the HTML output (Phase 1 diff codec).
+        // Reading it once per call and threading it through avoids the ThreadStatic
+        // re-read inside every branch; keep the variable in a register hot.
+        var frames = FrameSinkScope.Current;
+
         switch (component)
         {
             case Text t:
-                sb.Append(HtmlEncoder.Default.Encode(t.Value ?? string.Empty));
+            {
+                var textStart = sb.Length;
+                AppendEncoded(sb, t.Value ?? string.Empty);
+                frames?.Text(t.Value, textStart, sb.Length);
                 break;
+            }
 
             case Raw r:
+            {
+                var rawStart = sb.Length;
                 sb.Append(r.Value);
+                frames?.Raw(r.Value, rawStart, sb.Length);
                 break;
+            }
 
             case Doctype:
+            {
+                var doctypeStart = sb.Length;
                 sb.Append("<!DOCTYPE html>");
+                frames?.Doctype(doctypeStart, sb.Length);
                 break;
+            }
 
             case Fragment fragment:
                 if (fragment.Children is { } fragmentChildren)
@@ -53,12 +111,18 @@ internal static class HtmlSerializer
                 break;
 
             case { TagNameInternal: { } tagName } el:
-                sb.Append('<').Append(tagName);
-                el.WriteAttributesInternal(sb);
-
                 var live = LiveRenderContext.Current;
                 var scopeId = live?.CurrentScopeId;
                 var isShell = _shellTags.Contains(tagName);
+                var elementStart = sb.Length;
+                var elementFrameIdx = frames?.OpenElement(tagName,
+                    scopeId is not null && !isShell ? scopeId : null,
+                    el.SelfClosingInternal,
+                    elementStart) ?? -1;
+
+                sb.Append('<').Append(tagName);
+                el.WriteAttributesInternal(sb);
+
                 if (scopeId is not null && !isShell)
                 {
                     sb.Append(" data-").Append(scopeId);
@@ -67,6 +131,10 @@ internal static class HtmlSerializer
                 if (el.SelfClosingInternal)
                 {
                     sb.Append(" />");
+                    if (frames is not null)
+                    {
+                        frames.CloseElement(elementFrameIdx, sb.Length);
+                    }
                     break;
                 }
 
@@ -90,6 +158,10 @@ internal static class HtmlSerializer
                 }
 
                 sb.Append("</").Append(tagName).Append('>');
+                if (frames is not null)
+                {
+                    frames.CloseElement(elementFrameIdx, sb.Length);
+                }
                 break;
 
             default:
@@ -114,13 +186,17 @@ internal static class HtmlSerializer
                     liveCtx.HeadAssets.Add(head);
                 }
 
-                using (liveCtx?.PushScope(component))
-                using (liveCtx?.EnterParentScope(component))
+                // User components are transparent in the frame stream — their rendered
+                // body's elements/text emit at the surrounding DOM level. That keeps the
+                // diff codec's path computation a simple count over DOM-structural frames
+                // without a Component-as-wrapper case. (A later optimisation may re-add
+                // Component markers for cached-subtree short-circuiting.)
+                using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
+                using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
                 {
                     Serialize(component.RenderForLive(), sb);
                 }
-
                 break;
         }
     }
@@ -128,9 +204,9 @@ internal static class HtmlSerializer
     private static void SerializeErrorBoundary(ErrorBoundary boundary, StringBuilder sb)
     {
         var live = LiveRenderContext.Current;
-        using (live?.PushScope(boundary))
-        using (live?.EnterParentScope(boundary))
-        using (live?.PushBoundary(boundary))
+        using (LiveRenderContext.PushScopeOrNone(live, boundary))
+        using (LiveRenderContext.EnterParentScopeOrNone(live, boundary))
+        using (LiveRenderContext.PushBoundaryOrNone(live, boundary))
         {
             var saved = sb.Length;
             try

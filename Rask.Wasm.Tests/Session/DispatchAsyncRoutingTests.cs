@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.ScopedCss;
 using Rask.Wasm.Tests.Infrastructure;
@@ -11,7 +12,14 @@ namespace Rask.Wasm.Tests.Session;
 [Collection("WasmSession")]
 public class DispatchAsyncRoutingTests
 {
-    public DispatchAsyncRoutingTests() => ScopedCssRegistry.InvalidateAll();
+    public DispatchAsyncRoutingTests()
+    {
+        ScopedCssRegistry.InvalidateAll();
+        // Asserts against the `html` payload field — force the legacy full-HTML
+        // wire shape (framework default is LiveDiffMode.Auto). The WasmSession
+        // collection serializes these tests so the static-field write is safe.
+        LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+    }
 
     [Fact]
     public async Task Dispatch_EmptyJson_ReturnsEmptyBytes()

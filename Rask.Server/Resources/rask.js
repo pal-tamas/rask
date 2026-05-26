@@ -42,6 +42,24 @@
                 location.reload();
                 return;
             }
+            // Diff-mode payload (kind:"diff"): apply ops directly against the live
+            // DOM instead of morphing a fresh document. Wire format matches
+            // LivePayload.BuildPayloadUtf8Diff (C# side). Each op carries a Path
+            // (sequence of childNodes indices from the document root) and an op-
+            // specific payload. Falls through to history/auth/download handling
+            // afterwards so navigation + side effects still flow.
+            if (data.kind === "diff" && Array.isArray(data.ops)) {
+                applyDiff(data.ops);
+                if (data.history && typeof data.history.url === "string") {
+                    if (data.history.action === "replace") {
+                        history.replaceState({rask: true}, "", data.history.url);
+                    } else {
+                        history.pushState({rask: true}, "", data.history.url);
+                    }
+                }
+                if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+                return;
+            }
             var freshHtml = null;
             if (typeof data.html === "string") {
                 var doc = new DOMParser().parseFromString(data.html, "text/html");
@@ -686,6 +704,160 @@
             msg.error = error || "JS invocation failed";
         }
         send(msg);
+    }
+
+    // ----- Diff codec interpreter --------------------------------------------
+    // Applies ops produced by C#-side FrameDiffer.Diff to the live DOM. Each op
+    // names its target via a Path = sequence of childNodes indices from `document`.
+    // The Path is computed by the diff walker counting only DOM-relevant frames
+    // (Element, Text, Raw, Doctype) and excluding Attribute frames, which matches
+    // the browser's `Node.childNodes` collection semantics for the rendered HTML.
+    //
+    // EditOpKind values mirror the C# enum:
+    //   1 = SetAttribute, 2 = RemoveAttribute, 3 = UpdateText,
+    //   4 = InsertSubtree, 5 = RemoveSubtree
+    // Comment nodes shift childNodes indices relative to the server's frame walk.
+    // Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
+    // match what FrameDiffer counts.
+    var _relevantNodeTypes = { 1: 1, 3: 1, 10: 1 };
+
+    function relevantChild(parent, index) {
+        if (!parent || !parent.childNodes) return null;
+        var seen = 0;
+        for (var i = 0; i < parent.childNodes.length; i++) {
+            var n = parent.childNodes[i];
+            if (_relevantNodeTypes[n.nodeType]) {
+                if (seen === index) return n;
+                seen++;
+            }
+        }
+        return null;
+    }
+
+    function resolvePath(path) {
+        var node = document;
+        for (var i = 0; i < path.length; i++) {
+            node = relevantChild(node, path[i]);
+            if (!node) return null;
+        }
+        return node;
+    }
+
+    // Mirror selected attribute writes onto the matching IDL property. After user
+    // interaction, an input's `value` attribute is the *default*, not the current
+    // state — setAttribute does not reach the live value. Same for `checked` on
+    // checkboxes/radios and `selected` on options. Only sync when the element
+    // supports the property so we don't silently no-op on unrelated tags.
+    //
+    // Active-element guard: when the diff would overwrite the value of the focused
+    // input, the server's view is racing with the user's keystrokes (the server
+    // rendered with a value computed before the latest key landed). Skipping the
+    // sync on the focused element keeps the user's in-flight typing intact; the
+    // next keystroke updates server state and any subsequent render reconciles.
+    function syncFormProperty(el, name, value, isPresent) {
+        // `isPresent` tells us whether the attribute is set or being removed —
+        // separate from the value because the HTML attributes `checked`/`selected`
+        // are presence-based: `<input checked>`, `<input checked="">`, and
+        // `<input checked="checked">` all mean checked. RemoveAttribute → unchecked.
+        if (!el) return;
+        var tag = el.tagName;
+        if (!tag) return;
+        if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
+            if (document.activeElement === el) return;
+            el.value = value;
+        } else if (name === "checked" && tag === "INPUT") {
+            el.checked = !!isPresent;
+        } else if (name === "selected" && tag === "OPTION") {
+            el.selected = !!isPresent;
+        }
+    }
+
+    function applyDiff(ops) {
+        for (var i = 0; i < ops.length; i++) {
+            var op = ops[i];
+            var path = op.p || [];
+            switch (op.k) {
+                case 1: { // SetAttribute
+                    var el = resolvePath(path);
+                    if (el && el.setAttribute) {
+                        var newVal = op.v == null ? "" : op.v;
+                        el.setAttribute(op.n, newVal);
+                        // After a form-control has been interacted with, the value
+                        // attribute is desynchronised from the .value/.checked property
+                        // (the attribute is the *default*, not the current state). Sync
+                        // the IDL property too so user-visible state matches the diff.
+                        syncFormProperty(el, op.n, newVal, true);
+                    }
+                    break;
+                }
+                case 2: { // RemoveAttribute
+                    var el2 = resolvePath(path);
+                    if (el2 && el2.removeAttribute) {
+                        el2.removeAttribute(op.n);
+                        syncFormProperty(el2, op.n, "", false);
+                    }
+                    break;
+                }
+                case 3: { // UpdateText
+                    var textNode = resolvePath(path);
+                    if (textNode) {
+                        // Works for Text nodes (nodeType 3) and elements alike. We assign
+                        // .textContent (rather than .nodeValue) so the path resolving to
+                        // a Raw-rendered element still gets cleared and refilled — Raw
+                        // frames in the C# stream serialize verbatim markup into a
+                        // single string, which corresponds to a sequence of DOM nodes
+                        // the browser parsed. The current diff codec only emits
+                        // UpdateText when both sides are the SAME kind (Text vs Text or
+                        // Raw vs Raw), so textContent is the right knob.
+                        textNode.textContent = op.v == null ? "" : op.v;
+                    }
+                    break;
+                }
+                case 4: { // InsertSubtree
+                    // Subtree HTML fragment is op.v (set by the server once
+                    // HtmlSerializer captures per-frame byte offsets). When absent,
+                    // we have a partial diff that can't be applied — log and bail.
+                    if (typeof op.v !== "string") {
+                        console.warn("[Rask] InsertSubtree without payload — server " +
+                            "must include HTML fragment. Falling back to full reload.");
+                        location.reload();
+                        return;
+                    }
+                    // Parent is the node at path[..length-1]; insert before the slot at
+                    // path[length-1] (or at end if slot beyond current children count).
+                    var parentPath = path.slice(0, path.length - 1);
+                    var slot = path[path.length - 1];
+                    var parent = resolvePath(parentPath);
+                    if (!parent) break;
+                    var template = document.createElement("template");
+                    template.innerHTML = op.v;
+                    var refNode = parent.childNodes[slot] || null;
+                    while (template.content.firstChild) {
+                        parent.insertBefore(template.content.firstChild, refNode);
+                    }
+                    break;
+                }
+                case 5: { // RemoveSubtree
+                    var rmParentPath = path.slice(0, path.length - 1);
+                    var rmSlot = path[path.length - 1];
+                    var rmParent = resolvePath(rmParentPath);
+                    if (!rmParent) break;
+                    var removeCount = op.l || 1;
+                    for (var r = 0; r < removeCount; r++) {
+                        var victim = rmParent.childNodes[rmSlot];
+                        if (!victim) break;
+                        rmParent.removeChild(victim);
+                    }
+                    break;
+                }
+                default:
+                    // Unknown op kind — newer server, older client. Bail to full reload
+                    // so the user isn't stranded on a stale tree.
+                    console.warn("[Rask] Unknown diff op kind: " + op.k);
+                    location.reload();
+                    return;
+            }
+        }
     }
 
     // ----- DotNet shim (mirror of Blazor's window.DotNet) --------------------

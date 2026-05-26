@@ -71,32 +71,32 @@ public sealed class LiveRenderContext : IDisposable
         _current.Value = _previous;
     }
 
-    internal IDisposable? PushScope(Component instance)
+    internal ContextScope PushScope(Component instance)
     {
         var type = instance.GetType();
         var hasCss = ScopedCssRegistry.TryRegister(type, out var scopeId);
         if (!hasCss)
         {
-            return null;
+            return default;
         }
 
         _scopeStack.Push(scopeId);
-        return new ScopePopper(this);
+        return new ContextScope(this, ContextScopeKind.Scope);
     }
 
-    internal IDisposable EnterParentScope(Component parent)
+    internal ContextScope EnterParentScope(Component parent)
     {
         _parentStack.Push(parent);
-        return new ParentPopper(this);
+        return new ContextScope(this, ContextScopeKind.Parent);
     }
 
-    internal IDisposable PushBoundary(ErrorBoundary boundary)
+    internal ContextScope PushBoundary(ErrorBoundary boundary)
     {
         // Stamp the boundary's own ancestor on first push, so an error in the boundary's
         // *fallback* (or its own async lifecycle) can still propagate to an outer boundary.
         boundary.SetParentBoundary(CurrentBoundary);
         _boundaryStack.Push(boundary);
-        return new BoundaryPopper(this);
+        return new ContextScope(this, ContextScopeKind.Boundary);
     }
 
     public static LiveRenderContext Begin(Component root) =>
@@ -212,48 +212,6 @@ public sealed class LiveRenderContext : IDisposable
 
     internal Dictionary<ObjectKey, EditContext> SnapshotEditContexts() => _currentEditContexts;
 
-    private sealed class ScopePopper : IDisposable
-    {
-        private readonly LiveRenderContext _ctx;
-        public ScopePopper(LiveRenderContext ctx) => _ctx = ctx;
-
-        public void Dispose()
-        {
-            if (_ctx._scopeStack.Count > 0)
-            {
-                _ctx._scopeStack.Pop();
-            }
-        }
-    }
-
-    private sealed class ParentPopper : IDisposable
-    {
-        private readonly LiveRenderContext _ctx;
-        public ParentPopper(LiveRenderContext ctx) => _ctx = ctx;
-
-        public void Dispose()
-        {
-            if (_ctx._parentStack.Count > 0)
-            {
-                _ctx._parentStack.Pop();
-            }
-        }
-    }
-
-    private sealed class BoundaryPopper : IDisposable
-    {
-        private readonly LiveRenderContext _ctx;
-        public BoundaryPopper(LiveRenderContext ctx) => _ctx = ctx;
-
-        public void Dispose()
-        {
-            if (_ctx._boundaryStack.Count > 0)
-            {
-                _ctx._boundaryStack.Pop();
-            }
-        }
-    }
-
     internal readonly struct ObjectKey : IEquatable<ObjectKey>
     {
         public ObjectKey(object value) => Value = value;
@@ -261,5 +219,65 @@ public sealed class LiveRenderContext : IDisposable
         public bool Equals(ObjectKey other) => ReferenceEquals(Value, other.Value);
         public override bool Equals(object? obj) => obj is ObjectKey k && Equals(k);
         public override int GetHashCode() => RuntimeHelpers.GetHashCode(Value);
+    }
+
+    // Pops the matching stack on Dispose. Was three separate sealed-class IDisposables
+    // (ScopePopper / ParentPopper / BoundaryPopper), each allocated on the heap per
+    // PushScope / EnterParentScope / PushBoundary call. For a 100-component render
+    // that's 100+ small allocations per frame just for scope bookkeeping. Unifying
+    // into one ref struct with a kind discriminator drops that to zero — the struct
+    // lives on the caller's stack frame.
+    internal enum ContextScopeKind : byte
+    {
+        None = 0,
+        Scope = 1,
+        Parent = 2,
+        Boundary = 3
+    }
+
+    // Extension-style entry points that handle a null receiver. Lets HtmlSerializer's
+    // `using (liveCtx?.PushScope(...))` pattern survive the rewrite from class-based
+    // pop disposables to a ref struct — `?.` can't return a ref struct (no Nullable<T>
+    // for ref structs), but a non-extension static taking `LiveRenderContext?` can.
+    internal static ContextScope PushScopeOrNone(LiveRenderContext? ctx, Component instance)
+        => ctx is null ? default : ctx.PushScope(instance);
+
+    internal static ContextScope EnterParentScopeOrNone(LiveRenderContext? ctx, Component parent)
+        => ctx is null ? default : ctx.EnterParentScope(parent);
+
+    internal static ContextScope PushBoundaryOrNone(LiveRenderContext? ctx, ErrorBoundary boundary)
+        => ctx is null ? default : ctx.PushBoundary(boundary);
+
+    internal readonly ref struct ContextScope
+    {
+        private readonly LiveRenderContext? _ctx;
+        private readonly ContextScopeKind _kind;
+
+        internal ContextScope(LiveRenderContext ctx, ContextScopeKind kind)
+        {
+            _ctx = ctx;
+            _kind = kind;
+        }
+
+        public void Dispose()
+        {
+            if (_ctx is not { } ctx)
+            {
+                return;
+            }
+
+            switch (_kind)
+            {
+                case ContextScopeKind.Scope:
+                    if (ctx._scopeStack.Count > 0) ctx._scopeStack.Pop();
+                    break;
+                case ContextScopeKind.Parent:
+                    if (ctx._parentStack.Count > 0) ctx._parentStack.Pop();
+                    break;
+                case ContextScopeKind.Boundary:
+                    if (ctx._boundaryStack.Count > 0) ctx._boundaryStack.Pop();
+                    break;
+            }
+        }
     }
 }

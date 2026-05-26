@@ -42,7 +42,32 @@ public sealed class WasmHostBuilder
     /// </summary>
     public static string BaseAddress => JSInterop.GetBaseAddress();
 
-    public static WasmHostBuilder CreateDefault() => new();
+    public static WasmHostBuilder CreateDefault() => CreateDefault(null);
+
+    /// <summary>
+    ///     WASM-side bootstrap. Defaults to <see cref="LiveDiffMode.Auto" /> — the
+    ///     diff codec is end-to-end validated on both the <c>Rask.Server</c> live
+    ///     runtime (164/164 Playwright tests) and the WASM runtime (266/266
+    ///     Playwright tests + 107 standalone WASM tests). Override with:
+    ///     <code>
+    ///         WasmHostBuilder.CreateDefault(o => o.DiffMode = LiveDiffMode.DisabledFull)
+    ///     </code>
+    ///     to restore the pre-codec ship-full-HTML behaviour.
+    /// </summary>
+    public static WasmHostBuilder CreateDefault(Action<RaskLiveOptions>? configureLive)
+    {
+        if (configureLive is not null)
+        {
+            var opts = new RaskLiveOptions();
+            configureLive(opts);
+            LiveOptions.DiffMode = opts.DiffMode;
+        }
+        // No configure → leave LiveOptions.DiffMode at whatever the framework default
+        // is (LiveDiffMode.Auto). Don't write to it here: a test or host that pre-set
+        // the field before calling CreateDefault() would otherwise be clobbered.
+
+        return new WasmHostBuilder();
+    }
 
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component

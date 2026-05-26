@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -20,8 +21,17 @@ namespace Rask.Server.Tests.WebSockets;
 // async handlers awaiting jsResult / dotNetInvoke don't deadlock the loop),
 // but the *start order* of dispatches now matches WS arrival order
 // deterministically.
+[Collection("SessionGracePeriod")]
 public class HandlerOrderingTests
 {
+    // These tests assert against the `html` field in the payload — the legacy
+    // ship-full-HTML wire shape. The framework default since AddRask gained an
+    // options shape is LiveDiffMode.Auto, which ships diff payloads (`kind: "diff"`
+    // with ops). Force the legacy mode for this class so the parse-html assertions
+    // remain meaningful. SessionGracePeriod collection serialises with other tests
+    // that touch the static LiveOptions.DiffMode so the field assignment is safe.
+    public HandlerOrderingTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+
     [Fact]
     public async Task TenHandlers_SentRapidly_DispatchInArrivalOrder()
     {

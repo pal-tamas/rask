@@ -46,8 +46,26 @@ public static class RaskEndpointExtensions
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
-    public static IServiceCollection AddRask(this IServiceCollection services)
+    public static IServiceCollection AddRask(this IServiceCollection services,
+        Action<Rask.Core.Live.RaskLiveOptions>? configure = null)
     {
+        // Per-app live runtime options. The framework default for DiffMode is
+        // LiveDiffMode.Auto (set on the static LiveOptions.DiffMode at class init),
+        // so a fresh `AddRask()` ships the diff codec out of the box. Override:
+        //     services.AddRask(o => o.DiffMode = LiveDiffMode.DisabledFull);
+        //
+        // Only write the static field when the caller provided a configure
+        // callback — otherwise we'd clobber a value the host (or a test) already
+        // set explicitly before AddRask was called. The static field starts at
+        // Auto via its initializer, so the "no configure, no prior write" path
+        // still lands on Auto without us re-writing it here.
+        if (configure is not null)
+        {
+            var liveOptions = new Rask.Core.Live.RaskLiveOptions();
+            configure(liveOptions);
+            Rask.Core.Live.LiveOptions.DiffMode = liveOptions.DiffMode;
+        }
+
         services.AddSingleton<LiveSessionStore>();
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();

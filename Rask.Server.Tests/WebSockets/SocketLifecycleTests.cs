@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Text.RegularExpressions;
+using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -8,6 +9,11 @@ namespace Rask.Server.Tests.WebSockets;
 [Collection("SessionGracePeriod")]
 public class SocketLifecycleTests
 {
+    // Asserts against the `html` payload field — force the legacy full-HTML wire
+    // shape. The SessionGracePeriod collection already disables parallelization
+    // for this class, so the static-field assignment is single-threaded here.
+    public SocketLifecycleTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+
     [Fact]
     public async Task NonWebSocketGet_To_RaskWs_Returns400()
     {

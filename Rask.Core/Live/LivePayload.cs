@@ -210,6 +210,73 @@ public static class LivePayload
         => BuildPayloadUtf8Spliced(output, html, sessionId, false,
             historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
 
+    /// <summary>
+    ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
+    ///     into <paramref name="output" />. The caller has already computed
+    ///     <paramref name="ops" /> via <see cref="FrameDiffer.Diff" /> using a
+    ///     <see cref="SessionRenderCache" />. Per-op JSON shape:
+    ///     <code>
+    ///         {"k": &lt;EditOpKind&gt;, "i": &lt;frameIndex&gt;,
+    ///          "n": &lt;name|null&gt;, "v": &lt;value|null&gt;,
+    ///          "l": &lt;length|0&gt;}
+    ///     </code>
+    ///     Keys are single letters so a 200-byte counter update payload stays a 200-byte
+    ///     counter update payload after JSON overhead. <c>InsertSubtree</c> currently
+    ///     omits the HTML fragment field — that wires in once
+    ///     <see cref="HtmlSerializer" /> exposes per-frame byte offsets.
+    /// </summary>
+    public static void BuildPayloadUtf8Diff(
+        ArrayBufferWriter<byte> output,
+        IReadOnlyList<EditOp> ops,
+        string? historyUrl = null,
+        bool replace = false)
+    {
+        using var writer = new Utf8JsonWriter(output);
+        writer.WriteStartObject();
+        writer.WriteString("kind", "diff");
+        writer.WriteStartArray("ops");
+        foreach (var op in ops)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("k", (int)op.Kind);
+            writer.WriteStartArray("p");
+            foreach (var step in op.Path)
+            {
+                writer.WriteNumberValue(step);
+            }
+
+            writer.WriteEndArray();
+            if (op.Name is not null)
+            {
+                writer.WriteString("n", op.Name);
+            }
+
+            if (op.Value is not null)
+            {
+                writer.WriteString("v", op.Value);
+            }
+
+            if (op.Length != 0)
+            {
+                writer.WriteNumber("l", op.Length);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+
+        if (historyUrl is not null)
+        {
+            writer.WriteStartObject("history");
+            writer.WriteString("action", replace ? "replace" : "push");
+            writer.WriteString("url", historyUrl);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
+    }
+
     private static void BuildPayloadUtf8Spliced(
         ArrayBufferWriter<byte> output,
         string html,

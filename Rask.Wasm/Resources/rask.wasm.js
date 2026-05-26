@@ -294,8 +294,145 @@ function applyHistory(history) {
         window.history.pushState({rask: true}, "", target);
 }
 
+// Comment nodes (nodeType 8) appear in document.childNodes for any HTML page
+// that has a top-level <!-- ... --> (the WASM index.html shell has one). The
+// server's frame walk only emits DOM-relevant kinds (Element=1, Text=3, Doctype=10,
+// Raw which the browser materialises as either text or elements). Walking the
+// raw childNodes would shift every path index by the comment count. Filter to
+// match the server's view.
+const _RELEVANT_NODE_TYPES = new Set([1 /*Element*/, 3 /*Text*/, 10 /*Doctype*/]);
+
+function relevantChild(parent, index) {
+    if (!parent || !parent.childNodes) return null;
+    let seen = 0;
+    for (let i = 0; i < parent.childNodes.length; i++) {
+        const n = parent.childNodes[i];
+        if (_RELEVANT_NODE_TYPES.has(n.nodeType)) {
+            if (seen === index) return n;
+            seen++;
+        }
+    }
+    return null;
+}
+
+function resolvePath(path) {
+    let node = document;
+    for (let i = 0; i < path.length; i++) {
+        node = relevantChild(node, path[i]);
+        if (!node) return null;
+    }
+    return node;
+}
+
+// Mirror selected attribute writes onto the matching IDL property. After user
+// interaction, an input's `value` attribute is the *default*, not the current
+// state — setAttribute does not reach the live value. Same for `checked` on
+// checkboxes/radios and `selected` on options. Skip the value-sync on the focused
+// element so the diff doesn't clobber the user's in-flight typing during a server
+// render that raced ahead of the latest keystroke.
+function syncFormProperty(el, name, value, isPresent) {
+    // `isPresent` separates set-vs-remove because `checked`/`selected` are
+    // presence-based HTML attributes — `<input checked>`, `<input checked="">`,
+    // `<input checked="checked">` all mean checked. RemoveAttribute → unchecked.
+    if (!el) return;
+    const tag = el.tagName;
+    if (!tag) return;
+    if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
+        if (document.activeElement === el) return;
+        el.value = value;
+    } else if (name === "checked" && tag === "INPUT") {
+        el.checked = !!isPresent;
+    } else if (name === "selected" && tag === "OPTION") {
+        el.selected = !!isPresent;
+    }
+}
+
+// Diff codec interpreter — mirror of rask.js applyDiff. Applies ops produced by
+// C#-side FrameDiffer.Diff to the live DOM. Path = sequence of childNodes
+// indices from `document`, matching the DOM-relevant-frames walk on the server
+// (Element/Text/Raw/Doctype, no Attribute frames). EditOpKind values:
+//   1 = SetAttribute, 2 = RemoveAttribute, 3 = UpdateText,
+//   4 = InsertSubtree, 5 = RemoveSubtree.
+function applyDiff(ops) {
+    for (let i = 0; i < ops.length; i++) {
+        const op = ops[i];
+        const path = op.p || [];
+        switch (op.k) {
+            case 1: {
+                const el = resolvePath(path);
+                if (el && el.setAttribute) {
+                    const newVal = op.v == null ? "" : op.v;
+                    el.setAttribute(op.n, newVal);
+                    syncFormProperty(el, op.n, newVal, true);
+                }
+                break;
+            }
+            case 2: {
+                const el2 = resolvePath(path);
+                if (el2 && el2.removeAttribute) {
+                    el2.removeAttribute(op.n);
+                    syncFormProperty(el2, op.n, "", false);
+                }
+                break;
+            }
+            case 3: {
+                const tn = resolvePath(path);
+                if (tn) tn.textContent = op.v == null ? "" : op.v;
+                break;
+            }
+            case 4: {
+                // InsertSubtree requires the new subtree's HTML fragment. Until the
+                // server-side HtmlSerializer captures per-frame byte offsets, the diff
+                // codec filters InsertSubtree out at choose-payload time and ships
+                // full HTML for structural changes — so reaching this branch means a
+                // future server, older client. Bail to full reload so the user isn't
+                // stranded on a stale tree.
+                if (typeof op.v !== "string") {
+                    console.warn("[Rask] InsertSubtree without payload — falling back to full reload");
+                    location.reload();
+                    return;
+                }
+                const parentPath = path.slice(0, path.length - 1);
+                const slot = path[path.length - 1];
+                const parent = resolvePath(parentPath);
+                if (!parent) break;
+                const tpl = document.createElement("template");
+                tpl.innerHTML = op.v;
+                const refNode = parent.childNodes[slot] || null;
+                while (tpl.content.firstChild) parent.insertBefore(tpl.content.firstChild, refNode);
+                break;
+            }
+            case 5: {
+                const rmParentPath = path.slice(0, path.length - 1);
+                const rmSlot = path[path.length - 1];
+                const rmParent = resolvePath(rmParentPath);
+                if (!rmParent) break;
+                const n = op.l || 1;
+                for (let r = 0; r < n; r++) {
+                    const v = rmParent.childNodes[rmSlot];
+                    if (!v) break;
+                    rmParent.removeChild(v);
+                }
+                break;
+            }
+            default:
+                console.warn("[Rask] Unknown diff op kind: " + op.k);
+                location.reload();
+                return;
+        }
+    }
+}
+
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
+    // Diff-mode payload: apply ops directly against the live DOM. Still flow
+    // history below so SPA navigation continues to work alongside the diff.
+    if (reply.kind === "diff" && Array.isArray(reply.ops)) {
+        applyDiff(reply.ops);
+        applyHistory(reply.history);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+        return;
+    }
     let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
         const doc = new DOMParser().parseFromString(reply.html, "text/html");

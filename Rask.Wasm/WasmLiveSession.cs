@@ -34,6 +34,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     private string? _lastCssHashSent;
     private string? _lastJsHashSent;
 
+    // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in.
+    // Default path (DisabledFull) pays nothing for these.
+    private SessionRenderCache? _renderCache;
+    private List<EditOp>? _diffOps;
+
     // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
     // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
     // releasing the lock — catches state mutated by dispose callbacks that fire AFTER ToHtml
@@ -382,10 +387,35 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             }
         }
 
+        // Diff-codec path: capture the parallel RenderFrame[] stream during render so
+        // we can ship a minimal edit-op payload instead of the whole document. Default
+        // (LiveDiffMode.DisabledFull) bypasses entirely — null FrameSinkScope on entry,
+        // single null check per HtmlSerializer branch, zero overhead.
+        var diffMode = LiveOptions.DiffMode;
+        FrameWriter? frameWriter = null;
+        FrameSinkScope.Popper framePopper = default;
+        if (diffMode != LiveDiffMode.DisabledFull)
+        {
+            _renderCache ??= new SessionRenderCache();
+            frameWriter = _renderCache.PrepareCurrentBuffer();
+            framePopper = FrameSinkScope.Push(frameWriter);
+        }
+
         // The App component owns the full page (Doctype + Html + Head + Body). Send the whole
         // document so the JS runtime can morph <head> too — title, stylesheet <link>s, and the
         // scoped-css <link> would otherwise stay frozen at whatever the static index.html shipped.
-        var html = View.RenderAsLiveRoot(Services, publishOnly);
+        string html;
+        try
+        {
+            html = View.RenderAsLiveRoot(Services, publishOnly);
+        }
+        finally
+        {
+            if (frameWriter is not null)
+            {
+                framePopper.Dispose();
+            }
+        }
 
         var currentHash = ScopedCssRegistry.CurrentHash;
         string? cssText = null;
@@ -409,15 +439,83 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             download = pd;
         }
 
-        // BuildPayloadUtf8WithRoot fuses InjectRootAttr + payload write on UTF-8 bytes,
-        // emitting the whole document (head + body) so the JS-side morph against
-        // document.documentElement can update head children. Writes into the pooled
-        // _writeBuffer so the per-render ArrayBufferWriter allocation is gone; the
-        // ToArray at the end is still needed today because the JS interop boundary
-        // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
         _writeBuffer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null, download,
-            jsText);
+
+        // Decide payload shape. The diff path fires only when the flag is opted in,
+        // we have a prior render to diff against, the diff is supported client-side
+        // (no InsertSubtree/RemoveSubtree until HTML fragments wire in), and none of
+        // the out-of-band side effects (cssText/jsText hashbump, download) need to
+        // flow — those aren't carried by the diff wire format yet.
+        var usedDiff = false;
+        // Conservative gate (mirrors server LiveSession): the diff path covers
+        // in-place state changes only. Side effects (cssText/jsText/download) and
+        // history changes (navigation) and structural ops route to the full-HTML
+        // morph path until a property/state-aware applier lands.
+        // `diffPathEntered` tracks whether we called TryComputeDiff (which internally
+        // rotates buffers regardless of return value) — important so the fallback
+        // Snapshot below doesn't double-rotate and strand _previous=null.
+        var diffPathEntered = false;
+        if (frameWriter is not null && _renderCache is not null
+            && cssText is null && jsText is null && download is null
+            && historyUrl is null)
+        {
+            _diffOps ??= new List<EditOp>();
+            diffPathEntered = true;
+            if (_renderCache.TryComputeDiff(_diffOps, html)
+                && _diffOps.Count > 0
+                && DiffOpsAreClientSupported(_diffOps))
+            {
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
+                var diffBytes = _writeBuffer.WrittenCount;
+
+                // Same threshold as the server: ship diff when it's ≤ 25% of the rendered
+                // HTML byte size, or unconditionally under Forced. Otherwise drop the diff
+                // bytes and fall through to the full-HTML build below.
+                if (diffMode == LiveDiffMode.Forced || diffBytes * 4 < html.Length)
+                {
+                    usedDiff = true;
+                }
+                else
+                {
+                    _writeBuffer.ResetWrittenCount();
+                }
+            }
+        }
+
+        if (!usedDiff)
+        {
+            // BuildPayloadUtf8WithRoot fuses InjectRootAttr + payload write on UTF-8 bytes,
+            // emitting the whole document (head + body) so the JS-side morph against
+            // document.documentElement can update head children. Writes into the pooled
+            // _writeBuffer so the per-render ArrayBufferWriter allocation is gone; the
+            // ToArray at the end is still needed today because the JS interop boundary
+            // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null,
+                download, jsText);
+            // Only Snapshot when TryComputeDiff was NOT called — otherwise it already
+            // rotated buffers and a second Snapshot here would strand _previous=null,
+            // breaking the next render's diff with a silent NRE inside DispatchAsync's
+            // try/catch (manifests as `result is empty` to callers).
+            if (!diffPathEntered)
+            {
+                _renderCache?.Snapshot();
+            }
+        }
+
         return (_writeBuffer.WrittenSpan.ToArray(), html);
+    }
+
+    private static bool DiffOpsAreClientSupported(List<EditOp> ops)
+    {
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var kind = ops[i].Kind;
+            if (kind == EditOpKind.InsertSubtree || kind == EditOpKind.RemoveSubtree)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

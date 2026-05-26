@@ -15,12 +15,15 @@ namespace Rask.Benchmarks;
 public class LivePayloadUtf8Benchmarks
 {
     private string _html = null!;
+    private string _largeHtml = null!;
     private ArrayBufferWriter<byte> _pooledWriter = null!;
+    private ArrayBufferWriter<byte> _largeWriter = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         _pooledWriter = new ArrayBufferWriter<byte>(32 * 1024);
+        _largeWriter = new ArrayBufferWriter<byte>(128 * 1024);
 
         var rows = new StringBuilder();
         for (var i = 0; i < 200; i++)
@@ -32,6 +35,24 @@ public class LivePayloadUtf8Benchmarks
         }
 
         _html = "<!doctype html><html><head><title>Bench</title></head><body>" + rows + "</body></html>";
+
+        // ~10 KB rendered body — captures the rent-twice + GetBytes-twice cost in
+        // BuildPayloadUtf8Spliced (LivePayload.cs:226-311) at a payload size where the
+        // splice buffer no longer fits in the LOH-avoiding 4 KiB initial rent. Bench
+        // item 5 in the plan (single-pass UTF-8 write) should drop both rent count
+        // and total bytes allocated for this case.
+        var largeRows = new StringBuilder();
+        for (var i = 0; i < 1000; i++)
+        {
+            largeRows.Append("<div class=\"row\" id=\"r").Append(i)
+                .Append("\"><span class=\"label\">Item ").Append(i)
+                .Append("</span><a href=\"/item/").Append(i)
+                .Append("\" class=\"lnk\">open ").Append(i)
+                .Append("</a><input type=\"text\" name=\"f").Append(i)
+                .Append("\" value=\"v").Append(i).Append("\"></div>");
+        }
+
+        _largeHtml = "<!doctype html><html><head><title>Bench</title></head><body>" + largeRows + "</body></html>";
     }
 
     [Benchmark(Baseline = true)]
@@ -56,5 +77,17 @@ public class LivePayloadUtf8Benchmarks
         _pooledWriter.ResetWrittenCount();
         LivePayload.BuildPayloadUtf8WithBody(_pooledWriter, _html, "session-bench", null, false);
         return _pooledWriter.WrittenCount;
+    }
+
+    [Benchmark]
+    public int LargeBodyPayload()
+    {
+        // ~10 KB body / 1000 rows. Trips the double-rent path in BuildPayloadUtf8Spliced
+        // (one rent for UTF-8 of the html, one rent for the spliced output). The bench
+        // exists to make the single-pass-UTF-8 rewrite (plan item 5) measurable: target
+        // metric is total allocated bytes, secondary metric is rent count.
+        _largeWriter.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8WithBody(_largeWriter, _largeHtml, "session-bench", null, false);
+        return _largeWriter.WrittenCount;
     }
 }
