@@ -71,6 +71,29 @@ internal static class ParityCheck
         }
     }
 
+    /// <summary>
+    ///     Asserts two Rask trees produce structurally equivalent HTML. Used by the
+    ///     stateful-counter scenario to confirm the cached-rows variant renders the
+    ///     same output as the rebuild-each-time factory — without that check, a
+    ///     regression in <see cref="StatefulLargePageWithCounter"/> would silently
+    ///     ship better diff-codec numbers against a divergent tree.
+    /// </summary>
+    public static void AssertRaskTreesMatch(string scenarioName, Component left, Component right)
+    {
+        var leftFp = Fingerprint(left.ToHtml());
+        var rightFp = Fingerprint(right.ToHtml());
+
+        if (!FingerprintMatches(leftFp, rightFp))
+        {
+            throw new ParityException(
+                $"[{scenarioName}] Rask trees diverged.\n" +
+                $"  Left tags: {leftFp.TagSummary}\n" +
+                $"  Right tags: {rightFp.TagSummary}\n" +
+                $"  Left text len: {leftFp.TotalTextLength}\n" +
+                $"  Right text len: {rightFp.TotalTextLength}");
+        }
+    }
+
     private static Fp Fingerprint(string html)
     {
         var stripped = RaskScopeAttr.Replace(html, string.Empty);

@@ -22,17 +22,48 @@ Deterministic — no measurement noise. Each row is one incremental update from 
 |---|---:|---:|---:|---:|---:|
 | CounterOnLargePage | 44,403 | **57** | 186 | 779× | **3.26×** Rask wins |
 | TextNodeUpdate | 44,186 | **66** | 193 | 669× | **2.92×** Rask wins |
+| AttributeUpdate | 56,553 | **74** | 140 | 764× | **1.89×** Rask wins |
+| AppendRow | 12,530 | **184** | 224 | 68× | **1.22×** Rask wins |
 | KeyedList100Reorder | 12,406 | 205 | **128** | 60× | 0.62× Blazor wins |
+| DeleteMiddleRow | 12,284 | 4,609 | **96** | 2.7× | 0.02× Blazor wins |
+| Lifecycle_Insert100 | **14,106** | 17,493 | 24,604 | 0.8× | **1.41×** Rask wins¹ |
+| Lifecycle_Remove100 | **226** | 2,823 | 2,080 | 0.1× | **9.20×** Rask wins¹ |
+| VirtualizationScroll | 1,377 | 815 | 193² | 1.7× | 0.24×² |
+
+¹ `Lifecycle_Insert100` / `Lifecycle_Remove100`: the diff codec loses to full-HTML
+on these structural-churn cases. The "Rask Full" column shows what the production
+`DiffMode.Auto` gate actually ships (`diffBytes * 4 < html.Length` falls back to
+full HTML), so the comparison readers should use is `min(diff, full)` vs Blazor —
+14,106 vs 24,604 = 1.41× on insert, 226 vs 2,080 = 9.2× on remove.
+
+² `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain
+`@for` loop and the "diff" is a single text-node update; the Rask side renders
+~10 visible rows through `Virtualize` and ships a scroll-induced window shift.
+The numbers reflect what each renderer pays in their respective best case, not
+a like-for-like comparison — see the
+[VirtualizationScroll caveat in §Blazor flavors covered](#blazor-flavors-covered).
 
 - **CounterOnLargePage** and **TextNodeUpdate** are the scenarios the Rask diff codec
   was designed for — one small value mutates inside a large unchanged DOM. The
   frame-diff path emits a single `UpdateText` op; Blazor's `RenderBatch` still ships
   the rendered text plus the surrounding string table. Rask ships ~3× fewer bytes.
-- **KeyedList100Reorder** is Blazor's sharpest case: its compile-time sequence-number
-  diff encodes the keyed move as ~2 ops over a small reference-frame array. Rask
-  emits 4 ops via the runtime differ; the on-wire size carries the JSON envelope
-  overhead and the keyed-row attribute names. Blazor wins this one. **Closing the
-  gap is on the perf backlog.**
+- **AttributeUpdate** flips one `data-*` value on a 100-element × 20-attr tree.
+  Rask emits one `SetAttribute` op; Blazor's batch carries the same write plus the
+  surrounding string-table delta. **Rask 1.89×.**
+- **AppendRow** at the end of a 100-row keyed list: the differ correctly recognises
+  the trailing insert and emits one `InsertSubtree` op. **Rask 1.22×.**
+- **KeyedList100Reorder** and **DeleteMiddleRow** are both Blazor wins for the same
+  reason: Rask's runtime differ does positional sibling matching and ignores
+  `data-rask-key`, so a swap or mid-list delete becomes N text+attr rewrites instead
+  of a structural move. Blazor's compile-time sequence-number diff catches the keyed
+  pattern. **Closing the gap is on the perf backlog** — see
+  [Known gaps](#known-gaps--keyed-list-and-mid-list-mutations) for the diagnostic
+  dump and candidate fixes.
+- **Lifecycle_Insert100** / **Lifecycle_Remove100**: structural churn (100 children
+  mount or unmount). The diff codec loses to full-HTML on these — the production
+  `Auto` mode gate (`diffBytes * 4 < html.Length`) ships the full HTML instead.
+  Comparing `min(diff, full)` against Blazor, Rask wins both directions (1.41× on
+  insert, 9.2× on remove).
 
 The "Rask Full" column is the byte count of the full-HTML payload Rask would have
 shipped before the diff codec existed (`BuildPayloadUtf8WithRoot`). The "Rask Diff"
@@ -83,7 +114,21 @@ the v1 implementation but called out in the plan as the contingency.
 Static `HtmlRenderer` covers the render-hot-path scope. The `Renderer`-subclass
 batch-capture path covers Blazor Server and stands in for Blazor WASM (both runtimes
 share the same `RenderBatch` wire shape; the transport differs but the bytes don't).
-A separate WASM-only startup-cost bench (Mono in-proc) is deferred to a follow-up.
+
+A separate WASM-only startup-cost bench (Mono in-proc) remains deferred. BDN's
+`MonoRuntime` job targets full-framework Mono, not `dotnet-mono`/`browser-wasm` 10;
+a faithful WASM-on-Mono startup measurement needs the in-browser Mono runtime, which
+has no supported in-process BDN host. A synthetic proxy (cold-render under
+`WebAssemblyRenderer` with stubbed JS interop) wouldn't represent real WASM startup,
+so the contingency for those numbers is to consume the Mono team's published WASM
+startup figures rather than synthesize our own here.
+
+`Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize<T>` is similarly
+not represented as a head-to-head case — it reads viewport size via JS interop and
+renders zero rows in-proc. The `VirtualizationScroll` scenario compares Rask's
+windowed `Virtualize` against a Blazor `@for` loop that renders all rows; the
+takeaway is the bytes savings windowing buys, which is what an application author
+actually chooses between when reaching for virtualization.
 
 ## Scope 1 — Render hot path
 
@@ -99,6 +144,8 @@ Benchmark classes (one per scenario so BDN can assign Blazor as the [Baseline]):
 - `RenderHotPath_CounterBenchmarks`
 - `RenderHotPath_NestedTreeBenchmarks` (50-deep)
 - `RenderHotPath_LargePageBenchmarks` (200 rows + counter)
+- `RenderHotPath_AttributeHeavyBenchmarks` with `[Params(20, 50)]` (100 attribute-heavy elements)
+- `RenderHotPath_VirtualizedListBenchmarks` (1,000 rows, Rask `Virtualize` vs Blazor `@for`)
 
 Smoke-run numbers (`--job short`):
 
@@ -118,25 +165,33 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffP
 ```
 
 Benchmark classes (one per scenario):
-- `LiveDiffPayload_CounterOnLargePageBenchmarks`
+- `LiveDiffPayload_CounterOnLargePageBenchmarks` — stateful Rask root mutates one counter cell
 - `LiveDiffPayload_TextNodeUpdateBenchmarks`
-- `LiveDiffPayload_KeyedList100ReorderBenchmarks`
+- `LiveDiffPayload_AttributeUpdateBenchmarks` — single `data-*` flip on a 20-attr × 100-element tree
+- `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (Blazor wins; see Known gaps)
+- `LiveDiffPayload_AppendRowBenchmarks` — append one row at end of 100-row keyed list
+- `LiveDiffPayload_DeleteMiddleRowBenchmarks` — remove row index 50 from 100-row keyed list (Blazor wins; see Known gaps)
+- `LiveDiffPayload_VirtualizationScrollBenchmarks` — Rask scroll shift vs Blazor one-row text change
+- `LifecycleMountUnmountBenchmarks` — toggle 100 user-Component children in/out of the tree
 
 All bench methods return `long` (byte count) so BDN reports wire bytes as "Mean".
 
-Smoke-run end-to-end cost of producing one diff payload (`--job short`):
+End-to-end cost of producing one diff payload — `LiveDiffPayload_CounterOnLargePage`
+after the stateful-counter harness fix (default job):
 
 | Scenario | Blazor mean | Rask mean | Blazor allocs | Rask allocs |
 |---|---:|---:|---:|---:|
-| CounterOnLargePage | 140 µs | **98 µs** (0.70×) | 229 KB | 621 KB |
+| CounterOnLargePage | 138.7 μs | **45.2 μs** (0.33×) | 228 KB | **95.5 KB** (0.42×) |
 
-Rask is ~30% faster end-to-end producing the diff payload, but allocates more memory
-per iteration. The extra Rask allocations are the per-iteration tree rebuild
-(`List<Child>` + 200 row components) — Blazor only re-renders an existing tree with
-new parameters. To remove that asymmetry, the Rask bench would need a stateful
-component that mutates without rebuilding the static rows. **That's a perf follow-up
-on the backlog**, not a property of the diff codec itself (the diff codec's own
-allocation is bounded by reused pooled buffers; see `SessionRenderCache`).
+**Rask 3.07× faster end-to-end and allocates 0.42× of Blazor.** Pre-Step 1 the Rask
+side was at 98 μs / 621 KB, but the 621 KB measured tree rebuild rather than the
+diff codec — the harness now holds a stateful root (`StatefulLargePageWithCounter`)
+that caches rows in `Render()` and only re-renders the counter cell, mirroring the
+production `LiveSession` shape where a stateful page mutates one field. The diff
+codec's own allocation is bounded by reused pooled buffers (`SessionRenderCache`);
+see `Components/StatefulLargePageWithCounter.cs` for the cached-rows pattern.
+
+_Last pinned: 2026-05-26, .NET 10.0.5, BDN 0.14.0, Apple M4 Pro_
 
 ## Scope 3 — Live session / WS dispatch (in-proc)
 
@@ -163,6 +218,16 @@ Smoke-run numbers (`--job short`):
 
 **Rask 2.66× faster** on the dispatch + small-tree diff, slightly fewer allocations.
 
+> **Default-job pinning blocked.** Running this scope at BDN's default job hangs on
+> the Blazor side: `Microsoft.AspNetCore.Components.RenderTree.Renderer` schedules
+> its `UpdateDisplayAsync` continuation through the dispatcher's task queue, which
+> the BDN child process measures as inflated per-iteration wall-clock (observed:
+> 14 min on a single method before timeout). The Rask side runs at the smoke-pinned
+> 880 ns/op under default job. Until a BDN job configuration that disables
+> dispatcher scheduling cleanly is in place, this scope stays on `--job short`.
+> Rask numbers were independently verified at default-job from partial output
+> (`WorkloadWarmup ~885 ns/op` matches the smoke pin to within noise).
+
 ## Scope 4 — Startup / per-component cost
 
 ```
@@ -173,6 +238,69 @@ Benchmarks:
 - `StartupAndPerComponentBenchmarks.{Blazor,Rask}_Activate_Counter` — single component instantiation
 - `StartupAndPerComponentBenchmarks.{Blazor,Rask}_FirstRender_Counter` — cold component → HTML string
 
+Numbers not pinned here yet — the same BDN/Renderer dispatcher interaction that
+blocks Scope 3 default-job pinning affects FirstRender benchmarks (Blazor's
+`HtmlRenderer` path uses the same dispatcher). Run with `--job short` for a
+deterministic-enough comparison; expect Rask ~1.5–2× faster on Activate (no DI
+container overhead for the bench's parameterless component) and within noise of
+Blazor on FirstRender.
+
+## Known gaps — keyed list and mid-list mutations
+
+The Rask differ does **positional** sibling matching: index N in the old tree maps
+to index N in the new tree, and the differ either mutates that node's attrs/text or
+emits a structural insert/remove. `data-rask-key` attribute values flow through as
+ordinary `SetAttribute` ops; the differ does not inspect them to recognise a keyed
+move. Two scenarios surface this:
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- keyed-list-dump
+```
+
+**KeyedList100Reorder** (rows 5 and 95 swapped):
+
+```
+SetAttribute  path=1.0.0.5   name=data-rask-key  value.len=2  74 bytes
+UpdateText    path=1.0.0.5.0.0                   value.len=7  63 bytes
+SetAttribute  path=1.0.0.95  name=data-rask-key  value.len=1  74 bytes
+UpdateText    path=1.0.0.95.0.0                  value.len=6  63 bytes
+```
+
+4 ops, 205 bytes wire total. Rask is treating the swap as "row 5's content
+changed to row 95's content" rather than recognising a structural reorder.
+
+**DeleteMiddleRow** (row index 50 removed from a 100-row list):
+
+```
+SetAttribute / UpdateText pairs for indices 50..98 (49 rows × 2 ops = 98 ops)
+RemoveSubtree path=1.0.0.99
+```
+
+99 ops, 4609 bytes wire total. The differ rewrites every row after the deletion
+point with the content of the row below it, then trims the tail. Blazor's
+sequence-number diff catches this as a single keyed remove and ships 96 bytes.
+
+### Candidate fixes (recorded for the backlog, not implemented here)
+
+1. **Keyed sibling matching in `FrameDiffer`.** When elements at a position carry
+   `data-rask-key`, look ahead to find a matching key before falling back to
+   positional update. Catches reorder and mid-list delete cleanly; emits a few
+   `RemoveSubtree`/`InsertSubtree` ops instead of N text+attr rewrites.
+2. **Positional per-op JSON encoding.** Today each op encodes as
+   `{"k":N,"p":[...],"n":"...","v":"...","l":N}`. Switching to a positional array
+   `[k,p,n,v,l]` (or `[k,p]` for ops without name/value/length) drops `"k":`,
+   `"p":`, `"n":`, `"v":`, `"l":` (≈ 20 bytes per op for typical ops). Estimated
+   20–30% reduction across every diff payload, not just keyed-list cases.
+3. **Per-payload attribute-name interning.** `data-rask-key` (and other repeated
+   attribute names on row-shaped diffs) is duplicated in every `SetAttribute`'s
+   wire form. A tiny per-payload symbol table — emit each repeated name once and
+   reference it by index — would cut the attribute-heavy diff cost without
+   protocol-incompatible op-kind changes.
+
+The diagnostic itself lives in `Reports/KeyedListDiffDump.cs` and runs against
+both `KeyedList100Reorder` and `DeleteMiddleRow` so future investigations have a
+self-contained reproduction.
+
 ## Reproduction
 
 ```bash
@@ -181,9 +309,17 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor
 
 # Filter to one scope
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffPayload*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*RenderHotPath*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveSessionDispatch*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Lifecycle*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Virtualization*'
 
 # Deterministic bytes CSV (no BDN measurement noise)
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes
+
+# KeyedList / DeleteMiddleRow diff-op breakdown (no BDN noise)
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- keyed-list-dump
 
 # Smoke run
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --job short

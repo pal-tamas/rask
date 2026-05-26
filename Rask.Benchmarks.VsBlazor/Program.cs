@@ -8,5 +8,10 @@ if (args.Length >= 1 && args[0] == "payload-bytes")
     return Rask.Benchmarks.VsBlazor.Reports.VsBlazorPayloadBytesReport.Run(args);
 }
 
+if (args.Length >= 1 && args[0] == "keyed-list-dump")
+{
+    return Rask.Benchmarks.VsBlazor.Reports.KeyedListDiffDump.Run(args);
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 return 0;

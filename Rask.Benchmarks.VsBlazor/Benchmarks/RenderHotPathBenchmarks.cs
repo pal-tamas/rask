@@ -107,3 +107,22 @@ public class RenderHotPath_LargePageBenchmarks : RenderHotPathBase
     [Benchmark]
     public string Rask_Render() => LargePageWithCounter.BuildRask(1).ToHtml();
 }
+
+[MemoryDiagnoser]
+public class RenderHotPath_AttributeHeavyBenchmarks : RenderHotPathBase
+{
+    // 20 attrs = 3 universal (class/id/style) + 17 data-*; 50 attrs = 3 + 47 data-*.
+    // 100 elements per render. The 20-attr point matches the typical design-system
+    // wrapper page (Tailwind + data-test-id + ARIA); the 50-attr point stress-tests
+    // the encode/append loop.
+    [Params(20, 50)] public int AttrCount { get; set; }
+
+    [Benchmark(Baseline = true)]
+    public string Blazor_Render() => RenderBlazor<AttributeHeavyElements.BlazorAttributeHeavy>(new Dictionary<string, object?>
+    {
+        [nameof(AttributeHeavyElements.BlazorAttributeHeavy.AttrCount)] = AttrCount
+    });
+
+    [Benchmark]
+    public string Rask_Render() => AttributeHeavyElements.BuildRask(AttrCount).ToHtml();
+}
