@@ -329,6 +329,11 @@ Override `OnMountAsync` (runs once per instance) or `OnPropsChangedAsync` (runs 
 triggers an automatic re-render after the continuation, so a loading placeholder turns into real data with no manual
 `StateHasChanged()`.
 
+The runtime coalesces these into **one payload per handler dispatch**, and the terminal auto re-render is a
+*publish-only* walk that won't re-fire `OnRendered` on components that already rendered. That keeps an
+`OnRenderedAsync` hook which awaits a next-frame JS call (e.g. drawing a chart) from looping on itself —
+newly-mounted children still get their first `OnRendered(firstRender: true)`.
+
 ```csharp
 [Route("/weather")]
 public sealed class Weather(IWeatherForecastService service) : Component
@@ -784,15 +789,45 @@ On **WASM**, the standard Blazor-WASM trimming constraint applies: `T` in `Invok
 call site (via `[DynamicallyAccessedMembers]` or a `JsonSerializerContext`). JSON primitives (`bool`, `int`, `long`,
 `double`, `string`) are always safe. Server has no such constraint.
 
+### Live rendering & the diff codec
+
+A Rask app stays live after the first paint: the server pushes re-renders over a WebSocket, and WASM re-renders in the
+browser — the **same component code drives both**, only the transport differs. When state changes (an event handler
+mutates a field, an `await` resolves), the runtime renders the tree again and reconciles the DOM in place.
+
+What it sends on the wire is the interesting part. The first render ships the full HTML. After that, a small state
+change ships a **minimal edit-op payload** — a handful of text / attribute / subtree operations the client walks
+against the live DOM — instead of re-serializing the whole body. A counter tick on a large page goes from the entire
+rendered document to a few dozen bytes: an order-of-magnitude saving on every interaction, with no change to how you
+write components.
+
+This is on by default. `LiveDiffMode.Auto` (the framework default) uses a choose-smaller heuristic: ship the diff when
+it beats the full HTML on bytes, otherwise fall back to full HTML transparently. You don't opt in — but you can tune it:
+
+```csharp
+// Server
+builder.Services.AddRask(o => o.DiffMode = LiveDiffMode.Auto);   // default; choose-smaller
+
+// WASM
+var host = WasmHostBuilder.CreateDefault(o => o.DiffMode = LiveDiffMode.Auto);
+```
+
+The other modes are `LiveDiffMode.DisabledFull` (always full HTML — bit-for-bit pre-codec behaviour) and
+`LiveDiffMode.Forced` (always diff when one is computable; for tests/benchmarks). The codec is transparent to your
+components and is exercised end-to-end on both hosts by the Playwright E2E suite.
+
 ### Lifecycle reference
 
 | Hook                                     | When                                                                                        |
 |------------------------------------------|---------------------------------------------------------------------------------------------|
 | `OnMount` / `OnMountAsync`               | Once, on first instance creation                                                            |
 | `OnPropsChanged` / `OnPropsChangedAsync` | Every render after props are applied                                                        |
-| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag                                               |
+| `OnRendered` / `OnRenderedAsync`         | After every render, with a `firstRender` flag; skipped on publish-only walks (loop-safe)    |
 | `OnUnmount` / `OnUnmountAsync`           | Once, on disposal (children before parents); the lifetime `CancellationToken` is still live |
 | `StateHasChanged()`                      | Call to force a re-render outside an event handler                                          |
+
+The post-`await` auto re-render is a *publish-only* walk that does not re-fire `OnRendered`/`OnRenderedAsync` on
+already-rendered components, so an async hook that awaits a next-frame side effect won't loop (see **Async data**).
 
 ## Status
 
@@ -803,7 +838,9 @@ Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** 
   the validation packages, plus a Playwright E2E smoke suite (`Rask.Examples.E2E.Tests`) that runs against both
   example hosts.
 - **Benchmarks:** baselines for the render hot path live in `Rask.Benchmarks` (BenchmarkDotNet); committed reports
-  under `BenchmarkDotNet.Artifacts/results/`.
+  under `BenchmarkDotNet.Artifacts/results/`. `Rask.Benchmarks.VsBlazor` adds a head-to-head suite measuring Rask
+  against Blazor on shared scenarios — render throughput and the wire-efficiency the [diff codec](#live-rendering--the-diff-codec)
+  buys on live updates.
 - **Trimming:** `Rask.Example.Wasm` publishes with zero IL warnings. See `CLAUDE.md` for the contract that keeps it
   that way.
 
