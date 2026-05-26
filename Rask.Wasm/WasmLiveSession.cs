@@ -519,14 +519,18 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         return (_writeBuffer.WrittenSpan.ToArray(), html);
     }
 
-    // Structural ops route to full-HTML morph. See LiveSession's identically-named
-    // helper for the e2e-driven rationale.
+    // Structural ops route to full-HTML morph unless EditOp.Trusted is set (which the
+    // keyed-matching path in FrameDiffer marks for Move/Insert/Remove). See LiveSession's
+    // identically-named helper for the rationale on positional-vs-keyed safety.
     private static bool DiffOpsAreClientSupported(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)
         {
-            var kind = ops[i].Kind;
-            if (kind == EditOpKind.InsertSubtree || kind == EditOpKind.RemoveSubtree)
+            var op = ops[i];
+            if ((op.Kind == EditOpKind.InsertSubtree
+                 || op.Kind == EditOpKind.RemoveSubtree
+                 || op.Kind == EditOpKind.MoveSubtree)
+                && !op.Trusted)
             {
                 return false;
             }

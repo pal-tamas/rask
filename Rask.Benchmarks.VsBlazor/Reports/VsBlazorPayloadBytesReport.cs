@@ -23,15 +23,220 @@ internal static class VsBlazorPayloadBytesReport
 
         ReportCounterOnLargePage();
         ReportTextNodeUpdate();
+        ReportDeepTreeCounterUpdate();
         ReportKeyedListReorder();
+        ReportKeyedListReversal();
+        ReportNestedKeyedReorder();
+        ReportInputTypingBurst();
+        ReportClassToggle();
+        ReportMultiAttributeUpdate();
+        ReportAttributeBurstUpdate();
         ReportAttributeUpdate();
         ReportAppendRow();
+        ReportKeyedListLargeAppend();
         ReportDeleteMiddleRow();
+        ReportConditionalRenderingToggle();
         ReportLifecycleInsert100();
         ReportLifecycleRemove100();
         ReportVirtualizationScroll();
 
         return 0;
+    }
+
+    private static void ReportAttributeBurstUpdate()
+    {
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(AttributeBurstUpdate.BuildRask(false));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(AttributeBurstUpdate.BuildRask(true));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(AttributeBurstUpdate.BuildRask(true));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(AttributeBurstUpdate.BlazorAttributeBurst.Loaded)] = false
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(AttributeBurstUpdate.BlazorAttributeBurst.Loaded)] = true
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<AttributeBurstUpdate.BlazorAttributeBurst>(before, after);
+
+        EmitRow("AttributeBurstUpdate", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportMultiAttributeUpdate()
+    {
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(ThemeSwitch.BuildRask(false));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ThemeSwitch.BuildRask(true));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(ThemeSwitch.BuildRask(true));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ThemeSwitch.BlazorThemeSwitch.Dark)] = false
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ThemeSwitch.BlazorThemeSwitch.Dark)] = true
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<ThemeSwitch.BlazorThemeSwitch>(before, after);
+
+        EmitRow("MultiAttributeUpdate", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportClassToggle()
+    {
+        const int fromIndex = 0;
+        const int toIndex = 1;
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(ClassToggle.BuildRask(fromIndex));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ClassToggle.BuildRask(toIndex));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(ClassToggle.BuildRask(toIndex));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ClassToggle.BlazorClassToggle.ActiveIndex)] = fromIndex
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ClassToggle.BlazorClassToggle.ActiveIndex)] = toIndex
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<ClassToggle.BlazorClassToggle>(before, after);
+
+        EmitRow("ClassToggle", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportConditionalRenderingToggle()
+    {
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(ConditionalPanel.BuildRask(false));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ConditionalPanel.BuildRask(true));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(ConditionalPanel.BuildRask(true));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ConditionalPanel.BlazorConditionalPanel.ShowPanel)] = false
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ConditionalPanel.BlazorConditionalPanel.ShowPanel)] = true
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<ConditionalPanel.BlazorConditionalPanel>(before, after);
+
+        EmitRow("ConditionalRenderingToggle", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportInputTypingBurst()
+    {
+        const string fieldB = "field B initial";
+        const string fieldC = "field C initial";
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(FormInputTyping.BuildRask("abc", fieldB, fieldC));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(FormInputTyping.BuildRask("abcd", fieldB, fieldC));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(FormInputTyping.BuildRask("abcd", fieldB, fieldC));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(FormInputTyping.BlazorFormInputTyping.A)] = "abc",
+            [nameof(FormInputTyping.BlazorFormInputTyping.B)] = fieldB,
+            [nameof(FormInputTyping.BlazorFormInputTyping.C)] = fieldC
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(FormInputTyping.BlazorFormInputTyping.A)] = "abcd",
+            [nameof(FormInputTyping.BlazorFormInputTyping.B)] = fieldB,
+            [nameof(FormInputTyping.BlazorFormInputTyping.C)] = fieldC
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<FormInputTyping.BlazorFormInputTyping>(before, after);
+
+        EmitRow("InputTypingBurst", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportDeepTreeCounterUpdate()
+    {
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(DeepTreeCounter.BuildRask(0));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(DeepTreeCounter.BuildRask(1));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(DeepTreeCounter.BuildRask(1));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(DeepTreeCounter.BlazorDeepTreeCounter.Counter)] = 0
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(DeepTreeCounter.BlazorDeepTreeCounter.Counter)] = 1
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<DeepTreeCounter.BlazorDeepTreeCounter>(before, after);
+
+        EmitRow("DeepTreeCounterUpdate", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportKeyedListReversal()
+    {
+        const int rowCount = 50;
+        var forwardOrder = new int[rowCount];
+        var reverseOrder = new int[rowCount];
+        for (var i = 0; i < rowCount; i++)
+        {
+            forwardOrder[i] = i;
+            reverseOrder[i] = rowCount - 1 - i;
+        }
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(KeyedList.BuildRask(forwardOrder));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(reverseOrder));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(reverseOrder));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = forwardOrder
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = reverseOrder
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+
+        EmitRow("KeyedList50Reversal", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportNestedKeyedReorder()
+    {
+        var orderBefore = new int[NestedKeyedList.OuterCardCount];
+        for (var i = 0; i < orderBefore.Length; i++)
+        {
+            orderBefore[i] = i;
+        }
+
+        var orderAfter = (int[])orderBefore.Clone();
+        (orderAfter[3], orderAfter[17]) = (orderAfter[17], orderAfter[3]);
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(NestedKeyedList.BuildRask(orderBefore));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(NestedKeyedList.BuildRask(orderAfter));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(NestedKeyedList.BuildRask(orderAfter));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(NestedKeyedList.BlazorNestedKeyedList.OuterOrder)] = orderBefore
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(NestedKeyedList.BlazorNestedKeyedList.OuterOrder)] = orderAfter
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<NestedKeyedList.BlazorNestedKeyedList>(before, after);
+
+        EmitRow("NestedKeyedReorder", raskFull, raskDiff, blazorBytes);
     }
 
     private static void ReportVirtualizationScroll()
@@ -137,6 +342,41 @@ internal static class VsBlazorPayloadBytesReport
         var blazorBytes = blazor.MeasureIncrementalUpdate<AppendDeleteRowChurn.BlazorAppendDeleteList>(before, after);
 
         EmitRow("AppendRow", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportKeyedListLargeAppend()
+    {
+        const int baseRows = 100;
+        const int appendCount = 50;
+        var baseOrder = new int[baseRows];
+        for (var i = 0; i < baseOrder.Length; i++)
+        {
+            baseOrder[i] = i;
+        }
+
+        var largeOrder = new int[baseRows + appendCount];
+        for (var i = 0; i < largeOrder.Length; i++)
+        {
+            largeOrder[i] = i;
+        }
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(KeyedList.BuildRask(baseOrder));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(largeOrder));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(largeOrder));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = baseOrder
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = largeOrder
+        });
+        var blazorBytes = blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+
+        EmitRow("KeyedListLargeAppend", raskFull, raskDiff, blazorBytes);
     }
 
     private static void ReportDeleteMiddleRow()

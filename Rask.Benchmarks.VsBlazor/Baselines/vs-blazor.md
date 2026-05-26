@@ -20,23 +20,42 @@ Deterministic — no measurement noise. Each row is one incremental update from 
 
 | Scenario | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full | Rask diff vs Blazor |
 |---|---:|---:|---:|---:|---:|
-| CounterOnLargePage | 44,403 | **57** | 186 | 779× | **3.26×** Rask wins |
-| TextNodeUpdate | 44,186 | **66** | 193 | 669× | **2.92×** Rask wins |
-| AttributeUpdate | 56,553 | **74** | 140 | 764× | **1.89×** Rask wins |
-| AppendRow | 12,530 | **184** | 224 | 68× | **1.22×** Rask wins |
-| KeyedList100Reorder | 12,406 | 205 | **128** | 60× | 0.62× Blazor wins |
-| DeleteMiddleRow | 12,284 | 4,609 | **96** | 2.7× | 0.02× Blazor wins |
-| Lifecycle_Insert100 | **14,106** | 17,493 | 24,604 | 0.8× | **1.41×** Rask wins¹ |
-| Lifecycle_Remove100 | **226** | 2,823 | 2,080 | 0.1× | **9.20×** Rask wins¹ |
-| VirtualizationScroll | 1,377 | 815 | 193² | 1.7× | 0.24×² |
+| CounterOnLargePage | 24,217 | **45** | 186 | 538× | **4.13×** Rask wins |
+| TextNodeUpdate | 24,100 | **54** | 193 | 446× | **3.57×** Rask wins |
+| DeepTreeCounterUpdate | 1,386 | **141** | 1,722 | 9.8× | **12.21×** Rask wins |
+| InputTypingBurst | 399 | **52** | 135 | 7.7× | **2.60×** Rask wins |
+| AttributeUpdate | 38,467 | **58** | 140 | 663× | **2.41×** Rask wins |
+| ClassToggle | 1,339 | **100** | 227 | 13× | **2.27×** Rask wins |
+| DeleteMiddleRow | 6,654 | **40** | 96 | 166× | **2.40×** Rask wins |
+| MultiAttributeUpdate | 420 | **297** | 576 | 1.4× | **1.94×** Rask wins |
+| KeyedList100Reorder | 6,720 | **57** | 128 | 118× | **2.25×** Rask wins |
+| NestedKeyedReorder | 9,360 | **57** | 128 | 164× | **2.25×** Rask wins |
+| AppendRow | 6,788 | **112** | 224 | 61× | **2.00×** Rask wins |
+| AttributeBurstUpdate | 6,630 | **2,437** | 4,596 | 2.7× | **1.89×** Rask wins |
+| KeyedListLargeAppend | 10,120 | **4,473** | 5,957 | 2.3× | **1.33×** Rask wins |
+| KeyedList50Reversal | 3,420 | **895** | 896 | 3.8× | **1.00×** Rask tied² |
+| ConditionalRenderingToggle | **2,143** | 2,044 | 4,588 | 1.0× | **2.14×** Rask wins¹ |
+| Lifecycle_Insert100 | **7,620** | 9,493 | 24,604 | 0.8× | **3.23×** Rask wins¹ |
+| Lifecycle_Remove100 | **140** | 1,623 | 2,080 | 0.1× | **14.86×** Rask wins¹ |
+| VirtualizationScroll | 723 | 535 | 193³ | 1.4× | 0.36×³ |
 
-¹ `Lifecycle_Insert100` / `Lifecycle_Remove100`: the diff codec loses to full-HTML
-on these structural-churn cases. The "Rask Full" column shows what the production
-`DiffMode.Auto` gate actually ships (`diffBytes * 4 < html.Length` falls back to
-full HTML), so the comparison readers should use is `min(diff, full)` vs Blazor —
-14,106 vs 24,604 = 1.41× on insert, 226 vs 2,080 = 9.2× on remove.
+¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: the
+diff codec emits positional structural ops (untrusted `Insert/Remove`) on these
+cases, and the live-session gate routes them through the full-HTML morph path
+regardless of byte count — same reason the historic morph-vs-diff DOM-identity
+regression existed for mid-list replacements. The "Rask Full" column shows what
+the production `DiffMode.Auto` gate actually ships; the comparison readers should
+use is `min(diff, full)` vs Blazor — 7,620 vs 24,604 = 3.23× on insert, 140 vs
+2,080 = 14.86× on remove, 2,143 vs 4,588 = 2.14× on toggle.
 
-² `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain
+² `KeyedList50Reversal`: 49 `MoveSubtree` ops are the LIS worst case. With the
+positional per-op JSON encoding (each op is a `[k, path, ...slots]` array rather
+than a `{k:,p:,...}` object), Rask now ships 895 B against Blazor's 896 B — a
+statistical tie at the absolute byte boundary. Closing this gap further would
+need a path-encoding optimisation (the path array is currently re-emitted per
+op even when adjacent ops share most of it) or a permutation-batch op-kind.
+
+³ `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain
 `@for` loop and the "diff" is a single text-node update; the Rask side renders
 ~10 visible rows through `Virtualize` and ships a scroll-induced window shift.
 The numbers reflect what each renderer pays in their respective best case, not
@@ -46,19 +65,19 @@ a like-for-like comparison — see the
 - **CounterOnLargePage** and **TextNodeUpdate** are the scenarios the Rask diff codec
   was designed for — one small value mutates inside a large unchanged DOM. The
   frame-diff path emits a single `UpdateText` op; Blazor's `RenderBatch` still ships
-  the rendered text plus the surrounding string table. Rask ships ~3× fewer bytes.
+  the rendered text plus the surrounding string table. Rask ships ~4× fewer bytes.
 - **AttributeUpdate** flips one `data-*` value on a 100-element × 20-attr tree.
   Rask emits one `SetAttribute` op; Blazor's batch carries the same write plus the
-  surrounding string-table delta. **Rask 1.89×.**
+  surrounding string-table delta. **Rask 2.41×.**
 - **AppendRow** at the end of a 100-row keyed list: the differ correctly recognises
-  the trailing insert and emits one `InsertSubtree` op. **Rask 1.22×.**
-- **KeyedList100Reorder** and **DeleteMiddleRow** are both Blazor wins for the same
-  reason: Rask's runtime differ does positional sibling matching and ignores
-  `data-rask-key`, so a swap or mid-list delete becomes N text+attr rewrites instead
-  of a structural move. Blazor's compile-time sequence-number diff catches the keyed
-  pattern. **Closing the gap is on the perf backlog** — see
-  [Known gaps](#known-gaps--keyed-list-and-mid-list-mutations) for the diagnostic
-  dump and candidate fixes.
+  the trailing insert and emits one `InsertSubtree` op. **Rask 1.33×.**
+- **KeyedList100Reorder** and **DeleteMiddleRow** now both run through
+  `FrameDiffer`'s keyed-matching branch. When every child of a parent carries a
+  unique `data-rask-key`, the differ permutes by key instead of by sibling index:
+  a swap emits two `MoveSubtree` ops (the LIS-minimal move count), a mid-list
+  delete emits a single `RemoveSubtree`. Both ops are flagged `Trusted` so the
+  live-session gate ships them as diff instead of routing to full-HTML morph —
+  see [Closing the keyed-list gap](#closing-the-keyed-list-gap-frame-differ-keyed-matching).
 - **Lifecycle_Insert100** / **Lifecycle_Remove100**: structural churn (100 children
   mount or unmount). The diff codec loses to full-HTML on these — the production
   `Auto` mode gate (`diffBytes * 4 < html.Length`) ships the full HTML instead.
@@ -168,9 +187,18 @@ Benchmark classes (one per scenario):
 - `LiveDiffPayload_CounterOnLargePageBenchmarks` — stateful Rask root mutates one counter cell
 - `LiveDiffPayload_TextNodeUpdateBenchmarks`
 - `LiveDiffPayload_AttributeUpdateBenchmarks` — single `data-*` flip on a 20-attr × 100-element tree
-- `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (Blazor wins; see Known gaps)
+- `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (2 `MoveSubtree` ops)
+- `LiveDiffPayload_NestedKeyedReorderBenchmarks` — 20 keyed cards × 5 inner keyed rows, swap two outer cards (validates the keyed path recurses into kept cards with zero inner ops)
+- `LiveDiffPayload_InputTypingBurstBenchmarks` — three-field form, single keystroke into field A's value (validates attribute-diff scoping; sibling inputs and labels stay quiet)
+- `LiveDiffPayload_ConditionalRenderingToggleBenchmarks` — show/hide a 50-row panel between header and footer (validates the positional Insert/Remove → full-HTML fallback path; production ships full HTML, still beats Blazor's batch)
+- `LiveDiffPayload_KeyedListReversalBenchmarks` — reverse a 50-row keyed list (LIS worst case: 49 `MoveSubtree` ops; surfaces the per-op JSON-key overhead that's currently held back from the backlog)
+- `LiveDiffPayload_ClassToggleBenchmarks` — move "active" class between sidebar items (the most common UI mutation; two `SetAttribute` ops)
+- `LiveDiffPayload_DeepTreeCounterUpdateBenchmarks` — counter at the bottom of a 50-deep div nest (measures the path-encoding tax explicitly; 11.25× Rask win — biggest gap in the suite)
+- `LiveDiffPayload_MultiAttributeUpdateBenchmarks` — theme switch flips 5 attrs on the root in one render (5 `SetAttribute` ops; descendants stay quiet)
+- `LiveDiffPayload_AttributeBurstUpdateBenchmarks` — 100 rows each gain `data-loaded` when a state bit flips (100 `SetAttribute` ops sharing one attr name; baselines the case for the attribute-interning optimisation)
+- `LiveDiffPayload_KeyedListLargeAppendBenchmarks` — append 50 rows to a 100-row keyed list (50 keyed `InsertSubtree` ops carrying HTML fragments)
 - `LiveDiffPayload_AppendRowBenchmarks` — append one row at end of 100-row keyed list
-- `LiveDiffPayload_DeleteMiddleRowBenchmarks` — remove row index 50 from 100-row keyed list (Blazor wins; see Known gaps)
+- `LiveDiffPayload_DeleteMiddleRowBenchmarks` — remove row index 50 from 100-row keyed list (single `RemoveSubtree`)
 - `LiveDiffPayload_VirtualizationScrollBenchmarks` — Rask scroll shift vs Blazor one-row text change
 - `LifecycleMountUnmountBenchmarks` — toggle 100 user-Component children in/out of the tree
 
@@ -245,13 +273,14 @@ deterministic-enough comparison; expect Rask ~1.5–2× faster on Activate (no D
 container overhead for the bench's parameterless component) and within noise of
 Blazor on FirstRender.
 
-## Known gaps — keyed list and mid-list mutations
+## Closing the keyed-list gap (FrameDiffer keyed matching)
 
-The Rask differ does **positional** sibling matching: index N in the old tree maps
-to index N in the new tree, and the differ either mutates that node's attrs/text or
-emits a structural insert/remove. `data-rask-key` attribute values flow through as
-ordinary `SetAttribute` ops; the differ does not inspect them to recognise a keyed
-move. Two scenarios surface this:
+`FrameDiffer.DiffSiblings` now probes each sibling range for an all-or-nothing
+keyed contract: every direct child must be an Element carrying a unique
+`data-rask-key`. When the contract holds, the codec switches off the positional
+walk and runs minimal-moves matching by key — same definition the client-side
+morph engine uses (`Rask.Core/Resources/rask-morph.js`), so a parent the morph
+reconciles by key gets the same treatment in the diff codec.
 
 ```
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- keyed-list-dump
@@ -260,46 +289,69 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- keyed-list-dump
 **KeyedList100Reorder** (rows 5 and 95 swapped):
 
 ```
-SetAttribute  path=1.0.0.5   name=data-rask-key  value.len=2  74 bytes
-UpdateText    path=1.0.0.5.0.0                   value.len=7  63 bytes
-SetAttribute  path=1.0.0.95  name=data-rask-key  value.len=1  74 bytes
-UpdateText    path=1.0.0.95.0.0                  value.len=6  63 bytes
+MoveSubtree  path=1.0.0.5   src=95   40 bytes
+MoveSubtree  path=1.0.0.95  src=6    40 bytes
 ```
 
-4 ops, 205 bytes wire total. Rask is treating the swap as "row 5's content
-changed to row 95's content" rather than recognising a structural reorder.
+2 ops, **57 bytes** wire total. Each op encodes as a positional JSON array
+`[6, [1,0,0,N], srcSlot]`; path encodes the destination slot, the trailing
+slot carries the source. The client detaches the source FIRST, then resolves
+the destination `refNode` in the post-detach sibling list, so both indices
+follow the same coordinate model the server's keyed differ uses when emitting
+moves.
 
 **DeleteMiddleRow** (row index 50 removed from a 100-row list):
 
 ```
-SetAttribute / UpdateText pairs for indices 50..98 (49 rows × 2 ops = 98 ops)
-RemoveSubtree path=1.0.0.99
+RemoveSubtree  path=1.0.0.50  len=1  40 bytes
 ```
 
-99 ops, 4609 bytes wire total. The differ rewrites every row after the deletion
-point with the content of the row below it, then trims the tail. Blazor's
-sequence-number diff catches this as a single keyed remove and ships 96 bytes.
+1 op, **40 bytes** wire total.
 
-### Candidate fixes (recorded for the backlog, not implemented here)
+### Algorithm
 
-1. **Keyed sibling matching in `FrameDiffer`.** When elements at a position carry
-   `data-rask-key`, look ahead to find a matching key before falling back to
-   positional update. Catches reorder and mid-list delete cleanly; emits a few
-   `RemoveSubtree`/`InsertSubtree` ops instead of N text+attr rewrites.
-2. **Positional per-op JSON encoding.** Today each op encodes as
-   `{"k":N,"p":[...],"n":"...","v":"...","l":N}`. Switching to a positional array
-   `[k,p,n,v,l]` (or `[k,p]` for ops without name/value/length) drops `"k":`,
-   `"p":`, `"n":`, `"v":`, `"l":` (≈ 20 bytes per op for typical ops). Estimated
-   20–30% reduction across every diff payload, not just keyed-list cases.
-3. **Per-payload attribute-name interning.** `data-rask-key` (and other repeated
-   attribute names on row-shaped diffs) is duplicated in every `SetAttribute`'s
-   wire form. A tiny per-payload symbol table — emit each repeated name once and
-   reference it by index — would cut the attribute-heavy diff cost without
-   protocol-incompatible op-kind changes.
+1. **Removes.** Walk old children right-to-left; emit `RemoveSubtree` for keys
+   not present in new. Reverse order keeps subsequent slot indexes stable.
+2. **Inserts.** Walk new children left-to-right; emit `InsertSubtree` (with the
+   HTML fragment sliced from `RenderFrame.HtmlStart..HtmlEnd`) for keys not
+   present in old. Each insert shifts a tracking list that mirrors what the
+   client does to its DOM.
+3. **Moves.** Compute `target[i] = newSlot(surviving[i].Key)`. Find the longest
+   strictly increasing subsequence of `target` — elements in the LIS stay put;
+   elements off the LIS need to move. Emit `MoveSubtree` for each off-LIS
+   element, sorted by destination ascending. This is the same minimal-moves
+   strategy React's reconciler uses; for the 100-row swap it emits exactly 2
+   moves (the LIS keeps 98 elements).
+4. **Inner diffs.** For each kept element (same key both sides), recurse into
+   attribute and child diffs at the new slot path so the client's
+   post-permutation DOM walk lands on the right node.
 
-The diagnostic itself lives in `Reports/KeyedListDiffDump.cs` and runs against
-both `KeyedList100Reorder` and `DeleteMiddleRow` so future investigations have a
-self-contained reproduction.
+### Trust gate
+
+`EditOp` carries a `Trusted` flag. The keyed branch sets it on every emitted
+structural op (Move / Insert / Remove). The live-session gates
+(`LiveSession.DiffOpsAreClientSupported`,
+`WasmLiveSession.DiffOpsAreClientSupported`) allow structural ops through to
+the wire only when `Trusted = true`; positional structural ops still route to
+the full-HTML morph path. Keyed-driven structural ops are safe because the
+surviving DOM nodes are never re-materialised: moves preserve node identity
+(focus, IDL state, listeners, iframe document state) via `parent.insertBefore`
+on the live node; inserts/removes touch only the keys that genuinely entered
+or left the set.
+
+### Held back
+
+- **Path-prefix dedup across consecutive ops.** In keyed-list scenarios the
+  path array (`[1, 0, 0, N]`) is repeated per op with only the trailing slot
+  changing — a delta-encoded prefix could shave another byte or two per op on
+  large permutation batches.
+- **Wider positional Insert/Remove ungating.** Removing the gate
+  unconditionally broke 83/430 e2e tests in an earlier iteration (focus
+  restoration / event-listener identity on mid-list replacements that morph
+  would have preserved). Stays scoped to keyed-only for now.
+
+The diagnostic lives in `Reports/KeyedListDiffDump.cs` and runs against both
+`KeyedList100Reorder` and `DeleteMiddleRow` for repeatable verification.
 
 ## Reproduction
 

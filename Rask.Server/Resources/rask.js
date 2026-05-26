@@ -49,7 +49,7 @@
             // specific payload. Falls through to history/auth/download handling
             // afterwards so navigation + side effects still flow.
             if (data.kind === "diff" && Array.isArray(data.ops)) {
-                applyDiff(data.ops);
+                applyDiff(data.ops, Array.isArray(data.names) ? data.names : null);
                 if (data.history && typeof data.history.url === "string") {
                     if (data.history.action === "replace") {
                         history.replaceState({rask: true}, "", data.history.url);
@@ -713,9 +713,19 @@
     // (Element, Text, Raw, Doctype) and excluding Attribute frames, which matches
     // the browser's `Node.childNodes` collection semantics for the rendered HTML.
     //
-    // EditOpKind values mirror the C# enum:
-    //   1 = SetAttribute, 2 = RemoveAttribute, 3 = UpdateText,
-    //   4 = InsertSubtree, 5 = RemoveSubtree
+    // Each op is a positional array; the kind at op[0] selects which trailing slots
+    // are present (mirrors LivePayload.BuildPayloadUtf8Diff exactly):
+    //   1 SetAttribute     [k, path, name|idx, value]
+    //   2 RemoveAttribute  [k, path, name|idx]
+    //   3 UpdateText       [k, path, value]
+    //   4 InsertSubtree    [k, path, html, domCount]
+    //   5 RemoveSubtree    [k, path, domCount]
+    //   6 MoveSubtree      [k, path, sourceSlot]
+    //
+    // Names for SetAttribute/RemoveAttribute may arrive as either a string (inline) or
+    // a number that indexes into the optional payload-level "names" array — the server
+    // interns names that appear 2+ times in the same payload to drop the duplicate
+    // string bytes. resolveName() handles either form.
     // Comment nodes shift childNodes indices relative to the server's frame walk.
     // Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
     // match what FrameDiffer counts.
@@ -772,33 +782,44 @@
         }
     }
 
-    function applyDiff(ops) {
+    function applyDiff(ops, names) {
+        function resolveName(raw) {
+            // Server interns names that repeat 2+ times in the same payload — those
+            // arrive as integer indices into the "names" array. Strings pass through.
+            if (typeof raw === "number" && names) return names[raw];
+            return raw;
+        }
+
         for (var i = 0; i < ops.length; i++) {
             var op = ops[i];
-            var path = op.p || [];
-            switch (op.k) {
-                case 1: { // SetAttribute
+            var k = op[0];
+            var path = op[1] || [];
+            switch (k) {
+                case 1: { // SetAttribute [k, path, name|idx, value]
                     var el = resolvePath(path);
                     if (el && el.setAttribute) {
-                        var newVal = op.v == null ? "" : op.v;
-                        el.setAttribute(op.n, newVal);
+                        var name1 = resolveName(op[2]);
+                        var rawVal = op[3];
+                        var newVal = rawVal == null ? "" : rawVal;
+                        el.setAttribute(name1, newVal);
                         // After a form-control has been interacted with, the value
                         // attribute is desynchronised from the .value/.checked property
                         // (the attribute is the *default*, not the current state). Sync
                         // the IDL property too so user-visible state matches the diff.
-                        syncFormProperty(el, op.n, newVal, true);
+                        syncFormProperty(el, name1, newVal, true);
                     }
                     break;
                 }
-                case 2: { // RemoveAttribute
+                case 2: { // RemoveAttribute [k, path, name|idx]
                     var el2 = resolvePath(path);
                     if (el2 && el2.removeAttribute) {
-                        el2.removeAttribute(op.n);
-                        syncFormProperty(el2, op.n, "", false);
+                        var name2 = resolveName(op[2]);
+                        el2.removeAttribute(name2);
+                        syncFormProperty(el2, name2, "", false);
                     }
                     break;
                 }
-                case 3: { // UpdateText
+                case 3: { // UpdateText [k, path, value]
                     var textNode = resolvePath(path);
                     if (textNode) {
                         // Works for Text nodes (nodeType 3) and elements alike. We assign
@@ -809,40 +830,37 @@
                         // the browser parsed. The current diff codec only emits
                         // UpdateText when both sides are the SAME kind (Text vs Text or
                         // Raw vs Raw), so textContent is the right knob.
-                        textNode.textContent = op.v == null ? "" : op.v;
+                        var txtVal = op[2];
+                        textNode.textContent = txtVal == null ? "" : txtVal;
                     }
                     break;
                 }
-                case 4: { // InsertSubtree
-                    // Subtree HTML fragment is op.v (set by the server once
-                    // HtmlSerializer captures per-frame byte offsets). When absent,
-                    // we have a partial diff that can't be applied — log and bail.
-                    if (typeof op.v !== "string") {
+                case 4: { // InsertSubtree [k, path, html, domCount]
+                    var insertHtml = op[2];
+                    if (typeof insertHtml !== "string") {
                         console.warn("[Rask] InsertSubtree without payload — server " +
                             "must include HTML fragment. Falling back to full reload.");
                         location.reload();
                         return;
                     }
-                    // Parent is the node at path[..length-1]; insert before the slot at
-                    // path[length-1] (or at end if slot beyond current children count).
                     var parentPath = path.slice(0, path.length - 1);
                     var slot = path[path.length - 1];
                     var parent = resolvePath(parentPath);
                     if (!parent) break;
                     var template = document.createElement("template");
-                    template.innerHTML = op.v;
+                    template.innerHTML = insertHtml;
                     var refNode = parent.childNodes[slot] || null;
                     while (template.content.firstChild) {
                         parent.insertBefore(template.content.firstChild, refNode);
                     }
                     break;
                 }
-                case 5: { // RemoveSubtree
+                case 5: { // RemoveSubtree [k, path, domCount]
                     var rmParentPath = path.slice(0, path.length - 1);
                     var rmSlot = path[path.length - 1];
                     var rmParent = resolvePath(rmParentPath);
                     if (!rmParent) break;
-                    var removeCount = op.l || 1;
+                    var removeCount = op[2] || 1;
                     for (var r = 0; r < removeCount; r++) {
                         var victim = rmParent.childNodes[rmSlot];
                         if (!victim) break;
@@ -850,10 +868,29 @@
                     }
                     break;
                 }
+                case 6: { // MoveSubtree [k, path, sourceSlot]
+                    // Path encodes parent + destination slot; op[2] is the source slot.
+                    // Detach the source node FIRST, then resolve the destination refNode
+                    // in the post-detach sibling list — that matches how the server's
+                    // keyed differ computes target indices (against the live DOM right
+                    // before the move runs, with the moved node removed).
+                    var mvParentPath = path.slice(0, path.length - 1);
+                    var mvDst = path[path.length - 1];
+                    var mvParent = resolvePath(mvParentPath);
+                    if (!mvParent) break;
+                    var mvSrcRaw = op[2];
+                    var mvSrc = mvSrcRaw == null ? 0 : mvSrcRaw;
+                    var mvNode = relevantChild(mvParent, mvSrc);
+                    if (!mvNode) break;
+                    mvParent.removeChild(mvNode);
+                    var mvRef = relevantChild(mvParent, mvDst);
+                    mvParent.insertBefore(mvNode, mvRef);
+                    break;
+                }
                 default:
                     // Unknown op kind — newer server, older client. Bail to full reload
                     // so the user isn't stranded on a stale tree.
-                    console.warn("[Rask] Unknown diff op kind: " + op.k);
+                    console.warn("[Rask] Unknown diff op kind: " + k);
                     location.reload();
                     return;
             }

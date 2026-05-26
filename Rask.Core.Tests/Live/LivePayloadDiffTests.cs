@@ -5,8 +5,10 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-// Locks in the diff wire format. The JSON shape here is the contract the client
-// interpreter (rask.js applyDiff) reads from. Changes need to update both sides.
+// Locks in the diff wire format. Each op is a positional JSON array whose shape is
+// fixed per kind — the client interpreter (rask.js / rask.wasm.js applyDiff) reads
+// op[0] for the kind, op[1] for the path, and trailing slots by position per kind.
+// Changes to this contract must update both interpreters in lockstep.
 public class LivePayloadDiffTests
 {
     [Fact]
@@ -32,21 +34,153 @@ public class LivePayloadDiffTests
         var opsArr = root.GetProperty("ops").EnumerateArray().ToList();
         Assert.Equal(4, opsArr.Count);
 
-        Assert.Equal((int)EditOpKind.UpdateText, opsArr[0].GetProperty("k").GetInt32());
-        var path0 = opsArr[0].GetProperty("p").EnumerateArray().Select(e => e.GetInt32()).ToArray();
-        Assert.Equal(new[] { 0, 1, 0 }, path0);
-        Assert.Equal("new value", opsArr[0].GetProperty("v").GetString());
+        // UpdateText: [k, path, value]
+        Assert.Equal((int)EditOpKind.UpdateText, opsArr[0][0].GetInt32());
+        Assert.Equal(new[] { 0, 1, 0 }, opsArr[0][1].EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal("new value", opsArr[0][2].GetString());
 
-        Assert.Equal((int)EditOpKind.SetAttribute, opsArr[1].GetProperty("k").GetInt32());
-        Assert.Equal("class", opsArr[1].GetProperty("n").GetString());
-        Assert.Equal("row-active", opsArr[1].GetProperty("v").GetString());
+        // SetAttribute: [k, path, name, value]
+        Assert.Equal((int)EditOpKind.SetAttribute, opsArr[1][0].GetInt32());
+        Assert.Equal("class", opsArr[1][2].GetString());
+        Assert.Equal("row-active", opsArr[1][3].GetString());
 
-        Assert.Equal((int)EditOpKind.RemoveAttribute, opsArr[2].GetProperty("k").GetInt32());
-        Assert.Equal("disabled", opsArr[2].GetProperty("n").GetString());
-        Assert.False(opsArr[2].TryGetProperty("v", out _));
+        // RemoveAttribute: [k, path, name]
+        Assert.Equal((int)EditOpKind.RemoveAttribute, opsArr[2][0].GetInt32());
+        Assert.Equal("disabled", opsArr[2][2].GetString());
+        Assert.Equal(3, opsArr[2].GetArrayLength());
 
-        Assert.Equal((int)EditOpKind.RemoveSubtree, opsArr[3].GetProperty("k").GetInt32());
-        Assert.Equal(5, opsArr[3].GetProperty("l").GetInt32());
+        // RemoveSubtree: [k, path, domCount]
+        Assert.Equal((int)EditOpKind.RemoveSubtree, opsArr[3][0].GetInt32());
+        Assert.Equal(5, opsArr[3][2].GetInt32());
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_MoveSubtree_EncodesSourceSlot()
+    {
+        // MoveSubtree's source slot lives at op[2]. Source slot 0 is a legitimate
+        // value (the moved node was at the first position), so the encoder must
+        // emit it even when zero — otherwise the client would read undefined and
+        // pick the wrong source.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.MoveSubtree, new[] { 1, 0 }, null, null, length: 7, trusted: true),
+            new(EditOpKind.MoveSubtree, new[] { 1, 3 }, null, null, length: 0, trusted: true)
+        };
+
+        var output = new ArrayBufferWriter<byte>(128);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var opsArr = doc.RootElement.GetProperty("ops").EnumerateArray().ToList();
+
+        Assert.Equal((int)EditOpKind.MoveSubtree, opsArr[0][0].GetInt32());
+        Assert.Equal(7, opsArr[0][2].GetInt32());
+
+        Assert.Equal((int)EditOpKind.MoveSubtree, opsArr[1][0].GetInt32());
+        Assert.Equal(0, opsArr[1][2].GetInt32());
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_InsertSubtree_EncodesHtmlAndDomCount()
+    {
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.InsertSubtree, new[] { 0, 2 }, null, "<li>new</li>", length: 1, trusted: true)
+        };
+
+        var output = new ArrayBufferWriter<byte>(128);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var op = doc.RootElement.GetProperty("ops")[0];
+
+        // InsertSubtree: [k, path, html, domCount]
+        Assert.Equal((int)EditOpKind.InsertSubtree, op[0].GetInt32());
+        Assert.Equal("<li>new</li>", op[2].GetString());
+        Assert.Equal(1, op[3].GetInt32());
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_SetAttribute_NullValueEncodesAsNull()
+    {
+        // Bare HTML attributes (`disabled`, `required`) carry no value. The positional
+        // format must still emit a slot so the client reads name and value from the
+        // expected indices.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.SetAttribute, new[] { 0 }, "disabled", null)
+        };
+
+        var output = new ArrayBufferWriter<byte>(64);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var op = doc.RootElement.GetProperty("ops")[0];
+
+        Assert.Equal((int)EditOpKind.SetAttribute, op[0].GetInt32());
+        Assert.Equal("disabled", op[2].GetString());
+        Assert.Equal(JsonValueKind.Null, op[3].ValueKind);
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_InternsAttributeNamesAppearingThreeOrMoreTimes()
+    {
+        // Three SetAttribute ops sharing "data-loaded" → emit one "names" entry, ops
+        // reference it by integer index. Saves the duplicate name bytes on the wire.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.SetAttribute, new[] { 0, 0 }, "data-loaded", "true"),
+            new(EditOpKind.SetAttribute, new[] { 0, 1 }, "data-loaded", "true"),
+            new(EditOpKind.SetAttribute, new[] { 0, 2 }, "data-loaded", "true")
+        };
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        // names table is present with the interned attribute name.
+        var names = root.GetProperty("names").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(new[] { "data-loaded" }, names);
+
+        // Each op's name slot is now a number (the index into names), not a string.
+        foreach (var op in root.GetProperty("ops").EnumerateArray())
+        {
+            Assert.Equal(JsonValueKind.Number, op[2].ValueKind);
+            Assert.Equal(0, op[2].GetInt32());
+        }
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_NamesAppearingOnceOrTwice_StayInline()
+    {
+        // Below the 3-occurrence interning threshold: each name stays inline as a
+        // string, no "names" envelope is emitted. Keeps small diffs from paying the
+        // table-overhead tax that would net-cost bytes on payloads with no repetition.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.SetAttribute, new[] { 0, 0 }, "class", "a"),
+            new(EditOpKind.SetAttribute, new[] { 0, 1 }, "class", "b"),
+            new(EditOpKind.SetAttribute, new[] { 0, 2 }, "style", "color:red"),
+        };
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.False(root.TryGetProperty("names", out _));
+        foreach (var op in root.GetProperty("ops").EnumerateArray())
+        {
+            Assert.Equal(JsonValueKind.String, op[2].ValueKind);
+        }
     }
 
     [Fact]

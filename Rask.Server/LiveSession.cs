@@ -565,20 +565,23 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // uses for an honest browser-supplied jsResult. Used when the WS send fails after the
     // queue is already cleared. Best-effort: a missing runtime / dispatcher throw means we
     // log and move on; the original send exception is the meaningful one for the caller.
-    // Structural ops (InsertSubtree/RemoveSubtree) route to the full-HTML morph
-    // path. Naive applyDiff inserts/removes children correctly, but the surrounding
-    // DOM-state contracts (focus restoration on a re-inserted input, dialog open
-    // state, event-listener identity on swapped subtrees, conditional rendering
-    // across routes) need morph-quality book-keeping. Removing this gate in an
-    // earlier iteration broke 83/430 e2e tests; reinstated until applyDiff hits
-    // morph parity. SetAttribute / RemoveAttribute / UpdateText are unaffected —
-    // those are in-place mutations applyDiff handles cleanly.
+    // Structural ops (Insert/Remove/Move) route to the full-HTML morph path UNLESS they
+    // were produced by FrameDiffer's keyed-matching branch (EditOp.Trusted=true). Keyed
+    // matching identifies survivors by data-rask-key, so a structural op only fires when
+    // a node truly entered or left the keyed set — focus/listener/IDL state on surviving
+    // nodes stays intact (Moves don't materialise new DOM, they re-parent the same node).
+    // Positional structural ops can replace mid-list elements that the morph would have
+    // preserved, which broke 83/430 e2e tests in an earlier iteration that ungated them
+    // unconditionally — that's why we still route those through the full-HTML path.
     private static bool DiffOpsAreClientSupported(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)
         {
-            var kind = ops[i].Kind;
-            if (kind == EditOpKind.InsertSubtree || kind == EditOpKind.RemoveSubtree)
+            var op = ops[i];
+            if ((op.Kind == EditOpKind.InsertSubtree
+                 || op.Kind == EditOpKind.RemoveSubtree
+                 || op.Kind == EditOpKind.MoveSubtree)
+                && !op.Trusted)
             {
                 return false;
             }

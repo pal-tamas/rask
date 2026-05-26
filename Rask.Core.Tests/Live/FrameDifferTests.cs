@@ -173,6 +173,237 @@ public class FrameDifferTests
         Assert.Null(insert.Value);
     }
 
+    // ----- Keyed-list path -------------------------------------------------------------
+    // A parent whose every direct child is a keyed Element (data-rask-key) triggers
+    // FrameDiffer's keyed-matching branch instead of the positional sibling walk. The
+    // payoff is bounded by Blazor's KeyedList100Reorder / DeleteMiddleRow scenarios:
+    // a row swap should be 2 MoveSubtree ops (not 4× SetAttribute + UpdateText), and
+    // a middle-row delete should be a single RemoveSubtree (not 99 ops trip the gate
+    // into full-HTML fallback).
+
+    [Fact]
+    public void Diff_KeyedList_RowsSwapped_EmitsTwoMoveOpsWithTrustedFlag()
+    {
+        var before = Frames(BuildKeyedRows(0, 1, 2, 3));
+        var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 3, 2, 1));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.True(usedKeyed);
+        // The minimal-moves strategy: LIS keeps {k0, k2} (or equivalent); the two
+        // off-LIS elements (k1, k3) each take one move. So exactly two MoveSubtree ops.
+        Assert.Equal(2, ops.Count);
+        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+        Assert.All(ops, op => Assert.True(op.Trusted, "Keyed moves must be marked Trusted so the live-session gate doesn't divert to full HTML."));
+    }
+
+    [Fact]
+    public void Diff_KeyedList_MiddleRowDeleted_EmitsSingleTrustedRemove()
+    {
+        var before = Frames(BuildKeyedRows(0, 1, 2, 3, 4));
+        var afterFrames = Frames(BuildKeyedRows(0, 1, 3, 4));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        var remove = Assert.Single(ops);
+        Assert.Equal(EditOpKind.RemoveSubtree, remove.Kind);
+        Assert.True(remove.Trusted);
+        Assert.Equal(1, remove.Length);
+        // Path = [0 (Ul), 2 (slot of k2 in old)].
+        Assert.Equal(new[] { 0, 2 }, remove.Path);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_RowAppended_EmitsSingleTrustedInsertWithHtml()
+    {
+        var before = Frames(BuildKeyedRows(0, 1, 2));
+        var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 1, 2, 3));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.True(usedKeyed);
+        var insert = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
+        Assert.True(insert.Trusted);
+        Assert.NotNull(insert.Value);
+        Assert.Contains("data-rask-key=\"3\"", insert.Value!);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_RowPrepended_EmitsSingleTrustedInsertAtSlotZero()
+    {
+        var before = Frames(BuildKeyedRows(1, 2, 3));
+        var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 1, 2, 3));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.True(usedKeyed);
+        var insert = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
+        Assert.True(insert.Trusted);
+        // Path = [0 (Ul), 0 (insert before slot 0)].
+        Assert.Equal(new[] { 0, 0 }, insert.Path);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_IdenticalRows_ProducesZeroOps()
+    {
+        var before = Frames(BuildKeyedRows(0, 1, 2, 3));
+        var afterFrames = Frames(BuildKeyedRows(0, 1, 2, 3));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        // Even when no ops are emitted, the keyed path was probed and ran — usedKeyedPath
+        // reflects "did keyed matching get used", not "did it produce structural ops".
+        Assert.True(usedKeyed);
+        Assert.Empty(ops);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_SameRowInnerTextChanged_RecursesAtNewSlotPath()
+    {
+        // k1's inner text changes from "Item 1" → "Item 1!". The keyed match recognises
+        // k1 stays at slot 1 and recurses for the inner UpdateText. Path coords reference
+        // the NEW slot, so the client's post-permutation DOM walk lands on the right node.
+        var before = Frames(BuildKeyedRowsWithLabel(("0", "Item 0"), ("1", "Item 1"), ("2", "Item 2")));
+        var afterFrames = Frames(BuildKeyedRowsWithLabel(("0", "Item 0"), ("1", "Item 1!"), ("2", "Item 2")));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        var update = Assert.Single(ops);
+        Assert.Equal(EditOpKind.UpdateText, update.Kind);
+        Assert.Equal("Item 1!", update.Value);
+        // Path: [0=Ul, 1=second Li, 0=its text child].
+        Assert.Equal(new[] { 0, 1, 0 }, update.Path);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_PartialKeys_FallsBackToPositional()
+    {
+        // One child without data-rask-key drops the whole parent back to the positional
+        // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
+        // codec doesn't disagree with the client about which path applied.
+        var before = Frames(C.Ul()[
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
+            (Child)C.Li()["two"]
+        ]);
+        var afterFrames = Frames(C.Ul()[
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
+            (Child)C.Li()["two"]
+        ]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.False(usedKeyed);
+        // Positional walk still produces the correct in-place update.
+        var update = Assert.Single(ops);
+        Assert.Equal(EditOpKind.UpdateText, update.Kind);
+        Assert.Equal("one!", update.Value);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_DuplicateKeys_FallsBackToPositional()
+    {
+        var before = Frames(C.Ul()[
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        ]);
+        var afterFrames = Frames(C.Ul()[
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        ]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.False(usedKeyed);
+        var update = Assert.Single(ops);
+        Assert.Equal(EditOpKind.UpdateText, update.Kind);
+    }
+
+    [Fact]
+    public void Diff_KeyedList_SameKeyDifferentTag_EmitsTrustedRemoveAndInsert()
+    {
+        // Same data-rask-key but the element kind changed (Li → Span). The keyed branch
+        // treats this as a fresh node: remove the old, insert the new at the same slot.
+        // Both ops carry Trusted so the gate ships them as diff.
+        var before = Frames(C.Ul()[
+            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
+        ]);
+        var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[
+            (Child)C.Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
+        ]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.True(usedKeyed);
+        Assert.Equal(2, ops.Count);
+        Assert.Equal(EditOpKind.RemoveSubtree, ops[0].Kind);
+        Assert.Equal(EditOpKind.InsertSubtree, ops[1].Kind);
+        Assert.All(ops, op => Assert.True(op.Trusted));
+    }
+
+    [Fact]
+    public void Diff_KeyedList_HundredRowSwap_EmitsTwoMoves_NotNinetyRewrites()
+    {
+        // The headline scenario — KeyedList100Reorder: swap rows 5 and 95 in a 100-row
+        // list. Positional diff emits 2 SetAttribute + 2 UpdateText (205 bytes vs
+        // Blazor's 128). Keyed matching emits exactly 2 MoveSubtree ops.
+        var orderBefore = new int[100];
+        var orderAfter = new int[100];
+        for (var i = 0; i < 100; i++)
+        {
+            orderBefore[i] = i;
+            orderAfter[i] = i;
+        }
+        (orderAfter[5], orderAfter[95]) = (orderAfter[95], orderAfter[5]);
+
+        var before = Frames(BuildKeyedRows(orderBefore));
+        var afterFrames = Frames(BuildKeyedRows(orderAfter));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        Assert.Equal(2, ops.Count);
+        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+        Assert.All(ops, op => Assert.True(op.Trusted));
+    }
+
+    private static Component BuildKeyedRows(params int[] keys)
+    {
+        var rows = new List<Child>(keys.Length);
+        foreach (var k in keys)
+        {
+            rows.Add(C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+                $"Item {k}"
+            ]);
+        }
+
+        return C.Ul()[rows];
+    }
+
+    private static Component BuildKeyedRowsWithLabel(params (string Key, string Label)[] rows)
+    {
+        var items = new List<Child>(rows.Length);
+        foreach (var (key, label) in rows)
+        {
+            items.Add(C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = key })[label]);
+        }
+
+        return C.Ul()[items];
+    }
+
     private static RenderFrame[] Frames(Component tree)
     {
         var (frames, _) = FramesAndHtml(tree);

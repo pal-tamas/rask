@@ -57,15 +57,27 @@ public sealed class SessionRenderCache : IDisposable
     ///     <see cref="EditOpKind.InsertSubtree" /> ops for the client interpreter.
     /// </summary>
     public bool TryComputeDiff(List<EditOp> output, string? newHtml = null)
+        => TryComputeDiff(output, out _, newHtml);
+
+    /// <summary>
+    ///     Variant that surfaces whether the diff used the keyed-matching path at any depth.
+    ///     The live-session gates (<c>LiveSession.DiffOpsAreClientSupported</c>,
+    ///     <c>WasmLiveSession.DiffOpsAreClientSupported</c>) use this to decide whether to
+    ///     trust structural ops on the wire: keyed-driven Move/Insert/Remove preserve DOM
+    ///     identity on surviving nodes (focus, IDL state, listeners), so they're safe to
+    ///     ship as diff; positional structural ops still route to the full-HTML morph path.
+    /// </summary>
+    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml = null)
     {
         output.Clear();
+        usedKeyedPath = false;
         if (!_hasPrevious || _current is null)
         {
             RotateBuffers();
             return false;
         }
 
-        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, newHtml);
+        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, out usedKeyedPath, newHtml);
         RotateBuffers();
         return true;
     }

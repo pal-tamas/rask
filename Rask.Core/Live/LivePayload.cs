@@ -112,7 +112,7 @@ public static class LivePayload
         string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
-        using var writer = new Utf8JsonWriter(output);
+        using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
         WriteJson(writer, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
     }
 
@@ -212,56 +212,148 @@ public static class LivePayload
 
     /// <summary>
     ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
-    ///     into <paramref name="output" />. The caller has already computed
-    ///     <paramref name="ops" /> via <see cref="FrameDiffer.Diff" /> using a
-    ///     <see cref="SessionRenderCache" />. Per-op JSON shape:
+    ///     into <paramref name="output" />. Each op is a positional JSON array whose
+    ///     shape is fixed per <see cref="EditOpKind" /> — the client dispatches on
+    ///     <c>op[0]</c> (the kind) and reads the remaining slots by position:
     ///     <code>
-    ///         {"k": &lt;EditOpKind&gt;, "i": &lt;frameIndex&gt;,
-    ///          "n": &lt;name|null&gt;, "v": &lt;value|null&gt;,
-    ///          "l": &lt;length|0&gt;}
+    ///         SetAttribute      [k, path[], name, value]
+    ///         RemoveAttribute   [k, path[], name]
+    ///         UpdateText        [k, path[], value]
+    ///         InsertSubtree     [k, path[], html, domCount]
+    ///         RemoveSubtree     [k, path[], domCount]
+    ///         MoveSubtree       [k, path[], sourceSlot]
     ///     </code>
-    ///     Keys are single letters so a 200-byte counter update payload stays a 200-byte
-    ///     counter update payload after JSON overhead. <c>InsertSubtree</c> currently
-    ///     omits the HTML fragment field — that wires in once
-    ///     <see cref="HtmlSerializer" /> exposes per-frame byte offsets.
+    ///     vs the prior <c>{"k":..,"p":..,"n":..,"v":..,"l":..}</c> object shape this
+    ///     drops the four key strings (<c>k</c>, <c>n</c>, <c>v</c>, <c>l</c>) and the
+    ///     <c>p</c> key — ~10–15 bytes/op savings depending on which fields applied.
+    ///     The <c>"kind":"diff"</c> envelope field stays so the client's top-level
+    ///     dispatcher (which also routes full-HTML payloads with <c>"kind":"html"</c>)
+    ///     keeps the same branch shape.
     /// </summary>
+    private static void WriteInternedOrString(Utf8JsonWriter writer, string? name, Dictionary<string, int>? nameIndex)
+    {
+        // null name → JSON null (matches the prior shape; only RemoveAttribute carries a
+        // null Value, never a null Name in practice — but defensive against malformed ops).
+        if (name is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        if (nameIndex is not null && nameIndex.TryGetValue(name, out var idx))
+        {
+            writer.WriteNumberValue(idx);
+            return;
+        }
+
+        writer.WriteStringValue(name);
+    }
+
+    // The Utf8JsonWriter default encoder is HTML-safe — it rewrites `<`, `>`, `&`, `+`,
+    // `'`, and a long list of other characters to `\uXXXX` escapes so the JSON can be
+    // embedded inside an HTML <script> tag without prematurely closing it. Diff payloads
+    // never appear inline in HTML (they flow over the WebSocket and are decoded by
+    // JSON.parse), and InsertSubtree ops carry whole HTML fragments where every `<` and
+    // `>` would otherwise pay a 5× byte tax. UnsafeRelaxedJsonEscaping only escapes the
+    // JSON-required characters (`"`, `\`, control bytes) — JSON.parse on the client
+    // produces the identical string either way, so this is a pure wire-size win.
+    private static readonly JsonWriterOptions DiffWriterOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public static void BuildPayloadUtf8Diff(
         ArrayBufferWriter<byte> output,
         IReadOnlyList<EditOp> ops,
         string? historyUrl = null,
         bool replace = false)
     {
-        using var writer = new Utf8JsonWriter(output);
+        // Pass 1: build the attribute-name symbol table. Intern when the name appears
+        // 3+ times — break-even with the table overhead lands around there for typical
+        // attribute names. Two occurrences of a short name like "class" cost more in the
+        // table slot (`,"names":["class"]` ≈ 18 bytes) than they save in the two op refs
+        // (~12 bytes saved). Three plus is comfortably net-positive for any name length.
+        // Result: scenarios like AttributeBurstUpdate (100 ops sharing one name) drop
+        // the duplicate name to a single integer per op (~1.2 KB saved); small diffs
+        // pay no extra envelope.
+        Dictionary<string, int>? nameIndex = null;
+        Dictionary<string, int>? nameCount = null;
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var op = ops[i];
+            if (op.Name is null) continue;
+            if (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute) continue;
+            nameCount ??= new Dictionary<string, int>(StringComparer.Ordinal);
+            nameCount.TryGetValue(op.Name, out var c);
+            nameCount[op.Name] = c + 1;
+        }
+
+        List<string>? internedNames = null;
+        if (nameCount is not null)
+        {
+            foreach (var kv in nameCount)
+            {
+                if (kv.Value < 3) continue;
+                nameIndex ??= new Dictionary<string, int>(StringComparer.Ordinal);
+                internedNames ??= new List<string>();
+                nameIndex[kv.Key] = internedNames.Count;
+                internedNames.Add(kv.Key);
+            }
+        }
+
+        using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
         writer.WriteStartObject();
         writer.WriteString("kind", "diff");
+
+        if (internedNames is { Count: > 0 })
+        {
+            writer.WriteStartArray("names");
+            foreach (var n in internedNames)
+            {
+                writer.WriteStringValue(n);
+            }
+            writer.WriteEndArray();
+        }
+
         writer.WriteStartArray("ops");
         foreach (var op in ops)
         {
-            writer.WriteStartObject();
-            writer.WriteNumber("k", (int)op.Kind);
-            writer.WriteStartArray("p");
+            writer.WriteStartArray();
+            writer.WriteNumberValue((int)op.Kind);
+
+            writer.WriteStartArray();
             foreach (var step in op.Path)
             {
                 writer.WriteNumberValue(step);
             }
+            writer.WriteEndArray();
+
+            switch (op.Kind)
+            {
+                case EditOpKind.SetAttribute:
+                    WriteInternedOrString(writer, op.Name, nameIndex);
+                    if (op.Value is null) writer.WriteNullValue();
+                    else writer.WriteStringValue(op.Value);
+                    break;
+                case EditOpKind.RemoveAttribute:
+                    WriteInternedOrString(writer, op.Name, nameIndex);
+                    break;
+                case EditOpKind.UpdateText:
+                    if (op.Value is null) writer.WriteNullValue();
+                    else writer.WriteStringValue(op.Value);
+                    break;
+                case EditOpKind.InsertSubtree:
+                    if (op.Value is null) writer.WriteNullValue();
+                    else writer.WriteStringValue(op.Value);
+                    writer.WriteNumberValue(op.Length);
+                    break;
+                case EditOpKind.RemoveSubtree:
+                case EditOpKind.MoveSubtree:
+                    writer.WriteNumberValue(op.Length);
+                    break;
+            }
 
             writer.WriteEndArray();
-            if (op.Name is not null)
-            {
-                writer.WriteString("n", op.Name);
-            }
-
-            if (op.Value is not null)
-            {
-                writer.WriteString("v", op.Value);
-            }
-
-            if (op.Length != 0)
-            {
-                writer.WriteNumber("l", op.Length);
-            }
-
-            writer.WriteEndObject();
         }
 
         writer.WriteEndArray();
@@ -362,7 +454,10 @@ public static class LivePayload
             cursor += suffix.Length;
             cursor += Encoding.UTF8.GetBytes(tailSlice, span[cursor..]);
 
-            using var writer = new Utf8JsonWriter(output);
+            // Same relaxed encoder as the diff path — the WS payload is parsed by JSON.parse,
+            // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
+            // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
+            using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
             WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
         }
         finally

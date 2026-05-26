@@ -92,10 +92,14 @@ public class AuthSignInDispatchTests
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(afterReconnect);
 
-        using var doc2 = JsonDocument.Parse(afterReconnect!);
-        var html = doc2.RootElement.GetProperty("html").GetString()!;
-        Assert.Contains("user=alice", html);
-        Assert.Contains("path=/dashboard", html);
+        // The reconnect render reflects the redeemed identity. Payload may be either a
+        // full-HTML (`kind:"html"`) or a diff (`kind:"diff"` with the new text in an
+        // UpdateText op's value) depending on choose-smaller heuristics — both correct.
+        // Check on the raw JSON so the assertion stays robust across codec decisions.
+        // (`path=/dashboard` was set pre-disconnect and didn't change across the
+        // reconnect's diff, so it would only appear in a full-HTML payload; the
+        // identity is the load-bearing assertion for this test.)
+        Assert.Contains("user=alice", afterReconnect!);
     }
 
     [Fact]

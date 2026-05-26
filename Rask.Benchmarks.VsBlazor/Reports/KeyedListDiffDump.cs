@@ -22,7 +22,26 @@ internal static class KeyedListDiffDump
         DumpScenario("KeyedList100Reorder", BuildKeyedListReorder);
         Console.WriteLine();
         DumpScenario("DeleteMiddleRow", BuildDeleteMiddleRow);
+        Console.WriteLine();
+        DumpScenario("KeyedListLargeAppend", BuildKeyedListLargeAppend);
         return 0;
+    }
+
+    private static (Component Before, Component After) BuildKeyedListLargeAppend()
+    {
+        var baseOrder = new int[100];
+        for (var i = 0; i < baseOrder.Length; i++)
+        {
+            baseOrder[i] = i;
+        }
+
+        var largeOrder = new int[150];
+        for (var i = 0; i < largeOrder.Length; i++)
+        {
+            largeOrder[i] = i;
+        }
+
+        return (KeyedList.BuildRask(baseOrder), KeyedList.BuildRask(largeOrder));
     }
 
     private static (Component Before, Component After) BuildKeyedListReorder()

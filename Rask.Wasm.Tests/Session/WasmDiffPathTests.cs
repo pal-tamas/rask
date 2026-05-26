@@ -64,21 +64,26 @@ public class WasmDiffPathTests
             var kind = doc.RootElement.GetProperty("kind").GetString();
             Assert.Equal("diff", kind);
 
-            // The bumped count value appears as the UpdateText `v` field on some op.
-            // If the diff codec is correct, exactly one op should carry "count={click}".
+            // The bumped count value appears as the UpdateText value slot on some op.
+            // With the positional per-op format each op is `[kind, path, value]` for
+            // UpdateText — so the value lives at op[2], not in a named field.
             var expected = $"count={click}";
             var ops = doc.RootElement.GetProperty("ops").EnumerateArray().ToList();
             var matching = ops.Where(o =>
-                o.TryGetProperty("v", out var v) && v.GetString() == expected).ToList();
+                o.ValueKind == JsonValueKind.Array
+                && o.GetArrayLength() >= 3
+                && o[0].GetInt32() == (int)EditOpKind.UpdateText
+                && o[2].ValueKind == JsonValueKind.String
+                && o[2].GetString() == expected).ToList();
             Assert.True(matching.Count == 1,
-                $"Click {click}: expected exactly one UpdateText op with v=\"{expected}\". "
+                $"Click {click}: expected exactly one UpdateText op with value \"{expected}\". "
                 + $"Got {ops.Count} ops: {doc.RootElement.GetRawText()}");
             // The path's first index addresses document.childNodes. For
             // Fragment[Doctype, Html[...]] there are only 2 top-level frames, so
             // path[0] must be 0 (doctype — but text nodes never live here) or 1
             // (html). The e2e diff log surfaced [6, ...] for the real App, which
             // can't be reached through legitimate frame walking.
-            var path = matching[0].GetProperty("p").EnumerateArray().Select(e => e.GetInt32()).ToArray();
+            var path = matching[0][1].EnumerateArray().Select(e => e.GetInt32()).ToArray();
             Assert.True(path[0] is 0 or 1,
                 $"Click {click}: expected path[0]∈{{0,1}}, got [{string.Join(",", path)}]");
         }

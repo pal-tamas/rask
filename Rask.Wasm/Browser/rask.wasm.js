@@ -522,46 +522,58 @@ function syncFormProperty(el, name, value, isPresent) {
 }
 
 // Diff codec interpreter — mirror of rask.js applyDiff. Applies ops produced by
-// C#-side FrameDiffer.Diff to the live DOM. Path = sequence of childNodes
-// indices from `document`, matching the DOM-relevant-frames walk on the server
-// (Element/Text/Raw/Doctype, no Attribute frames). EditOpKind values:
-//   1 = SetAttribute, 2 = RemoveAttribute, 3 = UpdateText,
-//   4 = InsertSubtree, 5 = RemoveSubtree.
-function applyDiff(ops) {
+// C#-side FrameDiffer.Diff to the live DOM. Each op is a positional JSON array;
+// dispatch on op[0] (the kind) to know which trailing slots are present:
+//   1 SetAttribute     [k, path, name|idx, value]
+//   2 RemoveAttribute  [k, path, name|idx]
+//   3 UpdateText       [k, path, value]
+//   4 InsertSubtree    [k, path, html, domCount]
+//   5 RemoveSubtree    [k, path, domCount]
+//   6 MoveSubtree      [k, path, sourceSlot]
+// Names for SetAttribute/RemoveAttribute may be a string (inline) or a number
+// (index into the optional payload-level "names" array). The server interns
+// names appearing 2+ times in the same payload to drop the duplicate string
+// bytes.
+function applyDiff(ops, names) {
+    const resolveName = (raw) =>
+        (typeof raw === "number" && names) ? names[raw] : raw;
+
     for (let i = 0; i < ops.length; i++) {
         const op = ops[i];
-        const path = op.p || [];
-        switch (op.k) {
-            case 1: {
+        const k = op[0];
+        const path = op[1] || [];
+        switch (k) {
+            case 1: { // SetAttribute [k, path, name|idx, value]
                 const el = resolvePath(path);
                 if (el && el.setAttribute) {
-                    const newVal = op.v == null ? "" : op.v;
-                    el.setAttribute(op.n, newVal);
-                    syncFormProperty(el, op.n, newVal, true);
+                    const name1 = resolveName(op[2]);
+                    const rawVal = op[3];
+                    const newVal = rawVal == null ? "" : rawVal;
+                    el.setAttribute(name1, newVal);
+                    syncFormProperty(el, name1, newVal, true);
                 }
                 break;
             }
-            case 2: {
+            case 2: { // RemoveAttribute [k, path, name|idx]
                 const el2 = resolvePath(path);
                 if (el2 && el2.removeAttribute) {
-                    el2.removeAttribute(op.n);
-                    syncFormProperty(el2, op.n, "", false);
+                    const name2 = resolveName(op[2]);
+                    el2.removeAttribute(name2);
+                    syncFormProperty(el2, name2, "", false);
                 }
                 break;
             }
-            case 3: {
+            case 3: { // UpdateText [k, path, value]
                 const tn = resolvePath(path);
-                if (tn) tn.textContent = op.v == null ? "" : op.v;
+                if (tn) {
+                    const tv = op[2];
+                    tn.textContent = tv == null ? "" : tv;
+                }
                 break;
             }
-            case 4: {
-                // InsertSubtree requires the new subtree's HTML fragment. Until the
-                // server-side HtmlSerializer captures per-frame byte offsets, the diff
-                // codec filters InsertSubtree out at choose-payload time and ships
-                // full HTML for structural changes — so reaching this branch means a
-                // future server, older client. Bail to full reload so the user isn't
-                // stranded on a stale tree.
-                if (typeof op.v !== "string") {
+            case 4: { // InsertSubtree [k, path, html, domCount]
+                const insertHtml = op[2];
+                if (typeof insertHtml !== "string") {
                     console.warn("[Rask] InsertSubtree without payload — falling back to full reload");
                     location.reload();
                     return;
@@ -571,17 +583,17 @@ function applyDiff(ops) {
                 const parent = resolvePath(parentPath);
                 if (!parent) break;
                 const tpl = document.createElement("template");
-                tpl.innerHTML = op.v;
+                tpl.innerHTML = insertHtml;
                 const refNode = parent.childNodes[slot] || null;
                 while (tpl.content.firstChild) parent.insertBefore(tpl.content.firstChild, refNode);
                 break;
             }
-            case 5: {
+            case 5: { // RemoveSubtree [k, path, domCount]
                 const rmParentPath = path.slice(0, path.length - 1);
                 const rmSlot = path[path.length - 1];
                 const rmParent = resolvePath(rmParentPath);
                 if (!rmParent) break;
-                const n = op.l || 1;
+                const n = op[2] || 1;
                 for (let r = 0; r < n; r++) {
                     const v = rmParent.childNodes[rmSlot];
                     if (!v) break;
@@ -589,8 +601,26 @@ function applyDiff(ops) {
                 }
                 break;
             }
+            case 6: { // MoveSubtree [k, path, sourceSlot]
+                // Path encodes parent + destination slot; op[2] is the source slot.
+                // Detach the source FIRST, then resolve the destination refNode against
+                // the post-detach sibling list — same coordinate model the server's
+                // keyed differ uses when computing move targets.
+                const mvParentPath = path.slice(0, path.length - 1);
+                const mvDst = path[path.length - 1];
+                const mvParent = resolvePath(mvParentPath);
+                if (!mvParent) break;
+                const mvSrcRaw = op[2];
+                const mvSrc = mvSrcRaw == null ? 0 : mvSrcRaw;
+                const mvNode = relevantChild(mvParent, mvSrc);
+                if (!mvNode) break;
+                mvParent.removeChild(mvNode);
+                const mvRef = relevantChild(mvParent, mvDst);
+                mvParent.insertBefore(mvNode, mvRef);
+                break;
+            }
             default:
-                console.warn("[Rask] Unknown diff op kind: " + op.k);
+                console.warn("[Rask] Unknown diff op kind: " + k);
                 location.reload();
                 return;
         }
@@ -602,7 +632,7 @@ function handle(reply) {
     // Diff-mode payload: apply ops directly against the live DOM. Still flow
     // history below so SPA navigation continues to work alongside the diff.
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
-        applyDiff(reply.ops);
+        applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
         applyHistory(reply.history);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         return;
