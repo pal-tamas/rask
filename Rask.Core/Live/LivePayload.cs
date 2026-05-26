@@ -290,90 +290,84 @@ public static class LivePayload
         string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        var htmlByteCount = Encoding.UTF8.GetByteCount(html);
-        var htmlBuffer = ArrayPool<byte>.Shared.Rent(htmlByteCount);
-        try
+        // Find <body> bounds on the UTF-16 source. The prior implementation
+        // rented + encoded the entire html to UTF-8 first, scanned the byte span,
+        // then rented a SECOND buffer for the spliced output — two rents and an
+        // extra full-buffer copy per render. Scanning UTF-16 directly via
+        // IndexOfBodyOpen/IndexOfIgnoreCase (both ASCII-needle, vectorised through
+        // string.IndexOf paths) keeps the same matching semantics and lets us
+        // encode straight into one buffer.
+        const int bodyOpenLen = 5; // "<body"
+        var bodyOpenChar = IndexOfBodyOpen(html);
+        if (bodyOpenChar < 0)
         {
-            var written = Encoding.UTF8.GetBytes(html, htmlBuffer);
-            var htmlBytes = htmlBuffer.AsSpan(0, written);
+            BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+            return;
+        }
 
-            const int bodyOpenLen = 5; // "<body"
-            var bodyOpen = IndexOfBodyOpenUtf8(htmlBytes);
-            if (bodyOpen < 0)
+        int sliceStartChar = includeOnlyBody ? bodyOpenChar : 0;
+        int sliceEndChar;
+        if (includeOnlyBody)
+        {
+            var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
+            if (tagEndRel < 0)
             {
-                // No <body> tag — fall back to the string-side payload builder.
                 BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
                 return;
             }
 
-            var sliceStart = includeOnlyBody ? bodyOpen : 0;
-            int sliceEnd;
-            if (includeOnlyBody)
+            var afterOpenTagChar = bodyOpenChar + tagEndRel + 1;
+            var closeCharIdx = IndexOfIgnoreCase(html, "</body>", afterOpenTagChar);
+            if (closeCharIdx < 0)
             {
-                var tagEndRel = htmlBytes[bodyOpen..].IndexOf((byte)'>');
-                if (tagEndRel < 0)
-                {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText,
-                        jsInvokes);
-                    return;
-                }
-
-                var afterOpenTag = bodyOpen + tagEndRel + 1;
-                var closeIdx = IndexOfIgnoreCaseUtf8(htmlBytes, "</body>"u8, afterOpenTag);
-                if (closeIdx < 0)
-                {
-                    BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText,
-                        jsInvokes);
-                    return;
-                }
-
-                sliceEnd = closeIdx + "</body>"u8.Length;
-            }
-            else
-            {
-                sliceEnd = htmlBytes.Length;
+                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+                return;
             }
 
-            var slice = htmlBytes[sliceStart..sliceEnd];
-            var bodyOpenWithinSlice = bodyOpen - sliceStart;
+            sliceEndChar = closeCharIdx + "</body>".Length;
+        }
+        else
+        {
+            sliceEndChar = html.Length;
+        }
 
-            // Build the spliced output in a second rented buffer. Utf8JsonWriter.WriteString
-            // needs a contiguous span — we cannot stream-write the parts.
-            var encodedSessionId = HtmlEncoder.Default.Encode(sessionId);
-            var sidByteCount = Encoding.UTF8.GetByteCount(encodedSessionId);
+        // The splice point is right after "<body". Encode three slices into one
+        // pooled UTF-8 buffer:
+        //   1. html[sliceStartChar .. bodyOpenChar + "<body".Length)   (head incl. "<body")
+        //   2. " data-rask-root=\"{encodedSessionId}\""                (the injection)
+        //   3. html[bodyOpenChar + "<body".Length .. sliceEndChar)     (tail)
+        var headEndChar = bodyOpenChar + bodyOpenLen;
+        var headSlice = html.AsSpan(sliceStartChar, headEndChar - sliceStartChar);
+        var tailSlice = html.AsSpan(headEndChar, sliceEndChar - headEndChar);
 
-            var prefix = " data-rask-root=\""u8;
-            var suffix = "\""u8;
-            var splicedLen = slice.Length + prefix.Length + sidByteCount + suffix.Length;
+        var encodedSessionId = HtmlEncoder.Default.Encode(sessionId);
+        var prefix = " data-rask-root=\""u8;
+        var suffix = "\""u8;
 
-            var splicedBuffer = ArrayPool<byte>.Shared.Rent(splicedLen);
-            try
-            {
-                var spliced = splicedBuffer.AsSpan(0, splicedLen);
-                var cursor = 0;
-                // [0 .. bodyOpenWithinSlice + bodyOpenLen) — everything up to and including "<body".
-                var headLen = bodyOpenWithinSlice + bodyOpenLen;
-                slice[..headLen].CopyTo(spliced[cursor..]);
-                cursor += headLen;
-                prefix.CopyTo(spliced[cursor..]);
-                cursor += prefix.Length;
-                Encoding.UTF8.GetBytes(encodedSessionId, spliced[cursor..]);
-                cursor += sidByteCount;
-                suffix.CopyTo(spliced[cursor..]);
-                cursor += suffix.Length;
-                slice[headLen..].CopyTo(spliced[cursor..]);
+        var headByteCount = Encoding.UTF8.GetByteCount(headSlice);
+        var tailByteCount = Encoding.UTF8.GetByteCount(tailSlice);
+        var sidByteCount = Encoding.UTF8.GetByteCount(encodedSessionId);
+        var totalBytes = headByteCount + prefix.Length + sidByteCount + suffix.Length + tailByteCount;
 
-                using var writer = new Utf8JsonWriter(output);
-                WriteJsonUtf8Body(writer, spliced, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(splicedBuffer);
-            }
+        var buffer = ArrayPool<byte>.Shared.Rent(totalBytes);
+        try
+        {
+            var span = buffer.AsSpan(0, totalBytes);
+            var cursor = 0;
+            cursor += Encoding.UTF8.GetBytes(headSlice, span[cursor..]);
+            prefix.CopyTo(span[cursor..]);
+            cursor += prefix.Length;
+            cursor += Encoding.UTF8.GetBytes(encodedSessionId, span[cursor..]);
+            suffix.CopyTo(span[cursor..]);
+            cursor += suffix.Length;
+            cursor += Encoding.UTF8.GetBytes(tailSlice, span[cursor..]);
+
+            using var writer = new Utf8JsonWriter(output);
+            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(htmlBuffer);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
