@@ -32,6 +32,7 @@
     - [Scoped CSS](#scoped-css)
     - [Scoped JS](#scoped-js)
     - [Lifecycle reference](#lifecycle-reference)
+- [Performance](#performance)
 - [Status](#status)
 - [License](#license)
 
@@ -835,6 +836,62 @@ components and is exercised end-to-end on both hosts by the Playwright E2E suite
 
 The post-`await` auto re-render is a *publish-only* walk that does not re-fire `OnRendered`/`OnRenderedAsync` on
 already-rendered components, so an async hook that awaits a next-frame side effect won't loop (see **Async data**).
+
+## Performance
+
+Headline numbers from `Rask.Benchmarks.VsBlazor` — Rask vs Blazor's
+`HtmlRenderer` (Scope 1, render hot path), `RenderTreeBuilder` parameter
+churn (Scope 2, live-diff payload). Measured 2026-05-27 on **Apple M4 Pro
+(14 logical cores, .NET 10.0.5)** with BenchmarkDotNet ShortRun (3 warmup
++ 3 iteration + 1 launch, `[MemoryDiagnoser]`). Lower-is-better for both
+columns; bold marks the winner.
+
+| Scenario                                          | Rask time      | Blazor time    | Rask alloc    | Blazor alloc  |
+|---------------------------------------------------|----------------|----------------|---------------|---------------|
+| Counter render (1 button, 1 span)                 | **246 ns**     | 1 030 ns       | **1.59 KB**   | 3.37 KB       |
+| AttributeHeavy 100 elements × 20 attrs            | **88 µs**      | 147 µs         | **273 KB**    | 436 KB        |
+| AttributeHeavy 100 elements × 50 attrs            | **256 µs**     | 314 µs         | **842 KB**    | 1 028 KB      |
+| LiveDiff: counter on 200-row page                 | **49 µs**      | 136 µs         | **87 KB**     | 229 KB        |
+| LiveDiff: attribute update on 100 × 20 page       | **131 µs**     | 242 µs         | **343 KB**    | 589 KB        |
+| LiveDiff: input-typing burst (3-field form)       | **1.2 µs**     | 2.9 µs         | **5.81 KB**   | 5.84 KB       |
+| LiveDiff: multi-attribute (5 attrs on root)       | **1.1 µs**     | 3.1 µs         | **4.47 KB**   | 6.63 KB       |
+| Realistic: dashboard counter tick                 | **8.9 µs**     | 23.7 µs        | **27 KB**     | 49 KB         |
+| Realistic: navigation tab switch                  | **15.9 µs**    | 34.1 µs        | **25.7 KB**   | 56.7 KB       |
+| Virtualize 1000 items vs render-all (Rask wins)   | **1.9 µs**     | 163 µs         | **11.2 KB**   | 609 KB        |
+| Scale: keyed-list reorder (1 000 rows)            | 387 µs (1.45×) | **267 µs**     | 1 711 KB      | **463 KB**    |
+| Scale: keyed-list reorder (5 000 rows)            | 2 584 µs (1.86×) | **1 386 µs** | 8 694 KB      | **3 266 KB**  |
+| Scale: random permutation 1 000 keyed rows        | 1 827 µs (5.77×) | **317 µs**   | 1 718 KB      | **457 KB**    |
+
+**Where Rask wins:** small-tree renders, attribute-heavy markup, live diffs
+that touch only a few nodes on a large page, virtualised lists, and the
+"realistic" patterns (dashboard tick, nav switch). The
+[diff codec](#live-rendering--the-diff-codec) is the main lever — a counter
+tick on a 200-row page ships ~57 bytes over the wire vs ~50 KB pre-codec
+(see [`Rask.Benchmarks.VsBlazor/Reports/Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md)
+for the full residual-loss breakdown).
+
+**Where Rask trails:** large keyed-list reorders and sustained 10 000-iter
+churn workloads. Both come from the same root cause — Rask elements are
+heap `Component` instances vs Blazor's struct render-tree frames — and are
+documented as accepted trade-offs in the Justifications doc above.
+
+**Reproduce:**
+
+```bash
+# Scope 1 — render hot path (24 benchmarks, ~12 min):
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*RenderHotPath_*' --job short
+
+# Scope 2 — live-diff payload (32 benchmarks, ~15 min):
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffPayload_*' --job short
+
+# Scope 3 — scale sweeps:
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Scale_*' --job short
+
+# Scope 6/7 — realistic patterns + sustained-load:
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*' '*MemoryGc_*' --job short
+```
+
+Results are written to `BenchmarkDotNet.Artifacts/results/`.
 
 ## Status
 
