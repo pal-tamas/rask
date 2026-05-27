@@ -11,8 +11,9 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 // BDN op so per-op Allocated/Gen0/Gen1/Gen2 columns surface aggregated pressure
 // across many renders. BDN auto-shows Gen1/Gen2 columns once a benchmark allocates
 // enough to trigger those collections; one-shot benches (the rest of the suite)
-// rarely cross Gen0. ThreadingDiagnoser only on this scope — most micros/scale
-// runs are single-threaded and the column noise isn't worth the overhead.
+// rarely cross Gen0. (ThreadingDiagnoser was previously enabled here but the BDN
+// version misdetects .NET 10 as pre-.NET-Core-3.0 and aborts validation — re-enable
+// when BDN ships a fix.)
 
 public abstract class MemoryGcBase
 {
@@ -27,7 +28,7 @@ public abstract class MemoryGcBase
     }
 }
 
-[MemoryDiagnoser, ThreadingDiagnoser]
+[MemoryDiagnoser]
 public class MemoryGc_SustainedCounterChurnBenchmarks : MemoryGcBase
 {
     // 10,000 counter increments on the 200-row stateful page per op. Headline pressure
@@ -76,7 +77,7 @@ public class MemoryGc_SustainedCounterChurnBenchmarks : MemoryGcBase
     }
 }
 
-[MemoryDiagnoser, ThreadingDiagnoser]
+[MemoryDiagnoser]
 public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
 {
     public const int Cycles = 5_000;
@@ -147,7 +148,7 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
     }
 }
 
-[MemoryDiagnoser, ThreadingDiagnoser]
+[MemoryDiagnoser]
 public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
 {
     public const int Cycles = 1_000;
@@ -199,7 +200,7 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
     }
 }
 
-[MemoryDiagnoser, ThreadingDiagnoser]
+[MemoryDiagnoser]
 public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
 {
     // Same shape as Scale_DeepTreeMutationByDepth at 100-deep — sustained 1,000
@@ -247,19 +248,19 @@ public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
     private static global::Rask.Core.Component Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(int counter)
     {
         global::Rask.Core.Component leaf =
-            global::Rask.Core.Components.Components.Span(Class: "counter")[counter.ToString()];
+            global::Rask.Core.Components.Generated.Span(Class: "counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
-            leaf = global::Rask.Core.Components.Components.Div(Class: $"d{i}")[leaf];
+            leaf = global::Rask.Core.Components.Generated.Div(Class: $"d{i}")[leaf];
         }
-        return global::Rask.Core.Components.Components.Fragment()[
-            global::Rask.Core.Components.Components.Doctype(),
-            global::Rask.Core.Components.Components.Html()[
-                global::Rask.Core.Components.Components.Body()[leaf]]];
+        return global::Rask.Core.Components.Generated.Fragment()[
+            global::Rask.Core.Components.Generated.Doctype(),
+            global::Rask.Core.Components.Generated.Html()[
+                global::Rask.Core.Components.Generated.Body()[leaf]]];
     }
 }
 
-[MemoryDiagnoser, ThreadingDiagnoser]
+[MemoryDiagnoser]
 public class MemoryGc_PayloadEnvelopePressureBenchmarks
 {
     // No Blazor pairing — this is pure Rask internals stress. 10,000 BuildPayloadUtf8Diff

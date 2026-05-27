@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -37,10 +37,7 @@ internal static class AttributeHeavyElements
                 Data: data));
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "container")[elements]]]
-        ];
+        return C.Div(Class: "container")[elements];
     }
 
     /// <summary>
@@ -69,10 +66,7 @@ internal static class AttributeHeavyElements
                 Data: data));
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "container")[elements]]]
-        ];
+        return C.Div(Class: "container")[elements];
     }
 
     public sealed class BlazorAttributeHeavy : ComponentBase

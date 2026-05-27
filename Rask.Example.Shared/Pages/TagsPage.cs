@@ -14,7 +14,7 @@ public sealed class TagsPage : Component
         [
             PageHeader.Render(
                 "Tag factories",
-                "Every standard HTML element has a generator-emitted factory in Rask.Core.Components.Components. " +
+                "Every standard HTML element has a generator-emitted factory in Rask.Core.Components.Generated. " +
                 "Tag-specific attributes come first; the universal Id/Class/Style/Data trail at the end."),
             H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-fonts text-accent me-2"), "Text & semantic"],
             CodeSample(

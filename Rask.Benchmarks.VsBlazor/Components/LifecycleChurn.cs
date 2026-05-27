@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -48,10 +48,7 @@ internal static class LifecycleChurn
 #pragma warning restore RASK014
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "host")[children]]]
-        ];
+        return C.Div(Class: "host")[children];
     }
 
     public sealed class BlazorChild : ComponentBase

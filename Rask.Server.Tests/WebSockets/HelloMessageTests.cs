@@ -134,13 +134,13 @@ public class HelloMessageTests
         }
 
         protected override Rask.Core.RenderResult Render() =>
-            Rask.Core.Components.Components.Fragment()[
-                Rask.Core.Components.Components.Doctype(),
-                Rask.Core.Components.Components.Html()[
-                    Rask.Core.Components.Components.Head()[
-                        Rask.Core.Components.Components.Title()["mount-async-app"]],
-                    Rask.Core.Components.Components.Body()[
-                        Rask.Core.Components.Components.P()[_loaded ? "loaded" : "loading"]]]];
+            Rask.Core.Components.Generated.Fragment()[
+                Rask.Core.Components.Generated.Doctype(),
+                Rask.Core.Components.Generated.Html()[
+                    Rask.Core.Components.Generated.Head()[
+                        Rask.Core.Components.Generated.Title()["mount-async-app"]],
+                    Rask.Core.Components.Generated.Body()[
+                        Rask.Core.Components.Generated.P()[_loaded ? "loaded" : "loading"]]]];
     }
 #pragma warning restore RASK019
 }

@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Globalization;
 using Rask.Core;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks;
 

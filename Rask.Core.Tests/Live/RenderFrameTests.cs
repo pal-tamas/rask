@@ -1,6 +1,6 @@
 using System.Text;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Live;
 

@@ -2,6 +2,6 @@
   <ItemGroup>
     <Using Include="Rask.Validation.DataAnnotations"/>
     <!-- Auto-generated DataAnnotationsValidator() factory lives here. -->
-    <Using Include="Rask.Validation.DataAnnotations.Components" Static="true"/>
+    <Using Include="Rask.Validation.DataAnnotations.Generated" Static="true"/>
   </ItemGroup>
 </Project>

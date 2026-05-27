@@ -151,7 +151,7 @@ app.Run();
 ```
 
 **`App.cs`** — the page root. The `Rask.Server` and `Rask.Wasm` packages auto-import `Rask.Core` and the
-generator-emitted factory namespaces (`Rask.Core.Components.Components`, `Rask.Core.Routing.Components`),
+generator-emitted factory namespaces (`Rask.Core.Components.Generated`, `Rask.Core.Routing.Generated`),
 so `Component`, `Div(...)`, `H1(...)`, `Router()`, `Route<T>(...)` etc. are in scope project-wide with no
 `using` lines.
 

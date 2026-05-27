@@ -27,15 +27,15 @@ public class DependencyInjectionTests
     [Fact]
     public void GeneratedFactory_OutsideContext_ParameterlessComponent_StillNew()
     {
-        // global::Rask.Core.Tests.Live.Components.ParameterlessComponent() should compile and return a fresh instance with no context.
-        var instance = Components.ParameterlessComponent();
+        // global::Rask.Core.Tests.Live.Generated.ParameterlessComponent() should compile and return a fresh instance with no context.
+        var instance = Generated.ParameterlessComponent();
         Assert.NotNull(instance);
         Assert.Equal("<span>plain</span>", instance.ToHtml());
     }
 
     [Fact]
     public void GeneratedFactory_OutsideContext_DependencyComponent_Throws() =>
-        Assert.Throws<InvalidOperationException>(() => Components.GreetingComponent());
+        Assert.Throws<InvalidOperationException>(() => Generated.GreetingComponent());
 
     [Fact]
     public void GeneratedFactory_InsideContext_ResolvesViaActivatorUtilities()
@@ -47,7 +47,7 @@ public class DependencyInjectionTests
         var root = new StubComponent(Span());
         using var ctx = LiveRenderContext.Begin(root, services);
 
-        var instance = Components.GreetingComponent();
+        var instance = Generated.GreetingComponent();
 
         Assert.Equal("<span>hello, ctx</span>", instance.ToHtml());
     }

@@ -23,9 +23,9 @@ public class GlobalUsingsEmissionTests
         var output = Run(src);
 
         Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
-        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
-        Assert.Contains("global using static global::Rask.Core.Routing.Components;", output);
-        Assert.Contains("global using static global::Demo.Components;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Generated;", output);
+        Assert.Contains("global using static global::Rask.Core.Routing.Generated;", output);
+        Assert.Contains("global using static global::Demo.Generated;", output);
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public class GlobalUsingsEmissionTests
         var output = Run(src);
 
         Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
-        Assert.Contains("global using static global::Demo.Pages.Components;", output);
-        Assert.Contains("global using static global::Demo.Other.Components;", output);
+        Assert.Contains("global using static global::Demo.Pages.Generated;", output);
+        Assert.Contains("global using static global::Demo.Other.Generated;", output);
     }
 
     [Fact]
@@ -61,9 +61,9 @@ public class GlobalUsingsEmissionTests
         var output = Run(src);
 
         Assert.DoesNotContain("global using static global::Rask.Core.Tags;", output);
-        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
-        Assert.Contains("global using static global::Rask.Core.Routing.Components;", output);
-        Assert.DoesNotContain("global using static global::Demo.Components;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Generated;", output);
+        Assert.Contains("global using static global::Rask.Core.Routing.Generated;", output);
+        Assert.DoesNotContain("global using static global::Demo.Generated;", output);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Demo.App.Pages.Account.Components;", output);
+        Assert.Contains("global using static global::Demo.App.Pages.Account.Generated;", output);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class GlobalUsingsEmissionTests
     {
         // A user component in the global namespace has no namespace prefix to attach,
         // and `Components` (a free static class) cannot reach it via `using static`.
-        // The framework imports must still emit; no extra `using static .Components;` line.
+        // The framework imports must still emit; no extra `using static .Generated;` line.
         var src = """
                   using Rask.Core;
                   public sealed class Widget : Component
@@ -116,15 +116,15 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Rask.Core.Components.Components;", output);
-        Assert.DoesNotContain("global using static global::.Components;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Generated;", output);
+        Assert.DoesNotContain("global using static global::.Generated;", output);
         Assert.DoesNotContain("global using static global::Components;", output);
     }
 
     [Fact]
     public void InternalUserComponent_IncludedInImport()
     {
-        // Internal components still emit a {Ns}.Components factory; the global
+        // Internal components still emit a {Ns}.Generated factory; the global
         // using must cover them so users can call them from the same assembly
         // without a manual import.
         var src = """
@@ -138,7 +138,7 @@ public class GlobalUsingsEmissionTests
 
         var output = Run(src);
 
-        Assert.Contains("global using static global::Demo.Components;", output);
+        Assert.Contains("global using static global::Demo.Generated;", output);
     }
 
     private static string Run(string source) => Run(source, null);

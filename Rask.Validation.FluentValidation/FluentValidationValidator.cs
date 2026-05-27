@@ -27,7 +27,7 @@ public sealed class FluentValidationValidator : Component
     protected override RenderResult Render()
     {
         EditContextScope.Current?.AddValidator(new Inner(Validator));
-        return Core.Components.Components.Fragment();
+        return Core.Components.Generated.Fragment();
     }
 
     private sealed class Inner : IAsyncFieldValidator

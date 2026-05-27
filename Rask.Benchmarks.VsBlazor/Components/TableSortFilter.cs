@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -71,21 +71,16 @@ internal static class TableSortFilter
                 ]);
             }
 
-            return C.Fragment()[
-                C.Doctype(),
-                C.Html()[C.Body()[
-                    C.Div(Class: "table-shell")[
-                        C.Table()[
-                            C.Thead()[C.Tr()[
-                                C.Th()["ID"],
-                                C.Th()["Name"],
-                                C.Th()["Price"],
-                                C.Th()["Status"]
-                            ]],
-                            C.Tbody()[rows]
-                        ]
-                    ]
-                ]]
+            return C.Div(Class: "table-shell")[
+                C.Table()[
+                    C.Thead()[C.Tr()[
+                        C.Th()["ID"],
+                        C.Th()["Name"],
+                        C.Th()["Price"],
+                        C.Th()["Status"]
+                    ]],
+                    C.Tbody()[rows]
+                ]
             ];
         }
     }

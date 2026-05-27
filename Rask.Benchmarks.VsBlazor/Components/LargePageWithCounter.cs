@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -25,18 +25,11 @@ internal static class LargePageWithCounter
             ]);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "container", Id: "root")[
-                        C.Div(Class: "counter", Id: "counter")[
-                            C.Span(Class: "value")[counter.ToString()]
-                        ],
-                        C.Div(Class: "body")[rows]
-                    ]
-                ]
-            ]
+        return C.Div(Class: "container", Id: "root")[
+            C.Div(Class: "counter", Id: "counter")[
+                C.Span(Class: "value")[counter.ToString()]
+            ],
+            C.Div(Class: "body")[rows]
         ];
     }
 
@@ -56,7 +49,7 @@ internal static class LargePageWithCounter
             ]);
         }
 
-        return C.Fragment()[C.Doctype(), C.Html()[C.Body()[C.Div(Class: "body")[rows]]]];
+        return C.Div(Class: "body")[rows];
     }
 
     public sealed class BlazorLargePageWithCounter : ComponentBase

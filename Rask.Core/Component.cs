@@ -31,7 +31,10 @@ public abstract class Component
     // Per-component direct children (this component's GetOrCreate calls in its own Render()).
     // Keys are local — position N is the Nth GetOrCreate call inside this component's Render,
     // not the Nth call across the whole tree — so a sibling skipping its render never collides.
-    private Dictionary<(Type, int), Component> _children = new();
+    // Lazily allocated: most Elements (Div, Span, …) never call GetOrCreate, so the dict
+    // stays null. Pure-HTML render paths (Component.ToHtml() without a live context) never
+    // touch _children at all — saves ~80 B per Component instance × O(elements per page).
+    private Dictionary<(Type, int), Component>? _children;
 
     // Sibling pool dict: gets passed as the next frame's `current` so the per-render
     // EditContext dictionary allocation is gone. RenderAsLiveRootCore swaps the two after
@@ -50,8 +53,14 @@ public abstract class Component
     // the ctx is disposed at end of scope. The host's payload builder reads this off
     // the root component after RenderAsLiveRoot returns and emits the scopedJsInvokes
     // JSON field. Per-render — reset at the top of each RenderAsLiveRootCore call.
-    private Dictionary<LiveRenderContext.ObjectKey, EditContext> _persistedEditContexts = new();
-    private Dictionary<(Type, int), Component> _previousChildren = new();
+    // Lazily allocated: only the root of a live render ever writes here; deep tree
+    // Elements that never become roots keep this null forever.
+    private Dictionary<LiveRenderContext.ObjectKey, EditContext>? _persistedEditContexts;
+    private Dictionary<(Type, int), Component>? _previousChildren;
+
+    // Static empty dict for PersistedChildren exposed via the public-internal accessor —
+    // saves callers from null checks while keeping the per-instance allocation lazy.
+    private static readonly Dictionary<(Type, int), Component> _emptyChildren = new();
     private bool _propsDirty;
     private bool _stateDirty;
 
@@ -163,14 +172,14 @@ public abstract class Component
 
     internal IRenderHandle? RenderHandle { get; set; }
 
-    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _children;
+    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _children ?? _emptyChildren;
 
     /// <summary>
     ///     Override to declare resources this component needs in the page <c>&lt;head&gt;</c>
     ///     (stylesheets, scripts, meta tags, the document title). The framework collects the
     ///     output from every component currently in the tree, dedupes top-level children by
     ///     their rendered HTML, and substitutes the result for the
-    ///     <see cref="Components.RaskHeadAssets" /> placeholder. When a component goes away on
+    ///     <see cref="Generated.RaskHeadAssets" /> placeholder. When a component goes away on
     ///     a subsequent render, its head contribution drops out automatically — the registry
     ///     is rebuilt from scratch each pass.
     ///     <para>
@@ -535,9 +544,17 @@ public abstract class Component
         // both fields persist across the component lifetime, so after first render
         // every subsequent render reuses the same two buffers. _children is cleared
         // before any new writes; _previousChildren retains the prior frame's entries
-        // for GetOrCreateChild's reuse lookup.
-        (_previousChildren, _children) = (_children, _previousChildren);
-        _children.Clear();
+        // for GetOrCreateChild's reuse lookup. If this component has never had child
+        // GetOrCreate calls (most Elements), both dicts stay null and the swap is a
+        // no-op — GetOrCreateChild lazily allocates on first write.
+        if (_children is not null)
+        {
+            // First-time swap: allocate the back buffer so the persistent two-dict pool
+            // works steady-state. Subsequent renders just swap and Clear — no allocation.
+            _previousChildren ??= new Dictionary<(Type, int), Component>();
+            (_previousChildren, _children) = (_children, _previousChildren);
+            _children.Clear();
+        }
         _childPositions = 0;
 
         // HtmlSerializer wraps every user-component serialization in an EnterParentScope so
@@ -558,7 +575,7 @@ public abstract class Component
     {
         var key = (typeof(T), _childPositions++);
         T instance;
-        if (_previousChildren.TryGetValue(key, out var prev) && prev is T t)
+        if (_previousChildren is not null && _previousChildren.TryGetValue(key, out var prev) && prev is T t)
         {
             instance = t;
         }
@@ -572,7 +589,7 @@ public abstract class Component
         }
 
         instance.RenderHandle ??= handle;
-        _children[key] = instance;
+        (_children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
     }
 
@@ -584,7 +601,7 @@ public abstract class Component
     {
         var key = (type, _childPositions++);
         Component instance;
-        if (_previousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
+        if (_previousChildren is not null && _previousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
         {
             instance = prev;
         }
@@ -594,7 +611,7 @@ public abstract class Component
         }
 
         instance.RenderHandle ??= handle;
-        _children[key] = instance;
+        (_children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
     }
 
@@ -874,7 +891,9 @@ public abstract class Component
         _handlers ??= new Dictionary<string, (Component, Delegate)>();
         _handlers.Clear();
         _nextHandlerId = 0;
-        var previousEditContexts = _persistedEditContexts;
+        // Lazily init on first root render — non-root Component instances (the 99% case for
+        // leaf Elements in a page) never touch this field and stay allocation-free.
+        var previousEditContexts = _persistedEditContexts ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
         // Recycle the previously-snapshotted dict as the next frame's `current`. First
         // render: pool is null, allocate once. Steady state: Clear and reuse.
         _editContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
@@ -971,6 +990,7 @@ public abstract class Component
                 return;
             }
 
+            if (c._children is null) return;
             foreach (var child in c._children.Values)
             {
                 Visit(child, seen);
@@ -992,6 +1012,7 @@ public abstract class Component
                 return;
             }
 
+            if (c._children is null) return;
             foreach (var child in c._children.Values)
             {
                 parents[child] = c;

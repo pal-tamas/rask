@@ -20,7 +20,7 @@ public class ForwarderFactoryEmissionTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains(
             "public static global::Demo.Widget Widget<TProp>(global::System.Linq.Expressions.Expression<global::System.Func<TProp>> Bind, string? Class = null)",
@@ -45,7 +45,7 @@ public class ForwarderFactoryEmissionTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("string? Name = null", output);
         Assert.Contains("bool Flag = false", output);
@@ -70,7 +70,7 @@ public class ForwarderFactoryEmissionTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains(
             "string? Label = null, params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children",
@@ -93,7 +93,7 @@ public class ForwarderFactoryEmissionTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // No `<...>` after the component name; forwarder body delegates to the source method.
         Assert.Contains("public static global::Demo.Widget Widget(string? Class = null)", output);

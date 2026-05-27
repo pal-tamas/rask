@@ -16,12 +16,12 @@ public sealed class DefaultErrorPage : Component
 
         var children = new List<Child>
         {
-            Components.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"],
-            Components.P(
+            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"],
+            Generated.P(
                     Style:
                     "margin:0 0 0.5rem;color:#4b5563;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:0.9rem;")
                 [typeName],
-            Components.Pre(
+            Generated.Pre(
                     Style:
                     "margin:0;padding:0.75rem;background:#fbe9e9;border-radius:0.375rem;white-space:pre-wrap;font-size:0.9rem;color:#7f1d1d;")
                 [_error.Message]
@@ -29,13 +29,13 @@ public sealed class DefaultErrorPage : Component
 
         if (showStack && !string.IsNullOrEmpty(_error.StackTrace))
         {
-            children.Add(Components.Pre(
+            children.Add(Generated.Pre(
                     Style:
                     "margin:1rem 0 0;padding:0.75rem;background:#f3f4f6;border-radius:0.375rem;white-space:pre-wrap;font-size:0.78rem;color:#4b5563;overflow:auto;max-height:300px;")
                 [_error.StackTrace]);
         }
 
-        return Components.Div(
+        return Generated.Div(
                 Class: "rask-error-boundary",
                 Style:
                 "max-width:720px;margin:4rem auto;padding:1.5rem;font-family:system-ui,sans-serif;color:#1f2937;border:1px solid #f5c2c0;background:#fff5f5;border-radius:0.5rem;")

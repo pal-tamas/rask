@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -12,16 +12,9 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 internal static class Counter
 {
     public static Component BuildRask(int value) =>
-        C.Fragment()[
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "counter", Id: "counter")[
-                        C.Span(Class: "value")[value.ToString()],
-                        C.Button(Class: "inc")["+"]
-                    ]
-                ]
-            ]
+        C.Div(Class: "counter", Id: "counter")[
+            C.Span(Class: "value")[value.ToString()],
+            C.Button(Class: "inc")["+"]
         ];
 
     public sealed class BlazorCounter : ComponentBase

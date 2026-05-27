@@ -28,8 +28,8 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
-    <Using Include="Rask.Core.Components.Components" Static="true"/>
-    <Using Include="Rask.Core.Routing.Components" Static="true"/>
+    <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

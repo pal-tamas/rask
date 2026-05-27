@@ -26,7 +26,7 @@ public class WasmCompatibilityTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.DoesNotContain("Microsoft.AspNetCore", output);
         Assert.DoesNotContain("HttpContext", output);

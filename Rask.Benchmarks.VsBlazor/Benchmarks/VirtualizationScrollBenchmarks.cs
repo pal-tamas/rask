@@ -17,8 +17,7 @@ public class RenderHotPath_VirtualizedListBenchmarks : RenderHotPathBase
     private RaskVirtualize _raskVirt = null!;
     private Rask.Core.Component _raskRoot = null!;
 
-    [GlobalSetup]
-    public new void Setup()
+    public override void Setup()
     {
         base.Setup();
         (_raskRoot, _raskVirt) = VirtualizationScroll.BuildRask();

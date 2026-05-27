@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -42,10 +42,7 @@ internal static class NestedKeyedList
             ]);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "deck")[cards]]]
-        ];
+        return C.Div(Class: "deck")[cards];
     }
 
     public sealed class BlazorNestedKeyedList : ComponentBase

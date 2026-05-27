@@ -1,5 +1,5 @@
 using Rask.Core;
-using static Rask.Core.Components.Components;
+using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
 

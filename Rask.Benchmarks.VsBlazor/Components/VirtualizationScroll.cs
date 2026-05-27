@@ -2,7 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 using RaskVirtualize = Rask.Core.Components.Virtualize;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
@@ -63,8 +63,7 @@ internal static class VirtualizationScroll
             OverscanCount: 0,
             InitialClientHeight: ViewportHeightPx);
 
-        var root = C.Fragment()[C.Doctype(), C.Html()[C.Body()[virt]]];
-        return (root, virt);
+        return (virt, virt);
     }
 
     public static void SetScrollTop(RaskVirtualize virt, int scrollTop) =>

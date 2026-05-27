@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -38,14 +38,9 @@ internal static class NavSwitch
             ]);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[
-                C.Div(Class: "nav-shell")[
-                    C.Nav()[C.Ul()[tabs]],
-                    C.Main(Id: $"tab-{activeTab}")[contentRows]
-                ]
-            ]]
+        return C.Div(Class: "nav-shell")[
+            C.Nav()[C.Ul()[tabs]],
+            C.Main(Id: $"tab-{activeTab}")[contentRows]
         ];
     }
 
@@ -89,14 +84,9 @@ internal static class NavSwitch
                 _tabContentCache[_activeTab] = content;
             }
 
-            return C.Fragment()[
-                C.Doctype(),
-                C.Html()[C.Body()[
-                    C.Div(Class: "nav-shell")[
-                        C.Nav()[C.Ul()[tabs]],
-                        C.Main(Id: $"tab-{_activeTab}")[content]
-                    ]
-                ]]
+            return C.Div(Class: "nav-shell")[
+                C.Nav()[C.Ul()[tabs]],
+                C.Main(Id: $"tab-{_activeTab}")[content]
             ];
         }
     }

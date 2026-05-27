@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 

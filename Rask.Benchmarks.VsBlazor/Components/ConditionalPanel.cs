@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -40,10 +40,7 @@ internal static class ConditionalPanel
         }
         body.Add(C.Footer()[C.Span()["© Rask"]]);
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "shell")[body]]]
-        ];
+        return C.Div(Class: "shell")[body];
     }
 
     public sealed class BlazorConditionalPanel : ComponentBase

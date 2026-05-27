@@ -9,7 +9,7 @@ public class ComponentFactoryIntegrationTests
     [Fact]
     public void Factory_PassesRequiredProperty()
     {
-        var instance = Components.GreetCard("world");
+        var instance = Generated.GreetCard("world");
         Assert.Equal("world", instance.Name);
         Assert.Null(instance.Subtitle);
         Assert.Equal("<span>world</span>", instance.ToHtml());
@@ -18,14 +18,14 @@ public class ComponentFactoryIntegrationTests
     [Fact]
     public void Factory_OptionalNullableDefaultsToNull()
     {
-        var instance = Components.GreetCard("hello");
+        var instance = Generated.GreetCard("hello");
         Assert.Null(instance.Subtitle);
     }
 
     [Fact]
     public void Factory_AcceptsNamedOptionalArgument()
     {
-        var instance = Components.GreetCard("hello", "world");
+        var instance = Generated.GreetCard("hello", "world");
         Assert.Equal("hello", instance.Name);
         Assert.Equal("world", instance.Subtitle);
         Assert.Equal("<span>hello: world</span>", instance.ToHtml());
@@ -40,7 +40,7 @@ public class ComponentFactoryIntegrationTests
         GreetCard? captured = null;
         var root = new StubComponent(() =>
         {
-            var card = Components.GreetCard(currentName);
+            var card = Generated.GreetCard(currentName);
             captured = card;
             return card;
         });

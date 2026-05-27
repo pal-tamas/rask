@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -46,12 +46,7 @@ internal static class FormValidationChurn
             }
             children.Add(C.Button(Type: "submit")["Save"]);
 
-            return C.Fragment()[
-                C.Doctype(),
-                C.Html()[C.Body()[
-                    C.Form()[children]
-                ]]
-            ];
+            return C.Form()[children];
         }
     }
 

@@ -56,7 +56,7 @@ public sealed class LiveRenderContext : IDisposable
 
     /// <summary>
     ///     Per-render collector for <see cref="Component.Head" /> contributions. The
-    ///     <see cref="Components.RaskHeadAssets" /> placeholder is replaced with this
+    ///     <see cref="Generated.RaskHeadAssets" /> placeholder is replaced with this
     ///     registry's content during <see cref="Component.RenderAsLiveRoot()" />.
     /// </summary>
     internal HeadAssetRegistry HeadAssets { get; } = new();

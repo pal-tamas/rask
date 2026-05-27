@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 using RaskFileType = Rask.Core.Forms.RaskFile;
 
 namespace Rask.Core.Components;

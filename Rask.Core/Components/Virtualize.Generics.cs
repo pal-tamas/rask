@@ -4,7 +4,7 @@ using Rask.Core.Virtualization;
 
 namespace Rask.Core.Components;
 
-// Hand-written generic factory for Virtualize. Lives in the same `partial class Components`
+// Hand-written generic factory for Virtualize. Lives in the same `partial class Generated`
 // that ComponentFactoryGenerator emits the non-generic factory into. Captures T in a closure
 // so the runtime side stays type-erased — no reflection, no DynamicInvoke, trim-safe.
 //
@@ -12,7 +12,7 @@ namespace Rask.Core.Components;
 //   Virtualize<Person>(Items: people, ItemSize: 32, Render: ctx => Div(...)[..ctx.VisibleItems.Select(...)])
 // becomes a forward to the generated non-generic factory:
 //   Virtualize(Items: ..., ItemSize: 32, Body: state => Render(new VirtualizationContext<Person>(state)))
-public static partial class Components
+public static partial class Generated
 {
     // Wrapper-cache: dedup erased-provider closures per typed user delegate. Without this,
     // every Virtualize<T> factory call would allocate a fresh `async req => …` wrapper, the

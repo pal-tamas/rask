@@ -22,7 +22,7 @@ public enum RenderFrameKind : byte
     /// re-encode if it writes to a different sink).</summary>
     Text = 3,
 
-    /// <summary>Verbatim markup (no encoding). Corresponds to <see cref="Components.Raw" />.</summary>
+    /// <summary>Verbatim markup (no encoding). Corresponds to <see cref="Generated.Raw" />.</summary>
     Raw = 4,
 
     /// <summary>Doctype declaration.</summary>

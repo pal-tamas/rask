@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Tests.Infrastructure;
 // prop diff, and unmount fire on the child — same path that runs in production. Tests
 // only stub the leaf services (HttpClient, IJSRuntime, Navigator/RouteState).
 //
-// [SkipFactory] keeps the generator from emitting a Components.LiveHost() factory in the
+// [SkipFactory] keeps the generator from emitting a Generated.LiveHost() factory in the
 // test assembly that would collide with the LiveTicker static-import.
 //
 // Flip Mounted to false and re-render to drive the child through its OnUnmount path.

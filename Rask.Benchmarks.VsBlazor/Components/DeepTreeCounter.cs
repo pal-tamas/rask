@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -26,7 +26,7 @@ internal static class DeepTreeCounter
             leaf = C.Div(Class: $"d{i}")[leaf];
         }
 
-        return C.Fragment()[C.Doctype(), C.Html()[C.Body()[leaf]]];
+        return leaf;
     }
 
     public sealed class BlazorDeepTreeCounter : ComponentBase

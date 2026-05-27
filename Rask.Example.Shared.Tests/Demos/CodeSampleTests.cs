@@ -1,6 +1,6 @@
 using Rask.Core;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Demos.Components;
+using static Rask.Example.Shared.Demos.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 

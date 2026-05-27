@@ -15,7 +15,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("public static global::Demo.Widget Widget()", output);
         // Widget has a parameterless ctor and no DI ctor, so the factory uses object-init
@@ -39,7 +39,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string Name)", output);
         Assert.DoesNotContain("Name = null", output);
@@ -60,7 +60,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string? Subtitle = null)", output);
         Assert.Contains("__c.Subtitle = Subtitle;", output);
@@ -80,7 +80,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget()", output);
         Assert.DoesNotContain("Tag", output);
@@ -102,7 +102,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // Required before optional, declaration order within group.
         Assert.Contains("Widget(string Name, string Title, int? Age = null)", output);
@@ -123,7 +123,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("ActivatorUtilities.CreateInstance<global::Demo.Widget>(__sp)", output);
         // No-context branch must throw, since DI ctor cannot be satisfied without an IServiceProvider.
@@ -145,7 +145,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // No-context branch: closure-based GetOrCreate using object initializer.
         Assert.Contains("__c = new global::Demo.Widget()", output);
@@ -168,7 +168,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         var getOrCreateIdx = output.IndexOf("GetOrCreate", StringComparison.Ordinal);
         var assignmentIdx = output.IndexOf("__c.Name = Name;", StringComparison.Ordinal);
@@ -260,7 +260,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget()", output);
         Assert.DoesNotContain("Name = Name", output);
@@ -280,7 +280,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string Name)", output);
     }
@@ -299,7 +299,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget()", output);
         Assert.DoesNotContain("Name = Name", output);
@@ -319,7 +319,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget()", output);
         Assert.DoesNotContain("Default = default", output);
@@ -339,7 +339,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(int Count = default)", output);
         Assert.DoesNotContain("Count = null", output);
@@ -363,7 +363,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("CounterPage(string? Name = null, string? Greeting = null, string? Other = null)", output);
     }
@@ -384,9 +384,9 @@ public class ComponentFactoryGeneratorTests
         // First run.
         var first = GeneratorDriverFixture.Run(src);
         // Second run with the same input should re-use cached steps.
-        var firstOutput = first.GeneratedSource("Demo.Components.g.cs");
+        var firstOutput = first.GeneratedSource("Demo.Generated.g.cs");
         var second = GeneratorDriverFixture.Run(src);
-        var secondOutput = second.GeneratedSource("Demo.Components.g.cs");
+        var secondOutput = second.GeneratedSource("Demo.Generated.g.cs");
 
         // Outputs should be byte-identical when the inputs are identical.
         Assert.Equal(firstOutput, secondOutput);
@@ -406,7 +406,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("public static global::Demo.Foo<TProp> Foo<TProp>(TProp Value)", output);
         Assert.Contains("new global::Demo.Foo<TProp>()", output);
@@ -429,7 +429,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Bound<TProp>(global::System.Linq.Expressions.Expression<global::System.Func<TProp>> Bind)",
             output);
@@ -449,7 +449,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Card<T>(T Model) where T : class", output);
     }
@@ -467,7 +467,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("__ctx.NotifyParameters(__c, propsChanged: false);", output);
     }
@@ -486,7 +486,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         var titleIdx = output.IndexOf("__c.Title = Title;", StringComparison.Ordinal);
         var notifyIdx = output.IndexOf("NotifyParameters(__c, __propsChanged)", StringComparison.Ordinal);
@@ -509,7 +509,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         var snapshotIdx = output.IndexOf("var __old_Title = __c.Title;", StringComparison.Ordinal);
         var assignmentIdx = output.IndexOf("__c.Title = Title;", StringComparison.Ordinal);
@@ -531,7 +531,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains(
             "!global::System.Collections.Generic.EqualityComparer<string?>.Default.Equals(__old_Title, Title)",
@@ -554,7 +554,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("__old_A, A)", output);
         Assert.Contains("__old_B, B)", output);
@@ -575,7 +575,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // No ActivatorUtilities path: object-initializer used in both context branches.
         Assert.DoesNotContain("ActivatorUtilities.CreateInstance<global::Demo.Box<T>>", output);
@@ -604,7 +604,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string? DerivedProp = null, string? BaseProp = null)", output);
     }
@@ -627,7 +627,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string? Title = null)", output);
         // No duplicate assignment.
@@ -654,7 +654,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Widget(string Name)", output);
         Assert.DoesNotContain("Name = null", output);
@@ -678,7 +678,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.DoesNotContain("params global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child> Children",
             output);
@@ -700,7 +700,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // Initializer-having props are excluded entirely; the parameterless shape wins.
         Assert.Contains("Card()", output);
@@ -723,7 +723,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Card(string? Children = null)", output);
         Assert.DoesNotContain("params", output);
@@ -752,7 +752,7 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains(
             "Widget(string? P00 = null, string? P01 = null, string? P02 = null, string? P03 = null, " +

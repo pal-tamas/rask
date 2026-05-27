@@ -649,7 +649,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.AppendLine();
             }
 
-            sb.AppendLine("public static partial class Components");
+            sb.AppendLine("public static partial class Generated");
             sb.AppendLine("{");
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -678,7 +678,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
             sb.AppendLine("}");
 
-            var hint = hasNs ? $"{group.Key}.Components.g.cs" : "Components.g.cs";
+            var hint = hasNs ? $"{group.Key}.Generated.g.cs" : "Generated.g.cs";
             spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
         }
     }
@@ -1170,8 +1170,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // The framework's own factory namespaces — always make them globally visible to
         // consumers, even if this assembly defines no user components of its own (and so
         // `namespaces` is empty).
-        sb.AppendLine("global using static global::Rask.Core.Components.Components;");
-        sb.AppendLine("global using static global::Rask.Core.Routing.Components;");
+        sb.AppendLine("global using static global::Rask.Core.Components.Generated;");
+        sb.AppendLine("global using static global::Rask.Core.Routing.Generated;");
         foreach (var ns in namespaces)
         {
             if (ns == "Rask.Core.Components" || ns == "Rask.Core.Routing")
@@ -1179,7 +1179,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            sb.Append("global using static global::").Append(ns).AppendLine(".Components;");
+            sb.Append("global using static global::").Append(ns).AppendLine(".Generated;");
         }
 
         spc.AddSource("RaskGlobalUsings.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));

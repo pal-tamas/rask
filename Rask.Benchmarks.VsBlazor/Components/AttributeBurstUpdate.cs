@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -33,12 +33,7 @@ internal static class AttributeBurstUpdate
             rows.Add(row);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[
-                C.Div(Class: "rows")[rows]
-            ]]
-        ];
+        return C.Div(Class: "rows")[rows];
     }
 
     public sealed class BlazorAttributeBurst : ComponentBase

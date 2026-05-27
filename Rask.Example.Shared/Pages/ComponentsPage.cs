@@ -14,7 +14,7 @@ public sealed class ComponentsPage : Component
         [
             PageHeader.Render(
                 "User components",
-                "Subclass Component, override Render. The Rask source generator emits a Namespace.Components.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
+                "Subclass Component, override Render. The Rask source generator emits a Namespace.Generated.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
             H2(Class: "h4 mt-4 mb-3")["A component and its generated factory"],
             CodeSample(
                 """
@@ -31,7 +31,7 @@ public sealed class ComponentsPage : Component
                 }
 
                 // call site (generated factory):
-                Components.Greeting(Name: "Ada", Title: "Dr.")
+                Generated.Greeting(Name: "Ada", Title: "Dr.")
                 """,
                 Notes:
                 "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
@@ -48,7 +48,7 @@ public sealed class ComponentsPage : Component
                 }
 
                 // call site is unchanged — ActivatorUtilities resolves `http`:
-                Components.WeatherCard(City: "Helsinki")
+                Generated.WeatherCard(City: "Helsinki")
                 """,
                 Notes:
                 "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),

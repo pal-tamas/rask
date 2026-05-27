@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -67,50 +67,45 @@ internal static class DashboardWidgets
                 }
             }
 
-            return C.Fragment()[
-                C.Doctype(),
-                C.Html()[C.Body()[
-                    C.Div(Class: "dashboard")[
-                        C.Header(Class: "topbar")[
-                            C.Span(Class: "brand")["Rask Dashboard"],
-                            C.Span(Class: "user")["alice"]
-                        ],
-                        C.Aside(Class: "sidebar")[C.Ul()[_staticSidebar]],
-                        C.Main(Class: "content")[
-                            // Widget 1: counter — the only mutating widget
-                            C.Div(Class: "widget counter-widget", Id: "w-counter")[
-                                C.Span(Class: "widget-title")["Live count"],
-                                C.Span(Class: "widget-value")[_counter.ToString()]
-                            ],
-                            // Widget 2: chart placeholder
-                            C.Div(Class: "widget chart-widget", Id: "w-chart")[
-                                C.Span(Class: "widget-title")["Throughput"],
-                                C.Div(Class: "chart-canvas")
-                            ],
-                            // Widget 3: table summary
-                            C.Div(Class: "widget table-widget", Id: "w-table")[
-                                C.Span(Class: "widget-title")["Recent orders"],
-                                C.Div(Class: "summary-row")[C.Span()["Total"], C.Span()["1,234"]],
-                                C.Div(Class: "summary-row")[C.Span()["Pending"], C.Span()["56"]],
-                                C.Div(Class: "summary-row")[C.Span()["Failed"], C.Span()["3"]]
-                            ],
-                            // Widget 4: alert list
-                            C.Div(Class: "widget alerts-widget", Id: "w-alerts")[
-                                C.Span(Class: "widget-title")["Alerts"],
-                                C.Ul(Class: "alerts")[_staticAlerts!]
-                            ],
-                            // Widget 5: status grid
-                            C.Div(Class: "widget status-widget", Id: "w-status")[
-                                C.Span(Class: "widget-title")["Service status"],
-                                C.Div(Class: "status-grid")[_staticStatusGrid!]
-                            ],
-                            // Widget 6: footer
-                            C.Div(Class: "widget footer-widget", Id: "w-footer")[
-                                C.Span()["© 2026 Rask Inc."]
-                            ]
-                        ]
+            return C.Div(Class: "dashboard")[
+                C.Header(Class: "topbar")[
+                    C.Span(Class: "brand")["Rask Dashboard"],
+                    C.Span(Class: "user")["alice"]
+                ],
+                C.Aside(Class: "sidebar")[C.Ul()[_staticSidebar]],
+                C.Main(Class: "content")[
+                    // Widget 1: counter — the only mutating widget
+                    C.Div(Class: "widget counter-widget", Id: "w-counter")[
+                        C.Span(Class: "widget-title")["Live count"],
+                        C.Span(Class: "widget-value")[_counter.ToString()]
+                    ],
+                    // Widget 2: chart placeholder
+                    C.Div(Class: "widget chart-widget", Id: "w-chart")[
+                        C.Span(Class: "widget-title")["Throughput"],
+                        C.Div(Class: "chart-canvas")
+                    ],
+                    // Widget 3: table summary
+                    C.Div(Class: "widget table-widget", Id: "w-table")[
+                        C.Span(Class: "widget-title")["Recent orders"],
+                        C.Div(Class: "summary-row")[C.Span()["Total"], C.Span()["1,234"]],
+                        C.Div(Class: "summary-row")[C.Span()["Pending"], C.Span()["56"]],
+                        C.Div(Class: "summary-row")[C.Span()["Failed"], C.Span()["3"]]
+                    ],
+                    // Widget 4: alert list
+                    C.Div(Class: "widget alerts-widget", Id: "w-alerts")[
+                        C.Span(Class: "widget-title")["Alerts"],
+                        C.Ul(Class: "alerts")[_staticAlerts!]
+                    ],
+                    // Widget 5: status grid
+                    C.Div(Class: "widget status-widget", Id: "w-status")[
+                        C.Span(Class: "widget-title")["Service status"],
+                        C.Div(Class: "status-grid")[_staticStatusGrid!]
+                    ],
+                    // Widget 6: footer
+                    C.Div(Class: "widget footer-widget", Id: "w-footer")[
+                        C.Span()["© 2026 Rask Inc."]
                     ]
-                ]]
+                ]
             ];
         }
     }

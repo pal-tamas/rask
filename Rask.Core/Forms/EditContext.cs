@@ -151,7 +151,7 @@ public sealed class EditContext
     ///     <see cref="IsValidating(FieldIdentifier)" /> extended with a short
     ///     sticky tail (<see cref="ValidatingStickyMs" />, default 200 ms): a
     ///     validator that finishes inside the sticky window still reads as
-    ///     "showing" so the <see cref="Components.ValidatingIndicator" />
+    ///     "showing" so the <see cref="Generated.ValidatingIndicator" />
     ///     gives screen-readers and Playwright a reliably observable footprint
     ///     for sub-second async checks. The dismissal is a single timer-driven
     ///     re-render at window expiry — see ArmStickyDismissal.

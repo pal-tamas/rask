@@ -143,15 +143,15 @@ internal static class VsBlazorPayloadBytesReport
 
         Component Build(int counter)
         {
-            Component leaf = global::Rask.Core.Components.Components.Span(Class: "counter")[counter.ToString()];
+            Component leaf = global::Rask.Core.Components.Generated.Span(Class: "counter")[counter.ToString()];
             for (var i = 0; i < depth; i++)
             {
-                leaf = global::Rask.Core.Components.Components.Div(Class: $"d{i}")[leaf];
+                leaf = global::Rask.Core.Components.Generated.Div(Class: $"d{i}")[leaf];
             }
-            return global::Rask.Core.Components.Components.Fragment()[
-                global::Rask.Core.Components.Components.Doctype(),
-                global::Rask.Core.Components.Components.Html()[
-                    global::Rask.Core.Components.Components.Body()[leaf]]];
+            return global::Rask.Core.Components.Generated.Fragment()[
+                global::Rask.Core.Components.Generated.Doctype(),
+                global::Rask.Core.Components.Generated.Html()[
+                    global::Rask.Core.Components.Generated.Body()[leaf]]];
         }
 
         using var rask = new RaskHarness();

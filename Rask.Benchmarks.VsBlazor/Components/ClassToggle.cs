@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -30,12 +30,7 @@ internal static class ClassToggle
             ]);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[
-                C.Nav(Class: "sidebar")[C.Ul()[items]]
-            ]]
-        ];
+        return C.Nav(Class: "sidebar")[C.Ul()[items]];
     }
 
     public sealed class BlazorClassToggle : ComponentBase

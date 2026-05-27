@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -19,7 +19,7 @@ internal static class TextHeavy
             rows.Add(C.P()[$"line {i} of text content with no special chars"]);
         }
 
-        return C.Fragment()[C.Doctype(), C.Html()[C.Body()[C.Div()[rows]]]];
+        return C.Div()[rows];
     }
 
     public sealed class BlazorTextHeavy : ComponentBase

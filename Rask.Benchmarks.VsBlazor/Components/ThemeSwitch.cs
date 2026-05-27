@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -28,17 +28,12 @@ internal static class ThemeSwitch
             ["theme-contrast"] = dark ? "high" : "normal"
         };
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[
-                C.Div(Class: cls, Style: style, Data: data)[
-                    C.Section(Class: "card")[
-                        C.H2()["Welcome"],
-                        C.P()["Pick a theme to taste."]
-                    ],
-                    C.Button(Type: "button")[$"Toggle ({(dark ? "dark" : "light")})"]
-                ]
-            ]]
+        return C.Div(Class: cls, Style: style, Data: data)[
+            C.Section(Class: "card")[
+                C.H2()["Welcome"],
+                C.P()["Pick a theme to taste."]
+            ],
+            C.Button(Type: "button")[$"Toggle ({(dark ? "dark" : "light")})"]
         ];
     }
 

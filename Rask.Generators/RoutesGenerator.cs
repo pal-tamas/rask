@@ -139,7 +139,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(orphanCandidates.Collect(),
             static (spc, list) => EmitOrphanDiagnostics(spc, list));
 
-        // Route<T>() helpers live in `Rask.Core.Routing.Components` (the partial class that
+        // Route<T>() helpers live in `Rask.Core.Routing.Generated` (the partial class that
         // ComponentFactoryGenerator already emits for Router/Outlet). They're emitted exactly
         // once per build, in the assembly that *defines* the Route record — i.e. only when
         // we're compiling Rask.Core itself. Downstream assemblies consume the compiled
@@ -169,7 +169,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("namespace Rask.Core.Routing;");
         sb.AppendLine();
-        sb.AppendLine("public static partial class Components");
+        sb.AppendLine("public static partial class Generated");
         sb.AppendLine("{");
         sb.AppendLine(
             "    public static global::Rask.Core.Routing.Route Route<[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(string template, global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Routing.Route>? SubRoutes = null)");
@@ -183,7 +183,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             "        => new(typeof(T), global::Rask.Core.Routing.RouteTemplateResolver.GetLocalTemplate(typeof(T)), SubRoutes);");
         sb.AppendLine("}");
 
-        spc.AddSource("Rask.Core.Routing.Components.RouteFactory.g.cs",
+        spc.AddSource("Rask.Core.Routing.Generated.RouteFactory.g.cs",
             SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 

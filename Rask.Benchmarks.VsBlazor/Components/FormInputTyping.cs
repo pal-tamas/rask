@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -19,21 +19,14 @@ internal static class FormInputTyping
 {
     public static Component BuildRask(string a, string b, string c)
     {
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Form()[
-                        C.Label()["Field A"],
-                        C.Input(Type: "text", Name: "a", Value: a),
-                        C.Label()["Field B"],
-                        C.Input(Type: "text", Name: "b", Value: b),
-                        C.Label()["Field C"],
-                        C.Input(Type: "text", Name: "c", Value: c),
-                        C.Button(Type: "submit")["Save"]
-                    ]
-                ]
-            ]
+        return C.Form()[
+            C.Label()["Field A"],
+            C.Input(Type: "text", Name: "a", Value: a),
+            C.Label()["Field B"],
+            C.Input(Type: "text", Name: "b", Value: b),
+            C.Label()["Field C"],
+            C.Input(Type: "text", Name: "c", Value: c),
+            C.Button(Type: "submit")["Save"]
         ];
     }
 

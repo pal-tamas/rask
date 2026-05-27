@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
-using C = Rask.Core.Components.Components;
+using C = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
@@ -24,10 +24,7 @@ internal static class KeyedList
             ]);
         }
 
-        return C.Fragment()[
-            C.Doctype(),
-            C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
-        ];
+        return C.Div(Class: "list")[rows];
     }
 
     public sealed class BlazorKeyedList : ComponentBase

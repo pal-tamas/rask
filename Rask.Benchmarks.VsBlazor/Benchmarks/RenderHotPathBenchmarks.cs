@@ -19,7 +19,7 @@ public abstract class RenderHotPathBase
     private HtmlRenderer _blazor = null!;
 
     [GlobalSetup]
-    public void Setup()
+    public virtual void Setup()
     {
         var services = new ServiceCollection().BuildServiceProvider();
         _blazor = new HtmlRenderer(services, NullLoggerFactory.Instance);

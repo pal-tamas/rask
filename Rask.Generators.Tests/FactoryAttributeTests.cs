@@ -18,7 +18,7 @@ public class FactoryAttributeTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("public static global::Demo.Wrap Wrap(", output);
         // No Children parameter — neither named, nor as the trailing params slot.
@@ -44,7 +44,7 @@ public class FactoryAttributeTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         // Non-generic factory still emitted; takes object? Model + Delegate? OnValidSubmit.
         Assert.Contains("public static global::Demo.FormLike FormLike(", output);
@@ -106,7 +106,7 @@ public class FactoryAttributeTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        var output = run.GeneratedSource("Demo.Components.g.cs");
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
 
         Assert.Contains("Holder<T>(", output);
         Assert.Contains("where T : global::Demo.IFoo", output);
