@@ -147,10 +147,18 @@ public sealed class BindingDemosTests
 
     private static T? FindChild<T>(Component parent) where T : Component
     {
-        // Walks the private _children dictionary recursively.
-        var field = typeof(Component).GetField("_children",
+        // Walks the lazily-allocated LiveState.Children dictionary recursively.
+        var liveField = typeof(Component).GetField("_live",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        var children = field?.GetValue(parent) as System.Collections.IDictionary;
+        var live = liveField?.GetValue(parent);
+        if (live is null)
+        {
+            return null;   // component never rendered children -> _live still null
+        }
+
+        var childrenField = live.GetType().GetField("Children",
+            BindingFlags.Instance | BindingFlags.Public);
+        var children = childrenField?.GetValue(live) as System.Collections.IDictionary;
         if (children is null)
         {
             return null;

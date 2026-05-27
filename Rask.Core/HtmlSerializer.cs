@@ -96,7 +96,14 @@ internal static class HtmlSerializer
             }
 
             case Fragment fragment:
-                if (fragment.Children is { } fragmentChildren)
+                if (fragment.ChildrenArray is { } fragmentArray)
+                {
+                    for (var i = 0; i < fragmentArray.Length; i++)
+                    {
+                        Serialize(fragmentArray[i].Component, sb);
+                    }
+                }
+                else if (fragment.Children is { } fragmentChildren)
                 {
                     foreach (var child in fragmentChildren)
                     {
@@ -141,9 +148,20 @@ internal static class HtmlSerializer
                 sb.Append('>');
                 using (el.EnterChildrenScopeInternal())
                 {
-                    foreach (var child in el.RenderChildrenInternal())
+                    if (el.ChildrenArray is { } childArray)
                     {
-                        Serialize(child.Component, sb);
+                        // Index walk over the backing Child[] — no enumerator allocation.
+                        for (var i = 0; i < childArray.Length; i++)
+                        {
+                            Serialize(childArray[i].Component, sb);
+                        }
+                    }
+                    else
+                    {
+                        foreach (var child in el.RenderChildrenInternal())
+                        {
+                            Serialize(child.Component, sb);
+                        }
                     }
                 }
 

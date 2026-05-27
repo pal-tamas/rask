@@ -131,6 +131,15 @@ public abstract class Component
         }
     }
 
+    // Serializer fast-path. The two hot indexer overloads (`params Child[]` at the top and the
+    // materialised `IEnumerable<Component>` path) both leave `Children` holding a `Child[]`.
+    // Exposing the raw array lets the render walk iterate by index instead of `foreach`-ing the
+    // `IEnumerable<Child>` interface — which boxes a `SZGenericArrayEnumerator<Child>` (~32 B)
+    // per child-bearing element, every render. Returns null for the List/LINQ-pipeline backings,
+    // which fall back to the virtual `RenderChildren()` walk. No component in Rask.Core overrides
+    // `RenderChildren`, so for Element subclasses this array is exactly what that method yields.
+    internal Child[]? ChildrenArray => Children as Child[];
+
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
     // components). When non-null, HtmlSerializer wraps WriteAttributes(sb)/RenderChildren()
     // output in `<tag>…</tag>` (or self-closes when SelfClosing is true).
