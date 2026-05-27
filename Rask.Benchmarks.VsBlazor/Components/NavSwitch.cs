@@ -64,7 +64,7 @@ internal static class NavSwitch
             StateHasChanged();
         }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             var tabs = new List<Child>(TabCount);
             for (var t = 0; t < TabCount; t++)

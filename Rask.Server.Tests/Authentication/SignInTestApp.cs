@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Authentication;
 
 public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState) : Component
 {
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["auth-test"]],

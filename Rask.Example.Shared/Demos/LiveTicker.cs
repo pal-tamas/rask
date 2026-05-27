@@ -61,7 +61,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
 
     // The framework dedupes head-asset entries by full rendered HTML, so two
     // LiveTicker instances on the same page share a single Chart.js script tag.
-    protected override Component? Head =>
+    protected override RenderResult Head =>
         Script("https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js", CrossOrigin: "anonymous");
 
     protected override void OnMount()
@@ -148,7 +148,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         Emit("OnUnmountAsync: flushed (after 50ms)");
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var current = _history.Count > 0 ? _history[^1].PriceUsd : 0m;
         var first = _history.Count > 0 ? _history[0].PriceUsd : 0m;

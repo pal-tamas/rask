@@ -18,7 +18,7 @@ public sealed class JsRuntimePage(IJSRuntime js) : Component
     private string? _lastRead;
     private string? _status;
 
-    protected override Component? Head => Title()["IJSRuntime — Rask"];
+    protected override RenderResult Head => Title()["IJSRuntime — Rask"];
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
@@ -38,8 +38,8 @@ public sealed class JsRuntimePage(IJSRuntime js) : Component
         }
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             H1(Class: "h3 mt-2 mb-3")["IJSRuntime — sessionStorage round-trip"],
             P(Class: "text-secondary")[
                 "Type a value, click ", Strong()["Set"], " to write it to ",

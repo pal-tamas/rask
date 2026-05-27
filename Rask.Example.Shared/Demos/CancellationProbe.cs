@@ -73,7 +73,7 @@ public sealed class CancellationProbe : Component
         Log($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var pillClass = _status switch
         {

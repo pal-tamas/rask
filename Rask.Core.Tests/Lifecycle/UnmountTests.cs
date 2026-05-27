@@ -258,7 +258,7 @@ public class UnmountTests
             WasCancelledAtUnmount = CancellationToken.IsCancellationRequested;
         }
 
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class UnmountThenDisposable : Component, IDisposable
@@ -267,7 +267,7 @@ public class UnmountTests
         public UnmountThenDisposable(List<string> order) => _order = order;
         public void Dispose() => _order.Add("dispose");
         protected override void OnUnmount() => _order.Add("unmount");
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class OrderingUnmount : Component
@@ -282,7 +282,7 @@ public class UnmountTests
         }
 
         protected override void OnUnmount() => _order.Add(_name);
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class OrderingMiddle : Component
@@ -300,7 +300,7 @@ public class UnmountTests
 
         protected override void OnUnmount() => _order.Add(_name);
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
@@ -315,7 +315,7 @@ public class UnmountTests
         public bool IncludeChild;
         public SwitchableHost(Component child) => _child = child;
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             if (!IncludeChild)
             {
@@ -341,7 +341,7 @@ public class UnmountTests
             _b = b;
         }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             if (!IncludeChildren)
             {
@@ -367,6 +367,6 @@ public class UnmountTests
 
         protected override void OnUnmount() => _order.Add("unmount");
 
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 }

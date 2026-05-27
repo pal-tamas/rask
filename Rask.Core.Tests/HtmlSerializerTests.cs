@@ -152,13 +152,13 @@ public class HtmlSerializerTests
     {
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
-        protected override Component Render() => _body;
+        protected override RenderResult Render() => _body;
     }
 
     private sealed class ScopedWrapper : Component
     {
         private readonly Component _body;
         public ScopedWrapper(Component body) => _body = body;
-        protected override Component Render() => _body;
+        protected override RenderResult Render() => _body;
     }
 }

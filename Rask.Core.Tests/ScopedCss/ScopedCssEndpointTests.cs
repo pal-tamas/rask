@@ -89,11 +89,11 @@ public class ScopedCssEndpointTests
 
     private sealed class WithCss : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class EndpointSecond : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 }

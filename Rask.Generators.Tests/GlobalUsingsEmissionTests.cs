@@ -16,7 +16,7 @@ public class GlobalUsingsEmissionTests
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -35,11 +35,11 @@ public class GlobalUsingsEmissionTests
                   using Rask.Core;
                   namespace Demo.Pages
                   {
-                      public sealed class Widget : Component { public override Component Render() => this; }
+                      public sealed class Widget : Component { public override RenderResult Render() => this; }
                   }
                   namespace Demo.Other
                   {
-                      public sealed class Gadget : Component { public override Component Render() => this; }
+                      public sealed class Gadget : Component { public override RenderResult Render() => this; }
                   }
                   """;
 
@@ -74,7 +74,7 @@ public class GlobalUsingsEmissionTests
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -91,7 +91,7 @@ public class GlobalUsingsEmissionTests
                   namespace Demo.App.Pages.Account;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -110,7 +110,7 @@ public class GlobalUsingsEmissionTests
                   using Rask.Core;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -132,7 +132,7 @@ public class GlobalUsingsEmissionTests
                   namespace Demo;
                   internal sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 

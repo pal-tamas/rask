@@ -11,7 +11,7 @@ public sealed class VirtualizePage : Component
 {
     private static readonly Row[] _rows = BuildRows(10_000);
 
-    protected override Component? Head => Title()["Virtualize — Rask"];
+    protected override RenderResult Head => Title()["Virtualize — Rask"];
 
     private static Row[] BuildRows(int count)
     {
@@ -39,8 +39,8 @@ public sealed class VirtualizePage : Component
         return rows;
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Virtualize",
                 $"Headless virtualization. The list below contains {_rows.Length:N0} rows, but the DOM only holds the visible window plus a small overscan."),

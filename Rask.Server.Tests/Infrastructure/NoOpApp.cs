@@ -12,7 +12,7 @@ public sealed class NoOpApp : Component
 {
     public int Hidden;
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["noop"]],

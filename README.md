@@ -160,16 +160,16 @@ namespace MyApp;
 
 public sealed class App : Component
 {
-    // App-level head content goes through the Component? Head override.
+    // App-level head content goes through the RenderResult Head override.
     // Pages override their own Head to set per-page Title — singleton dedup
     // means the page's contribution supersedes this fallback for the tab.
-    protected override Component? Head => Fragment()[
+    protected override RenderResult Head => [
         Title()["My Rask App"],
         Meta("utf-8")
     ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Doctype(),
             Html("en")[
                 Head(),                       // framework-managed slot
@@ -199,8 +199,8 @@ namespace MyApp;
 [Route("/")]
 public sealed class HomePage : Component
 {
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             H1()["Hello, world!"],
             P()["Welcome to your new Rask app."]
         ];
@@ -282,11 +282,17 @@ Every component is a `sealed class : Component`. Override `Render()` and return 
 `Component this[params IEnumerable<Child>]` indexer — strings and `Component`s convert implicitly to `Child`, so
 `H1()["Hello"]` and `Div()[Span(...), "text"]` both work.
 
+`Render()` (and the `Head` override) return `RenderResult`, which accepts three shapes:
+
+- **A single component** — `Render() => Div()[...]` (converts implicitly).
+- **A collection expression** — `Render() => [Doctype(), Html(...)]` for multiple top-level nodes, with no wrapper element. (This is sugar for `Fragment()[...]`; the items are grouped into a `Fragment` internally.)
+- **`default`** — render nothing / no contribution. Conditionals target-type each branch, so `Render() => ready ? [Doctype(), Html(...)] : default;` works.
+
 ```csharp
 public sealed class Greeting : Component
 {
     public string? Name { get; set; }
-    protected override Component Render() => H1()[$"Hello, {Name ?? "world"}!"];
+    protected override RenderResult Render() => H1()[$"Hello, {Name ?? "world"}!"];
 }
 ```
 
@@ -314,8 +320,8 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             H1()["Counter"],
             P()[$"Current count: {_count}"],
             Button(OnClick: () => _count++)["Click me"]
@@ -343,7 +349,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
     protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         _forecasts is null
             ? P()[Em()["Loading..."]]
             : Table()[/* render rows */];
@@ -362,7 +368,7 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
-    protected override Component Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
+    protected override RenderResult Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere:
@@ -377,8 +383,9 @@ built-in page if no app-defined one exists.
 
 ### Page head contributions
 
-Any component can override `protected virtual Component? Head` to declare what belongs in `<head>` while that component
-is in the tree:
+Any component can override `protected virtual RenderResult Head` to declare what belongs in `<head>` while that component
+is in the tree. The default is `default` — no contribution; a single tag, a collection expression of several tags, or
+`default` for "nothing" are all valid (e.g. `Head => loggedIn ? [Meta(...)] : default`):
 
 ```csharp
 public sealed class UserDetailPage : Component
@@ -388,13 +395,13 @@ public sealed class UserDetailPage : Component
     // The framework dedupes by rendered HTML; <title> and <base> are singleton
     // tags — last contributor wins. So this page's Title overrides App's
     // fallback when the user lands on /users/42.
-    protected override Component? Head => Fragment()[
+    protected override RenderResult Head => [
         Title()[$"User #{Id} — My Rask App"],
         Meta(Name: "description", Content: $"Profile for user {Id}"),
         Link(Rel: "stylesheet", Href: "https://cdn.example.com/profile.css")
     ];
 
-    protected override Component Render() => /* … */;
+    protected override RenderResult Render() => /* … */;
 }
 ```
 
@@ -455,7 +462,7 @@ public sealed class SignupPage : Component
 {
     private readonly SignupModel _model = new();
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
             DataAnnotationsValidator(),                         // opt-in: DA attributes
             Input(Bind: () => _model.Username),
@@ -514,7 +521,7 @@ protected override void OnMount()
     _ctx.AddValidator(new UniqueUsernameValidator());
 }
 
-protected override Component Render() =>
+protected override RenderResult Render() =>
     Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
         DataAnnotationsValidator(),
         Input(Bind: () => _model.Username),
@@ -628,7 +635,7 @@ public sealed class ReportPage(Navigator nav) : Component
                      Encoding.UTF8.GetBytes("hello"),
                      "text/plain");
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Button(OnClick: Download)["Download report"];
 }
 ```
@@ -680,7 +687,7 @@ selectors are auto-scoped to that component type, served from `/_rask/scoped.css
 // Card.cs
 public sealed class Card : Component
 {
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Div(Class: "card")["..."];
 }
 ```
@@ -748,7 +755,7 @@ public sealed class CodeSample(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Div(Class: "sample-card")[ /* the marker class user JS will query */ ];
 }
 ```

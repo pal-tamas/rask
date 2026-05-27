@@ -35,7 +35,7 @@ internal static class DashboardWidgets
             StateHasChanged();
         }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             if (_staticSidebar is null)
             {

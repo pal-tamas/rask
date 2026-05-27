@@ -15,7 +15,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public sealed class Counter : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 
@@ -39,7 +39,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public sealed class Counter : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 
@@ -57,7 +57,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public sealed class Counter : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 
@@ -75,7 +75,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public sealed class Counter : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 
@@ -96,7 +96,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public sealed class Counter : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 
@@ -118,7 +118,7 @@ public class ComponentScopedJsGeneratorTests
                               namespace Foo;
                               public abstract class Base : Rask.Core.Component
                               {
-                                  protected override Rask.Core.Component Render() => this;
+                                  protected override Rask.Core.RenderResult Render() => this;
                               }
                               """;
 

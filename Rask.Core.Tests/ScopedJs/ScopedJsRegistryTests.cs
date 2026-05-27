@@ -156,11 +156,11 @@ public class ScopedJsRegistryTests
 
     private sealed class HasJs : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class OtherJs : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 }

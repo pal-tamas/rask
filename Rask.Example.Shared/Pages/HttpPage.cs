@@ -13,7 +13,7 @@ public sealed class HttpPage(HttpClient http) : Component
     private string? _error;
     private Post? _post;
 
-    protected override Component? Head => Title()["HttpClient + DI — Rask"];
+    protected override RenderResult Head => Title()["HttpClient + DI — Rask"];
 
     protected override async Task OnMountAsync()
     {
@@ -22,8 +22,8 @@ public sealed class HttpPage(HttpClient http) : Component
         catch (Exception ex) { _error = ex.Message; }
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "HttpClient + DI",
                 "HttpClient is registered as a service in Program.cs and injected into pages through their primary constructor. This demo fetches from jsonplaceholder.typicode.com — a public CORS-friendly API."),
@@ -51,7 +51,7 @@ public sealed class HttpPage(HttpClient http) : Component
                     protected override async Task OnMountAsync() =>
                         _post = await http.GetFromJsonAsync<Post>("posts/1", CancellationToken);
 
-                    public override Component Render() =>
+                    public override RenderResult Render() =>
                         _post is null
                             ? P()[Em()["Loading…"]]
                             : Article()[

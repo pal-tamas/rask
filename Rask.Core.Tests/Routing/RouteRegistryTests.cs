@@ -88,16 +88,16 @@ public class RouteRegistryTests : IDisposable
 
     private sealed class A : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class B : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class C : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 }

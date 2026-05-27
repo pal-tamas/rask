@@ -143,7 +143,7 @@ public sealed class RowItem : Component
 {
     public int Index { get; set; }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         C.Div(Class: "row", Id: $"r{Index}")[
             C.Span(Class: "label")[$"Item {Index}"],
             C.A($"/item/{Index}", Class: "lnk")[$"open {Index}"],
@@ -159,7 +159,7 @@ public sealed class DeepNode : Component
 {
     public int Depth { get; set; }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Depth <= 0
             ? C.Div(Class: "leaf", Id: "leaf")[C.Span()["leaf"]]
             : C.Div(Class: "node", Id: $"n{Depth}")[B.DeepNode(Depth - 1)];

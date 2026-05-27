@@ -11,7 +11,7 @@ public sealed class PathDisplay(RouteState route) : Component
 
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Span(Class: "text-secondary small d-none d-md-inline")[
             "path: ",
             Code(Class: "text-info")[route.Path]

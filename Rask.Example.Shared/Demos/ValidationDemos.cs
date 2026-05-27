@@ -15,8 +15,8 @@ public sealed class ValidationFieldsDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<RegistrationModel>(
                 _model,
                 m => _submission = $"Registered: {m.Name} <{m.Email}>",
@@ -77,8 +77,8 @@ public sealed class ValidationSummaryDemo : Component
             ]
         ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<RegistrationModel>(
                 _model,
                 m => _submission = $"Registered: {m.Name} <{m.Email}>",
@@ -140,8 +140,8 @@ public sealed class InlineValidateDemo : Component
         ];
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form(
                 _model,
                 OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
@@ -244,7 +244,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
             : Array.Empty<string>();
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         // Live derived state — recomputed on every render. The dispatcher re-renders this
         // component after each event handler completes, so the figures stay in sync with the
@@ -256,7 +256,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
         var tax = Math.Round(afterDiscount * 0.08m, 2);
         var total = afterDiscount + tax;
 
-        return Fragment()[
+        return [
             Form(
                 _model,
                 m => _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}",
@@ -415,8 +415,8 @@ public sealed class InlineAsyncValidateDemo : Component
         return TakenCodes.Contains(code) ? new[] { $"\"{code}\" is reserved." } : Array.Empty<string>();
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<PromoModel>(
                 _model,
                 OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
@@ -468,8 +468,8 @@ public sealed class AsyncValidationDemo : Component
             I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
         ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<SignupModel>(
                 _model,
                 m => _submission = $"Signed up: {m.Username}",
@@ -580,8 +580,8 @@ public sealed class CrossFieldSummaryDemo : Component
                 ]
             ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<TripModel>(
                 _model,
                 OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
@@ -640,8 +640,8 @@ public sealed class ValidatableObjectDemo : Component
         ];
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<BookingModel>(
                 _model,
                 m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
@@ -720,8 +720,8 @@ public sealed class ProgrammaticValidateDemo : Component
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<TaskModel>(
                 _model,
                 m => _submission = $"Saved task: {m.Title}",
@@ -805,8 +805,8 @@ public sealed class FluentValidationDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<OrderModel>(
                 _model,
                 m => _submission = $"Ordered {m.Quantity} × {m.Product}",
@@ -858,8 +858,8 @@ public sealed class FirstErrorWinsDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<LicenseModel>(
                 _model,
                 m => _submission = $"Activated: {m.Code}",
@@ -906,8 +906,8 @@ public sealed class FluentValidationAsyncDemo : Component
             I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
         ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<TicketModel>(
                 _model,
                 m => _submission = $"Reserved: {m.Code}",
@@ -971,8 +971,8 @@ public sealed class CustomAttributeDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<CustomAttributeModel>(
                 _model,
                 m => _submission = $"Welcome, {m.Username}!",

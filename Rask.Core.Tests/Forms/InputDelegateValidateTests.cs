@@ -179,7 +179,7 @@ public class InputDelegateValidateTests
 
     private sealed class ContextCapture(Action<EditContext> capture) : Component
     {
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             if (EditContextScope.Current is { } c)
             {

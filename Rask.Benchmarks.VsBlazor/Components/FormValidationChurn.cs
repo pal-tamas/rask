@@ -30,7 +30,7 @@ internal static class FormValidationChurn
             StateHasChanged();
         }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             var children = new List<Child>(FieldCount * 2 + 1);
             for (var i = 0; i < FieldCount; i++)

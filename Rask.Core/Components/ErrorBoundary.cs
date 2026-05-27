@@ -48,7 +48,7 @@ public sealed class ErrorBoundary : Component
         StateHasChanged();
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         if (Error is null)
         {

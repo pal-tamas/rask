@@ -12,10 +12,10 @@ public sealed class CancellationPage : Component
     private bool _mounted;
     private int _nextInstance;
 
-    protected override Component? Head => Title()["Cancellation — Rask"];
+    protected override RenderResult Head => Title()["Cancellation — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Cancellation",
                 "Every Component exposes a protected CancellationToken that fires exactly once when the component is unmounted. Pass it into HttpClient calls, Task.Delay, or any other cancellable async work started inside a lifecycle hook."),

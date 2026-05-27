@@ -43,7 +43,7 @@ public class RenderedTests
         public ChildHostingRoot(LifecycleTrackingComponent child) => Child = child;
         public LifecycleTrackingComponent Child { get; }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Child);

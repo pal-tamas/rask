@@ -15,7 +15,7 @@ public class ForwarderFactoryEmissionTests
                       [GenerateForwarderFactory]
                       public static Widget Bound<TProp>(Expression<Func<TProp>> Bind, string? Class = null) where TProp : class
                           => new() { Class = Class };
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -40,7 +40,7 @@ public class ForwarderFactoryEmissionTests
                       [GenerateForwarderFactory]
                       public static Widget Bound(string? Name = null, bool Flag = false, int Count = 0)
                           => new();
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -65,7 +65,7 @@ public class ForwarderFactoryEmissionTests
                       [GenerateForwarderFactory]
                       public static Widget Bound(string? Label = null, params IEnumerable<Child> Children)
                           => new();
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -88,7 +88,7 @@ public class ForwarderFactoryEmissionTests
                   {
                       [GenerateForwarderFactory]
                       public static Widget Convenience(string? Class = null) => new() { Class = Class };
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 

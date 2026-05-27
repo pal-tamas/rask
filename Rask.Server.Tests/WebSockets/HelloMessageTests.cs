@@ -133,7 +133,7 @@ public class HelloMessageTests
             AwaitCompleted.TrySetResult();
         }
 
-        protected override Rask.Core.Component Render() =>
+        protected override Rask.Core.RenderResult Render() =>
             Rask.Core.Components.Components.Fragment()[
                 Rask.Core.Components.Components.Doctype(),
                 Rask.Core.Components.Components.Html()[

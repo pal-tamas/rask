@@ -13,8 +13,8 @@ public sealed class NestedSubObjectDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Form<CheckoutModel>(
                 _model,
                 m => _submission =
@@ -79,7 +79,7 @@ public sealed class NestedListForeachDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var rows = new List<Child>();
         foreach (var item in _model.Items)
@@ -102,7 +102,7 @@ public sealed class NestedListForeachDemo : Component
             ]);
         }
 
-        return Fragment()[
+        return [
             Form<CartModel>(
                 _model,
                 m => _submission = $"Submitted {m.Items.Count} line item(s).",
@@ -143,7 +143,7 @@ public sealed class NestedListIndexerDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var rows = new List<Child>();
         for (var idx = 0; idx < _model.Skus.Count; idx++)
@@ -172,7 +172,7 @@ public sealed class NestedListIndexerDemo : Component
             ]);
         }
 
-        return Fragment()[
+        return [
             Form<InvoiceModel>(
                 _model,
                 m => _submission =
@@ -213,7 +213,7 @@ public sealed class NestedFluentValidationDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var rows = new List<Child>();
         foreach (var line in _model.Lines)
@@ -236,7 +236,7 @@ public sealed class NestedFluentValidationDemo : Component
             ]);
         }
 
-        return Fragment()[
+        return [
             Form<NestedOrderModel>(
                 _model,
                 m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)",

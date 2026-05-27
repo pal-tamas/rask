@@ -69,16 +69,16 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
 
     private sealed class Fallback : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class Home : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class UserNotFound : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 }

@@ -202,7 +202,7 @@ public class HeadAssetRegistryTests
 
     private sealed class KeyedTestProbe : Component
     {
-        protected override Component Render() => Div();
+        protected override RenderResult Render() => Div();
     }
 
     [Fact]

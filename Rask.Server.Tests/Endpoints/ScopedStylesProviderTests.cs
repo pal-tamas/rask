@@ -47,9 +47,9 @@ public class ScopedStylesProviderTests
 
     public sealed class ScopedCssApp : Component
     {
-        protected override Component? Head => Title()["test"];
+        protected override RenderResult Head => Title()["test"];
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Fragment()[
                 Doctype(),
                 Html()[

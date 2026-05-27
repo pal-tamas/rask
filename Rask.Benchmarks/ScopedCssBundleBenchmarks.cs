@@ -131,40 +131,40 @@ public class ScopedCssBundleBenchmarks
 
 internal sealed class RegisteredComponentA : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentB : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentC : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentD : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentE : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentF : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentG : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }
 
 internal sealed class RegisteredComponentH : Component
 {
-    protected override Component Render() => this;
+    protected override RenderResult Render() => this;
 }

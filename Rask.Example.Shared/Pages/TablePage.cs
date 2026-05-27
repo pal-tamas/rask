@@ -17,7 +17,7 @@ public sealed class TablePage(Navigator nav) : Component
     [QueryParam] public int? Page { get; set; }
     [QueryParam] public int? Size { get; set; }
 
-    protected override Component? Head => Title()["Data table — Rask"];
+    protected override RenderResult Head => Title()["Data table — Rask"];
 
     private static Person[] BuildPeople(int count)
     {
@@ -53,7 +53,7 @@ public sealed class TablePage(Navigator nav) : Component
         return rows;
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var sizeRaw = Size ?? 10;
         var size = sizeRaw is 5 or 10 or 25 or 50 ? sizeRaw : 10;
@@ -90,7 +90,7 @@ public sealed class TablePage(Navigator nav) : Component
         var from = totalFiltered == 0 ? 0 : ((page - 1) * size) + 1;
         var to = totalFiltered == 0 ? 0 : from + visible.Length - 1;
 
-        return Fragment()[
+        return [
             PageHeader.Render(
                 "Data table",
                 "Sortable columns, paged rows, search and page-size selector — all driven from the URL query string. Bookmark or share any view."),

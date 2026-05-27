@@ -24,7 +24,7 @@ public sealed class AsyncValidationApp : Component
         _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[

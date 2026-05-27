@@ -21,7 +21,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     private readonly TodoForm _form = new();
 
-    protected override Component Head => Title()["Todos — Rask"];
+    protected override RenderResult Head => Title()["Todos — Rask"];
 
     private bool IsAdding => route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
@@ -59,10 +59,10 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     private void Delete(TodoItem item) => _todos.Remove(item);
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var done = _todos.Count(t => t.Completed);
-        return Fragment()[
+        return [
             PageHeader.Render(
                 "Todos",
                 "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
@@ -118,7 +118,7 @@ public sealed class TodoFormDialog : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Dialog(Open: Open)[
             H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
             Form(Model, OnSave, Class: "vstack gap-3")[

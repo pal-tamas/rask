@@ -114,7 +114,7 @@ public sealed class Virtualize : Component
         fetch.Dispose();
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         if (Body is null)
         {

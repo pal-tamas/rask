@@ -9,8 +9,8 @@ public sealed class BindingManualDemo : Component
 {
     private string _typed = "";
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Input(
                 "text",
                 Class: "form-control mb-2",
@@ -27,8 +27,8 @@ public sealed class BindingTypedDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Input(
                 () => _model.Name,
                 Class: "form-control mb-2",
@@ -49,8 +49,8 @@ public sealed class BindingTextareaDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Textarea(
                 () => _model.Notes,
                 Id: "bind-textarea",
@@ -76,8 +76,8 @@ public sealed class BindingNullableDemo : Component
 
     private readonly Holder _model = new();
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Div(Class: "mb-3")[
                 Label("bind-null-age", Class: "form-label small")["Optional age (int?)"],
                 Input(
@@ -135,8 +135,8 @@ public sealed class BindingClearDefaultDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Div(Class: "mb-3")[
                 Label("bind-clear-age", Class: "form-label small")["Age (non-nullable int) — clear → 0"],
                 Input(
@@ -178,8 +178,8 @@ public sealed class BindingAfterBindDemo : Component
     private readonly Holder _model = new();
     private string[] _cities = Cities["US"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Div(Class: "mb-3")[
                 Label("bind-after-country", Class: "form-label small")["Country"],
                 Select(
@@ -232,8 +232,8 @@ public sealed class BindingAfterBindAsyncDemo : Component
     private string[] _languages = [];
     private bool _loading;
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Div(Class: "mb-3")[
                 Label("bind-async-track", Class: "form-label small")["Track"],
                 Select(
@@ -299,8 +299,8 @@ public sealed class BindingMultiDemo : Component
 
     private readonly Holder _model = new();
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Div(Class: "mb-3 form-check")[
                 Input(
                     () => _model.Subscribe,

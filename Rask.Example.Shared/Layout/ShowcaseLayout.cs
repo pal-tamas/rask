@@ -49,8 +49,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top")[
                 Div(Class: "container-fluid")[
                     Button(

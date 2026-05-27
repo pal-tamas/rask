@@ -76,7 +76,7 @@ public class EventHandlerErrorBoundaryTests
         public HandlerOwner(bool throwsSync) => _throwsSync = throwsSync;
         public string? RegisteredHandlerId { get; private set; }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             // Register the handler against the live render context so the live root holds
             // it in _handlers and TryInvokeHandlerAsync can look it up by id.

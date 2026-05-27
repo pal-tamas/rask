@@ -12,7 +12,7 @@ public sealed class DownloadPage(Navigator nav) : Component
 {
     private int _reportCount;
 
-    protected override Component? Head => Title()["File download — Rask"];
+    protected override RenderResult Head => Title()["File download — Rask"];
 
     private void DownloadReport()
     {
@@ -22,8 +22,8 @@ public sealed class DownloadPage(Navigator nav) : Component
         nav.Download("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "File download",
                 "Navigator.Download stages bytes (or a stream) on the active session. On the server they're served from /_rask/download/{sid}/{token}; on WASM they're handed to JS as a base64 payload. The component code is the same."),
@@ -43,7 +43,7 @@ public sealed class DownloadPage(Navigator nav) : Component
                                      "text/plain");
                     }
 
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Button(OnClick: DownloadReport)["Download report"];
                 }
                 """,

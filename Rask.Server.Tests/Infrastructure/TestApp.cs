@@ -13,7 +13,7 @@ public sealed class TestApp : Component
 
     public TestApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["test"]],

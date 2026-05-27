@@ -72,7 +72,7 @@ public class ScopedCssHotReloadTests
 
     private sealed class Reloadable : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     // Hot-reload handler treats any type whose simple name matches the generated class as

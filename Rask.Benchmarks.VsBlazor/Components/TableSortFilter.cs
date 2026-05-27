@@ -56,7 +56,7 @@ internal static class TableSortFilter
             StateHasChanged();
         }
 
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             var rows = new List<Child>(_visibleOrder.Length);
             for (var i = 0; i < _visibleOrder.Length; i++)

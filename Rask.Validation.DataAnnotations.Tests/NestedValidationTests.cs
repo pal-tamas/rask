@@ -318,12 +318,12 @@ public class NestedValidationTests
     {
         private readonly Func<Component> _factory;
         public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override Component Render() => _factory();
+        protected override RenderResult Render() => _factory();
     }
 
     private sealed class ContextCapture(Action<EditContext> capture) : Component
     {
-        protected override Component Render()
+        protected override RenderResult Render()
         {
             if (EditContextScope.Current is { } c)
             {

@@ -24,7 +24,7 @@ public sealed class ValidationMessage : Component
         Func<IReadOnlyList<string>, Component> Template) =>
         new() { For = For, Template = Template };
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null || For is null)
@@ -53,7 +53,7 @@ public sealed class ValidationSummary : Component
     // Reads EditContext message state — see ValidationMessage for the rationale.
     protected override bool BypassRenderCache => true;
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null)
@@ -96,7 +96,7 @@ public sealed class ValidatingIndicator : Component
         Func<Component> Template) =>
         new() { For = For, Template = Template };
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null || For is null)

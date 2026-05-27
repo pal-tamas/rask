@@ -49,7 +49,7 @@ internal sealed class LifecycleTrackingComponent : Component
         return OnUnmountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         RenderCount++;
         return Span()[Text($"r{RenderCount}")];

@@ -64,7 +64,7 @@ public class ComponentFactoryIntegrationTests
         public required string Name { get; set; }
         public string? Subtitle { get; set; }
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Span()[Text(Subtitle is null ? Name : $"{Name}: {Subtitle}")];
     }
 }

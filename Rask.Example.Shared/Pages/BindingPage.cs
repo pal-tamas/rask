@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class BindingPage : Component
 {
-    protected override Component? Head => Title()["Two-way binding — Rask"];
+    protected override RenderResult Head => Title()["Two-way binding — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Two-way binding",
                 "Inputs can be wired with plain Value + OnInput, or with a strongly-typed Bind expression that resolves the input name, type, and update timing for you."),

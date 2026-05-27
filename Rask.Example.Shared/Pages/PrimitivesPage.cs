@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PrimitivesPage : Component
 {
-    protected override Component? Head => Title()["Primitives — Rask"];
+    protected override RenderResult Head => Title()["Primitives — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Primitives",
                 "Four primitives sit beneath every Rask page: Text, Raw, Fragment, and Doctype. Everything else is built out of them."),

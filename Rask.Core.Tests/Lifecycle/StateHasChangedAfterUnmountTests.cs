@@ -83,7 +83,7 @@ public class StateHasChangedAfterUnmountTests
 
     private sealed class TrivialComponent : Component
     {
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class GatedAsyncMountComponent : Component
@@ -97,7 +97,7 @@ public class StateHasChangedAfterUnmountTests
             await Gate.Task;
         }
 
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class RecordingHandle : IRenderHandle

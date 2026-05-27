@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NestedFormPage : Component
 {
-    protected override Component? Head => Title()["Complex models — Rask"];
+    protected override RenderResult Head => Title()["Complex models — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Complex models",
                 "Forms aren't always flat. Drop a single DataAnnotationsValidator() or FluentValidationValidator(...) at the top of the Form and the same Input(Bind: ...) syntax binds through sub-objects, lists, and dictionaries. The reference-based FieldIdentifier means each sub-instance owns its own validation state, so add/remove/reorder works without re-keying."),

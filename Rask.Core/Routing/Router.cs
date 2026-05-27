@@ -38,7 +38,7 @@ public sealed class Router : Component
 
     protected override void OnUnmount() => _state.Changed -= StateHasChanged;
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         if (!RouteMatcher.TryMatch(_leaves, _state.Path, out var chain, out var values))
         {

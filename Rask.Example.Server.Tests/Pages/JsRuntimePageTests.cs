@@ -18,7 +18,8 @@ public sealed class JsRuntimePageTests
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         var js = new FakeJsRuntime();
         var page = new JsRuntimePage(js);
-        var headComponent = (Component?)head.GetValue(page);
+        // Head now returns a RenderResult struct; unwrap to the contributed Component.
+        var headComponent = ((RenderResult)head.GetValue(page)!).ToComponentOrNull();
         Assert.NotNull(headComponent);
         Assert.Contains("IJSRuntime", headComponent!.ToHtml());
     }

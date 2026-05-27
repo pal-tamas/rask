@@ -23,7 +23,7 @@ public sealed class DataAnnotationsValidator : Component
     // (the empty Fragment) doesn't change between renders. Cache opt-out is unnecessary here
     // — re-rendering only re-registers the validator, which AddValidator no-ops on dedup.
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         // Snapshot the render-scoped IServiceProvider at Render time. Handler invocation
         // (submit, change, blur) doesn't re-enter LiveRenderContext, so reading

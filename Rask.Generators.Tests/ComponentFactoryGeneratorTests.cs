@@ -10,7 +10,7 @@ public class ComponentFactoryGeneratorTests
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -34,7 +34,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -55,7 +55,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string? Subtitle { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -75,7 +75,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Tag { get; set; } = "x";
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -97,7 +97,7 @@ public class ComponentFactoryGeneratorTests
                       public string Name { get; set; }
                       public int? Age { get; set; }
                       public string Title { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -118,7 +118,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget(IClock clock) : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -140,7 +140,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -163,7 +163,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget(IClock clock) : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -185,7 +185,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public required string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -203,7 +203,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget(IClock clock) : Component
                   {
                       public required string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -220,7 +220,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -237,7 +237,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public required string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -255,7 +255,7 @@ public class ComponentFactoryGeneratorTests
                   {
                       [SkipFactory]
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -275,7 +275,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; init; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -294,7 +294,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; private set; } = "";
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -314,7 +314,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public static string Default { get; set; } = "";
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -334,7 +334,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public int Count { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -358,7 +358,7 @@ public class ComponentFactoryGeneratorTests
                       [RouteParam] public string? Name { get; set; }
                       [QueryParam] public string? Greeting { get; set; }
                       public string? Other { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -377,7 +377,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -401,7 +401,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Foo<TProp> : Component
                   {
                       public required TProp Value { get; init; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -424,7 +424,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Bound<TProp> : Component
                   {
                       public required Expression<Func<TProp>> Bind { get; init; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -444,7 +444,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Card<T> : Component where T : class
                   {
                       public required T Model { get; init; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -462,7 +462,7 @@ public class ComponentFactoryGeneratorTests
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -481,7 +481,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string? Title { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -504,7 +504,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string? Title { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -526,7 +526,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string? Title { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -549,7 +549,7 @@ public class ComponentFactoryGeneratorTests
                   {
                       public string? A { get; set; }
                       public string? B { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -570,7 +570,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Box<T> : Component
                   {
                       public required T Value { get; init; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -599,7 +599,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : BasePage
                   {
                       public string? DerivedProp { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -622,7 +622,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : BasePage
                   {
                       public override string? Title { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -649,7 +649,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -673,7 +673,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Card : Component
                   {
                       public IEnumerable<Child> Children { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -695,7 +695,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Card : Component
                   {
                       public IEnumerable<Child> Children { get; set; } = [];
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -718,7 +718,7 @@ public class ComponentFactoryGeneratorTests
                   public sealed class Card : Component
                   {
                       public string? Children { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -747,7 +747,7 @@ public class ComponentFactoryGeneratorTests
                       public string? P07 { get; set; }
                       public string? P08 { get; set; }
                       public string? P09 { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 

@@ -99,7 +99,7 @@ public class ScopedJsRenderTests
         private readonly Component _body;
         public PageRoot(Component body) => _body = body;
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Fragment()[
                 Doctype(),
                 Html("en")[
@@ -120,13 +120,13 @@ public class ScopedJsRenderTests
     {
         private readonly Component _body;
         public NoJsWrapper(Component body) => _body = body;
-        protected override Component Render() => _body;
+        protected override RenderResult Render() => _body;
     }
 
     private sealed class JsWrapper : Component
     {
         private readonly Component _body;
         public JsWrapper(Component body) => _body = body;
-        protected override Component Render() => _body;
+        protected override RenderResult Render() => _body;
     }
 }

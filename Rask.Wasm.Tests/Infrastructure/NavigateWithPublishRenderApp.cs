@@ -23,7 +23,7 @@ internal sealed class NavigateWithPublishRenderApp : Component
         _nav = nav;
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         // Always request a render — RequestRenderInternalAsync short-circuits
         // via InHandlerScope by setting _pendingRenderInScope=true, exactly

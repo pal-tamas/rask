@@ -36,7 +36,7 @@ public sealed class StatefulLargePageWithCounter : Component
         StateHasChanged();
     }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         if (_rows is null)
         {

@@ -15,7 +15,7 @@ public sealed class UploadPage : Component
     private string? _name;
     private long _size;
 
-    protected override Component? Head => Title()["File upload — Rask"];
+    protected override RenderResult Head => Title()["File upload — Rask"];
 
     private void OnFiles(IReadOnlyList<RaskFile> files)
     {
@@ -32,8 +32,8 @@ public sealed class UploadPage : Component
         _modified = file.LastModified;
     }
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "File upload",
                 "Input(Type: \"file\", OnFiles: …) wires a file picker to a typed handler. RaskFile carries the metadata; OpenReadStream gives you a Stream for the bytes — over multipart POST on the server, via JS chunked reads on WASM."),

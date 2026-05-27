@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
 {
-    protected override Component? Head => Title()["Navigator — Rask"];
+    protected override RenderResult Head => Title()["Navigator — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Navigator",
                 "A scoped service that lets event-handler code change the route. It throws if you call it from Render() or during an initial GET — navigation belongs in event handlers."),

@@ -174,13 +174,16 @@ public abstract class Component
     ///     a subsequent render, its head contribution drops out automatically — the registry
     ///     is rebuilt from scratch each pass.
     ///     <para>
-    ///         Default is <c>null</c> — no head contribution. Typical override returns a
-    ///         <c>Fragment</c> of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls.
+    ///         Default is <c>default</c> — no head contribution. Typical override returns a
+    ///         collection expression of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c>
+    ///         calls (e.g. <c>Head =&gt; [Title(...), Meta(...)]</c>), a single tag, or a
+    ///         <c>Fragment()[...]</c>. Cannot return <c>null</c> (non-nullable value type) — use
+    ///         <c>default</c> for "no contribution".
     ///     </para>
     /// </summary>
-    protected virtual Component? Head => null;
+    protected virtual RenderResult Head => default;
 
-    internal Component? HeadInternal => Head;
+    internal Component? HeadInternal => Head.ToComponentOrNull();
 
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
@@ -242,7 +245,7 @@ public abstract class Component
     internal void SeedPreviousChildren(Dictionary<(Type, int), Component> previous) =>
         _previousChildren = previous;
 
-    protected virtual Component Render() => this;
+    protected virtual RenderResult Render() => this;
 
     /// <summary>
     public string ToHtml()
@@ -541,7 +544,7 @@ public abstract class Component
         // the scope is live during BOTH Render() and the walk of its returned subtree —
         // factories inside Render and handlers registered on elements deep in the tree both
         // attribute back to this component.
-        _cachedRenderResult = Render();
+        _cachedRenderResult = Render().ToComponent();
 
         _propsDirty = false;
         _stateDirty = false;

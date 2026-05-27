@@ -235,7 +235,7 @@ internal sealed class JsRoundTripApp : Component
         _js = js;
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
@@ -271,7 +271,7 @@ internal sealed class JsClickApp : Component
         _js = js;
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["t"]],
@@ -296,7 +296,7 @@ internal sealed class JsRenderStormApp : Component
         _js = js;
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
@@ -319,7 +319,7 @@ internal sealed class JsErrorApp : Component
         _js = js;
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];

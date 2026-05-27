@@ -21,7 +21,7 @@ public class WasmCompatibilityTests
                   {
                       public string Name { get; set; }
                       public string? Subtitle { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -42,7 +42,7 @@ public class WasmCompatibilityTests
                   public sealed class Widget : Component
                   {
                       public string Name { get; set; }
-                      protected override Component Render() => this;
+                      protected override RenderResult Render() => this;
                   }
                   """;
 

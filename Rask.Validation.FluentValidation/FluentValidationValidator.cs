@@ -24,7 +24,7 @@ public sealed class FluentValidationValidator : Component
 {
     public required IValidator Validator { get; set; }
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         EditContextScope.Current?.AddValidator(new Inner(Validator));
         return Core.Components.Components.Fragment();

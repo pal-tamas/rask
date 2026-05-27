@@ -13,7 +13,7 @@ public class FactoryAttributeTests
                   namespace Demo;
                   public sealed class Wrap : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -39,7 +39,7 @@ public class FactoryAttributeTests
                   {
                       public object? Model { get; set; }
                       public System.Delegate? OnValidSubmit { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -78,7 +78,7 @@ public class FactoryAttributeTests
                   [Route("/")]
                   public sealed class HomePage : Component
                   {
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 
@@ -101,7 +101,7 @@ public class FactoryAttributeTests
                   public sealed class Holder : Component
                   {
                       public object? Model { get; set; }
-                      public override Component Render() => this;
+                      public override RenderResult Render() => this;
                   }
                   """;
 

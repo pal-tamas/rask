@@ -32,7 +32,7 @@ internal static class LifecycleChurn
     {
         public int Index { get; set; }
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             C.Div(Class: "child", Id: $"c{Index}")[
                 C.Span(Class: "label")[$"Child {Index}"]
             ];

@@ -25,7 +25,7 @@ public sealed class CodeSample(IJSRuntime js) : Component
     // <head> slot. Multiple CodeSample instances on a page share the same hljs <link>
     // and <script>; navigating to a page without any CodeSample drops them out of
     // <head> automatically. No user-placed marker is needed.
-    protected override Component? Head => Fragment()[
+    protected override RenderResult Head => [
         Link(Rel: "stylesheet",
             Href: HljsBase + "styles/atom-one-dark.min.css",
             CrossOrigin: "anonymous"),
@@ -43,7 +43,7 @@ public sealed class CodeSample(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Div(Class: "card shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? Fragment()

@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ValidationPage : Component
 {
-    protected override Component? Head => Title()["Validation — Rask"];
+    protected override RenderResult Head => Title()["Validation — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Validation",
                 "Validators are opt-in components placed inside the Form. Drop DataAnnotationsValidator() in if your model uses [Required]/[Range]/etc., or FluentValidationValidator(...) if you wired up FluentValidation. Or skip both and pass Validate: directly on Form (cross-field rule) or on Input/Select/Textarea (per-field rule) — the callback is just a Func that returns IEnumerable<string>, sync or async."),
@@ -99,7 +99,7 @@ public sealed class ValidationPage : Component
                         : Array.Empty<string>();
                 }
 
-                protected override Component Render() {
+                protected override RenderResult Render() {
                     // Derived state — recomputed on every render. The dispatcher re-renders
                     // after each handler completes, so the figures stay in sync automatically.
                     var subtotal = _model.Items.Sum(i => i.Quantity * i.UnitPrice);

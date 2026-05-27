@@ -12,10 +12,10 @@ public sealed class LiveTickerPage(Navigator nav) : Component
 
     [RouteParam] public string Symbol { get; set; } = "BTC";
 
-    protected override Component? Head => Title()[$"{Symbol} live ticker — Rask"];
+    protected override RenderResult Head => Title()[$"{Symbol} live ticker — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 $"{Symbol} live ticker",
                 "A widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync drifts a synthetic price each tick (so the demo is deterministic and offline-safe); the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
@@ -66,7 +66,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                     public string Symbol { get; set; } = "BTC";
                     public int Interval { get; set; } = 3000;
 
-                    protected override Component? Head =>
+                    protected override RenderResult Head =>
                         Script("https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js");
 
                     protected override void OnMount() { /* record _mountedAt */ }

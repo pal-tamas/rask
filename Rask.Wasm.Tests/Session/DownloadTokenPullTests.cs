@@ -110,7 +110,7 @@ public class DownloadTokenPullTests
             _contentType = contentType;
         }
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Fragment()[
                 Doctype(),
                 Html()[

@@ -5,16 +5,16 @@ namespace Company.RaskWasm;
 public sealed class App : Component
 {
     // App-level head contributions splice into the framework-managed <head>
-    // via the Component? Head override. Title is singleton — any page that
+    // via the RenderResult Head override. Title is singleton — any page that
     // overrides Head with its own Title supersedes this fallback for the tab.
-    protected override Component? Head => Fragment()[
+    protected override RenderResult Head => [
         Title()["Company.RaskWasm"],
         Meta("utf-8"),
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
     ];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             Doctype(),
             Html("en")[
                 Head(),

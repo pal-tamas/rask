@@ -167,12 +167,12 @@ public class ErrorBoundaryTests
     {
         private readonly string _msg;
         public ThrowingRender(string msg) => _msg = msg;
-        protected override Component Render() => throw new InvalidOperationException(_msg);
+        protected override RenderResult Render() => throw new InvalidOperationException(_msg);
     }
 
     private sealed class ThrowMidwayComponent : Component
     {
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Div()[Text("partial"),
                 new ThrowingRender("late")];
     }
@@ -182,13 +182,13 @@ public class ErrorBoundaryTests
         private readonly bool _throw;
         public ConditionalThrow(bool shouldThrow) => _throw = shouldThrow;
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             _throw ? throw new InvalidOperationException("bang") : Span()[Text("ok")];
     }
 
     private sealed class BoundaryProbe : Component
     {
         public ErrorBoundary? CapturedBoundary => Boundary;
-        protected override Component Render() => Span()[Text("probe")];
+        protected override RenderResult Render() => Span()[Text("probe")];
     }
 }

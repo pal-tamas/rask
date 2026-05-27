@@ -194,7 +194,7 @@ public class LiveSessionStoreTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component Render() => Span();
+        protected override RenderResult Render() => Span();
     }
 
     private sealed class FakeLifetime : IHostApplicationLifetime

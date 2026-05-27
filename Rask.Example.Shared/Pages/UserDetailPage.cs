@@ -11,10 +11,10 @@ public sealed class UserDetailPage(Navigator nav) : Component
     [RouteParam] public string Id { get; set; } = string.Empty;
     [QueryParam("tab")] public string? Tab { get; set; }
 
-    protected override Component? Head => Title()[$"User #{Id} — Rask"];
+    protected override RenderResult Head => Title()[$"User #{Id} — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 $"User #{Id}",
                 "This page lives at /users/{id}. The Id property is bound from the URL segment and Tab from the ?tab= query string."),
@@ -41,7 +41,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
                     [RouteParam] public string Id { get; set; } = string.Empty;
                     [QueryParam("tab")] public string? Tab { get; set; }
 
-                    public override Component Render() => /* uses Id and Tab */;
+                    public override RenderResult Render() => /* uses Id and Tab */;
                 }
                 """,
                 Notes:

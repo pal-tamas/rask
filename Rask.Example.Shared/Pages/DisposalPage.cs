@@ -18,10 +18,10 @@ public sealed class DisposalPage : Component
     private int _nextSyncId;
     private bool _syncMounted;
 
-    protected override Component? Head => Title()["Disposal — Rask"];
+    protected override RenderResult Head => Title()["Disposal — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Disposal",
                 "Components that implement IDisposable or IAsyncDisposable get their Dispose method called by the framework when they leave the render tree. Use it to release timers, subscriptions, or any handle you took out in OnMount."),
@@ -61,7 +61,7 @@ public sealed class DisposalPage : Component
 
                     public void Dispose() => Log($"#{InstanceId} disposed");
 
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Div()[/* ... */];
                 }
                 """,
@@ -155,7 +155,7 @@ public sealed class DisposalPage : Component
                         Log($"ticker stopped after {_ticks} tick(s)");
                     }
 
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Span()[$"tick {_ticks}"];
                 }
                 """,

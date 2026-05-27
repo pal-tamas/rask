@@ -141,11 +141,11 @@ public class ScopedCssRegistryTests
 
     private sealed class HasCss : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 
     private sealed class OtherCss : Component
     {
-        protected override Component Render() => this;
+        protected override RenderResult Render() => this;
     }
 }

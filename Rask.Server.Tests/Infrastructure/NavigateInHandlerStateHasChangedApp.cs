@@ -26,7 +26,7 @@ public sealed class NavigateInHandlerStateHasChangedApp : Component
 
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Fragment()[
             Doctype(),
             new Html()[

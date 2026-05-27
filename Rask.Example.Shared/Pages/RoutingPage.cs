@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class RoutingPage(Navigator nav) : Component
 {
-    protected override Component? Head => Title()["Routing — Rask"];
+    protected override RenderResult Head => Title()["Routing — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Routing",
                 "Annotate a component with [Route(\"/path\")]. A module initializer registers it; Router() in your App tree matches the current URL and renders the page."),
@@ -21,7 +21,7 @@ public sealed class RoutingPage(Navigator nav) : Component
                 [Route("/about")]
                 public sealed class AboutPage : Component
                 {
-                    public override Component Render() =>
+                    public override RenderResult Render() =>
                         H1()["About"];
                 }
                 """,
@@ -33,7 +33,7 @@ public sealed class RoutingPage(Navigator nav) : Component
                 [Route("/")]
                 public sealed class Layout : Component
                 {
-                    public override Component Render() =>
+                    public override RenderResult Render() =>
                         Div()[
                             Nav(/* sidebar */),
                             Main()[Outlet()]   // children render here
@@ -90,7 +90,7 @@ public sealed class RoutingPage(Navigator nav) : Component
                     protected override void OnUnmount() =>
                         route.Changed -= StateHasChanged;
 
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Span()["path: ", Code()[route.Path]];
                 }
                 """,

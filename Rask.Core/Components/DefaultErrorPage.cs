@@ -9,7 +9,7 @@ public sealed class DefaultErrorPage : Component
 
     protected override bool BypassRenderCache => true;
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         var showStack = IsDevelopmentEnvironment();
         var typeName = _error.GetType().FullName ?? _error.GetType().Name;

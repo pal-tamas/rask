@@ -12,10 +12,10 @@ public sealed class LifecyclePage : Component
     private bool _cycleMounted;
     private int _nextCycleId;
 
-    protected override Component? Head => Title()["Lifecycle — Rask"];
+    protected override RenderResult Head => Title()["Lifecycle — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Lifecycle hooks",
                 "Every Component can override the lifecycle hooks below. Async hooks install a synchronization context that triggers a re-render after each in-method await, plus one terminal render on completion."),
@@ -100,7 +100,7 @@ public sealed class LifecyclePage : Component
                         return Task.CompletedTask;
                     }
 
-                    public override Component Render()
+                    public override RenderResult Render()
                     {
                         _renderCount++;
                         return /* ... */;

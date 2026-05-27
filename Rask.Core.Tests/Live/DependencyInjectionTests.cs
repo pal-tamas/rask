@@ -103,13 +103,13 @@ public class DependencyInjectionTests
         private readonly IGreeter _greeter;
         public GreetingComponent(IGreeter greeter) => _greeter = greeter;
 
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             Span()[Text($"hello, {_greeter.Name}")];
     }
 
     public sealed class ParameterlessComponent : Component
     {
-        protected override Component Render() => Span()[Text("plain")];
+        protected override RenderResult Render() => Span()[Text("plain")];
     }
 
     public sealed class ScopedTracker : IDisposable
@@ -122,6 +122,6 @@ public class DependencyInjectionTests
     {
         public TrackerComponent(ScopedTracker tracker) => Tracker = tracker;
         public ScopedTracker Tracker { get; }
-        protected override Component Render() => Raw("<x/>");
+        protected override RenderResult Render() => Raw("<x/>");
     }
 }

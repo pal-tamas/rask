@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ScopedCssPage : Component
 {
-    protected override Component? Head => Title()["Scoped CSS — Rask"];
+    protected override RenderResult Head => Title()["Scoped CSS — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Scoped CSS",
                 "Drop a sibling {Component}.css file next to {Component}.cs and Rask pairs them at compile time. The framework hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component — no class-name discipline, no BEM, no leaks."),
@@ -21,7 +21,7 @@ public sealed class ScopedCssPage : Component
                 // ScopedRed.cs
                 public sealed class ScopedRed : Component
                 {
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Div(Class: "box")[Span(Class: "dot"), "I think .box should be red."];
                 }
 
@@ -33,7 +33,7 @@ public sealed class ScopedCssPage : Component
                 // ScopedBlue.cs — same .box selector, different sibling .css
                 public sealed class ScopedBlue : Component
                 {
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Div(Class: "box")[Span(Class: "dot"), "I think .box should be blue."];
                 }
                 """"",

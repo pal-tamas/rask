@@ -249,7 +249,7 @@ public class DataAnnotationsValidatorTests
     {
         private readonly Func<Component> _factory;
         public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override Component Render() => _factory();
+        protected override RenderResult Render() => _factory();
     }
 
     private sealed class BookingModel : IValidatableObject

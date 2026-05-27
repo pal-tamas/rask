@@ -10,10 +10,10 @@ public sealed class BoomPage : Component
 {
     private bool _throwOnRender;
 
-    protected override Component? Head => Title()["Error boundary — Rask"];
+    protected override RenderResult Head => Title()["Error boundary — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Error boundary",
                 "ErrorBoundary catches exceptions thrown by descendants — render-time, sync lifecycle, async lifecycle, and event handlers — and renders a fallback in their place. The fallback receives a Recover() callback so the boundary can be reset from a button click."),
@@ -167,7 +167,7 @@ public sealed class BoomPage : Component
     [SkipFactory]
     private sealed class RenderThrower : Component
     {
-        protected override Component Render() =>
+        protected override RenderResult Render() =>
             throw new InvalidOperationException("kaboom — render-time boundary demo");
     }
 }

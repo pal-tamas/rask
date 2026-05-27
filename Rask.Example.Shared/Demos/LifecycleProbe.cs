@@ -25,10 +25,10 @@ public sealed class LifecycleProbe : Component
     protected override void OnRendered(bool firstRender) =>
         _log.Add($"OnRendered(firstRender: {firstRender})");
 
-    protected override Component Render()
+    protected override RenderResult Render()
     {
         _renderCount++;
-        return Fragment()[
+        return [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 Span(Class: "badge text-bg-primary fs-6")[$"Render #{_renderCount}"],
                 Button(
@@ -66,7 +66,7 @@ public sealed class LifecycleCycleProbe : Component
         return Task.CompletedTask;
     }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             Span(Class: "badge text-bg-success")[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")["Unmount me to fire OnUnmount / OnUnmountAsync."]

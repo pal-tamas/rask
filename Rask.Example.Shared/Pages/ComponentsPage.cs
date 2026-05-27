@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ComponentsPage : Component
 {
-    protected override Component? Head => Title()["User components — Rask"];
+    protected override RenderResult Head => Title()["User components — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "User components",
                 "Subclass Component, override Render. The Rask source generator emits a Namespace.Components.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
@@ -23,7 +23,7 @@ public sealed class ComponentsPage : Component
                     public required string Name { get; set; }
                     public string? Title { get; set; }
 
-                    public override Component Render() =>
+                    public override RenderResult Render() =>
                         P()[
                             Title is null ? "" : $"{Title} ",
                             "Hello, ", Strong()[Name], "!"
@@ -66,7 +66,7 @@ public sealed class ComponentsPage : Component
 
                     protected override void OnMount() => _count = Initial;
 
-                    protected override Component Render() =>
+                    protected override RenderResult Render() =>
                         Button(OnClick: () => _count++)[$"Clicks: {_count}"];
                 }
 
@@ -111,7 +111,7 @@ public sealed class SkipFactoryCounter : Component
 
     protected override void OnMount() => _count = Initial;
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Button(
             Class: "btn btn-outline-primary",
             Id: "skipfactory-counter",
@@ -123,7 +123,7 @@ public sealed class Greeting : Component
     public required string Name { get; set; }
     public string? Title { get; set; }
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         P(Class: "mb-0")[
             Title is null ? "" : $"{Title} ",
             "Hello, ", Strong()[Name], "!"

@@ -14,10 +14,10 @@ public sealed class EventsPage : Component
     private string _submitted = "(none yet)";
     private string _typed = string.Empty;
 
-    protected override Component? Head => Title()["Events — Rask"];
+    protected override RenderResult Head => Title()["Events — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Events",
                 "Event handlers are plain delegates on the factory call site — OnClick, OnInput, OnChange, OnSubmit. Each handler triggers a re-render after it runs."),

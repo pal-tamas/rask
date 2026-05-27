@@ -8,10 +8,10 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PropsPage : Component
 {
-    protected override Component? Head => Title()["Universal props — Rask"];
+    protected override RenderResult Head => Title()["Universal props — Rask"];
 
-    protected override Component Render() =>
-        Fragment()[
+    protected override RenderResult Render() =>
+        [
             PageHeader.Render(
                 "Universal props",
                 "Every tag accepts Id, Class, Style, and Data. They render in that exact order, ahead of any tag-specific attributes."),

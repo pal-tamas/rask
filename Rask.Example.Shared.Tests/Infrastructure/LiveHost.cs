@@ -36,7 +36,7 @@ internal sealed class LiveHost : Component
 
     internal new string RenderAsLiveRoot() => base.RenderAsLiveRoot(_services);
 
-    protected override Component Render() =>
+    protected override RenderResult Render() =>
         Mounted ? _factory() : (Component)Fragment();
 
     public static IServiceProvider Services(params (Type Service, object Instance)[] singletons)
