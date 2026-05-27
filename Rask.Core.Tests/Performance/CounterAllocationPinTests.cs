@@ -29,9 +29,9 @@ public class CounterAllocationPinTests
         var perIterationBytes = MeasureAvgAllocBytes(BuildInner, iterations);
 
         // Blazor allocates ~3.37 KB / iter on the equivalent (no-shell) tree; Rask measured
-        // at ~1.63 KB on 2026-05-27 after lazy-allocating per-Component lifecycle dicts.
-        // Pin at <= 2 KB to catch regression while leaving slack for runtime jitter.
-        Assert.InRange(perIterationBytes, 0, 2000);
+        // at ~1.15 KB on 2026-05-27 after the LiveState hoist + the lazy-alloc series.
+        // Pin at <= 1.4 KB to catch regression while leaving slack for runtime jitter.
+        Assert.InRange(perIterationBytes, 0, 1400);
     }
 
     [Fact(Skip = "diagnostic — run manually to gather allocation deltas")]

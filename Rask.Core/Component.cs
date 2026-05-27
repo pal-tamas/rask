@@ -17,65 +17,54 @@ public abstract class Component
     // typical pages) doesn't pay a string-concat allocation per call. Overflow above
     // 256 handlers per render falls back to the concat path.
     private static readonly string[] _smallHandlerIds = BuildSmallHandlerIds(1024);
-    private HashSet<Component>? _aliveNow;
-
-    // Pooled scratch buffers reused across renders when this component is acting as a
-    // render root (only RenderAsLiveRootCore touches them). Lazily allocated on first
-    // root render; cleared in place each subsequent frame. Saves three Dictionary/HashSet
-    // allocations per render after warmup.
-    private HashSet<Component>? _alivePrev;
-    private Component? _cachedRenderResult;
-
-    private int _childPositions;
-
-    // Per-component direct children (this component's GetOrCreate calls in its own Render()).
-    // Keys are local — position N is the Nth GetOrCreate call inside this component's Render,
-    // not the Nth call across the whole tree — so a sibling skipping its render never collides.
-    // Lazily allocated: most Elements (Div, Span, …) never call GetOrCreate, so the dict
-    // stays null. Pure-HTML render paths (Component.ToHtml() without a live context) never
-    // touch _children at all — saves ~80 B per Component instance × O(elements per page).
-    private Dictionary<(Type, int), Component>? _children;
-
-    // Sibling pool dict: gets passed as the next frame's `current` so the per-render
-    // EditContext dictionary allocation is gone. RenderAsLiveRootCore swaps the two after
-    // each render — the just-snapshotted current becomes the next frame's previous, and
-    // the now-stale previous gets Clear()ed and reused as next frame's current.
-    private Dictionary<LiveRenderContext.ObjectKey, EditContext>? _editContextsPool;
-    private Dictionary<string, (Component Owner, Delegate Handler)>? _handlers;
-    private bool _hasInitialized;
-    private bool _hasRenderedOnce;
-    private bool _isUnmounted;
-    private CancellationTokenSource? _lifetimeCts;
-    private int _nextHandlerId;
-    private Dictionary<Component, Component>? _parentMap;
-
-    // Captured by RenderAsLiveRootCore from LiveRenderContext.ScopedJsInvokes BEFORE
-    // the ctx is disposed at end of scope. The host's payload builder reads this off
-    // the root component after RenderAsLiveRoot returns and emits the scopedJsInvokes
-    // JSON field. Per-render — reset at the top of each RenderAsLiveRootCore call.
-    // Lazily allocated: only the root of a live render ever writes here; deep tree
-    // Elements that never become roots keep this null forever.
-    private Dictionary<LiveRenderContext.ObjectKey, EditContext>? _persistedEditContexts;
-    private Dictionary<(Type, int), Component>? _previousChildren;
 
     // Static empty dict for PersistedChildren exposed via the public-internal accessor —
     // saves callers from null checks while keeping the per-instance allocation lazy.
     private static readonly Dictionary<(Type, int), Component> _emptyChildren = new();
-    private bool _propsDirty;
-    private bool _stateDirty;
+
+    // All live-render-only state — handlers, child reconciliation, root alive sets,
+    // edit-context pool, the dirty/lifecycle flags — is hoisted off the base Component
+    // class into a lazy container. Plain Elements (Div, Span, …) never engage any of
+    // these paths and so keep `_live` null forever: their per-instance footprint drops
+    // to ~24 B (object header + Children + Boundary refs) versus the pre-hoist ~96 B.
+    // User components and live-render roots pay one LiveState allocation on first use;
+    // subsequent renders reuse it via the pooled dictionaries inside.
+    private LiveState? _live;
+    private CancellationTokenSource? _lifetimeCts;
+
+    private LiveState Live => _live ??= new LiveState();
+
+    // The hoisted state — class so it stays out-of-band from each Component instance.
+    // Field grouping mirrors the prior layout for readability of the diff.
+    private sealed class LiveState
+    {
+        public HashSet<Component>? AliveNow;
+        public HashSet<Component>? AlivePrev;
+        public Component? CachedRenderResult;
+        public int ChildPositions;
+        public Dictionary<(Type, int), Component>? Children;
+        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
+        public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
+        public bool HasInitialized;
+        public bool HasRenderedOnce;
+        public bool IsUnmounted;
+        public int NextHandlerId;
+        public Dictionary<Component, Component>? ParentMap;
+        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedEditContexts;
+        public Dictionary<(Type, int), Component>? PreviousChildren;
+        public bool PropsDirty;
+        public bool StateDirty;
+    }
 
     // Set by the children indexer below. Factories no longer expose Children as a
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
     public IEnumerable<Child>? Children { get; set; }
 
-    // `Div()[Span(...), "hi"]` is the only call-site syntax for children. The indexer
-    // mutates Children and returns `this` so chained nesting works. The setter remains
-    // public so object initializers and direct construction still compile, but every
-    // factory call site uses this indexer. Using `params IEnumerable<Child>` so both
-    // `Foo()[a, b]` and `Foo()[someEnumerable]` work — the spread operator `..` doesn't
-    // apply inside an indexer (parses as `Range`), but a pre-built collection just slots
-    // in directly.
-    public Component this[params IEnumerable<Child> children]
+    // Primary children indexer. `Div()[Span(...), "hi"]` is the call shape: literal lists of
+    // Components/strings (each implicitly Child via Child's converters). Overload resolution
+    // prefers this `params Child[]` form over the IEnumerable<…> variants below — the compiler
+    // emits a single `new Child[N]{ … }` and we assign it directly, no intermediate copy.
+    public Component this[params Child[] children]
     {
         get
         {
@@ -84,15 +73,25 @@ public abstract class Component
         }
     }
 
-    // Overload so call sites that build children via LINQ (`items.Select(x => Foo(x))`)
-    // don't need a per-item `(Child)` cast — `IEnumerable<Component>` doesn't lift through
-    // the user-defined `Component -> Child` conversion. Overload resolution prefers this
-    // for Component-typed inputs and falls back to the Child indexer for strings or mixes.
-    // Materialise eagerly: the prior `.Select(c => (Child)c)` allocated a Select-iterator
-    // state machine that every HtmlSerializer walk had to enumerate, paying a per-render
-    // boxed-iterator cost. Walking once at indexer time into a Child[] keeps subsequent
-    // foreach loops on a value-type array enumerator with no heap allocation.
-    public Component this[params IEnumerable<Component> children]
+    // Single-arg / pre-built enumerable form. Used by call sites that have a List<Child> or
+    // any IEnumerable<Child> already in hand (e.g. row builders that did the materialisation
+    // themselves). The compiler picks this over the `params Child[]` overload only when the
+    // arg can't be coerced into Child[] — i.e. it's a single IEnumerable<Child> instance.
+    public Component this[IEnumerable<Child> children]
+    {
+        get
+        {
+            Children = children;
+            return this;
+        }
+    }
+
+    // LINQ pipeline form. `_items.Select(x => Foo(x))` returns IEnumerable<TComponent> that
+    // C# can't auto-lift through the user-defined Component→Child conversion. We materialise
+    // into a Child[] once here so subsequent foreach loops on `Children` walk a value-type
+    // array enumerator with no boxing. (The prior `.Select(c => (Child)c)` overload that
+    // every caller had to write is now unnecessary — pass the raw `IEnumerable<Component>`.)
+    public Component this[IEnumerable<Component> children]
     {
         get
         {
@@ -172,7 +171,7 @@ public abstract class Component
 
     internal IRenderHandle? RenderHandle { get; set; }
 
-    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _children ?? _emptyChildren;
+    internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _live?.Children ?? _emptyChildren;
 
     /// <summary>
     ///     Override to declare resources this component needs in the page <c>&lt;head&gt;</c>
@@ -252,7 +251,7 @@ public abstract class Component
     // Test seam: used by ReconciliationTests to inject a "previous render" snapshot
     // for this component before a render begins.
     internal void SeedPreviousChildren(Dictionary<(Type, int), Component> previous) =>
-        _previousChildren = previous;
+        Live.PreviousChildren = previous;
 
     protected virtual RenderResult Render() => this;
 
@@ -300,17 +299,17 @@ public abstract class Component
 
     internal void RaiseLifecycleBeforeRender(bool propsChanged)
     {
-        var firstRender = !_hasInitialized;
+        var firstRender = !Live.HasInitialized;
         if (firstRender)
         {
-            _hasInitialized = true;
+            Live.HasInitialized = true;
             OnMount();
             InvokeAsyncLifecycleWithRendering(OnMountAsync);
         }
 
         if (firstRender || propsChanged)
         {
-            _propsDirty = true;
+            Live.PropsDirty = true;
             OnPropsChanged();
             InvokeAsyncLifecycleWithRendering(OnPropsChangedAsync);
         }
@@ -326,13 +325,13 @@ public abstract class Component
         // fire so newly-mounted components on the same walk get their first
         // OnRendered(firstRender:true) — they don't have a prior continuation in flight,
         // so they can't loop.
-        if (publishOnly && _hasRenderedOnce)
+        if (publishOnly && Live.HasRenderedOnce)
         {
             return;
         }
 
-        var firstRender = !_hasRenderedOnce;
-        _hasRenderedOnce = true;
+        var firstRender = !Live.HasRenderedOnce;
+        Live.HasRenderedOnce = true;
         OnRendered(firstRender);
 
         var task = OnRenderedAsync(firstRender);
@@ -367,7 +366,7 @@ public abstract class Component
                 return;
             }
 
-            if (comp._isUnmounted)
+            if (comp.Live.IsUnmounted)
             {
                 return;
             }
@@ -378,7 +377,7 @@ public abstract class Component
                 return;
             }
 
-            comp._stateDirty = true;
+            comp.Live.StateDirty = true;
             _ = handle.RequestPublishRenderAsync();
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
@@ -404,11 +403,11 @@ public abstract class Component
     // Returns null when there's nothing for the caller to await — the async hook either
     // wasn't overridden, completed synchronously, or already failed (faults logged inline).
     // The sync dispose path fire-and-forgets a non-null return via ObserveUnmountFault;
-    // the async path awaits it directly. Skipped entirely when _hasInitialized is false —
+    // the async path awaits it directly. Skipped entirely when Live.HasInitialized is false —
     // a component that never mounted has no unmount counterpart, symmetric with OnMount.
     internal Task? RaiseUnmount()
     {
-        if (!_hasInitialized)
+        if (!Live.HasInitialized)
         {
             return null;
         }
@@ -419,7 +418,7 @@ public abstract class Component
         // silently swallowed instead of queuing ghost session renders against a
         // disposed component. Matches the documented "StateHasChanged() inside
         // OnUnmount is a no-op" contract.
-        _isUnmounted = true;
+        Live.IsUnmounted = true;
 
         try { OnUnmount(); }
         catch (Exception ex) { LogUnmountError(this, ex); }
@@ -532,40 +531,40 @@ public abstract class Component
     {
         // Skip when nothing meaningful changed: no first-time render, no prop change, no
         // explicit StateHasChanged, and the component hasn't opted out of caching. The
-        // serializer still walks _cachedRenderResult, so any descendant whose own
-        // _stateDirty or _propsDirty IS set will re-render itself — ancestors don't need to
+        // serializer still walks Live.CachedRenderResult, so any descendant whose own
+        // Live.StateDirty or Live.PropsDirty IS set will re-render itself — ancestors don't need to
         // re-execute to permit that.
-        if (_cachedRenderResult is not null && !_propsDirty && !_stateDirty && !BypassRenderCache)
+        if (Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty && !BypassRenderCache)
         {
-            return _cachedRenderResult;
+            return Live.CachedRenderResult;
         }
 
         // Swap the two dictionaries instead of allocating a fresh map per render —
         // both fields persist across the component lifetime, so after first render
         // every subsequent render reuses the same two buffers. _children is cleared
-        // before any new writes; _previousChildren retains the prior frame's entries
+        // before any new writes; Live.PreviousChildren retains the prior frame's entries
         // for GetOrCreateChild's reuse lookup. If this component has never had child
         // GetOrCreate calls (most Elements), both dicts stay null and the swap is a
         // no-op — GetOrCreateChild lazily allocates on first write.
-        if (_children is not null)
+        if (_live?.Children is not null)
         {
             // First-time swap: allocate the back buffer so the persistent two-dict pool
             // works steady-state. Subsequent renders just swap and Clear — no allocation.
-            _previousChildren ??= new Dictionary<(Type, int), Component>();
-            (_previousChildren, _children) = (_children, _previousChildren);
-            _children.Clear();
+            _live.PreviousChildren ??= new Dictionary<(Type, int), Component>();
+            (_live.PreviousChildren, _live.Children) = (_live.Children, _live.PreviousChildren);
+            _live.Children.Clear();
         }
-        _childPositions = 0;
+        Live.ChildPositions = 0;
 
         // HtmlSerializer wraps every user-component serialization in an EnterParentScope so
         // the scope is live during BOTH Render() and the walk of its returned subtree —
         // factories inside Render and handlers registered on elements deep in the tree both
         // attribute back to this component.
-        _cachedRenderResult = Render().ToComponent();
+        Live.CachedRenderResult = Render().ToComponent();
 
-        _propsDirty = false;
-        _stateDirty = false;
-        return _cachedRenderResult;
+        Live.PropsDirty = false;
+        Live.StateDirty = false;
+        return Live.CachedRenderResult;
     }
 
     internal T GetOrCreateChild<T>(
@@ -573,9 +572,9 @@ public abstract class Component
         IServiceProvider? services,
         IRenderHandle? handle) where T : Component
     {
-        var key = (typeof(T), _childPositions++);
+        var key = (typeof(T), Live.ChildPositions++);
         T instance;
-        if (_previousChildren is not null && _previousChildren.TryGetValue(key, out var prev) && prev is T t)
+        if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev is T t)
         {
             instance = t;
         }
@@ -589,7 +588,7 @@ public abstract class Component
         }
 
         instance.RenderHandle ??= handle;
-        (_children ??= new Dictionary<(Type, int), Component>())[key] = instance;
+        (Live.Children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
     }
 
@@ -599,9 +598,9 @@ public abstract class Component
         IServiceProvider? services,
         IRenderHandle? handle)
     {
-        var key = (type, _childPositions++);
+        var key = (type, Live.ChildPositions++);
         Component instance;
-        if (_previousChildren is not null && _previousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
+        if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
         {
             instance = prev;
         }
@@ -611,7 +610,7 @@ public abstract class Component
         }
 
         instance.RenderHandle ??= handle;
-        (_children ??= new Dictionary<(Type, int), Component>())[key] = instance;
+        (Live.Children ??= new Dictionary<(Type, int), Component>())[key] = instance;
         return instance;
     }
 
@@ -650,12 +649,12 @@ public abstract class Component
 
     public void StateHasChanged()
     {
-        if (_isUnmounted)
+        if (Live.IsUnmounted)
         {
             return;
         }
 
-        _stateDirty = true;
+        Live.StateDirty = true;
         var handle = RenderHandle;
         if (handle is null)
         {
@@ -669,16 +668,16 @@ public abstract class Component
     // scheduling a render. RootErrorBoundary uses this to propagate "force the inner
     // root to re-execute Render() this frame" semantics — the same behavior
     // RenderAsLiveRootCore applies to its own root.
-    internal void MarkDirtyForFrame() => _stateDirty = true;
+    internal void MarkDirtyForFrame() => Live.StateDirty = true;
 
     public Task StateHasChangedAsync()
     {
-        if (_isUnmounted)
+        if (Live.IsUnmounted)
         {
             return Task.CompletedTask;
         }
 
-        _stateDirty = true;
+        Live.StateDirty = true;
         return RenderHandle?.RequestRenderAsync() ?? Task.CompletedTask;
     }
 
@@ -697,10 +696,10 @@ public abstract class Component
             owner = target;
         }
 
-        _handlers ??= new Dictionary<string, (Component, Delegate)>();
-        var n = _nextHandlerId++;
+        Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
+        var n = Live.NextHandlerId++;
         var id = n < _smallHandlerIds.Length ? _smallHandlerIds[n] : CreateLargeHandlerId(n);
-        _handlers[id] = (owner, handler);
+        Live.Handlers[id] = (owner, handler);
         return id;
     }
 
@@ -733,7 +732,7 @@ public abstract class Component
 
     internal async ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload, IServiceProvider? services)
     {
-        if (_handlers is null || !_handlers.TryGetValue(id, out var entry))
+        if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
         {
             return false;
         }
@@ -743,7 +742,7 @@ public abstract class Component
         // Match Blazor: every event handler implicitly marks the registering component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.
-        owner._stateDirty = true;
+        owner.Live.StateDirty = true;
         try
         {
             switch (handler)
@@ -756,17 +755,17 @@ public abstract class Component
                     return true;
                 case Func<Task> f:
                     await InvokeWithRenderingAsync(f).ConfigureAwait(false);
-                    // The mid-await render inside InvokeWithRenderingAsync resets _stateDirty
+                    // The mid-await render inside InvokeWithRenderingAsync resets Live.StateDirty
                     // to false when it walks the owner's subtree. Re-mark dirty here so the
                     // dispatcher's post-handler render picks up state mutated AFTER the
                     // mid-await window (e.g. an async validator's terminal message, or a
                     // user lambda that ran on the continuation of an awaited Task).
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 case Func<MouseModifiers, Task> fm:
                     var modsForAsync = ExtractModifiers(payload);
                     await InvokeWithRenderingAsync(() => fm(modsForAsync)).ConfigureAwait(false);
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 case Action<string> a:
                     a(ExtractString(payload, "value"));
@@ -774,7 +773,7 @@ public abstract class Component
                 case Func<string, Task> f:
                     var s = ExtractString(payload, "value");
                     await InvokeWithRenderingAsync(() => f(s)).ConfigureAwait(false);
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 case Action<FormData> a:
                     a(FormData.FromJson(payload));
@@ -782,7 +781,7 @@ public abstract class Component
                 case Func<FormData, Task> f:
                     var data = FormData.FromJson(payload);
                     await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 case Action<ScrollEvent> a:
                     a(ScrollEvent.FromJson(payload));
@@ -790,7 +789,7 @@ public abstract class Component
                 case Func<ScrollEvent, Task> f:
                     var scroll = ScrollEvent.FromJson(payload);
                     await InvokeWithRenderingAsync(() => f(scroll)).ConfigureAwait(false);
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 case Action<IReadOnlyList<RaskFile>> a:
                 {
@@ -809,7 +808,7 @@ public abstract class Component
                     }
                     finally { ReleaseFiles(files); }
 
-                    owner._stateDirty = true;
+                    owner.Live.StateDirty = true;
                     return true;
                 }
                 default:
@@ -888,41 +887,41 @@ public abstract class Component
         // Reuse the handler dictionary across renders — IDs are reissued from 0 every
         // root render, so the prior frame's contents are irrelevant. Lazy-init only on
         // the very first render of this component as a root.
-        _handlers ??= new Dictionary<string, (Component, Delegate)>();
-        _handlers.Clear();
-        _nextHandlerId = 0;
+        Live.Handlers ??= new Dictionary<string, (Component, Delegate)>();
+        Live.Handlers.Clear();
+        Live.NextHandlerId = 0;
         // Lazily init on first root render — non-root Component instances (the 99% case for
         // leaf Elements in a page) never touch this field and stay allocation-free.
-        var previousEditContexts = _persistedEditContexts ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
+        var previousEditContexts = Live.PersistedEditContexts ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
         // Recycle the previously-snapshotted dict as the next frame's `current`. First
         // render: pool is null, allocate once. Steady state: Clear and reuse.
-        _editContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
-        _editContextsPool.Clear();
-        using var ctx = LiveRenderContext.Begin(this, previousEditContexts, _editContextsPool, services);
+        Live.EditContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
+        Live.EditContextsPool.Clear();
+        using var ctx = LiveRenderContext.Begin(this, previousEditContexts, Live.EditContextsPool, services);
 
         // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore
         // runs single-threaded per session (the WS dispatcher serializes via the session
         // lock), so reusing these in place is safe and saves three allocations per render
         // after warmup.
-        _alivePrev ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
-        _aliveNow ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
-        _parentMap ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
-        _alivePrev.Clear();
-        _aliveNow.Clear();
-        _parentMap.Clear();
+        Live.AlivePrev ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
+        Live.AliveNow ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
+        Live.ParentMap ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
+        Live.AlivePrev.Clear();
+        Live.AliveNow.Clear();
+        Live.ParentMap.Clear();
 
         // Snapshot the alive set AND parent map BEFORE we touch _children. Walking via
         // every component's _children gives us the same view the previous successful render
         // produced. The parent map is needed in the dispose pass to suppress double-dispose
         // of descendants in a torn-down subtree.
-        CollectAliveWithParents(this, _alivePrev, _parentMap);
+        CollectAliveWithParents(this, Live.AlivePrev, Live.ParentMap);
 
         // RenderAsLiveRoot is the explicit "render now" entry point — called for the initial
         // GET, WS reconnect recovery render, hot reload, and from tests. Force the root to
         // re-execute Render() this frame; descendants still skip on their own diff. Without
         // this, a second RenderAsLiveRoot call with no descendant marked dirty would skip the
         // root, never re-binding closure-captured state or reading external mutable state.
-        _stateDirty = true;
+        Live.StateDirty = true;
         RaiseLifecycleBeforeRender(false);
         var html = ToHtml();
         // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
@@ -936,9 +935,9 @@ public abstract class Component
 
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
-        CollectAlive(this, _aliveNow);
+        CollectAlive(this, Live.AliveNow);
 
-        foreach (var child in _aliveNow)
+        foreach (var child in Live.AliveNow)
         {
             if (!ReferenceEquals(child, this))
             {
@@ -952,17 +951,17 @@ public abstract class Component
         // ALSO disposes its descendants. To avoid disposing each descendant twice, only
         // dispose components whose previously-alive parent is still alive (or whose parent
         // is the root); the parent's recursion will handle the rest.
-        foreach (var prev in _alivePrev)
+        foreach (var prev in Live.AlivePrev)
         {
-            if (_aliveNow.Contains(prev) || ReferenceEquals(prev, this))
+            if (Live.AliveNow.Contains(prev) || ReferenceEquals(prev, this))
             {
                 continue;
             }
 
             // If our previous parent is also being disposed in this pass, the parent's
             // DisposeComponentTree will cover us — skip to avoid double-dispose.
-            if (_parentMap.TryGetValue(prev, out var parent) &&
-                !_aliveNow.Contains(parent) &&
+            if (Live.ParentMap.TryGetValue(prev, out var parent) &&
+                !Live.AliveNow.Contains(parent) &&
                 !ReferenceEquals(parent, this))
             {
                 continue;
@@ -974,8 +973,8 @@ public abstract class Component
         // Swap: the dict we wrote into this frame becomes next frame's `previous`;
         // the now-stale previous becomes the pool that next frame will Clear and reuse.
         var snapshot = ctx.SnapshotEditContexts();
-        _editContextsPool = _persistedEditContexts;
-        _persistedEditContexts = snapshot;
+        Live.EditContextsPool = Live.PersistedEditContexts;
+        Live.PersistedEditContexts = snapshot;
         return html;
     }
 
@@ -990,8 +989,8 @@ public abstract class Component
                 return;
             }
 
-            if (c._children is null) return;
-            foreach (var child in c._children.Values)
+            if (c._live?.Children is null) return;
+            foreach (var child in c._live.Children.Values)
             {
                 Visit(child, seen);
             }
@@ -1012,8 +1011,8 @@ public abstract class Component
                 return;
             }
 
-            if (c._children is null) return;
-            foreach (var child in c._children.Values)
+            if (c._live?.Children is null) return;
+            foreach (var child in c._live.Children.Values)
             {
                 parents[child] = c;
                 Visit(child, seen, parents);
