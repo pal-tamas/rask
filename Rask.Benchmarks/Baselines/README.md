@@ -14,9 +14,9 @@ The bar that decides whether Rask is a real competitor to Blazor:
 Head-to-head numbers against Blazor (with the same scenarios driven through the
 internal `RenderBatchWriter`) live in
 [`../../Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md`](../../Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md).
-Short version: Rask wins counter / text-node updates by ~3× bytes and now wins
-keyed-list reorder / mid-list delete by ~1.6–1.9× bytes (since `FrameDiffer`
-learned `data-rask-key`-driven minimal-moves matching). The diff numbers in
+Short version: Rask wins counter / text-node updates by ~4× bytes and keyed-list
+reorder / mid-list delete by ~2.6× bytes (since `FrameDiffer` learned
+`data-rask-key`-driven minimal-moves matching). The diff numbers in
 *this* file are reported by the same `BuildPayloadUtf8Diff` path the vs-Blazor
 suite measures Rask with, so the two reports stay in lockstep.
 

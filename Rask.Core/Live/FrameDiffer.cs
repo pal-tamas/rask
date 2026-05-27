@@ -678,9 +678,9 @@ public static class FrameDiffer
 
     /// <summary>
     ///     Returns the set of indexes in <paramref name="arr" /> that form a longest strictly
-    ///     increasing subsequence. O(n²) — fine for the typical 10–500-row keyed lists we
-    ///     diff; a binary-search variant would drop us to O(n log n) but isn't load-bearing
-    ///     for the benchmark sizes we care about today.
+    ///     increasing subsequence. O(n log n) via patience sorting (see the implementation
+    ///     note below) — comfortably handles the 1,000–5,000-row keyed permutations the
+    ///     scale benchmarks throw at the keyed-reorder path.
     /// </summary>
     // Patience-sorting LIS in O(N log N). `tails[k]` holds the arr-index of the smallest
     // tail value among all increasing subsequences of length k+1 seen so far; binary search
