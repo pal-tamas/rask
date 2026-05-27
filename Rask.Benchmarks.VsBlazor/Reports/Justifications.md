@@ -37,64 +37,98 @@ re-renders). Blazor accomplishes lifecycle tracking via a parallel
 Component instance itself, which is simpler to reason about and to inject DI
 services into, but allocates more per element.
 
-**What we did:** The Phase 2 lazy-allocation pass already cut the per-Element
-overhead by ~40 % across the board by deferring `_children`,
-`_previousChildren`, and `_persistedEditContexts` allocation until the
-component actually participates in a live render. The remaining gap is the
-field slot footprint plus the per-call `Child[]` array.
+**What we did:** The lazy-allocation pass cut per-Element overhead ~40 % by deferring
+`_children` / `_previousChildren` / `_persistedEditContexts` until the component
+participates in a live render, and the `LiveState` hoist dropped plain Elements to
+~24 B. Most recently, a **children-walk de-boxing** pass (`Component.ChildrenArray` +
+the index walk in `HtmlSerializer`) removed the `SZGenericArrayEnumerator<Child>`
+(~32 B) that the old `foreach` over `IEnumerable<Child>` allocated on **every**
+child-bearing element, every render. After that pass the render-hot-path allocation
+gap is **0.52×–1.19×** vs Blazor (was 1.4–3×), and Rask now beats Blazor on **time**
+across every RenderHotPath scenario (0.29×–0.83×). The remaining gap is the field-slot
+footprint plus the per-call `Child[]` array on multi-child elements.
 
 **Further mitigation paths (not pursued in this program):**
-- Hoist live-render-only fields into a lazy `LiveState` container (~96 B
-  saved per Element, but every live render allocates one `LiveState` →
-  benefit is concentrated in pure-HTML render scenarios).
-- Replace the `params Child[]` indexer with a struct-buffer overload for
-  small (≤8 element) lists.
+- Replace the `params Child[]` indexer with a small inline struct-buffer (≤2 slots)
+  for the common one/two-child element. Evaluated and **declined**: it adds ~16 B to
+  *every* Element (including the leaf-heavy static-list/text scenarios where it doesn't
+  help), and requires routing the `Fragment`/head-asset direct `.Children` reads
+  through a unified accessor — net wash once the de-boxing pass already closed the gap
+  to near-parity.
 - Pool Component instances across renders. Breaks identity semantics; would
   require a parallel "render token" indirection.
 
-## 2. Keyed `MoveSubtree` loop is O(N) per move
+## 2. Keyed `MoveSubtree` loop — was incorrect *and* O(N²); now fixed
 
-**Where:** `Scope_KeyedRandomPermutation 1000` (Rask 5.77× Blazor on time)
-and adjacent random-permutation scenarios.
+**Status: CLOSED.** This entry previously documented a 5.77× time loss on
+`Scale_KeyedRandomPermutation 1000` and accepted it as structural. Investigation
+revealed the loop was not merely slow — it was **emitting the wrong moves** for any
+keyed permutation that needs 3+ moves.
 
-**Root cause:** `FrameDiffer.cs:590-618` walks `surviving` linearly per move
-to find the current source index, then mutates with `List<T>.RemoveAt`
-+ `Insert` (also O(N) shift). For a near-worst-case permutation with M ≈ N
-moves, total work is O(N²).
+**The correctness bug (now fixed):** `FrameDiffer.cs` walked the off-LIS elements in
+*target-ascending* order and inserted each at its numeric target index in a mutating
+list. That ordering does not account for the unmoved LIS backbone the moved nodes
+must weave around, so the resulting DOM order was incorrect. Example: old
+`[0,1,2,3,4,5]` → new `[2,0,4,1,5,3]` produced `[0,2,1,4,5,3]`. The ops ship on the
+wire (keyed moves are `Trusted=true`, so they bypass the full-HTML fallback gate), so
+this corrupted the client DOM. It went unnoticed because the only keyed-move test
+asserted op *count*, never the resulting order, and no E2E exercised a multi-element
+reorder. The fix walks new indices **right-to-left**, anchoring each off-LIS element
+to the already-final element at the next new index — the standard correct minimal-move
+reconcile (Vue/Inferno). Guarded by `FrameDifferTests
+.Diff_KeyedList_RandomPermutation_MoveOpsReproduceTargetOrder` (seeded permutations
+N=50–250, replays the emitted ops to assert they reproduce the target order).
 
-**Why we accept it (for now):** A Patience-Sort-style LIS replacement is the
-bigger algorithmic win (already shipped — 7× speedup on `KeyedReorder_Large
-5000`). Optimising the move loop to O(N log N) requires either a Fenwick
-tree for index tracking or a key-based wire protocol — both invasive. The
-remaining 5-6× gap on RandomPermutation 1000 is bounded by GC pressure from
-the structural Component allocation in (1) above; closing (1) likely makes
-this disappear on its own.
+**The perf gap (now closed):** the correct algorithm also replaced the old
+per-move `string.Equals` linear scan with an integer `List.IndexOf`, eliminating the
+dominant constant factor. The move count and wire bytes are unchanged (still
+LIS-minimal); only the computation got correct and cheaper. Measured on
+`Scale_KeyedRandomPermutation` (Apple M4 Pro, short-run, directional):
 
-## 3. Sustained MemoryGc amplification (16-26×)
+| N    | Before (buggy) | After (correct) |
+|------|----------------|-----------------|
+| 100  | 1.17× Blazor   | **0.79×** (Rask faster) |
+| 500  | 3.16×          | **1.06×** (parity) |
+| 1000 | 5.87×          | **~1.4×** |
+
+Realistic keyed-list sizes (≤500 rows) are now at or below Blazor parity. The residual
+~1.4× on a 1000-element *random* permutation is the leftover O(N²) of the
+`List.IndexOf` + `RemoveAt`/`Insert` simulation; an O(N log N) order-statistics-tree
+replacement would close it but only benefits unrealistically large random reorders, so
+it is intentionally left as an open lever.
+
+## 3. Sustained MemoryGc amplification (now ~9-13×, was 16-26×)
 
 **Where:** `MemoryGc_AppendDeletePressure`,
 `MemoryGc_KeyedShufflePressure`, `MemoryGc_DeepTreeMutationPressure`.
 
 **Root cause:** These scenarios run 10 000 sustained renders per BDN op.
-The per-render structural alloc gap from (1) above multiplies by 10 000 →
-ratios in the 16-26× band. The diff codec works fine on the wire-bytes axis
-(headline `LiveDiffPayload_CounterOnLargePage` ships **0.38× the bytes**
-Blazor does); the GC pressure comes from Rask's per-element heap mass on the
-server side, not from anything the diff path is doing.
+The per-render structural alloc gap from (1) above multiplies by 10 000.
+After the children-walk de-boxing pass (see (1)), the band dropped from
+**16-26×** to **~9-13×** (`MemoryGc_AppendDeletePressure` 9.6×,
+`KeyedShufflePressure` 9.4-10×, `DeepTreeMutationPressure` 12.7×) — removing one
+~32 B enumerator allocation per child-bearing element, multiplied across 10 000
+renders, is a large absolute reduction. The diff codec works fine on the wire-bytes
+axis (headline `LiveDiffPayload_CounterOnLargePage` ships **0.38× the bytes** Blazor
+does); the residual GC pressure is Rask's per-element heap mass on the server side, not
+anything the diff path is doing.
 
-**Why we accept it:** Same root cause as (1). The sustained-load benchmark
-exists precisely to surface this trade-off honestly. Fixing requires the
-same structural redesign.
+**Why we accept the residual:** Same root cause as (1) — the per-Component heap
+instance is the identity/lifecycle trade-off. The sustained-load benchmark exists
+precisely to surface it honestly. Closing it further requires the Component-pooling
+redesign noted in (1), which breaks identity semantics.
 
 ---
 
 ## Net "fix where Rask loses" status
 
-- **All time-axis losses > 10 % closed** at the headline render-path scale,
-  except RandomPermutation 1000 (see (2)) and the sustained churn benches
-  (see (3)). Both downstream of (1).
-- **Allocation-axis losses** in the 1.4-3× band remain on multi-element
-  scenarios. These are (1), documented above.
+- **All time-axis losses > 10 % closed** at the headline render-path scale.
+  RandomPermutation 1000 dropped from 5.87× to ~1.4× (and is now a *correctness
+  fix*, see (2)); the sustained churn benches (3) remain time-bound by the
+  per-Component heap mass (1).
+- **Allocation-axis losses** narrowed to **0.52×–1.19×** on the render hot path
+  (was 1.4–3×) after the children-walk de-boxing pass; the residual is the
+  per-Component instance mass (1), documented above.
 - **Allocation-axis wins** at the small-tree / single-update scale:
   Counter (0.47× alloc + 0.29× time vs Blazor),
   Dashboard_CounterTick (0.55× + 0.37×),

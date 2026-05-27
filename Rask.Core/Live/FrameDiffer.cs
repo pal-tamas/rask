@@ -567,55 +567,66 @@ public static class FrameDiffer
 
             var lis = ComputeLisIndexSet(targets);
 
-            // Collect (key, targetSlot) for non-LIS elements, sorted ascending by target.
-            // The walk order matters: applying moves dst-ascending keeps the tracking
-            // indexes consistent with what the client sees (the post-detach refNode lookup
-            // on the client uses the same shifted indices).
-            List<(string Key, int Target)>? moveable = null;
+            // Elements ON the LIS are already in the right relative order — they never move.
+            // Everything else must be repositioned. We walk the NEW indices RIGHT-TO-LEFT and
+            // move each off-LIS element to sit immediately before the element at the next new
+            // index (its "anchor"). Going right-to-left, that anchor is already in its final
+            // slot, so anchoring against it places the moved node correctly — this is the
+            // standard correct minimal-move reconcile (Vue/Inferno).
+            //
+            // The earlier implementation walked target-ascending and inserted each node at its
+            // numeric target index in the mutating list. That is WRONG for permutations needing
+            // 3+ moves: insert-at-numeric-target does not account for the unmoved (LIS) backbone
+            // the nodes must weave around, so the resulting DOM order was incorrect. It went
+            // unnoticed because the only keyed-move test asserted op *count*, never the order.
+            //
+            // newIndexToSurv[j] = surviving-index whose new position is j. `targets` is a
+            // permutation of 0..n-1 (surviving and newKids share the same key set), so it is
+            // invertible.
+            var newIndexToSurv = new int[n];
             for (var i = 0; i < n; i++)
             {
-                if (lis.Contains(i))
+                newIndexToSurv[targets[i]] = i;
+            }
+
+            // `live` holds surviving-indices in current DOM order. Steps 1-3 already aligned
+            // `surviving` to the post-insert order, so this starts as 0..n-1 and we mutate it
+            // in lockstep with the moves the client will apply (detach at src, insert at dst).
+            var live = new List<int>(n);
+            for (var i = 0; i < n; i++)
+            {
+                live.Add(i);
+            }
+
+            for (var j = n - 1; j >= 0; j--)
+            {
+                var id = newIndexToSurv[j];
+                if (lis.Contains(id))
                 {
                     continue;
                 }
 
-                moveable ??= new List<(string, int)>();
-                moveable.Add((surviving[i].Key, targets[i]));
-            }
+                var src = live.IndexOf(id);
+                live.RemoveAt(src);
 
-            if (moveable is { Count: > 0 })
-            {
-                moveable.Sort(static (a, b) => a.Target.CompareTo(b.Target));
+                // Destination = current (post-detach) index of the anchor at new index j+1,
+                // or the end of the list when this is the last new index (no anchor).
+                var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
 
-                foreach (var (key, target) in moveable)
+                if (dst != src)
                 {
-                    var src = -1;
-                    for (var i = 0; i < surviving.Count; i++)
-                    {
-                        if (string.Equals(surviving[i].Key, key, StringComparison.Ordinal))
-                        {
-                            src = i;
-                            break;
-                        }
-                    }
-
-                    if (src < 0 || src == target)
-                    {
-                        continue;
-                    }
-
                     output.Add(new EditOp(
                         EditOpKind.MoveSubtree,
-                        PathPlus(path, target),
+                        PathPlus(path, dst),
                         null,
                         null,
                         src,
                         trusted: true));
-
-                    var moved = surviving[src];
-                    surviving.RemoveAt(src);
-                    surviving.Insert(target, moved);
                 }
+
+                // Re-insert even on the no-op (dst == src) case so `live` stays consistent for
+                // the remaining iterations' src/dst lookups.
+                live.Insert(dst, id);
             }
         }
 

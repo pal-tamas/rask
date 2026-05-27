@@ -858,9 +858,9 @@ columns; bold marks the winner.
 | Realistic: dashboard counter tick                 | **8.9 µs**     | 23.7 µs        | **27 KB**     | 49 KB         |
 | Realistic: navigation tab switch                  | **15.9 µs**    | 34.1 µs        | **25.7 KB**   | 56.7 KB       |
 | Virtualize 1000 items vs render-all (Rask wins)   | **1.9 µs**     | 163 µs         | **11.2 KB**   | 609 KB        |
-| Scale: keyed-list reorder (1 000 rows)            | 387 µs (1.45×) | **267 µs**     | 1 711 KB      | **463 KB**    |
-| Scale: keyed-list reorder (5 000 rows)            | 2 584 µs (1.86×) | **1 386 µs** | 8 694 KB      | **3 266 KB**  |
-| Scale: random permutation 1 000 keyed rows        | 1 827 µs (5.77×) | **317 µs**   | 1 718 KB      | **457 KB**    |
+| Scale: keyed-list reorder (1 000 rows)            | **269 µs** (0.93×) | 290 µs     | 658 KB        | **464 KB**    |
+| Scale: keyed-list reorder (5 000 rows)            | 1 625 µs (1.08×) | **1 505 µs** | 3 391 KB      | **3 266 KB**  |
+| Scale: random permutation 1 000 keyed rows        | 477 µs (1.39×) | **343 µs**     | 632 KB        | **457 KB**    |
 
 **Where Rask wins:** small-tree renders, attribute-heavy markup, live diffs
 that touch only a few nodes on a large page, virtualised lists, and the
@@ -870,10 +870,14 @@ tick on a 200-row page ships ~57 bytes over the wire vs ~50 KB pre-codec
 (see [`Rask.Benchmarks.VsBlazor/Reports/Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md)
 for the full residual-loss breakdown).
 
-**Where Rask trails:** large keyed-list reorders and sustained 10 000-iter
-churn workloads. Both come from the same root cause — Rask elements are
+**Where Rask trails:** sustained 10 000-iteration churn workloads, and
+keyed-list reorders on the allocation axis (1.04–1.42× — time is now at or
+below Blazor parity). Both come from the same root cause — Rask elements are
 heap `Component` instances vs Blazor's struct render-tree frames — and are
-documented as accepted trade-offs in the Justifications doc above.
+documented as accepted trade-offs in the Justifications doc above. (The
+keyed-move path was also corrected in the process: the prior implementation
+emitted wrong DOM order for permutations needing 3+ moves — see
+[`Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md) §2.)
 
 **Reproduce:**
 

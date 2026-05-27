@@ -102,6 +102,10 @@ practice that we ship and accept it as the one known byte soft spot.
   delete emits a single `RemoveSubtree`. Both ops are flagged `Trusted` so the
   live-session gate ships them as diff instead of routing to full-HTML morph —
   see [Closing the keyed-list gap](#closing-the-keyed-list-gap-frame-differ-keyed-matching).
+  **Note:** the move-emission order was corrected (right-to-left anchor-based; the
+  prior target-ascending order produced wrong DOM order for 3+ move permutations) —
+  see `Reports/Justifications.md` §2. The fix also closed the
+  `Scale_KeyedRandomPermutation` time gap (5.87× → ~1.4× at N=1000, parity ≤500).
 - **Lifecycle_Insert100** / **Lifecycle_Remove100**: structural churn (100 children
   mount or unmount). The diff codec loses to full-HTML on these — the production
   `Auto` mode gate (`diffBytes * 4 < html.Length`) ships the full HTML instead.

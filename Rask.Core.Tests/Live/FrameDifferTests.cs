@@ -382,6 +382,59 @@ public class FrameDifferTests
         Assert.All(ops, op => Assert.True(op.Trusted));
     }
 
+    [Theory]
+    [InlineData(50, 1)]
+    [InlineData(50, 2)]
+    [InlineData(100, 7)]
+    [InlineData(100, 13)]
+    [InlineData(250, 99)]
+    public void Diff_KeyedList_RandomPermutation_MoveOpsReproduceTargetOrder(int n, int seed)
+    {
+        // Strong correctness gate for the keyed MoveSubtree loop: for a random permutation
+        // (same key set, no inserts/removes) the diff emits only MoveSubtree ops. Replaying
+        // them against the before-order — exactly as the client interpreter does: detach at
+        // `src` (op.Length), then insert before the post-detach node at `target`
+        // (op.Path[^1]) — must reproduce the after-order. This pins the (src,target) move
+        // semantics regardless of the algorithm that computes them, so it guards any future
+        // rewrite of the loop (e.g. an O(N log N) order-statistics replacement).
+        var rng = new Random(seed);
+        var before = new int[n];
+        for (var i = 0; i < n; i++)
+        {
+            before[i] = i;
+        }
+
+        // Fisher–Yates shuffle into the after-order.
+        var after = (int[])before.Clone();
+        for (var i = n - 1; i > 0; i--)
+        {
+            var j = rng.Next(i + 1);
+            (after[i], after[j]) = (after[j], after[i]);
+        }
+
+        var beforeFrames = Frames(BuildKeyedRows(before));
+        var afterFrames = Frames(BuildKeyedRows(after));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(beforeFrames, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+
+        // Replay the move ops against a live list of keys, mirroring the DOM interpreter.
+        var live = new List<int>(before);
+        foreach (var op in ops)
+        {
+            var src = op.Length;
+            var target = op.Path[^1];
+            var moved = live[src];
+            live.RemoveAt(src);
+            live.Insert(target, moved);
+        }
+
+        Assert.Equal(after, live.ToArray());
+    }
+
     private static Component BuildKeyedRows(params int[] keys)
     {
         var rows = new List<Child>(keys.Length);
