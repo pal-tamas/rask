@@ -21,14 +21,26 @@ let scopedJsReady = false;
 let pendingScopedInvokes = [];
 
 // External Head-declared <script src> and <link rel=stylesheet> are tracked
-// here so Rask.* JS invokes can wait until every declared dep has loaded
-// before firing. Without this, a component invoking e.g. window.hljs in its
+// here so Rask.* JS invokes can wait until every declared dep has reached
+// a terminal state — load, error, OR a 5-second safety timeout — before
+// firing. Without this, a component invoking e.g. window.hljs in its
 // OnRenderedAsync would have to hand-roll its own load-event workaround.
 // The gate is global on purpose: components don't know about each other's
 // deps, and per-invoke dependency declarations push API surface back onto
 // users.
+//
+// CONTRACT: the gate guarantees the asset's terminal event has fired
+// before draining queued Rask.* invokes — NOT that the asset loaded
+// successfully. A failed asset (CDN flake, refresh cache miss, extension
+// block, integrity mismatch, CSP) still terminates the gate via its
+// 'error' event or the 5s timeout, and queued invokes run anyway. User
+// JS that depends on a global the asset was meant to define MUST be
+// defensive — e.g. `if (typeof window.hljs === "undefined") return;`.
+// The framework logs a clear warning on the failure paths so the
+// resulting TypeError isn't a mystery.
 const pendingHeadAssets = new Set();
 const trackedHeadAssets = new WeakSet();
+const failedHeadAssets = new Set();
 const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 
 function isAssetAlreadyLoaded(url) {
@@ -55,17 +67,29 @@ function trackHeadAsset(el) {
     trackedHeadAssets.add(el);
     if (isAssetAlreadyLoaded(url)) return;
     pendingHeadAssets.add(el);
-    const done = () => {
+    const finish = (outcome) => {
         if (!pendingHeadAssets.delete(el)) return;
+        if (outcome === "error" || outcome === "timeout") {
+            failedHeadAssets.add(url);
+            const reason = outcome === "error"
+                ? "fired 'error' event (network failure / blocked / integrity mismatch / CSP)"
+                : `did not fire load/error within ${HEAD_ASSET_LOAD_TIMEOUT_MS}ms — proceeding anyway`;
+            // console.warn rather than .error: the page CAN still render
+            // (the user's defensive code is the contract). Surface enough
+            // context that the consequent TypeError in user JS is traceable
+            // back to the asset that failed.
+            console.warn(`[Rask] Head asset (${el.tagName.toLowerCase()}) ${url} ${reason}. ` +
+                "Queued Rask.* invokes will run; user JS depending on this asset's global must be defensive.");
+        }
         maybeDrainPendingInvokes();
     };
-    el.addEventListener("load", done, {once: true});
-    el.addEventListener("error", done, {once: true});
-    // Safety: the load event may have fired between insertion and our listener
-    // attach (cache hit). The performance.getEntriesByName check covers most
-    // cases; the timeout covers everything else so a missed load doesn't hold
-    // Rask.* invokes forever.
-    setTimeout(done, HEAD_ASSET_LOAD_TIMEOUT_MS);
+    el.addEventListener("load", () => finish("load"), {once: true});
+    el.addEventListener("error", () => finish("error"), {once: true});
+    // Safety: the load/error event may have fired between insertion and our
+    // listener attach (cache hit). The performance.getEntriesByName check
+    // covers most cases; the timeout covers everything else so a missed
+    // event doesn't hold Rask.* invokes forever.
+    setTimeout(() => finish("timeout"), HEAD_ASSET_LOAD_TIMEOUT_MS);
 }
 
 function scanHeadAssets() {
