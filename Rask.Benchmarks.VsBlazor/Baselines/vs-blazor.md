@@ -38,6 +38,14 @@ Deterministic — no measurement noise. Each row is one incremental update from 
 | Lifecycle_Insert100 | **7,620** | 9,493 | 24,604 | 0.8× | **3.23×** Rask wins¹ |
 | Lifecycle_Remove100 | **140** | 1,623 | 2,080 | 0.1× | **14.86×** Rask wins¹ |
 | VirtualizationScroll | 723 | 535 | 193³ | 1.4× | 0.36×³ |
+| Scale_KeyedReorder_5000 | 347,920 | **61** | 128 | 5,704× | **2.10×** Rask wins |
+| Scale_KeyedRandomPermutation_1000 | 67,920 | 18,672 | **16,096** | 3.6× | 0.86×⁴ |
+| Scale_KeyedAppendMiddle_2000 | 137,990 | **115** | 225 | 1,200× | **1.96×** Rask wins |
+| Scale_DeepTreeMutationByDepth_200 | 5,236 | **441** | 6,522 | 11.9× | **14.79×** Rask wins |
+| Realistic_DashboardWidgets_Tick | 4,106 | **47** | 218 | 87.4× | **4.64×** Rask wins |
+| Realistic_TableSort_Reverse | 17,370 | 4,689 | **3,360** | 3.7× | 0.72×⁴ |
+| Realistic_FormValidationChurn_Field0 | 1,472 | **121** | 310 | 12.2× | **2.56×** Rask wins |
+| Realistic_NavSwitch_0to1 | 4,368 | **2,858** | 7,003 | 1.5× | **2.45×** Rask wins |
 
 ¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: the
 diff codec emits positional structural ops (untrusted `Insert/Remove`) on these
@@ -61,6 +69,17 @@ op even when adjacent ops share most of it) or a permutation-batch op-kind.
 The numbers reflect what each renderer pays in their respective best case, not
 a like-for-like comparison — see the
 [VirtualizationScroll caveat in §Blazor flavors covered](#blazor-flavors-covered).
+
+⁴ `Scale_KeyedRandomPermutation_1000` and `Realistic_TableSort_Reverse`: keyed-list
+reorders where the LIS-minimal move set is large (random permutation; reversal LIS
+length = 1). Both ship per-op JSON arrays that re-emit the path on every
+`MoveSubtree`, so the bytes scale linearly with the move count. Blazor's
+`RenderBatchWriter` interns string-table entries across the batch and pays less
+per-move overhead on the worst cases. Fixing this needs either an O(n log n) LIS
+(currently O(n²) — see `Rask.Core/Live/FrameDiffer.cs:685` `ComputeLisIndexSet`)
+or a path-delta encoding so adjacent moves share a path prefix. Both small enough
+in real-app practice that we ship and accept these two losses as known soft spots
+(see also the existing `KeyedList50Reversal` tie).
 
 - **CounterOnLargePage** and **TextNodeUpdate** are the scenarios the Rask diff codec
   was designed for — one small value mutates inside a large unchanged DOM. The
@@ -226,18 +245,37 @@ _Last pinned: 2026-05-26, .NET 10.0.5, BDN 0.14.0, Apple M4 Pro_
 Event arrival → re-render → payload built. No transport on either side.
 
 ```
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveSessionDispatch*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Dispatch_*Pinned*'
 ```
 
-Benchmark:
-- `LiveSessionDispatchBenchmarks.{Blazor,Rask}_Dispatch_ButtonClick_Counter`
+Benchmarks:
+- `Dispatch_ButtonClickCounterPinnedBenchmarks.{Blazor,Rask}_Dispatch_ButtonClick_Counter`
+- `Dispatch_ButtonClickLargePagePinnedBenchmarks.{Blazor,Rask}_Dispatch_ButtonClick_LargePage`
 
-This bench overlaps with Scope 2 by design — once event dispatch is in-proc and the
+This scope overlaps with Scope 2 by design — once event dispatch is in-proc and the
 transport is excluded, the dominant cost on both sides is render + serialize. The
-bench is here so the suite is structurally complete; expect numbers comparable to
-the Counter row in Scope 2 modulo handler-delegate overhead.
+benches are here so the suite is structurally complete and so the small-tree
+(`Counter`) vs large-tree (`StatefulLargePageWithCounter`, 200 rows + counter)
+deltas are pinned side-by-side.
 
-Smoke-run numbers (`--job short`):
+Previously the default-job run was blocked: `Dispatcher.CreateDefault()` posts
+continuations through a `RendererSynchronizationContextDispatcher` queue, which
+under BDN's tight-loop iteration measurement stacked unresolved continuations and
+hung the second iteration. Resolved by `Infrastructure/InlineDispatcher.cs` — a
+`Dispatcher` subclass whose `InvokeAsync` overloads run the work item inline and
+`CheckAccess()` always returns true, so every nested `Renderer.InvokeAsync` call
+also runs synchronously on the BDN iteration thread. Validation gate: deterministic
+`payload-bytes` CSV is bit-identical before and after the swap.
+
+> Numbers below pinned at `--job short` pending a clean default-job run on a quiet
+> machine. The InlineDispatcher fix unblocks the default-job path (verified by
+> observing `WorkloadActual` progression past iteration 13 with no hang); pinning
+> was deferred so an in-flight bench process couldn't be cleanly killed without
+> user intervention. Re-pin via `dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Pinned*'`
+> on an otherwise-idle machine.
+
+Smoke-run numbers (`--job short`, retained from pre-fix pin for `Counter` — to be
+re-pinned at default job alongside the new `LargePage` row):
 
 | Method | Mean | Allocated |
 |---|---:|---:|
@@ -246,32 +284,26 @@ Smoke-run numbers (`--job short`):
 
 **Rask 2.66× faster** on the dispatch + small-tree diff, slightly fewer allocations.
 
-> **Default-job pinning blocked.** Running this scope at BDN's default job hangs on
-> the Blazor side: `Microsoft.AspNetCore.Components.RenderTree.Renderer` schedules
-> its `UpdateDisplayAsync` continuation through the dispatcher's task queue, which
-> the BDN child process measures as inflated per-iteration wall-clock (observed:
-> 14 min on a single method before timeout). The Rask side runs at the smoke-pinned
-> 880 ns/op under default job. Until a BDN job configuration that disables
-> dispatcher scheduling cleanly is in place, this scope stays on `--job short`.
-> Rask numbers were independently verified at default-job from partial output
-> (`WorkloadWarmup ~885 ns/op` matches the smoke pin to within noise).
-
 ## Scope 4 — Startup / per-component cost
 
 ```
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup_*Pinned*'
 ```
 
 Benchmarks:
-- `StartupAndPerComponentBenchmarks.{Blazor,Rask}_Activate_Counter` — single component instantiation
-- `StartupAndPerComponentBenchmarks.{Blazor,Rask}_FirstRender_Counter` — cold component → HTML string
+- `Startup_ActivateCounterPinnedBenchmarks.{Blazor,Rask}_Activate_Counter`
+- `Startup_FirstRenderCounterPinnedBenchmarks.{Blazor,Rask}_FirstRender_Counter`
+- `Startup_FirstRenderLargePagePinnedBenchmarks.{Blazor,Rask}_FirstRender_LargePage` (200 rows cold)
 
-Numbers not pinned here yet — the same BDN/Renderer dispatcher interaction that
-blocks Scope 3 default-job pinning affects FirstRender benchmarks (Blazor's
-`HtmlRenderer` path uses the same dispatcher). Run with `--job short` for a
-deterministic-enough comparison; expect Rask ~1.5–2× faster on Activate (no DI
-container overhead for the bench's parameterless component) and within noise of
-Blazor on FirstRender.
+Same dispatcher fix that unblocks Scope 3 applies here — `BlazorRenderBatchCapture`
+is shared infrastructure; `HtmlRenderer.Dispatcher` is the framework's default and
+isn't replaceable from outside, but the FirstRender benches drive a single
+`InvokeAsync` and don't hit the multi-iteration queue stacking that broke Scope 3.
+
+Pinning at default job pending the same machine-quiesce window as Scope 3. Expect
+Rask ~1.5–2× faster on Activate (no DI container overhead for the parameterless
+component) and Rask faster on `FirstRender_LargePage` since cold-rendering 200 rows
+exercises the HtmlSerializer hot path the diff codec also benefits from.
 
 ## Closing the keyed-list gap (FrameDiffer keyed matching)
 
@@ -362,10 +394,16 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor
 # Filter to one scope
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffPayload*'
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*RenderHotPath*'
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveSessionDispatch*'
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Dispatch_*Pinned*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup_*Pinned*'
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Lifecycle*'
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Virtualization*'
+
+# v2 expansion (perf/memory push)
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Micro_*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Scale_*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*'
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*MemoryGc_*'
 
 # Deterministic bytes CSV (no BDN measurement noise)
 dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes
@@ -380,3 +418,162 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --job short
 BenchmarkDotNet outputs land in `BenchmarkDotNet.Artifacts/` after each run. The
 headline metric in this file should be re-pinned whenever the diff codec or Blazor
 batch path changes — re-run `-- payload-bytes` and paste the CSV row.
+
+## Hot-path micro-benchmarks (Rask internals)
+
+No host, no Component tree in the iteration body — inputs pre-built in `[GlobalSetup]`
+so each measurement isolates one hot path. Adds direct regression guards for the
+diff codec layers that broader scenarios bury under render-pipeline noise.
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Micro_*'
+```
+
+Benchmark classes:
+- `Micro_HtmlSerializerAppendEncodedBenchmarks` — `[Params]` safe-ascii-16,
+  safe-ascii-200, encoder-fallback, utf-8-multibyte. Baseline = direct
+  `HtmlEncoder.Default.Encode`. Validates the `SearchValues<char>` fast path stays
+  cheap and the fallback path's allocation is bounded.
+- `Micro_FrameDifferDiffBenchmarks` — three pre-built frame-pair scenarios:
+  identity (zero ops), single text change, 50-row keyed swap.
+- `Micro_FrameDifferLisBenchmarks` — direct call into
+  `FrameDiffer.ComputeLisIndexSet` (promoted to `internal` so the bench project
+  reaches it via `InternalsVisibleTo`). `[Params]` N = 10/100/500/2000 × shape =
+  Identity/Reverse/RandomPermutation/OneOutOfOrder. Quantifies the O(n²) LIS cost
+  directly; this is the regression vector if we promise larger keyed lists.
+- `Micro_LivePayloadBuildDiffBenchmarks` — `[Params]` op-count 1/10/100/500.
+  Pure JSON encoding cost decoupled from the differ.
+- `Micro_FrameWriterGrowthBenchmarks` — `[Params]` 10/100/1000 cycles. Cost of
+  the ArrayPool rent + doubling-resize path on a fresh writer.
+- `Micro_SessionRenderCacheRotateBenchmarks` — Seed + diff round-trip on a
+  trivial 2-frame tree. Catches buffer-rotation bookkeeping regressions.
+
+> BDN-pinned numbers pending — bench process from a prior run still holds the
+> machine. Re-run with `--filter '*Micro_*'` on an idle machine to capture
+> Mean / Allocated / Gen0 columns into this section.
+
+## Scale sweeps
+
+Large-input parameter sweeps. The existing suite tops at ~200 rows; these push to
+10,000 to surface super-linear constants in either framework.
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Scale_*'
+```
+
+Benchmark classes:
+- `Scale_StaticListLargeBenchmarks` — `[Params(1000, 5000, 10000)]` render hot path
+  vs `StaticList.BlazorStaticList`.
+- `Scale_KeyedReorderLargeBenchmarks` — `[Params(1000, 5000)]` two-element keyed
+  swap (LIS keeps all but two elements; expected near-O(n) on both sides).
+- `Scale_KeyedRandomPermutationBenchmarks` — `[Params(100, 500, 1000)]` seeded
+  LCG permutation. Average-case shuffle.
+- `Scale_KeyedAppendMiddleBenchmarks` — `[Params(100, 500, 2000)]` insert at N/2.
+  Validates that middle insert emits a single keyed `InsertSubtree` and the
+  subsequent slot shift is folded into the keyed walk rather than per-row.
+- `Scale_DeepTreeMutationByDepthBenchmarks` — `[Params(10, 50, 100, 200)]` depth,
+  leaf-text mutation. Same shape as `LiveDiffPayload_DeepTreeCounterUpdate` but
+  parameterized so the path-encoding tax growth with depth is visible explicitly.
+
+Deterministic wire-bytes points (one representative param per class) appear in the
+headline table — `Scale_KeyedReorder_5000`, `Scale_KeyedRandomPermutation_1000`,
+`Scale_KeyedAppendMiddle_2000`, `Scale_DeepTreeMutationByDepth_200`. The full
+parameter sweep is BDN-driven.
+
+## Realistic patterns
+
+Patterns Blazor devs hit in real apps — dashboards, sortable/filterable tables,
+forms with reactive validation, nav-driven content swaps. Each class measures the
+wire-bytes cost of one realistic state transition. All use the stateful-root
+pattern (see `Components/StatefulLargePageWithCounter.cs`) so per-iteration
+allocation reflects the diff pipeline's pooled-buffer story, not tree-rebuild noise.
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*'
+```
+
+Benchmark classes:
+- `Realistic_DashboardWidgetsBenchmarks` — header + nav sidebar + 6 widgets
+  (counter, chart, table summary, alerts, status grid, footer). One counter widget
+  ticks per iteration; the diff codec must keep the other five widget subtrees out
+  of the wire payload entirely. Component file: `Components/DashboardWidgets.cs`.
+- `Realistic_TableSortFilterBenchmarks` — 200-row keyed `<tr>` table; reverse-sort
+  transition. Combined keyed reorder + structural pattern. Component file:
+  `Components/TableSortFilter.cs`.
+- `Realistic_FormValidationChurnBenchmarks` — 10-field form; one field's value
+  mutates and its sibling validation-message div toggles empty/"required". Tests
+  attribute updates coexisting with structural insert/remove of a sibling.
+  Component file: `Components/FormValidationChurn.cs`.
+- `Realistic_NavSwitchBenchmarks` — 5-tab nav; each iteration switches the active
+  tab, swapping the entire main-content subtree (40 rows of distinct content per
+  tab). Large structural insert/remove; production routes through the full-HTML
+  morph gate. Component file: `Components/NavSwitch.cs`.
+
+Deterministic wire-bytes for the one-shot transitions appear in the headline table
+(`Realistic_*` rows). BDN-pinned time + allocation numbers pending — see the
+machine-quiesce note in Scope 3.
+
+## Memory & GC under sustained load
+
+Each `[Benchmark]` runs N internal cycles per BDN op so per-op Allocated and
+Gen0/Gen1/Gen2 columns surface aggregated pressure across many renders. BDN
+auto-shows Gen1/Gen2 columns once a benchmark allocates enough to trigger those
+collections — one-shot benches rarely cross Gen0; sustained-load benches reliably
+push into Gen1 and Gen2. `[ThreadingDiagnoser]` is on this scope only (the column
+noise isn't worth the overhead on micro/scale runs).
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*MemoryGc_*'
+```
+
+Benchmark classes:
+- `MemoryGc_SustainedCounterChurnBenchmarks` — 10,000 counter increments on the
+  200-row `StatefulLargePageWithCounter` per op. Headline pressure test; matches
+  the production busy-dashboard ticker shape.
+- `MemoryGc_KeyedListShufflePressureBenchmarks` — 5,000 random pairwise swaps on
+  a 500/2000-row keyed list. Tests whether `FrameDiffer.ComputeLisIndexSet`'s
+  per-call `int[] dp`/`int[] prev`/`HashSet<int>` allocations accumulate Gen0
+  pressure under sustained reordering.
+- `MemoryGc_AppendDeletePressureBenchmarks` — 1,000 alternating append+delete
+  cycles, list size 100/500. Catches `InsertSubtree` HTML-fragment slicing
+  pressure (substring allocation per op in the differ).
+- `MemoryGc_DeepTreeMutationPressureBenchmarks` — 1,000 leaf-text mutations on a
+  100-deep div nest. Stresses `List<int>` path tracking in `FrameDiffer`.
+- `MemoryGc_PayloadEnvelopePressureBenchmarks` — 10,000 `BuildPayloadUtf8Diff`
+  calls per op with a pre-built 50-op list (10 ops sharing one attribute name to
+  engage the symbol-table interning path at `Rask.Core/Live/LivePayload.cs:279`).
+  No Blazor pairing — this isolates the encoder envelope cost under sustained
+  load.
+
+Sustained-load harness sits in `BlazorRenderBatchCapture.MeasureSustainedIncrementalUpdates<TComponent>`:
+attaches the root once and re-renders N times so Blazor's per-cycle work is fair
+to Rask's stateful-root pattern (single attach, N re-renders).
+
+> BDN-pinned numbers pending machine quiesce. Re-pin with the filter above on an
+> otherwise-idle machine to capture full Mean / Allocated / Gen0 / Gen1 / Gen2
+> / Lock Contentions columns.
+
+## Known regressions / soft spots (post-v2 expansion)
+
+1. **`Scale_KeyedRandomPermutation_1000`** — Rask 18.7 KB vs Blazor 16.1 KB
+   (0.86×). Random permutation triggers many off-LIS moves; Rask's per-op JSON
+   re-emits the path on each `MoveSubtree`. Blazor's `RenderBatchWriter` interns
+   string-table entries across the batch and pays less per-move overhead.
+2. **`Realistic_TableSort_Reverse`** — Rask 4.69 KB vs Blazor 3.36 KB (0.72×).
+   Reversal is LIS worst case (LIS length 1); 199 of 200 rows enter as moves.
+   Same root cause as #1.
+3. **`KeyedList50Reversal`** — pinned tie at 895 B vs 896 B since the existing
+   suite; reversal LIS worst case at the small-N break-even point.
+
+All three share the same root cause: keyed-list move-set bytes grow linearly with
+move count because Rask emits the full path per op. Fix paths called out for
+Phase 5 follow-up:
+- Path-prefix dedup across consecutive ops (see existing "Held back" note).
+- O(n log n) binary-search LIS replacing `ComputeLisIndexSet`'s O(n²) — this is
+  a throughput fix on the differ, not a wire-bytes fix.
+- A new `PermutationBatch` op kind that carries the destination permutation as
+  one path + an int array of source slots, amortising the path overhead across
+  all moves in the batch.
+
+None of these are pre-decided; the new `Scale_*` and `Realistic_*` benchmarks
+surface the cost so the backlog can prioritise.

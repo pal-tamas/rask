@@ -40,7 +40,256 @@ internal static class VsBlazorPayloadBytesReport
         ReportLifecycleRemove100();
         ReportVirtualizationScroll();
 
+        // Scale sweeps — one representative point per scenario.
+        ReportScaleKeyedReorderLarge();
+        ReportScaleKeyedRandomPermutation();
+        ReportScaleKeyedAppendMiddle();
+        ReportScaleDeepTreeByDepth();
+
+        // Realistic patterns — one wire-bytes transition per scenario.
+        ReportRealisticDashboardTick();
+        ReportRealisticTableSortFlip();
+        ReportRealisticFormFieldChurn();
+        ReportRealisticNavSwitch();
+
         return 0;
+    }
+
+    private static void ReportScaleKeyedReorderLarge()
+    {
+        const int n = 5000;
+        var before = new int[n];
+        var after = new int[n];
+        for (var i = 0; i < n; i++) { before[i] = i; after[i] = i; }
+        (after[0], after[n - 1]) = (after[n - 1], after[0]);
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(KeyedList.BuildRask(before));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(after));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(after));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = before
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = after
+            }));
+
+        EmitRow("Scale_KeyedReorder_5000", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportScaleKeyedRandomPermutation()
+    {
+        const int n = 1000;
+        var identity = new int[n];
+        for (var i = 0; i < n; i++) identity[i] = i;
+        var permuted = MicroBenchHarness.BuildLisInput(n, MicroBenchHarness.LisShape.RandomPermutation);
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(KeyedList.BuildRask(identity));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(permuted));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(permuted));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = identity
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = permuted
+            }));
+
+        EmitRow("Scale_KeyedRandomPermutation_1000", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportScaleKeyedAppendMiddle()
+    {
+        const int n = 2000;
+        var shortArr = new int[n];
+        for (var i = 0; i < n; i++) shortArr[i] = i;
+        var longArr = new int[n + 1];
+        for (var i = 0; i < n / 2; i++) longArr[i] = shortArr[i];
+        longArr[n / 2] = n + 1000;
+        for (var i = n / 2; i < n; i++) longArr[i + 1] = shortArr[i];
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(KeyedList.BuildRask(shortArr));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(longArr));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(longArr));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = shortArr
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(KeyedList.BlazorKeyedList.Order)] = longArr
+            }));
+
+        EmitRow("Scale_KeyedAppendMiddle_2000", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportScaleDeepTreeByDepth()
+    {
+        const int depth = 200;
+
+        Component Build(int counter)
+        {
+            Component leaf = global::Rask.Core.Components.Components.Span(Class: "counter")[counter.ToString()];
+            for (var i = 0; i < depth; i++)
+            {
+                leaf = global::Rask.Core.Components.Components.Div(Class: $"d{i}")[leaf];
+            }
+            return global::Rask.Core.Components.Components.Fragment()[
+                global::Rask.Core.Components.Components.Doctype(),
+                global::Rask.Core.Components.Components.Html()[
+                    global::Rask.Core.Components.Components.Body()[leaf]]];
+        }
+
+        using var rask = new RaskHarness();
+        rask.SeedPrevious(Build(0));
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(Build(1));
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(Build(1));
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 0,
+                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 1,
+                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
+            }));
+
+        EmitRow("Scale_DeepTreeMutationByDepth_200", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportRealisticDashboardTick()
+    {
+        using var rask = new RaskHarness();
+#pragma warning disable RASK014
+        var stateful = new DashboardWidgets.StatefulDashboard();
+#pragma warning restore RASK014
+        rask.SeedPrevious(stateful);
+        stateful.Tick();
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<DashboardWidgets.BlazorDashboard>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(DashboardWidgets.BlazorDashboard.Counter)] = 0
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(DashboardWidgets.BlazorDashboard.Counter)] = 1
+            }));
+
+        EmitRow("Realistic_DashboardWidgets_Tick", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportRealisticTableSortFlip()
+    {
+        var initial = new int[TableSortFilter.InitialRowCount];
+        var reversed = new int[TableSortFilter.InitialRowCount];
+        for (var i = 0; i < TableSortFilter.InitialRowCount; i++)
+        {
+            initial[i] = i;
+            reversed[i] = TableSortFilter.InitialRowCount - 1 - i;
+        }
+
+        using var rask = new RaskHarness();
+#pragma warning disable RASK014
+        var stateful = new TableSortFilter.StatefulTableSortFilter();
+#pragma warning restore RASK014
+        rask.SeedPrevious(stateful);
+        stateful.ReverseSort();
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<TableSortFilter.BlazorTableSortFilter>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(TableSortFilter.BlazorTableSortFilter.Order)] = initial
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(TableSortFilter.BlazorTableSortFilter.Order)] = reversed
+            }));
+
+        EmitRow("Realistic_TableSort_Reverse", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportRealisticFormFieldChurn()
+    {
+        var beforeValues = new string?[FormValidationChurn.FieldCount];
+        var afterValues = new string?[FormValidationChurn.FieldCount];
+        var beforeInvalid = new bool[FormValidationChurn.FieldCount];
+        var afterInvalid = new bool[FormValidationChurn.FieldCount];
+        afterValues[0] = "v1";
+        afterInvalid[0] = true;
+
+        using var rask = new RaskHarness();
+#pragma warning disable RASK014
+        var stateful = new FormValidationChurn.StatefulForm();
+#pragma warning restore RASK014
+        rask.SeedPrevious(stateful);
+        stateful.MutateField(0);
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<FormValidationChurn.BlazorForm>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(FormValidationChurn.BlazorForm.Values)] = beforeValues,
+                [nameof(FormValidationChurn.BlazorForm.Invalid)] = beforeInvalid
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(FormValidationChurn.BlazorForm.Values)] = afterValues,
+                [nameof(FormValidationChurn.BlazorForm.Invalid)] = afterInvalid
+            }));
+
+        EmitRow("Realistic_FormValidationChurn_Field0", raskFull, raskDiff, blazorBytes);
+    }
+
+    private static void ReportRealisticNavSwitch()
+    {
+        using var rask = new RaskHarness();
+#pragma warning disable RASK014
+        var stateful = new NavSwitch.StatefulNavSwitch();
+#pragma warning restore RASK014
+        rask.SeedPrevious(stateful);
+        stateful.Switch(1);
+        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
+
+        using var blazor = new BlazorRenderBatchCapture();
+        var blazorBytes = blazor.MeasureIncrementalUpdate<NavSwitch.BlazorNavSwitch>(
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(NavSwitch.BlazorNavSwitch.ActiveTab)] = 0
+            }),
+            ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(NavSwitch.BlazorNavSwitch.ActiveTab)] = 1
+            }));
+
+        EmitRow("Realistic_NavSwitch_0to1", raskFull, raskDiff, blazorBytes);
     }
 
     private static void ReportAttributeBurstUpdate()

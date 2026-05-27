@@ -33,7 +33,7 @@ public sealed class BlazorRenderBatchCapture : Renderer
 
     public long LastBatchByteCount { get; private set; }
 
-    public override Dispatcher Dispatcher { get; } = Dispatcher.CreateDefault();
+    public override Dispatcher Dispatcher { get; } = new InlineDispatcher();
 
     protected override Task UpdateDisplayAsync(in RenderBatch renderBatch)
     {
@@ -95,6 +95,32 @@ public sealed class BlazorRenderBatchCapture : Renderer
             // Discard the attach batch — caller wants the incremental cost.
             await RenderRootComponentAsync(componentId, after);
             return LastBatchByteCount;
+        }).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    ///     Sustained-load counterpart to <see cref="MeasureIncrementalUpdate{TComponent}"/>.
+    ///     Attaches the root ONCE, then drives <paramref name="cycles"/> re-renders each
+    ///     using parameters from <paramref name="parametersFor"/>. Returns the SUM of all
+    ///     per-cycle batch byte counts. Used by <c>MemoryGc_*</c> benches so root
+    ///     attachment isn't paid per cycle (Rask's stateful root also pays it only once).
+    /// </summary>
+    public long MeasureSustainedIncrementalUpdates<TComponent>(int cycles, Func<int, ParameterView> parametersFor)
+        where TComponent : IComponent
+    {
+        return Dispatcher.InvokeAsync(async () =>
+        {
+            var componentId = AssignRootComponentId(InstantiateComponent(typeof(TComponent)));
+            // Discard initial attach. The caller-supplied parameters[0] is the seed shape;
+            // measured cycles start from the i=1 re-render onward.
+            await RenderRootComponentAsync(componentId, parametersFor(0));
+            long total = 0;
+            for (var i = 1; i <= cycles; i++)
+            {
+                await RenderRootComponentAsync(componentId, parametersFor(i));
+                total += LastBatchByteCount;
+            }
+            return total;
         }).GetAwaiter().GetResult();
     }
 }

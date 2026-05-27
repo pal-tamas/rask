@@ -682,7 +682,7 @@ public static class FrameDiffer
     ///     diff; a binary-search variant would drop us to O(n log n) but isn't load-bearing
     ///     for the benchmark sizes we care about today.
     /// </summary>
-    private static HashSet<int> ComputeLisIndexSet(int[] arr)
+    internal static HashSet<int> ComputeLisIndexSet(int[] arr)
     {
         var n = arr.Length;
         var result = new HashSet<int>();

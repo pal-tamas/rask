@@ -1,0 +1,288 @@
+using BenchmarkDotNet.Attributes;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Rask.Benchmarks.VsBlazor.Components;
+using Rask.Benchmarks.VsBlazor.Infrastructure;
+using Rask.Core;
+using C = Rask.Core.Components.Components;
+
+namespace Rask.Benchmarks.VsBlazor.Benchmarks;
+
+// Scale_* — large-input sweeps. Validates that the render hot path stays linear and
+// the diff codec stays sub-linear on representative-but-bigger workloads. The existing
+// suite tops out around 200 rows; these classes push to 10,000 to expose any super-
+// linear constants in either framework. One class per scenario per BDN's single-baseline
+// constraint.
+
+[MemoryDiagnoser]
+public class Scale_StaticListLargeBenchmarks
+{
+    [Params(1000, 5000, 10000)]
+    public int RowCount { get; set; }
+
+    private HtmlRenderer _blazor = null!;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        var services = new ServiceCollection().BuildServiceProvider();
+        _blazor = new HtmlRenderer(services, NullLoggerFactory.Instance);
+    }
+
+    [GlobalCleanup]
+    public void Cleanup() => _blazor.Dispose();
+
+    [Benchmark(Baseline = true)]
+    public string Blazor_Render_LargeStaticList()
+    {
+        return _blazor.Dispatcher.InvokeAsync(async () =>
+        {
+            var parameters = ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(StaticList.BlazorStaticList.RowCount)] = RowCount
+            });
+            var root = await _blazor.RenderComponentAsync<StaticList.BlazorStaticList>(parameters);
+            return root.ToHtmlString();
+        }).GetAwaiter().GetResult();
+    }
+
+    [Benchmark]
+    public string Rask_Render_LargeStaticList() => StaticList.BuildRask(RowCount).ToHtml();
+}
+
+public abstract class ScaleDiffBase
+{
+    protected RaskHarness Rask = null!;
+    protected BlazorRenderBatchCapture Blazor = null!;
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        Rask.Dispose();
+        Blazor.Dispose();
+    }
+}
+
+[MemoryDiagnoser]
+public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
+{
+    [Params(1000, 5000)]
+    public int N { get; set; }
+
+    private int[] _order = null!;
+    private int _swapA;
+    private int _swapB;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        Rask = new RaskHarness();
+        Blazor = new BlazorRenderBatchCapture();
+        _order = new int[N];
+        for (var i = 0; i < N; i++) _order[i] = i;
+        _swapA = 0;
+        _swapB = N - 1;
+        Rask.SeedPrevious(KeyedList.BuildRask(_order));
+    }
+
+    [Benchmark(Baseline = true)]
+    public long Blazor_KeyedReorder_Large()
+    {
+        var beforeOrder = (int[])_order.Clone();
+        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
+        _swapA = (_swapA + 1) % N;
+        _swapB = (_swapB - 1 + N) % N;
+
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = beforeOrder
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = (int[])_order.Clone()
+        });
+        return Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+    }
+
+    [Benchmark]
+    public long Rask_KeyedReorder_Large()
+    {
+        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
+        _swapA = (_swapA + 1) % N;
+        _swapB = (_swapB - 1 + N) % N;
+        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(_order));
+    }
+}
+
+[MemoryDiagnoser]
+public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
+{
+    [Params(100, 500, 1000)]
+    public int N { get; set; }
+
+    private int[] _identity = null!;
+    private int[] _permuted = null!;
+    private bool _useIdentity = true;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        Rask = new RaskHarness();
+        Blazor = new BlazorRenderBatchCapture();
+        _identity = new int[N];
+        for (var i = 0; i < N; i++) _identity[i] = i;
+        _permuted = MicroBenchHarness.BuildLisInput(N, MicroBenchHarness.LisShape.RandomPermutation);
+        Rask.SeedPrevious(KeyedList.BuildRask(_identity));
+    }
+
+    [Benchmark(Baseline = true)]
+    public long Blazor_KeyedRandomPermutation()
+    {
+        var (beforeArr, afterArr) = _useIdentity ? (_identity, _permuted) : (_permuted, _identity);
+        _useIdentity = !_useIdentity;
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = beforeArr
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = afterArr
+        });
+        return Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+    }
+
+    [Benchmark]
+    public long Rask_KeyedRandomPermutation()
+    {
+        var arr = _useIdentity ? _permuted : _identity;
+        _useIdentity = !_useIdentity;
+        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(arr));
+    }
+}
+
+[MemoryDiagnoser]
+public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
+{
+    [Params(100, 500, 2000)]
+    public int N { get; set; }
+
+    private int[] _short = null!;
+    private int[] _long = null!;
+    private bool _useShort = true;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        Rask = new RaskHarness();
+        Blazor = new BlazorRenderBatchCapture();
+        _short = new int[N];
+        for (var i = 0; i < N; i++) _short[i] = i;
+        _long = new int[N + 1];
+        var inserted = N + 1000; // unique key not present in _short
+        for (var i = 0; i < N / 2; i++) _long[i] = _short[i];
+        _long[N / 2] = inserted;
+        for (var i = N / 2; i < N; i++) _long[i + 1] = _short[i];
+        Rask.SeedPrevious(KeyedList.BuildRask(_short));
+    }
+
+    [Benchmark(Baseline = true)]
+    public long Blazor_KeyedAppendMiddle()
+    {
+        var (beforeArr, afterArr) = _useShort ? (_short, _long) : (_long, _short);
+        _useShort = !_useShort;
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = beforeArr
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(KeyedList.BlazorKeyedList.Order)] = afterArr
+        });
+        return Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+    }
+
+    [Benchmark]
+    public long Rask_KeyedAppendMiddle()
+    {
+        var arr = _useShort ? _long : _short;
+        _useShort = !_useShort;
+        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(arr));
+    }
+}
+
+[MemoryDiagnoser]
+public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
+{
+    [Params(10, 50, 100, 200)]
+    public int Depth { get; set; }
+
+    private int _counter;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        Rask = new RaskHarness();
+        Blazor = new BlazorRenderBatchCapture();
+        Rask.SeedPrevious(BuildDeepTreeRask(0, Depth));
+    }
+
+    [Benchmark(Baseline = true)]
+    public long Blazor_DeepTreeMutation()
+    {
+        _counter++;
+        var before = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ParameterizedBlazorDeepTree.Counter)] = _counter - 1,
+            [nameof(ParameterizedBlazorDeepTree.Depth)] = Depth
+        });
+        var after = ParameterView.FromDictionary(new Dictionary<string, object?>
+        {
+            [nameof(ParameterizedBlazorDeepTree.Counter)] = _counter,
+            [nameof(ParameterizedBlazorDeepTree.Depth)] = Depth
+        });
+        return Blazor.MeasureIncrementalUpdate<ParameterizedBlazorDeepTree>(before, after);
+    }
+
+    [Benchmark]
+    public long Rask_DeepTreeMutation()
+    {
+        _counter++;
+        return Rask.RenderAndBuildDiffPayloadBytes(BuildDeepTreeRask(_counter, Depth));
+    }
+
+    private static Component BuildDeepTreeRask(int counter, int depth)
+    {
+        Component leaf = C.Span(Class: "counter")[counter.ToString()];
+        for (var i = 0; i < depth; i++)
+        {
+            leaf = C.Div(Class: $"d{i}")[leaf];
+        }
+        return C.Fragment()[C.Doctype(), C.Html()[C.Body()[leaf]]];
+    }
+
+    // DeepTreeCounter.BlazorDeepTreeCounter has Depth fixed at 50. Scale_* needs a
+    // parameter-driven depth so the BDN [Params] sweep can vary it; the helper lives
+    // here so the scenario file owns its own knobs without bleeding into the existing
+    // fixed-depth component.
+    public sealed class ParameterizedBlazorDeepTree : ComponentBase
+    {
+        [Parameter] public int Counter { get; set; }
+        [Parameter] public int Depth { get; set; }
+
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder b)
+        {
+            for (var i = 0; i < Depth; i++)
+            {
+                b.OpenElement(0, "div");
+                b.AddAttribute(1, "class", $"d{i}");
+            }
+            b.OpenElement(2, "span");
+            b.AddAttribute(3, "class", "counter");
+            b.AddContent(4, Counter.ToString());
+            b.CloseElement();
+            for (var i = 0; i < Depth; i++) b.CloseElement();
+        }
+    }
+}
