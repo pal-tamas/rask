@@ -46,9 +46,11 @@ internal static class AppendDeleteRowChurn
     public sealed class StatefulAppendDeleteList : Component
 #pragma warning restore RASK014
     {
+        // Capacity is kept for the seeded-initial-order branch; sparse keys (e.g. N+1000)
+        // work transparently because rows are lazy-built into the dictionary on demand.
         public int Capacity { get; init; } = InitialRowCount + 1;
 
-        private Child[]? _rowsByKey;
+        private readonly Dictionary<int, Child> _rowsByKey = new();
         private int[]? _currentOrder;
         private List<Child>? _scratch;
 
@@ -76,31 +78,28 @@ internal static class AppendDeleteRowChurn
             _scratch.Clear();
             for (var i = 0; i < order.Length; i++)
             {
-                _scratch.Add(_rowsByKey![order[i]]);
+                _scratch.Add(GetOrCreateRow(order[i]));
             }
             return C.Div(Class: "list")[_scratch];
         }
 
-        private void EnsureSeeded()
+        private Child GetOrCreateRow(int key)
         {
-            if (_rowsByKey is not null) return;
-            _rowsByKey = new Child[Capacity];
-            for (var i = 0; i < Capacity; i++)
-            {
-                _rowsByKey[i] = C.Div(
-                    Class: "row",
-                    Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
-                    C.Span()[$"Item {i}"]
-                ];
-            }
-            _currentOrder ??= InitInitialOrder();
+            if (_rowsByKey.TryGetValue(key, out var row)) return row;
+            row = C.Div(
+                Class: "row",
+                Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
+                C.Span()[$"Item {key}"]
+            ];
+            _rowsByKey[key] = row;
+            return row;
         }
 
-        private static int[] InitInitialOrder()
+        private void EnsureSeeded()
         {
-            var o = new int[InitialRowCount];
-            for (var i = 0; i < InitialRowCount; i++) o[i] = i;
-            return o;
+            if (_currentOrder is not null) return;
+            _currentOrder = new int[InitialRowCount];
+            for (var i = 0; i < InitialRowCount; i++) _currentOrder[i] = i;
         }
     }
 

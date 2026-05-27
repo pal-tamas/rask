@@ -85,7 +85,7 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
     [Params(500, 2000)]
     public int N { get; set; }
 
-    private int[] _order = null!;
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private ulong _state;
 
     [GlobalSetup]
@@ -93,9 +93,10 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
     {
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
-        _order = new int[N];
-        for (var i = 0; i < N; i++) _order[i] = i;
-        Rask.SeedPrevious(KeyedList.BuildRask(_order));
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
+#pragma warning restore RASK014
+        Rask.SeedPrevious(_stateful);
         _state = 0xC0FFEE_DEADBEEFUL;
     }
 
@@ -104,7 +105,7 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
     {
         var localState = _state;
         var n = N;
-        var workingOrder = (int[])_order.Clone();
+        var workingOrder = (int[])_stateful.CurrentOrder.Clone();
 
         var beforeArr = (int[])workingOrder.Clone();
         return Blazor.MeasureSustainedIncrementalUpdates<KeyedList.BlazorKeyedList>(
@@ -141,8 +142,8 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
             var a = (int)((_state >> 33) % (uint)n);
             _state = _state * 6364136223846793005UL + 1442695040888963407UL;
             var b = (int)((_state >> 33) % (uint)n);
-            (_order[a], _order[b]) = (_order[b], _order[a]);
-            total += Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(_order));
+            _stateful.SwapAt(a, b);
+            total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
         }
         return total;
     }
@@ -156,6 +157,7 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
     [Params(100, 500)]
     public int N { get; set; }
 
+    private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
     private int[] _baseOrder = null!;
     private int[] _withInsert = null!;
 
@@ -169,7 +171,11 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
         _withInsert = new int[N + 1];
         for (var i = 0; i < N; i++) _withInsert[i] = i;
         _withInsert[N] = N + 1000;
-        Rask.SeedPrevious(AppendDeleteRowChurn.BuildRask(_baseOrder));
+#pragma warning disable RASK014
+        _stateful = new AppendDeleteRowChurn.StatefulAppendDeleteList { Capacity = N + 1001 };
+        _stateful.SetOrder(_baseOrder);
+#pragma warning restore RASK014
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -193,8 +199,10 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
         long total = 0;
         for (var i = 0; i < Cycles; i++)
         {
-            total += Rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(_withInsert));
-            total += Rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(_baseOrder));
+            _stateful.SetOrder(_withInsert);
+            total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
+            _stateful.SetOrder(_baseOrder);
+            total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
         }
         return total;
     }
@@ -247,16 +255,15 @@ public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
 
     private static global::Rask.Core.Component Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(int counter)
     {
+        // Mirror the Blazor side exactly: 100-deep div nest wrapping a leaf span,
+        // no page shell. Blazor's BuildRenderTree emits no doctype/html/body either.
         global::Rask.Core.Component leaf =
             global::Rask.Core.Components.Generated.Span(Class: "counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
             leaf = global::Rask.Core.Components.Generated.Div(Class: $"d{i}")[leaf];
         }
-        return global::Rask.Core.Components.Generated.Fragment()[
-            global::Rask.Core.Components.Generated.Doctype(),
-            global::Rask.Core.Components.Generated.Html()[
-                global::Rask.Core.Components.Generated.Body()[leaf]]];
+        return leaf;
     }
 }
 
