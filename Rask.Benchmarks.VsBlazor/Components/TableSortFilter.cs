@@ -56,19 +56,16 @@ internal static class TableSortFilter
             StateHasChanged();
         }
 
+        private readonly Dictionary<int, Child> _rowCache = new();
+        private List<Child>? _scratch;
+
         protected override RenderResult Render()
         {
-            var rows = new List<Child>(_visibleOrder.Length);
+            _scratch ??= new List<Child>(_visibleOrder.Length);
+            _scratch.Clear();
             for (var i = 0; i < _visibleOrder.Length; i++)
             {
-                var id = _visibleOrder[i];
-                rows.Add(C.Tr(
-                    Data: new Dictionary<string, string?> { ["rask-key"] = id.ToString() })[
-                    C.Td()[$"{id}"],
-                    C.Td()[$"Item {id}"],
-                    C.Td()[$"${id * 7 + 13}"],
-                    C.Td()[id % 2 == 0 ? "active" : "idle"]
-                ]);
+                _scratch.Add(GetOrCreateRow(_visibleOrder[i]));
             }
 
             return C.Div(Class: "table-shell")[
@@ -79,9 +76,23 @@ internal static class TableSortFilter
                         C.Th()["Price"],
                         C.Th()["Status"]
                     ]],
-                    C.Tbody()[rows]
+                    C.Tbody()[_scratch]
                 ]
             ];
+        }
+
+        private Child GetOrCreateRow(int id)
+        {
+            if (_rowCache.TryGetValue(id, out var row)) return row;
+            row = C.Tr(
+                Data: new Dictionary<string, string?> { ["rask-key"] = id.ToString() })[
+                C.Td()[$"{id}"],
+                C.Td()[$"Item {id}"],
+                C.Td()[$"${id * 7 + 13}"],
+                C.Td()[id % 2 == 0 ? "active" : "idle"]
+            ];
+            _rowCache[id] = row;
+            return row;
         }
     }
 

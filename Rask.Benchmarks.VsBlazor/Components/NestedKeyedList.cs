@@ -45,6 +45,82 @@ internal static class NestedKeyedList
         return C.Div(Class: "deck")[cards];
     }
 
+    // Stateful counterpart used by the live-diff harness. Caches each card (with its
+    // inner Ul + 5 rows) by key once; benchmark mutations swap two entries of the
+    // outer-order array. Mirrors Blazor's ParameterView reuse path.
+#pragma warning disable RASK014
+    public sealed class StatefulNestedKeyedList : Component
+#pragma warning restore RASK014
+    {
+        public int OuterCapacity { get; init; } = OuterCardCount;
+
+        private Child[]? _cardsByKey;
+        private int[]? _order;
+        private List<Child>? _scratch;
+        private int _swapA = 3;
+        private int _swapB;
+
+        public int[] CurrentOrder
+        {
+            get
+            {
+                EnsureSeeded();
+                return _order!;
+            }
+        }
+
+        public void SwapTwo()
+        {
+            EnsureSeeded();
+            _swapB = _swapB == 0 ? OuterCapacity - 3 : _swapB;
+            (_order![_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
+            _swapA = (_swapA + 1) % _order.Length;
+            _swapB = (_swapB + 1) % _order.Length;
+            StateHasChanged();
+        }
+
+        protected override RenderResult Render()
+        {
+            EnsureSeeded();
+            _scratch ??= new List<Child>(OuterCapacity);
+            _scratch.Clear();
+            for (var i = 0; i < _order!.Length; i++)
+            {
+                _scratch.Add(_cardsByKey![_order[i]]);
+            }
+            return C.Div(Class: "deck")[_scratch];
+        }
+
+        private void EnsureSeeded()
+        {
+            if (_cardsByKey is not null) return;
+            _cardsByKey = new Child[OuterCapacity];
+            for (var k = 0; k < OuterCapacity; k++)
+            {
+                var rows = new List<Child>(InnerRowCount);
+                for (var r = 0; r < InnerRowCount; r++)
+                {
+                    rows.Add(C.Li(
+                        Class: "row",
+                        Data: new Dictionary<string, string?> { ["rask-key"] = $"{k}.{r}" })[
+                        C.Span()[$"Card {k} · row {r}"]
+                    ]);
+                }
+                _cardsByKey[k] = C.Div(
+                    Class: "card",
+                    Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+                    C.H3()[$"Card {k}"],
+                    C.Ul()[rows]
+                ];
+            }
+            if (_order is null)
+            {
+                _order = new int[OuterCapacity];
+                for (var i = 0; i < OuterCapacity; i++) _order[i] = i;
+            }
+        }
+    }
+
     public sealed class BlazorNestedKeyedList : ComponentBase
     {
         [Parameter] public int[] OuterOrder { get; set; } = [];

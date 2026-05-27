@@ -71,7 +71,8 @@ public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
     [Params(1000, 5000)]
     public int N { get; set; }
 
-    private int[] _order = null!;
+    private KeyedList.StatefulKeyedList _stateful = null!;
+    private int[] _blazorOrder = null!;
     private int _swapA;
     private int _swapB;
 
@@ -80,20 +81,22 @@ public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
     {
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
-        _order = new int[N];
-        for (var i = 0; i < N; i++) _order[i] = i;
+
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
+#pragma warning restore RASK014
+
+        _blazorOrder = (int[])_stateful.CurrentOrder.Clone();
         _swapA = 0;
         _swapB = N - 1;
-        Rask.SeedPrevious(KeyedList.BuildRask(_order));
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
     public long Blazor_KeyedReorder_Large()
     {
-        var beforeOrder = (int[])_order.Clone();
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % N;
-        _swapB = (_swapB - 1 + N) % N;
+        var beforeOrder = (int[])_blazorOrder.Clone();
+        (_blazorOrder[_swapA], _blazorOrder[_swapB]) = (_blazorOrder[_swapB], _blazorOrder[_swapA]);
 
         var before = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
@@ -101,18 +104,20 @@ public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
         });
         var after = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
-            [nameof(KeyedList.BlazorKeyedList.Order)] = (int[])_order.Clone()
+            [nameof(KeyedList.BlazorKeyedList.Order)] = (int[])_blazorOrder.Clone()
         });
-        return Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+        var bytes = Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
+        // Step swap indices AFTER both renders observed the mutation.
+        _swapA = (_swapA + 1) % N;
+        _swapB = (_swapB - 1 + N) % N;
+        return bytes;
     }
 
     [Benchmark]
     public long Rask_KeyedReorder_Large()
     {
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % N;
-        _swapB = (_swapB - 1 + N) % N;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(_order));
+        _stateful.SwapAt(_swapA, _swapB);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }
 
@@ -122,6 +127,7 @@ public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
     [Params(100, 500, 1000)]
     public int N { get; set; }
 
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _identity = null!;
     private int[] _permuted = null!;
     private bool _useIdentity = true;
@@ -134,7 +140,10 @@ public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
         _identity = new int[N];
         for (var i = 0; i < N; i++) _identity[i] = i;
         _permuted = MicroBenchHarness.BuildLisInput(N, MicroBenchHarness.LisShape.RandomPermutation);
-        Rask.SeedPrevious(KeyedList.BuildRask(_identity));
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
+#pragma warning restore RASK014
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -158,7 +167,8 @@ public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
     {
         var arr = _useIdentity ? _permuted : _identity;
         _useIdentity = !_useIdentity;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(arr));
+        _stateful.SetOrder(arr);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }
 
@@ -168,6 +178,7 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
     [Params(100, 500, 2000)]
     public int N { get; set; }
 
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _short = null!;
     private int[] _long = null!;
     private bool _useShort = true;
@@ -184,7 +195,10 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
         for (var i = 0; i < N / 2; i++) _long[i] = _short[i];
         _long[N / 2] = inserted;
         for (var i = N / 2; i < N; i++) _long[i + 1] = _short[i];
-        Rask.SeedPrevious(KeyedList.BuildRask(_short));
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
+#pragma warning restore RASK014
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -208,7 +222,8 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
     {
         var arr = _useShort ? _long : _short;
         _useShort = !_useShort;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(arr));
+        _stateful.SetOrder(arr);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }
 

@@ -80,6 +80,10 @@ public class LiveDiffPayload_CounterOnLargePageBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_TextNodeUpdateBenchmarks : LiveDiffPayloadBase
 {
+    // Stateful Rask root: 199 of 200 rows cached, only the mutating-cell row is
+    // rebuilt per Tick. Mirrors Blazor's parameter update which also only touches
+    // the changed cell's frame slot.
+    private StatefulLargePageWithDeepTextCell _stateful = null!;
     private int _counter;
 
     [GlobalSetup]
@@ -87,7 +91,16 @@ public class LiveDiffPayload_TextNodeUpdateBenchmarks : LiveDiffPayloadBase
     {
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
-        Rask.SeedPrevious(LargePageWithCounter.BuildRaskWithDeepTextCell(0));
+
+#pragma warning disable RASK014
+        _stateful = new StatefulLargePageWithDeepTextCell();
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_TextNodeUpdate stateful",
+            _stateful,
+            LargePageWithCounter.BuildRaskWithDeepTextCell(0));
+#pragma warning restore RASK014
+
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -108,8 +121,8 @@ public class LiveDiffPayload_TextNodeUpdateBenchmarks : LiveDiffPayloadBase
     [Benchmark]
     public long Rask_TextNodeUpdate()
     {
-        _counter++;
-        return Rask.RenderAndBuildDiffPayloadBytes(LargePageWithCounter.BuildRaskWithDeepTextCell(_counter));
+        _stateful.Tick();
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }
 
@@ -158,9 +171,17 @@ public class LiveDiffPayload_AttributeUpdateBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
 {
-    private int[] _order = null!;
-    private int _swapA;
-    private int _swapB;
+    // Stateful Rask root: 100 rows wrapped as Child instances once on first render and
+    // cached by key. The benchmark Tick swaps two slots of the order array and calls
+    // StateHasChanged — the next render returns a reordered list pointing at the SAME
+    // row instances (no fresh Div+Span allocations). Mirrors Blazor's ParameterView
+    // path, which also reuses its child component instances across the parameter
+    // update. Without this, the prior rebuild-per-iter Rask version was unfairly
+    // allocating 100 fresh elements every call vs Blazor's 0.
+    private KeyedList.StatefulKeyedList _stateful = null!;
+    private int[] _blazorOrder = null!;
+    private int _blazorSwapA;
+    private int _blazorSwapB;
 
     [GlobalSetup]
     public void Setup()
@@ -168,24 +189,28 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
 
-        _order = new int[100];
-        for (var i = 0; i < _order.Length; i++)
-        {
-            _order[i] = i;
-        }
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList();
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_KeyedList100Reorder stateful",
+            _stateful,
+            KeyedList.BuildRask(_stateful.CurrentOrder));
+#pragma warning restore RASK014
 
-        _swapA = 5;
-        _swapB = 95;
-        Rask.SeedPrevious(KeyedList.BuildRask(_order));
+        Rask.SeedPrevious(_stateful);
+
+        _blazorOrder = (int[])_stateful.CurrentOrder.Clone();
+        _blazorSwapA = 5;
+        _blazorSwapB = 95;
     }
 
     [Benchmark(Baseline = true)]
     public long Blazor_KeyedList100Reorder()
     {
-        var beforeOrder = (int[])_order.Clone();
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % _order.Length;
-        _swapB = (_swapB + 1) % _order.Length;
+        var beforeOrder = (int[])_blazorOrder.Clone();
+        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) = (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
+        _blazorSwapA = (_blazorSwapA + 1) % _blazorOrder.Length;
+        _blazorSwapB = (_blazorSwapB + 1) % _blazorOrder.Length;
 
         var before = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
@@ -193,7 +218,7 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
         });
         var after = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
-            [nameof(KeyedList.BlazorKeyedList.Order)] = (int[])_order.Clone()
+            [nameof(KeyedList.BlazorKeyedList.Order)] = (int[])_blazorOrder.Clone()
         });
         return Blazor.MeasureIncrementalUpdate<KeyedList.BlazorKeyedList>(before, after);
     }
@@ -201,19 +226,18 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
     [Benchmark]
     public long Rask_KeyedList100Reorder()
     {
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % _order.Length;
-        _swapB = (_swapB + 1) % _order.Length;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(_order));
+        _stateful.SwapTwo();
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }
 
 [MemoryDiagnoser]
 public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
 {
-    // Toggle between InitialRowCount and InitialRowCount+1 every iteration so the
-    // "previous" state always has the canonical 100 rows and the "next" state has 101.
-    // Pre-built order arrays in [GlobalSetup] keep the iteration body allocation-free.
+    // Stateful Rask root: rows cached by key, only the visible-order array swaps each
+    // tick. Mirrors Blazor's ParameterView-update path so the comparison measures
+    // the diff codec, not Rask paying for 100+ fresh elements per call.
+    private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
     private int[] _baseOrder = null!;
     private int[] _appendedOrder = null!;
     private bool _appendedIsNext;
@@ -234,8 +258,17 @@ public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
         Array.Copy(_baseOrder, _appendedOrder, _baseOrder.Length);
         _appendedOrder[^1] = _baseOrder.Length;
 
+#pragma warning disable RASK014
+        _stateful = new AppendDeleteRowChurn.StatefulAppendDeleteList { Capacity = _baseOrder.Length + 1 };
+        _stateful.SetOrder(_baseOrder);
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_AppendRow stateful",
+            _stateful,
+            AppendDeleteRowChurn.BuildRask(_baseOrder));
+#pragma warning restore RASK014
+
         _appendedIsNext = true;
-        Rask.SeedPrevious(AppendDeleteRowChurn.BuildRask(_baseOrder));
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -258,7 +291,8 @@ public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
     {
         var next = _appendedIsNext ? _appendedOrder : _baseOrder;
         _appendedIsNext = !_appendedIsNext;
-        return Rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(next));
+        _stateful.SetOrder(next);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 
     private (int[] Before, int[] After) NextOrders()
@@ -274,9 +308,9 @@ public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_DeleteMiddleRowBenchmarks : LiveDiffPayloadBase
 {
-    // Toggle between 100 rows and 99 rows (middle row removed). The previous frame
-    // is reseeded after the toggle so the Rask differ always sees a one-step delete
-    // or one-step insert against the prior state.
+    // Stateful Rask root: same caching pattern as AppendRow above. Order array toggles
+    // between 100 and 99 entries; rows themselves are reused across the swap.
+    private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
     private int[] _fullOrder = null!;
     private int[] _missingMiddleOrder = null!;
     private bool _missingIsNext;
@@ -298,8 +332,17 @@ public class LiveDiffPayload_DeleteMiddleRowBenchmarks : LiveDiffPayloadBase
         Array.Copy(_fullOrder, 0, _missingMiddleOrder, 0, 50);
         Array.Copy(_fullOrder, 51, _missingMiddleOrder, 50, _fullOrder.Length - 51);
 
+#pragma warning disable RASK014
+        _stateful = new AppendDeleteRowChurn.StatefulAppendDeleteList { Capacity = _fullOrder.Length };
+        _stateful.SetOrder(_fullOrder);
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_DeleteMiddleRow stateful",
+            _stateful,
+            AppendDeleteRowChurn.BuildRask(_fullOrder));
+#pragma warning restore RASK014
+
         _missingIsNext = true;
-        Rask.SeedPrevious(AppendDeleteRowChurn.BuildRask(_fullOrder));
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -322,7 +365,8 @@ public class LiveDiffPayload_DeleteMiddleRowBenchmarks : LiveDiffPayloadBase
     {
         var next = _missingIsNext ? _missingMiddleOrder : _fullOrder;
         _missingIsNext = !_missingIsNext;
-        return Rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(next));
+        _stateful.SetOrder(next);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 
     private (int[] Before, int[] After) NextOrders()
@@ -467,13 +511,13 @@ public class LiveDiffPayload_DeepTreeCounterUpdateBenchmarks : LiveDiffPayloadBa
 [MemoryDiagnoser]
 public class LiveDiffPayload_KeyedListLargeAppendBenchmarks : LiveDiffPayloadBase
 {
-    // Append 50 rows to an existing 100-row keyed list in one diff. The keyed path
-    // emits 50 InsertSubtree ops, each carrying the new row's HTML fragment. This
-    // is the dominant per-op cost (the HTML, not the op envelope), so the benchmark
-    // mostly measures "how compactly can we ship N row fragments". Blazor's batch
-    // does the same conceptually but via its frame stream + string table.
+    // Stateful Rask root: 150 distinct rows cached by key, visible-order array toggles
+    // between the 100-entry base and the 150-entry full. Diff codec emits 50 keyed
+    // InsertSubtree ops on the toggle to the full order, then 50 RemoveSubtree on the
+    // way back. Row HTML is reused across the toggle — only the order array changes.
     private const int BaseRowCount = 100;
     private const int AppendCount = 50;
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _baseOrder = null!;
     private int[] _largeOrder = null!;
     private bool _largeIsNext;
@@ -496,8 +540,17 @@ public class LiveDiffPayload_KeyedListLargeAppendBenchmarks : LiveDiffPayloadBas
             _largeOrder[i] = i;
         }
 
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = BaseRowCount };
+        _stateful.SetOrder(_baseOrder);
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_KeyedListLargeAppend stateful",
+            _stateful,
+            KeyedList.BuildRask(_baseOrder));
+#pragma warning restore RASK014
+
         _largeIsNext = true;
-        Rask.SeedPrevious(KeyedList.BuildRask(_baseOrder));
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -520,7 +573,8 @@ public class LiveDiffPayload_KeyedListLargeAppendBenchmarks : LiveDiffPayloadBas
     {
         var next = _largeIsNext ? _largeOrder : _baseOrder;
         _largeIsNext = !_largeIsNext;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(next));
+        _stateful.SetOrder(next);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 
     private (int[] Before, int[] After) NextOrders()
@@ -530,14 +584,11 @@ public class LiveDiffPayload_KeyedListLargeAppendBenchmarks : LiveDiffPayloadBas
 [MemoryDiagnoser]
 public class LiveDiffPayload_KeyedListReversalBenchmarks : LiveDiffPayloadBase
 {
-    // Reverse a 50-row keyed list. This is the LIS worst case — no two elements
-    // share their relative order between old and new (target sequence is strictly
-    // decreasing), so the LIS picks one element and the differ emits N-1 moves to
-    // realise the reversal. Validates that the keyed path scales to a worst-case
-    // permutation and produces correct ordering — failure mode would be either an
-    // O(n^2) blow-up in `ComputeLisIndexSet` or the post-move tracking diverging
-    // from the client's live DOM.
+    // Stateful Rask root: 50 rows cached by key, order array toggles forward↔reverse.
+    // LIS worst case — every element off the LIS, but row instances are reused so the
+    // diff path measures only the move-emission cost (and the patience-sort LIS).
     private const int RowCount = 50;
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _forwardOrder = null!;
     private int[] _reverseOrder = null!;
     private bool _reverseIsNext;
@@ -556,8 +607,17 @@ public class LiveDiffPayload_KeyedListReversalBenchmarks : LiveDiffPayloadBase
             _reverseOrder[i] = RowCount - 1 - i;
         }
 
+#pragma warning disable RASK014
+        _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = RowCount };
+        _stateful.SetOrder(_forwardOrder);
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_KeyedListReversal stateful",
+            _stateful,
+            KeyedList.BuildRask(_forwardOrder));
+#pragma warning restore RASK014
+
         _reverseIsNext = true;
-        Rask.SeedPrevious(KeyedList.BuildRask(_forwardOrder));
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
@@ -580,7 +640,8 @@ public class LiveDiffPayload_KeyedListReversalBenchmarks : LiveDiffPayloadBase
     {
         var next = _reverseIsNext ? _reverseOrder : _forwardOrder;
         _reverseIsNext = !_reverseIsNext;
-        return Rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(next));
+        _stateful.SetOrder(next);
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 
     private (int[] Before, int[] After) NextOrders()
@@ -739,9 +800,13 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
     // emitting inner ops (their child key sets and text are unchanged). Validates
     // nested keyed matching — the recursion path through DiffKeyedSiblings into a
     // keyed parent that itself contains a keyed parent.
-    private int[] _order = null!;
-    private int _swapA;
-    private int _swapB;
+    // Stateful Rask root: 20 cards (each with 5 inner rows) cached once by outer key.
+    // Outer-order toggles per tick; rows reused across the swap. Mirrors Blazor's
+    // ParameterView path so the diff codec is what's measured, not tree construction.
+    private NestedKeyedList.StatefulNestedKeyedList _stateful = null!;
+    private int[] _blazorOrder = null!;
+    private int _blazorSwapA;
+    private int _blazorSwapB;
 
     [GlobalSetup]
     public void Setup()
@@ -749,24 +814,27 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
 
-        _order = new int[NestedKeyedList.OuterCardCount];
-        for (var i = 0; i < _order.Length; i++)
-        {
-            _order[i] = i;
-        }
+#pragma warning disable RASK014
+        _stateful = new NestedKeyedList.StatefulNestedKeyedList();
+        ParityCheck.AssertRaskTreesMatch(
+            "LiveDiffPayload_NestedKeyedReorder stateful",
+            _stateful,
+            NestedKeyedList.BuildRask(_stateful.CurrentOrder));
+#pragma warning restore RASK014
 
-        _swapA = 3;
-        _swapB = 17;
-        Rask.SeedPrevious(NestedKeyedList.BuildRask(_order));
+        _blazorOrder = (int[])_stateful.CurrentOrder.Clone();
+        _blazorSwapA = 3;
+        _blazorSwapB = 17;
+        Rask.SeedPrevious(_stateful);
     }
 
     [Benchmark(Baseline = true)]
     public long Blazor_NestedKeyedReorder()
     {
-        var beforeOrder = (int[])_order.Clone();
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % _order.Length;
-        _swapB = (_swapB + 1) % _order.Length;
+        var beforeOrder = (int[])_blazorOrder.Clone();
+        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) = (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
+        _blazorSwapA = (_blazorSwapA + 1) % _blazorOrder.Length;
+        _blazorSwapB = (_blazorSwapB + 1) % _blazorOrder.Length;
 
         var before = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
@@ -774,7 +842,7 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
         });
         var after = ParameterView.FromDictionary(new Dictionary<string, object?>
         {
-            [nameof(NestedKeyedList.BlazorNestedKeyedList.OuterOrder)] = (int[])_order.Clone()
+            [nameof(NestedKeyedList.BlazorNestedKeyedList.OuterOrder)] = (int[])_blazorOrder.Clone()
         });
         return Blazor.MeasureIncrementalUpdate<NestedKeyedList.BlazorNestedKeyedList>(before, after);
     }
@@ -782,9 +850,7 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
     [Benchmark]
     public long Rask_NestedKeyedReorder()
     {
-        (_order[_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
-        _swapA = (_swapA + 1) % _order.Length;
-        _swapB = (_swapB + 1) % _order.Length;
-        return Rask.RenderAndBuildDiffPayloadBytes(NestedKeyedList.BuildRask(_order));
+        _stateful.SwapTwo();
+        return Rask.RenderAndBuildDiffPayloadBytes(_stateful);
     }
 }

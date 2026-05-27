@@ -58,3 +58,57 @@ public sealed class StatefulLargePageWithCounter : Component
         ];
     }
 }
+
+// Variant where the mutating text lives deep inside the row list. Cached rows
+// surround the one mutating cell; on each Tick the cell's text span is rebuilt
+// in place and the cached list is left otherwise untouched. Mirrors the
+// LargePageWithCounter.BuildRaskWithDeepTextCell() factory but reuses 199 of
+// 200 row instances across iterations.
+#pragma warning disable RASK014
+public sealed class StatefulLargePageWithDeepTextCell : Component
+#pragma warning restore RASK014
+{
+    public const int LargePageRowCount = 200;
+    private const int MutatingIndex = LargePageRowCount / 2;
+
+    private Child[]? _rowsByIndex;
+    private List<Child>? _scratch;
+    private int _counter;
+
+    public int Counter => _counter;
+
+    public void Tick()
+    {
+        _counter++;
+        StateHasChanged();
+    }
+
+    protected override RenderResult Render()
+    {
+        if (_rowsByIndex is null)
+        {
+            _rowsByIndex = new Child[LargePageRowCount];
+            for (var i = 0; i < LargePageRowCount; i++)
+            {
+                if (i == MutatingIndex) continue; // built fresh each render
+                _rowsByIndex[i] = C.Div(Class: "row", Id: $"r{i}")[
+                    C.Span(Class: "label")[$"Item {i}"],
+                    C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
+                ];
+            }
+        }
+
+        _rowsByIndex[MutatingIndex] = C.Div(Class: "row", Id: $"r{MutatingIndex}")[
+            C.Span(Class: "label")[$"ticker {_counter}"],
+            C.A($"/item/{MutatingIndex}", Class: "lnk")[$"open {MutatingIndex}"]
+        ];
+
+        _scratch ??= new List<Child>(LargePageRowCount);
+        _scratch.Clear();
+        for (var i = 0; i < LargePageRowCount; i++)
+        {
+            _scratch.Add(_rowsByIndex[i]);
+        }
+        return C.Div(Class: "body")[_scratch];
+    }
+}

@@ -27,6 +27,94 @@ internal static class KeyedList
         return C.Div(Class: "list")[rows];
     }
 
+    // Stateful counterpart used by the live-diff payload benchmark. Mirrors the design
+    // of StatefulLargePageWithCounter: cache the per-key Child wrappers once, then mutate
+    // the order via a private rotation array. Each Tick swaps two slots and calls
+    // StateHasChanged so the next RenderForLive emits a reordered (but otherwise
+    // identical) row list — fair apples-to-apples vs Blazor's ParameterView path,
+    // which also reuses its child component instances across the parameter change.
+#pragma warning disable RASK014
+    public sealed class StatefulKeyedList : Component
+#pragma warning restore RASK014
+    {
+        // Default visible-row count for the initial order; benchmarks needing a non-zero
+        // pre-seeded population set this (e.g. 100 for KeyedList100Reorder). Sparse-key
+        // scenarios (Scale_KeyedAppendMiddle with inserted = N+1000) work transparently
+        // because rows are lazy-allocated by key on demand into the dictionary below.
+        public int InitialRowCount { get; init; } = 100;
+
+        private readonly Dictionary<int, Child> _rowsByKey = new();
+        private int[]? _order;
+        private List<Child>? _scratch;
+        private int _swapA = 5;
+        private int _swapB;
+
+        public int[] CurrentOrder
+        {
+            get
+            {
+                EnsureSeeded();
+                return _order!;
+            }
+        }
+
+        public void SwapTwo()
+        {
+            EnsureSeeded();
+            _swapB = _swapB == 0 ? _order!.Length - 5 : _swapB;
+            (_order![_swapA], _order[_swapB]) = (_order[_swapB], _order[_swapA]);
+            _swapA = (_swapA + 1) % _order.Length;
+            _swapB = (_swapB + 1) % _order.Length;
+            StateHasChanged();
+        }
+
+        public void SwapAt(int a, int b)
+        {
+            EnsureSeeded();
+            (_order![a], _order[b]) = (_order[b], _order[a]);
+            StateHasChanged();
+        }
+
+        public void SetOrder(int[] order)
+        {
+            EnsureSeeded();
+            _order = order;
+            StateHasChanged();
+        }
+
+        protected override RenderResult Render()
+        {
+            EnsureSeeded();
+            var order = _order!;
+            _scratch ??= new List<Child>(order.Length);
+            _scratch.Clear();
+            for (var i = 0; i < order.Length; i++)
+            {
+                _scratch.Add(GetOrCreateRow(order[i]));
+            }
+            return C.Div(Class: "list")[_scratch];
+        }
+
+        private Child GetOrCreateRow(int key)
+        {
+            if (_rowsByKey.TryGetValue(key, out var row)) return row;
+            row = C.Div(
+                Class: "row",
+                Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
+                C.Span()[$"Item {key}"]
+            ];
+            _rowsByKey[key] = row;
+            return row;
+        }
+
+        private void EnsureSeeded()
+        {
+            if (_order is not null) return;
+            _order = new int[InitialRowCount];
+            for (var i = 0; i < InitialRowCount; i++) _order[i] = i;
+        }
+    }
+
     public sealed class BlazorKeyedList : ComponentBase
     {
         [Parameter] public int[] Order { get; set; } = [];
