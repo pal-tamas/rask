@@ -682,6 +682,12 @@ public static class FrameDiffer
     ///     diff; a binary-search variant would drop us to O(n log n) but isn't load-bearing
     ///     for the benchmark sizes we care about today.
     /// </summary>
+    // Patience-sorting LIS in O(N log N). `tails[k]` holds the arr-index of the smallest
+    // tail value among all increasing subsequences of length k+1 seen so far; binary search
+    // finds where each new element extends or replaces. `prev[i]` chains back to reconstruct.
+    // Returns the set of arr indexes that belong to one optimal LIS — same length as the
+    // previous O(N²) DP, but any LIS of optimal length produces the same move count for
+    // FrameDiffer's keyed reorder (the only consumer), so the choice between ties is benign.
     internal static HashSet<int> ComputeLisIndexSet(int[] arr)
     {
         var n = arr.Length;
@@ -691,33 +697,39 @@ public static class FrameDiffer
             return result;
         }
 
-        var dp = new int[n];
-        var prev = new int[n];
+        var tails = new int[n];   // tails[k] = arr-index of smallest tail of LIS length k+1
+        var prev = new int[n];    // prev[i] = arr-index of LIS predecessor of i (or -1)
+        var tailsLen = 0;
+
         for (var i = 0; i < n; i++)
         {
-            dp[i] = 1;
-            prev[i] = -1;
-        }
+            var x = arr[i];
 
-        var bestEnd = 0;
-        for (var i = 1; i < n; i++)
-        {
-            for (var j = 0; j < i; j++)
+            // Binary-search tails[0..tailsLen) for the first slot whose value is >= x.
+            var lo = 0;
+            var hi = tailsLen;
+            while (lo < hi)
             {
-                if (arr[j] < arr[i] && dp[j] + 1 > dp[i])
+                var mid = (lo + hi) >> 1;
+                if (arr[tails[mid]] < x)
                 {
-                    dp[i] = dp[j] + 1;
-                    prev[i] = j;
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid;
                 }
             }
 
-            if (dp[i] > dp[bestEnd])
+            prev[i] = lo > 0 ? tails[lo - 1] : -1;
+            tails[lo] = i;
+            if (lo == tailsLen)
             {
-                bestEnd = i;
+                tailsLen++;
             }
         }
 
-        var cur = bestEnd;
+        var cur = tails[tailsLen - 1];
         while (cur >= 0)
         {
             result.Add(cur);
