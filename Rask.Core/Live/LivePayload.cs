@@ -64,15 +64,13 @@ public static class LivePayload
         string html,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         // Used by the WASM host where the payload is handed to JS interop as a UTF-16 string.
         // The server host calls BuildPayloadUtf8 instead to skip the UTF-16 round-trip.
-        var bytes = BuildPayloadUtf8(html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+        var bytes = BuildPayloadUtf8(html, historyUrl, replace, auth, download, jsInvokes);
         return Encoding.UTF8.GetString(bytes);
     }
 
@@ -80,14 +78,12 @@ public static class LivePayload
         string html,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         var buffer = new ArrayBufferWriter<byte>(4096);
-        BuildPayloadUtf8(buffer, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+        BuildPayloadUtf8(buffer, html, historyUrl, replace, auth, download, jsInvokes);
         return buffer.WrittenSpan.ToArray();
     }
 
@@ -104,14 +100,12 @@ public static class LivePayload
         string html,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-        WriteJson(writer, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+        WriteJson(writer, html, historyUrl, replace, auth, download, jsInvokes);
     }
 
     /// <summary>
@@ -129,15 +123,12 @@ public static class LivePayload
         string sessionId,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         var output = new ArrayBufferWriter<byte>(4096);
-        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText,
-            jsInvokes);
+        BuildPayloadUtf8WithBody(output, html, sessionId, historyUrl, replace, auth, download, jsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
@@ -157,13 +148,11 @@ public static class LivePayload
         string sessionId,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, true,
-            historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+            historyUrl, replace, auth, download, jsInvokes);
 
     /// <summary>
     ///     WASM live-path payload builder. Same UTF-8 splice as
@@ -178,15 +167,12 @@ public static class LivePayload
         string sessionId,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         var output = new ArrayBufferWriter<byte>(4096);
-        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, cssText, auth, download, jsText,
-            jsInvokes);
+        BuildPayloadUtf8WithRoot(output, html, sessionId, historyUrl, replace, auth, download, jsInvokes);
         return output.WrittenSpan.ToArray();
     }
 
@@ -200,13 +186,11 @@ public static class LivePayload
         string sessionId,
         string? historyUrl,
         bool replace,
-        string? cssText = null,
         AuthInstruction? auth = null,
         PendingDownload? download = null,
-        string? jsText = null,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
         => BuildPayloadUtf8Spliced(output, html, sessionId, false,
-            historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+            historyUrl, replace, auth, download, jsInvokes);
 
     /// <summary>
     ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
@@ -374,10 +358,8 @@ public static class LivePayload
         bool includeOnlyBody,
         string? historyUrl,
         bool replace,
-        string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
         // Find <body> bounds on the UTF-16 source. The prior implementation
@@ -391,7 +373,7 @@ public static class LivePayload
         var bodyOpenChar = IndexOfBodyOpen(html);
         if (bodyOpenChar < 0)
         {
-            BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+            BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
             return;
         }
 
@@ -402,7 +384,7 @@ public static class LivePayload
             var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
             if (tagEndRel < 0)
             {
-                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
                 return;
             }
 
@@ -410,7 +392,7 @@ public static class LivePayload
             var closeCharIdx = IndexOfIgnoreCase(html, "</body>", afterOpenTagChar);
             if (closeCharIdx < 0)
             {
-                BuildPayloadUtf8(output, html, historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes);
                 return;
             }
 
@@ -456,7 +438,7 @@ public static class LivePayload
             // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
             // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
             using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, cssText, auth, download, jsText, jsInvokes);
+            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes);
         }
         finally
         {
@@ -497,19 +479,10 @@ public static class LivePayload
         string html,
         string? historyUrl,
         bool replace,
-        string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        // cssText / jsText are vestigial parameters preserved for ABI; per-component
-        // scoped assets now reach the client via <link>/<script> tags spliced into the
-        // rendered HTML (HeadAssetRegistry.EmitMountedAssets) and served from
-        // /_rask/a/{hash}.{ext}. Nothing in the live payload carries scoped CSS/JS
-        // bytes or a global bundle hash anymore.
-        _ = cssText;
-        _ = jsText;
         writer.WriteStartObject();
         writer.WriteString("html", html);
         WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);
@@ -520,14 +493,10 @@ public static class LivePayload
         ReadOnlySpan<byte> htmlUtf8,
         string? historyUrl,
         bool replace,
-        string? cssText,
         AuthInstruction? auth,
         PendingDownload? download,
-        string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        _ = cssText;
-        _ = jsText;
         writer.WriteStartObject();
         writer.WriteString("html", htmlUtf8);
         WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);

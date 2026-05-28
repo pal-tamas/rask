@@ -461,8 +461,8 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
             if (!usedDiff)
             {
-                LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace, null, auth, download,
-                    jsInvokes: jsInvokes);
+                LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, Id, historyUrl, replace,
+                    auth, download, jsInvokes);
                 // Cache stays in lockstep with the client even when we ship full HTML —
                 // promote current → previous so the NEXT diff's baseline matches what
                 // the client most recently received. Only when we did NOT enter the

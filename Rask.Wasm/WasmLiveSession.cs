@@ -434,13 +434,9 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
 
         // CSS/JS no longer ship inline — scoped assets are content-addressed and fetched
-        // via /_rask/a/{hash}.{ext} from Rask.Wasm.Hosting. Locals retained as `null` so
-        // the existing payload-builder signatures and the diff-codec gate below stay
-        // structurally unchanged; cssText/jsText are dead paths that will never carry
-        // bytes again on WASM.
-        string? cssText = null;
-        string? jsText = null;
-
+        // via /_rask/a/{hash}.{ext} from Rask.Wasm.Hosting. The diff-codec gate below
+        // tracks only side effects that still flow out of band (download payloads,
+        // navigation history) since the diff wire format doesn't carry them yet.
         PendingDownload? download = null;
         if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
         {
@@ -452,22 +448,20 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // Decide payload shape. The diff path fires only when the flag is opted in,
         // we have a prior render to diff against, the diff is supported client-side
         // (no InsertSubtree/RemoveSubtree until HTML fragments wire in), and none of
-        // the out-of-band side effects (cssText/jsText hashbump, download) need to
-        // flow — those aren't carried by the diff wire format yet.
+        // the out-of-band side effects (download, navigation history) need to flow —
+        // those aren't carried by the diff wire format yet.
         var usedDiff = false;
         // Conservative gate (mirrors server LiveSession): the diff path covers
-        // in-place state changes only. Side effects (cssText/jsText/download),
-        // history changes (navigation), and structural ops (InsertSubtree/
-        // RemoveSubtree) route to the full-HTML morph path — see the server-side
-        // DiffOpsAreClientSupported note for the rationale (e2e showed 83/430
-        // failures when structural ops bypass morph). `diffPathEntered` tracks
-        // whether we called TryComputeDiff (which internally rotates buffers
-        // regardless of return value) so the fallback Snapshot doesn't double-
-        // rotate and strand _previous=null.
+        // in-place state changes only. Side effects (download), history changes
+        // (navigation), and structural ops (InsertSubtree/RemoveSubtree) route to the
+        // full-HTML morph path — see the server-side DiffOpsAreClientSupported note
+        // for the rationale (e2e showed 83/430 failures when structural ops bypass
+        // morph). `diffPathEntered` tracks whether we called TryComputeDiff (which
+        // internally rotates buffers regardless of return value) so the fallback
+        // Snapshot doesn't double-rotate and strand _previous=null.
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null
-            && cssText is null && jsText is null && download is null
-            && historyUrl is null)
+            && download is null && historyUrl is null)
         {
             _diffOps ??= new List<EditOp>();
             diffPathEntered = true;
@@ -500,8 +494,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // _writeBuffer so the per-render ArrayBufferWriter allocation is gone; the
             // ToArray at the end is still needed today because the JS interop boundary
             // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace, cssText, null,
-                download, jsText);
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace,
+                auth: null, download: download);
             // Only Snapshot when TryComputeDiff was NOT called — otherwise it already
             // rotated buffers and a second Snapshot here would strand _previous=null,
             // breaking the next render's diff with a silent NRE inside DispatchAsync's

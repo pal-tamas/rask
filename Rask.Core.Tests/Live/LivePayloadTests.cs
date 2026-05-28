@@ -62,10 +62,11 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_CssTextParameter_IsIgnored_NoFieldEmitted()
+    public void BuildPayload_NoOptionalArgs_OmitsCssTextAndHistory()
     {
-        // cssText parameter is retained for ABI but no longer written to the wire.
-        var payload = LivePayload.BuildPayload("<body></body>", null, false, ".x{}");
+        // The cssText and jsText parameters that used to occupy positional slots are gone
+        // from the public surface; the wire format has no place for them either.
+        var payload = LivePayload.BuildPayload("<body></body>", null, false);
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
@@ -95,9 +96,9 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_HistoryWithCssTextParameter_EmitsHistoryButNoCssText()
+    public void BuildPayload_HistoryPresent_NoCssTextField()
     {
-        var payload = LivePayload.BuildPayload("<body></body>", "/foo", false, ".x{}");
+        var payload = LivePayload.BuildPayload("<body></body>", "/foo", false);
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
@@ -205,7 +206,7 @@ public class LivePayloadTests
     {
         const string html = "<html><body></body></html>";
 
-        var payload = LivePayload.BuildPayloadUtf8WithBody(html, "sid", "/foo", true, ".x{}");
+        var payload = LivePayload.BuildPayloadUtf8WithBody(html, "sid", "/foo", true);
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
