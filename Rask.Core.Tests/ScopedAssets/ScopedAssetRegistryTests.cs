@@ -582,6 +582,53 @@ public class ScopedAssetRegistryTests
                      // would need a runtime-emitted assembly which is heavy for this suite
     }
 
+    // ─── Enumeration (for publish-time bake) ──────────────────────────────
+
+    [Fact]
+    public void EnumerateAll_EmptyRegistry_YieldsNothing()
+    {
+        Assert.Empty(ScopedAssetRegistry.EnumerateAll());
+    }
+
+    [Fact]
+    public void EnumerateAll_YieldsRegisteredCssAndJsEntries_WithDistinctHashesAndKinds()
+    {
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
+        ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
+
+        var entries = ScopedAssetRegistry.EnumerateAll().ToList();
+        Assert.Equal(3, entries.Count);
+        Assert.Equal(2, entries.Count(e => e.Kind == AssetKind.Css));
+        Assert.Equal(1, entries.Count(e => e.Kind == AssetKind.Js));
+
+        // Hash + kind together uniquely identify an entry.
+        Assert.Equal(entries.Count, entries.Select(e => (e.Hash, e.Kind)).Distinct().Count());
+
+        // Bytes match what GetByHash returns.
+        foreach (var e in entries)
+        {
+            var lookup = ScopedAssetRegistry.GetByHash(e.Hash, e.Kind);
+            Assert.NotNull(lookup);
+            Assert.Equal(lookup.Value.Utf8.ToArray(), e.Utf8.ToArray());
+        }
+    }
+
+    [Fact]
+    public void EnumerateAll_TwoTypesShareSameRewrittenContent_YieldsOneEntryWithThatHash()
+    {
+        const string passthrough = "@font-face { font-family: 'X'; src: url('a.woff2'); }";
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), passthrough);
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), passthrough);
+
+        // Both types reference the same hash via refcount — the by-hash bucket has one
+        // entry that EnumerateAll yields once. The bake step writes one file; both
+        // type's <link> tags resolve to the same URL on the wire.
+        var entries = ScopedAssetRegistry.EnumerateAll().ToList();
+        Assert.Single(entries);
+        Assert.Equal(AssetKind.Css, entries[0].Kind);
+    }
+
     // ─── Test fixture types ───────────────────────────────────────────────
 
     private sealed class WidgetA : Component { protected override RenderResult Render() => this; }

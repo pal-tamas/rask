@@ -30,6 +30,60 @@
          opens index.html). When served via Rask.Wasm.Hosting, this file is never used
          because UseRask<TApp>() prerenders the App component for every GET via MapFallback. -->
     <WasmExtraFilesToDeploy Include="$(MSBuildThisFileDirectory)..\Browser\index.html"/>
+
+    <!--
+      Roots EnumerateAll + the kindred bake-only public surface so the trimmer doesn't
+      drop them in release-mode WASM publishes. Without this the bake task at publish
+      time loads a trimmed Rask.Core.dll, fails to find EnumerateAll, logs the API-
+      mismatch warning, and the AppBundle ships without /_rask/a/ files.
+    -->
+    <TrimmerRootDescriptor Include="$(MSBuildThisFileDirectory)Rask.Wasm.Trim.xml"/>
   </ItemGroup>
+
+  <!--
+    Publish-time scoped-asset bake. After the WASM SDK has assembled the AppBundle
+    directory (which contains the trimmed assemblies in _framework/), walk every .dll,
+    force the generator-emitted __RaskScopedCss/JsRegistration classes to populate the
+    in-MSBuild ScopedAssetRegistry, then write each registered entry to
+    {AppBundleDir}/_rask/a/{hash}.{ext}. The static-file mechanism in WasmAppHost (or
+    any plain-static host) then serves what the in-process Rask.Wasm.Hosting endpoint
+    would otherwise serve — closing the gap that caused the standalone-WASM E2E
+    failures (per-component scripts 404'd, window.Rask.{TypeName} never populated,
+    Rask.* invokes timed out via the 5s namespace poll).
+
+    The task is loaded from a sibling DLL produced by Rask.Wasm.Tasks (the project's
+    Build target copies it here). Runs on any build that produced an AppBundle —
+    plain `dotnet build` for standalone-WASM dev, `dotnet publish` for release.
+  -->
+  <UsingTask TaskName="Rask.Wasm.Tasks.BakeScopedAssetsTask"
+             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll"
+             Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') "/>
+
+  <!--
+    Hook after _WasmGenerateAppBundle (the actual SDK target that produces the bundle
+    contents). WasmGenerateAppBundle is the boolean enable-property, not a target name —
+    binding AfterTargets to it would resolve to nothing. $(WasmAppDir) is the public
+    property set by the SDK to the AppBundle output directory; both build and publish
+    paths populate it.
+  -->
+  <!--
+    Load assemblies from $(OutDir) — the build-output folder under bin/, not the
+    publish/ subfolder. During Release `dotnet publish` the publish-context
+    @(_WasmAssembliesInternal) points at IL-trimmed copies whose module
+    initializers throw when invoked outside the WASM runtime (trimmed types they
+    reference may be absent). The build-output copies are the same .NET metadata
+    pre-trim, with all type references intact, and their [ModuleInitializer]s
+    re-fire cleanly inside the MSBuild host. The .dll metadata we need is identical
+    across configurations because the source generator is deterministic.
+  -->
+  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
+    <_RaskBakeInputAssemblies Include="$(OutDir)*.dll" Exclude="$(OutDir)publish/**;$(OutDir)AppBundle/**" />
+  </ItemGroup>
+
+  <Target Name="_RaskBakeScopedAssets"
+          AfterTargets="_WasmGenerateAppBundle"
+          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') ">
+    <BakeScopedAssetsTask BundleDir="$(WasmAppDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
+  </Target>
 
 </Project>

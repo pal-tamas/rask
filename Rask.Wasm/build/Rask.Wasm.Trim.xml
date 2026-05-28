@@ -1,0 +1,26 @@
+<!--
+  Trimmer root descriptor for the publish-time scoped-asset bake step. At release-mode
+  publish the IL trimmer drops public methods that nothing in the running app calls —
+  ScopedAssetRegistry.EnumerateAll is exactly that, because it's invoked by reflection
+  from the build-time BakeScopedAssetsTask, not from app code. Without this descriptor
+  the trimmed Rask.Core.dll inside the AppBundle is missing EnumerateAll, the bake task
+  logs "registry API mismatch", and the AppBundle ships with no _rask/a/ directory.
+  Listing the method (plus its return type's public surface) as a root preserves it
+  through trim. The same descriptor stays correct when consumers add their own trim
+  config.
+-->
+<linker>
+  <assembly fullname="Rask.Core">
+    <!--
+      ScopedAssetRegistry needs every entry point the publish-time bake invokes
+      reflectively to survive trim. RegisterCss/RegisterJs are called by the
+      generator-emitted __RaskScopedCssRegistration / __RaskScopedJsRegistration
+      from their RefreshAll body; the trimmer can't trace those reflection-style
+      static references without help, so it would drop the Register* method bodies
+      (or replace them with throw-stubs).
+    -->
+    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry" preserve="all" />
+    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry/EnumeratedEntry" preserve="all" />
+    <type fullname="Rask.Core.ScopedAssets.AssetKind" preserve="all" />
+  </assembly>
+</linker>
