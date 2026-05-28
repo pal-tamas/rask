@@ -59,13 +59,6 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
     protected override string FixtureName => "StandaloneWasm";
     protected override string ServerLog => _app.ServerLog;
 
-    // Publish-time scoped-asset baking (Rask.Wasm.Tasks.BakeScopedAssetsTask, hooked
-    // into Rask.Wasm.targets after _WasmGenerateAppBundle) writes every registered
-    // /_rask/a/{hash}.{ext} to disk inside the AppBundle. WasmAppHost — the static-
-    // file dev launcher this fixture uses — serves them directly. Override stays at
-    // the default `true` from SharedSmokeTests; the property is kept for the next
-    // host that lacks the bake (none currently).
-
     // The first NavigateToAsync of a test loads /index.html and waits for the home hero
     // (the only real GET WasmAppHost responds to). Subsequent navigations stay inside
     // the SPA by clicking the sidebar entry — same in-page transitions a user would do.
