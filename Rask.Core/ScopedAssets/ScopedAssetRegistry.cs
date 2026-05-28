@@ -251,6 +251,36 @@ public static class ScopedAssetRegistry
     }
 
     /// <summary>
+    ///     Yields every registered asset entry as <c>(hash, kind, utf8Bytes)</c>. Used by
+    ///     the publish-time bake task (<c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c>) to
+    ///     materialise <c>/_rask/a/{hash}.{ext}</c> files into the published WASM
+    ///     AppBundle so a static-file-only host like <c>WasmAppHost</c> serves the same
+    ///     bytes the in-process endpoint would. Returns a snapshot copy so iteration is
+    ///     safe under concurrent registration; the byte spans alias the registry's
+    ///     pooled storage so consumers must not retain or mutate them beyond write-out.
+    /// </summary>
+    public static IEnumerable<EnumeratedEntry> EnumerateAll()
+    {
+        var snapshot = new List<EnumeratedEntry>();
+        lock (_lock)
+        {
+            foreach (var kv in _cssByHash)
+            {
+                snapshot.Add(new EnumeratedEntry(kv.Key, AssetKind.Css, kv.Value.Utf8));
+            }
+
+            foreach (var kv in _jsByHash)
+            {
+                snapshot.Add(new EnumeratedEntry(kv.Key, AssetKind.Js, kv.Value.Utf8));
+            }
+        }
+
+        return snapshot;
+    }
+
+    public readonly record struct EnumeratedEntry(string Hash, AssetKind Kind, ReadOnlyMemory<byte> Utf8);
+
+    /// <summary>
     ///     Looks up the asset hash for a component's CSS. Returns false (with empty out)
     ///     when the type has no scoped CSS registered. Called by head emission to decide
     ///     whether to emit a <c>&lt;link&gt;</c> tag for the type.
