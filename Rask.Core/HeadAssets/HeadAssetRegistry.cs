@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
+using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 
@@ -177,7 +178,22 @@ internal sealed class HeadAssetRegistry
             scopedJsHtml = WithRaskKey(jsStrategy.Render(jsHash).ToHtml(), "rask-scoped-js");
         }
 
-        if (_orderedHtml.Count == 0 && scopedCssHtml is null && scopedJsHtml is null)
+        // Per-component asset emission. Reads LiveRenderContext.Current.MountedTypes —
+        // populated unconditionally during the render walk by every user component entry —
+        // and emits one keyed <link>/<script> per mounted type that has a registered
+        // asset. Empty string when the current call is outside a live render (unit tests
+        // calling ApplyTo directly) or when no mounted component has an asset.
+        var perComponentSb = new StringBuilder();
+        var liveCtx = LiveRenderContext.Current;
+        if (liveCtx is not null && liveCtx.MountedTypes.Count > 0)
+        {
+            EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
+        }
+
+        var perComponentHtml = perComponentSb.Length > 0 ? perComponentSb.ToString() : null;
+
+        if (_orderedHtml.Count == 0 && scopedCssHtml is null && scopedJsHtml is null
+                                    && perComponentHtml is null)
         {
             return html.Remove(idx, Sentinel.Length);
         }
@@ -209,6 +225,11 @@ internal sealed class HeadAssetRegistry
             totalLen += scopedJsHtml.Length;
         }
 
+        if (perComponentHtml is not null)
+        {
+            totalLen += perComponentHtml.Length;
+        }
+
         var sb = new StringBuilder(totalLen);
         sb.Append(html, 0, idx);
         foreach (var asset in keyedAssets)
@@ -224,6 +245,14 @@ internal sealed class HeadAssetRegistry
         if (scopedJsHtml is not null)
         {
             sb.Append(scopedJsHtml);
+        }
+
+        // Per-component tags emit AFTER both user Head contributions and the legacy
+        // bundle tag, preserving cascade order (lazily-loaded per-component CSS overrides
+        // both global CDN imports and the monolithic bundle).
+        if (perComponentHtml is not null)
+        {
+            sb.Append(perComponentHtml);
         }
 
         sb.Append(html, idx + Sentinel.Length, html.Length - idx - Sentinel.Length);
@@ -274,6 +303,86 @@ internal sealed class HeadAssetRegistry
     }
 
     private static readonly char[] _attrSpecials = { '&', '"', '<', '>' };
+
+    /// <summary>
+    ///     Reserved prefix for framework-emitted asset <c>data-rask-key</c> values.
+    ///     User-declared head tags whose key starts with this prefix are rejected (to
+    ///     prevent accidental morph identity collisions with framework tags).
+    /// </summary>
+    internal const string FrameworkAssetKeyPrefix = "rsk-";
+
+    /// <summary>
+    ///     Emits one <c>&lt;link href="/_rask/a/{hash}.css"&gt;</c> per mounted component
+    ///     with registered CSS, and one <c>&lt;script src="/_rask/a/{hash}.js" defer&gt;</c>
+    ///     per mounted component with registered JS. Each tag is keyed with
+    ///     <c>data-rask-key="rsk-css-{hash}"</c> / <c>rsk-js-{hash}"</c> so the client morph
+    ///     reconciles by identity. Two component types whose rewritten content shares a
+    ///     hash collapse to a single tag (the second emission is skipped — the by-hash
+    ///     dedup is local to this call, since two types referencing the same hash both
+    ///     appear in <paramref name="mountedTypes" />).
+    ///     <para>
+    ///         Emission order: CSS for every type first (in <paramref name="mountedTypes" />
+    ///         iteration order), then JS. This matches the cascade contract — CSS is
+    ///         render-blocking; JS uses <c>defer</c> and waits for parse.
+    ///     </para>
+    /// </summary>
+    internal static void EmitMountedAssets(StringBuilder sb, IEnumerable<Type> mountedTypes)
+    {
+        ArgumentNullException.ThrowIfNull(sb);
+        ArgumentNullException.ThrowIfNull(mountedTypes);
+
+        var seenCssHashes = new HashSet<string>(StringComparer.Ordinal);
+        var seenJsHashes = new HashSet<string>(StringComparer.Ordinal);
+
+        // Materialise once to allow two passes (CSS then JS) without iterating a transient
+        // sequence twice. Small allocation, but mounted-types sets are bounded by the live
+        // render's user-component count (typically dozens, not thousands).
+        var types = mountedTypes as IReadOnlyCollection<Type> ?? mountedTypes.ToArray();
+
+        foreach (var type in types)
+        {
+            if (!ScopedAssetRegistry.TryGetCss(type, out var hash))
+            {
+                continue;
+            }
+
+            if (!seenCssHashes.Add(hash))
+            {
+                continue;
+            }
+
+            // <link rel="stylesheet" href="/_rask/a/{hash}.css" data-rask-key="rsk-css-{hash}">
+            sb.Append("<link rel=\"stylesheet\" href=\"/_rask/a/");
+            sb.Append(hash);
+            sb.Append(".css\" data-rask-key=\"");
+            sb.Append(FrameworkAssetKeyPrefix);
+            sb.Append("css-");
+            sb.Append(hash);
+            sb.Append("\">");
+        }
+
+        foreach (var type in types)
+        {
+            if (!ScopedAssetRegistry.TryGetJs(type, out var hash))
+            {
+                continue;
+            }
+
+            if (!seenJsHashes.Add(hash))
+            {
+                continue;
+            }
+
+            // <script src="/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}"></script>
+            sb.Append("<script src=\"/_rask/a/");
+            sb.Append(hash);
+            sb.Append(".js\" defer data-rask-key=\"");
+            sb.Append(FrameworkAssetKeyPrefix);
+            sb.Append("js-");
+            sb.Append(hash);
+            sb.Append("\"></script>");
+        }
+    }
 
     // FNV-1a 32-bit content hash. Stable for a given string within the process so
     // the same head asset (Bootstrap link, viewport meta, …) keeps the same key
