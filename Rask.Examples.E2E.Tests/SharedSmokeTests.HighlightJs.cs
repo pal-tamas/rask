@@ -19,6 +19,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_FirstLoad_ValidationPage_HighlightsEveryCodeBlock() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // /validation embeds 15 CodeSample instances. On first load every
         // `pre code[class*=language-]` block must end up with the .hljs class
         // applied — that's the visible signal hljs ran. Bug #1 (Server) makes
@@ -51,6 +52,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_AfterCrossPageNavigation_StillHighlightsOnDestination() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // The Wasm-specific bug: hljs works on first load but breaks on the
         // SECOND page. We start on /validation (confirm hljs works there),
         // then sidebar-nav to /routing — a different page with CodeSamples —
@@ -70,6 +72,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_AfterRoundTripNav_RehighlightsOnReturn() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // /validation → / (no CodeSamples) → /validation. On the return visit,
         // every code block must be highlighted again. A regression where the
         // hook only fires on the very first mount in a SPA session would let
@@ -93,6 +96,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_RapidNavBetweenCodeSamplePages_AlwaysSettlesHighlighted() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // Stress-tests the hook under rapid in-SPA navigation. After a chain
         // of sidebar clicks across multiple CodeSample-heavy pages, the final
         // page must end up fully highlighted. Catches "the last nav cancelled
