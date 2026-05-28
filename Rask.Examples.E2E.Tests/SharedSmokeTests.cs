@@ -38,33 +38,6 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // a SPA fallback; those must navigate via the home shell + sidebar instead.
     protected virtual Task NavigateToAsync(string path) => Page.GotoAsync(path);
 
-    // Default: this fixture runs the framework's /_rask/a/{hash}.{ext} endpoint and can
-    // serve per-component scoped CSS / JS bytes to the browser. StandaloneWasm overrides
-    // to `false` — WasmAppHost is a static-file dev launcher with no .NET request
-    // handler, so the endpoint URLs the WASM bundle emits all 404. Tests that depend on
-    // scoped JS actually executing in the browser short-circuit with Assert.Skip when
-    // this is false; tests that only check the rendered HTML / DOM tag presence still run.
-    // Lift the override (and delete this property) once publish-time asset baking lands.
-    protected virtual bool AssetEndpointAvailable => true;
-
-    protected void RequireAssetEndpoint()
-    {
-        if (AssetEndpointAvailable) return;
-        throw new TestSkippedException(
-            "Requires the framework's /_rask/a/{hash}.{ext} asset endpoint. StandaloneWasm " +
-            "runs under WasmAppHost (static-file only) — publish-time asset baking would " +
-            "let WasmAppHost serve the bytes from disk; tracked as a separate follow-up.");
-    }
-
-    // xUnit 2.x has no Assert.Skip / SkipException out of the box. The pattern below
-    // short-circuits the test body via this private exception type — RunAsync catches
-    // it and lets the test report as passed, with the reason logged to stdout so a
-    // skipped reason is still surfaced in CI output.
-    protected sealed class TestSkippedException : Exception
-    {
-        public TestSkippedException(string reason) : base(reason) { }
-    }
-
     protected Task ClickSidebar(string label) =>
         Page.Locator("aside.side-nav button.nav-item-btn:has-text(\"" + label + "\")").ClickAsync();
 
@@ -73,13 +46,6 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         try
         {
             await body();
-        }
-        catch (TestSkippedException skip)
-        {
-            // Surface the reason in test output for CI visibility — the test still reports
-            // as passed (xUnit 2.x lacks a clean dynamic-skip mechanism).
-            Console.WriteLine($"[skip] {FixtureName}/{testName}: {skip.Message}");
-            return;
         }
         finally
         {
@@ -176,7 +142,6 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     [Fact]
     public Task ScopedJs_CodeSampleGetsHighlightAfterRender() => RunAsync(async () =>
     {
-        RequireAssetEndpoint();
         // /binding renders ~8 CodeSample instances. CodeSample.cs's OnRendered hook
         // calls InvokeJs("rendered", firstRender) and CodeSample.js's
         // rendered(el, firstRender) invokes hljs.highlightElement on the nested

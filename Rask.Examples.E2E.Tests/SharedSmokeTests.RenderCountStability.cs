@@ -18,7 +18,6 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task RenderCount_LifecycleProbe_IdleStaysConstant() => RunAsync(async () =>
     {
-        RequireAssetEndpoint();
         // LifecycleProbe displays a "Render #N" badge. After the initial mount
         // settles, the number must NOT advance without user input — no timers,
         // no idle re-renders. A failure here means something is calling
