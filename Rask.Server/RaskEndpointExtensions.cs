@@ -21,6 +21,7 @@ using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedCss;
 using Rask.Core.ScopedJs;
 using Rask.Server.Authentication;
@@ -243,6 +244,21 @@ public static class RaskEndpointExtensions
 
         endpoints.MapGet("/_rask/scoped.css", static ctx => ServeScopedCssAsync(ctx));
         endpoints.MapGet("/_rask/scoped.js", static ctx => ServeScopedJsAsync(ctx));
+
+        // Per-component content-addressed asset endpoint. URL is immutable (hash is a
+        // SHA-256 prefix of the bytes), so `Cache-Control: immutable` is safe and the
+        // browser may reuse the cached entry for the configured `max-age` without
+        // revalidating. Range/ETag/HEAD semantics come from Results.Bytes; OPTIONS is
+        // handled by routing (405 falls through to ASP.NET's default for non-matching
+        // methods). Marked `.AllowAnonymous()` so a host with a fallback authorization
+        // policy still serves assets — content-addressed URLs carry no PII, and an unknown
+        // hash returns 404 instead of leaking the registered set.
+        endpoints.MapMethods("/_rask/a/{hash}.css", _assetMethods,
+                static ctx => ServeAssetAsync(ctx, AssetKind.Css))
+            .AllowAnonymous();
+        endpoints.MapMethods("/_rask/a/{hash}.js", _assetMethods,
+                static ctx => ServeAssetAsync(ctx, AssetKind.Js))
+            .AllowAnonymous();
 
         endpoints.MapPost("/_rask/auth/redeem",
                 (HttpContext ctx, IAuthTicketStore tickets) => RedeemAuthTicketAsync(ctx, tickets))
@@ -911,6 +927,70 @@ public static class RaskEndpointExtensions
         }
 
         return returnUrl;
+    }
+
+    // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
+    // HEAD returns the same headers with no body (handled by Results.Bytes internally).
+    // POST/PUT/DELETE/PATCH not listed → ASP.NET returns 405 Method Not Allowed.
+    private static readonly string[] _assetMethods = ["GET", "HEAD"];
+
+    /// <summary>
+    ///     Serves a single per-component scoped asset by its content hash. The hash and
+    ///     extension are validated by routing pattern + a hex/length check here; on miss,
+    ///     returns 404 (never exposes registered hashes). On hit, emits content-addressed
+    ///     <c>Cache-Control: public, max-age=31536000, immutable</c>: the URL changes when
+    ///     the bytes change, so the browser can hold the cached entry forever.
+    /// </summary>
+    internal static Task ServeAssetAsync(HttpContext ctx, AssetKind kind)
+    {
+        var hash = ctx.Request.RouteValues["hash"] as string;
+        if (string.IsNullOrEmpty(hash) || !IsLowercaseHex(hash, ScopedAssetRegistry.HashHexLength))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        var bytes = ScopedAssetRegistry.GetByHash(hash, kind);
+        if (bytes is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        // Set headers before invoking Results.Bytes so they are present on the response.
+        ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+        var contentType = kind == AssetKind.Css
+            ? "text/css; charset=utf-8"
+            : "text/javascript; charset=utf-8";
+
+        // Results.Bytes wires ETag → If-None-Match (304), HEAD body suppression, and
+        // Range request handling (206/416) when enableRangeProcessing is true.
+        return Results.Bytes(
+                bytes.Value.Utf8.ToArray(),
+                contentType,
+                enableRangeProcessing: true,
+                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue(bytes.Value.Etag))
+            .ExecuteAsync(ctx);
+    }
+
+    private static bool IsLowercaseHex(string s, int expectedLength)
+    {
+        if (s.Length != expectedLength)
+        {
+            return false;
+        }
+
+        foreach (var c in s)
+        {
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     internal static Task ServeScopedCssAsync(HttpContext ctx)

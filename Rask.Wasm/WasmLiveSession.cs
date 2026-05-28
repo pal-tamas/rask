@@ -31,8 +31,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
     // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
     // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
-    private string? _lastCssHashSent;
-    private string? _lastJsHashSent;
+    //
+    // Note: the historical _lastCssHashSent / _lastJsHashSent fields were removed when WASM
+    // moved off inline cssText/jsText payloads to the per-component asset endpoint.
+    // Scoped CSS/JS is now fetched by the browser via <link>/<script src> tags emitted into
+    // <head> by HeadAssetRegistry.EmitMountedAssets and served by Rask.Wasm.Hosting's
+    // /_rask/a/{hash}.{ext} endpoint with Cache-Control: immutable.
 
     // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in.
     // Default path (DisabledFull) pays nothing for these.
@@ -429,21 +433,13 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             }
         }
 
-        var currentHash = ScopedCssRegistry.CurrentHash;
+        // CSS/JS no longer ship inline — scoped assets are content-addressed and fetched
+        // via /_rask/a/{hash}.{ext} from Rask.Wasm.Hosting. Locals retained as `null` so
+        // the existing payload-builder signatures and the diff-codec gate below stay
+        // structurally unchanged; cssText/jsText are dead paths that will never carry
+        // bytes again on WASM.
         string? cssText = null;
-        if (currentHash != _lastCssHashSent)
-        {
-            cssText = ScopedCssRegistry.GetBundle().Css;
-            _lastCssHashSent = currentHash;
-        }
-
-        var currentJsHash = ScopedJsRegistry.CurrentHash;
         string? jsText = null;
-        if (currentJsHash != _lastJsHashSent)
-        {
-            jsText = ScopedJsRegistry.GetBundle().Js;
-            _lastJsHashSent = currentJsHash;
-        }
 
         PendingDownload? download = null;
         if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))

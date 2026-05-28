@@ -61,6 +61,23 @@ public sealed class LiveRenderContext : IDisposable
     /// </summary>
     internal HeadAssetRegistry HeadAssets { get; } = new();
 
+    /// <summary>
+    ///     Every user-component type observed during this render walk. Populated
+    ///     unconditionally by <see cref="PushScope" /> on each component entry — covers
+    ///     components with scoped CSS, scoped JS, both, and neither. Read by
+    ///     <see cref="HeadAssetRegistry.ApplyTo" /> to emit one
+    ///     <c>&lt;link&gt;</c>/<c>&lt;script&gt;</c> per mounted component that has a
+    ///     registered scoped asset; types with neither contribute nothing.
+    ///     <para>
+    ///         A regression-prone shape: until the mounted-set was unconditional, only
+    ///         components with CSS pushed onto the scope stack, so JS-only components
+    ///         silently dropped out of head emission. The set must record types whether or
+    ///         not <see cref="Rask.Core.ScopedCss.ScopedCssRegistry.TryRegister" /> finds
+    ///         a scope id.
+    ///     </para>
+    /// </summary>
+    public HashSet<Type> MountedTypes { get; } = new();
+
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
@@ -74,6 +91,11 @@ public sealed class LiveRenderContext : IDisposable
     internal ContextScope PushScope(Component instance)
     {
         var type = instance.GetType();
+        // Record the type unconditionally — head emission iterates this set and decides
+        // per-type whether to emit a <link>/<script> based on registry hit. Doing the add
+        // before the scope-id lookup keeps JS-only and asset-free components in the set.
+        MountedTypes.Add(type);
+
         var hasCss = ScopedCssRegistry.TryRegister(type, out var scopeId);
         if (!hasCss)
         {

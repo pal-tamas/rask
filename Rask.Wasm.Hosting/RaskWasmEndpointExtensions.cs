@@ -45,6 +45,14 @@ public static class RaskWasmEndpointExtensions
         this IEndpointRouteBuilder endpoints,
         string? bundlePath = null)
     {
+        // Per-component scoped asset endpoint. Registered before the static-file middleware
+        // so a /_rask/a/{hash}.{ext} URL is served from the in-process ScopedAssetRegistry
+        // even if the published bundle happens to contain a same-named file. The shared
+        // static registry is populated by module initializers from the referenced WASM
+        // assembly (the AppBundle's referenced project) — present as soon as that assembly
+        // is loaded into this host process.
+        RaskAssetEndpoint.MapRaskAssets(endpoints);
+
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
 
         if (string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved))

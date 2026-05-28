@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
+using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedCss;
 using static Rask.Core.Components.Generated;
 
@@ -13,12 +14,12 @@ using static Rask.Core.Components.Generated;
 namespace Rask.Wasm.Tests.Session;
 
 /// <summary>
-///     Regression: under sub-path hosting (e.g. GitHub Pages at /rask/), the absolute
-///     <c>/_rask/scoped.css?v=…</c> link bypasses <c>&lt;base href&gt;</c> and 404s — and
-///     it's redundant anyway because WASM applies the bundle inline via the
-///     <c>&lt;style id="rask-scoped" data-rask-managed&gt;</c> mechanism. WASM hosts
-///     deliberately don't register <see cref="IRaskScopedStyles" />, so
-///     <see cref="RaskScopedStyles" /> must render nothing.
+///     Verifies WASM no longer ships scoped CSS/JS inline via the live payload —
+///     per-component assets reach the browser as <c>&lt;link href="/_rask/a/{hash}.css"&gt;</c>
+///     tags emitted into the rendered HTML and served by <c>Rask.Wasm.Hosting</c>'s
+///     content-addressed endpoint. Historically WASM shipped a <c>cssText</c> payload field
+///     that bypassed <c>&lt;base href&gt;</c> under sub-path hosting and re-shipped on every
+///     hash bump; the new model gives the browser stable immutable URLs to cache.
 /// </summary>
 [Collection("WasmSession")]
 public class ScopedStylesAbsenceTests
@@ -26,24 +27,35 @@ public class ScopedStylesAbsenceTests
     public ScopedStylesAbsenceTests()
     {
         ScopedCssRegistry.InvalidateAll();
+        ScopedAssetRegistry.InvalidateAll();
         ScopedCssRegistry.RegisterType(typeof(ScopedCssStubApp), ".tag { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedCssStubApp), ".tag { color: red; }");
     }
 
     [Fact]
-    public async Task InitialRender_AppWithScopedCss_DoesNotIncludeScopedCssLink()
+    public async Task InitialRender_AppWithScopedCss_EmitsContentAddressedLink_NoInlineCssText()
     {
         var (session, _) = NewSession();
 
         var payload = await session.InitialRenderAsync();
 
         using var doc = JsonDocument.Parse(payload.AsMemory());
+
+        // Negative: legacy inline-text delivery is gone. The payload no longer carries
+        // cssText (and even if a writer still includes the field, it must be null/empty).
+        if (doc.RootElement.TryGetProperty("cssText", out var cssTextEl))
+        {
+            Assert.True(cssTextEl.ValueKind == JsonValueKind.Null
+                        || string.IsNullOrEmpty(cssTextEl.GetString()),
+                "WASM payload must not ship cssText inline — assets are content-addressed");
+        }
+
+        // Positive: the rendered HTML contains the per-component <link> to the asset
+        // endpoint with a 12-hex content hash.
         var html = doc.RootElement.GetProperty("html").GetString()!;
-        Assert.DoesNotContain("/_rask/scoped.css", html);
-        Assert.DoesNotContain("data-rask-scoped", html);
-        // Sanity: the CSS bundle still gets to the runtime — just inline, not as a link.
-        var cssText = doc.RootElement.GetProperty("cssText").GetString();
-        Assert.NotNull(cssText);
-        Assert.Contains(".tag", cssText);
+        Assert.Matches(@"<link rel=""stylesheet"" href=""/_rask/a/[0-9a-f]{12}\.css""", html);
+        // The morph key uses the rsk-css- prefix for framework-emitted asset tags.
+        Assert.Contains("data-rask-key=\"rsk-css-", html);
     }
 
     private static (WasmLiveSession session, IServiceProvider services) NewSession()

@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
