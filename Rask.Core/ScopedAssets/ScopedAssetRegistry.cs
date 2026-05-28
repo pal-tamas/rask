@@ -206,10 +206,11 @@ public static class ScopedAssetRegistry
     }
 
     /// <summary>
-    ///     Clears every entry. Intended for hot-reload bulk invalidation and for tests; not
-    ///     for production runtime use. Does not raise <see cref="AssetChanged" /> per entry —
-    ///     fires once with <c>(null, default)</c>… actually it raises nothing; callers that
-    ///     need a coarse "everything cleared" signal should observe via their own hook.
+    ///     Clears every entry (CSS + JS). Intended for tests; production hot-reload uses
+    ///     the per-kind <see cref="InvalidateAllCss" /> / <see cref="InvalidateAllJs" />
+    ///     so a CSS-only refresh doesn't blow away JS entries (and vice versa). Does not
+    ///     raise <see cref="AssetChanged" /> — callers needing a coarse "cleared" signal
+    ///     observe via their own hook.
     /// </summary>
     public static void InvalidateAll()
     {
@@ -219,6 +220,32 @@ public static class ScopedAssetRegistry
             _jsHashByType.Clear();
             _scopeIdByType.Clear();
             _cssByHash.Clear();
+            _jsByHash.Clear();
+        }
+    }
+
+    /// <summary>
+    ///     Drops every CSS entry (and its scope-id mapping); leaves JS entries untouched.
+    ///     Called by the CSS hot-reload handler so a deleted <c>.css</c> sibling actually
+    ///     disappears from the registry — <c>RegisterCss</c> re-runs from RefreshAll over
+    ///     surviving pairs only, and would never visit the deleted slot.
+    /// </summary>
+    public static void InvalidateAllCss()
+    {
+        lock (_lock)
+        {
+            _cssHashByType.Clear();
+            _scopeIdByType.Clear();
+            _cssByHash.Clear();
+        }
+    }
+
+    /// <summary>Drops every JS entry; leaves CSS entries untouched.</summary>
+    public static void InvalidateAllJs()
+    {
+        lock (_lock)
+        {
+            _jsHashByType.Clear();
             _jsByHash.Clear();
         }
     }

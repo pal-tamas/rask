@@ -32,6 +32,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/validation", "Validation", "bi-shield-check", "Forms", null),
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms", null),
         ("/scoped-css", "Scoped CSS", "bi-palette", "Styling", null),
+        ("/asset-loading", "Asset loading", "bi-link-45deg", "Styling", null),
         ("/http", "HttpClient + DI", "bi-cloud-arrow-down", "Data", null),
         ("/upload", "File upload", "bi-upload", "Files", null),
         ("/download", "File download", "bi-cloud-download", "Files", null),

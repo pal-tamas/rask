@@ -277,7 +277,41 @@ public static class RaskEndpointExtensions
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         ScopedCssRegistry.BundleChanged += () => _ = sessionStore.RerenderAllAsync();
         ScopedJsRegistry.BundleChanged += () => _ = sessionStore.RerenderAllAsync();
+        SubscribeAssetChangedDebounced(sessionStore);
         TryEnableSourceWatcher(sessionStore);
+    }
+
+    // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
+    // (or a single hot-reload UpdateApplication burst that re-registers every component
+    // back-to-back) generates N events; without coalescing each fires its own
+    // RerenderAllAsync. The generation counter snapshot survives only if no newer event
+    // arrived during the quiet window — the trailing change wins and we re-render once.
+    private static long _assetChangeGen;
+
+    private static void SubscribeAssetChangedDebounced(LiveSessionStore sessionStore)
+    {
+        ScopedAssetRegistry.AssetChanged += (_, _) =>
+        {
+            var gen = Interlocked.Increment(ref _assetChangeGen);
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(50).ConfigureAwait(false);
+                if (Interlocked.Read(ref _assetChangeGen) != gen)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await sessionStore.RerenderAllAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(
+                        $"Rask: debounced asset-change rerender failed: {ex.Message}");
+                }
+            });
+        };
     }
 
     private static void TryEnableSourceWatcher(LiveSessionStore sessionStore)
