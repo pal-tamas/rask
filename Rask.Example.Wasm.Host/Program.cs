@@ -1,3 +1,4 @@
+using Rask.Example.Shared;
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,11 @@ builder.Services.AddRask();
 
 var app = builder.Build();
 
-app.UseRask();
+// Generic UseRask<App> touches the App type, which forces the runtime to load the
+// Rask.Example.Shared assembly and fire its [ModuleInitializer] attributes. Those
+// initializers populate ScopedAssetRegistry with the same per-component hashes the
+// in-browser WASM runtime computes — without this, every browser request to
+// /_rask/a/{hash}.{ext} would 404 because the host's registry was empty.
+app.UseRask<App>();
 
 app.Run();
