@@ -1,18 +1,19 @@
 using System.Text;
+using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedCss;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
 namespace Rask.Core.Tests;
 
-[Collection("ScopedCss")]
+[Collection("ScopedAssets")]
 public class HtmlSerializerTests
 {
     public HtmlSerializerTests()
     {
-        ScopedCssRegistry.InvalidateAll();
-        ScopedCssRegistry.RegisterType(typeof(CssWrapper), ".x { color: red; }");
-        ScopedCssRegistry.RegisterType(typeof(ScopedWrapper), ".y { color: blue; }");
+        ScopedAssetRegistry.InvalidateAll();
+        ScopedAssetRegistry.RegisterCss(typeof(CssWrapper), ".x { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedWrapper), ".y { color: blue; }");
     }
 
     [Fact]

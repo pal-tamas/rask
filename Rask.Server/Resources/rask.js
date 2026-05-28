@@ -88,8 +88,11 @@
                         history.pushState({rask: true}, "", data.history.url);
                     }
                 }
-                if (typeof data.cssHash === "string") applyScopedCss(data.cssHash);
-                if (typeof data.jsHash === "string") applyScopedJs(data.jsHash);
+                // Scoped CSS/JS arrives in the rendered HTML as
+                // <link href="/_rask/a/{hash}.css"> / <script src="/_rask/a/{hash}.js" defer>
+                // tags, served by the per-component asset endpoint and morphed into <head>
+                // by the standard keyed-morph path. No payload-side cssHash/jsHash anymore.
+
                 // IJSRuntime.InvokeAsync<T> dispatch: each entry resolves a dotted
                 // identifier on `window` (e.g. `sessionStorage.getItem` or
                 // `Rask.{TypeName}.{method}`), invokes it with the JSON-decoded args,
@@ -191,21 +194,13 @@
         if ("inert" in document.body) document.body.inert = false;
     }
 
-    function applyScopedCss(hash) {
-        var url = "/_rask/scoped.css?v=" + hash;
-        var link = document.querySelector("link[data-rask-scoped]");
-        if (link) {
-            if (link.getAttribute("href") !== url) link.setAttribute("href", url);
-            return;
-        }
-        link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.setAttribute("data-rask-scoped", "");
-        link.href = url;
-        document.head.appendChild(link);
-    }
-
-    var scopedJsReady = false;
+    // scopedJsReady starts true: per-component scripts ship as
+    // <script src="/_rask/a/{hash}.js" defer> tags in the initial HTML's <head> (and
+    // are morphed in/out as components mount/unmount). The browser's defer semantics
+    // run them in document order before DOMContentLoaded, which is well before any
+    // user click could trigger a Rask.* invoke. The legacy bundle-based gate that
+    // waited for a single big script to load is gone with the bundle endpoint itself.
+    var scopedJsReady = true;
     var pendingScopedInvokes = [];
 
     // External Head-declared <script src> and <link rel=stylesheet> are tracked
@@ -242,9 +237,13 @@
 
     function trackHeadAsset(el) {
         if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
-        // The scoped tags have their own gate (scopedJsReady / applyScopedCss
-        // bookkeeping); don't double-track.
-        if (el.hasAttribute("data-rask-scoped") || el.hasAttribute("data-rask-scoped-js")) return;
+        // Per-component scoped tags carry a data-rask-key with the framework's
+        // reserved "rsk-" prefix. They're served from /_rask/a/{hash}.{ext} with
+        // long-lived immutable caching — their load is essentially synchronous on
+        // warm cache, and the user-facing Rask.* invoke deferral logic doesn't
+        // need to track them. Skip so we don't bloat pendingHeadAssets.
+        var keyAttr = el.getAttribute("data-rask-key");
+        if (keyAttr && keyAttr.indexOf("rsk-") === 0) return;
         var url;
         if (el.tagName === "SCRIPT" && el.src) url = el.src;
         else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
@@ -287,6 +286,9 @@
     }
 
     function maybeDrainPendingInvokes() {
+        // scopedJsReady is permanently true post-cutover; the gate remains here so
+        // user-Head-declared deps (the pendingHeadAssets path) can still pause
+        // Rask.* invokes until their CDN scripts have loaded.
         if (!scopedJsReady || !headAssetsReady()) return;
         var pending = pendingScopedInvokes;
         pendingScopedInvokes = [];
@@ -295,83 +297,10 @@
         }
     }
 
-    function markScopedJsReady() {
-        if (scopedJsReady) return;
-        scopedJsReady = true;
-        maybeDrainPendingInvokes();
-    }
-
-    function attachScopedJsLoadListener(scriptEl) {
-        // `defer` scripts emitted in the initial HTML have typically already
-        // executed by the time rask.js runs — there's no future "load" event
-        // to wait for. Detect that state via the `Rask.{TypeName}` IIFE having
-        // populated `window.Rask` at least once. Falls back to a load listener
-        // for the rarer case where the script tag has been inserted (or
-        // re-inserted by applyScopedJs) and hasn't fired its load event yet.
-        if (window.Rask && Object.keys(window.Rask).length > 0) {
-            markScopedJsReady();
-            return;
-        }
-        scriptEl.addEventListener("load", markScopedJsReady, {once: true});
-        // Edge: the IIFE assigns `window.Rask.{TypeName}` synchronously, but
-        // the load event hasn't fired yet (e.g. during the deferred-script
-        // execution gap). Poll briefly to catch this — once the global is
-        // populated we're ready regardless of whether `load` fired.
-        var attempts = 0;
-        var poll = setInterval(function () {
-            attempts++;
-            if (window.Rask && Object.keys(window.Rask).length > 0) {
-                clearInterval(poll);
-                markScopedJsReady();
-            } else if (attempts > 200) {
-                // Give up after ~10s — bundle likely failed to load; the load
-                // listener above is still active for late successes.
-                clearInterval(poll);
-            }
-        }, 50);
-    }
-
-    // The initial HTML carries a `data-rask-scoped-js` tag rendered by the
-    // server's first GET. Wire up the readiness signal for it on boot so the
-    // first WS frame's pending Rask.* invokes can fire as soon as the IIFE
-    // executes. Without this, `applyScopedJs(hash)` later early-returns
-    // because the URL already matches the existing tag, and `scopedJsReady`
-    // never flips to true — every Rask.* invoke queues forever.
-    (function bootstrapScopedJsReady() {
-        var existing = document.querySelector("script[data-rask-scoped-js]");
-        if (!existing) return;
-        attachScopedJsLoadListener(existing);
-    })();
-
     // Initial sweep for Head-declared external assets emitted by the server's
     // first GET. New assets added by morph (e.g., a page-specific Head script)
     // are picked up in applyDom() after the morph completes.
     scanHeadAssets();
-
-    function applyScopedJs(hash) {
-        var url = "/_rask/scoped.js?v=" + hash;
-        var existing = document.querySelector("script[data-rask-scoped-js]");
-        if (existing && existing.getAttribute("src") === url) {
-            // Same bundle already in the page — bootstrapScopedJsReady (or a
-            // prior applyScopedJs call) already hooked up the readiness
-            // signal. Nothing to do.
-            return;
-        }
-        // Replace rather than mutate src — browsers don't re-evaluate a <script>
-        // on src change. The newly inserted script's IIFEs assign each module to
-        // `window.Rask.{TypeName}`; until it executes those globals don't exist
-        // and identifier resolution for any `Rask.X.Y` call will throw "Could not
-        // find 'Rask.X.Y' on target", which faults the awaiting InvokeAsync<T>.
-        // Defer Rask.* invokes until the script has loaded, then drain them.
-        scopedJsReady = false;
-        var script = document.createElement("script");
-        script.setAttribute("data-rask-scoped-js", "");
-        script.defer = true;
-        script.src = url;
-        script.addEventListener("load", markScopedJsReady, {once: true});
-        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
-        document.head.appendChild(script);
-    }
 
     function send(payload) {
         if (suppressEvents) return;

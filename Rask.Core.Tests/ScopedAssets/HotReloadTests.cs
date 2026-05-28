@@ -1,27 +1,19 @@
 using System.Reflection;
 using Rask.Core.ScopedAssets;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
 namespace Rask.Core.Tests.ScopedAssets;
 
 /// <summary>
-///     Covers hot-reload coordination across the legacy bundle registries (ScopedCssRegistry,
-///     ScopedJsRegistry) and the new per-component <see cref="ScopedAssetRegistry" />.
-///     Critical invariant: per-kind invalidation only clears its own bucket — a CSS hot-reload
+///     Covers hot-reload coordination over <see cref="ScopedAssetRegistry" />. Critical
+///     invariant: per-kind invalidation only clears its own bucket — a CSS hot-reload
 ///     must not blow away JS state and vice versa.
 /// </summary>
 [Collection("ScopedAssets")]
 public class HotReloadTests
 {
-    public HotReloadTests()
-    {
-        ScopedCssRegistry.InvalidateAll();
-        ScopedJsRegistry.InvalidateAll();
-        ScopedAssetRegistry.InvalidateAll();
-    }
+    public HotReloadTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
     public void CssHotReload_ClearsCss_LeavesJsIntact()
@@ -54,16 +46,14 @@ public class HotReloadTests
     }
 
     [Fact]
-    public void CssHotReload_AlsoClearsLegacyScopedCssRegistry()
+    public void CssHotReload_ClearsScopedAssetRegistryCss()
     {
-        ScopedCssRegistry.RegisterType(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
         InvokeUpdateApplication(
             "Rask.Core.ScopedCss.ScopedCssHotReloadHandler",
             new[] { typeof(__RaskScopedCssRegistration) });
 
-        Assert.Null(ScopedCssRegistry.CurrentHash);
         Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
     }
 

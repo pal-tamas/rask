@@ -26,7 +26,7 @@ public class ComponentScopedCssGeneratorTests
         var generated = run.GeneratedSource("__RaskScopedCssRegistration");
         Assert.Contains("typeof(global::Foo.Counter)", generated);
         Assert.Contains(".counter { color: red; }", generated);
-        Assert.Contains("RegisterType", generated);
+        Assert.Contains("RegisterCss", generated);
         Assert.Contains("ModuleInitializer", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }

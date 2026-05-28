@@ -1,6 +1,6 @@
 using System.Text;
 using Rask.Core.Live;
-using Rask.Core.ScopedCss;
+using Rask.Core.ScopedAssets;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
@@ -12,10 +12,10 @@ namespace Rask.Core.Tests.Live;
 ///     that type has scoped CSS, scoped JS, both, or neither. Head asset emission iterates
 ///     this set; before it was unconditional, JS-only components silently dropped out.
 /// </summary>
-[Collection("ScopedCss")] // shares the ScopedCssRegistry state with other scoped-css tests
+[Collection("ScopedAssets")]
 public class MountedTypesTests
 {
-    public MountedTypesTests() => ScopedCssRegistry.InvalidateAll();
+    public MountedTypesTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
     public void EmptyTree_NoUserComponents_MountedTypesIsEmpty()
@@ -38,7 +38,7 @@ public class MountedTypesTests
     [Fact]
     public void CssOnlyComponent_IsInMountedTypes()
     {
-        ScopedCssRegistry.RegisterType(typeof(CssOnly), ".x { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
         var view = new StubComponent(new CssOnly());
         using var ctx = LiveRenderContext.Begin(view);
         var sb = new StringBuilder();
@@ -66,7 +66,7 @@ public class MountedTypesTests
     [Fact]
     public void ComponentWithBothCssAndJs_AppearsOnce_HashSetSemantics()
     {
-        ScopedCssRegistry.RegisterType(typeof(BothAssets), ".x { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(BothAssets), ".x { color: red; }");
         var view = new StubComponent(new BothAssets());
         using var ctx = LiveRenderContext.Begin(view);
         var sb = new StringBuilder();
@@ -98,7 +98,7 @@ public class MountedTypesTests
         var view = new StubComponent(() => Div()[
             new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly()
         ]);
-        ScopedCssRegistry.RegisterType(typeof(CssOnly), ".x { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
         using var ctx = LiveRenderContext.Begin(view);
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(view, sb);

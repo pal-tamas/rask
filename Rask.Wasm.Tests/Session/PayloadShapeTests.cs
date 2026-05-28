@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
+using Rask.Core.ScopedAssets;
 using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
@@ -14,7 +14,7 @@ public class PayloadShapeTests
 {
     public PayloadShapeTests()
     {
-        ScopedCssRegistry.InvalidateAll();
+        ScopedAssetRegistry.InvalidateAll();
         // Asserts against the `html` payload field — force the legacy full-HTML
         // wire shape (framework default is LiveDiffMode.Auto).
         LiveOptions.DiffMode = LiveDiffMode.DisabledFull;

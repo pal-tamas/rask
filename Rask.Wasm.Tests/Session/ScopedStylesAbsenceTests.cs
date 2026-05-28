@@ -4,7 +4,6 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
-using Rask.Core.ScopedCss;
 using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
@@ -26,9 +25,7 @@ public class ScopedStylesAbsenceTests
 {
     public ScopedStylesAbsenceTests()
     {
-        ScopedCssRegistry.InvalidateAll();
         ScopedAssetRegistry.InvalidateAll();
-        ScopedCssRegistry.RegisterType(typeof(ScopedCssStubApp), ".tag { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(ScopedCssStubApp), ".tag { color: red; }");
     }
 

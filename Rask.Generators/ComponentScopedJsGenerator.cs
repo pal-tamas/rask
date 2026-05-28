@@ -225,14 +225,6 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
 
         foreach (var (component, js) in pairs.OrderBy(p => p.Component.FullyQualifiedName, StringComparer.Ordinal))
         {
-            // Dual registration during the additive migration; see ComponentScopedCssGenerator
-            // for the rationale. Old line removed once per-component endpoint is sole path.
-            sb.Append("        global::Rask.Core.ScopedJs.ScopedJsRegistry.RegisterType(typeof(")
-                .Append(component.FullyQualifiedName)
-                .Append("), ");
-            AppendVerbatimStringLiteral(sb, js);
-            sb.AppendLine(");");
-
             sb.Append("        global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(")
                 .Append(component.FullyQualifiedName)
                 .Append("), ");

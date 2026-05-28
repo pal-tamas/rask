@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
+using Rask.Core.ScopedAssets;
 using Rask.Wasm.Files;
 using static Rask.Core.Components.Generated;
 
@@ -15,7 +15,7 @@ namespace Rask.Wasm.Tests.Session;
 [Collection("WasmSession")]
 public class DownloadTokenPullTests
 {
-    public DownloadTokenPullTests() => ScopedCssRegistry.InvalidateAll();
+    public DownloadTokenPullTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
     public async Task DownloadTriggeredFromHandler_PayloadCarriesTokenNotBase64Bytes()

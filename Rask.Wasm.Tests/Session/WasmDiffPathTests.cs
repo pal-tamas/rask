@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
+using Rask.Core.ScopedAssets;
 using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
@@ -19,7 +19,7 @@ public class WasmDiffPathTests
 {
     public WasmDiffPathTests()
     {
-        ScopedCssRegistry.InvalidateAll();
+        ScopedAssetRegistry.InvalidateAll();
         // Forced (not Auto) so the diff payload is always shipped — the tiny
         // StubApp tree (~150 bytes HTML) is below the 25%-of-HTML choose-smaller
         // threshold and would route to full HTML under Auto.
