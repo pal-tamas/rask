@@ -19,6 +19,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Memory_MultipleNavigations_JsHeapStaysBounded() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // Baseline → 30 round-trip navs → final. Assert final isn't more than
         // 3x baseline AND isn't above an absolute hard cap (200 MB) — that hard
         // cap catches WASM-side runaway allocation that a ratio test might
@@ -61,6 +62,7 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Memory_DownAndUpNavToCodeSamplePages_NoUnboundedGrowth() => RunAsync(async () =>
     {
+        RequireAssetEndpoint();
         // Specific to the highlight.js regression class: bouncing between
         // CodeSample-heavy pages must not leak. Each page mounts ~15 CodeSample
         // instances, each subscribing to a JS invocation. If OnRenderedAsync

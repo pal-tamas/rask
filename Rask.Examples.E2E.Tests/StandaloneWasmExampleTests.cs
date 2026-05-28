@@ -59,6 +59,12 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
     protected override string FixtureName => "StandaloneWasm";
     protected override string ServerLog => _app.ServerLog;
 
+    // WasmAppHost is a static-file dev launcher with no .NET endpoint handler — every
+    // /_rask/a/{hash}.{ext} request 404s. Tests that need scoped JS to execute call
+    // RequireAssetEndpoint() at the top and skip here. See SharedSmokeTests for the
+    // follow-up that would let this fixture serve assets (publish-time baking).
+    protected override bool AssetEndpointAvailable => false;
+
     // The first NavigateToAsync of a test loads /index.html and waits for the home hero
     // (the only real GET WasmAppHost responds to). Subsequent navigations stay inside
     // the SPA by clicking the sidebar entry — same in-page transitions a user would do.
