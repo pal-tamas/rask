@@ -45,26 +45,31 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_NoHistoryNoCss_EmitsHtmlAndCssHashOnly()
+    public void BuildPayload_NoHistoryNoCss_EmitsHtmlOnly_NoCssHashOrCssText()
     {
+        // After the move to per-component content-addressed assets, the payload no
+        // longer carries a global cssHash or an inline cssText — scoped CSS reaches
+        // the browser via <link href="/_rask/a/{hash}.css"> tags spliced into the
+        // rendered HTML.
         var payload = LivePayload.BuildPayload("<body></body>", null, false);
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
         Assert.Equal("<body></body>", root.GetProperty("html").GetString());
-        Assert.True(root.TryGetProperty("cssHash", out _));
-        Assert.False(root.TryGetProperty("history", out _));
+        Assert.False(root.TryGetProperty("cssHash", out _));
         Assert.False(root.TryGetProperty("cssText", out _));
+        Assert.False(root.TryGetProperty("history", out _));
     }
 
     [Fact]
-    public void BuildPayload_CssTextOnly_AddsCssTextField()
+    public void BuildPayload_CssTextParameter_IsIgnored_NoFieldEmitted()
     {
+        // cssText parameter is retained for ABI but no longer written to the wire.
         var payload = LivePayload.BuildPayload("<body></body>", null, false, ".x{}");
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
-        Assert.Equal(".x{}", root.GetProperty("cssText").GetString());
+        Assert.False(root.TryGetProperty("cssText", out _));
         Assert.False(root.TryGetProperty("history", out _));
     }
 
@@ -90,13 +95,13 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_HistoryAndCssText_AddsBothFields()
+    public void BuildPayload_HistoryWithCssTextParameter_EmitsHistoryButNoCssText()
     {
         var payload = LivePayload.BuildPayload("<body></body>", "/foo", false, ".x{}");
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
-        Assert.Equal(".x{}", root.GetProperty("cssText").GetString());
+        Assert.False(root.TryGetProperty("cssText", out _));
         Assert.Equal("push", root.GetProperty("history").GetProperty("action").GetString());
         Assert.Equal("/foo", root.GetProperty("history").GetProperty("url").GetString());
     }
@@ -196,7 +201,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_PreservesHistoryAndCssTextFields()
+    public void BuildPayloadUtf8WithBody_PreservesHistory_NoCssTextEmitted()
     {
         const string html = "<html><body></body></html>";
 
@@ -204,7 +209,7 @@ public class LivePayloadTests
 
         using var doc = JsonDocument.Parse(payload);
         var root = doc.RootElement;
-        Assert.Equal(".x{}", root.GetProperty("cssText").GetString());
+        Assert.False(root.TryGetProperty("cssText", out _));
         var history = root.GetProperty("history");
         Assert.Equal("replace", history.GetProperty("action").GetString());
         Assert.Equal("/foo", history.GetProperty("url").GetString());

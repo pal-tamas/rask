@@ -26,8 +26,8 @@ public class ComponentScopedJsGeneratorTests
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
         Assert.Contains("typeof(global::Foo.Counter)", generated);
         Assert.Contains("el.dataset.rendered", generated);
-        Assert.Contains("RegisterType", generated);
-        Assert.Contains("global::Rask.Core.ScopedJs.ScopedJsRegistry", generated);
+        Assert.Contains("RegisterJs", generated);
+        Assert.Contains("global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs", generated);
         Assert.Contains("ModuleInitializer", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }

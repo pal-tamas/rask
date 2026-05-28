@@ -8,6 +8,11 @@ using Rask.Core.ScopedCss;
 
 namespace Rask.Core.ScopedCss;
 
+// The folder name and type name are kept post-cleanup: the hot-reload handler is the
+// stable anchor that dotnet watch's MetadataUpdateHandler infrastructure has learned to
+// invoke (via the assembly-level attribute above). CssScoper.cs alongside it still owns
+// the scope-id derivation + selector-rewriting logic the registry depends on.
+
 internal static class ScopedCssHotReloadHandler
 {
     private const string GeneratedRegistrationTypeName = "__RaskScopedCssRegistration";
@@ -40,14 +45,11 @@ internal static class ScopedCssHotReloadHandler
             return;
         }
 
-        // Invalidate the CSS slice of both registries before re-invoking RefreshAll. The
-        // generator's RefreshAll emits dual registration into ScopedCssRegistry (legacy)
-        // and ScopedAssetRegistry (per-component) — if the new registry's CSS bucket
-        // isn't cleared first, entries for components whose .css was DELETED would
-        // persist (RefreshAll re-runs only over surviving pairs and never touches the
-        // deleted-component's slot). Per-kind invalidation leaves JS entries intact so a
-        // CSS-only edit doesn't blow away unrelated JS state.
-        ScopedCssRegistry.InvalidateAll();
+        // Invalidate the CSS slice of the registry before re-invoking RefreshAll. If the
+        // CSS bucket isn't cleared first, entries for components whose .css was DELETED
+        // would persist — RefreshAll re-runs only over surviving pairs and never touches
+        // the deleted-component's slot. Per-kind invalidation leaves JS entries intact so
+        // a CSS-only edit doesn't blow away unrelated JS state.
         ScopedAssetRegistry.InvalidateAllCss();
 
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())

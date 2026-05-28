@@ -202,18 +202,6 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
 
         foreach (var (component, css) in pairs.OrderBy(p => p.Component.FullyQualifiedName, StringComparer.Ordinal))
         {
-            // Dual registration during the additive migration: the legacy bundle
-            // (ScopedCssRegistry) still feeds today's <link href="/_rask/scoped.css"> path,
-            // while the per-component asset registry feeds the new
-            // <link href="/_rask/a/{hash}.css"> emission. Both are populated from the
-            // same source so the cutover is purely consumer-side. Old line removed once
-            // the new endpoint is the sole serving path.
-            sb.Append("        global::Rask.Core.ScopedCss.ScopedCssRegistry.RegisterType(typeof(")
-                .Append(component.FullyQualifiedName)
-                .Append("), ");
-            AppendVerbatimStringLiteral(sb, css);
-            sb.AppendLine(");");
-
             sb.Append("        global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterCss(typeof(")
                 .Append(component.FullyQualifiedName)
                 .Append("), ");

@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Rask.Core;
-using Rask.Core.ScopedCss;
+using Rask.Core.ScopedAssets;
 using B = Rask.Benchmarks.Generated;
 using C = Rask.Core.Components.Generated;
 
@@ -32,10 +32,10 @@ public class HtmlSerializerBenchmarks
         // ScopePopper allocation + data-{scopeId} stamping on every body element).
         // The cost we want to measure is the steady-state per-render lookup, not the
         // first-time registration — the registration is one-shot.
-        ScopedCssRegistry.RegisterType(typeof(ScopedRowA), ".row { color: red; }");
-        ScopedCssRegistry.RegisterType(typeof(ScopedRowB), ".row { color: green; }");
-        ScopedCssRegistry.RegisterType(typeof(ScopedRowC), ".row { color: blue; }");
-        ScopedCssRegistry.RegisterType(typeof(ScopedRowD), ".row { color: yellow; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedRowA), ".row { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedRowB), ".row { color: green; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedRowC), ".row { color: blue; }");
+        ScopedAssetRegistry.RegisterCss(typeof(ScopedRowD), ".row { color: yellow; }");
 
         _scopedCss = BuildScopedCssTree(200);
         _textHeavy = BuildTextHeavyTree(200);

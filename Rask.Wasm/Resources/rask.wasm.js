@@ -4,20 +4,18 @@
 
 let dotnetExports = null;
 let root = null;
-let lastCssHash = null;
-let lastJsHash = null;
 let basePath = null;
 
-// Scoped-JS bundle gate. The bundle script is appended by applyScopedJs() and
-// executes synchronously upon insertion — that's the point at which
-// window.Rask.{TypeName} globals exist. Component lifecycle hooks (especially
-// the first OnRenderedAsync) can race the bundle: they call into beginInvokeJS
-// before the bundle has been injected, and identifier resolution for
-// "Rask.X.method" would otherwise fault the awaiting Task with "Could not
-// find ... on target". Defer Rask.*-prefixed calls until the gate opens, then
-// drain. Non-Rask identifiers (sessionStorage.*, localStorage.*) are browser
-// builtins and always present.
-let scopedJsReady = false;
+// scopedJsReady starts true: per-component scripts ship as
+// <script src="/_rask/a/{hash}.js" defer> tags in the initial HTML's <head> (and
+// are morphed in/out as components mount/unmount). The browser's defer semantics
+// run them before DOMContentLoaded, which is well before any user click could
+// trigger a Rask.* invoke. The legacy bundle-based gate (waiting for one big
+// inline-injected script) is gone with the cssText/jsText payload fields. The
+// pendingScopedInvokes queue is kept because the user-Head-declared CDN path
+// (see pendingHeadAssets below) still needs to defer Rask.* calls until those
+// external deps have loaded.
+let scopedJsReady = true;
 let pendingScopedInvokes = [];
 
 // External Head-declared <script src> and <link rel=stylesheet> are tracked
@@ -54,12 +52,12 @@ function isAssetAlreadyLoaded(url) {
 
 function trackHeadAsset(el) {
     if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
-    // The scoped tags have their own gate; don't double-track them. WASM marks
-    // them data-rask-managed (the inline <style id="rask-scoped"> + inline
-    // <script id="rask-scoped-js">); Server marks them data-rask-scoped.
-    if (el.hasAttribute("data-rask-managed")
-        || el.hasAttribute("data-rask-scoped")
-        || el.hasAttribute("data-rask-scoped-js")) return;
+    // Per-component scoped tags carry data-rask-key with the framework-reserved
+    // "rsk-" prefix. They're served from /_rask/a/{hash}.{ext} with long-lived
+    // immutable caching — load is essentially synchronous on warm cache and the
+    // user-facing Rask.* invoke deferral logic doesn't need to track them.
+    const key = el.getAttribute("data-rask-key");
+    if (key && key.indexOf("rsk-") === 0) return;
     let url;
     if (el.tagName === "SCRIPT" && el.src) url = el.src;
     else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
@@ -262,47 +260,6 @@ export function pushHistory(url, replace) {
 
 function inRoot(el) {
     return root && root.contains(el);
-}
-
-function applyScopedCss(hash, cssText) {
-    if (hash === lastCssHash && cssText == null) return;
-    lastCssHash = hash;
-    let style = document.getElementById("rask-scoped");
-    if (!style) {
-        style = document.createElement("style");
-        style.id = "rask-scoped";
-        // Marker so morph() leaves this element alone — it's owned by JS, not
-        // by the .NET render tree, and would otherwise get trimmed off when
-        // the head's last child slot doesn't match between renders.
-        style.setAttribute("data-rask-managed", "");
-        document.head.appendChild(style);
-    }
-    if (typeof cssText === "string") style.textContent = cssText;
-}
-
-function applyScopedJs(hash, jsText) {
-    if (hash === lastJsHash && jsText == null) return;
-    if (typeof jsText !== "string" || jsText.length === 0) return;
-    lastJsHash = hash;
-    // Replace the script element rather than mutate textContent — re-assigning a
-    // script's textContent does NOT re-execute it. A fresh <script> with the new
-    // body runs the new `window.Rask[TypeName] = ...` assignments so user JS
-    // modules pick up hot-reloaded code.
-    const existing = document.getElementById("rask-scoped-js");
-    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
-    // Close the gate before injecting — even on hot reload the window.Rask
-    // bindings briefly disappear while the new script body executes.
-    scopedJsReady = false;
-    const script = document.createElement("script");
-    script.id = "rask-scoped-js";
-    script.setAttribute("data-rask-managed", "");
-    script.textContent = jsText;
-    // Inline scripts execute synchronously on insertion, so by the time
-    // appendChild returns the window.Rask.{TypeName} globals exist. Open the
-    // gate and drain any calls queued during the closed window.
-    document.head.appendChild(script);
-    scopedJsReady = true;
-    maybeDrainPendingInvokes();
 }
 
 // reviveScript() + morph() are concatenated in at build time by the
@@ -509,10 +466,10 @@ function handle(reply) {
             scanHeadAssets();
         }
         applyHistory(reply.history);
-        if (typeof reply.cssHash === "string" || reply.cssHash === null)
-            applyScopedCss(reply.cssHash, reply.cssText);
-        if (typeof reply.jsHash === "string" || reply.jsHash === null)
-            applyScopedJs(reply.jsHash, reply.jsText);
+        // Scoped CSS/JS arrives in the morphed HTML as
+        // <link href="/_rask/a/{hash}.css"> / <script src="/_rask/a/{hash}.js" defer>
+        // tags — no payload-side cssText/jsText injection. Browser handles load
+        // semantics via standard <link>/<script> lifecycle.
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     applyDom();

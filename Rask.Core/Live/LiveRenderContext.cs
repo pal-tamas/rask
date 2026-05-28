@@ -1,8 +1,7 @@
 using System.Runtime.CompilerServices;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
+using Rask.Core.ScopedAssets;
 using ErrorBoundary = Rask.Core.Components.ErrorBoundary;
 using RouteRenderState = Rask.Core.Routing.RouteRenderState;
 
@@ -72,8 +71,7 @@ public sealed class LiveRenderContext : IDisposable
     ///         A regression-prone shape: until the mounted-set was unconditional, only
     ///         components with CSS pushed onto the scope stack, so JS-only components
     ///         silently dropped out of head emission. The set must record types whether or
-    ///         not <see cref="Rask.Core.ScopedCss.ScopedCssRegistry.TryRegister" /> finds
-    ///         a scope id.
+    ///         not <see cref="ScopedAssetRegistry.TryGetScopeId" /> finds a scope id.
     ///     </para>
     /// </summary>
     public HashSet<Type> MountedTypes { get; } = new();
@@ -96,8 +94,7 @@ public sealed class LiveRenderContext : IDisposable
         // before the scope-id lookup keeps JS-only and asset-free components in the set.
         MountedTypes.Add(type);
 
-        var hasCss = ScopedCssRegistry.TryRegister(type, out var scopeId);
-        if (!hasCss)
+        if (!ScopedAssetRegistry.TryGetScopeId(type, out var scopeId))
         {
             return default;
         }

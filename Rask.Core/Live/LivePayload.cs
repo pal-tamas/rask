@@ -4,8 +4,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
 
 namespace Rask.Core.Live;
 
@@ -505,12 +503,16 @@ public static class LivePayload
         string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        var cssHash = ScopedCssRegistry.CurrentHash;
-        var jsHash = ScopedJsRegistry.CurrentHash;
-
+        // cssText / jsText are vestigial parameters preserved for ABI; per-component
+        // scoped assets now reach the client via <link>/<script> tags spliced into the
+        // rendered HTML (HeadAssetRegistry.EmitMountedAssets) and served from
+        // /_rask/a/{hash}.{ext}. Nothing in the live payload carries scoped CSS/JS
+        // bytes or a global bundle hash anymore.
+        _ = cssText;
+        _ = jsText;
         writer.WriteStartObject();
         writer.WriteString("html", html);
-        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download, jsInvokes);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);
     }
 
     private static void WriteJsonUtf8Body(
@@ -524,39 +526,21 @@ public static class LivePayload
         string? jsText,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        var cssHash = ScopedCssRegistry.CurrentHash;
-        var jsHash = ScopedJsRegistry.CurrentHash;
-
+        _ = cssText;
+        _ = jsText;
         writer.WriteStartObject();
         writer.WriteString("html", htmlUtf8);
-        WriteJsonTail(writer, cssHash, jsHash, historyUrl, replace, cssText, jsText, auth, download, jsInvokes);
+        WriteJsonTail(writer, historyUrl, replace, auth, download, jsInvokes);
     }
 
     private static void WriteJsonTail(
         Utf8JsonWriter writer,
-        string? cssHash,
-        string? jsHash,
         string? historyUrl,
         bool replace,
-        string? cssText,
-        string? jsText,
         AuthInstruction? auth,
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        writer.WriteString("cssHash", cssHash);
-        writer.WriteString("jsHash", jsHash);
-
-        if (cssText is not null)
-        {
-            writer.WriteString("cssText", cssText);
-        }
-
-        if (jsText is not null)
-        {
-            writer.WriteString("jsText", jsText);
-        }
-
         if (jsInvokes is { Count: > 0 })
         {
             // IJSRuntime.InvokeAsync<T> queue. Each entry resolves a dotted identifier

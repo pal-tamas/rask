@@ -106,18 +106,15 @@ public class Rask020CollisionTests
     }
 
     [Fact]
-    public void Generator_EmitsDualRegistration_BothOldRegistryAndNewAssetRegistry()
+    public void Generator_EmitsScopedAssetRegistryRegistration()
     {
-        // Regression assert for the additive migration: the generated source registers
-        // each component's JS into BOTH the legacy ScopedJsRegistry (still serving the
-        // monolithic bundle) AND the new ScopedAssetRegistry (per-component asset URLs).
         var run = Run(
             new[] { ("/proj/Counter.cs", "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }") },
             new[] { ("/proj/Counter.js", "export function rendered(el) {}") });
 
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
-        Assert.Contains("global::Rask.Core.ScopedJs.ScopedJsRegistry.RegisterType(typeof(global::Foo.Counter)", generated);
         Assert.Contains("global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(global::Foo.Counter)", generated);
+        Assert.DoesNotContain("ScopedJsRegistry", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }
 

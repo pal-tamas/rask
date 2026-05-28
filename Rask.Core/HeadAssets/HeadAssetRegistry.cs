@@ -1,10 +1,7 @@
 using System.Text;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.ScopedAssets;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
 
 namespace Rask.Core.HeadAssets;
 
@@ -134,48 +131,33 @@ internal sealed class HeadAssetRegistry
     }
 
     /// <summary>
-    ///     Replaces the framework-managed <c>&lt;head&gt;</c> sentinel with:
-    ///     user-declared <c>Component.Head</c> contributions (deduped, singleton
-    ///     tags resolved), then the scoped-css <c>&lt;link&gt;</c> (via
-    ///     <c>IRaskScopedStyles</c> from <paramref name="services" />), then the
-    ///     scoped-js <c>&lt;script&gt;</c> (via <c>IRaskScopedScripts</c>). User
-    ///     contributions go first so an App.css scoped rule wins the cascade over
-    ///     an externally-loaded Bootstrap.
+    ///     Replaces the framework-managed <c>&lt;head&gt;</c> sentinel with: user-declared
+    ///     <c>Component.Head</c> contributions (deduped, singleton tags resolved), followed
+    ///     by per-component scoped-asset tags (one <c>&lt;link&gt;</c> per mounted
+    ///     component with registered CSS, one <c>&lt;script defer&gt;</c> per mounted
+    ///     component with registered JS, both served from <c>/_rask/a/{hash}.{ext}</c>).
+    ///     User contributions go first so an App-level CDN stylesheet sits earlier in the
+    ///     cascade than scoped overrides.
     ///     <para>
-    ///         Each emitted entry gets a stable <c>data-rask-key</c> so the client
-    ///         morph (rask-morph.js) reconciles head children by identity. Without
-    ///         the key, dropping a single contribution (e.g. LiveTicker's chart.js
-    ///         script unmounting on nav) shifts every later sibling by one slot;
-    ///         the positional walk then hits tag-name mismatches and replaces
-    ///         nodes — including the scoped-css <c>&lt;link&gt;</c>. Removing a
-    ///         stylesheet link drops its rules immediately and the page flickers
-    ///         un-styled until the new link is inserted and loaded.
+    ///         Each emitted entry gets a stable <c>data-rask-key</c> so the client morph
+    ///         reconciles head children by identity. Without the key, dropping a single
+    ///         contribution (e.g. LiveTicker's chart.js script unmounting on nav) shifts
+    ///         every later sibling by one slot, the positional walk hits tag-name
+    ///         mismatches and replaces nodes — including framework-emitted asset links.
+    ///     </para>
+    ///     <para>
+    ///         <paramref name="services" /> is accepted for binary compatibility but is no
+    ///         longer consulted: scoped-asset emission reads <see cref="ScopedAssetRegistry" />
+    ///         directly, not host-provided <c>IRaskScopedStyles</c>/<c>Scripts</c> strategies.
     ///     </para>
     /// </summary>
     public string ApplyTo(string html, IServiceProvider? services = null)
     {
+        _ = services; // see XML comment: parameter retained for ABI; no host strategy needed.
         var idx = html.IndexOf(Sentinel, StringComparison.Ordinal);
         if (idx < 0)
         {
             return html;
-        }
-
-        // Resolve the host-provided emission strategies up front so we can pre-size
-        // the StringBuilder for the final splice.
-        string? scopedCssHtml = null;
-        string? scopedJsHtml = null;
-        var cssHash = ScopedCssRegistry.CurrentHash;
-        var jsHash = ScopedJsRegistry.CurrentHash;
-        if (services is not null && cssHash is not null
-                                 && services.GetService<IRaskScopedStyles>() is { } cssStrategy)
-        {
-            scopedCssHtml = WithRaskKey(cssStrategy.Render(cssHash).ToHtml(), "rask-scoped-css");
-        }
-
-        if (services is not null && jsHash is not null
-                                 && services.GetService<IRaskScopedScripts>() is { } jsStrategy)
-        {
-            scopedJsHtml = WithRaskKey(jsStrategy.Render(jsHash).ToHtml(), "rask-scoped-js");
         }
 
         // Per-component asset emission. Reads LiveRenderContext.Current.MountedTypes —
@@ -192,8 +174,7 @@ internal sealed class HeadAssetRegistry
 
         var perComponentHtml = perComponentSb.Length > 0 ? perComponentSb.ToString() : null;
 
-        if (_orderedHtml.Count == 0 && scopedCssHtml is null && scopedJsHtml is null
-                                    && perComponentHtml is null)
+        if (_orderedHtml.Count == 0 && perComponentHtml is null)
         {
             return html.Remove(idx, Sentinel.Length);
         }
@@ -215,16 +196,6 @@ internal sealed class HeadAssetRegistry
             totalLen += keyedAssets[i].Length;
         }
 
-        if (scopedCssHtml is not null)
-        {
-            totalLen += scopedCssHtml.Length;
-        }
-
-        if (scopedJsHtml is not null)
-        {
-            totalLen += scopedJsHtml.Length;
-        }
-
         if (perComponentHtml is not null)
         {
             totalLen += perComponentHtml.Length;
@@ -237,19 +208,8 @@ internal sealed class HeadAssetRegistry
             sb.Append(asset);
         }
 
-        if (scopedCssHtml is not null)
-        {
-            sb.Append(scopedCssHtml);
-        }
-
-        if (scopedJsHtml is not null)
-        {
-            sb.Append(scopedJsHtml);
-        }
-
-        // Per-component tags emit AFTER both user Head contributions and the legacy
-        // bundle tag, preserving cascade order (lazily-loaded per-component CSS overrides
-        // both global CDN imports and the monolithic bundle).
+        // Per-component tags emit AFTER user Head contributions so scoped CSS overrides
+        // global CDN imports declared via Component.Head.
         if (perComponentHtml is not null)
         {
             sb.Append(perComponentHtml);

@@ -1,9 +1,6 @@
 #pragma warning disable RASK014 // private test Component subclass — no generated factory needed
 
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.HeadAssets;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
 
 namespace Rask.Core.Tests.HeadAssets;
 
@@ -126,36 +123,10 @@ public class HeadAssetRegistryTests
         Assert.Equal(aKey, bKey);
     }
 
-    [Fact]
-    public void ApplyTo_ScopedAssets_EmitFixedKeys()
-    {
-        // The scoped-css link and scoped-js script always carry the same logical
-        // identity across renders even when their ?v=hash changes — so they must
-        // get a fixed data-rask-key, not a content hash. This is exercised via the
-        // strategies that the server wires up; here we mimic them.
-        var services = new ServiceCollection()
-            .AddSingleton<IRaskScopedStyles>(new StubScopedStyles())
-            .AddSingleton<IRaskScopedScripts>(new StubScopedScripts())
-            .BuildServiceProvider();
-
-        // Seed the global scoped-css/js registries so ApplyTo emits both tags.
-        ScopedCssRegistry.RegisterType(typeof(KeyedTestProbe), ".x { color: red; }");
-        ScopedJsRegistry.RegisterType(typeof(KeyedTestProbe), "/* x */");
-        try
-        {
-            var registry = new HeadAssetRegistry();
-            var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
-            var result = registry.ApplyTo(html, services);
-
-            Assert.Contains("data-rask-key=\"rask-scoped-css\"", result);
-            Assert.Contains("data-rask-key=\"rask-scoped-js\"", result);
-        }
-        finally
-        {
-            ScopedCssRegistry.UnregisterType(typeof(KeyedTestProbe));
-            ScopedJsRegistry.UnregisterType(typeof(KeyedTestProbe));
-        }
-    }
+    // The legacy IRaskScopedStyles/Scripts strategy is gone; per-component asset emission
+    // (one <link>/<script> per mounted type with a registered asset) is covered end-to-end
+    // by HeadAssetEmissionTests in this same test project, which exercises the new
+    // HeadAssetRegistry.EmitMountedAssets pathway directly.
 
     [Fact]
     public void ApplyTo_PreservesUserSuppliedDataRaskKey()
@@ -184,25 +155,6 @@ public class HeadAssetRegistryTests
         start += needle.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);
-    }
-
-    private sealed class StubScopedStyles : IRaskScopedStyles
-    {
-        public Component Render(string hash) => Link(
-            Rel: "stylesheet",
-            Href: $"/scoped.css?v={hash}");
-    }
-
-    private sealed class StubScopedScripts : IRaskScopedScripts
-    {
-        public Component Render(string hash) => Script(
-            $"/scoped.js?v={hash}",
-            Defer: true);
-    }
-
-    private sealed class KeyedTestProbe : Component
-    {
-        protected override RenderResult Render() => Div();
     }
 
     [Fact]

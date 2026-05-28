@@ -4,6 +4,9 @@ using System.Reflection.Metadata;
 using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedJs;
 
+// As with ScopedCssHotReloadHandler: the type name + folder stays as the stable
+// MetadataUpdateHandler anchor; the legacy ScopedJsRegistry it used to feed is gone.
+
 [assembly: MetadataUpdateHandler(typeof(ScopedJsHotReloadHandler))]
 
 namespace Rask.Core.ScopedJs;
@@ -28,8 +31,7 @@ internal static class ScopedJsHotReloadHandler
             return;
         }
 
-        // Per-kind invalidate — clears JS bucket of both registries; CSS state untouched.
-        ScopedJsRegistry.InvalidateAll();
+        // Per-kind invalidate — clears JS bucket of the registry; CSS state untouched.
         ScopedAssetRegistry.InvalidateAllJs();
 
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())

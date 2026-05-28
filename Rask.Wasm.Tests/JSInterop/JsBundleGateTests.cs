@@ -32,23 +32,17 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
-    public void RaskWasmJs_ApplyScopedJs_Drains_Pending_Queue()
+    public void RaskWasmJs_MaybeDrainPendingInvokes_ReentersBeginInvokeJs()
     {
+        // The legacy applyScopedJs that inlined a bundle <script> and flipped
+        // scopedJsReady is gone — per-component scripts load via standard
+        // <script src="/_rask/a/{hash}.js" defer> in <head>, and scopedJsReady
+        // is initialized true. The drain path still matters: when a user-Head
+        // declared CDN script finishes loading (or times out), the
+        // trackHeadAsset finish handler calls maybeDrainPendingInvokes, which
+        // must re-enter beginInvokeJS so queued Rask.* invokes resolve through
+        // the original code path.
         var js = ReadBrowserBundle();
-        var applyIdx = js.IndexOf("function applyScopedJs", StringComparison.Ordinal);
-        Assert.True(applyIdx >= 0, "applyScopedJs function not found in bundle");
-        var applyEnd = js.IndexOf("\n}\n", applyIdx, StringComparison.Ordinal);
-        Assert.True(applyEnd > applyIdx, "applyScopedJs body not located");
-        var body = js.Substring(applyIdx, applyEnd - applyIdx);
-        // The drain must happen after the script injection (otherwise replayed
-        // calls would resolve against a still-empty window.Rask). It now goes
-        // through maybeDrainPendingInvokes() which combines the scoped-JS gate
-        // with the Head-asset-load gate — assert the helper is reached.
-        Assert.Contains("scopedJsReady = true", body);
-        Assert.Contains("maybeDrainPendingInvokes", body);
-
-        // And the helper itself must re-enter beginInvokeJS so the original
-        // code path runs unchanged when the gate opens.
         var drainIdx = js.IndexOf("function maybeDrainPendingInvokes", StringComparison.Ordinal);
         Assert.True(drainIdx >= 0, "maybeDrainPendingInvokes function not found in bundle");
         var drainEnd = js.IndexOf("\n}\n", drainIdx, StringComparison.Ordinal);
