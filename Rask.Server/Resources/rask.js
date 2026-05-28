@@ -290,11 +290,59 @@
         // user-Head-declared deps (the pendingHeadAssets path) can still pause
         // Rask.* invokes until their CDN scripts have loaded.
         if (!scopedJsReady || !headAssetsReady()) return;
-        var pending = pendingScopedInvokes;
-        pendingScopedInvokes = [];
-        for (var i = 0; i < pending.length; i++) {
-            dispatchJsInvoke(pending[i]);
+        if (pendingScopedInvokes.length === 0) return;
+        // Re-queue any invoke whose Rask.{Name} namespace still hasn't appeared —
+        // the polling loop drains them when (if) the per-component script loads.
+        var stillWaiting = [];
+        var ready = [];
+        for (var i = 0; i < pendingScopedInvokes.length; i++) {
+            var inv = pendingScopedInvokes[i];
+            if (raskNamespaceReady(inv.identifier)) ready.push(inv);
+            else stillWaiting.push(inv);
         }
+        pendingScopedInvokes = stillWaiting;
+        for (var j = 0; j < ready.length; j++) {
+            dispatchJsInvoke(ready[j]);
+        }
+    }
+
+    function raskNamespaceReady(identifier) {
+        if (typeof identifier !== "string") return true;
+        if (identifier.indexOf("Rask.") !== 0) return true;
+        var rest = identifier.substring(5);
+        var dot = rest.indexOf(".");
+        var name = dot < 0 ? rest : rest.substring(0, dot);
+        return !!(window.Rask && window.Rask[name]);
+    }
+
+    // Per-component scripts load asynchronously from /_rask/a/{hash}.js. A first-render
+    // Rask.* invoke races their load; the parked invoke wakes when window.Rask.{TypeName}
+    // appears (or after the 5s timeout, in which case the original "Could not find" surfaces).
+    var RASK_NS_POLL_INTERVAL_MS = 100;
+    var RASK_NS_POLL_TIMEOUT_MS = 5000;
+    var raskNsPollHandle = 0;
+    var raskNsPollStarted = 0;
+
+    function ensureRaskNamespacePoll() {
+        if (raskNsPollHandle !== 0) return;
+        raskNsPollStarted = Date.now();
+        raskNsPollHandle = setInterval(function () {
+            if (pendingScopedInvokes.length === 0
+                || Date.now() - raskNsPollStarted > RASK_NS_POLL_TIMEOUT_MS) {
+                clearInterval(raskNsPollHandle);
+                raskNsPollHandle = 0;
+                var drained = pendingScopedInvokes;
+                pendingScopedInvokes = [];
+                for (var i = 0; i < drained.length; i++) {
+                    // After timeout, force-dispatch through the post-gate body so the
+                    // original "Could not find" surface (caught by the user's ErrorBoundary)
+                    // beats hanging forever on a broken asset URL.
+                    forceDispatchJsInvoke(drained[i]);
+                }
+                return;
+            }
+            maybeDrainPendingInvokes();
+        }, RASK_NS_POLL_INTERVAL_MS);
     }
 
     // Initial sweep for Head-declared external assets emitted by the server's
@@ -575,15 +623,20 @@
 
     function dispatchJsInvoke(inv) {
         if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
-        // Hold scoped-JS invokes until (a) the bundle script has executed and
-        // the window.Rask.{TypeName} globals exist AND (b) every Head-declared
-        // external <script src>/<link rel=stylesheet> has loaded. Only Rask.*
-        // identifiers carry this risk — `sessionStorage.getItem`,
-        // `localStorage.length`, etc. are browser-builtin and always present.
-        if (inv.identifier.indexOf("Rask.") === 0 && (!scopedJsReady || !headAssetsReady())) {
+        // Hold scoped-JS invokes until (a) every user-Head-declared CDN dep has loaded AND
+        // (b) the per-component <script src="/_rask/a/{hash}.js"> has executed (so
+        // window.Rask.{TypeName} exists). The polling tick wakes parked invokes when the
+        // namespace appears, or surfaces the original "Could not find" after the 5s timeout.
+        if (inv.identifier.indexOf("Rask.") === 0
+            && (!scopedJsReady || !headAssetsReady() || !raskNamespaceReady(inv.identifier))) {
             pendingScopedInvokes.push(inv);
+            ensureRaskNamespacePoll();
             return;
         }
+        forceDispatchJsInvoke(inv);
+    }
+
+    function forceDispatchJsInvoke(inv) {
         var taskId = inv.id;
         var resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
         var argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";

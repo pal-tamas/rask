@@ -102,12 +102,67 @@ function headAssetsReady() {
 function maybeDrainPendingInvokes() {
     if (!scopedJsReady || !headAssetsReady()) return;
     if (pendingScopedInvokes.length === 0) return;
-    const drained = pendingScopedInvokes;
-    pendingScopedInvokes = [];
-    for (let i = 0; i < drained.length; i++) {
-        const c = drained[i];
+    // Re-queue any whose Rask.{Name} namespace still hasn't appeared — they'll be drained
+    // by the polling loop below when (if) the per-component script eventually loads.
+    const stillWaiting = [];
+    const ready = [];
+    for (let i = 0; i < pendingScopedInvokes.length; i++) {
+        const c = pendingScopedInvokes[i];
+        if (raskNamespaceReady(c.identifier)) ready.push(c);
+        else stillWaiting.push(c);
+    }
+    pendingScopedInvokes = stillWaiting;
+    for (let i = 0; i < ready.length; i++) {
+        const c = ready[i];
         beginInvokeJS(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
     }
+}
+
+// Returns true when `Rask.{Name}` is populated on window (for "Rask.{Name}.{method}"
+// identifiers), or true when the identifier doesn't follow the Rask.* pattern. Lets
+// beginInvokeJS distinguish "the per-component script hasn't loaded yet — park me"
+// from "ready to dispatch".
+function raskNamespaceReady(identifier) {
+    if (typeof identifier !== "string") return true;
+    if (identifier.indexOf("Rask.") !== 0) return true;
+    const rest = identifier.substring(5);
+    const dot = rest.indexOf(".");
+    const name = dot < 0 ? rest : rest.substring(0, dot);
+    return !!(window.Rask && window.Rask[name]);
+}
+
+// Per-component scripts load asynchronously over HTTP from /_rask/a/{hash}.js. A first-
+// render OnRenderedAsync calling Rask.X.method races the script's load event; the parked
+// invoke needs a way to wake up when window.Rask.X appears. A 100ms poll for ≤5s catches
+// the common cache-warm-load path and times out on broken URLs (e.g., standalone WASM
+// hosting that hasn't baked the assets to disk — those calls then surface "Could not find"
+// as documented, rather than hanging forever).
+const RASK_NAMESPACE_POLL_INTERVAL_MS = 100;
+const RASK_NAMESPACE_POLL_TIMEOUT_MS = 5000;
+let raskNamespacePollHandle = 0;
+let raskNamespacePollStarted = 0;
+
+function ensureRaskNamespacePoll() {
+    if (raskNamespacePollHandle !== 0) return;
+    raskNamespacePollStarted = Date.now();
+    raskNamespacePollHandle = setInterval(() => {
+        if (pendingScopedInvokes.length === 0
+            || Date.now() - raskNamespacePollStarted > RASK_NAMESPACE_POLL_TIMEOUT_MS) {
+            // Time's up: drain whatever's left through beginInvokeJS — the missing-namespace
+            // calls will surface their original "Could not find" JSException, which the
+            // component's ErrorBoundary catches. Better than hanging forever.
+            clearInterval(raskNamespacePollHandle);
+            raskNamespacePollHandle = 0;
+            const drained = pendingScopedInvokes;
+            pendingScopedInvokes = [];
+            for (let i = 0; i < drained.length; i++) {
+                const c = drained[i];
+                dispatchUnparked(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
+            }
+            return;
+        }
+        maybeDrainPendingInvokes();
+    }, RASK_NAMESPACE_POLL_INTERVAL_MS);
 }
 
 // Read once from <base href> (or the page URL if no <base> is set) so the
@@ -707,17 +762,24 @@ function endInvokeJSResult(taskId, success, result, error) {
 }
 
 export function beginInvokeJS(taskId, identifier, argsJson, resultType, targetInstanceId) {
-    // Pre-bundle gate: a Rask.* identifier resolved against window before
-    // applyScopedJs has executed the bundle returns null, which would surface
-    // as a "Could not find ..." JSException on the awaiting Task. Park the
-    // call until BOTH (a) the scoped-JS bundle has executed AND (b) every
-    // Head-declared external <script>/<link> has loaded, then replay it.
+    // Two gates for Rask.* identifiers:
+    //  1. headAssetsReady() — user-Head-declared CDN <script>/<link> deps still loading.
+    //  2. raskNamespaceReady() — the component's per-component script
+    //     (/_rask/a/{hash}.js, served by the host endpoint) hasn't executed yet, so
+    //     window.Rask.{TypeName} doesn't exist. First-render OnRenderedAsync races this
+    //     load; the parked invoke wakes up via the polling tick when the script's IIFE
+    //     populates window.Rask.{TypeName}.
     if (typeof identifier === "string"
         && identifier.indexOf("Rask.") === 0
-        && (!scopedJsReady || !headAssetsReady())) {
+        && (!scopedJsReady || !headAssetsReady() || !raskNamespaceReady(identifier))) {
         pendingScopedInvokes.push({taskId, identifier, argsJson, resultType, targetInstanceId});
+        ensureRaskNamespacePoll();
         return;
     }
+    dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstanceId);
+}
+
+function dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstanceId) {
     Promise.resolve().then(() => {
         let args;
         try {
