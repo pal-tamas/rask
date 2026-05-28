@@ -41,6 +41,35 @@ public static class RaskWasmEndpointExtensions
     ///         fallback with a "no bundle configured" message.
     ///     </para>
     /// </summary>
+    /// <summary>
+    ///     Generic form of <see cref="UseRask(IEndpointRouteBuilder, string?)" /> that
+    ///     additionally touches <typeparamref name="TApp" /> so the runtime loads the
+    ///     consumer's component assembly. The assembly's source-generator-emitted
+    ///     <c>__RaskScopedCssRegistration</c> / <c>__RaskScopedJsRegistration</c> classes
+    ///     carry <c>[ModuleInitializer]</c>, which only fires on assembly load. Without
+    ///     that touch the host process never realises the assembly exists (only
+    ///     <c>Rask.Wasm.Hosting</c> is referenced from <see cref="Program" /> in a typical
+    ///     WASM-host project), <see cref="Rask.Core.ScopedAssets.ScopedAssetRegistry" />
+    ///     stays empty, and every browser-side <c>GET /_rask/a/{hash}.{ext}</c> returns 404
+    ///     because the hashes the browser computed (from the in-WASM-runtime registry) are
+    ///     unknown on the host side.
+    ///     <para>
+    ///         Consumers call this from <c>Program.cs</c> as
+    ///         <c>app.UseRask&lt;App&gt;()</c>, mirroring the long-standing
+    ///         <c>Rask.Server</c> shape.
+    ///     </para>
+    /// </summary>
+    public static IEndpointRouteBuilder UseRask<TApp>(
+        this IEndpointRouteBuilder endpoints,
+        string? bundlePath = null)
+    {
+        // typeof(TApp) is the load trigger — references the type token, which forces the
+        // runtime to resolve and JIT-init the defining assembly, which runs every
+        // [ModuleInitializer] in that assembly. Discarded to make the intent obvious.
+        _ = typeof(TApp);
+        return UseRask(endpoints, bundlePath);
+    }
+
     public static IEndpointRouteBuilder UseRask(
         this IEndpointRouteBuilder endpoints,
         string? bundlePath = null)
