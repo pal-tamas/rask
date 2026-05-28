@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Metadata;
+using Rask.Core.ScopedAssets;
 using Rask.Core.ScopedJs;
 
 [assembly: MetadataUpdateHandler(typeof(ScopedJsHotReloadHandler))]
@@ -27,7 +28,9 @@ internal static class ScopedJsHotReloadHandler
             return;
         }
 
+        // Per-kind invalidate — clears JS bucket of both registries; CSS state untouched.
         ScopedJsRegistry.InvalidateAll();
+        ScopedAssetRegistry.InvalidateAllJs();
 
         foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
         {

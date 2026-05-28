@@ -1,0 +1,18 @@
+.basic-card {
+    background: linear-gradient(135deg, #ffe6f0 0%, #fff5e6 100%);
+    border: 1px solid #f8d4e0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+}
+
+.basic-card p {
+    margin: 0;
+    color: #5b2a3c;
+}
+
+.basic-card code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 0 0.3rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+}

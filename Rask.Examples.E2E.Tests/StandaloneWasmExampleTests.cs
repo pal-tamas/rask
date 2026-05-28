@@ -41,6 +41,7 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
         ["/validation"] = "Validation",
         ["/nested-forms"] = "Complex models",
         ["/scoped-css"] = "Scoped CSS",
+        ["/asset-loading"] = "Asset loading",
         ["/http"] = "HttpClient + DI",
         ["/upload"] = "File upload",
         ["/download"] = "File download",

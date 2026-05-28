@@ -1,0 +1,9 @@
+.twin-tag {
+    display: inline-block;
+    background: #d6f3d6;
+    color: #1f5e1f;
+    border: 1px solid #8fcf8f;
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
+}
