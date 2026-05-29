@@ -19,6 +19,9 @@
 - [Install](#install)
 - [Quick Start — Server](#quick-start--server)
 - [Quick Start — WASM](#quick-start--wasm)
+- [Troubleshooting](#troubleshooting)
+- [Sub-path hosting & side-by-side apps](#sub-path-hosting--side-by-side-apps)
+- [Examples](#examples)
 - [Core concepts](#core-concepts)
     - [Components](#components)
     - [Interactivity](#interactivity)
@@ -274,6 +277,76 @@ layer.
 
 `app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation,
 and a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alongside it.
+
+## Troubleshooting
+
+First-run snags and their fixes:
+
+- **`net10.0` / `net10.0-browser` won't restore, or WASM publish fails.** Rask requires the **.NET 10 SDK**. Check
+  with `dotnet --version` (≥ `10.0`). WASM projects (`rask-wasm`, the `.Wasm` half of `rask-wasm-hosted`) also need the
+  WebAssembly tooling — install it once with `dotnet workload install wasm-tools`.
+- **The IDE flags `HomePage()`, `Counter()`, `NavLink(...)`, or `Route<T>(...)` as undefined.** These are
+  **source-generated** — the factory for every `Component`, the URL builder for every `[Route]`. They don't exist until
+  the generator runs, which happens on build. Run `dotnet build` once, then reload the solution / restart the language
+  server so IntelliSense picks up the generated symbols.
+- **A scoped `.css` / `.js` file isn't taking effect.** The sibling file must sit in the same folder as its component
+  and share the base name (`Card.cs` ↔ `Card.css`). A `.css`/`.js` with no matching component, or one matching several,
+  is a build error: `RASK015`/`RASK016` for CSS, `RASK017`/`RASK018` for JS. Two components with scoped JS that share a
+  simple type name warn with `RASK020` (they'd collide at `window.Rask[Name]`). Check the build output.
+- **Blank page or 404s on `/_rask/...` assets behind a reverse proxy or sub-path.** The app is almost certainly running
+  under a URL prefix the framework doesn't know about — set `PathBase`. See *Sub-path hosting & side-by-side apps* below.
+
+## Sub-path hosting & side-by-side apps
+
+Every Rask hosting model accepts a per-app URL prefix (`PathBase`). Set it once and every framework-emitted URL —
+head asset `<link>`/`<script>` tags, the runtime `<script>` src, WebSocket connect, upload/download/auth endpoints,
+history `pushState` — is scoped under that prefix. The opposite direction is symmetric: paths going from the client
+back to .NET are stripped of the prefix so user-space route handlers stay unprefixed.
+
+Use cases:
+
+- **Reverse-proxy sub-path** — run two `Rask.Server` apps behind one origin: `app.UseRask<AppA>(pathBase: "/appA")`
+  and `app.UseRask<AppB>(pathBase: "/appB")` (typically separate processes).
+- **Two WASM AppBundles in one host** — `app.UseRask<AppA>(pathBase: "/appA")` and
+  `app.UseRask<AppB>(pathBase: "/appB")` on a single `Rask.Wasm.Hosting` instance.
+- **GitHub Pages sub-path** — publish with `/p:RaskPathBase=/<repo>`. The framework rewrites the AppBundle's
+  `<base href>` at publish time; the WASM runtime auto-detects the prefix from `document.baseURI` on first paint and
+  every scoped-asset URL resolves under `/<repo>/_rask/a/{hash}.{ext}`.
+
+```csharp
+// Server
+app.UseRask<App>(pathBase: "/myapp");
+
+// Wasm hosting (ASP.NET host serving a published AppBundle)
+app.UseRask<App>(pathBase: "/myapp");
+// or the non-generic form: app.UseRask(pathBase: "/myapp")
+
+// WASM standalone — auto-detected from <base href>; override only if needed:
+var host = WasmHostBuilder.CreateDefault(o => o.PathBase = "/myapp");
+```
+
+```bash
+# WASM publish for GH Pages / sub-path deploy:
+dotnet publish MyWasmApp -c Release /p:RaskPathBase=/myapp
+```
+
+Normalization: `"myapp"`, `"/myapp"`, and `"/myapp/"` all become `/myapp` internally. `""` and `"/"` mean root (the
+default — unchanged behaviour). The CI workflow shipping `Rask.Example.Wasm` to GitHub Pages
+(`.github/workflows/pages.yml`) uses this property — copy that pattern for your own sub-path deploys.
+
+## Examples
+
+Beyond the quick starts, the repo ships runnable showcase apps that exercise every feature end-to-end:
+
+- **`Rask.Example.Server`** / **`Rask.Example.Wasm`** / **`Rask.Example.Wasm.Host`** — the same showcase under each
+  host model. Run one with `dotnet run --project Rask.Example.Server` (or `Rask.Example.Wasm.Host`) and open the printed
+  URL.
+- **`Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation, nested-form
+  binding, routing, JS interop, virtualization (a 10K-row table), and file upload/download. These are the canonical
+  references cited throughout *Core concepts* below.
+- **Live demo** — every push to `main` publishes `Rask.Example.Wasm` to GitHub Pages via
+  [`.github/workflows/pages.yml`](.github/workflows/pages.yml), so you can click through a full multi-page Rask app in
+  the browser before cloning anything.
 
 ## Core concepts
 
@@ -681,8 +754,8 @@ a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-r
 ### Scoped CSS
 
 Drop a sibling `{Component}.css` file next to `{Component}.cs` and the source generator pairs them at compile time —
-selectors are auto-scoped to that component type, served from `/_rask/scoped.css`, and hot-reloaded under
-`dotnet watch`.
+selectors are auto-scoped to that component type, delivered per-component over a content-addressed HTTP endpoint, and
+hot-reloaded under `dotnet watch`.
 
 ```csharp
 // Card.cs
@@ -705,9 +778,13 @@ rewrites each to `.box[data-{scopeId}]` so they never collide. An orphan `.css` 
 `RASK015`; two `.css` files claiming the same component raise `RASK016`; opt the whole project out with
 `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>` in the `.csproj`.
 
-The bundle is delivered automatically — on the server as a `<link rel="stylesheet" href="/_rask/scoped.css?v=…">`
-inside `<head>`, on WASM through the page shell's `<style id="rask-scoped">` slot. No call site or placement is
-required; the framework-managed `<head>` (see *Page head contributions* above) splices it in for you.
+Delivery is **per-component and content-addressed**, identical on Server and WASM. The framework auto-emits one
+`<link rel="stylesheet" href="/_rask/a/{hash}.css" data-rask-key="rsk-css-{hash}">` per mounted component type that has
+a registered stylesheet, spliced into the framework-managed `<head>` (see *Page head contributions* above) — no call
+site or placement required. Each URL is a 12-hex SHA-256 of the rewritten CSS, served with
+`Cache-Control: public, max-age=31536000, immutable` + an `ETag`, so two components whose rewritten CSS is byte-equal
+share one cached file. Standalone/static-file WASM hosts (no in-process endpoint) get the same files baked to
+`{AppBundle}/_rask/a/{hash}.css` at publish, so a plain static server serves exactly what the endpoint would.
 
 **Targeting shell tags** — selectors like `body`, `html`, `button` don't carry `data-{scopeId}` (those tags are
 intentionally excluded from stamping), so a sibling rule like `body { ... }` would never match. Wrap the selector in
@@ -727,9 +804,12 @@ The wrapper is stripped at compile time and the rule emits exactly the inner sel
 ### Scoped JS
 
 Drop a sibling `{Component}.js` file next to `{Component}.cs` to colocate behavior with markup. The file exports any
-number of named functions; the framework bundles them, ships the bundle (server: `/_rask/scoped.js?v={hash}`; WASM:
-inline), and wraps each file as `window.Rask["{TypeName}"] = (function () { /* exports */ return { … }; })();` — so
-each `export function rendered(...) { ... }` becomes `window.Rask.{TypeName}.rendered`.
+number of named functions; the framework wraps each file as
+`window.Rask["{TypeName}"] = (function () { /* exports */ return { … }; })();` — so each `export function rendered(...) { ... }`
+becomes `window.Rask.{TypeName}.rendered`. Delivery mirrors scoped CSS: per-component and content-addressed, identical
+on Server and WASM. The framework auto-emits one `<script src="/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}">`
+per mounted component type with a registered script. `defer` means scoped JS runs after parse, so any CDN scripts you
+load earlier in `<head>` (without `defer`) initialise first.
 
 Dispatch goes through the standard `Microsoft.JSInterop.IJSRuntime`. Inject it via constructor and call
 `InvokeVoidAsync("Rask.{TypeName}.{method}", args...)` from a lifecycle hook (typically `OnRenderedAsync`). The
