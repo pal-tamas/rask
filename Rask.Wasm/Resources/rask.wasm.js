@@ -40,6 +40,12 @@ const pendingHeadAssets = new Set();
 const trackedHeadAssets = new WeakSet();
 const failedHeadAssets = new Set();
 const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
+// Scoped /_rask/a/{hash}.js scripts are same-origin and effectively always fire a
+// load/error event, so they only need a hang-backstop, not the short user-CDN
+// contract. The window must comfortably exceed how long a cold scoped-JS load can
+// lag behind the first-render Rask.* invoke on a constrained runner — otherwise the
+// gate gives up and force-faults the call into "Could not find ... on target".
+const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
 
 function isAssetAlreadyLoaded(url) {
     if (!url || !window.performance || !performance.getEntriesByName) return false;
@@ -53,15 +59,19 @@ function isAssetAlreadyLoaded(url) {
 function trackHeadAsset(el) {
     if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
     // Per-component scoped tags carry data-rask-key with the framework-reserved
-    // "rsk-" prefix. They're served from /_rask/a/{hash}.{ext} with long-lived
-    // immutable caching — load is essentially synchronous on warm cache and the
-    // user-facing Rask.* invoke deferral logic doesn't need to track them.
+    // "rsk-" prefix, served from /_rask/a/{hash}.{ext}. Scoped CSS (<link rsk-css->)
+    // never defines a JS global, so it stays out of the invoke gate. Scoped JS
+    // (<script rsk-js->) DOES define window.Rask.{Type}; it must be tracked so a
+    // first-render Rask.* invoke waits for the script's actual load event rather
+    // than racing a fixed poll timeout — on a constrained runner the cold scoped-JS
+    // load can lag well past that window, which previously force-faulted the call.
     const key = el.getAttribute("data-rask-key");
-    if (key && key.indexOf("rsk-") === 0) return;
+    const isScoped = !!(key && key.indexOf("rsk-") === 0);
     let url;
     if (el.tagName === "SCRIPT" && el.src) url = el.src;
     else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
     else return;
+    if (isScoped && el.tagName !== "SCRIPT") return;
     trackedHeadAssets.add(el);
     if (isAssetAlreadyLoaded(url)) return;
     pendingHeadAssets.add(el);
@@ -86,8 +96,10 @@ function trackHeadAsset(el) {
     // Safety: the load/error event may have fired between insertion and our
     // listener attach (cache hit). The performance.getEntriesByName check
     // covers most cases; the timeout covers everything else so a missed
-    // event doesn't hold Rask.* invokes forever.
-    setTimeout(() => finish("timeout"), HEAD_ASSET_LOAD_TIMEOUT_MS);
+    // event doesn't hold Rask.* invokes forever. Scoped assets get a generous
+    // hang-backstop (a slow same-origin load is legitimate); user CDN assets keep
+    // the shorter contract.
+    setTimeout(() => finish("timeout"), isScoped ? SCOPED_ASSET_LOAD_TIMEOUT_MS : HEAD_ASSET_LOAD_TIMEOUT_MS);
 }
 
 function scanHeadAssets() {
@@ -146,8 +158,14 @@ function ensureRaskNamespacePoll() {
     if (raskNamespacePollHandle !== 0) return;
     raskNamespacePollStarted = Date.now();
     raskNamespacePollHandle = setInterval(() => {
-        if (pendingScopedInvokes.length === 0
-            || Date.now() - raskNamespacePollStarted > RASK_NAMESPACE_POLL_TIMEOUT_MS) {
+        const timedOut = Date.now() - raskNamespacePollStarted > RASK_NAMESPACE_POLL_TIMEOUT_MS;
+        // Force-dispatch only once there's nothing left to wait for: the queue drained,
+        // OR the poll timed out AND every tracked head/scoped asset has reached a
+        // terminal state. The headAssetsReady() guard is what keeps a still-loading
+        // scoped /_rask/a/{hash}.js from being faulted prematurely on a slow runner —
+        // its load event drains the queue normally; a genuinely missing/errored
+        // namespace still surfaces "Could not find" once its script terminates.
+        if (pendingScopedInvokes.length === 0 || (timedOut && headAssetsReady())) {
             // Time's up: drain whatever's left through beginInvokeJS — the missing-namespace
             // calls will surface their original "Could not find" JSException, which the
             // component's ErrorBoundary catches. Better than hanging forever.
@@ -446,6 +464,17 @@ function applyDiff(ops, names) {
                 if (!parent) break;
                 const tpl = document.createElement("template");
                 tpl.innerHTML = insertHtml;
+                // Scripts parsed via innerHTML carry the "already started" flag and will
+                // NOT execute when inserted into the live document. Rebuild them via
+                // reviveScript so a scoped <script src="/_rask/a/{hash}.js"> (or a user
+                // Head <script>) delivered through a keyed InsertSubtree diff actually
+                // runs — otherwise its window.Rask.{Type}/global never appears. Mirrors
+                // the full-HTML morph path, which already revives inserted scripts.
+                const insertScripts = tpl.content.querySelectorAll("script");
+                for (let si = 0; si < insertScripts.length; si++) {
+                    const oldScript = insertScripts[si];
+                    oldScript.parentNode.replaceChild(reviveScript(oldScript), oldScript);
+                }
                 const refNode = parent.childNodes[slot] || null;
                 while (tpl.content.firstChild) parent.insertBefore(tpl.content.firstChild, refNode);
                 break;
@@ -496,6 +525,12 @@ function handle(reply) {
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
         applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
         applyHistory(reply.history);
+        // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
+        // (keyed InsertSubtree). Track them so their load events feed the Rask.* invoke
+        // gate, then drain anything now unblocked — the full-HTML morph path (applyDom)
+        // does the same after morph().
+        scanHeadAssets();
+        maybeDrainPendingInvokes();
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         return;
     }
