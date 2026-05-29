@@ -35,7 +35,13 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Publish Rask.Example.Wasm
-        run: dotnet publish Rask.Example.Wasm -c Release -o publish
+        # /p:RaskPathBase=/<repo> bakes the GH-Pages sub-path into the AppBundle's
+        # index.html (<base href="/<repo>/">) at publish time. The framework's
+        # build/Rask.Wasm.targets _RaskRewriteBaseHref target performs the rewrite
+        # so the runtime's WasmHostBuilder.CreateDefault auto-detect picks up the
+        # prefix from document.baseURI on first paint and emits every scoped-asset
+        # <link>/<script> under /<repo>/_rask/a/{hash}.{ext}.
+        run: dotnet publish Rask.Example.Wasm -c Release -o publish /p:RaskPathBase=/${{ github.event.repository.name }}
 
       - name: Resolve bundle directory
         id: bundle
@@ -46,15 +52,9 @@ jobs:
             find Rask.Example.Wasm/bin -maxdepth 5 -type d
             exit 1
           fi
-          echo "dir=$BUNDLE" >> "$GITHUB_OUTPUT"
-
-      - name: Rewrite <base href> for sub-path hosting
-        run: |
-          # The bundled index.html ships <base href="/"/>. GitHub Pages serves under
-          # https://<user>.github.io/<repo>/, so we swap the href to /<repo>/.
-          sed -i 's|<base href="/"/>|<base href="/${{ github.event.repository.name }}/"/>|' "${{ steps.bundle.outputs.dir }}/index.html"
           echo "--- index.html (head) ---"
-          head -n 20 "${{ steps.bundle.outputs.dir }}/index.html"
+          head -n 20 "$BUNDLE/index.html"
+          echo "dir=$BUNDLE" >> "$GITHUB_OUTPUT"
 
       - name: Copy index.html to 404.html for SPA fallback
         run: cp "${{ steps.bundle.outputs.dir }}/index.html" "${{ steps.bundle.outputs.dir }}/404.html"

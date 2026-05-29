@@ -942,6 +942,19 @@ public abstract class Component
             html = liveCtx.HeadAssets.ApplyTo(html, liveCtx.Services);
         }
 
+        // Fail-fast backstop for a malformed root: the App must render the full page shell
+        // (Doctype/Html/Head/Body). The RASK021 analyzer catches this at compile time, but
+        // an App built from a referenced library or via a delegated helper can slip past it,
+        // so verify the finalized HTML here too. A throwing App renders the RootErrorBoundary
+        // fallback (which has its own shell); this only fires when the App renders cleanly but
+        // structurally incomplete. Gated on RootErrorBoundary because that's the wrapper both
+        // hosts install around the real app root — direct RenderAsLiveRoot calls (the test
+        // helper path, used to render partial component trees) are intentionally exempt.
+        if (this is RootErrorBoundary)
+        {
+            ValidateRootShell(html);
+        }
+
         // Post-render alive set: union of _children across the whole tree, reachable from root.
         // Components that re-rendered have fresh _children; components that skipped kept theirs.
         CollectAlive(this, Live.AliveNow);
@@ -985,6 +998,40 @@ public abstract class Component
         Live.EditContextsPool = Live.PersistedEditContexts;
         Live.PersistedEditContexts = snapshot;
         return html;
+    }
+
+    // Page-shell tokens a root render must produce, paired with the factory that emits each.
+    // Doctype writes the literal "<!DOCTYPE html>"; the element tags are matched by their
+    // opening prefix so attributes (e.g. <html lang="en">) don't defeat the check.
+    private static readonly (string Token, string Factory)[] _requiredShell =
+    {
+        ("<!DOCTYPE html>", "Doctype()"),
+        ("<html", "Html(...)"),
+        ("<head", "Head()"),
+        ("<body", "Body()")
+    };
+
+    private static void ValidateRootShell(string html)
+    {
+        List<string>? missing = null;
+        foreach (var (token, factory) in _requiredShell)
+        {
+            if (html.IndexOf(token, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                (missing ??= new List<string>()).Add(factory);
+            }
+        }
+
+        if (missing is null)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "The Rask root component must render a full page shell, but the rendered output is "
+            + "missing: " + string.Join(", ", missing) + ". A root render should look like:\n"
+            + "    Fragment()[Doctype(), Html(\"en\")[Head(), Body()[ /* content */ ]]]\n"
+            + "The runtime <script> is injected into <body> automatically — you do not need to add it.");
     }
 
     private static void CollectAlive(Component root, HashSet<Component> seen)

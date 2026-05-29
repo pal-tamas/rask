@@ -126,6 +126,16 @@ internal static partial class JSInterop
     [JSImport("getBaseAddress", ModuleName)]
     public static partial string GetBaseAddress();
 
+    /// <summary>
+    ///     Browser sub-path prefix derived from <c>&lt;base href&gt;</c>. Returns the
+    ///     directory portion (e.g. <c>"/Rask/"</c> when hosted at <c>/Rask/index.html</c>
+    ///     or <c>"/"</c> at the origin root). <see cref="WasmHostBuilder.CreateDefault" />
+    ///     uses this to seed <see cref="LiveOptions.PathBase" /> so head-emitted asset
+    ///     URLs honour the deployment sub-path without explicit configuration.
+    /// </summary>
+    [JSImport("getBasePath", ModuleName)]
+    public static partial string GetBasePath();
+
     [JSImport("pushHistory", ModuleName)]
     public static partial void PushHistory(string url, bool replace);
 
@@ -174,6 +184,8 @@ internal static partial class JSInterop
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
     public static void PushHistory(string url, bool replace) { }
+
+    public static string GetBasePath() => "/";
 
     public static Task<byte[]> ReadFileChunkAsync(string @ref, int offset, int length) =>
         Task.FromResult(Array.Empty<byte>());

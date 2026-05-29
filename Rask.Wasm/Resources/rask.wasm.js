@@ -169,7 +169,7 @@ function ensureRaskNamespacePoll() {
 // runtime can host under a sub-path like /Rask/ on GitHub Pages without the
 // .NET side ever seeing the prefix. Resolves to the directory portion so a
 // page URL like /index.html yields "/" (not "/index.html/").
-function getBasePath() {
+export function getBasePath() {
     if (basePath !== null) return basePath;
     const p = new URL(document.baseURI).pathname;
     const last = p.lastIndexOf("/");

@@ -29,11 +29,16 @@ internal sealed class RaskTestHost : IDisposable
     {
         Http.Dispose();
         _app.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        // Reset the static PathBase so a pathBase-configured host doesn't leak
+        // into subsequent tests in the same AppDomain. Cheap; matches the
+        // existing Diff-mode reset convention.
+        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
     }
 
     public static RaskTestHost Create<TApp>(
         Action<IServiceCollection>? configureServices = null,
-        Action<IApplicationBuilder>? configureMiddleware = null)
+        Action<IApplicationBuilder>? configureMiddleware = null,
+        string pathBase = "")
         where TApp : Component
     {
         var builder = WebApplication.CreateBuilder();
@@ -46,7 +51,7 @@ internal sealed class RaskTestHost : IDisposable
         app.UseRouting();
         app.UseWebSockets();
         configureMiddleware?.Invoke(app);
-        app.UseRask<TApp>();
+        app.UseRask<TApp>(pathBase: pathBase);
 
         app.StartAsync().GetAwaiter().GetResult();
 

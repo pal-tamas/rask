@@ -41,17 +41,67 @@ public enum LiveDiffMode
 public sealed class RaskLiveOptions
 {
     public LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
+
+    /// <summary>
+    ///     Per-app URL prefix. Empty (default) keeps every framework URL at the
+    ///     origin root. A non-empty value like <c>"/appA"</c> scopes every emitted
+    ///     framework URL (head asset links, runtime script src, WS connect, upload /
+    ///     download / auth endpoints) AND every server-side endpoint registration
+    ///     under that prefix, so two Rask apps can live side-by-side on one origin.
+    ///     Normalized at assignment to leading slash + no trailing slash: <c>"/"</c>
+    ///     and <c>""</c> collapse to <c>""</c>; <c>"appA"</c> and <c>"/appA/"</c>
+    ///     both become <c>"/appA"</c>.
+    /// </summary>
+    public string PathBase
+    {
+        get => _pathBase;
+        set => _pathBase = RaskPath.Normalize(value);
+    }
+    private string _pathBase = string.Empty;
 }
 
 /// <summary>
-///     Static accessor for the active diff-mode setting. Set by
-///     <c>AddRask()</c> from the configured <see cref="RaskLiveOptions" />; the
-///     live-session runtime (server + WASM) reads from here on every render so
+///     Static accessor for the active live options. Set by <c>AddRask()</c> /
+///     <c>UseRask&lt;TApp&gt;()</c> from the configured <see cref="RaskLiveOptions" />;
+///     the live-session runtime (server + WASM) reads from here on every render so
 ///     the option flow stays trivially fast — no DI lookup in the hot path. Hosts
 ///     that don't go through <c>AddRask()</c> (some standalone WASM bootstraps)
-///     can also write this property directly.
+///     can also write these properties directly.
 /// </summary>
 public static class LiveOptions
 {
     public static LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
+
+    /// <summary>
+    ///     Active URL prefix (see <see cref="RaskLiveOptions.PathBase" />).
+    ///     Always normalized: <c>""</c> or <c>"/segment"</c> (no trailing slash).
+    /// </summary>
+    public static string PathBase
+    {
+        get => _pathBase;
+        set => _pathBase = RaskPath.Normalize(value);
+    }
+    private static string _pathBase = string.Empty;
+}
+
+/// <summary>
+///     Helpers for the <see cref="RaskLiveOptions.PathBase" /> string. Normalize
+///     to <c>""</c> (root, default) or <c>"/segment"</c> (leading slash, no
+///     trailing slash). Multi-segment values like <c>"/a/b"</c> are preserved.
+/// </summary>
+public static class RaskPath
+{
+    /// <summary>
+    ///     Returns <c>""</c> if the input is null/empty/"/"/whitespace; otherwise
+    ///     returns the input with leading slash ensured and trailing slash stripped.
+    /// </summary>
+    public static string Normalize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var s = value.Trim();
+        if (s == "/") return string.Empty;
+        if (s[0] != '/') s = "/" + s;
+        while (s.Length > 1 && s[^1] == '/') s = s[..^1];
+        return s;
+    }
 }

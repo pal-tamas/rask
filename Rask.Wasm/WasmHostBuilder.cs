@@ -61,6 +61,14 @@ public sealed class WasmHostBuilder
             var opts = new RaskLiveOptions();
             configureLive(opts);
             LiveOptions.DiffMode = opts.DiffMode;
+            // Only propagate a non-empty user-supplied PathBase; an explicit
+            // override should win over the auto-detect that RunAsync performs
+            // later. An empty value here means "I didn't set one — auto-detect
+            // from <base href> at boot."
+            if (opts.PathBase.Length > 0)
+            {
+                LiveOptions.PathBase = opts.PathBase;
+            }
         }
         // No configure → leave LiveOptions.DiffMode at whatever the framework default
         // is (LiveDiffMode.Auto). Don't write to it here: a test or host that pre-set
@@ -75,6 +83,17 @@ public sealed class WasmHostBuilder
         Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
         await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
         Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
+
+        // Auto-detect the app's sub-path from <base href> so head-emitted asset
+        // URLs (e.g. /Rask/_rask/a/{hash}.css for a GH Pages deploy at /Rask/)
+        // resolve correctly. Skipped if the user already configured PathBase
+        // explicitly in CreateDefault(o => o.PathBase = ...) — the static
+        // accessor is non-empty in that case.
+        if (LiveOptions.PathBase.Length == 0)
+        {
+            LiveOptions.PathBase = RaskPath.Normalize(JSInterop.GetBasePath());
+            Console.WriteLine($"[Rask.Wasm] auto-detected PathBase='{LiveOptions.PathBase}'");
+        }
 
         var provider = Services.BuildServiceProvider();
 

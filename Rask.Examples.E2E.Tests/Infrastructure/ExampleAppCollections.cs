@@ -20,3 +20,10 @@ public sealed class StandaloneWasmExampleCollection
 {
     public const string Name = "StandaloneWasmExample";
 }
+
+[CollectionDefinition(Name)]
+public sealed class SubPathWasmExampleCollection
+    : ICollectionFixture<SubPathWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "SubPathWasmExample";
+}

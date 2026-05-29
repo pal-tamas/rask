@@ -178,19 +178,20 @@ public sealed class App : Component
             Html("en")[
                 Head(),                       // framework-managed slot
                 Body()[
-                    Router(),
-                    RaskRuntimeScript()
+                    Router()
                 ]
             ]
         ];
 }
 ```
 
-`<head>` is framework-managed — passing children to `Head()` is a `RASK019` compile error.
-The framework collects every component's `Head` override during render, dedupes
-contributions, resolves singleton tags (`<title>`, `<base>` — last contributor wins),
-and splices the result plus the scoped-CSS link and scoped-JS bundle script inside
-`<head>` automatically.
+Both `<head>` and `<body>` are framework-managed. `<head>` collects every component's `Head`
+override during render, dedupes contributions, resolves singleton tags (`<title>`, `<base>` — last
+contributor wins), and splices the result plus the scoped-CSS link and scoped-JS bundle script in
+automatically — passing children to `Head()` is a `RASK019` compile error. `<body>` gets the live
+runtime `<script>` injected as its last child automatically, so you no longer write
+`RaskRuntimeScript()`. The root must render the full shell (`Doctype`, `Html`, `Head`, `Body`); a
+missing element is flagged at compile time by **RASK021** and fails fast at runtime.
 
 **`HomePage.cs`** — your first route. `Rask.Core.Routing` (for `[Route]`, `[RouteParam]`, `Navigator`, …) is the one
 namespace you still bring in explicitly.

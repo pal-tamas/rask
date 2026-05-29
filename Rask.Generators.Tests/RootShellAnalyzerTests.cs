@@ -1,0 +1,110 @@
+using System.Collections.Immutable;
+using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Rask.Generators.Analyzers;
+
+namespace Rask.Generators.Tests;
+
+public class RootShellAnalyzerTests
+{
+    // Minimal stubs whose full metadata names match the real entry points the analyzer keys on
+    // (Rask.Server.RaskEndpointExtensions.UseRask<T>, Rask.Wasm.WasmHostBuilder.RunAsync<T>), so
+    // the tests don't need to reference the host assemblies. The shell factories (Doctype/Html/
+    // Head/Body) are matched by name, so the App declares same-named local helpers.
+    private const string EntryStubs = """
+        using Rask.Core;
+        namespace Rask.Server { public static class RaskEndpointExtensions {
+            public static void UseRask<TApp>(object app) where TApp : Component { } } }
+        namespace Rask.Wasm { public sealed class WasmHostBuilder {
+            public void RunAsync<TApp>() where TApp : Component { } } }
+        """;
+
+    private static string App(string renderBody) => $$"""
+        using Rask.Core;
+        namespace Demo;
+        public sealed class App : Component
+        {
+            private static object Doctype() => null!;
+            private static object Html(string lang) => null!;
+            private static object Head() => null!;
+            private static object Body() => null!;
+            protected override RenderResult Render() { {{renderBody}} return this; }
+        }
+        """;
+
+    [Fact]
+    public async Task UseRask_RootMissingBody_ReportsRask021()
+    {
+        var src = EntryStubs + App("Doctype(); Html(\"en\"); Head();")
+                  + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+
+        var d = Assert.Single(await GetDiagnosticsAsync(src));
+        Assert.Equal("RASK021", d.Id);
+        Assert.Contains("Body()", d.GetMessage());
+        Assert.Contains("App", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task UseRask_FullShell_NoDiagnostic()
+    {
+        var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
+                  + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+
+        Assert.Empty(await GetDiagnosticsAsync(src));
+    }
+
+    [Fact]
+    public async Task RunAsync_WasmEntry_RootMissingShell_ReportsRask021()
+    {
+        var src = EntryStubs + App("Body();")
+                  + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
+
+        var d = Assert.Single(await GetDiagnosticsAsync(src));
+        Assert.Equal("RASK021", d.Id);
+        Assert.Contains("Doctype()", d.GetMessage());
+        Assert.Contains("Html()", d.GetMessage());
+        Assert.Contains("Head()", d.GetMessage());
+    }
+
+    [Fact]
+    public async Task UnrelatedGenericCall_NoDiagnostic()
+    {
+        // A generic method named UseRask but NOT on the Rask entry type must be ignored.
+        var src = App("Doctype();")
+                  + "namespace Demo { static class Other { public static void UseRask<T>() { } } "
+                  + "class Host { void M() { Other.UseRask<App>(); } } }";
+
+        Assert.Empty(await GetDiagnosticsAsync(src));
+    }
+
+    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            new[] { syntaxTree },
+            BuildReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable));
+
+        var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new RootShellAnalyzer());
+        var all = await compilation.WithAnalyzers(analyzers).GetAnalyzerDiagnosticsAsync();
+        return all.Where(d => d.Id == "RASK021").ToImmutableArray();
+    }
+
+    private static ImmutableArray<MetadataReference> BuildReferences()
+    {
+        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        var refs = trustedAssemblies
+            .Select(path => MetadataReference.CreateFromFile(path))
+            .Cast<MetadataReference>()
+            .ToList();
+
+        var raskCore = Assembly.Load("Rask.Core");
+        refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
+        return refs.ToImmutableArray();
+    }
+}
