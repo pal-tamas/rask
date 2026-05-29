@@ -4,9 +4,41 @@
     var root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
+    // Read once from an explicit <base href> element so the runtime can host
+    // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
+    // seeing the prefix. Resolves to the directory portion of the base href.
+    // When no <base> element is present we default to "/" — server-rendered
+    // pages carry no <base>, and document.baseURI would otherwise fall back to
+    // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
+    // base that breaks the WS/asset URLs on every deep route.
+    var basePath = null;
+    function getBasePath() {
+        if (basePath !== null) return basePath;
+        var baseEl = document.querySelector("base[href]");
+        if (!baseEl) {
+            basePath = "/";
+            return basePath;
+        }
+        var p = new URL(baseEl.href, location.href).pathname;
+        var last = p.lastIndexOf("/");
+        basePath = last < 0 ? "/" : p.slice(0, last + 1);
+        return basePath;
+    }
+    function stripBase(pathname) {
+        var b = getBasePath();
+        if (b === "/" || !pathname) return pathname;
+        if (pathname === b.slice(0, -1) || pathname === b) return "/";
+        return pathname.indexOf(b) === 0 ? "/" + pathname.slice(b.length) : pathname;
+    }
+    function prependBase(url) {
+        var b = getBasePath();
+        if (b === "/" || typeof url !== "string" || url.charAt(0) !== "/" || url.indexOf(b) === 0) return url;
+        return b + url.slice(1);
+    }
+
     var sessionId = root.getAttribute("data-rask-root");
     var proto = location.protocol === "https:" ? "wss:" : "ws:";
-    var wsUrl = proto + "//" + location.host + "/rask/ws";
+    var wsUrl = proto + "//" + location.host + prependBase("/rask/ws");
 
     var ws = null;
     var queue = [];
@@ -51,10 +83,11 @@
             if (data.kind === "diff" && Array.isArray(data.ops)) {
                 applyDiff(data.ops, Array.isArray(data.names) ? data.names : null);
                 if (data.history && typeof data.history.url === "string") {
+                    var diffTarget = prependBase(data.history.url);
                     if (data.history.action === "replace") {
-                        history.replaceState({rask: true}, "", data.history.url);
+                        history.replaceState({rask: true}, "", diffTarget);
                     } else {
-                        history.pushState({rask: true}, "", data.history.url);
+                        history.pushState({rask: true}, "", diffTarget);
                     }
                 }
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
@@ -82,10 +115,11 @@
                     scanHeadAssets();
                 }
                 if (data.history && typeof data.history.url === "string") {
+                    var fullTarget = prependBase(data.history.url);
                     if (data.history.action === "replace") {
-                        history.replaceState({rask: true}, "", data.history.url);
+                        history.replaceState({rask: true}, "", fullTarget);
                     } else {
-                        history.pushState({rask: true}, "", data.history.url);
+                        history.pushState({rask: true}, "", fullTarget);
                     }
                 }
                 // Scoped CSS/JS arrives in the rendered HTML as
@@ -359,7 +393,7 @@
 
     function redeemAuthTicket(auth) {
         suppressEvents = true;
-        fetch("/_rask/auth/redeem", {
+        fetch(prependBase("/_rask/auth/redeem"), {
             method: "POST",
             headers: {"content-type": "application/json"},
             body: JSON.stringify({ticket: auth.ticket, session: sessionId}),
@@ -400,12 +434,12 @@
         if (url.origin !== location.origin) return;
         e.preventDefault();
         flushInputsNow();
-        send({type: "navigate", path: url.pathname, query: url.search});
+        send({type: "navigate", path: stripBase(url.pathname), query: url.search});
     });
 
     window.addEventListener("popstate", function () {
         flushInputsNow();
-        send({type: "navigate", path: location.pathname, query: location.search, replace: true});
+        send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
     });
 
     document.addEventListener("click", function (e) {
@@ -501,7 +535,7 @@
             fd.append("f" + i, files[i], files[i].name);
             fd.append("f" + i + "__lastModified", String(files[i].lastModified || 0));
         }
-        return fetch("/_rask/upload/" + encodeURIComponent(sessionId), {
+        return fetch(prependBase("/_rask/upload/" + encodeURIComponent(sessionId)), {
             method: "POST",
             body: fd,
             credentials: "same-origin"
