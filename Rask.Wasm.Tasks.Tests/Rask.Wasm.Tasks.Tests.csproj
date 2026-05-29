@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.13.9"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
+    <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The task DLL is netstandard2.0; reference it as a real project so the test
+      runner picks up rebuilds. Rask.Example.Shared brings in a real assembly
+      with __RaskScopedCssRegistration / __RaskScopedJsRegistration so the
+      end-to-end bake path can be driven against a known fixture without
+      having to hand-build a synthetic registration class via Reflection.Emit.
+    -->
+    <ProjectReference Include="..\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

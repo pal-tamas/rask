@@ -17,12 +17,12 @@ internal static class RaskAssetEndpoint
 {
     private static readonly string[] _methods = ["GET", "HEAD"];
 
-    public static void MapRaskAssets(IEndpointRouteBuilder endpoints)
+    public static void MapRaskAssets(IEndpointRouteBuilder endpoints, string pathBase)
     {
-        endpoints.MapMethods("/_rask/a/{hash}.css", _methods,
+        endpoints.MapMethods(pathBase + "/_rask/a/{hash}.css", _methods,
                 ctx => ServeAsync(ctx, AssetKind.Css))
             .AllowAnonymous();
-        endpoints.MapMethods("/_rask/a/{hash}.js", _methods,
+        endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js", _methods,
                 ctx => ServeAsync(ctx, AssetKind.Js))
             .AllowAnonymous();
     }

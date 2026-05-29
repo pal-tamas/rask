@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask.Server.Files;
@@ -28,7 +29,7 @@ internal sealed class ServerDownloadSink : IDownloadSink
             return false;
         }
 
-        var url = $"/_rask/download/{_pending.SessionId}/{_pending.Token}";
+        var url = $"{LiveOptions.PathBase}/_rask/download/{_pending.SessionId}/{_pending.Token}";
         download = new PendingDownload(_pending.Filename, _pending.ContentType, url, null);
         _pending = null;
         return true;

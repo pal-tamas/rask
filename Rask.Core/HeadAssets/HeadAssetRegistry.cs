@@ -311,8 +311,10 @@ internal sealed class HeadAssetRegistry
                 continue;
             }
 
-            // <link rel="stylesheet" href="/_rask/a/{hash}.css" data-rask-key="rsk-css-{hash}">
-            sb.Append("<link rel=\"stylesheet\" href=\"/_rask/a/");
+            // <link rel="stylesheet" href="{PathBase}/_rask/a/{hash}.css" data-rask-key="rsk-css-{hash}">
+            sb.Append("<link rel=\"stylesheet\" href=\"");
+            sb.Append(LiveOptions.PathBase);
+            sb.Append("/_rask/a/");
             sb.Append(hash);
             sb.Append(".css\" data-rask-key=\"");
             sb.Append(FrameworkAssetKeyPrefix);
@@ -333,8 +335,10 @@ internal sealed class HeadAssetRegistry
                 continue;
             }
 
-            // <script src="/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}"></script>
-            sb.Append("<script src=\"/_rask/a/");
+            // <script src="{PathBase}/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}"></script>
+            sb.Append("<script src=\"");
+            sb.Append(LiveOptions.PathBase);
+            sb.Append("/_rask/a/");
             sb.Append(hash);
             sb.Append(".js\" defer data-rask-key=\"");
             sb.Append(FrameworkAssetKeyPrefix);

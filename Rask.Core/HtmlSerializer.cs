@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Encodings.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Components;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
@@ -173,6 +174,21 @@ internal static class HtmlSerializer
                 if (tagName == "head" && live is not null)
                 {
                     sb.Append(HeadAssetRegistry.Sentinel);
+                }
+
+                // The <body> element is framework-managed for the live runtime <script>:
+                // resolve the host-registered IRaskRuntimeScript and emit its tag as the
+                // last body child, so the user no longer hand-places RaskRuntimeScript().
+                // Serialized inline (not via a post-process sentinel) so the script is
+                // present and byte-stable on EVERY render — server live-updates re-serialize
+                // and re-extract <body> without re-running RenderAsLiveRoot's post-processing,
+                // so a sentinel would drop the script on the first update. Stable bytes also
+                // mean the diff codec never emits ops for it. On WASM no provider is
+                // registered (the runtime boots from the page shell), so nothing is injected.
+                if (tagName == "body" && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime
+                                      && runtime.Render() is { } runtimeScript)
+                {
+                    Serialize(runtimeScript, sb);
                 }
 
                 sb.Append("</").Append(tagName).Append('>');

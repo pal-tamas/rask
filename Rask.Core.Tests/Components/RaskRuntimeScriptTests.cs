@@ -7,8 +7,13 @@ namespace Rask.Core.Tests.Components;
 
 public class RaskRuntimeScriptTests
 {
+    // RaskRuntimeScript is now a deprecated no-op: the runtime <script> is injected
+    // automatically at the end of <body> by HtmlSerializer (see RuntimeScriptInjectionTests).
+    // The component renders nothing regardless of whether a provider is registered, so a
+    // legacy tree that still contains it does not double-emit the script.
+
     [Fact]
-    public void Render_NoProviderRegistered_EmitsEmptyRaw()
+    public void Render_NoProviderRegistered_EmitsEmpty()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var view = new StubComponent(() => RaskRuntimeScript());
@@ -19,33 +24,33 @@ public class RaskRuntimeScriptTests
     }
 
     [Fact]
-    public void Render_ProviderRegistered_DelegatesToProviderRender()
+    public void Render_EvenWithProviderRegistered_EmitsEmpty()
     {
+        // Proves the component no longer delegates to IRaskRuntimeScript — emission moved
+        // to the body-close hook in HtmlSerializer.
         var services = new ServiceCollection();
         services.AddSingleton<IRaskRuntimeScript>(
-            new MockRuntimeScriptProvider(Raw("<script src=\"/x.js\"></script>")));
+            new StubRuntimeScriptProvider(Raw("<script src=\"/x.js\"></script>")));
         var sp = services.BuildServiceProvider();
         var view = new StubComponent(() => RaskRuntimeScript());
 
         var html = view.RenderAsLiveRoot(sp);
 
-        Assert.Equal("<script src=\"/x.js\"></script>", html);
+        Assert.Equal(string.Empty, html);
     }
 
     [Fact]
-    public void Render_NoLiveContext_EmitsEmptyRaw()
+    public void Render_NoLiveContext_EmitsEmpty()
     {
-        // Direct ToHtml() call without a LiveRenderContext exercises the
-        // `LiveRenderContext.Current?.Services` null-conditional branch.
         var html = RaskRuntimeScript().ToHtml();
 
         Assert.Equal(string.Empty, html);
     }
 
-    private sealed class MockRuntimeScriptProvider : IRaskRuntimeScript
+    private sealed class StubRuntimeScriptProvider : IRaskRuntimeScript
     {
         private readonly Component _component;
-        public MockRuntimeScriptProvider(Component component) => _component = component;
+        public StubRuntimeScriptProvider(Component component) => _component = component;
         public Component Render() => _component;
     }
 }

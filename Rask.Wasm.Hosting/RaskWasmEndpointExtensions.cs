@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Rask.Core.Live;
 
 namespace Rask.Wasm.Hosting;
 
@@ -61,26 +62,36 @@ public static class RaskWasmEndpointExtensions
     /// </summary>
     public static IEndpointRouteBuilder UseRask<TApp>(
         this IEndpointRouteBuilder endpoints,
-        string? bundlePath = null)
+        string? bundlePath = null,
+        string pathBase = "")
     {
         // typeof(TApp) is the load trigger — references the type token, which forces the
         // runtime to resolve and JIT-init the defining assembly, which runs every
         // [ModuleInitializer] in that assembly. Discarded to make the intent obvious.
         _ = typeof(TApp);
-        return UseRask(endpoints, bundlePath);
+        return UseRask(endpoints, bundlePath, pathBase);
     }
 
     public static IEndpointRouteBuilder UseRask(
         this IEndpointRouteBuilder endpoints,
-        string? bundlePath = null)
+        string? bundlePath = null,
+        string pathBase = "")
     {
+        // Normalize once and stash on the static accessor so HeadAssetRegistry's URL
+        // emission (and any future server-side URL emission running in this process)
+        // picks up the same prefix. A non-empty value also scopes every endpoint and
+        // static-file mapping below under the prefix so two WASM AppBundles can live
+        // side-by-side in one host process.
+        var pathBaseNormalized = RaskPath.Normalize(pathBase);
+        LiveOptions.PathBase = pathBaseNormalized;
+
         // Per-component scoped asset endpoint. Registered before the static-file middleware
         // so a /_rask/a/{hash}.{ext} URL is served from the in-process ScopedAssetRegistry
         // even if the published bundle happens to contain a same-named file. The shared
         // static registry is populated by module initializers from the referenced WASM
         // assembly (the AppBundle's referenced project) — present as soon as that assembly
         // is loaded into this host process.
-        RaskAssetEndpoint.MapRaskAssets(endpoints);
+        RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized);
 
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
 
@@ -91,11 +102,23 @@ public static class RaskWasmEndpointExtensions
                 : $"bundle not found at {resolved} (run `dotnet publish` on the WASM project)";
             Console.Error.WriteLine($"Rask.Wasm.Hosting: {reason}.");
 
-            endpoints.MapFallback(async ctx =>
+            if (pathBaseNormalized.Length == 0)
             {
-                ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
-            });
+                endpoints.MapFallback(async ctx =>
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
+                });
+            }
+            else
+            {
+                endpoints.MapFallback(pathBaseNormalized.TrimStart('/') + "/{*path:nonfile}",
+                    async ctx =>
+                    {
+                        ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
+                    });
+            }
             return endpoints;
         }
 
@@ -128,12 +151,15 @@ public static class RaskWasmEndpointExtensions
 
         app.UseDefaultFiles(new DefaultFilesOptions
         {
-            FileProvider = fileProvider, DefaultFileNames = new[] { "index.html" }
+            FileProvider = fileProvider,
+            RequestPath = pathBaseNormalized,
+            DefaultFileNames = new[] { "index.html" }
         });
 
         app.UseStaticFiles(new StaticFileOptions
         {
             FileProvider = fileProvider,
+            RequestPath = pathBaseNormalized,
             ServeUnknownFileTypes = true,
             DefaultContentType = "application/octet-stream",
             OnPrepareResponse = ctx =>
@@ -176,12 +202,25 @@ public static class RaskWasmEndpointExtensions
         });
 
         var indexPath = Path.Combine(resolved, "index.html");
-        endpoints.MapFallback(async ctx =>
+        if (pathBaseNormalized.Length == 0)
         {
-            ctx.Response.ContentType = "text/html; charset=utf-8";
-            ctx.Response.Headers.CacheControl = "no-cache";
-            await ctx.Response.SendFileAsync(indexPath);
-        });
+            endpoints.MapFallback(async ctx =>
+            {
+                ctx.Response.ContentType = "text/html; charset=utf-8";
+                ctx.Response.Headers.CacheControl = "no-cache";
+                await ctx.Response.SendFileAsync(indexPath);
+            });
+        }
+        else
+        {
+            endpoints.MapFallback(pathBaseNormalized.TrimStart('/') + "/{*path:nonfile}",
+                async ctx =>
+                {
+                    ctx.Response.ContentType = "text/html; charset=utf-8";
+                    ctx.Response.Headers.CacheControl = "no-cache";
+                    await ctx.Response.SendFileAsync(indexPath);
+                });
+        }
 
         return endpoints;
     }

@@ -86,4 +86,38 @@
     <BakeScopedAssetsTask BundleDir="$(WasmAppDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
   </Target>
 
+  <!--
+    Optional sub-path bake. Set <RaskPathBase> in the consuming csproj (or pass
+    /p:RaskPathBase=/myapp on the command line) to scope the AppBundle under a
+    sub-path. We rewrite the framework's default <base href="/"> in the bundled
+    index.html so:
+      - main.js / _framework/* resolve correctly under the sub-path; and
+      - WasmHostBuilder.CreateDefault's auto-detect (which reads document.baseURI
+        via the rask.wasm.js getBasePath export and writes it to
+        LiveOptions.PathBase) picks up the prefix on first paint, so every head-
+        emitted /_rask/a/{hash}.{ext} URL ends up as /myapp/_rask/a/{hash}.{ext}.
+    No-op when RaskPathBase is empty (the default), so root-served deploys keep
+    today's <base href="/"> intact.
+
+    Normalization: "myapp" / "/myapp" / "/myapp/" all become <base href="/myapp/">.
+    "/" / "" stay as "/" (no rewrite). Matches RaskPath.Normalize in Rask.Core
+    plus a trailing slash (HTML <base> requires it for relative-URL resolution).
+  -->
+  <Target Name="_RaskRewriteBaseHref"
+          AfterTargets="_RaskBakeScopedAssets"
+          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND '$(RaskPathBase)' != '' AND '$(RaskPathBase)' != '/' AND Exists('$(WasmAppDir)index.html') ">
+    <PropertyGroup>
+      <_RaskNormalizedBase>$(RaskPathBase.TrimEnd('/'))</_RaskNormalizedBase>
+      <_RaskNormalizedBase Condition=" !$(_RaskNormalizedBase.StartsWith('/')) ">/$(_RaskNormalizedBase)</_RaskNormalizedBase>
+      <_RaskIndexHtml>$([System.IO.File]::ReadAllText('$(WasmAppDir)index.html'))</_RaskIndexHtml>
+      <_RaskIndexHtml>$(_RaskIndexHtml.Replace('&lt;base href=&quot;/&quot;/&gt;', '&lt;base href=&quot;$(_RaskNormalizedBase)/&quot;/&gt;'))</_RaskIndexHtml>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(WasmAppDir)index.html"
+                      Lines="$(_RaskIndexHtml)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"/>
+    <Message Importance="High"
+             Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in $(WasmAppDir)index.html"/>
+  </Target>
+
 </Project>

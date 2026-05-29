@@ -27,8 +27,7 @@ public sealed class App : Component
                         NavLink(Weather())["Weather"]
                     ],
                     Hr(),
-                    Router(),
-                    RaskRuntimeScript()
+                    Router()
                 ]
             ]
         ];

@@ -63,6 +63,11 @@ public static class RaskEndpointExtensions
             var liveOptions = new Rask.Core.Live.RaskLiveOptions();
             configure(liveOptions);
             Rask.Core.Live.LiveOptions.DiffMode = liveOptions.DiffMode;
+            // PathBase normalization happens on assignment to RaskLiveOptions,
+            // and a second normalize on the static accessor is a cheap no-op.
+            // UseRask<TApp>(pathBase: ...) can still override this if the user
+            // prefers to set the prefix at endpoint-registration time.
+            Rask.Core.Live.LiveOptions.PathBase = liveOptions.PathBase;
         }
 
         services.AddSingleton<LiveSessionStore>();
@@ -111,24 +116,43 @@ public static class RaskEndpointExtensions
 
     public static WebApplication UseRask<TApp>(
         this WebApplication app,
-        string pattern = "/{**path}")
+        string pattern = "/{**path}",
+        string pathBase = "")
         where TApp : Component
     {
         app.UseWebSockets();
-        ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern);
+        ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
         return app;
     }
 
     public static IEndpointRouteBuilder UseRask<TApp>(
         this IEndpointRouteBuilder endpoints,
-        string pattern = "/{**path}")
+        string pattern = "/{**path}",
+        string pathBase = "")
         where TApp : Component
     {
-        EnsureRuntimeMapped(endpoints);
+        // Normalize once and stash on the static accessor so all downstream URL
+        // emission (head asset links, runtime <script> src, download URLs) reads
+        // the same prefix. A non-empty value also scopes every Map call below
+        // under the prefix so two Rask servers can live side-by-side on one
+        // origin behind a reverse proxy.
+        var pathBaseNormalized = RaskPath.Normalize(pathBase);
+        LiveOptions.PathBase = pathBaseNormalized;
 
-        endpoints.MapGet(pattern, async (HttpContext httpContext, LiveSessionStore store) =>
+        EnsureRuntimeMapped(endpoints, pathBaseNormalized);
+
+        // Scope the catch-all SPA route under the prefix when set. The pattern
+        // default ("/{**path}") is interpreted relative to the prefix root, so
+        // a request to /sub/users/42 matches as Path.Value="/sub/users/42";
+        // the handler strips the prefix before resolving against user routes
+        // (which are registered as "/users/{id}").
+        var scopedPattern = pathBaseNormalized.Length == 0
+            ? pattern
+            : pathBaseNormalized + (pattern.StartsWith('/') ? pattern : "/" + pattern);
+
+        endpoints.MapGet(scopedPattern, async (HttpContext httpContext, LiveSessionStore store) =>
         {
-            var path = httpContext.Request.Path.Value ?? "/";
+            var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
             var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
             if (RouteResolver.TryResolve(path, out var chain))
@@ -180,6 +204,32 @@ public static class RaskEndpointExtensions
         return endpoints;
     }
 
+    // Strip the configured PathBase from a request path so RouteResolver and
+    // RouteState see user-space paths (e.g. "/users/42") rather than mount-
+    // scoped paths (e.g. "/sub/users/42"). Round-trips back into client-side
+    // URLs via rask.js's prependBase() before they reach the History API.
+    private static string StripPathBase(string path, string pathBase)
+    {
+        if (pathBase.Length == 0 || string.IsNullOrEmpty(path))
+        {
+            return string.IsNullOrEmpty(path) ? "/" : path;
+        }
+
+        if (path.Length == pathBase.Length && path.Equals(pathBase, StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        if (path.Length > pathBase.Length
+            && path[pathBase.Length] == '/'
+            && path.StartsWith(pathBase, StringComparison.Ordinal))
+        {
+            return path[pathBase.Length..];
+        }
+
+        return path;
+    }
+
     private static Task ChallengeAsync(HttpContext ctx, string? scheme) =>
         scheme is null ? ctx.ChallengeAsync() : ctx.ChallengeAsync(scheme);
 
@@ -202,7 +252,7 @@ public static class RaskEndpointExtensions
         return new QueryCollection(dict);
     }
 
-    private static void EnsureRuntimeMapped(IEndpointRouteBuilder endpoints)
+    private static void EnsureRuntimeMapped(IEndpointRouteBuilder endpoints, string pathBase)
     {
         var marker = endpoints.ServiceProvider.GetRequiredService<RaskLiveMarker>();
         if (marker.RuntimeMapped)
@@ -212,7 +262,7 @@ public static class RaskEndpointExtensions
 
         marker.RuntimeMapped = true;
 
-        endpoints.Map(WebSocketPath,
+        endpoints.Map(pathBase + WebSocketPath,
             async (HttpContext ctx, LiveSessionStore store, IHostApplicationLifetime lifetime) =>
             {
                 if (!ctx.WebSockets.IsWebSocketRequest)
@@ -236,7 +286,7 @@ public static class RaskEndpointExtensions
             });
 
         var script = LoadEmbeddedScript();
-        endpoints.MapGet(RuntimePath, () => Results.Text(script, "text/javascript; charset=utf-8"));
+        endpoints.MapGet(pathBase + RuntimePath, () => Results.Text(script, "text/javascript; charset=utf-8"));
 
         // Per-component content-addressed asset endpoint. URL is immutable (hash is a
         // SHA-256 prefix of the bytes), so `Cache-Control: immutable` is safe and the
@@ -246,24 +296,24 @@ public static class RaskEndpointExtensions
         // methods). Marked `.AllowAnonymous()` so a host with a fallback authorization
         // policy still serves assets — content-addressed URLs carry no PII, and an unknown
         // hash returns 404 instead of leaking the registered set.
-        endpoints.MapMethods("/_rask/a/{hash}.css", _assetMethods,
+        endpoints.MapMethods(pathBase + "/_rask/a/{hash}.css", _assetMethods,
                 static ctx => ServeAssetAsync(ctx, AssetKind.Css))
             .AllowAnonymous();
-        endpoints.MapMethods("/_rask/a/{hash}.js", _assetMethods,
+        endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js", _assetMethods,
                 static ctx => ServeAssetAsync(ctx, AssetKind.Js))
             .AllowAnonymous();
 
-        endpoints.MapPost("/_rask/auth/redeem",
+        endpoints.MapPost(pathBase + "/_rask/auth/redeem",
                 (HttpContext ctx, IAuthTicketStore tickets) => RedeemAuthTicketAsync(ctx, tickets))
             .DisableAntiforgery();
 
-        endpoints.MapPost("/_rask/upload/{sessionId}",
+        endpoints.MapPost(pathBase + "/_rask/upload/{sessionId}",
                 (HttpContext ctx, string sessionId, LiveSessionStore sessionStore,
                         SessionUploadStore uploadStore, RaskUploadOptions options) =>
                     HandleUploadAsync(ctx, sessionId, sessionStore, uploadStore, options))
             .DisableAntiforgery();
 
-        endpoints.MapGet("/_rask/download/{sessionId}/{token}",
+        endpoints.MapGet(pathBase + "/_rask/download/{sessionId}/{token}",
             (HttpContext ctx, string sessionId, string token, SessionDownloadStore downloads) =>
                 HandleDownloadAsync(ctx, sessionId, token, downloads));
 
@@ -1162,7 +1212,7 @@ public static class RaskEndpointExtensions
 
     private sealed class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Components.Script(RuntimePath);
+        public Component Render() => Components.Script(LiveOptions.PathBase + RuntimePath);
     }
 
     internal sealed class RaskLiveMarker

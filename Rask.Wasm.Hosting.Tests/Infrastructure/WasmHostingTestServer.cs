@@ -22,9 +22,15 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
         Http.Dispose();
         await _app.StopAsync();
         await _app.DisposeAsync();
+        // Reset the static PathBase so tests configuring a prefix don't leak into
+        // subsequent tests sharing the AppDomain.
+        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
     }
 
-    public static async Task<WasmHostingTestServer> CreateAsync(string? bundlePath, bool withCompression = false)
+    public static async Task<WasmHostingTestServer> CreateAsync(
+        string? bundlePath,
+        bool withCompression = false,
+        string pathBase = "")
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -36,7 +42,7 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
 
         var app = builder.Build();
         app.UseRouting();
-        app.UseRask(bundlePath);
+        app.UseRask(bundlePath, pathBase: pathBase);
 
         await app.StartAsync();
         return new WasmHostingTestServer(app);

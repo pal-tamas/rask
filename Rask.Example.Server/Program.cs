@@ -42,6 +42,12 @@ app.MapGet("/_diag", (LiveSessionStore store) =>
     });
 });
 
+// To run two Rask servers side-by-side on one origin (behind a reverse proxy),
+// pass a per-app prefix: app.UseRask<App>(pathBase: "/appA"). Every framework
+// endpoint (WS, runtime script, scoped-asset endpoint, upload/download/auth)
+// and every emitted URL (head asset links, history pushState) is scoped under
+// the prefix. The client-side rask.js auto-strips/prepends the prefix via
+// <base href>, so user-space route handlers stay unprefixed.
 app.UseRask<App>();
 
 app.Run();
