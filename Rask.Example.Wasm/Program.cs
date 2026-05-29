@@ -11,5 +11,9 @@ using Rask.Wasm;
 // sub-path deploys (GH Pages, plain static hosts). Override explicitly with
 // WasmHostBuilder.CreateDefault(o => o.PathBase = "/myapp") when needed.
 var host = WasmHostBuilder.CreateDefault();
-host.Services.AddExampleServices();
+// The HTTP demo's HttpClient fetches data/posts-1.json from the AppBundle served at
+// the page origin. WasmHostBuilder.BaseAddress carries any sub-path (e.g. the GitHub
+// Pages /Rask/ prefix); read it lazily inside the factory so it resolves after the
+// JS module import.
+host.Services.AddExampleServices(_ => new Uri(WasmHostBuilder.BaseAddress));
 await host.RunAsync<App>();

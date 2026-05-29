@@ -62,8 +62,7 @@ public sealed class CodeSampleTests
     {
         // Render App so the head pipeline collects CodeSample's contributions (HomePage uses one).
         var html = new Rask.Example.Shared.App().RenderAsLiveRoot(TestServices.Default());
-        Assert.Contains("highlightjs/cdn-release@11.10.0", html);
-        Assert.Contains("atom-one-dark.min.css", html);
-        Assert.Contains("highlight.min.js", html);
+        Assert.Contains("/lib/highlightjs/atom-one-dark.min.css", html);
+        Assert.Contains("/lib/highlightjs/highlight.min.js", html);
     }
 }

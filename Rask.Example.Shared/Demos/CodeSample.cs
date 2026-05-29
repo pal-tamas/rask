@@ -1,11 +1,10 @@
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Example.Shared.Demos;
 
 public sealed class CodeSample(IJSRuntime js) : Component
 {
-    private const string HljsBase = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/";
-
     public string? Title { get; set; }
 
     // Non-nullable + no initializer + no `required` keyword: the factory generator emits
@@ -27,10 +26,8 @@ public sealed class CodeSample(IJSRuntime js) : Component
     // <head> automatically. No user-placed marker is needed.
     protected override RenderResult Head => [
         Link(Rel: "stylesheet",
-            Href: HljsBase + "styles/atom-one-dark.min.css",
-            CrossOrigin: "anonymous"),
-        Script(HljsBase + "highlight.min.js",
-            CrossOrigin: "anonymous")
+            Href: LiveOptions.PathBase + "/lib/highlightjs/atom-one-dark.min.css"),
+        Script(LiveOptions.PathBase + "/lib/highlightjs/highlight.min.js")
     ];
 
     // The sibling `CodeSample.js` exports a `rendered` function that walks every

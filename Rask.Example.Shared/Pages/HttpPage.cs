@@ -17,7 +17,7 @@ public sealed class HttpPage(HttpClient http) : Component
 
     protected override async Task OnMountAsync()
     {
-        try { _post = await http.GetFromJsonAsync("posts/1", HttpJsonContext.Default.Post, CancellationToken); }
+        try { _post = await http.GetFromJsonAsync("data/posts-1.json", HttpJsonContext.Default.Post, CancellationToken); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { _error = ex.Message; }
     }
@@ -26,20 +26,21 @@ public sealed class HttpPage(HttpClient http) : Component
         [
             PageHeader.Render(
                 "HttpClient + DI",
-                "HttpClient is registered as a service in Program.cs and injected into pages through their primary constructor. This demo fetches from jsonplaceholder.typicode.com — a public CORS-friendly API."),
+                "HttpClient is registered as a service in Program.cs and injected into pages through their primary constructor. This demo fetches data/posts-1.json — a static JSON file the app serves from its own origin, so the showcase stays self-contained and offline-safe."),
             H2(Class: "h4 mt-4 mb-3")["Register"],
             CodeSample(
                 """
-                // Program.cs
+                // Program.cs — point HttpClient at the app's own origin so relative
+                // fetches resolve to the static files it serves itself.
                 var host = WasmHostBuilder.CreateDefault();
                 host.Services.AddSingleton(_ =>
                     new HttpClient {
-                        BaseAddress = new Uri("https://jsonplaceholder.typicode.com/")
+                        BaseAddress = new Uri(WasmHostBuilder.BaseAddress)
                     });
                 await host.RunAsync<App>();
                 """,
                 Notes:
-                "Relative URLs require BaseAddress. For relative-to-page-origin, use new Uri(WasmHostBuilder.BaseAddress) — read lazily inside the factory so it fires after the JS module imports."),
+                "Relative URLs require BaseAddress. WasmHostBuilder.BaseAddress is the page origin (and carries any sub-path) — read it lazily inside the factory so it fires after the JS module imports."),
             H2(Class: "h4 mt-5 mb-3")["Inject and fetch"],
             CodeSample(
                 """
@@ -49,7 +50,7 @@ public sealed class HttpPage(HttpClient http) : Component
                     private Post? _post;
 
                     protected override async Task OnMountAsync() =>
-                        _post = await http.GetFromJsonAsync<Post>("posts/1", CancellationToken);
+                        _post = await http.GetFromJsonAsync<Post>("data/posts-1.json", CancellationToken);
 
                     public override RenderResult Render() =>
                         _post is null
@@ -68,10 +69,10 @@ public sealed class HttpPage(HttpClient http) : Component
                 Div()[
                     Strong()["Same demo, two hosts."],
                     " Under ", Code()["Rask.Example.Server"],
-                    " the request goes server-to-server. Under ",
+                    " the request is a loopback call to the server's own static file. Under ",
                     Code()["Rask.Example.Wasm"],
-                    " (and the GitHub Pages deploy) it runs from the browser via CORS. ",
-                    "The page code is identical."
+                    " (and the GitHub Pages deploy) the browser fetches the same file from the AppBundle. ",
+                    "The page code is identical — only the BaseAddress differs per host."
                 ]
             ]
         ];

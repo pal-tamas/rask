@@ -39,4 +39,14 @@
     <PackageReference Update="MinVer" Version="7.0.0"/>
   </ItemGroup>
 
+  <!-- Vendored third-party assets (Bootstrap, Bootstrap Icons + fonts, Chart.js,
+       Highlight.js), the placeholder image, and the HTTP-demo JSON fixture. The WASM
+       SDK copies these into the AppBundle root, preserving the wwwroot-relative
+       subpath, so both WasmAppHost (standalone `dotnet run`) and Rask.Example.Wasm.Host
+       (which serves the published bundle) expose them at /lib, /img, /data. -->
+  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
+    <WasmExtraFilesToDeploy Include="wwwroot\**\*"
+                            TargetPath="%(RecursiveDir)%(Filename)%(Extension)"/>
+  </ItemGroup>
+
 </Project>

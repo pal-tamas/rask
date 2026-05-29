@@ -21,9 +21,13 @@ public sealed class ProgramTests
         Assert.NotNull(sp.GetService<Navigator>());
         Assert.NotNull(sp.GetService<IJSRuntime>());
 
+        // The HTTP demo now points HttpClient at the server's own origin (it fetches
+        // a static data/posts-1.json it serves itself), not an external API. Over the
+        // in-memory TestServer that has no bound address, so the resolver falls back
+        // to localhost.
         var http = host.Server.Services.GetService<HttpClient>();
         Assert.NotNull(http);
-        Assert.Equal(new Uri("https://jsonplaceholder.typicode.com/"), http!.BaseAddress);
+        Assert.Equal(new Uri("http://localhost/"), http!.BaseAddress);
 
         var banned = host.Server.Services.GetService<IBannedWordService>();
         Assert.NotNull(banned);

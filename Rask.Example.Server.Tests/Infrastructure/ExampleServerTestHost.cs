@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Example.Shared;
@@ -34,7 +36,14 @@ internal sealed class ExampleServerTestHost : IDisposable
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
         builder.Services.AddRask();
-        builder.Services.AddExampleServices();
+        // Mirror Program.cs: resolve the origin from IServerAddressesFeature, falling
+        // back to localhost for the in-memory TestServer (no real bound address).
+        builder.Services.AddExampleServices(sp =>
+        {
+            var addresses = sp.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()?.Addresses;
+            var origin = addresses?.FirstOrDefault() ?? "http://localhost";
+            return new Uri(origin.TrimEnd('/') + "/");
+        });
 
         var app = builder.Build();
         app.UseRouting();

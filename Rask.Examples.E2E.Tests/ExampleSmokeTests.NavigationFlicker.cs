@@ -78,8 +78,8 @@ public abstract partial class ExampleSmokeTests
         // and on the chart.js script (present only on the LiveTicker page). The
         // Bootstrap link must survive nav; the chart.js script must be cleanly removed.
         var stamped = await Page.EvaluateAsync<bool>(@"() => {
-            var bs = document.querySelector('link[href*=""bootstrap@5.3.3""]');
-            var chart = document.querySelector('script[src*=""chart.js@4.4.4""]');
+            var bs = document.querySelector('link[href*=""bootstrap/bootstrap.min.css""]');
+            var chart = document.querySelector('script[src*=""chart.umd.js""]');
             if (!bs || !chart) return false;
             bs.__raskFlickerProbe = 'bootstrap';
             chart.__raskFlickerProbe = 'chart';
@@ -92,7 +92,7 @@ public abstract partial class ExampleSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var preserved = await Page.EvaluateAsync<bool>(@"() => {
-            var bs = document.querySelector('link[href*=""bootstrap@5.3.3""]');
+            var bs = document.querySelector('link[href*=""bootstrap/bootstrap.min.css""]');
             return !!(bs && bs.__raskFlickerProbe === 'bootstrap');
         }");
         Assert.True(preserved,
@@ -100,7 +100,7 @@ public abstract partial class ExampleSmokeTests
             "an unchanged stylesheet, which drops its rules and produces a visible flicker.");
 
         var chartGone = await Page.EvaluateAsync<int>(
-            "() => document.querySelectorAll('script[src*=\"chart.js@4.4.4\"]').length");
+            "() => document.querySelectorAll('script[src*=\"chart.umd.js\"]').length");
         Assert.Equal(0, chartGone);
     });
 

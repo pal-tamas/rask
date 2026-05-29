@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Rask.Core.Live;
 using Rask.Example.Shared;
 using Rask.Server;
@@ -16,11 +18,28 @@ if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
-builder.Services.AddExampleServices();
+// The HTTP demo's HttpClient calls back into this server for its own static
+// data/posts-1.json. Resolve the bound origin lazily from IServerAddressesFeature
+// (populated once the server is listening); fall back to localhost for the
+// in-memory TestServer, which exposes no real address.
+builder.Services.AddExampleServices(sp =>
+{
+    var addresses = sp.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()?.Addresses;
+    var origin = addresses?.FirstOrDefault() ?? "http://localhost";
+    return new Uri(origin.TrimEnd('/') + "/");
+});
 
 var app = builder.Build();
 
+// UseStaticFiles must run before routing selects an endpoint: StaticFileMiddleware
+// skips serving once context.GetEndpoint() is non-null, and Rask's catch-all
+// "/{**path}" matches every request. WebApplication otherwise auto-inserts
+// UseRouting at the very start of the pipeline (ahead of this middleware), so the
+// catch-all would win and vendored assets under wwwroot/ would fall through to the
+// NotFound page. Calling UseRouting explicitly after UseStaticFiles suppresses that
+// auto-insert and lets real files (wwwroot/lib, /img, /data) serve first.
 app.UseStaticFiles();
+app.UseRouting();
 
 // Test-only diagnostic endpoint: exposes the server's session count and GC heap
 // so E2E memory/session-lifecycle tests can assert bounded growth. Lives in the
