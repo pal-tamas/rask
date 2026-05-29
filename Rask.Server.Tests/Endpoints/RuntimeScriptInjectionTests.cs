@@ -12,6 +12,12 @@ namespace Rask.Server.Tests.Endpoints;
 ///     End-to-end: the server host auto-injects the runtime <c>&lt;script&gt;</c> at the end of
 ///     <c>&lt;body&gt;</c> on first paint, without the app declaring <c>RaskRuntimeScript()</c>.
 /// </summary>
+// Runs in the non-parallel "ScopedAssets" collection: PathBase_PrefixesInjectedRuntimeScriptSrc
+// asserts on the host's pathBase, which the runtime script reads from the process-wide
+// LiveOptions.PathBase static at render time. Another host configured concurrently (e.g.
+// PathBaseEndpointTests, also in this collection) would clobber that static mid-render and
+// flip the assertion. DisableParallelization on the collection serialises them.
+[Collection("ScopedAssets")]
 public sealed class RuntimeScriptInjectionTests
 {
     [Fact]
