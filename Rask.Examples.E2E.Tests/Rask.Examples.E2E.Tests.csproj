@@ -28,6 +28,15 @@
 
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest"/>
+    <!-- Caps cross-collection parallelism (see xunit.runner.json). The four browser-host
+         collection fixtures (Server, Wasm.Host, StandaloneWasm, SubPathWasm) each boot a
+         full `dotnet run` host plus a Chromium page; running all four concurrently
+         over-subscribes the 2-core CI runner and starves the slowest fixture
+         (StandaloneWasm / WasmAppHost cold boot), so its CodeSample pages miss the deferred
+         scoped-JS highlight window and the Highlight/ScopedJs/Memory tests time out with
+         "no code blocks". Local multi-core boxes pass at full parallelism; this makes CI
+         behave the same. -->
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
   <ItemGroup>
