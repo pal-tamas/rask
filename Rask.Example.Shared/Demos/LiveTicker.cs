@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Example.Shared.Demos;
 
@@ -62,7 +63,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     // The framework dedupes head-asset entries by full rendered HTML, so two
     // LiveTicker instances on the same page share a single Chart.js script tag.
     protected override RenderResult Head =>
-        Script("https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js", CrossOrigin: "anonymous");
+        Script(LiveOptions.PathBase + "/lib/chartjs/chart.umd.js");
 
     protected override void OnMount()
     {

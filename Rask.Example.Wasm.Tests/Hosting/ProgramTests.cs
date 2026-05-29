@@ -11,22 +11,26 @@ namespace Rask.Example.Wasm.Tests.Hosting;
 public sealed class ProgramTests
 {
     [Fact]
-    public void AddExampleServices_RegistersHttpClient_WithJsonPlaceholderBase()
+    public void AddExampleServices_RegistersHttpClient_WithSuppliedBaseAddress()
     {
+        // The base address is now host-specific: Program.cs passes the page origin
+        // (WasmHostBuilder.BaseAddress) so the HTTP demo fetches a local static file.
+        // The resolver is invoked lazily on first HttpClient resolution.
+        var origin = new Uri("https://example.test/app/");
         var sp = new ServiceCollection()
-            .AddExampleServices()
+            .AddExampleServices(_ => origin)
             .BuildServiceProvider();
 
         var http = sp.GetService<HttpClient>();
         Assert.NotNull(http);
-        Assert.Equal(new Uri("https://jsonplaceholder.typicode.com/"), http!.BaseAddress);
+        Assert.Equal(origin, http!.BaseAddress);
     }
 
     [Fact]
     public void AddExampleServices_RegistersBannedWordService_AsSingleton()
     {
         var sp = new ServiceCollection()
-            .AddExampleServices()
+            .AddExampleServices(_ => new Uri("http://localhost/"))
             .BuildServiceProvider();
 
         var a = sp.GetService<IBannedWordService>();
@@ -40,7 +44,7 @@ public sealed class ProgramTests
     public void AddExampleServices_ReturnsSameServiceCollection_ForChaining()
     {
         var sc = new ServiceCollection();
-        var returned = sc.AddExampleServices();
+        var returned = sc.AddExampleServices(_ => new Uri("http://localhost/"));
         Assert.Same(sc, returned);
     }
 }

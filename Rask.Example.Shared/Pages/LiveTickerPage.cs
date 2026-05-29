@@ -67,7 +67,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                     public int Interval { get; set; } = 3000;
 
                     protected override RenderResult Head =>
-                        Script("https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js");
+                        Script(LiveOptions.PathBase + "/lib/chartjs/chart.umd.js");
 
                     protected override void OnMount() { /* record _mountedAt */ }
 

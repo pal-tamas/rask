@@ -1,3 +1,5 @@
+using Rask.Core.Live;
+
 namespace Rask.Example.Shared;
 
 public sealed class App : Component
@@ -13,12 +15,14 @@ public sealed class App : Component
         Title()["Rask — feature showcase"],
         Meta("utf-8"),
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
+        // Vendored locally under wwwroot/lib and served from the app's own origin.
+        // LiveOptions.PathBase keeps the URLs correct under a reverse-proxy prefix
+        // (Server) or a sub-path deploy like GitHub Pages (WASM) — same prefix the
+        // framework prepends to its own /_rask/a/{hash} scoped-asset links.
         Link(Rel: "stylesheet",
-            Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
-            CrossOrigin: "anonymous"),
+            Href: LiveOptions.PathBase + "/lib/bootstrap/bootstrap.min.css"),
         Link(Rel: "stylesheet",
-            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css",
-            CrossOrigin: "anonymous")
+            Href: LiveOptions.PathBase + "/lib/bootstrap-icons/bootstrap-icons.min.css")
     ];
 
     // Brand palette and global cascade live in App.css (sibling scoped-CSS file).

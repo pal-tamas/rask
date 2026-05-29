@@ -48,13 +48,13 @@ public sealed class PropsPage : Component
                 """
                 // Tag-specific (Href) renders AFTER id/class/style/data-*, even though
                 // the factory signature lists Href first.
-                A(Href: "https://example.com", Id: "out", Class: "link",
+                A(Href: "/tags", Id: "out", Class: "link",
                   Data: new Dictionary<string, string?> { ["external"] = "true" })["See HTML order"]
                 """,
                 Notes:
                 "Render order is base props first (id, class, style, data-*), then tag-specific. Tests enforce it. Predictable for diffing and DOM tooling.",
                 Result: A(
-                    "https://example.com",
+                    "/tags",
                     Id: "out",
                     Class: "link link-primary",
                     Data: new Dictionary<string, string?> { ["external"] = "true" })["See HTML order"])

@@ -26,7 +26,7 @@ public sealed class HttpPageTests
 
         Assert.True(fakeHttp.RequestCount >= 1);
         // Verify the fetch went to the expected relative path.
-        Assert.Contains(fakeHttp.Requests, r => r.RequestUri!.AbsolutePath.EndsWith("/posts/1"));
+        Assert.Contains(fakeHttp.Requests, r => r.RequestUri!.AbsolutePath.EndsWith("/data/posts-1.json"));
     }
 
     [Fact]

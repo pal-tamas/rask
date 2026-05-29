@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
@@ -76,11 +77,11 @@ public sealed class TagsPage : Component
             H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-image text-accent me-2"), "Media"],
             CodeSample(
                 """
-                Img(Src: "https://placehold.co/120x60/0066B3/ffffff?text=Rask",
+                Img(Src: LiveOptions.PathBase + "/img/rask-placeholder.svg",
                     Alt: "Rask")
                 """,
                 Result: Img(
-                    "https://placehold.co/120x60/0066B3/ffffff?text=Rask",
+                    LiveOptions.PathBase + "/img/rask-placeholder.svg",
                     "Rask",
                     Class: "rounded shadow-sm")),
             H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-dash-circle text-accent me-2"), "Void elements"],
