@@ -288,35 +288,54 @@ public static class FrameDiffer
         var oldAttrs = CountLeadingAttributes(oldFrames, oldAttrStart, oldEnd);
         var newAttrs = CountLeadingAttributes(newFrames, newAttrStart, newEnd);
 
-        var common = Math.Min(oldAttrs, newAttrs);
-        for (var k = 0; k < common; k++)
+        // Name-keyed reconcile — NOT positional. Attributes can be conditionally present
+        // (e.g. `checked` on a checkbox appears/disappears as it toggles, and it's emitted
+        // mid-list before data-rask-on-change), which shifts the index of every following
+        // attribute. A positional walk then mis-pairs names across the shift and emits ops
+        // that rename/clobber unrelated attributes — observed as a toggling checkbox losing
+        // its data-rask-on-change handler (so it stops responding) and gaining a spurious
+        // value="". HTML attribute order carries no meaning and the client morph path keys
+        // attributes by name, so we match by name here too: O(n*m) over the handful of
+        // attributes an element carries.
+        for (var k = 0; k < newAttrs; k++)
         {
-            var oldAttr = oldFrames[oldAttrStart + k];
-            var newAttr = newFrames[newAttrStart + k];
-            if (!string.Equals(oldAttr.Name, newAttr.Name, StringComparison.Ordinal))
+            var na = newFrames[newAttrStart + k];
+            var oldValue = FindAttribute(oldFrames, oldAttrStart, oldAttrs, na.Name, out var inOld);
+            if (!inOld || !string.Equals(oldValue, na.Value, StringComparison.Ordinal))
             {
-                output.Add(new EditOp(EditOpKind.RemoveAttribute, elementPath, oldAttr.Name, null));
-                output.Add(new EditOp(EditOpKind.SetAttribute, elementPath, newAttr.Name, newAttr.Value));
-            }
-            else if (!string.Equals(oldAttr.Value, newAttr.Value, StringComparison.Ordinal))
-            {
-                output.Add(new EditOp(EditOpKind.SetAttribute, elementPath, newAttr.Name, newAttr.Value));
+                output.Add(new EditOp(EditOpKind.SetAttribute, elementPath, na.Name, na.Value));
             }
         }
 
-        for (var k = common; k < oldAttrs; k++)
+        for (var k = 0; k < oldAttrs; k++)
         {
-            output.Add(new EditOp(EditOpKind.RemoveAttribute, elementPath, oldFrames[oldAttrStart + k].Name, null));
-        }
-
-        for (var k = common; k < newAttrs; k++)
-        {
-            var added = newFrames[newAttrStart + k];
-            output.Add(new EditOp(EditOpKind.SetAttribute, elementPath, added.Name, added.Value));
+            var oa = oldFrames[oldAttrStart + k];
+            FindAttribute(newFrames, newAttrStart, newAttrs, oa.Name, out var inNew);
+            if (!inNew)
+            {
+                output.Add(new EditOp(EditOpKind.RemoveAttribute, elementPath, oa.Name, null));
+            }
         }
 
         oldCursor = oldAttrStart + oldAttrs;
         newCursor = newAttrStart + newAttrs;
+    }
+
+    private static string? FindAttribute(
+        ReadOnlySpan<RenderFrame> frames, int attrStart, int attrCount, string? name, out bool found)
+    {
+        for (var i = 0; i < attrCount; i++)
+        {
+            ref readonly var f = ref frames[attrStart + i];
+            if (string.Equals(f.Name, name, StringComparison.Ordinal))
+            {
+                found = true;
+                return f.Value;
+            }
+        }
+
+        found = false;
+        return null;
     }
 
     private static int CountLeadingAttributes(ReadOnlySpan<RenderFrame> frames, int start, int end)

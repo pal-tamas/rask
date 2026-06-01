@@ -185,12 +185,26 @@ internal static class BindingHelpers
             }
         };
 
-    public static Func<string, Task> BoolToggleHandler(
-        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool wasChecked,
+    // Checkbox binding sets the model to the checkbox's actual checked state reported by
+    // the client (rask.js sends "true"/"false" for type=checkbox), rather than flipping a
+    // state captured at render time. Setting (not toggling) makes the binding self-
+    // correcting: every change event carries the absolute checked state, so the model
+    // re-syncs to the live checkbox even if an intermediate render/diff was coalesced or
+    // missed. The prior blind-toggle (acc.Setter(!wasChecked)) could not recover from a
+    // one-step desync between el.checked and the server model — once drifted it kept
+    // inverting, which surfaced as the checkbox "sticking" after a few clicks once those
+    // clicks started shipping diffs (which don't re-base an unchanged checked attribute)
+    // instead of full HTML (whose morph re-based it every time).
+    public static Func<string, Task> BoolSetHandler(
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid,
         Func<Task>? afterBind = null) =>
-        async _ =>
+        async value =>
         {
-            acc.Setter(!wasChecked);
+            // Empty / unparseable → false (an unchecked box reports "false"); bool.TryParse
+            // accepts "true"/"false" case-insensitively. Boxing the bool satisfies both
+            // `bool` and `bool?` properties; null is never reproduced from the UI (HTML
+            // checkboxes have no indeterminate state — matches Blazor's <input type=checkbox>).
+            acc.Setter(bool.TryParse(value, out var b) && b);
             ctx?.NotifyFieldChanged(fid);
             if (afterBind is not null)
             {

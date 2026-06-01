@@ -1,0 +1,37 @@
+using Microsoft.JSInterop;
+using Rask.Core;
+using Rask.Core.Components;
+using Rask.Core.Forms;
+
+#pragma warning disable RASK019 // test-infra app predates framework-managed <head>
+
+namespace Rask.Server.Tests.Infrastructure;
+
+// Reproduces the Binding-page checkbox in isolation: a bound bool checkbox + an echo of
+// the model value, plus a per-render IJSRuntime invoke (like CodeSample) so clicks ship a
+// diff carrying jsInvokes — the exact wire shape the showcase produces. Used to verify the
+// checkbox stays in sync across repeated clicks on the diff path.
+public sealed class CheckboxJsInvokeApp(IJSRuntime js) : Component
+{
+    private readonly Model _m = new();
+
+    protected override async Task OnRenderedAsync(bool firstRender) =>
+        await js.InvokeVoidAsync("test.noop", firstRender);
+
+    protected override RenderResult Render() =>
+        Fragment()[
+            Doctype(),
+            new Html()[
+                new Head()[new Title()["checkbox"]],
+                new Body()[
+                    Form(_m)[Input(() => _m.Subscribe, Id: "sub")],
+                    new P()[$"S={_m.Subscribe}"]
+                ]
+            ]
+        ];
+
+    private sealed class Model
+    {
+        public bool Subscribe { get; set; }
+    }
+}

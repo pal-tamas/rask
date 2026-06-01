@@ -58,6 +58,33 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Diff_MidListAttributeToggled_PreservesTrailingAttributes()
+    {
+        // Regression: a conditionally-present attribute emitted mid-list (like `checked`
+        // on a checkbox, which precedes the trailing attributes — and in the live runtime,
+        // the data-rask-on-change handler) must not disturb attributes that follow it. A
+        // POSITIONAL attribute diff mis-pairs names across the index shift and emits ops
+        // that clobber/remove the trailing attributes — that surfaced as a toggling
+        // checkbox losing its event handler (so it stopped responding after a click) and
+        // gaining a spurious value="". Name-keyed diffing emits exactly one op for the
+        // toggled attribute and leaves `list` (emitted AFTER `checked`) untouched.
+        var unchecked_ = Frames(C.Input("checkbox", "n", List: "dl"));
+        var checked_ = Frames(C.Input("checkbox", "n", Checked: true, List: "dl"));
+
+        var on = new List<EditOp>();
+        FrameDiffer.Diff(unchecked_, checked_, on);
+        var addedOp = Assert.Single(on);
+        Assert.Equal(EditOpKind.SetAttribute, addedOp.Kind);
+        Assert.Equal("checked", addedOp.Name);
+
+        var off = new List<EditOp>();
+        FrameDiffer.Diff(checked_, unchecked_, off);
+        var removedOp = Assert.Single(off);
+        Assert.Equal(EditOpKind.RemoveAttribute, removedOp.Kind);
+        Assert.Equal("checked", removedOp.Name);
+    }
+
+    [Fact]
     public void Diff_ChildAdded_ProducesInsertSubtreeOp()
     {
         var before = Frames(C.Ul()[C.Li()["a"], C.Li()["b"]]);

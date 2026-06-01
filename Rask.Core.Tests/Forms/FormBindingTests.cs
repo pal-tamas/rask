@@ -495,13 +495,15 @@ public class FormBindingTests
     }
 
     [Fact]
-    public async Task NullableBool_Checkbox_TogglesTrueFalse_NeverReturnsToNull()
+    public async Task Bool_Checkbox_SetsToReportedCheckedState_AndIsSelfCorrecting()
     {
-        // Pins the current BoolToggleHandler semantics (BindingHelpers.cs:131):
-        // `acc.Setter(!wasChecked)` flips between true and false. Starting from null,
-        // wasChecked is false → first click sets true, then false, then true again.
-        // Tri-state nullable bool is a follow-up — HTML checkboxes have no native
-        // indeterminate state and Blazor's <InputCheckbox bool?> behaves identically.
+        // BoolSetHandler (BindingHelpers.cs) sets the model to the checkbox's actual
+        // reported state ("true"/"false" from rask.js) rather than flipping a captured
+        // prior. This makes the binding self-correcting: sending the SAME state twice is
+        // idempotent (it does not flip), so a one-step desync between el.checked and the
+        // server model recovers on the next change event. The old blind toggle could not
+        // recover — once drifted it kept inverting, which is the "checkbox sticks after a
+        // few clicks" bug once clicks ship diffs (no checked re-base) instead of full HTML.
         var p = new Person { Name = "Ada", Age = 30, AcceptedTerms = null };
         var view = new StubComponent(() => Form(p)[Input(() => p.AcceptedTerms)]);
 
@@ -509,19 +511,27 @@ public class FormBindingTests
         var changeId = ExtractAttr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
-        using var emptyDoc = JsonDocument.Parse("{}");
-        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
+        async Task SendAsync(string value)
+        {
+            html = view.RenderAsLiveRoot();
+            changeId = ExtractAttr(html, "data-rask-on-change");
+            using var doc = JsonDocument.Parse($"{{\"value\":\"{value}\"}}");
+            await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
+        }
+
+        await SendAsync("true");
         Assert.Equal(true, p.AcceptedTerms);
 
-        html = view.RenderAsLiveRoot();
-        changeId = ExtractAttr(html, "data-rask-on-change");
-        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
+        // Idempotent: re-reporting "true" keeps it true (a blind toggle would flip to false).
+        await SendAsync("true");
+        Assert.Equal(true, p.AcceptedTerms);
+
+        await SendAsync("false");
         Assert.Equal(false, p.AcceptedTerms);
 
-        html = view.RenderAsLiveRoot();
-        changeId = ExtractAttr(html, "data-rask-on-change");
-        await view.TryInvokeHandlerAsync(changeId!, emptyDoc.RootElement);
-        Assert.Equal(true, p.AcceptedTerms);
+        // Never resurrects null from the UI (HTML checkboxes have no indeterminate state).
+        await SendAsync("false");
+        Assert.Equal(false, p.AcceptedTerms);
         Assert.NotNull(p.AcceptedTerms);
     }
 
