@@ -452,16 +452,22 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // those aren't carried by the diff wire format yet.
         var usedDiff = false;
         // Conservative gate (mirrors server LiveSession): the diff path covers
-        // in-place state changes only. Side effects (download), history changes
-        // (navigation), and structural ops (InsertSubtree/RemoveSubtree) route to the
-        // full-HTML morph path — see the server-side DiffOpsAreClientSupported note
-        // for the rationale (e2e showed 83/430 failures when structural ops bypass
-        // morph). `diffPathEntered` tracks whether we called TryComputeDiff (which
-        // internally rotates buffers regardless of return value) so the fallback
-        // Snapshot doesn't double-rotate and strand _previous=null.
+        // in-place state changes only. Side effects (download) and structural ops
+        // (InsertSubtree/RemoveSubtree) route to the full-HTML morph path — see the
+        // server-side DiffOpsAreClientSupported note for the rationale (e2e showed 83/430
+        // failures when structural ops bypass morph). History changes (navigation) ride
+        // the diff path ONLY when the rendered <head> is byte-identical to the last applied
+        // document: the diff codec walks the body but suppresses head-asset frames, so a
+        // body-only diff would freeze <head> (wrong <title>, stale scoped-CSS link). When
+        // the head changed we fall back to full HTML, which morphs document.documentElement
+        // and picks up the head delta. `diffPathEntered` tracks whether we called
+        // TryComputeDiff (which internally rotates buffers regardless of return value) so
+        // the fallback Snapshot doesn't double-rotate and strand _previous=null.
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null
-            && download is null && historyUrl is null)
+            && download is null
+            && (historyUrl is null
+                || (_lastAppliedHtml is not null && HeadUnchanged(html, _lastAppliedHtml))))
         {
             _diffOps ??= new List<EditOp>();
             diffPathEntered = true;
@@ -529,5 +535,28 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         }
 
         return true;
+    }
+
+    // True when the <head> region (prefix through the closing </head>) of the freshly
+    // rendered document is byte-identical to the baseline last applied. The diff codec
+    // walks the body but suppresses head-asset frames (HeadAssetRegistry pushes a null
+    // FrameSinkScope), so a body-only diff would freeze <head> — wrong <title>, stale
+    // scoped-CSS link. Only when the head is unchanged is it safe to ship diff+history on
+    // a navigation; otherwise full HTML morphs document.documentElement and picks up the
+    // head delta. Both strings are the same root-attr-free HtmlSerializer output
+    // (data-rask-root is spliced onto <body> only at payload-write time), so the
+    // comparison is stable. A missing </head> in either string returns false (treat as
+    // changed → full HTML), never an unsafe true.
+    private static bool HeadUnchanged(string html, string baseline)
+    {
+        const string headClose = "</head>";
+        var a = html.IndexOf(headClose, StringComparison.Ordinal);
+        if (a < 0) return false;
+        var b = baseline.IndexOf(headClose, StringComparison.Ordinal);
+        if (b < 0) return false;
+        a += headClose.Length;
+        b += headClose.Length;
+        if (a != b) return false;
+        return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
     }
 }
