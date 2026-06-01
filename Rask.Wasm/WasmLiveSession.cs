@@ -344,14 +344,22 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // page itself routed correctly. There's no "duplicate pushState" risk because the
         // historyUrl here is a local captured before the call, not a fresh navigator
         // consumption — passing it twice still lands exactly one pushState on the client.
+        // commitCache:false — every iteration diffs against the SAME (last-sent) baseline
+        // rather than promoting its own render. Only the LAST build is returned and sent, so
+        // committing each intermediate rotation would make the final build diff against an
+        // un-sent render — shipping a tiny stale diff (e.g. a head-only diff after a real page
+        // swap) that never updates the body. We commit the final render once, after the loop.
         _pendingRenderInScope = false;
-        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
+        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly, commitCache: false).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            result = await BuildPayloadAsync(historyUrl, replace, publishOnly).ConfigureAwait(false);
+            result = await BuildPayloadAsync(historyUrl, replace, publishOnly, commitCache: false).ConfigureAwait(false);
         }
+
+        // Commit the final, actually-sent render as the new diff baseline exactly once.
+        _renderCache?.Snapshot();
 
         // Budget exhaustion surfaces a third queued in-dispatch render that won't
         // flush — the next event picks up the trailing state. Match the server-side
@@ -368,7 +376,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         return result;
     }
 
-    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false)
+    // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
+    // so intermediate rebuilds diff against the stable last-sent baseline instead of against
+    // each other. Only the final, actually-sent build's render becomes the new baseline (the
+    // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
+    // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
+    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false, bool commitCache = true)
     {
         await Task.Yield();
 
@@ -455,32 +468,32 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // in-place state changes only. Side effects (download) and structural ops
         // (InsertSubtree/RemoveSubtree) route to the full-HTML morph path — see the
         // server-side DiffOpsAreClientSupported note for the rationale (e2e showed 83/430
-        // failures when structural ops bypass morph). History changes (navigation) ride
-        // the diff path ONLY when the rendered <head> is byte-identical to the last applied
-        // document: the diff codec walks the body but suppresses head-asset frames, so a
-        // body-only diff would freeze <head> (wrong <title>, stale scoped-CSS link). When
-        // the head changed we fall back to full HTML, which morphs document.documentElement
-        // and picks up the head delta. `diffPathEntered` tracks whether we called
-        // TryComputeDiff (which internally rotates buffers regardless of return value) so
-        // the fallback Snapshot doesn't double-rotate and strand _previous=null.
+        // failures when structural ops bypass morph). Head changes (a per-route <title>, a
+        // scoped-asset <link> for a newly-mounted page, a reactive title) ride the diff too:
+        // the diff frame stream never carries <head> content (collected + spliced post-
+        // render), so a head change produces zero ops; when the head region changed vs the
+        // last applied document we attach the new <head> element (ExtractHead) and the client
+        // morphs it into document.head. Genuine page swaps that restructure the body still
+        // fall back to full HTML via DiffOpsAreClientSupported. `diffPathEntered` tracks
+        // whether we called TryComputeDiff (which internally rotates buffers regardless of
+        // return value) so the fallback Snapshot doesn't double-rotate and strand _previous.
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null
-            && download is null
-            && (historyUrl is null
-                || (_lastAppliedHtml is not null && HeadUnchanged(html, _lastAppliedHtml))))
+            && download is null)
         {
             _diffOps ??= new List<EditOp>();
             diffPathEntered = true;
+            var headChanged = _lastAppliedHtml is not null && !HeadUnchanged(html, _lastAppliedHtml);
             // Ship the diff when it carries DOM ops, OR when it carries no ops but a
-            // navigation needs to flow — a query-only nav (or any nav that doesn't alter
-            // the rendered body) produces zero ops, and a history-only diff (empty ops +
-            // history) pushes the URL for a handful of bytes instead of re-sending the
-            // whole document.
-            if (_renderCache.TryComputeDiff(_diffOps, html)
-                && (_diffOps.Count > 0 || historyUrl is not null)
+            // navigation or a head change needs to flow — a query-only nav produces zero ops
+            // yet must still pushState the URL; a head-only change must still ship the head
+            // fragment. Zero ops + no history + unchanged head means nothing to send.
+            if (_renderCache.TryComputeDiff(_diffOps, rotate: commitCache, newHtml: html)
+                && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
                 && DiffOpsAreClientSupported(_diffOps))
             {
-                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
+                var headHtml = headChanged ? ExtractHead(html) : null;
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, headHtml: headHtml);
                 var diffBytes = _writeBuffer.WrittenCount;
 
                 // Same rule as the server: ship the diff whenever it isn't larger than
@@ -509,11 +522,10 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace,
                 auth: null, download: download);
-            // Only Snapshot when TryComputeDiff was NOT called — otherwise it already
-            // rotated buffers and a second Snapshot here would strand _previous=null,
-            // breaking the next render's diff with a silent NRE inside DispatchAsync's
-            // try/catch (manifests as `result is empty` to callers).
-            if (!diffPathEntered)
+            // Only Snapshot when TryComputeDiff was NOT called (it would have rotated) AND we
+            // own the commit (commitCache). When commitCache is false the coalescing loop
+            // commits once after it settles, so rotating here would strand the baseline.
+            if (!diffPathEntered && commitCache)
             {
                 _renderCache?.Snapshot();
             }
@@ -563,5 +575,21 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         b += headClose.Length;
         if (a != b) return false;
         return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
+    }
+
+    // Slice the full <head ...>...</head> element out of the rendered document so the diff
+    // payload can carry it for the client to morph into document.head. <head> is a shell tag
+    // (no scope attr) and data-rask-root is spliced onto <body> only, so the slice is clean.
+    // Returns null when there's no recognizable head (defensive — caller then omits the
+    // field and the body diff still ships).
+    private static string? ExtractHead(string html)
+    {
+        var open = html.IndexOf("<head", StringComparison.Ordinal);
+        if (open < 0) return null;
+        const string headClose = "</head>";
+        var close = html.IndexOf(headClose, StringComparison.Ordinal);
+        if (close < 0) return null;
+        close += headClose.Length;
+        return close <= open ? null : html.Substring(open, close - open);
     }
 }

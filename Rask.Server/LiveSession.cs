@@ -416,40 +416,41 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // full HTML wins for structural changes (the DiffOpsAreClientSupported gate
             // below rejects untrusted positional structural ops independently of history).
             //
-            // History changes (navigation) ride the diff path ONLY when the rendered
-            // <head> is byte-identical to the last sent document. The diff codec walks the
-            // body but suppresses head-asset frames (HeadAssetRegistry), so a body-only
-            // diff would freeze <head> — wrong <title>, stale/missing scoped-CSS link for a
-            // newly-mounted page. When the head DID change we fall back to full HTML, which
-            // morphs document.documentElement and picks up the head delta (the behaviour
-            // every navigation used to take). BuildPayloadUtf8Diff already emits the history
-            // object and the client diff branch already applies pushState/replaceState.
+            // Head changes (a per-route <title>, a scoped-asset <link> for a newly-mounted
+            // page type, a reactive title) ride the diff too. The diff frame stream never
+            // carries <head> content — user Head contributions are collected and spliced
+            // post-render (HeadAssetRegistry), so a head change produces zero ops. When the
+            // head region changed vs the last sent document we attach the new <head> element
+            // (ExtractHead) to the diff payload; the client morphs it into document.head
+            // alongside applying the body ops. This covers navigation AND non-navigation
+            // reactive title updates — the latter previously shipped a body diff that froze
+            // the head. Genuine page swaps that restructure the body still fall back to full
+            // HTML via the DiffOpsAreClientSupported gate below (head fragment never sent).
             //
             // jsInvokes do NOT gate the diff: fire-and-forget IJSRuntime calls (e.g. a
             // scoped-JS OnRenderedAsync hook firing on every render) ride the diff
             // payload via BuildPayloadUtf8Diff, matching WASM — which dispatches such
             // calls out-of-band and never forced full HTML. When we DO fall back to
-            // full HTML (first render, oversized diff, structural ops, head change) the
-            // client morphs to match the server's frame snapshot, so the next render diffs
-            // cleanly against it — the same way the no-jsInvokes path already recovers.
+            // full HTML (first render, oversized diff, structural ops) the client morphs to
+            // match the server's frame snapshot, so the next render diffs cleanly against it.
             if (frameWriter is not null && _renderCache is not null
-                && auth is null && download is null
-                && (historyUrl is null
-                    || (_lastSentHtml is not null && HeadUnchanged(html, _lastSentHtml))))
+                && auth is null && download is null)
             {
                 _diffOps ??= new List<EditOp>();
                 diffPathEntered = true;
+                var headChanged = _lastSentHtml is not null && !HeadUnchanged(html, _lastSentHtml);
                 // Ship the diff when it carries DOM ops, OR when it carries no ops but a
-                // navigation needs to flow — a query-only nav (or any nav that doesn't
-                // alter the rendered body) produces zero ops, and a history-only diff
-                // (empty ops + history) pushes the URL for ~60 bytes instead of re-sending
-                // the whole document. Zero ops + no history means nothing to send (the
-                // html-dedup above already returned for that case).
+                // navigation or a head change needs to flow — a query-only nav (or any nav
+                // that doesn't alter the body) produces zero ops yet must still pushState the
+                // URL; a head-only change must still ship the head fragment. Zero ops + no
+                // history + unchanged head means nothing to send (the html-dedup above
+                // already returned for that case).
                 if (_renderCache.TryComputeDiff(_diffOps, html)
-                    && (_diffOps.Count > 0 || historyUrl is not null)
+                    && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
                     && DiffOpsAreClientSupported(_diffOps))
                 {
-                    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes);
+                    var headHtml = headChanged ? ExtractHead(html) : null;
+                    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes, headHtml);
                     var diffBytes = _writeBuffer.WrittenCount;
 
                     // Ship the diff whenever it isn't larger than re-sending the body, or
@@ -618,6 +619,22 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         b += headClose.Length;
         if (a != b) return false;
         return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
+    }
+
+    // Slice the full <head ...>...</head> element out of the rendered document so the diff
+    // payload can carry it for the client to morph into document.head. <head> is a shell tag
+    // (no scope attr) and data-rask-root is spliced onto <body> only, so the slice is clean.
+    // Returns null when there's no recognizable head (defensive — caller then omits the
+    // field and the body diff still ships).
+    private static string? ExtractHead(string html)
+    {
+        var open = html.IndexOf("<head", StringComparison.Ordinal);
+        if (open < 0) return null;
+        const string headClose = "</head>";
+        var close = html.IndexOf(headClose, StringComparison.Ordinal);
+        if (close < 0) return null;
+        close += headClose.Length;
+        return close <= open ? null : html.Substring(open, close - open);
     }
 
     private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)

@@ -73,20 +73,52 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
-    public async Task Navigate_HeadChanges_ShipsFullHtmlWithHistory()
+    public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
     {
         await using var fixture = await Connect<RouteTitleNavApp>();
 
+        // First nav seeds the render-cache baseline (see Navigate_SameHead note).
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
+        _ = await DrainToLastFrame(fixture.Ws);
+
+        // RouteTitleNavApp changes the <title> AND an H1 text per route. The body delta is a
+        // supported UpdateText op, so the nav ships a diff carrying the new <head> as a
+        // fragment (client morphs it into document.head) rather than the whole document.
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+
+        var frame = await DrainToLastFrame(fixture.Ws);
+        Assert.NotNull(frame);
+        using var doc = JsonDocument.Parse(frame!);
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("html", out _),
+            $"Head-changing nav with a supported body diff must not ship full HTML. Got: {Truncate(frame!)}");
+        Assert.True(doc.RootElement.TryGetProperty("head", out var head), "expected a head fragment");
+        Assert.Contains("t-/destination", head.GetString());
+        Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
+        Assert.Equal("/destination", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
+    {
+        await using var fixture = await Connect<RouteTitleStructuralNavApp>();
+
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
+        _ = await DrainToLastFrame(fixture.Ws);
+
+        // The body restructures per route (div ↔ unkeyed list) → untrusted positional
+        // structural ops → DiffOpsAreClientSupported rejects → full HTML. The head fragment
+        // is never sent; the full-document morph carries the head delta instead.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
         var frame = await DrainToLastFrame(fixture.Ws);
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.True(doc.RootElement.TryGetProperty("html", out var html),
-            $"Head-changing navigation must ship full HTML. Got: {Truncate(frame!)}");
+            $"Structural-body nav must ship full HTML. Got: {Truncate(frame!)}");
         Assert.Contains("t-/destination", html.GetString());
-        var history = doc.RootElement.GetProperty("history");
-        Assert.Equal("/destination", history.GetProperty("url").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("head", out _), "full-HTML payload carries no head fragment");
+        Assert.Equal("/destination", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
     }
 
     // Drain every frame until the receive window closes; the last frame is the coalesced

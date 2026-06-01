@@ -60,6 +60,19 @@ public sealed class SessionRenderCache : IDisposable
         => TryComputeDiff(output, out _, newHtml);
 
     /// <summary>
+    ///     Diff variant that can DEFER the buffer rotation. The coalescing render loops
+    ///     (<c>WasmLiveSession.BuildPayloadCoalescingRerendersAsync</c>) build a payload
+    ///     several times within one dispatch but only the LAST build is sent; rotating on
+    ///     each intermediate build would make the final build diff against an un-sent render
+    ///     (producing a payload that doesn't reflect the client's actual DOM). Passing
+    ///     <paramref name="rotate" /><c>=false</c> diffs against the stable last-sent baseline
+    ///     without promoting <c>_current</c>; the caller commits exactly once via
+    ///     <see cref="Snapshot" /> after the loop settles.
+    /// </summary>
+    public bool TryComputeDiff(List<EditOp> output, bool rotate, string? newHtml = null)
+        => TryComputeDiff(output, out _, newHtml, rotate);
+
+    /// <summary>
     ///     Variant that surfaces whether the diff used the keyed-matching path at any depth.
     ///     The live-session gates (<c>LiveSession.DiffOpsAreClientSupported</c>,
     ///     <c>WasmLiveSession.DiffOpsAreClientSupported</c>) use this to decide whether to
@@ -68,17 +81,28 @@ public sealed class SessionRenderCache : IDisposable
     ///     ship as diff; positional structural ops still route to the full-HTML morph path.
     /// </summary>
     public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml = null)
+        => TryComputeDiff(output, out usedKeyedPath, newHtml, rotate: true);
+
+    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml, bool rotate)
     {
         output.Clear();
         usedKeyedPath = false;
         if (!_hasPrevious || _current is null)
         {
-            RotateBuffers();
+            if (rotate)
+            {
+                RotateBuffers();
+            }
+
             return false;
         }
 
         FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, out usedKeyedPath, newHtml);
-        RotateBuffers();
+        if (rotate)
+        {
+            RotateBuffers();
+        }
+
         return true;
     }
 

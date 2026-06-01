@@ -83,20 +83,66 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
-    public async Task Navigate_HeadChanges_ShipsFullHtmlWithHistory()
+    public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
     {
         var (session, _) = NewSession<RouteTitleStubApp>();
         await session.InitialRenderAsync();
 
+        // RouteTitleStubApp changes the <title> AND an H1 text per route. The body delta is a
+        // supported UpdateText op, so the nav ships a diff that carries the new <head> as a
+        // fragment (the client morphs it into document.head) rather than the whole document.
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/destination","query":""}"""));
+
+        var text = Encoding.UTF8.GetString(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("html", out _),
+            $"Head-changing nav with a supported body diff must not ship full HTML. Got: {text[..Math.Min(300, text.Length)]}");
+        Assert.True(doc.RootElement.TryGetProperty("head", out var head), "expected a head fragment");
+        Assert.Contains("title-/destination", head.GetString());
+        Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
+        var history = doc.RootElement.GetProperty("history");
+        Assert.Equal("/destination", history.GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
+    {
+        var (session, _) = NewSession<RouteTitleStructuralStubApp>();
+        await session.InitialRenderAsync();
+
+        // The body restructures per route (div ↔ unkeyed list) → untrusted positional
+        // structural ops → DiffOpsAreClientSupported rejects → full HTML. The head fragment
+        // is never sent; the full-document morph carries the head delta instead.
         var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/destination","query":""}"""));
 
         var text = Encoding.UTF8.GetString(result);
         using var doc = JsonDocument.Parse(result.AsMemory());
         Assert.True(doc.RootElement.TryGetProperty("html", out var html),
-            $"Head-changing navigation must ship full HTML. Got: {text[..Math.Min(300, text.Length)]}");
+            $"Structural-body nav must ship full HTML. Got: {text[..Math.Min(300, text.Length)]}");
         Assert.Contains("title-/destination", html.GetString());
-        var history = doc.RootElement.GetProperty("history");
-        Assert.Equal("/destination", history.GetProperty("url").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("head", out _), "full-HTML payload carries no head fragment");
+        Assert.Equal("/destination", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task ReactiveTitleChange_NoNavigation_ShipsDiffWithHeadAndNoHistory()
+    {
+        var (session, _) = NewSession<ReactiveTitleStubApp>();
+        var initial = await session.InitialRenderAsync();
+
+        // A handler bumps a counter that drives BOTH the <title> and an H1 — no navigation.
+        // The head fragment must ride the diff (previously a body-only diff froze the head),
+        // and there is no history because nothing navigated.
+        var handlerId = ExtractFirstHandlerId(initial);
+        var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
+
+        using var doc = JsonDocument.Parse(result.AsMemory());
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+        Assert.True(doc.RootElement.TryGetProperty("head", out var head), "reactive title change must ship a head fragment");
+        Assert.Contains("count-1", head.GetString());
+        Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
+        Assert.False(doc.RootElement.TryGetProperty("history", out _), "no navigation → no history");
     }
 
     private static (WasmLiveSession session, IServiceProvider services) NewSession<TApp>()
@@ -115,4 +161,13 @@ public class NavigationDiffGateTests
     private static (WasmLiveSession session, IServiceProvider services) NewSession() => NewSession<StubApp>();
 
     private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);
+
+    private static string ExtractFirstHandlerId(byte[] payload)
+    {
+        using var doc = JsonDocument.Parse(payload.AsMemory());
+        var html = doc.RootElement.GetProperty("html").GetString()!;
+        var match = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
+        Assert.True(match.Success, $"no handler id in payload html: {html}");
+        return match.Groups[1].Value;
+    }
 }
