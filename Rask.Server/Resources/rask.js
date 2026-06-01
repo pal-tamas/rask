@@ -90,6 +90,15 @@
                         history.pushState({rask: true}, "", diffTarget);
                     }
                 }
+                // Fire-and-forget IJSRuntime invokes now ride the diff payload too
+                // (e.g. a scoped-JS OnRenderedAsync hook). Drain them via the same
+                // dispatchJsInvoke path the full-HTML branch uses so the Rask.*
+                // per-namespace deferral queue keeps working on the diff path.
+                if (Array.isArray(data.jsInvokes)) {
+                    for (var ji = 0; ji < data.jsInvokes.length; ji++) {
+                        dispatchJsInvoke(data.jsInvokes[ji]);
+                    }
+                }
                 if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
                 return;
             }
