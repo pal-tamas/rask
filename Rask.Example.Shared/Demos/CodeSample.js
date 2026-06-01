@@ -23,44 +23,20 @@
 // framework's OnRenderedAsync replays so re-firing it on a cached instance
 // post-morph is a cheap no-op instead of tearing down and rebuilding the
 // spans.
-let _hljsWaitHandle = 0;
-
 export function rendered(firstRender) {
     if (typeof window.hljs === "undefined" || typeof window.hljs.highlightElement !== "function") {
-        // hljs <script> hasn't executed yet. On a cold/constrained load the
-        // first-render invoke can win the race against highlight.min.js, and
-        // the framework's head-asset gate force-drains after its timeout — so
-        // this fires while window.hljs is still undefined. Rather than leaving
-        // the blocks as plain text forever (nothing re-fires rendered() on its
-        // own), poll briefly until hljs appears, then highlight. If it never
-        // appears (genuine asset failure: CDN flake, blocked, CSP) give up
-        // after the window and degrade gracefully to un-highlighted code.
-        scheduleHighlightWhenReady();
+        // hljs <script> didn't successfully define its global. The runtime's
+        // head-asset gate holds this invoke until highlight.min.js fires a
+        // terminal event, so a successful same-origin load is observable here;
+        // this branch only trips on a genuine asset failure (CDN flake, blocked,
+        // integrity mismatch, CSP). Leave code blocks as plain monospace text
+        // rather than crashing the page.
         return;
     }
-    highlightAll();
-}
-
-function highlightAll() {
     const codes = document.querySelectorAll('.sample-card code[class*="language-"]');
     if (codes.length === 0) return;
     codes.forEach(code => {
         if (code.dataset.highlighted) return;
         window.hljs.highlightElement(code);
     });
-}
-
-function scheduleHighlightWhenReady() {
-    if (_hljsWaitHandle !== 0) return;
-    let waited = 0;
-    _hljsWaitHandle = setInterval(() => {
-        if (typeof window.hljs !== "undefined" && typeof window.hljs.highlightElement === "function") {
-            clearInterval(_hljsWaitHandle);
-            _hljsWaitHandle = 0;
-            highlightAll();
-        } else if ((waited += 100) >= 10000) {
-            clearInterval(_hljsWaitHandle);
-            _hljsWaitHandle = 0;
-        }
-    }, 100);
 }

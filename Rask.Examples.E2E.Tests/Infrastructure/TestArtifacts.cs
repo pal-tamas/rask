@@ -6,11 +6,16 @@ internal static class TestArtifacts
 {
     private static readonly string Root = Path.Combine(LocateRepoRoot(), "TestResults", "E2E");
 
-    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog)
+    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog, string[]? console = null)
     {
         var safeName = string.Concat(testName.Select(c => char.IsLetterOrDigit(c) || c is '_' or '-' ? c : '_'));
         var dir = Path.Combine(Root, fixtureName, safeName);
         Directory.CreateDirectory(dir);
+
+        if (console is { Length: > 0 })
+        {
+            await File.WriteAllTextAsync(Path.Combine(dir, "console.txt"), string.Join('\n', console));
+        }
 
         try
         {
