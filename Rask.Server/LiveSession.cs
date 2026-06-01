@@ -411,9 +411,9 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
             // Decide payload shape. Default (DisabledFull) and any case where we can't
             // confidently ship a diff (first render, out-of-band side effects, ops we
-            // can't yet apply) routes to the full-HTML path. The diff path only fires
-            // when LiveOptions.DiffMode is Auto/Forced AND we have a clean diff smaller
-            // than the full HTML.
+            // can't yet apply) routes to the full-HTML path. The diff path fires
+            // when LiveOptions.DiffMode is Auto/Forced AND we have a clean diff — under
+            // Auto we ship it whenever it's not larger than re-sending the body.
             var usedDiff = false;
             var diffPathEntered = false;
             // Out-of-band side effects (auth, download, jsInvokes), history changes
@@ -441,14 +441,15 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                     LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
                     var diffBytes = _writeBuffer.WrittenCount;
 
-                    // Pick diff when it's <= 25% of the rendered HTML byte size, or when
-                    // Forced (testing). The rendered HTML byte size is a fair lower
-                    // bound for the full-payload bytes (the JSON-escaped wire form is
-                    // ~2x the HTML for typical pages), so this heuristic is conservative.
-                    // Result: diff path takes over for typical small-state-change cases
-                    // (counter, text update, attribute toggle) while big structural
-                    // changes (navigation, large list refresh) keep the full-HTML path.
-                    if (diffMode == LiveDiffMode.Forced || diffBytes * 4 < html.Length)
+                    // Ship the diff whenever it isn't larger than re-sending the body, or
+                    // unconditionally under Forced. The only case we fall back to full
+                    // HTML on size is the pathological one where nearly every node changed
+                    // (typically a tiny page) and the op-list framing (paths + values +
+                    // JSON) exceeds the body itself — then the diff would cost more bytes
+                    // than the baseline. Every genuine in-place state change (counter,
+                    // text, attribute, keyed list edit) is far smaller than the body and
+                    // takes the diff path regardless of page size.
+                    if (diffMode == LiveDiffMode.Forced || diffBytes < html.Length)
                     {
                         usedDiff = true;
                     }

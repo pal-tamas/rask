@@ -472,10 +472,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
                 var diffBytes = _writeBuffer.WrittenCount;
 
-                // Same threshold as the server: ship diff when it's ≤ 25% of the rendered
-                // HTML byte size, or unconditionally under Forced. Otherwise drop the diff
-                // bytes and fall through to the full-HTML build below.
-                if (diffMode == LiveDiffMode.Forced || diffBytes * 4 < html.Length)
+                // Same rule as the server: ship the diff whenever it isn't larger than
+                // re-sending the body, or unconditionally under Forced. We only drop the
+                // diff bytes and fall through to full HTML in the pathological case where
+                // nearly every node changed (tiny page) and the op-list framing exceeds
+                // the body itself — then the diff would cost more bytes than the baseline.
+                if (diffMode == LiveDiffMode.Forced || diffBytes < html.Length)
                 {
                     usedDiff = true;
                 }

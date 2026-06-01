@@ -20,9 +20,10 @@ public class WasmDiffPathTests
     public WasmDiffPathTests()
     {
         ScopedAssetRegistry.InvalidateAll();
-        // Forced (not Auto) so the diff payload is always shipped — the tiny
-        // StubApp tree (~150 bytes HTML) is below the 25%-of-HTML choose-smaller
-        // threshold and would route to full HTML under Auto.
+        // Forced pins the diff path unconditionally so these assertions never depend
+        // on payload sizing. Under Auto the StubApp's small in-place updates would also
+        // diff (the diff is smaller than re-sending the body); Forced just removes that
+        // last size comparison from the equation.
         LiveOptions.DiffMode = LiveDiffMode.Forced;
     }
 
