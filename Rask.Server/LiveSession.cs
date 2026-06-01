@@ -439,8 +439,14 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             {
                 _diffOps ??= new List<EditOp>();
                 diffPathEntered = true;
+                // Ship the diff when it carries DOM ops, OR when it carries no ops but a
+                // navigation needs to flow — a query-only nav (or any nav that doesn't
+                // alter the rendered body) produces zero ops, and a history-only diff
+                // (empty ops + history) pushes the URL for ~60 bytes instead of re-sending
+                // the whole document. Zero ops + no history means nothing to send (the
+                // html-dedup above already returned for that case).
                 if (_renderCache.TryComputeDiff(_diffOps, html)
-                    && _diffOps.Count > 0
+                    && (_diffOps.Count > 0 || historyUrl is not null)
                     && DiffOpsAreClientSupported(_diffOps))
                 {
                     LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes);

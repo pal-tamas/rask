@@ -61,6 +61,28 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
+    public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
+    {
+        var (session, _) = NewSession();
+        await session.InitialRenderAsync();
+
+        // StubApp renders only the path, never the query — navigating to the same path
+        // with a query produces zero DOM ops. The nav must still ship (to pushState the
+        // URL), and it does so as a history-only diff (empty ops) rather than the whole
+        // document.
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/","query":"?q=1"}"""));
+
+        var text = Encoding.UTF8.GetString(result);
+        using var doc = JsonDocument.Parse(result.AsMemory());
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("html", out _),
+            $"Query-only navigation must not ship full HTML. Got: {text[..Math.Min(300, text.Length)]}");
+        Assert.Empty(doc.RootElement.GetProperty("ops").EnumerateArray());
+        var history = doc.RootElement.GetProperty("history");
+        Assert.Equal("/?q=1", history.GetProperty("url").GetString());
+    }
+
+    [Fact]
     public async Task Navigate_HeadChanges_ShipsFullHtmlWithHistory()
     {
         var (session, _) = NewSession<RouteTitleStubApp>();
