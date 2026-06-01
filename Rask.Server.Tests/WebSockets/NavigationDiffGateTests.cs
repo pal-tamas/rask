@@ -48,6 +48,31 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
+    public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
+    {
+        await using var fixture = await Connect<NavigateInHandlerStateHasChangedApp>();
+
+        // First nav seeds the render-cache baseline (see note above).
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" });
+        _ = await DrainToLastFrame(fixture.Ws);
+
+        // Re-navigate to the SAME path with a query. The app renders only the path, so the
+        // body is unchanged → zero DOM ops. The nav must still ship to pushState the URL,
+        // as a history-only diff (empty ops) rather than the whole document.
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "?q=1" });
+
+        var frame = await DrainToLastFrame(fixture.Ws);
+        Assert.NotNull(frame);
+        using var doc = JsonDocument.Parse(frame!);
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("html", out _),
+            $"Query-only navigation must not ship full HTML. Got: {Truncate(frame!)}");
+        Assert.Empty(doc.RootElement.GetProperty("ops").EnumerateArray());
+        var history = doc.RootElement.GetProperty("history");
+        Assert.Equal("/page?q=1", history.GetProperty("url").GetString());
+    }
+
+    [Fact]
     public async Task Navigate_HeadChanges_ShipsFullHtmlWithHistory()
     {
         await using var fixture = await Connect<RouteTitleNavApp>();
