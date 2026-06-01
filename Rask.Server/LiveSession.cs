@@ -71,16 +71,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     private SessionRenderCache? _renderCache;
     private List<EditOp>? _diffOps;
 
-    // Set when the previous render shipped full HTML with jsInvokes pending. The
-    // next render — the one that runs after the JS-side returns its jsResult and
-    // the awaiting handler resumes — must also ship full HTML, NOT a diff. Why:
-    // the await-resume continuation can land outside the dispatch's normal serial
-    // ordering (continuations on LifecycleSyncContext), and the cache rotation
-    // assumptions held by the diff path stop applying. Sticking with full HTML
-    // for one more render forces a morph that re-bases the client DOM, then the
-    // diff path can resume safely on the render after that.
-    private bool _forceFullHtmlNextRender;
-
     public LiveSession(string id, Component view, IServiceScope scope)
     {
         Id = id;
@@ -416,21 +406,25 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // Auto we ship it whenever it's not larger than re-sending the body.
             var usedDiff = false;
             var diffPathEntered = false;
-            // Out-of-band side effects (auth, download, jsInvokes), history changes
-            // (navigation), and structural ops (InsertSubtree/RemoveSubtree) still
-            // need the full-HTML payload. Why structural ops: e2e validation (83 of
-            // 430 tests failed when the structural gate was lifted) showed naive
-            // InsertSubtree/RemoveSubtree on top of the morph baseline produces DOM
-            // states the morph library wouldn't have — preserved focused inputs,
-            // event-listener identity on swapped elements, dialog open/close state.
-            // Until applyDiff reaches morph-quality book-keeping, full HTML wins for
-            // structural changes. _forceFullHtmlNextRender keeps the render
-            // immediately after a jsInvokes payload on the full-HTML path so the
-            // await-resume continuation re-bases the client DOM via morph.
+            // Out-of-band side effects (auth, download), history changes (navigation),
+            // and structural ops (InsertSubtree/RemoveSubtree) still need the full-HTML
+            // payload. Why structural ops: e2e validation (83 of 430 tests failed when
+            // the structural gate was lifted) showed naive InsertSubtree/RemoveSubtree
+            // on top of the morph baseline produces DOM states the morph library
+            // wouldn't have — preserved focused inputs, event-listener identity on
+            // swapped elements, dialog open/close state. Until applyDiff reaches
+            // morph-quality book-keeping, full HTML wins for structural changes.
+            //
+            // jsInvokes do NOT gate the diff: fire-and-forget IJSRuntime calls (e.g. a
+            // scoped-JS OnRenderedAsync hook firing on every render) ride the diff
+            // payload via BuildPayloadUtf8Diff, matching WASM — which dispatches such
+            // calls out-of-band and never forced full HTML. When we DO fall back to
+            // full HTML (first render, oversized diff, structural ops) the client
+            // morphs to match the server's frame snapshot, so the next render diffs
+            // cleanly against it — the same way the no-jsInvokes path already recovers.
             if (frameWriter is not null && _renderCache is not null
-                && auth is null && download is null && jsInvokes is null
-                && historyUrl is null
-                && !_forceFullHtmlNextRender)
+                && auth is null && download is null
+                && historyUrl is null)
             {
                 _diffOps ??= new List<EditOp>();
                 diffPathEntered = true;
@@ -438,7 +432,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                     && _diffOps.Count > 0
                     && DiffOpsAreClientSupported(_diffOps))
                 {
-                    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace);
+                    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes);
                     var diffBytes = _writeBuffer.WrittenCount;
 
                     // Ship the diff whenever it isn't larger than re-sending the body, or
@@ -474,11 +468,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
                     _renderCache?.Snapshot();
                 }
             }
-
-            // Update the one-render-grace flag. If we shipped with jsInvokes pending,
-            // the next render (the await-resume continuation) must also be full HTML.
-            // Otherwise, clear it so subsequent renders return to the diff path.
-            _forceFullHtmlNextRender = jsInvokes is not null;
 
             // Skip the frame when the payload is byte-identical to the previous one AND nothing
             // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations

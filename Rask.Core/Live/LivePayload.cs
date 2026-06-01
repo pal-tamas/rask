@@ -248,7 +248,8 @@ public static class LivePayload
         ArrayBufferWriter<byte> output,
         IReadOnlyList<EditOp> ops,
         string? historyUrl = null,
-        bool replace = false)
+        bool replace = false,
+        IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -339,6 +340,13 @@ public static class LivePayload
         }
 
         writer.WriteEndArray();
+
+        // Fire-and-forget IJSRuntime invokes (e.g. a scoped-JS OnRenderedAsync hook)
+        // ride the diff payload the same way they ride the full-HTML payload, so a
+        // component that calls js.InvokeVoidAsync on every render no longer forces the
+        // whole page onto the full-HTML path. The client's diff branch drains these via
+        // dispatchJsInvoke, identical to the full-HTML branch.
+        WriteJsInvokesArray(writer, jsInvokes);
 
         if (historyUrl is not null)
         {
@@ -510,38 +518,7 @@ public static class LivePayload
         PendingDownload? download,
         IReadOnlyList<PendingJsInvoke>? jsInvokes)
     {
-        if (jsInvokes is { Count: > 0 })
-        {
-            // IJSRuntime.InvokeAsync<T> queue. Each entry resolves a dotted identifier
-            // against `window` on the client (e.g. "sessionStorage.getItem"), invokes
-            // it with the args (already JSON-encoded by the JSRuntime base class), and
-            // ships the result back as { type: "jsResult", id, success, result|error }.
-            // resultType drives how the client handles the return value (0=Default,
-            // 1=JSVoidResult, 2=JSObjectReference, 3=JSStreamReference); matches
-            // Microsoft.JSInterop.JSCallResultType so the base class's deserialiser
-            // round-trips IJSObjectReference handle ids without further plumbing here.
-            writer.WriteStartArray("jsInvokes");
-            foreach (var invoke in jsInvokes)
-            {
-                writer.WriteStartObject();
-                writer.WriteNumber("id", invoke.TaskId);
-                writer.WriteString("identifier", invoke.Identifier);
-                if (invoke.ArgsJson is not null)
-                {
-                    writer.WriteString("argsJson", invoke.ArgsJson);
-                }
-
-                writer.WriteNumber("resultType", invoke.ResultType);
-                if (invoke.TargetInstanceId != 0)
-                {
-                    writer.WriteNumber("targetInstanceId", invoke.TargetInstanceId);
-                }
-
-                writer.WriteEndObject();
-            }
-
-            writer.WriteEndArray();
-        }
+        WriteJsInvokesArray(writer, jsInvokes);
 
         if (historyUrl is not null)
         {
@@ -592,6 +569,46 @@ public static class LivePayload
         }
 
         writer.WriteEndObject();
+    }
+
+    private static void WriteJsInvokesArray(Utf8JsonWriter writer, IReadOnlyList<PendingJsInvoke>? jsInvokes)
+    {
+        if (jsInvokes is not { Count: > 0 })
+        {
+            return;
+        }
+
+        // IJSRuntime.InvokeAsync<T> queue. Each entry resolves a dotted identifier
+        // against `window` on the client (e.g. "sessionStorage.getItem"), invokes
+        // it with the args (already JSON-encoded by the JSRuntime base class), and
+        // ships the result back as { type: "jsResult", id, success, result|error }.
+        // resultType drives how the client handles the return value (0=Default,
+        // 1=JSVoidResult, 2=JSObjectReference, 3=JSStreamReference); matches
+        // Microsoft.JSInterop.JSCallResultType so the base class's deserialiser
+        // round-trips IJSObjectReference handle ids without further plumbing here.
+        // Shared by the full-HTML tail (WriteJsonTail) and the diff envelope
+        // (BuildPayloadUtf8Diff) so both wire shapes carry invokes identically.
+        writer.WriteStartArray("jsInvokes");
+        foreach (var invoke in jsInvokes)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("id", invoke.TaskId);
+            writer.WriteString("identifier", invoke.Identifier);
+            if (invoke.ArgsJson is not null)
+            {
+                writer.WriteString("argsJson", invoke.ArgsJson);
+            }
+
+            writer.WriteNumber("resultType", invoke.ResultType);
+            if (invoke.TargetInstanceId != 0)
+            {
+                writer.WriteNumber("targetInstanceId", invoke.TargetInstanceId);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static int IndexOfBodyOpen(string html)

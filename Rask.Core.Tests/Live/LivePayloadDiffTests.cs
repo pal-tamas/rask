@@ -55,6 +55,58 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
+    public void BuildPayloadUtf8Diff_WithJsInvokes_EmitsJsInvokesArray()
+    {
+        // Fire-and-forget IJSRuntime invokes ride the diff payload the same way they
+        // ride the full-HTML payload, so a per-render js.InvokeVoidAsync no longer
+        // forces the whole page onto the full-HTML path on the server runtime.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.UpdateText, new[] { 0, 1 }, null, "echo")
+        };
+        var invokes = new List<PendingJsInvoke>
+        {
+            new(7, "Rask.CodeSample.rendered", "[false]", 1, 0),
+            new(8, "sessionStorage.getItem", "[\"k\"]", 0, 42)
+        };
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops, jsInvokes: invokes);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.Equal("diff", root.GetProperty("kind").GetString());
+
+        var arr = root.GetProperty("jsInvokes").EnumerateArray().ToList();
+        Assert.Equal(2, arr.Count);
+
+        Assert.Equal(7, arr[0].GetProperty("id").GetInt64());
+        Assert.Equal("Rask.CodeSample.rendered", arr[0].GetProperty("identifier").GetString());
+        Assert.Equal("[false]", arr[0].GetProperty("argsJson").GetString());
+        Assert.Equal(1, arr[0].GetProperty("resultType").GetInt32());
+        // TargetInstanceId 0 is omitted (matches the full-HTML tail shape).
+        Assert.False(arr[0].TryGetProperty("targetInstanceId", out _));
+
+        Assert.Equal(8, arr[1].GetProperty("id").GetInt64());
+        Assert.Equal(42, arr[1].GetProperty("targetInstanceId").GetInt64());
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_WithoutJsInvokes_OmitsJsInvokesKey()
+    {
+        var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0 }, null, "x") };
+
+        var output = new ArrayBufferWriter<byte>(128);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.TryGetProperty("jsInvokes", out _));
+    }
+
+    [Fact]
     public void BuildPayloadUtf8Diff_MoveSubtree_EncodesSourceSlot()
     {
         // MoveSubtree's source slot lives at op[2]. Source slot 0 is a legitimate

@@ -37,6 +37,16 @@ public sealed class CodeSample(IJSRuntime js) : Component
     // idempotent on the JS side (skips blocks where dataset.highlighted is
     // already set) so firing on every render — including replays of cached
     // instances post-morph — does no extra work after the first highlight.
+    //
+    // Firing on EVERY render (not just firstRender) is load-bearing: when a render
+    // ships full HTML (a structural change such as mounting a new component, or the
+    // first render with no diff baseline) the client morph rebuilds the <code> DOM
+    // as plain text, dropping the hljs spans — this hook then re-decorates them.
+    // The live diff codec carries fire-and-forget invokes on the diff payload (see
+    // LivePayload.BuildPayloadUtf8Diff / LiveSession), so this per-render invoke no
+    // longer forces the Server runtime onto the full-HTML path; a keystroke in a
+    // sibling input ships a minimal diff that leaves the highlighted <code> untouched
+    // and the re-invoke is a cheap idempotent no-op.
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
