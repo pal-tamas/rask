@@ -254,7 +254,9 @@ public class AfterBindTests
         var html = view.RenderAsLiveRoot();
         var changeId = ExtractAttr(html, "data-rask-on-change")!;
 
-        using var click = JsonDocument.Parse("{\"value\":\"\"}");
+        // Checking the box: the client reports the post-toggle checked state ("true").
+        // BoolSetHandler sets the model to it and AfterBind sees the new value.
+        using var click = JsonDocument.Parse("{\"value\":\"true\"}");
         await view.TryInvokeHandlerAsync(changeId, click.RootElement);
 
         Assert.True(captured);

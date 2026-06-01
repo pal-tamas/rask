@@ -534,7 +534,15 @@
             return;
         }
         if (t.hasAttribute("data-rask-on-change")) {
-            send({id: t.getAttribute("data-rask-on-change"), type: "change", value: t.value});
+            // For a checkbox the meaningful state is el.checked, not el.value (which is the
+            // static "on" default). Report it as "true"/"false" so bound checkboxes set the
+            // model to the actual state (self-correcting) instead of relying on a server-side
+            // toggle. Radios and text inputs keep sending el.value (a radio's value IS the
+            // selected option).
+            var changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
+                ? (t.checked ? "true" : "false")
+                : t.value;
+            send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
         }
     });
 

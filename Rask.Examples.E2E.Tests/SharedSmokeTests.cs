@@ -235,11 +235,15 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     });
 
     [Fact]
-    public Task Binding_Checkbox_TogglesBoolModelTwice() => RunAsync(async () =>
+    public Task Binding_Checkbox_StaysInSyncAcrossManyClicks() => RunAsync(async () =>
     {
-        // Proves Input.Bound<bool> wires BoolToggleHandler on OnChangeAsync: each click
-        // immediately notifies changed+touched and pushes the negated value through the
-        // round trip. Two flips → the echo must show "true" then "false" again.
+        // Proves Input.Bound<bool> wires BoolSetHandler on OnChangeAsync: each click reports
+        // the checkbox's actual checked state and the model is SET to it (not toggled from a
+        // captured prior). Regression guard for the "checkbox sticks after a few clicks" bug:
+        // /binding's demos are wrapped in CodeSample, so clicks ship diffs (CodeSample queues
+        // a JS invoke every render) — the diff only re-bases `checked` when the server state
+        // changes between renders, so the blind toggle used to drift and never recover. Six
+        // alternating clicks must keep the checkbox AND its echo in lockstep every time.
         await NavigateToAsync("/binding");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -251,13 +255,22 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         await Expect(echo).ToContainTextAsync("Subscribe = false",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        await checkbox.ClickAsync();
-        await Expect(echo).ToContainTextAsync("Subscribe = true",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        await checkbox.ClickAsync();
-        await Expect(echo).ToContainTextAsync("Subscribe = false",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        for (var i = 0; i < 6; i++)
+        {
+            var expected = i % 2 == 0; // click 1 → true, 2 → false, …
+            await checkbox.ClickAsync();
+            await Expect(echo).ToContainTextAsync($"Subscribe = {(expected ? "true" : "false")}",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+            // The visible checkbox state must match the model echo on every click.
+            if (expected)
+            {
+                await Expect(checkbox).ToBeCheckedAsync();
+            }
+            else
+            {
+                await Expect(checkbox).Not.ToBeCheckedAsync();
+            }
+        }
     });
 
     [Fact]

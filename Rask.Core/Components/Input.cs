@@ -204,7 +204,7 @@ public sealed class Input : Element
                 Min: Min, Max: Max, Step: Step, Pattern: Pattern,
                 Size: Size, MaxLength: MaxLength, MinLength: MinLength,
                 Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-                OnChangeAsync: BindingHelpers.BoolToggleHandler(acc, ctx, fid, isChecked, afterBind),
+                OnChangeAsync: BindingHelpers.BoolSetHandler(acc, ctx, fid, afterBind),
                 Id: Id, Class: Class, Style: Style, Data: Data);
         }
 
