@@ -406,25 +406,36 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // Auto we ship it whenever it's not larger than re-sending the body.
             var usedDiff = false;
             var diffPathEntered = false;
-            // Out-of-band side effects (auth, download), history changes (navigation),
-            // and structural ops (InsertSubtree/RemoveSubtree) still need the full-HTML
-            // payload. Why structural ops: e2e validation (83 of 430 tests failed when
-            // the structural gate was lifted) showed naive InsertSubtree/RemoveSubtree
-            // on top of the morph baseline produces DOM states the morph library
-            // wouldn't have — preserved focused inputs, event-listener identity on
-            // swapped elements, dialog open/close state. Until applyDiff reaches
-            // morph-quality book-keeping, full HTML wins for structural changes.
+            // Out-of-band side effects (auth, download) and structural ops
+            // (InsertSubtree/RemoveSubtree) still need the full-HTML payload. Why
+            // structural ops: e2e validation (83 of 430 tests failed when the structural
+            // gate was lifted) showed naive InsertSubtree/RemoveSubtree on top of the
+            // morph baseline produces DOM states the morph library wouldn't have —
+            // preserved focused inputs, event-listener identity on swapped elements,
+            // dialog open/close state. Until applyDiff reaches morph-quality book-keeping,
+            // full HTML wins for structural changes (the DiffOpsAreClientSupported gate
+            // below rejects untrusted positional structural ops independently of history).
+            //
+            // History changes (navigation) ride the diff path ONLY when the rendered
+            // <head> is byte-identical to the last sent document. The diff codec walks the
+            // body but suppresses head-asset frames (HeadAssetRegistry), so a body-only
+            // diff would freeze <head> — wrong <title>, stale/missing scoped-CSS link for a
+            // newly-mounted page. When the head DID change we fall back to full HTML, which
+            // morphs document.documentElement and picks up the head delta (the behaviour
+            // every navigation used to take). BuildPayloadUtf8Diff already emits the history
+            // object and the client diff branch already applies pushState/replaceState.
             //
             // jsInvokes do NOT gate the diff: fire-and-forget IJSRuntime calls (e.g. a
             // scoped-JS OnRenderedAsync hook firing on every render) ride the diff
             // payload via BuildPayloadUtf8Diff, matching WASM — which dispatches such
             // calls out-of-band and never forced full HTML. When we DO fall back to
-            // full HTML (first render, oversized diff, structural ops) the client
-            // morphs to match the server's frame snapshot, so the next render diffs
+            // full HTML (first render, oversized diff, structural ops, head change) the
+            // client morphs to match the server's frame snapshot, so the next render diffs
             // cleanly against it — the same way the no-jsInvokes path already recovers.
             if (frameWriter is not null && _renderCache is not null
                 && auth is null && download is null
-                && historyUrl is null)
+                && (historyUrl is null
+                    || (_lastSentHtml is not null && HeadUnchanged(html, _lastSentHtml))))
             {
                 _diffOps ??= new List<EditOp>();
                 diffPathEntered = true;
@@ -578,6 +589,29 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         }
 
         return true;
+    }
+
+    // True when the <head> region (prefix through the closing </head>) of the freshly
+    // rendered document is byte-identical to the baseline last sent. The diff codec walks
+    // the body but suppresses head-asset frames (HeadAssetRegistry pushes a null
+    // FrameSinkScope), so a body-only diff would freeze <head> — wrong <title>, stale
+    // scoped-CSS link. Only when the head is unchanged is it safe to ship diff+history on
+    // a navigation; otherwise full HTML morphs document.documentElement and picks up the
+    // head delta. Both strings are the same root-attr-free HtmlSerializer output
+    // (data-rask-root is spliced onto <body> only at payload-write time), so the
+    // comparison is stable. A missing </head> in either string returns false (treat as
+    // changed → full HTML), never an unsafe true.
+    private static bool HeadUnchanged(string html, string baseline)
+    {
+        const string headClose = "</head>";
+        var a = html.IndexOf(headClose, StringComparison.Ordinal);
+        if (a < 0) return false;
+        var b = baseline.IndexOf(headClose, StringComparison.Ordinal);
+        if (b < 0) return false;
+        a += headClose.Length;
+        b += headClose.Length;
+        if (a != b) return false;
+        return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
     }
 
     private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)
