@@ -107,6 +107,35 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
+    public void BuildPayloadUtf8Diff_WithHeadHtml_EmitsHeadFieldRoundTrips()
+    {
+        // The head fragment carries raw markup with '<', '>', and quotes — it must round-trip
+        // exactly through the relaxed-escaping writer so the client can DOMParser it.
+        var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 1, 0, 0 }, null, "x") };
+        const string head = "<head><title>A &amp; B</title><link rel=\"stylesheet\" href=\"/x.css\"></head>";
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops, headHtml: head);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(head, doc.RootElement.GetProperty("head").GetString());
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_WithoutHeadHtml_OmitsHeadKey()
+    {
+        var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0 }, null, "x") };
+
+        var output = new ArrayBufferWriter<byte>(128);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        Assert.False(doc.RootElement.TryGetProperty("head", out _));
+    }
+
+    [Fact]
     public void BuildPayloadUtf8Diff_MoveSubtree_EncodesSourceSlot()
     {
         // MoveSubtree's source slot lives at op[2]. Source slot 0 is a legitimate

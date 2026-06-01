@@ -249,7 +249,8 @@ public static class LivePayload
         IReadOnlyList<EditOp> ops,
         string? historyUrl = null,
         bool replace = false,
-        IReadOnlyList<PendingJsInvoke>? jsInvokes = null)
+        IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
+        string? headHtml = null)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -347,6 +348,16 @@ public static class LivePayload
         // whole page onto the full-HTML path. The client's diff branch drains these via
         // dispatchJsInvoke, identical to the full-HTML branch.
         WriteJsInvokesArray(writer, jsInvokes);
+
+        // The diff frame stream never carries <head> content — user Head contributions are
+        // collected and spliced post-render (see HeadAssetRegistry), so a title/asset change
+        // produces zero ops. When the head changed the session attaches the new
+        // <head>...</head> element here; the client morphs it into document.head alongside
+        // applying the body ops, instead of falling back to a whole-document payload.
+        if (headHtml is not null)
+        {
+            writer.WriteString("head", headHtml);
+        }
 
         if (historyUrl is not null)
         {

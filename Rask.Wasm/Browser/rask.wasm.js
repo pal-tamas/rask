@@ -698,6 +698,15 @@ function handle(reply) {
     // history below so SPA navigation continues to work alongside the diff.
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
         applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
+        // The head isn't in the diff frame stream (user Head contributions are collected +
+        // spliced render-side), so a head change rides the payload as a <head> fragment.
+        // Morph it into document.head — keyed reconciliation (data-rask-key) keeps unchanged
+        // scoped-CSS links so there's no flash, and morph skips data-rask-managed boot
+        // bundles so they survive. The scanHeadAssets() below then tracks any new assets.
+        if (typeof reply.head === "string") {
+            const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
+            if (freshHead) morph(document.head, freshHead);
+        }
         applyHistory(reply.history);
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
         // (keyed InsertSubtree). Track them so their load events feed the Rask.* invoke

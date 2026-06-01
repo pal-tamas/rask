@@ -82,6 +82,16 @@
             // afterwards so navigation + side effects still flow.
             if (data.kind === "diff" && Array.isArray(data.ops)) {
                 applyDiff(data.ops, Array.isArray(data.names) ? data.names : null);
+                // The head isn't in the diff frame stream (user Head contributions are
+                // collected + spliced server-side), so a head change rides the payload as a
+                // <head> fragment. Morph it into document.head — keyed reconciliation
+                // (data-rask-key) keeps unchanged scoped-CSS links so there's no flash — then
+                // re-scan so newly-added scoped <script>/<link> feed the Rask.* invoke gate.
+                if (typeof data.head === "string") {
+                    var freshHead = new DOMParser().parseFromString(data.head, "text/html").head;
+                    if (freshHead) morph(document.head, freshHead);
+                    scanHeadAssets();
+                }
                 if (data.history && typeof data.history.url === "string") {
                     var diffTarget = prependBase(data.history.url);
                     if (data.history.action === "replace") {
