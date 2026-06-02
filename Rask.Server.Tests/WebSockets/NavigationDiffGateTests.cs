@@ -26,10 +26,9 @@ public class NavigationDiffGateTests
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
-        // First nav seeds the render-cache baseline: a fresh attach dedups its catch-up
-        // render against the GET-time HTML, so _renderCache._previous is null until a
-        // non-deduped render rotates it through. (Same reason the first post-attach
-        // interaction always ships full HTML.) This first nav ships full HTML and snapshots.
+        // Navigate to /seed first so the asserted transition below is /seed -> /destination
+        // (a same-<head> change). The GET render already seeded the diff baseline, so this
+        // nav itself diffs against it; we drain and ignore it.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
         _ = await DrainToLastFrame(fixture.Ws);
 
@@ -52,7 +51,7 @@ public class NavigationDiffGateTests
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
-        // First nav seeds the render-cache baseline (see note above).
+        // Navigate to /page first so the re-navigation below is a same-path query-only change.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" });
         _ = await DrainToLastFrame(fixture.Ws);
 
@@ -77,7 +76,7 @@ public class NavigationDiffGateTests
     {
         await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>();
 
-        // First nav seeds the render-cache baseline (see Navigate_SameHead note).
+        // Navigate to /seed first so the asserted transition below is /seed -> /destination.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
         _ = await DrainToLastFrame(fixture.Ws);
 

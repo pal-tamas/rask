@@ -195,6 +195,39 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     /// </summary>
     internal void SeedInitialHtml(string html) => _lastSentHtml = html;
 
+    /// <summary>
+    ///     Render the initial root for the HTTP-GET response, seeding BOTH the dedup
+    ///     baseline (<c>_lastSentHtml</c> via <see cref="SeedInitialHtml" />) and — when the
+    ///     diff codec is on — the render-cache FRAME baseline. Capturing the GET render's
+    ///     <c>RenderFrame</c> stream and <see cref="SessionRenderCache.Snapshot" />-ing it
+    ///     means the FIRST interactive WS render diffs against the HTML the browser already
+    ///     holds, instead of re-shipping the whole document. Without this the frame cache is
+    ///     seeded only by the first full-HTML interactive send, so the first state change
+    ///     after page load always ships the body in full.
+    /// </summary>
+    internal string RenderInitialRoot()
+    {
+        string html;
+        if (LiveOptions.DiffMode != LiveDiffMode.DisabledFull)
+        {
+            _renderCache ??= new SessionRenderCache();
+            var frameWriter = _renderCache.PrepareCurrentBuffer();
+            using (FrameSinkScope.Push(frameWriter))
+            {
+                html = View.RenderAsLiveRoot(Services);
+            }
+
+            _renderCache.Snapshot(); // promote GET frames to the diff baseline
+        }
+        else
+        {
+            html = View.RenderAsLiveRoot(Services);
+        }
+
+        SeedInitialHtml(html);
+        return html;
+    }
+
     // True after the first socket has ever attached to this session. Lets AttachSocket
     // distinguish the GET→hello first attach (where the browser's HTML is guaranteed to
     // match the session's state because the browser literally just rendered the GET

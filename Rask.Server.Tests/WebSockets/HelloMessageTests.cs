@@ -63,9 +63,12 @@ public class HelloMessageTests
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(text);
-        using var doc = JsonDocument.Parse(text!);
-        Assert.True(doc.RootElement.TryGetProperty("html", out var htmlProp));
-        Assert.Contains("loaded", htmlProp.GetString());
+        // The catch-up frame must carry the post-GET "loaded" state. Its wire shape depends
+        // on the active diff mode: with the diff codec on, the GET render seeded the baseline
+        // (<p>loading</p>) so this ships a minimal text diff (loading -> loaded) the browser
+        // applies against the GET HTML; under DisabledFull it ships full HTML. Either way the
+        // new text must reach the browser, which is what this test guards.
+        Assert.Contains("loaded", text);
     }
 
     [Fact]
