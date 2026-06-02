@@ -60,6 +60,12 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     // LifecycleCycleProbe uses (LifecycleProbe.cs:49).
     public Action<string>? Log { get; set; }
 
+    // Pluggable price feed. Null ⇒ the synthetic random-walk below. A real deploy
+    // swaps in an HTTP-backed Func here — the "one-line change in PollOnceAsync"
+    // the page narrative describes. A source that throws is caught in PollOnceAsync
+    // and surfaced via _error (the #ticker-error alert).
+    public Func<string, decimal>? PriceSource { get; set; }
+
     // The framework dedupes head-asset entries by full rendered HTML, so two
     // LiveTicker instances on the same page share a single Chart.js script tag.
     protected override RenderResult Head =>
@@ -206,7 +212,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
                 return;
             }
 
-            var price = SimulateNextPrice(symbolForRequest);
+            var price = (PriceSource ?? SimulateNextPrice)(symbolForRequest);
             _history.Add(new PricePoint(DateTimeOffset.UtcNow, price));
             if (_history.Count > HistoryCapacity)
             {
