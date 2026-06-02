@@ -951,7 +951,20 @@ public abstract class Component
         // below) and apply once.
         if (LiveRenderContext.Current is { } liveCtx)
         {
+            // ApplyTo replaces the head-asset sentinel in place, shifting every byte position
+            // after it. The diff codec's frame offsets were captured against the pre-splice
+            // HTML, so when a frame stream is being captured (diff path) we must move the
+            // offsets past the sentinel by the same delta — otherwise an InsertSubtree fragment
+            // (sliced from this post-splice HTML via those offsets) reads the wrong bytes.
+            var sentinelIdx = html.IndexOf(Rask.Core.HeadAssets.HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
+            var preLen = html.Length;
             html = liveCtx.HeadAssets.ApplyTo(html, liveCtx.Services);
+            if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
+            {
+                frameSink.AdjustOffsetsFrom(
+                    sentinelIdx + Rask.Core.HeadAssets.HeadAssetRegistry.Sentinel.Length,
+                    html.Length - preLen);
+            }
         }
 
         // Fail-fast backstop for a malformed root: the App must render the full page shell

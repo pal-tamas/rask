@@ -224,6 +224,35 @@ public sealed class FrameWriter
 
         return _count++;
     }
+
+    /// <summary>
+    ///     Shift every recorded HTML offset at or past <paramref name="from" /> by
+    ///     <paramref name="delta" />. Frame offsets are captured against the serialized HTML;
+    ///     when <c>RenderAsLiveRootCore</c> later splices the head-asset sentinel out of (or
+    ///     replaces it within) that HTML, every byte position after the splice moves, so the
+    ///     offsets must move in lockstep — otherwise <c>FrameDiffer</c>'s <c>InsertSubtree</c>
+    ///     fragment (sliced from the post-splice HTML via these offsets) reads the wrong bytes.
+    /// </summary>
+    public void AdjustOffsetsFrom(int from, int delta)
+    {
+        if (delta == 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _count; i++)
+        {
+            if (_buffer[i].HtmlStart >= from)
+            {
+                _buffer[i].HtmlStart += delta;
+            }
+
+            if (_buffer[i].HtmlEnd >= from)
+            {
+                _buffer[i].HtmlEnd += delta;
+            }
+        }
+    }
 }
 
 /// <summary>
