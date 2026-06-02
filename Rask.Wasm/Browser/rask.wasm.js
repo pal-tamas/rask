@@ -42,11 +42,14 @@ const failedHeadAssets = new Set();
 const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 // Scoped /_rask/a/{hash}.js scripts are same-origin and effectively always fire a
 // load/error event, so they only need a hang-backstop, not the short user-CDN
-// contract. 5s comfortably covers a cold scoped-JS load now that the bundle is baked
-// to disk and served with a 200 (see Rask.Wasm.targets _RaskBakeScopedAssetsBeforeRun);
-// the earlier 30s value was a misdiagnosis of a 404 — a genuinely-missing asset fires
-// 'error' immediately, so a missing namespace should surface fast, not hang.
-const SCOPED_ASSET_LOAD_TIMEOUT_MS = 5000;
+// contract. The window must comfortably exceed how long a cold scoped-JS load can lag
+// behind the first-render Rask.* invoke on a constrained 2-core runner — a deep-link
+// straight to a CodeSample page queues Rask.CodeSample.rendered before the per-component
+// <script defer> has executed, and a short window force-faults the invoke into
+// "Could not find ... on target" so highlighting never lands. A genuinely-missing asset
+// (404) still surfaces fast: its <script> fires an 'error' event that drains the gate
+// immediately, so the long window only ever applies to a slow-but-loading asset.
+const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
 
 function isAssetAlreadyLoaded(url) {
     if (!url || !window.performance || !performance.getEntriesByName) return false;
