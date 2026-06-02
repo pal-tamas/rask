@@ -184,12 +184,12 @@ public static class RaskEndpointExtensions
             var routeState = session.Services.GetRequiredService<RouteState>();
             routeState.Path = path;
             routeState.Query = AdaptQuery(httpContext.Request.Query);
-            var html = session.View.RenderAsLiveRoot(session.Services);
-            // Seed the dedup baseline so the first post-hello WS frame can dedup against
-            // the HTML the browser already has from this GET response (mirroring WASM's
-            // InitialRenderAsync, which populates `_lastAppliedHtml` for the same reason).
-            // Without this, a no-op click after hello would re-send the GET HTML verbatim.
-            session.SeedInitialHtml(html);
+            // Render the GET shell and seed both baselines: the dedup baseline so a no-op
+            // click after hello dedups against the HTML the browser already has (mirroring
+            // WASM's InitialRenderAsync / `_lastAppliedHtml`), AND the diff-codec frame
+            // baseline so the FIRST interactive WS render ships a diff instead of the whole
+            // document. See LiveSession.RenderInitialRoot.
+            var html = session.RenderInitialRoot();
             var content = LivePayload.InjectRootAttr(html, session.Id);
             httpContext.Response.ContentType = "text/html; charset=utf-8";
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
