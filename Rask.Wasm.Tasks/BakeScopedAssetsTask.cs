@@ -50,6 +50,18 @@ public sealed class BakeScopedAssetsTask : Task
     [Required]
     public ITaskItem[] Assemblies { get; set; } = Array.Empty<ITaskItem>();
 
+    /// <summary>
+    ///     When <c>true</c>, the bake fails the build (logs an error, returns
+    ///     <c>false</c>) if the Rask registry resolved but produced zero files — i.e.
+    ///     a Rask WASM project whose scoped assets silently failed to bake. Defaults to
+    ///     <c>false</c>: a non-Rask project (no <c>Rask.Core</c>) still no-ops quietly,
+    ///     and the build-time bake stays non-fatal. Wired to <c>true</c> only on the
+    ///     <c>dotnet run</c> hook, where a missing bundle means the served app would
+    ///     404 on every <c>/_rask/a/</c> URL — better to fail fast than serve a broken
+    ///     standalone bundle.
+    /// </summary>
+    public bool FailOnEmpty { get; set; }
+
     public override bool Execute()
     {
         if (string.IsNullOrEmpty(BundleDir))
@@ -74,9 +86,18 @@ public sealed class BakeScopedAssetsTask : Task
 
         try
         {
-            var written = BakeFromAssemblies();
+            var written = BakeFromAssemblies(out var registryResolved);
             Log.LogMessage(MessageImportance.High,
                 $"Rask asset bake: wrote {written} file(s) under '{Path.Combine(BundleDir, "_rask", "a")}'.");
+
+            if (FailOnEmpty && registryResolved && written == 0)
+            {
+                Log.LogError("Rask asset bake: the Rask registry resolved but zero /_rask/a/ files " +
+                             $"were written under '{BundleDir}'. The standalone WASM app would 404 on every " +
+                             "scoped-asset URL. Failing the build (FailOnEmpty=true).");
+                return false;
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -91,8 +112,9 @@ public sealed class BakeScopedAssetsTask : Task
         }
     }
 
-    private int BakeFromAssemblies()
+    private int BakeFromAssemblies(out bool registryResolved)
     {
+        registryResolved = false;
         // Track every directory we see assemblies in, so the AssemblyResolve fallback
         // can satisfy late-bound references (e.g. one assembly's [ModuleInitializer]
         // touching a type from another) without us having to load every dep upfront.
@@ -163,6 +185,8 @@ public sealed class BakeScopedAssetsTask : Task
                 "Rask asset bake: Rask.Core not found in bundle. Skipping (not a Rask WASM project).");
             return 0;
         }
+
+        registryResolved = true;
 
         // Reset before re-firing — module initializers ran once per ALC load; calling
         // RefreshAll explicitly guarantees a clean snapshot regardless of MSBuild

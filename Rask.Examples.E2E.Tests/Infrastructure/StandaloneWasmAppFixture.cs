@@ -83,6 +83,46 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
         using var cts = new CancellationTokenSource(ReadyTimeout);
         var url = await _baseUrl.Task.WaitAsync(cts.Token);
         await WaitForReadyAsync(url, cts.Token);
+        await VerifyScopedAssetsServedAsync(repoRoot, url, cts.Token);
+    }
+
+    /// <summary>
+    ///     Fail fast (and descriptively) if the served bundle is missing its baked
+    ///     per-component scoped assets. WasmAppHost is a static-file server: the
+    ///     <c>/_rask/a/{hash}.{ext}</c> files must exist on disk (baked by
+    ///     <c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c>) or every CodeSample page 404s on
+    ///     <c>window.Rask.CodeSample</c> and highlighting never runs. Without this probe
+    ///     that surfaces as five separate ~5s Playwright "locator never visible" timeouts
+    ///     with no hint at the cause; with it, the whole collection fails once, here, with
+    ///     the missing URL and the bundle directory named.
+    /// </summary>
+    private static async Task VerifyScopedAssetsServedAsync(string repoRoot, string url, CancellationToken ct)
+    {
+        var bundleDir = Path.Combine(repoRoot, ProjectRelativePath, "bin",
+            Configuration, "net10.0-browser", "browser-wasm", "AppBundle");
+        var scopedDir = Path.Combine(bundleDir, "_rask", "a");
+
+        var jsFile = Directory.Exists(scopedDir)
+            ? Directory.EnumerateFiles(scopedDir, "*.js").FirstOrDefault()
+            : null;
+        if (jsFile is null)
+        {
+            throw new InvalidOperationException(
+                $"{ProjectRelativePath} served bundle is missing baked scoped-JS assets under '{scopedDir}'. " +
+                "The BakeScopedAssetsTask bake did not produce /_rask/a/*.js — standalone WASM would 404 on " +
+                "every scoped-asset URL and highlight/JS-interop tests would all time out. " +
+                "See Rask.Wasm/build/Rask.Wasm.targets (_RaskBakeScopedAssets / _RaskBakeScopedAssetsBeforeRun).");
+        }
+
+        var assetUrl = $"{url}/_rask/a/{Path.GetFileName(jsFile)}";
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        using var resp = await http.GetAsync(assetUrl, ct);
+        if (resp.StatusCode != System.Net.HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException(
+                $"{ProjectRelativePath} served {assetUrl} with HTTP {(int)resp.StatusCode} (expected 200). " +
+                $"The baked file exists on disk at '{jsFile}' but the static host did not serve it.\n{url}");
+        }
     }
 
     public async Task DisposeAsync()
