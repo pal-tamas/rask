@@ -71,7 +71,12 @@
       after the build phase waiting on those workers (Bash wrappers and CI see this as a
       ~15-minute hang).
     -->
-    <Exec Command="dotnet publish &quot;%(_RaskWasmRef.FullPath)&quot; -c $(Configuration) --nologo -v:quiet -nodeReuse:false"
+    <!--
+      -v:minimal (not quiet): the scoped-asset bake logs its "wrote N file(s)" at High
+      importance and any failure as a warning. -v:quiet hid both, which masked a build
+      where the standalone bundle shipped without /_rask/a/ files.
+    -->
+    <Exec Command="dotnet publish &quot;%(_RaskWasmRef.FullPath)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"
           ContinueOnError="WarnAndContinue"
           Condition=" '$(_RaskWasmAppBundleDir)' != '' "/>
   </Target>

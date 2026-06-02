@@ -56,6 +56,41 @@ function _raskReplaceChild(parent, dst, src) {
     parent.replaceChild(dst, src);
 }
 
+// Lagging-render value guard. When a user commits a change on a change-only input
+// (date / number / select), a re-render the server computed BEFORE that change
+// reached it can land afterwards and clobber the user's value. The focus guard in
+// morph() only protects the *focused* element, but a change commits on blur, so by
+// the time the lagging frame arrives focus has already moved on.
+//
+// On the change dispatch the runtime records the input's PRE-EDIT value (its last
+// server-rendered `value` attribute) — exactly what such a lagging frame carries.
+// A subsequent server value is suppressed only while it equals that recorded value;
+// any other value is the authoritative response to the user's change — the echo of
+// the new value OR a server correction/normalisation (e.g. clearing a non-nullable
+// int snaps the model to 0) — so it applies and releases the guard. Recording the
+// pre-edit value (not the user's new value) is what lets a correction through:
+// suppress-if-equal-to-stale, not suppress-unless-equal-to-mine.
+//
+// Keyed by element identity — morph patches inputs in place, so identity survives
+// across re-renders. Backed by a window global so the helper is reachable from both
+// the spliced morph (here) and the host runtime's event / diff code (rask.js,
+// rask.wasm.js), regardless of splice ordering.
+function _raskPendingValues() {
+    return window.__raskPendingValues || (window.__raskPendingValues = new WeakMap());
+}
+
+function raskNotePendingValue(el, supersededValue) {
+    if (el) _raskPendingValues().set(el, supersededValue);
+}
+
+function raskShouldSuppressValue(el, incoming) {
+    var map = _raskPendingValues();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === incoming) return true;   // lagging frame carrying the stale value
+    map.delete(el);                               // authoritative response — release the guard
+    return false;
+}
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
         _raskReplaceChild(from.parentNode, to, from);
@@ -87,7 +122,10 @@ function morph(from, to) {
             var newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
             if (newVal === null) newVal = "";
-            if (from.value !== newVal) from.value = newVal;
+            // raskShouldSuppressValue runs first so it can clear a confirmed echo
+            // even when from.value already equals newVal; a still-pending user edit
+            // (incoming !== the value the user committed) is left untouched.
+            if (!raskShouldSuppressValue(from, newVal) && from.value !== newVal) from.value = newVal;
             var checked = to.hasAttribute("checked");
             if (from.checked !== checked) from.checked = checked;
         }

@@ -552,6 +552,15 @@
             var changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
                 ? (t.checked ? "true" : "false")
                 : t.value;
+            // Record the PRE-EDIT value (the last server-rendered `value` attribute)
+            // so a lagging re-render carrying that stale value can't clobber the
+            // user's fresh edit before the server's authoritative response lands —
+            // see raskShouldSuppressValue. Checkboxes self-correct via the checked
+            // path, so they don't participate in the value guard.
+            if (!(t.tagName === "INPUT" && t.type === "checkbox")) {
+                var sv = t.getAttribute("value");
+                raskNotePendingValue(t, sv === null ? "" : sv);
+            }
             send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
         }
     });
@@ -841,6 +850,7 @@
         if (!tag) return;
         if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
             if (document.activeElement === el) return;
+            if (raskShouldSuppressValue(el, value)) return;
             el.value = value;
         } else if (name === "checked" && tag === "INPUT") {
             el.checked = !!isPresent;

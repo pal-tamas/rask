@@ -138,6 +138,58 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
+    public void FailOnEmpty_WhenAssetsBaked_ReturnsTrue()
+    {
+        // The real assemblies register a non-empty scoped-asset set, so even with the
+        // fail-fast guard armed the bake succeeds.
+        var task = NewTask(_bundleDir, new ITaskItem[]
+        {
+            new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
+            new TaskItem(typeof(Rask.Example.Shared.App).Assembly.Location),
+        });
+        task.FailOnEmpty = true;
+
+        Assert.True(task.Execute());
+        Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(_bundleDir, "_rask", "a")));
+        Assert.Empty(((StubBuildEngine)task.BuildEngine).Errors);
+    }
+
+    [Fact]
+    public void FailOnEmpty_WhenRegistryResolvedButZeroBaked_ReturnsFalseAndLogsError()
+    {
+        // Rask.Core is present so the registry resolves, but we feed NO registration-
+        // bearing assembly (no Rask.Example.Shared), and clear the registry first so the
+        // module-initializer-populated entries from this test process don't leak in.
+        // Result: registry resolved, zero entries → the guard fails the build.
+        ScopedAssetRegistry.InvalidateAllCss();
+        ScopedAssetRegistry.InvalidateAllJs();
+
+        var task = NewTask(_bundleDir, new ITaskItem[]
+        {
+            new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
+        });
+        task.FailOnEmpty = true;
+
+        Assert.False(task.Execute());
+        Assert.NotEmpty(((StubBuildEngine)task.BuildEngine).Errors);
+    }
+
+    [Fact]
+    public void FailOnEmpty_WhenNotARaskProject_ReturnsTrue()
+    {
+        // No Rask.Core in the assembly set → registry never resolves → silent no-op even
+        // with the guard armed (a non-Rask WASM project must not be failed by the bake).
+        var task = NewTask(_bundleDir, new ITaskItem[]
+        {
+            new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll")),
+        });
+        task.FailOnEmpty = true;
+
+        Assert.True(task.Execute());
+        Assert.Empty(((StubBuildEngine)task.BuildEngine).Errors);
+    }
+
+    [Fact]
     public void Rerun_OverwritesSameFiles_Idempotent()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;

@@ -80,10 +80,56 @@
     <_RaskBakeInputAssemblies Include="$(OutDir)*.dll" Exclude="$(OutDir)publish/**;$(OutDir)AppBundle/**" />
   </ItemGroup>
 
+  <!--
+    Build-time bake. Hooks BOTH _WasmGenerateAppBundle (the SDK target that fills the
+    bundle) and the generic Build target. The second hook matters because a solution
+    build can satisfy _WasmGenerateAppBundle for Rask.Example.Wasm via a concurrent
+    nested `dotnet publish` (fired by Rask.Wasm.Hosting's _RaskPublishWasmBundle from
+    every host/test project that references the WASM app). When that happens the direct
+    build's _WasmGenerateAppBundle is incrementally skipped — so an AfterTargets hook on
+    it alone never fires against the served bin/.../AppBundle, and a late concurrent
+    clean+regen can strip the _rask/a files written by another worker. AfterTargets=Build
+    guarantees one bake after this project's own build settles. The task overwrites and
+    is idempotent, so a double-bake is a cheap no-op. Guarded on Exists($(WasmAppDir)) so
+    it's a no-op when no bundle was produced.
+    NOTE: the standalone-WASM E2E fixture serves the bundle via `dotnet run` with the
+    no-build flag, which can re-stage the bundle after this build — see
+    _RaskBakeScopedAssetsBeforeRun.
+  -->
   <Target Name="_RaskBakeScopedAssets"
-          AfterTargets="_WasmGenerateAppBundle"
-          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') ">
+          AfterTargets="_WasmGenerateAppBundle;Build"
+          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') AND '$(WasmAppDir)' != '' AND Exists('$(WasmAppDir)') ">
     <BakeScopedAssetsTask BundleDir="$(WasmAppDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
+  </Target>
+
+  <!--
+    Run-time bake. `dotnet run` on a Rask WASM project launches WasmAppHost over the
+    served AppBundle. It computes the launch via the SDK's ComputeRunArguments target
+    (which the Run target depends on) even when the Build is skipped, so hooking
+    AfterTargets="ComputeRunArguments" fires in both `dotnet run` and `dotnet run` with
+    the no-build flag — unlike a hook on Run itself, which the no-build path does not
+    execute. This re-bakes the _rask/a files into the exact directory about to be served,
+    making the served bundle immune to whatever concurrent-build race left it in.
+
+    $(WasmAppDir) is empty at this point (the SDK only sets it inside a build), so we
+    compute the served bundle dir the same way the SDK's RunWorkingDirectory resolves:
+    $(OutDir)AppBundle (absolute, via the project dir). The build-output assemblies the
+    bake reads ($(OutDir)*.dll) are present from the prior build.
+
+    FailOnEmpty=true: if the registry resolves but nothing bakes, fail fast with a clear
+    error instead of serving a bundle that 404s on every scoped-asset URL.
+  -->
+  <Target Name="_RaskBakeScopedAssetsBeforeRun"
+          AfterTargets="ComputeRunArguments"
+          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') ">
+    <PropertyGroup>
+      <_RaskRunBundleDir Condition=" '$(WasmAppDir)' != '' ">$(WasmAppDir)</_RaskRunBundleDir>
+      <_RaskRunBundleDir Condition=" '$(_RaskRunBundleDir)' == '' ">$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(OutDir)', 'AppBundle'))</_RaskRunBundleDir>
+    </PropertyGroup>
+    <BakeScopedAssetsTask BundleDir="$(_RaskRunBundleDir)"
+                          Assemblies="@(_RaskBakeInputAssemblies)"
+                          FailOnEmpty="true"
+                          Condition=" Exists('$(_RaskRunBundleDir)') "/>
   </Target>
 
   <!--
