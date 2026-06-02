@@ -25,9 +25,12 @@
 // spans.
 export function rendered(firstRender) {
     if (typeof window.hljs === "undefined" || typeof window.hljs.highlightElement !== "function") {
-        // hljs <script> didn't successfully define its global — almost
-        // always a transient asset-load failure. Leave code blocks as
-        // plain monospace text rather than crashing the page.
+        // hljs <script> didn't successfully define its global. The runtime's
+        // head-asset gate holds this invoke until highlight.min.js fires a
+        // terminal event, so a successful same-origin load is observable here;
+        // this branch only trips on a genuine asset failure (CDN flake, blocked,
+        // integrity mismatch, CSP). Leave code blocks as plain monospace text
+        // rather than crashing the page.
         return;
     }
     const codes = document.querySelectorAll('.sample-card code[class*="language-"]');

@@ -42,9 +42,13 @@ const failedHeadAssets = new Set();
 const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 // Scoped /_rask/a/{hash}.js scripts are same-origin and effectively always fire a
 // load/error event, so they only need a hang-backstop, not the short user-CDN
-// contract. The window must comfortably exceed how long a cold scoped-JS load can
-// lag behind the first-render Rask.* invoke on a constrained runner — otherwise the
-// gate gives up and force-faults the call into "Could not find ... on target".
+// contract. The window must comfortably exceed how long a cold scoped-JS load can lag
+// behind the first-render Rask.* invoke on a constrained 2-core runner — a deep-link
+// straight to a CodeSample page queues Rask.CodeSample.rendered before the per-component
+// <script defer> has executed, and a short window force-faults the invoke into
+// "Could not find ... on target" so highlighting never lands. A genuinely-missing asset
+// (404) still surfaces fast: its <script> fires an 'error' event that drains the gate
+// immediately, so the long window only ever applies to a slow-but-loading asset.
 const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
 
 function isAssetAlreadyLoaded(url) {
@@ -72,6 +76,14 @@ function trackHeadAsset(el) {
     else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
     else return;
     if (isScoped && el.tagName !== "SCRIPT") return;
+    // A same-origin asset (scoped /_rask/a/* OR a vendored user-Head script like a
+    // self-hosted highlight.min.js) is reliable but can load slowly on a constrained
+    // cold boot; it gets the generous hang-backstop. Only a true cross-origin CDN keeps
+    // the short 5s contract (a dead CDN must not hold Rask.* invokes for 30s). A failed
+    // same-origin asset still fires 'error' quickly, so the longer window only ever
+    // applies to a genuinely slow-but-loading asset.
+    const sameOrigin = typeof url === "string" && url.indexOf(location.origin) === 0;
+    const useLongBackstop = isScoped || sameOrigin;
     trackedHeadAssets.add(el);
     if (isAssetAlreadyLoaded(url)) return;
     pendingHeadAssets.add(el);
@@ -96,10 +108,10 @@ function trackHeadAsset(el) {
     // Safety: the load/error event may have fired between insertion and our
     // listener attach (cache hit). The performance.getEntriesByName check
     // covers most cases; the timeout covers everything else so a missed
-    // event doesn't hold Rask.* invokes forever. Scoped assets get a generous
-    // hang-backstop (a slow same-origin load is legitimate); user CDN assets keep
+    // event doesn't hold Rask.* invokes forever. Same-origin assets get a generous
+    // hang-backstop (a slow same-origin load is legitimate); cross-origin CDNs keep
     // the shorter contract.
-    setTimeout(() => finish("timeout"), isScoped ? SCOPED_ASSET_LOAD_TIMEOUT_MS : HEAD_ASSET_LOAD_TIMEOUT_MS);
+    setTimeout(() => finish("timeout"), useLongBackstop ? SCOPED_ASSET_LOAD_TIMEOUT_MS : HEAD_ASSET_LOAD_TIMEOUT_MS);
 }
 
 function scanHeadAssets() {
@@ -145,12 +157,18 @@ function raskNamespaceReady(identifier) {
 
 // Per-component scripts load asynchronously over HTTP from /_rask/a/{hash}.js. A first-
 // render OnRenderedAsync calling Rask.X.method races the script's load event; the parked
-// invoke needs a way to wake up when window.Rask.X appears. A 100ms poll for ≤5s catches
-// the common cache-warm-load path and times out on broken URLs (e.g., standalone WASM
-// hosting that hasn't baked the assets to disk — those calls then surface "Could not find"
-// as documented, rather than hanging forever).
+// invoke needs a way to wake up when window.Rask.X appears. A 100ms poll catches the
+// common cache-warm-load path and times out on genuinely-missing namespaces (those calls
+// then surface "Could not find" as documented, rather than hanging forever).
+//
+// The timeout matches the scoped-asset load backstop (SCOPED_ASSET_LOAD_TIMEOUT_MS): on a
+// constrained cold boot (e.g. the 2-core CI runner) the per-component bundle can execute
+// several seconds after the first-render invoke is queued, and when its <script> isn't yet
+// tracked as a pending head asset, headAssetsReady() is true — so a short 5s window would
+// force-fault "Could not find 'Rask.X.method' on target" and trip RootErrorBoundary while
+// the bundle was merely still loading. The longer window lets the namespace appear first.
 const RASK_NAMESPACE_POLL_INTERVAL_MS = 100;
-const RASK_NAMESPACE_POLL_TIMEOUT_MS = 5000;
+const RASK_NAMESPACE_POLL_TIMEOUT_MS = SCOPED_ASSET_LOAD_TIMEOUT_MS;
 let raskNamespacePollHandle = 0;
 let raskNamespacePollStarted = 0;
 
@@ -393,6 +411,7 @@ function syncFormProperty(el, name, value, isPresent) {
     if (!tag) return;
     if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
         if (document.activeElement === el) return;
+        if (raskShouldSuppressValue(el, value)) return;
         el.value = value;
     } else if (name === "checked" && tag === "INPUT") {
         el.checked = !!isPresent;
@@ -713,6 +732,15 @@ document.addEventListener("change", (e) => {
         const changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
             ? (t.checked ? "true" : "false")
             : t.value;
+        // Record the PRE-EDIT value (the last server-rendered `value` attribute) so a
+        // lagging re-render carrying that stale value can't clobber the user's fresh
+        // edit before the server's authoritative response lands — see
+        // raskShouldSuppressValue. Checkboxes self-correct via the checked path, so
+        // they stay out of the value guard.
+        if (!(t.tagName === "INPUT" && t.type === "checkbox")) {
+            const sv = t.getAttribute("value");
+            raskNotePendingValue(t, sv === null ? "" : sv);
+        }
         send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
     }
 });
