@@ -716,6 +716,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
         var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
 
+        // Key (Component-level, Blazor @key parity) is a reconciliation IDENTITY, not a reactive
+        // prop: it's a factory param and is assigned to the instance, but it's excluded from the
+        // propsChanged diff. That keeps a propertyless component on the `propsChanged: false` fast
+        // path, and means a Key change never fires OnPropsChanged (a different key is a different
+        // logical item, which mounts fresh rather than re-rendering the old instance).
+        var hasKeyProp = paramProps.Any(IsKeyProp);
+        var diffProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
+
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
         // primitives (Text/Raw's string-arg ctor), the generated factory only needs the
@@ -752,9 +760,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(')').AppendLine(c.TypeParameterConstraints);
         sb.AppendLine("    {");
 
-        if (paramProps.Count == 0)
+        if (diffProps.Count == 0)
         {
-            // Legacy parameterless factory shape preserved.
+            // Legacy parameterless factory shape preserved (Key, if present, is assigned but not
+            // diffed — so this fast path still emits propsChanged: false).
             sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
             sb.AppendLine("        {");
             sb.Append("            var __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
@@ -773,12 +782,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
             }
 
+            if (hasKeyProp)
+            {
+                sb.AppendLine("            __c.Key = Key;");
+            }
+
             sb.AppendLine("            __ctx.NotifyParameters(__c, propsChanged: false);");
             sb.AppendLine("            return __c;");
             sb.AppendLine("        }");
             if (c.HasParameterlessCtor)
             {
-                sb.Append("        return new ").Append(c.FullyQualifiedName).AppendLine("();");
+                if (hasKeyProp)
+                {
+                    sb.Append("        var __cf = new ").Append(c.FullyQualifiedName).AppendLine("();");
+                    sb.AppendLine("        __cf.Key = Key;");
+                    sb.AppendLine("        return __cf;");
+                }
+                else
+                {
+                    sb.Append("        return new ").Append(c.FullyQualifiedName).AppendLine("();");
+                }
             }
             else
             {
@@ -826,7 +849,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
         }
 
-        EmitSnapshotsAndAssignments(sb, paramProps);
+        EmitSnapshotsAndAssignments(sb, paramProps, diffProps);
         sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
         sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
         sb.AppendLine("        return __c;");
@@ -1110,26 +1133,37 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append("            }");
     }
 
-    private static void EmitSnapshotsAndAssignments(StringBuilder sb, IReadOnlyList<PropInfo> props)
+    // assignProps: every factory param re-applied to the (possibly cached) instance each render —
+    // includes Key. foldProps: the subset that participates in the propsChanged diff — excludes
+    // Key (a reconciliation identity, not a reactive prop).
+    private static void EmitSnapshotsAndAssignments(StringBuilder sb,
+        IReadOnlyList<PropInfo> assignProps, IReadOnlyList<PropInfo> foldProps)
     {
-        // Snapshot prior values (typed via the property's FQN so nullable annotations round-trip).
-        foreach (var p in props)
+        // Snapshot prior values of the diff-participating props (typed via the property's FQN so
+        // nullable annotations round-trip).
+        foreach (var p in foldProps)
         {
             sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Name).AppendLine(";");
         }
 
-        // Re-apply props so cached instances see fresh values.
-        foreach (var p in props)
+        // Re-apply ALL params (including Key) so cached instances see fresh values.
+        foreach (var p in assignProps)
         {
             sb.Append("        __c.").Append(p.Name).Append(" = ").Append(p.Name).AppendLine(";");
+        }
+
+        if (foldProps.Count == 0)
+        {
+            sb.AppendLine("        var __propsChanged = false;");
+            return;
         }
 
         // Fold per-prop equality into a single __propsChanged bool. EqualityComparer<T>.Default
         // gives ref-equality for ref types unless the type overrides Equals, and structural for
         // primitives — same semantics Blazor uses for [Parameter] equality.
-        if (props.Count == 1)
+        if (foldProps.Count == 1)
         {
-            var p = props[0];
+            var p = foldProps[0];
             sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
                 .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name)
                 .AppendLine(");");
@@ -1137,14 +1171,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        var __propsChanged =");
-        for (var i = 0; i < props.Count; i++)
+        for (var i = 0; i < foldProps.Count; i++)
         {
-            var p = props[i];
+            var p = foldProps[i];
             sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
                 .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name).Append(')');
-            sb.AppendLine(i < props.Count - 1 ? " ||" : ";");
+            sb.AppendLine(i < foldProps.Count - 1 ? " ||" : ";");
         }
     }
+
+    private static bool IsKeyProp(PropInfo p) => string.Equals(p.Name, "Key", StringComparison.Ordinal);
 
     private static void EmitGlobalUsings(
         SourceProductionContext spc,

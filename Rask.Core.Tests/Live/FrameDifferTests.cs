@@ -228,6 +228,23 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Diff_KeyedList_ViaKeyProperty_UsesKeyedPathWithTrustedRemove()
+    {
+        // The first-class Key property emits the same data-rask-key the differ keys on, so a
+        // middle-row delete takes the trusted keyed path exactly like the Data["rask-key"] form.
+        var before = Frames(BuildKeyedRowsViaKeyProp(0, 1, 2, 3, 4));
+        var afterFrames = Frames(BuildKeyedRowsViaKeyProp(0, 1, 3, 4));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        var remove = Assert.Single(ops);
+        Assert.Equal(EditOpKind.RemoveSubtree, remove.Kind);
+        Assert.True(remove.Trusted);
+    }
+
+    [Fact]
     public void Diff_KeyedList_MiddleRowDeleted_EmitsSingleTrustedRemove()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3, 4));
@@ -470,6 +487,19 @@ public class FrameDifferTests
             rows.Add(C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
                 $"Item {k}"
             ]);
+        }
+
+        return C.Ul()[rows];
+    }
+
+    // Same shape as BuildKeyedRows but keyed via the first-class Key property instead of a
+    // Data["rask-key"] entry — the differ should treat them identically.
+    private static Component BuildKeyedRowsViaKeyProp(params int[] keys)
+    {
+        var rows = new List<Child>(keys.Length);
+        foreach (var k in keys)
+        {
+            rows.Add(C.Li(Key: k)[$"Item {k}"]);
         }
 
         return C.Ul()[rows];

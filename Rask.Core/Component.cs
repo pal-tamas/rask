@@ -60,6 +60,18 @@ public abstract class Component
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
     public IEnumerable<Child>? Children { get; set; }
 
+    // Stable identity for keyed list reconciliation (Blazor `@key` parity). When set on an
+    // element it emits `data-rask-key`; when set on a transparent component (a custom
+    // component / Fragment) the serializer forwards it onto that component's FIRST rendered
+    // element (see HtmlSerializer + KeyForwardScope). The diff codec reads the attribute
+    // (FrameDiffer.ExtractRaskKey) to match siblings by identity and ship TRUSTED structural
+    // ops (Insert/Remove/Move) instead of a positional full-HTML morph. `object?` so callers
+    // pass a Guid/int/string directly; stringified on emit. Nullable + no initializer ⇒ the
+    // factory generator exposes it as an optional `Key:` parameter on every factory.
+    // NOTE: keyed insert/append during a navigation currently renders the new row with wrong
+    // content (a known framework bug); delete/move/in-place keyed edits are correct.
+    public object? Key { get; set; }
+
     // Primary children indexer. `Div()[Span(...), "hi"]` is the call shape: literal lists of
     // Components/strings (each implicitly Child via Child's converters). Overload resolution
     // prefers this `params Child[]` form over the IEnumerable<…> variants below — the compiler

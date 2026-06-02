@@ -97,22 +97,42 @@ internal static class HtmlSerializer
             }
 
             case Fragment fragment:
-                if (fragment.ChildrenArray is { } fragmentArray)
+            {
+                // A keyed Fragment forwards its Key onto the first element it renders (the
+                // first child's first element); Consume in WriteAttributes claims it once.
+                var fragKey = fragment.Key?.ToString();
+                if (fragKey is not null)
                 {
-                    for (var i = 0; i < fragmentArray.Length; i++)
+                    KeyForwardScope.Arm(fragKey);
+                }
+
+                try
+                {
+                    if (fragment.ChildrenArray is { } fragmentArray)
                     {
-                        Serialize(fragmentArray[i].Component, sb);
+                        for (var i = 0; i < fragmentArray.Length; i++)
+                        {
+                            Serialize(fragmentArray[i].Component, sb);
+                        }
+                    }
+                    else if (fragment.Children is { } fragmentChildren)
+                    {
+                        foreach (var child in fragmentChildren)
+                        {
+                            Serialize(child.Component, sb);
+                        }
                     }
                 }
-                else if (fragment.Children is { } fragmentChildren)
+                finally
                 {
-                    foreach (var child in fragmentChildren)
+                    if (fragKey is not null)
                     {
-                        Serialize(child.Component, sb);
+                        KeyForwardScope.Clear();
                     }
                 }
 
                 break;
+            }
 
             case ErrorBoundary boundary:
                 SerializeErrorBoundary(boundary, sb);
@@ -229,7 +249,28 @@ internal static class HtmlSerializer
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
                 {
-                    Serialize(component.RenderForLive(), sb);
+                    // Component-level Key (Blazor @key parity): a transparent user component
+                    // emits no tag, so forward its Key onto the first element of its rendered
+                    // body (the component's root element), which Consumes it in WriteAttributes.
+                    // Only the first element claims it; Clear in finally stops it leaking to a
+                    // following sibling when the body renders no element at all.
+                    var fwdKey = component.Key?.ToString();
+                    if (fwdKey is not null)
+                    {
+                        KeyForwardScope.Arm(fwdKey);
+                    }
+
+                    try
+                    {
+                        Serialize(component.RenderForLive(), sb);
+                    }
+                    finally
+                    {
+                        if (fwdKey is not null)
+                        {
+                            KeyForwardScope.Clear();
+                        }
+                    }
                 }
                 break;
         }
