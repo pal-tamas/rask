@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Rask.Generators.Tests;
 
@@ -10,6 +11,46 @@ internal static class GeneratorDriverFixture
     public static GeneratorRun Run(string source) => Run(source, new ComponentFactoryGenerator());
 
     public static GeneratorRun RunRoutes(string source) => Run(source, new RoutesGenerator());
+
+    /// <summary>
+    ///     Runs <paramref name="generator" /> over multiple named sources plus optional in-memory
+    ///     <c>AdditionalText</c> files (scoped <c>.css</c>/<c>.js</c> siblings). Consolidates the
+    ///     per-file <c>Run</c>/<c>BuildReferences</c>/<c>InMemoryAdditionalText</c> copies in the
+    ///     scoped-asset generator test classes.
+    /// </summary>
+    public static GeneratorRun Run(
+        (string Path, string Source)[] sources,
+        IIncrementalGenerator generator,
+        (string Path, string Contents)[]? additionalTexts = null)
+    {
+        var trees = sources
+            .Select(s => CSharpSyntaxTree.ParseText(
+                s.Source,
+                new CSharpParseOptions(LanguageVersion.Latest),
+                s.Path))
+            .ToArray();
+
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            trees,
+            BuildReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable));
+
+        var driver = CSharpGeneratorDriver
+            .Create(generator)
+            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest));
+
+        if (additionalTexts is { Length: > 0 })
+        {
+            driver = driver.AddAdditionalTexts(additionalTexts
+                .Select(t => (AdditionalText)new InMemoryAdditionalText(t.Path, t.Contents))
+                .ToImmutableArray());
+        }
+
+        var runResult = driver.RunGenerators(compilation).GetRunResult();
+        return new GeneratorRun(runResult, compilation);
+    }
 
     private static GeneratorRun Run(string source, IIncrementalGenerator generator)
     {
@@ -30,7 +71,7 @@ internal static class GeneratorDriverFixture
         return new GeneratorRun(runResult, compilation);
     }
 
-    private static ImmutableArray<MetadataReference> BuildReferences()
+    internal static ImmutableArray<MetadataReference> BuildReferences()
     {
         var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
@@ -43,6 +84,22 @@ internal static class GeneratorDriverFixture
         var raskCore = Assembly.Load("Rask.Core");
         refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
         return refs.ToImmutableArray();
+    }
+
+    private sealed class InMemoryAdditionalText : AdditionalText
+    {
+        private readonly string _contents;
+
+        public InMemoryAdditionalText(string path, string contents)
+        {
+            Path = path;
+            _contents = contents;
+        }
+
+        public override string Path { get; }
+
+        public override SourceText GetText(CancellationToken cancellationToken = default) =>
+            SourceText.From(_contents);
     }
 }
 

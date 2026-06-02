@@ -149,7 +149,7 @@ public class NavLinkTests
     [Fact]
     public void Render_LiveRenderContext_NoRouteStateRegistered_NoActiveClass()
     {
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = RenderHarness.EmptyServices();
         using var _ = LiveRenderContext.Begin(new StubComponent(Span()), services);
 
         Assert.Equal(

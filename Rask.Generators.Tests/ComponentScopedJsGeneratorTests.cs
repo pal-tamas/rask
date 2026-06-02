@@ -131,63 +131,6 @@ public class ComponentScopedJsGeneratorTests
 
     private static GeneratorRun Run(
         (string Path, string Source)[] sources,
-        (string Path, string Contents)[] additionalJs)
-    {
-        var trees = sources
-            .Select(s => CSharpSyntaxTree.ParseText(
-                s.Source,
-                new CSharpParseOptions(LanguageVersion.Latest),
-                s.Path))
-            .ToArray();
-
-        var references = BuildReferences();
-        var compilation = CSharpCompilation.Create(
-            "TestAssembly",
-            trees,
-            references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
-
-        var additionalTexts = additionalJs
-            .Select(t => (AdditionalText)new InMemoryAdditionalText(t.Path, t.Contents))
-            .ToImmutableArray();
-
-        var driver = CSharpGeneratorDriver
-            .Create(new ComponentScopedJsGenerator())
-            .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
-            .AddAdditionalTexts(additionalTexts);
-
-        var runResult = driver.RunGenerators(compilation).GetRunResult();
-        return new GeneratorRun(runResult, compilation);
-    }
-
-    private static ImmutableArray<MetadataReference> BuildReferences()
-    {
-        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        var refs = trustedAssemblies
-            .Select(path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
-            .ToList();
-
-        var raskCore = Assembly.Load("Rask.Core");
-        refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
-        return refs.ToImmutableArray();
-    }
-
-    private sealed class InMemoryAdditionalText : AdditionalText
-    {
-        private readonly string _contents;
-
-        public InMemoryAdditionalText(string path, string contents)
-        {
-            Path = path;
-            _contents = contents;
-        }
-
-        public override string Path { get; }
-
-        public override SourceText? GetText(CancellationToken cancellationToken = default)
-            => SourceText.From(_contents);
-    }
+        (string Path, string Contents)[] additionalJs) =>
+        GeneratorDriverFixture.Run(sources, new ComponentScopedJsGenerator(), additionalJs);
 }

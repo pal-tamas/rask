@@ -85,26 +85,12 @@ public class RootShellAnalyzerTests
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },
-            BuildReferences(),
+            GeneratorDriverFixture.BuildReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
         var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(new RootShellAnalyzer());
         var all = await compilation.WithAnalyzers(analyzers).GetAnalyzerDiagnosticsAsync();
         return all.Where(d => d.Id == "RASK021").ToImmutableArray();
-    }
-
-    private static ImmutableArray<MetadataReference> BuildReferences()
-    {
-        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        var refs = trustedAssemblies
-            .Select(path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
-            .ToList();
-
-        var raskCore = Assembly.Load("Rask.Core");
-        refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
-        return refs.ToImmutableArray();
     }
 }

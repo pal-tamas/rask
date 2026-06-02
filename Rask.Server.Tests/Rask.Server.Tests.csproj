@@ -30,11 +30,13 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components.Generated" Static="true"/>
     <Using Include="Rask.Core.Routing.Generated" Static="true"/>
+    <Using Include="Rask.TestSupport"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

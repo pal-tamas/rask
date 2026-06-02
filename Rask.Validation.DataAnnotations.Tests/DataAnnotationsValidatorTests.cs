@@ -31,7 +31,7 @@ public class DataAnnotationsValidatorTests
         ]);
 
         var html1 = view.RenderAsLiveRoot();
-        var submit1 = ExtractAttr(html1, "data-rask-on-submit");
+        var submit1 = Markup.Attr(html1, "data-rask-on-submit");
         Assert.NotNull(submit1);
 
         using (var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}"))
@@ -48,7 +48,7 @@ public class DataAnnotationsValidatorTests
         p.Age = 30;
 
         var html2 = view.RenderAsLiveRoot();
-        var submit2 = ExtractAttr(html2, "data-rask-on-submit");
+        var submit2 = Markup.Attr(html2, "data-rask-on-submit");
         Assert.NotNull(submit2);
 
         using (var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}"))
@@ -57,20 +57,6 @@ public class DataAnnotationsValidatorTests
         }
 
         Assert.Same(p, captured);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     [Fact]
@@ -116,7 +102,7 @@ public class DataAnnotationsValidatorTests
         {
             Departure = new DateOnly(2026, 6, 1), Arrival = new DateOnly(2026, 6, 5), RaiseFormLevel = true
         };
-        var ctx = RegisterValidatorFor(m);
+        var ctx = RegisterValidator(m);
 
         ctx.Validate();
 
@@ -133,7 +119,7 @@ public class DataAnnotationsValidatorTests
         {
             Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
         };
-        var ctx = RegisterValidatorFor(m);
+        var ctx = RegisterValidator(m);
 
         ctx.Validate();
 
@@ -154,7 +140,7 @@ public class DataAnnotationsValidatorTests
             Arrival = new DateOnly(2026, 6, 5),
             RaiseFormLevel = true
         };
-        var ctx = RegisterValidatorFor(m);
+        var ctx = RegisterValidator(m);
 
         ctx.Validate();
 
@@ -173,7 +159,7 @@ public class DataAnnotationsValidatorTests
         {
             Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
         };
-        var ctx = RegisterValidatorFor(m);
+        var ctx = RegisterValidator(m);
 
         ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Departure)));
 
@@ -193,24 +179,13 @@ public class DataAnnotationsValidatorTests
             Arrival = new DateOnly(2026, 6, 5),
             RaiseFormLevel = true
         };
-        var ctx = RegisterValidatorFor(m);
+        var ctx = RegisterValidator(m);
 
         ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Name)));
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Name))));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
-    }
-
-    private static EditContext RegisterValidatorFor(object model)
-    {
-        var ctx = new EditContext(model);
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-        }
-
-        return ctx;
     }
 
     [Fact]
@@ -230,26 +205,6 @@ public class DataAnnotationsValidatorTests
 
         ctx.Validate();
         Assert.Single(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
-    }
-
-    // Pushes the scope, renders a DataAnnotationsValidator component (which registers its
-    // Inner IFieldValidator into the context), and returns the context for further assertions.
-    private static EditContext RegisterValidator(Person p)
-    {
-        var ctx = new EditContext(p);
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-        }
-
-        return ctx;
-    }
-
-    private sealed class StubComponent : Component
-    {
-        private readonly Func<Component> _factory;
-        public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override RenderResult Render() => _factory();
     }
 
     private sealed class BookingModel : IValidatableObject

@@ -123,7 +123,7 @@ public class ErrorBoundaryTests
         // The default branch of HtmlSerializer stamps Component.Boundary on descendants
         // so async lifecycle / event-handler catch sites can find the right boundary.
         // This test asserts the stamp happens.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { probe }, null);
@@ -141,7 +141,7 @@ public class ErrorBoundaryTests
     {
         // Second-render must not clobber a boundary already assigned during the first
         // walk — that would lose the link when nested boundaries swap fallbacks.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
         var first = ErrorBoundary();
         first.SetProps(new Child[] { probe }, null);

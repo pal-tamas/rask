@@ -34,7 +34,7 @@ public class ComponentFactoryIntegrationTests
     [Fact]
     public void Factory_InsideContext_PreservesInstanceAcrossRenders_AndReappliesProps()
     {
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = RenderHarness.EmptyServices();
 
         var currentName = "alice";
         GreetCard? captured = null;

@@ -251,7 +251,7 @@ public class NestedValidationTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
@@ -281,57 +281,12 @@ public class NestedValidationTests
         var initial = view.RenderAsLiveRoot();
         Assert.DoesNotContain("Street required", initial);
 
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
         var afterBlur = view.RenderAsLiveRoot();
         Assert.Contains("Street required", afterBlur);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
-    }
-
-    private static EditContext RegisterValidator<T>(T model) where T : class
-    {
-        var ctx = new EditContext(model);
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-        }
-
-        return ctx;
-    }
-
-    private sealed class StubComponent : Component
-    {
-        private readonly Func<Component> _factory;
-        public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override RenderResult Render() => _factory();
-    }
-
-    private sealed class ContextCapture(Action<EditContext> capture) : Component
-    {
-        protected override RenderResult Render()
-        {
-            if (EditContextScope.Current is { } c)
-            {
-                capture(c);
-            }
-
-            return Fragment();
-        }
     }
 
     private sealed class Person

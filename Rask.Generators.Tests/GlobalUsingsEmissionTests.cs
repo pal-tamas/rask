@@ -161,7 +161,7 @@ public class GlobalUsingsEmissionTests
     private static ImmutableArray<GeneratedSourceResult> RunRaw(string source, Dictionary<string, string>? buildProps)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var references = BuildReferences();
+        var references = GeneratorDriverFixture.BuildReferences();
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },
@@ -181,20 +181,6 @@ public class GlobalUsingsEmissionTests
 
         var result = driver.RunGenerators(compilation).GetRunResult();
         return result.Results.SelectMany(r => r.GeneratedSources).ToImmutableArray();
-    }
-
-    private static ImmutableArray<MetadataReference> BuildReferences()
-    {
-        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        var refs = trustedAssemblies
-            .Select(path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
-            .ToList();
-
-        var raskCore = Assembly.Load("Rask.Core");
-        refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
-        return refs.ToImmutableArray();
     }
 
     private sealed class TestAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider

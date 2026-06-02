@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -10,14 +9,12 @@ public class MountTests
     [Fact]
     public void OnMount_FiresOnce_AcrossManyRenders()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         for (var i = 0; i < 5; i++)
         {
-            using var ctx = LiveRenderContext.Begin(c, sp);
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            using (RenderHarness.Render(c, sp)) { }
         }
 
         Assert.Equal(1, c.MountCount);
@@ -27,14 +24,12 @@ public class MountTests
     [Fact]
     public void OnPropsChanged_FiresEveryRenderWhenPropsChange()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         for (var i = 0; i < 3; i++)
         {
-            using var ctx = LiveRenderContext.Begin(c, sp);
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            using (RenderHarness.Render(c, sp)) { }
         }
 
         Assert.Equal(3, c.PropsChangedCount);
@@ -44,14 +39,12 @@ public class MountTests
     [Fact]
     public void OnPropsChanged_FiresOnceWhenPropsUnchanged()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         for (var i = 0; i < 3; i++)
         {
-            using var ctx = LiveRenderContext.Begin(c, sp);
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, false);
+            using (RenderHarness.Render(c, sp, propsChanged: false)) { }
         }
 
         Assert.Equal(1, c.PropsChangedCount);
@@ -63,13 +56,9 @@ public class MountTests
     {
         var order = new List<string>();
         var c = new OrderRecorder(order);
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
 
-        using (var ctx = LiveRenderContext.Begin(c, sp))
-        {
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
-        }
+        using (RenderHarness.Render(c, sp)) { }
 
         Assert.Equal(new[] { "mount", "props" }, order);
     }
@@ -80,13 +69,9 @@ public class MountTests
         var handle = new RecordingRenderHandle();
         var tcs = new TaskCompletionSource();
         var c = new LifecycleTrackingComponent { RenderHandle = handle, OnMountAsyncImpl = () => tcs.Task };
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
 
-        using (var ctx = LiveRenderContext.Begin(c, sp))
-        {
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
-        }
+        using (RenderHarness.Render(c, sp)) { }
 
         Assert.Equal(0, handle.RequestRenderCount);
         tcs.SetResult();

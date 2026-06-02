@@ -24,7 +24,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_SameHead_ShipsDiffWithHistory()
     {
-        await using var fixture = await Connect<NavigateInHandlerStateHasChangedApp>();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
         // First nav seeds the render-cache baseline: a fresh attach dedups its catch-up
         // render against the GET-time HTML, so _renderCache._previous is null until a
@@ -50,7 +50,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
     {
-        await using var fixture = await Connect<NavigateInHandlerStateHasChangedApp>();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
         // First nav seeds the render-cache baseline (see note above).
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" });
@@ -75,7 +75,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
     {
-        await using var fixture = await Connect<RouteTitleNavApp>();
+        await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>();
 
         // First nav seeds the render-cache baseline (see Navigate_SameHead note).
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
@@ -101,7 +101,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
     {
-        await using var fixture = await Connect<RouteTitleStructuralNavApp>();
+        await using var fixture = await ConnectedSession.Connect<RouteTitleStructuralNavApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
         _ = await DrainToLastFrame(fixture.Ws);
@@ -135,52 +135,4 @@ public class NavigationDiffGateTests
     }
 
     private static string Truncate(string s) => s[..Math.Min(300, s.Length)];
-
-    private static async Task<ConnectedSession> Connect<TApp>() where TApp : Rask.Core.Component
-    {
-        var host = RaskTestHost.Create<TApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = ExtractSessionId(await initial.Content.ReadAsStringAsync());
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        // Drain the post-attach catch-up frame so the nav assertions observe only nav
-        // traffic — and so _lastSentHtml is seeded as the diff/head baseline.
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        var session = host.Store.Get(sessionId)!;
-        return new ConnectedSession(host, ws, session);
-    }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
-
-    private sealed class ConnectedSession : IAsyncDisposable
-    {
-        public ConnectedSession(RaskTestHost host, WebSocket ws, LiveSession session)
-        {
-            Host = host;
-            Ws = ws;
-            Session = session;
-        }
-
-        public RaskTestHost Host { get; }
-        public WebSocket Ws { get; }
-        public LiveSession Session { get; }
-
-        public async ValueTask DisposeAsync()
-        {
-            try
-            {
-                if (Ws.State == WebSocketState.Open)
-                {
-                    await Ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-                }
-            }
-            catch
-            {
-            }
-
-            Ws.Dispose();
-            Host.Dispose();
-        }
-    }
 }

@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public class ReconciliationTests
 {
     private static readonly IServiceProvider EmptyServices =
-        new ServiceCollection().BuildServiceProvider();
+        RenderHarness.EmptyServices();
 
     [Fact]
     public void GetOrCreate_FreshContext_AllocatesAndStores()
@@ -130,7 +130,7 @@ public class ReconciliationTests
 internal static class LiveRenderContextFactoryAccess
 {
     private static readonly IServiceProvider EmptyServices =
-        new ServiceCollection().BuildServiceProvider();
+        RenderHarness.EmptyServices();
 
     // Mirrors the internal Begin overload for tests. Internals are visible to the test project.
     // After the per-parent refactor, "previous children" lives on the parent component itself,

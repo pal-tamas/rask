@@ -16,26 +16,18 @@ namespace Rask.Wasm.Tests.Session;
 // the rebuild — handler-initiated navigation silently lost its pushState and
 // the browser URL stayed pinned to the previous path.
 [Collection("WasmSession")]
-public class NavigationPublishRerenderTests
+public class NavigationPublishRerenderTests : ResettingTestBase
 {
-    public NavigationPublishRerenderTests() => ScopedAssetRegistry.InvalidateAll();
-
     [Fact]
     public async Task NavigatorNavigate_WithPublishRenderRebuild_PayloadStillCarriesHistoryUrl()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<NavigateWithPublishRenderApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
+        var (session, provider) = NewSession<NavigateWithPublishRenderApp>();
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
 
         var result = await session.DispatchAsync(
-            Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
+            Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         Assert.NotEmpty(result);
         using var doc = JsonDocument.Parse(result.AsMemory());
@@ -51,14 +43,5 @@ public class NavigationPublishRerenderTests
 
         // Sanity: route state was actually updated by the handler.
         Assert.Equal("/destination", provider.GetRequiredService<RouteState>().Path);
-    }
-
-    private static string ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success, $"no handler id in payload html: {html}");
-        return match.Groups[1].Value;
     }
 }

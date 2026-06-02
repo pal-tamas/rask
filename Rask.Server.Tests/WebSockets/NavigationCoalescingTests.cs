@@ -26,7 +26,7 @@ public class NavigationCoalescingTests
     [Fact]
     public async Task Navigate_WithRouteChangedStateHasChanged_EmitsOnlyOnePayload()
     {
-        await using var fixture = await Connect();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
@@ -67,7 +67,7 @@ public class NavigationCoalescingTests
         // re-threaded so the actually-sent payload preserves it. The Server's
         // RenderAndSendCoalescingAsync re-passes those args on every iteration
         // — without that, navigation would silently lose its pushState.
-        await using var fixture = await Connect();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
@@ -83,53 +83,5 @@ public class NavigationCoalescingTests
         using var doc = JsonDocument.Parse(lastFrame!);
         Assert.True(doc.RootElement.TryGetProperty("history", out var history));
         Assert.Equal("/destination", history.GetProperty("url").GetString());
-    }
-
-    private static async Task<ConnectedSession> Connect()
-    {
-        var host = RaskTestHost.Create<NavigateInHandlerStateHasChangedApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = ExtractSessionId(await initial.Content.ReadAsStringAsync());
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        // Drain any post-attach catch-up frame so the per-test assertions
-        // observe only nav-driven traffic.
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        var session = host.Store.Get(sessionId)!;
-        return new ConnectedSession(host, ws, session);
-    }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
-
-    private sealed class ConnectedSession : IAsyncDisposable
-    {
-        public ConnectedSession(RaskTestHost host, WebSocket ws, LiveSession session)
-        {
-            Host = host;
-            Ws = ws;
-            Session = session;
-        }
-
-        public RaskTestHost Host { get; }
-        public WebSocket Ws { get; }
-        public LiveSession Session { get; }
-
-        public async ValueTask DisposeAsync()
-        {
-            try
-            {
-                if (Ws.State == WebSocketState.Open)
-                {
-                    await Ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-                }
-            }
-            catch
-            {
-            }
-
-            Ws.Dispose();
-            Host.Dispose();
-        }
     }
 }

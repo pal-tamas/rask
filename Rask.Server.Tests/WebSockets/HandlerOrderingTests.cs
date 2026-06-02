@@ -45,7 +45,7 @@ public class HandlerOrderingTests
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
         Assert.Equal(10, handlerIds.Count);
 
@@ -98,7 +98,7 @@ public class HandlerOrderingTests
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -134,9 +134,6 @@ public class HandlerOrderingTests
         Assert.NotNull(finalSequence);
         Assert.Equal(expected, finalSequence);
     }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
 
     private static List<string> ExtractAllHandlerIds(string html) =>
         Regex.Matches(html, "data-rask-on-click=\"(h\\d+)\"")

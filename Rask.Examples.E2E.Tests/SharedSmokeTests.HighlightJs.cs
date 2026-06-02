@@ -126,7 +126,8 @@ public abstract partial class SharedSmokeTests
         Assert.Equal(total, highlighted);
     }
 
-    private async Task WaitForHljsAsync(int timeoutMs)
+    // Shared by the deep-diagnostics tests in ExampleSmokeTests.HighlightJs.cs too.
+    protected async Task WaitForHljsAsync(int timeoutMs)
     {
         // Poll until every targeted code block carries .hljs. We use a
         // page-side function to avoid round-tripping per-element queries.

@@ -68,7 +68,7 @@ public class VirtualizeTests
             InitialClientHeight: 100));
 
         var html = view.RenderAsLiveRoot();
-        var scrollHandlerId = ExtractAttr(html, "data-rask-on-scroll");
+        var scrollHandlerId = Markup.Attr(html, "data-rask-on-scroll");
         Assert.NotNull(scrollHandlerId);
 
         // Fire a scroll event payload {scrollTop:200, clientHeight:100, scrollHeight:2000}.
@@ -256,19 +256,5 @@ public class VirtualizeTests
         }
 
         Assert.True(fetchObservedCt.IsCancellationRequested);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 }

@@ -21,18 +21,15 @@ namespace Rask.Wasm.Tests.Session;
 ///     hash bump; the new model gives the browser stable immutable URLs to cache.
 /// </summary>
 [Collection("WasmSession")]
-public class ScopedStylesAbsenceTests
+public class ScopedStylesAbsenceTests : ResettingTestBase
 {
-    public ScopedStylesAbsenceTests()
-    {
-        ScopedAssetRegistry.InvalidateAll();
+    public ScopedStylesAbsenceTests() =>
         ScopedAssetRegistry.RegisterCss(typeof(ScopedCssStubApp), ".tag { color: red; }");
-    }
 
     [Fact]
     public async Task InitialRender_AppWithScopedCss_EmitsContentAddressedLink_NoInlineCssText()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession<ScopedCssStubApp>();
 
         var payload = await session.InitialRenderAsync();
 
@@ -53,18 +50,6 @@ public class ScopedStylesAbsenceTests
         Assert.Matches(@"<link rel=""stylesheet"" href=""/_rask/a/[0-9a-f]{12}\.css""", html);
         // The morph key uses the rsk-css- prefix for framework-emitted asset tags.
         Assert.Contains("data-rask-key=\"rsk-css-", html);
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession()
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<ScopedCssStubApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
     }
 
     private sealed class ScopedCssStubApp : Component

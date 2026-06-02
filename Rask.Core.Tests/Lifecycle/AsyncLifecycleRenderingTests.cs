@@ -10,7 +10,7 @@ public class AsyncLifecycleRenderingTests
     [Fact]
     public async Task OnMountAsync_TriggersStateHasChanged_AfterEachAwait()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new ProgressiveComponent { RenderHandle = handle };
 
@@ -42,7 +42,7 @@ public class AsyncLifecycleRenderingTests
         // Task.Run, so the terminal callback (which fires synchronously from inside
         // d(state) when the user method's last statement is an await) reads the flag
         // and short-circuits.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new SingleAwaitComponent { RenderHandle = handle };
 
@@ -65,7 +65,7 @@ public class AsyncLifecycleRenderingTests
         // through LifecycleSyncContext.Post, so PostFired stays false and the terminal
         // ContinueWith MUST still fire its StateHasChanged — otherwise such hooks
         // would never trigger a follow-up render at all.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new ConfigureAwaitFalseComponent { RenderHandle = handle };
 
@@ -84,7 +84,7 @@ public class AsyncLifecycleRenderingTests
     [Fact]
     public async Task OnMountAsync_NoAwaits_DoesNotTriggerExtraRender()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new SyncCompletingComponent { RenderHandle = handle };
 
@@ -106,7 +106,7 @@ public class AsyncLifecycleRenderingTests
         // StateHasChanged. The continuation routes through RequestPublishRenderAsync
         // so the resulting walk is loop-safe (already-rendered components skip the
         // hook).
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new RenderedAsyncProbe { RenderHandle = handle };
 
@@ -132,7 +132,7 @@ public class AsyncLifecycleRenderingTests
         // through RequestPublishRenderAsync which flags the resulting walk as publishOnly,
         // so already-rendered components don't re-enter their OnRenderedAsync hook on
         // the publish frame — no fresh continuation, no fresh request → loop broken.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var c = new AlwaysAwaitsProbe { RenderHandle = handle };
 
@@ -158,7 +158,7 @@ public class AsyncLifecycleRenderingTests
         // The fix is the publishOnly walk mode: the continuation's render walks but
         // skips OnRenderedAsync on every already-rendered component (not just the
         // originating one), so the cascade can't kindle.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
         var root = new MultiAwaitProbe { RenderHandle = handle };
 

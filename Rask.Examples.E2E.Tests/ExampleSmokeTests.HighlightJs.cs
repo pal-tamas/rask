@@ -221,21 +221,4 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 5_000 });
     });
-
-    private async Task WaitForHljsAsync(int timeoutMs)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (DateTime.UtcNow < deadline)
-        {
-            var settled = await Page.EvaluateAsync<bool>(
-                "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
-                "return all.length > 0 && all.every(c => c.classList.contains('hljs')); }");
-            if (settled)
-            {
-                return;
-            }
-
-            await Task.Delay(150);
-        }
-    }
 }
