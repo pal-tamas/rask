@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using Rask.Core;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
@@ -157,11 +159,166 @@ public sealed class LiveTickerTests
         Assert.DoesNotContain("p.PriceUsd", code);
     }
 
-    private static LiveHost BuildHost(FakeJsRuntime js, Box<string> symbol, int interval)
+    // sessionStorage.getItem throwing (private mode / blocked storage) is swallowed
+    // by LoadFromStorageAsync — the component starts with an empty history and the
+    // poll loop still runs.
+    [Fact]
+    public async Task OnMountAsync_StorageLoadFailure_StartsFreshAndPolls()
+    {
+        var js = new FakeJsRuntime();
+        js.SetException("sessionStorage.getItem", new InvalidOperationException("storage blocked"));
+        var symbol = new Box<string>("BTC");
+        var host = BuildHost(js, symbol, interval: 30);
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2),
+            "feed never populated after a storage-load failure");
+
+        Assert.Contains(host.Log.Snapshot(), l => l.Contains("loaded 0 persisted points"));
+        Assert.NotEmpty(js.GetCalls("Rask.LiveTicker.draw"));
+    }
+
+    // sessionStorage.setItem throwing (quota exceeded) is swallowed by PersistAsync —
+    // the poll loop keeps ticking across renders and never surfaces a _error alert
+    // (a persist failure is best-effort, not a feed error).
+    [Fact]
+    public async Task PollLoop_PersistFailure_ContinuesWithoutError()
+    {
+        var js = new FakeJsRuntime();
+        js.SetException("sessionStorage.setItem", new InvalidOperationException("quota exceeded"));
+        var symbol = new Box<string>("BTC");
+        var host = BuildHost(js, symbol, interval: 30);
+
+        host.RenderAsLiveRoot();
+        // Each poll cycle attempts a persist; FakeJsRuntime records the call before
+        // throwing, so ≥2 attempts proves the loop kept ticking past the failure.
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 2,
+            TimeSpan.FromSeconds(2),
+            "poll loop did not survive repeated persist failures");
+
+        // A swallowed persist failure must not light up the #ticker-error alert.
+        Assert.DoesNotContain("Feed error", host.RenderAsLiveRoot());
+    }
+
+    // History is bounded at HistoryCapacity (60). Seed 60 persisted points, then let
+    // one live tick push to 61 and assert the oldest rolled off so the persisted
+    // entry stays capped at 60.
+    [Fact]
+    public async Task PollLoop_HistoryRollover_StaysCappedAt60()
+    {
+        var seededFirst = DateTimeOffset.FromUnixTimeSeconds(1_600_000_000);
+        var seeded = Enumerable.Range(0, 60)
+            .Select(i => new PricePoint(seededFirst.AddSeconds(i), 70_000m + i))
+            .ToArray();
+        var js = new FakeJsRuntime();
+        js.SetResponse("sessionStorage.getItem", JsonSerializer.Serialize(seeded));
+        var symbol = new Box<string>("BTC");
+        var host = BuildHost(js, symbol, interval: 30);
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2),
+            "no tick persisted after seeding a full history");
+
+        var lastPersisted = js.GetCalls("sessionStorage.setItem")[^1]!;
+        var json = (string)lastPersisted[1]!;
+        var persisted = JsonSerializer.Deserialize(json, LiveTickerJsonContext.Default.PricePointArray)!;
+
+        Assert.Equal(60, persisted.Length);
+        Assert.DoesNotContain(persisted, p => p.Timestamp == seededFirst);
+    }
+
+    // PollOnceAsync captures the symbol before its simulated latency and drops the
+    // result if the symbol changed mid-flight, so a stale asset's price never
+    // contaminates the new symbol's chart.
+    [Fact]
+    public async Task PollOnce_SymbolChangesMidFlight_DropsStaleResult()
+    {
+        var js = new FakeJsRuntime();
+        var symbol = new Box<string>("BTC");
+        // Large interval ⇒ only the first poll cycle starts; it parks in the 50 ms
+        // simulated-latency Task.Delay while we flip the symbol underneath it.
+        var host = BuildHost(js, symbol, interval: 5000);
+
+        host.RenderAsLiveRoot();
+        // The flip lands within microseconds — well inside the 50 ms in-flight window,
+        // which is the determinism margin for this race.
+        symbol.Value = "ETH";
+        host.RenderAsLiveRoot();
+        await Task.Delay(200);
+
+        // The BTC tick hit the symbol-changed guard and never persisted; ETH's first
+        // tick isn't due for 5 s, so nothing has been written.
+        Assert.Equal(0, js.CallCount("sessionStorage.setItem"));
+    }
+
+    // A price source that throws is caught in PollOnceAsync and surfaced through the
+    // #ticker-error alert (the production "swap in a real HTTP feed" failure path).
+    [Fact]
+    public async Task PollLoop_FeedFailure_SurfacesErrorAlert()
+    {
+        var js = new FakeJsRuntime();
+        var symbol = new Box<string>("BTC");
+        var host = BuildHost(
+            js, symbol, interval: 30,
+            priceSource: _ => throw new InvalidOperationException("feed offline"));
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => host.RenderAsLiveRoot().Contains("Feed error: feed offline"),
+            TimeSpan.FromSeconds(2),
+            "a throwing price source never surfaced the #ticker-error alert");
+
+        var html = host.RenderAsLiveRoot();
+        Assert.Contains("ticker-error", html);
+        Assert.Contains("Feed error: feed offline", html);
+    }
+
+    // Two LiveTicker instances on one page contribute the same Chart.js <script> in
+    // their Head; the framework dedupes head assets by rendered HTML, so the shell
+    // emits exactly one chart.umd.js tag.
+    [Fact]
+    public void MultipleInstances_ShareSingleChartScript()
+    {
+        var js = new FakeJsRuntime();
+        var log = new LifecycleLog();
+        var services = LiveHost.Services((typeof(Microsoft.JSInterop.IJSRuntime), js));
+
+        var html = new TwoTickerRoot(log.Add).RenderAsLiveRoot(services);
+
+        Assert.Single(Regex.Matches(html, "chart.umd.js"));
+    }
+
+    // Full-shell root hosting two LiveTickers so the head pipeline runs (same
+    // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
+    // emitting a colliding Generated.TwoTickerRoot() factory.
+    [SkipFactory]
+    private sealed class TwoTickerRoot(Action<string> log) : Component
+    {
+        protected override RenderResult Render() =>
+        [
+            Doctype(),
+            Html("en")[
+                Head(),
+                Body()[
+                    LiveTicker(Symbol: "BTC", Interval: 5000, Log: log),
+                    LiveTicker(Symbol: "ETH", Interval: 5000, Log: log)
+                ]
+            ]
+        ];
+    }
+
+    private static LiveHost BuildHost(
+        FakeJsRuntime js, Box<string> symbol, int interval, Func<string, decimal>? priceSource = null)
     {
         LiveHost? host = null;
         host = new LiveHost(
-            () => LiveTicker(Symbol: symbol.Value, Interval: interval, Log: host!.Log.Add),
+            () => LiveTicker(
+                Symbol: symbol.Value, Interval: interval, Log: host!.Log.Add, PriceSource: priceSource),
             LiveHost.Services((typeof(Microsoft.JSInterop.IJSRuntime), js)));
         return host;
     }
