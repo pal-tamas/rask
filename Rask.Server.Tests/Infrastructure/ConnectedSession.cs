@@ -6,8 +6,9 @@ namespace Rask.Server.Tests.Infrastructure;
 /// <summary>
 ///     A connected live session for WebSocket tests: hosts <typeparamref name="TApp" />, GETs the
 ///     shell, opens the socket, sends <c>hello</c>, and drains the post-attach catch-up frame so
-///     per-test assertions observe only the traffic they trigger (and the diff/head baseline is
-///     seeded). Disposes the socket and host on teardown. Consolidates the per-file copies.
+///     per-test assertions observe only the traffic they trigger. The GET render already seeded
+///     the diff/head baseline, so the first interaction a test triggers diffs against it.
+///     Disposes the socket and host on teardown. Consolidates the per-file copies.
 /// </summary>
 internal sealed class ConnectedSession : IAsyncDisposable
 {
