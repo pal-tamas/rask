@@ -34,7 +34,7 @@ public class NestedBindingValidationTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
@@ -63,13 +63,13 @@ public class NestedBindingValidationTests
         var fid = new FieldIdentifier(p.Address, nameof(Address.Street));
 
         // Blur with empty — touches and produces the message.
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
         Assert.Contains("too short", captured!.GetValidationMessages(fid));
 
         // Keystroke with a longer value — re-validates because the field is touched.
-        var inputId = ExtractAttr(html, "data-rask-on-input")!;
+        var inputId = Markup.Attr(html, "data-rask-on-input")!;
         using var keystroke = JsonDocument.Parse("{\"value\":\"Oak\"}");
         await view.TryInvokeHandlerAsync(inputId, keystroke.RootElement);
         Assert.Empty(captured.GetValidationMessages(fid));
@@ -93,7 +93,7 @@ public class NestedBindingValidationTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -125,7 +125,7 @@ public class NestedBindingValidationTests
         ]);
 
         var initial = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -151,7 +151,7 @@ public class NestedBindingValidationTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -181,7 +181,7 @@ public class NestedBindingValidationTests
         p.Address = new Address { Street = "" };
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -224,8 +224,8 @@ public class NestedBindingValidationTests
         ]);
 
         var initial = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(initial, "data-rask-on-input")!;
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
 
         // Simulate typing "99999" one character at a time via OnInput. None of these should
         // produce validation messages — the field isn't touched yet.
@@ -276,8 +276,8 @@ public class NestedBindingValidationTests
         ]);
 
         var initial = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(initial, "data-rask-on-input")!;
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
 
         // Step 1: blur with "99999" → undeliverable message lands.
         using (var d = JsonDocument.Parse("{\"value\":\"99999\"}"))
@@ -332,7 +332,7 @@ public class NestedBindingValidationTests
 
         var initial = view.RenderAsLiveRoot();
         // Two inputs → two on-input handlers. Filter by attribute order.
-        var nameInputId = ExtractAttr(initial, "data-rask-on-input")!;
+        var nameInputId = Markup.Attr(initial, "data-rask-on-input")!;
         // To get the postal input id we look past the first occurrence.
         var postalInputId = ExtractAttrAfter(initial, "data-rask-on-input", nameInputId);
         Assert.NotNull(postalInputId);
@@ -347,7 +347,7 @@ public class NestedBindingValidationTests
             await view.TryInvokeHandlerAsync(postalInputId!, d.RootElement);
         }
 
-        var submitId = ExtractAttr(initial, "data-rask-on-submit")!;
+        var submitId = Markup.Attr(initial, "data-rask-on-submit")!;
         using var submit = JsonDocument.Parse("{}");
         await view.TryInvokeHandlerAsync(submitId, submit.RootElement);
 
@@ -375,7 +375,7 @@ public class NestedBindingValidationTests
         var initial = view.RenderAsLiveRoot();
         Assert.DoesNotContain("street required", initial);
 
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -399,12 +399,12 @@ public class NestedBindingValidationTests
         ]);
 
         var initial = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(initial, "data-rask-on-change")!;
+        var changeId = Markup.Attr(initial, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
         Assert.Contains("too short", view.RenderAsLiveRoot());
 
-        var inputId = ExtractAttr(initial, "data-rask-on-input")!;
+        var inputId = Markup.Attr(initial, "data-rask-on-input")!;
         using var keystroke = JsonDocument.Parse("{\"value\":\"Oak\"}");
         await view.TryInvokeHandlerAsync(inputId, keystroke.RootElement);
 
@@ -430,27 +430,13 @@ public class NestedBindingValidationTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
         Assert.NotNull(captured);
         Assert.Contains("postal required",
             captured!.GetValidationMessages(new FieldIdentifier(p.Address.Postal!, nameof(PostalInfo.Code))));
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private static string? ExtractAttrAfter(string html, string attr, string skipValue)
@@ -508,18 +494,5 @@ public class NestedBindingValidationTests
     private sealed class PostalInfo
     {
         public string Code { get; set; } = "";
-    }
-
-    private sealed class ContextCapture(Action<EditContext> capture) : Component
-    {
-        protected override RenderResult Render()
-        {
-            if (EditContextScope.Current is { } c)
-            {
-                capture(c);
-            }
-
-            return Fragment();
-        }
     }
 }

@@ -10,7 +10,7 @@ public class EventHandlerErrorBoundaryTests
     [Fact]
     public async Task SyncHandlerThrow_TripsAncestorBoundary()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(true);
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { handlerOwner }, null);
@@ -34,7 +34,7 @@ public class EventHandlerErrorBoundaryTests
     [Fact]
     public async Task AsyncHandlerThrow_TripsAncestorBoundary()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(false);
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { handlerOwner }, null);
@@ -56,7 +56,7 @@ public class EventHandlerErrorBoundaryTests
     {
         // When the handler's owner has no Boundary, TryInvokeHandlerAsync re-throws so
         // the dispatcher (server/WASM) can apply its own catch-and-log fallback.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var owner = new HandlerOwner(true);
 
         using var ctx = LiveRenderContext.Begin(owner, sp);

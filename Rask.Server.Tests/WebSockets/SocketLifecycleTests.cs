@@ -33,7 +33,7 @@ public class SocketLifecycleTests
         {
             using var host = RaskTestHost.Create<TestApp>();
             var initial = await host.Http.GetAsync("/start");
-            var sessionId = ExtractSessionId(await initial.Content.ReadAsStringAsync());
+            var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -62,7 +62,7 @@ public class SocketLifecycleTests
         try
         {
             using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = ExtractSessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
             var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -92,7 +92,7 @@ public class SocketLifecycleTests
         try
         {
             using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = ExtractSessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
             var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -126,7 +126,7 @@ public class SocketLifecycleTests
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var handlerId = Regex.Match(initialHtml, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -153,7 +153,7 @@ public class SocketLifecycleTests
         try
         {
             using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = ExtractSessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -175,9 +175,6 @@ public class SocketLifecycleTests
             RaskEndpointExtensions.SessionGracePeriod = prev;
         }
     }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
 }
 
 [CollectionDefinition("SessionGracePeriod", DisableParallelization = true)]

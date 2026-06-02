@@ -38,7 +38,7 @@ public class FormBindingTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var inputId = ExtractAttr(html, "data-rask-on-input");
+        var inputId = Markup.Attr(html, "data-rask-on-input");
         Assert.NotNull(inputId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"Bea\"}");
@@ -57,7 +57,7 @@ public class FormBindingTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"42\"}");
@@ -84,7 +84,7 @@ public class FormBindingTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var submitId = ExtractAttr(html, "data-rask-on-submit");
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
@@ -137,7 +137,7 @@ public class FormBindingTests
             (Action<Person>)(m => captured = m))[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
-        var submitId = ExtractAttr(html, "data-rask-on-submit");
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
@@ -228,7 +228,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
@@ -245,7 +245,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"42\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -260,7 +260,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.OptionalAge)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -277,7 +277,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -292,7 +292,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -307,7 +307,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -322,7 +322,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Price)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"12.5\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -337,7 +337,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.StartedAt)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"2025-05-14T09:30\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -352,7 +352,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Birthday)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"1990-01-02\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -367,7 +367,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"Active\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -382,7 +382,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Status)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -400,7 +400,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -415,7 +415,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Salary)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -430,7 +430,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.HireDate)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -445,7 +445,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.CurrentStatus)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -463,7 +463,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Nickname)]);
         var html = view.RenderAsLiveRoot();
 
-        var inputId = ExtractAttr(html, "data-rask-on-input");
+        var inputId = Markup.Attr(html, "data-rask-on-input");
         Assert.NotNull(inputId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
@@ -484,7 +484,7 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.Name)]);
         var html = view.RenderAsLiveRoot();
 
-        var inputId = ExtractAttr(html, "data-rask-on-input");
+        var inputId = Markup.Attr(html, "data-rask-on-input");
         Assert.NotNull(inputId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
@@ -508,13 +508,13 @@ public class FormBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.AcceptedTerms)]);
 
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         async Task SendAsync(string value)
         {
             html = view.RenderAsLiveRoot();
-            changeId = ExtractAttr(html, "data-rask-on-change");
+            changeId = Markup.Attr(html, "data-rask-on-change");
             using var doc = JsonDocument.Parse($"{{\"value\":\"{value}\"}}");
             await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
         }
@@ -533,20 +533,6 @@ public class FormBindingTests
         await SendAsync("false");
         Assert.Equal(false, p.AcceptedTerms);
         Assert.NotNull(p.AcceptedTerms);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private sealed class Person
@@ -568,17 +554,4 @@ public class FormBindingTests
     }
 
     private enum PersonStatus { Active, Inactive }
-
-    private sealed class ContextCapture(Action<EditContext> capture) : Component
-    {
-        protected override RenderResult Render()
-        {
-            if (EditContextScope.Current is { } c)
-            {
-                capture(c);
-            }
-
-            return Fragment();
-        }
-    }
 }

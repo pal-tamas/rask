@@ -18,8 +18,8 @@ public class DiffWithJsInvokesTests
         using var host = RaskTestHost.Create<JsInvokeBindingApp>();
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
-        var inputId = ExtractAttr(initialHtml, "data-rask-on-input");
+        var sessionId = Markup.SessionId(initialHtml);
+        var inputId = Markup.RequireAttr(initialHtml, "data-rask-on-input");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -56,15 +56,5 @@ public class DiffWithJsInvokesTests
         // there must be NO full "html" field.
         Assert.False(root.TryGetProperty("html", out _), $"diff frame for {label} must not carry full html");
         Assert.True(root.GetProperty("ops").GetArrayLength() > 0, $"diff frame for {label} had no ops");
-    }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
-
-    private static string ExtractAttr(string html, string attr)
-    {
-        var match = Regex.Match(html, attr + "=\"(h\\d+)\"");
-        Assert.True(match.Success, $"no {attr} attribute found in html: {html}");
-        return match.Groups[1].Value;
     }
 }

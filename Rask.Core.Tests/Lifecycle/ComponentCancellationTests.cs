@@ -11,7 +11,7 @@ public class ComponentCancellationTests
     [Fact]
     public void CancellationToken_BeforeDispose_NotCancelled()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var root = new Root();
         var c = new CancellationProbe();
 
@@ -49,7 +49,7 @@ public class ComponentCancellationTests
     [Fact]
     public async Task InFlightOnMountAsync_ObservesCancellation_OnDispose()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var observed = new TaskCompletionSource();
         CancellationToken capturedToken = default;
 

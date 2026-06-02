@@ -28,7 +28,7 @@ public class AsyncFormBindingTests
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"new\"}");
@@ -50,7 +50,7 @@ public class AsyncFormBindingTests
             Input(() => model.Username)
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"taken\"}");
         var dispatchTask = view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -77,8 +77,8 @@ public class AsyncFormBindingTests
             Input(() => model.Username)
         ]);
         var html = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(html, "data-rask-on-input");
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var inputId = Markup.Attr(html, "data-rask-on-input");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         // Mirror the browser: OnInput sets the value, OnChange (blur) touches and validates.
         using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
@@ -117,8 +117,8 @@ public class AsyncFormBindingTests
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(initial, "data-rask-on-input");
-        var changeId = ExtractAttr(initial, "data-rask-on-change");
+        var inputId = Markup.Attr(initial, "data-rask-on-input");
+        var changeId = Markup.Attr(initial, "data-rask-on-change");
 
         using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
         await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement);
@@ -155,8 +155,8 @@ public class AsyncFormBindingTests
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot(sp);
-        var inputId = ExtractAttr(initial, "data-rask-on-input");
-        var changeId = ExtractAttr(initial, "data-rask-on-change");
+        var inputId = Markup.Attr(initial, "data-rask-on-input");
+        var changeId = Markup.Attr(initial, "data-rask-on-change");
         Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 
@@ -205,20 +205,6 @@ public class AsyncFormBindingTests
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("Checking...", html);
         Assert.DoesNotContain("spinner", html);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private sealed class SignupModel

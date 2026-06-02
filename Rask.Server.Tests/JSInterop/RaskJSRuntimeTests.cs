@@ -22,7 +22,7 @@ public class RaskJSRuntimeTests
         using var host = RaskTestHost.Create<JsRoundTripApp>();
         var initialResponse = await host.Http.GetAsync("/");
         var initialHtml = await initialResponse.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -63,7 +63,7 @@ public class RaskJSRuntimeTests
     {
         using var host = RaskTestHost.Create<JsErrorApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -95,7 +95,7 @@ public class RaskJSRuntimeTests
         // ordering is preserved by session.Lock.
         using var host = RaskTestHost.Create<JsClickApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -143,7 +143,7 @@ public class RaskJSRuntimeTests
         // in-render-walk path through a real session.
         using var host = RaskTestHost.Create<JsRenderStormApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -213,13 +213,6 @@ public class RaskJSRuntimeTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await js.InvokeAsync<string>("anything", "arg").AsTask());
         Assert.Contains("Rask session", ex.Message);
-    }
-
-    private static string ExtractSessionId(string html)
-    {
-        var match = Regex.Match(html, "data-rask-root=\"([^\"]+)\"");
-        Assert.True(match.Success, "no data-rask-root in HTML");
-        return match.Groups[1].Value;
     }
 }
 

@@ -11,7 +11,7 @@ public class AsyncLifecycleErrorBoundaryTests
     [Fact]
     public async Task OnMountAsync_Throws_TripsAncestorBoundary()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { child }, null);
@@ -33,7 +33,7 @@ public class AsyncLifecycleErrorBoundaryTests
     [Fact]
     public async Task OnPropsChangedAsync_Throws_TripsAncestorBoundary()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.PropsAsync);
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { child }, null);
@@ -53,7 +53,7 @@ public class AsyncLifecycleErrorBoundaryTests
     [Fact]
     public async Task AsyncFault_NoBoundary_LogsToConsoleError()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
         // No boundary — the existing log-and-swallow path should fire.
 
@@ -83,7 +83,7 @@ public class AsyncLifecycleErrorBoundaryTests
     {
         // Boundary.Trip calls StateHasChanged which uses RenderHandle.RequestRenderAsync.
         // Without a render request, the live root would never re-render with the fallback.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
         var boundary = ErrorBoundary();
         var handle = new RecordingHandle();

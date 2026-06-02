@@ -51,7 +51,7 @@ public class RootGetEndpointTests
         var response = await host.Http.GetAsync("/q?x=1&y=two");
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(body);
+        var sessionId = Markup.SessionId(body);
 
         var ls = host.Store.Get(sessionId);
         Assert.NotNull(ls);
@@ -60,12 +60,5 @@ public class RootGetEndpointTests
         Assert.Equal("/q", routeState.Path);
         Assert.Equal("1", routeState.Query["x"].ToString());
         Assert.Equal("two", routeState.Query["y"].ToString());
-    }
-
-    private static string ExtractSessionId(string html)
-    {
-        var match = Regex.Match(html, "data-rask-root=\"([^\"]+)\"");
-        Assert.True(match.Success, "session id not found in response");
-        return match.Groups[1].Value;
     }
 }

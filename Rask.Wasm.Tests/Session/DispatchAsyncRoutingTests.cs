@@ -10,17 +10,11 @@ using Rask.Wasm.Tests.Infrastructure;
 namespace Rask.Wasm.Tests.Session;
 
 [Collection("WasmSession")]
-public class DispatchAsyncRoutingTests
+// Asserts against the `html` payload field — force the legacy full-HTML wire shape (framework
+// default is LiveDiffMode.Auto). The WasmSession collection serializes these tests so the
+// static-field write is safe.
+public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
-    public DispatchAsyncRoutingTests()
-    {
-        ScopedAssetRegistry.InvalidateAll();
-        // Asserts against the `html` payload field — force the legacy full-HTML
-        // wire shape (framework default is LiveDiffMode.Auto). The WasmSession
-        // collection serializes these tests so the static-field write is safe.
-        LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
-    }
-
     [Fact]
     public async Task Dispatch_EmptyJson_ReturnsEmptyBytes()
     {
@@ -97,7 +91,7 @@ public class DispatchAsyncRoutingTests
         var (session, _) = NewSession();
         var initial = await session.InitialRenderAsync();
 
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         Assert.NotEmpty(result);
@@ -123,7 +117,7 @@ public class DispatchAsyncRoutingTests
     {
         var (session, _) = NewSession();
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
 
         var tasks = Enumerable.Range(0, 5)
             .Select(_ => session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}""")))
@@ -144,16 +138,10 @@ public class DispatchAsyncRoutingTests
     [Fact]
     public async Task Dispatch_HandlerThatThrows_ReturnsEmpty_AndSessionStaysUsable()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<ThrowingStubApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
+        var (session, _) = NewSession<ThrowingStubApp>();
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
 
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}"}"""));
 
@@ -163,29 +151,6 @@ public class DispatchAsyncRoutingTests
         // proving the lock was released and the session didn't crash.
         var follow = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
         Assert.Empty(follow);
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession()
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<StubApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
-    }
-
-    private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);
-
-    private static string ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success, $"no handler id in payload html: {html}");
-        return match.Groups[1].Value;
     }
 }
 

@@ -20,8 +20,8 @@ public class HandlerDispatchTests
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
-        var handlerId = ExtractFirstHandlerId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
+        var handlerId = Markup.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -41,7 +41,7 @@ public class HandlerDispatchTests
     {
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
-        var sessionId = ExtractSessionId(await initial.Content.ReadAsStringAsync());
+        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -59,7 +59,7 @@ public class HandlerDispatchTests
     {
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
-        var sessionId = ExtractSessionId(await initial.Content.ReadAsStringAsync());
+        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -79,7 +79,7 @@ public class HandlerDispatchTests
         try
         {
             using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = ExtractSessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -108,7 +108,7 @@ public class HandlerDispatchTests
     public async Task Message_MissingType_ButHasOtherFields_Ignored()
     {
         using var host = RaskTestHost.Create<TestApp>();
-        var sessionId = ExtractSessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -127,8 +127,8 @@ public class HandlerDispatchTests
         using var host = RaskTestHost.Create<TestApp>();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
-        var handlerId = ExtractFirstHandlerId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
+        var handlerId = Markup.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -159,7 +159,7 @@ public class HandlerDispatchTests
         using var host = RaskTestHost.Create<ThrowingApp>();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
 
         var handlerIds = Regex.Matches(initialHtml, "data-rask-on-click=\"(h\\d+)\"")
             .Select(m => m.Groups[1].Value)
@@ -186,15 +186,5 @@ public class HandlerDispatchTests
         var unknown = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
         Assert.Null(unknown);
         Assert.Equal(WebSocketState.Open, ws.State);
-    }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
-
-    private static string ExtractFirstHandlerId(string html)
-    {
-        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success, $"no handler attribute found in html: {html}");
-        return match.Groups[1].Value;
     }
 }

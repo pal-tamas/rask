@@ -18,7 +18,7 @@ public class AuthSignInDispatchTests
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -45,7 +45,7 @@ public class AuthSignInDispatchTests
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         // Initial state: anonymous
@@ -108,7 +108,7 @@ public class AuthSignInDispatchTests
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
+        var sessionId = Markup.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -163,9 +163,6 @@ public class AuthSignInDispatchTests
                     }
                 });
             });
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
 
     private static string ExtractHandlerId(string html, string buttonText)
     {

@@ -10,7 +10,7 @@ public class LiveSessionStoreTests
 {
     private static LiveSessionStore NewStore(IHostApplicationLifetime? lifetime = null) =>
         new(
-            new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
+            RenderHarness.EmptyServices().GetRequiredService<IServiceScopeFactory>(),
             lifetime);
 
     [Fact]

@@ -55,17 +55,6 @@ public class FluentValidationValidatorTests
         Assert.Contains(msgs, m => m.Contains("could not be completed"));
     }
 
-    private static EditContext RegisterValidator(Person p, IValidator validator)
-    {
-        var ctx = new EditContext(p);
-        using (EditContextScope.Push(ctx))
-        {
-            FluentValidationValidator(validator).ToHtml();
-        }
-
-        return ctx;
-    }
-
     private sealed class Person
     {
         public string Name { get; set; } = "";

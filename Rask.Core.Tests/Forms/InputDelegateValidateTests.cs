@@ -22,7 +22,7 @@ public class InputDelegateValidateTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
         using var blur = JsonDocument.Parse("{\"value\":\"ab\"}");
         await view.TryInvokeHandlerAsync(changeId!, blur.RootElement);
@@ -53,7 +53,7 @@ public class InputDelegateValidateTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var submitId = ExtractAttr(html, "data-rask-on-submit")!;
+        var submitId = Markup.Attr(html, "data-rask-on-submit")!;
         using var payload = JsonDocument.Parse("{\"form\":{\"Name\":\"\"}}");
         await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
 
@@ -81,7 +81,7 @@ public class InputDelegateValidateTests
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
         using var blur = JsonDocument.Parse("{\"value\":\"ab\"}");
         await view.TryInvokeHandlerAsync(changeId, blur.RootElement);
 
@@ -92,7 +92,7 @@ public class InputDelegateValidateTests
         // event — no rule, no messages.
         includeValidator = false;
         var html2 = view.RenderAsLiveRoot();
-        var changeId2 = ExtractAttr(html2, "data-rask-on-change")!;
+        var changeId2 = Markup.Attr(html2, "data-rask-on-change")!;
         using var blur2 = JsonDocument.Parse("{\"value\":\"ab\"}");
         await view.TryInvokeHandlerAsync(changeId2, blur2.RootElement);
 
@@ -158,35 +158,8 @@ public class InputDelegateValidateTests
         Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
     }
 
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
-    }
-
     private sealed class Person
     {
         public string Name { get; set; } = "";
-    }
-
-    private sealed class ContextCapture(Action<EditContext> capture) : Component
-    {
-        protected override RenderResult Render()
-        {
-            if (EditContextScope.Current is { } c)
-            {
-                capture(c);
-            }
-
-            return Fragment();
-        }
     }
 }

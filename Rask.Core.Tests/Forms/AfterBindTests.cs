@@ -24,7 +24,7 @@ public class AfterBindTests
             Input(() => m.Name, v => observed.Add(v))
         ]);
         var html = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(html, "data-rask-on-input")!;
+        var inputId = Markup.Attr(html, "data-rask-on-input")!;
 
         using var k1 = JsonDocument.Parse("{\"value\":\"A\"}");
         await view.TryInvokeHandlerAsync(inputId, k1.RootElement);
@@ -45,7 +45,7 @@ public class AfterBindTests
             Input(() => m.Age, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var change = JsonDocument.Parse("{\"value\":\"42\"}");
         await view.TryInvokeHandlerAsync(changeId, change.RootElement);
@@ -64,7 +64,7 @@ public class AfterBindTests
             Input(() => m.Age, _ => fired = true)
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var change = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
         await view.TryInvokeHandlerAsync(changeId, change.RootElement);
@@ -97,7 +97,7 @@ public class AfterBindTests
                 })
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var change = JsonDocument.Parse("{\"value\":\"42\"}");
         var pending = view.TryInvokeHandlerAsync(changeId, change.RootElement);
@@ -141,7 +141,7 @@ public class AfterBindTests
             new ContextCapture(c => captured = c)
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var change = JsonDocument.Parse("{\"value\":\"9\"}");
         await view.TryInvokeHandlerAsync(changeId, change.RootElement);
@@ -165,7 +165,7 @@ public class AfterBindTests
                 })
         ]);
         var html = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(html, "data-rask-on-input")!;
+        var inputId = Markup.Attr(html, "data-rask-on-input")!;
 
         using var k = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(inputId, k.RootElement);
@@ -186,7 +186,7 @@ public class AfterBindTests
             ]
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var change = JsonDocument.Parse("{\"value\":\"Blue\"}");
         await view.TryInvokeHandlerAsync(changeId, change.RootElement);
@@ -213,7 +213,7 @@ public class AfterBindTests
             ]
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         using var pick = JsonDocument.Parse("{\"value\":\"US\"}");
         await view.TryInvokeHandlerAsync(changeId, pick.RootElement);
@@ -233,7 +233,7 @@ public class AfterBindTests
             Textarea(() => m.Name, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(html, "data-rask-on-input")!;
+        var inputId = Markup.Attr(html, "data-rask-on-input")!;
 
         using var k = JsonDocument.Parse("{\"value\":\"hello\"}");
         await view.TryInvokeHandlerAsync(inputId, k.RootElement);
@@ -252,7 +252,7 @@ public class AfterBindTests
             Input(() => m.Enabled, v => captured = v)
         ]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change")!;
+        var changeId = Markup.Attr(html, "data-rask-on-change")!;
 
         // Checking the box: the client reports the post-toggle checked state ("true").
         // BoolSetHandler sets the model to it and AfterBind sees the new value.
@@ -277,27 +277,13 @@ public class AfterBindTests
             Input(() => m.Name, _ => fires++)
         ]);
         var html = view.RenderAsLiveRoot();
-        var inputId = ExtractAttr(html, "data-rask-on-input")!;
+        var inputId = Markup.Attr(html, "data-rask-on-input")!;
 
         using var same = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(inputId, same.RootElement);
         await view.TryInvokeHandlerAsync(inputId, same.RootElement);
 
         Assert.Equal(2, fires);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private sealed class TextModel
@@ -326,17 +312,4 @@ public class AfterBindTests
     }
 
     private enum Color { Red, Blue }
-
-    private sealed class ContextCapture(Action<EditContext> capture) : Component
-    {
-        protected override RenderResult Render()
-        {
-            if (EditContextScope.Current is { } c)
-            {
-                capture(c);
-            }
-
-            return Fragment();
-        }
-    }
 }

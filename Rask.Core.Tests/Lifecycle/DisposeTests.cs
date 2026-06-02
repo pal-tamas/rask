@@ -11,7 +11,7 @@ public class DisposeTests
     [Fact]
     public void RemovedFromTree_TriggersDispose()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var disposable = new DisposableLeaf();
         var root = new SwitchableHost(disposable);
@@ -29,7 +29,7 @@ public class DisposeTests
     [Fact]
     public void SessionDispose_DisposesAllComponents()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var disposable = new DisposableLeaf();
         var root = new SwitchableHost(disposable) { IncludeChild = true };
@@ -46,7 +46,7 @@ public class DisposeTests
     [Fact]
     public async Task SessionDisposeAsync_AwaitsAsyncDisposable()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var disposable = new AsyncDisposableLeaf();
         var root = new AsyncSwitchableHost(disposable);
@@ -63,7 +63,7 @@ public class DisposeTests
     [Fact]
     public void RemovedFromTree_DisposesGrandchildrenRecursively()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var grandchild = new DisposableLeaf();
         var middle = new DisposableMiddle(grandchild);

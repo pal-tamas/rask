@@ -114,17 +114,6 @@ public class CustomAttributeTests
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(Account.Username))));
     }
 
-    private static EditContext RegisterValidator(object model)
-    {
-        var ctx = new EditContext(model);
-        using (EditContextScope.Push(ctx))
-        {
-            DataAnnotationsValidator().ToHtml();
-        }
-
-        return ctx;
-    }
-
     private sealed class NoOpRoot : Component
     {
         protected override RenderResult Render() => Fragment();

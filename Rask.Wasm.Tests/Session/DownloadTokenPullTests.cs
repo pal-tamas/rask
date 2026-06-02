@@ -13,9 +13,8 @@ using static Rask.Core.Components.Generated;
 namespace Rask.Wasm.Tests.Session;
 
 [Collection("WasmSession")]
-public class DownloadTokenPullTests
+public class DownloadTokenPullTests : ResettingTestBase
 {
-    public DownloadTokenPullTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
     public async Task DownloadTriggeredFromHandler_PayloadCarriesTokenNotBase64Bytes()
@@ -24,7 +23,7 @@ public class DownloadTokenPullTests
         var (session, _) = NewSessionWithDownloadOnClick("manifest.bin", bytes, "application/octet-stream");
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
 
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
@@ -45,7 +44,7 @@ public class DownloadTokenPullTests
         var (session, _) = NewSessionWithDownloadOnClick("a.bin", bytes, null);
 
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
         var token = ExtractToken(payload);
@@ -67,27 +66,10 @@ public class DownloadTokenPullTests
     }
 
     private static (WasmLiveSession session, IServiceProvider services) NewSessionWithDownloadOnClick(
-        string filename, byte[] bytes, string? contentType)
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        services.AddSingleton<IDownloadSink, WasmDownloadSink>();
-        var provider = services.BuildServiceProvider();
-        var app = new DownloadStubApp(provider.GetRequiredService<Navigator>(), filename, bytes, contentType);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
-    }
-
-    private static string ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success);
-        return match.Groups[1].Value;
-    }
+        string filename, byte[] bytes, string? contentType) =>
+        NewSession<DownloadStubApp>(
+            appFactory: p => new DownloadStubApp(p.GetRequiredService<Navigator>(), filename, bytes, contentType),
+            configure: s => s.AddSingleton<IDownloadSink, WasmDownloadSink>());
 
     private static string ExtractToken(byte[] payload)
     {

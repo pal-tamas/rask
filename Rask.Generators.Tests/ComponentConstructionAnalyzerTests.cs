@@ -174,7 +174,7 @@ public class ComponentConstructionAnalyzerTests
         string assemblyName = "TestAssembly")
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var references = BuildReferences();
+        var references = GeneratorDriverFixture.BuildReferences();
         var compilation = CSharpCompilation.Create(
             assemblyName,
             new[] { syntaxTree },
@@ -186,19 +186,5 @@ public class ComponentConstructionAnalyzerTests
         var withAnalyzers = compilation.WithAnalyzers(analyzers);
         var all = await withAnalyzers.GetAnalyzerDiagnosticsAsync();
         return all.Where(d => d.Id == "RASK014").ToImmutableArray();
-    }
-
-    private static ImmutableArray<MetadataReference> BuildReferences()
-    {
-        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        var refs = trustedAssemblies
-            .Select(path => MetadataReference.CreateFromFile(path))
-            .Cast<MetadataReference>()
-            .ToList();
-
-        var raskCore = Assembly.Load("Rask.Core");
-        refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
-        return refs.ToImmutableArray();
     }
 }

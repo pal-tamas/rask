@@ -15,7 +15,7 @@ public class RaskRuntimeScriptTests
     [Fact]
     public void Render_NoProviderRegistered_EmitsEmpty()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var view = new StubComponent(() => RaskRuntimeScript());
 
         var html = view.RenderAsLiveRoot(sp);

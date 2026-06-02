@@ -76,7 +76,7 @@ public class PrimitiveBindingTests
         Assert.Contains("type=\"number\"", html);
         Assert.Contains("value=\"1.5\"", html);
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"3.14\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -91,7 +91,7 @@ public class PrimitiveBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"6.022e23\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -105,7 +105,7 @@ public class PrimitiveBindingTests
         var view = new StubComponent(() => Form(p)[Input(() => p.M)]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"12345.6789\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -121,7 +121,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { B = 1 };
         var view = new StubComponent(() => Form(p)[Input(() => p.B)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse($"{{\"value\":\"{raw}\"}}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -137,7 +137,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { Ul = 0ul };
         var view = new StubComponent(() => Form(p)[Input(() => p.Ul)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"9223372036854775808\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -151,7 +151,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { H = (Half)0 };
         var view = new StubComponent(() => Form(p)[Input(() => p.H)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"2.5\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -165,7 +165,7 @@ public class PrimitiveBindingTests
         var p = new IdentityHolder { Token = Guid.Empty };
         var view = new StubComponent(() => Form(p)[Input(() => p.Token)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         var fresh = Guid.NewGuid();
         using var doc = JsonDocument.Parse($"{{\"value\":\"{fresh}\"}}");
@@ -180,7 +180,7 @@ public class PrimitiveBindingTests
         var p = new IdentityHolder { Letter = 'a' };
         var view = new StubComponent(() => Form(p)[Input(() => p.Letter)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"Z\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -194,7 +194,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { OptionalDouble = 9.9 };
         var view = new StubComponent(() => Form(p)[Input(() => p.OptionalDouble)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -208,7 +208,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { D = 1.5 };
         var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"not-a-number\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -225,7 +225,7 @@ public class PrimitiveBindingTests
         var p = new NumericHolder { D = 1.5 };
         var view = new StubComponent(() => Form(p)[Input(() => p.D)]);
         var html = view.RenderAsLiveRoot();
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
@@ -284,27 +284,6 @@ public class PrimitiveBindingTests
         {
             CultureInfo.CurrentCulture = saved;
         }
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
-    }
-
-    private sealed class StubComponent : Component
-    {
-        private readonly Func<Component> _factory;
-        public StubComponent(Func<Component> factory) => _factory = factory;
-        protected override RenderResult Render() => _factory();
     }
 
     private sealed class NumericHolder

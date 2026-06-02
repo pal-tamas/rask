@@ -154,7 +154,7 @@ public class RouterTests
     [Fact]
     public void Outlet_OutsideRouter_Throws()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var view = new StubComponent(() => Outlet());
 
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot(sp));
