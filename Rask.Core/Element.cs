@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Core.Live;
 
 namespace Rask.Core;
 
@@ -35,14 +36,31 @@ public abstract class Element : Component
             AppendAttr(sb, "style", Style);
         }
 
-        if (Data is null)
+        // Effective keyed-list identity: this element's own Key, else a key forwarded from a
+        // transparent ancestor component (Consume clears the slot so only the FIRST element
+        // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
+        // among the leading attribute frames, same as a Data["rask-key"] entry.
+        var forwarded = KeyForwardScope.Consume();
+        var key = Key?.ToString() ?? forwarded;
+
+        if (Data is not null)
         {
-            return;
+            foreach (var kv in Data)
+            {
+                // A literal Data["rask-key"] is superseded by an effective Key to avoid a
+                // duplicate attribute — Key is the canonical API; Data stays for back-compat.
+                if (key is not null && string.Equals(kv.Key, "rask-key", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                AppendAttr(sb, "data-", kv.Key, kv.Value);
+            }
         }
 
-        foreach (var kv in Data)
+        if (key is not null)
         {
-            AppendAttr(sb, "data-", kv.Key, kv.Value);
+            AppendAttr(sb, "data-", "rask-key", key);
         }
     }
 }
