@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Using Include="Rask.TestSupport"/>
     <!-- Tag factories and the routing/form/fragment irregulars are all emitted by the
          source generator into Rask.Core.Components.Components and Rask.Core.Routing.Components.
          Tests use them unqualified via these two static imports. -->
@@ -37,6 +38,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

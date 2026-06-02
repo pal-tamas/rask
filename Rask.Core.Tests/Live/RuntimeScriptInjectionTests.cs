@@ -34,7 +34,7 @@ public class RuntimeScriptInjectionTests
     {
         var view = new StubComponent(() => Shell(P()["hi"]));
 
-        var html = view.RenderAsLiveRoot(new ServiceCollection().BuildServiceProvider());
+        var html = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
 
         Assert.DoesNotContain("rask.js", html);
         Assert.Contains("<p>hi</p></body>", html);

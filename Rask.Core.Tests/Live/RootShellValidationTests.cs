@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 
 public class RootShellValidationTests
 {
-    private static ServiceProvider Services() => new ServiceCollection().BuildServiceProvider();
+    private static IServiceProvider Services() => RenderHarness.EmptyServices();
 
     [Fact]
     public void RootErrorBoundary_AppMissingShell_ThrowsActionable()

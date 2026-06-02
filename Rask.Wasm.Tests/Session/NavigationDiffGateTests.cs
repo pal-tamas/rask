@@ -15,16 +15,11 @@ namespace Rask.Wasm.Tests.Session;
 // Head-changing navigations (a per-route <title>) still fall back to full HTML so the
 // title/scoped-asset delta reaches the client.
 [Collection("WasmSession")]
-public class NavigationDiffGateTests
+// Forced removes payload-size comparison from the assertions; the head/structural gates are
+// independent of sizing. The WasmSession collection serialises these tests so the static-field
+// write is safe.
+public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
-    public NavigationDiffGateTests()
-    {
-        ScopedAssetRegistry.InvalidateAll();
-        // Forced removes payload-size comparison from the assertions; the head/structural
-        // gates are independent of sizing. The WasmSession collection serialises these
-        // tests so the static-field write is safe.
-        LiveOptions.DiffMode = LiveDiffMode.Forced;
-    }
 
     [Fact]
     public async Task Navigate_SameHead_ShipsDiffWithHistory()
@@ -134,7 +129,7 @@ public class NavigationDiffGateTests
         // A handler bumps a counter that drives BOTH the <title> and an H1 — no navigation.
         // The head fragment must ride the diff (previously a body-only diff froze the head),
         // and there is no history because nothing navigated.
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         using var doc = JsonDocument.Parse(result.AsMemory());
@@ -143,31 +138,5 @@ public class NavigationDiffGateTests
         Assert.Contains("count-1", head.GetString());
         Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
         Assert.False(doc.RootElement.TryGetProperty("history", out _), "no navigation → no history");
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession<TApp>()
-        where TApp : Component
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<TApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession() => NewSession<StubApp>();
-
-    private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);
-
-    private static string ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success, $"no handler id in payload html: {html}");
-        return match.Groups[1].Value;
     }
 }

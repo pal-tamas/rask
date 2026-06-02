@@ -11,7 +11,7 @@ public class RenderedTests
     [Fact]
     public void OnRendered_FiresFirstTrue_ThenFalse()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var root = new ChildHostingRoot(new LifecycleTrackingComponent());
         var session = new LiveSession("test", root, scope);
@@ -27,7 +27,7 @@ public class RenderedTests
     [Fact]
     public void OnRendered_FiresOnRoot()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var root = new LifecycleTrackingComponent();
         var session = new LiveSession("test", root, scope);

@@ -55,7 +55,7 @@ public class SelectTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
@@ -74,7 +74,7 @@ public class SelectTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"5\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -91,7 +91,7 @@ public class SelectTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -108,7 +108,7 @@ public class SelectTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"Active\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -125,7 +125,7 @@ public class SelectTests
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = ExtractAttr(html, "data-rask-on-change");
+        var changeId = Markup.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -190,20 +190,6 @@ public class SelectTests
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private sealed class ColorPicker

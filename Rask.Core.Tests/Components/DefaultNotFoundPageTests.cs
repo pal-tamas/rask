@@ -42,7 +42,7 @@ public class DefaultNotFoundPageTests
     [Fact]
     public void Render_NoRouteStateRegistered_FallsBackToRoot()
     {
-        var services = new ServiceCollection().BuildServiceProvider();
+        var services = RenderHarness.EmptyServices();
         using var _ = LiveRenderContext.Begin(new StubComponent(Span()), services);
 
         var html = DefaultNotFoundPage().RenderForLive().ToHtml();

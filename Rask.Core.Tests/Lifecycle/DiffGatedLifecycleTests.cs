@@ -10,7 +10,7 @@ public class DiffGatedLifecycleTests
     [Fact]
     public void CachedChild_UnchangedProps_FiresOnPropsChangedOnceOnFirstRenderOnly()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         for (var i = 0; i < 3; i++)
@@ -27,7 +27,7 @@ public class DiffGatedLifecycleTests
     [Fact]
     public void CachedChild_ChangedProps_FiresOnPropsChangedEachTime()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         for (var i = 0; i < 3; i++)
@@ -46,7 +46,7 @@ public class DiffGatedLifecycleTests
     {
         // A first-time render is always lifecycle-driven: OnMount + OnPropsChanged must
         // fire regardless of the diff flag, because the component has never seen its initial values.
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         using var ctx = LiveRenderContext.Begin(c, sp);
@@ -60,7 +60,7 @@ public class DiffGatedLifecycleTests
     [Fact]
     public void MixedRenders_OnPropsChangedFiresOnlyOnChangeOrFirst()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
         // r1 first render -> fires

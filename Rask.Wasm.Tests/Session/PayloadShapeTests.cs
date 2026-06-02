@@ -10,15 +10,10 @@ using Rask.Wasm.Tests.Infrastructure;
 namespace Rask.Wasm.Tests.Session;
 
 [Collection("WasmSession")]
-public class PayloadShapeTests
+// Asserts against the `html` payload field — force the legacy full-HTML wire shape
+// (framework default is LiveDiffMode.Auto).
+public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
-    public PayloadShapeTests()
-    {
-        ScopedAssetRegistry.InvalidateAll();
-        // Asserts against the `html` payload field — force the legacy full-HTML
-        // wire shape (framework default is LiveDiffMode.Auto).
-        LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
-    }
 
     [Fact]
     public async Task InitialRender_AlwaysIncludesDataRaskRootEqualsWasm()
@@ -48,33 +43,12 @@ public class PayloadShapeTests
     {
         var (session, _) = NewSession();
         var initial = await session.InitialRenderAsync();
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
 
         var payload =
             await session.DispatchAsync(Encoding.UTF8.GetBytes($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         using var doc = JsonDocument.Parse(payload.AsMemory());
         Assert.False(doc.RootElement.TryGetProperty("cssText", out _));
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession()
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<StubApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
-    }
-
-    private static string ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString()!;
-        var match = Regex.Match(html, "data-rask-on-click=\"(h\\d+)\"");
-        Assert.True(match.Success);
-        return match.Groups[1].Value;
     }
 }

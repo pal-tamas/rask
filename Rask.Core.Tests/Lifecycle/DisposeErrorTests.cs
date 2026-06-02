@@ -12,7 +12,7 @@ public class DisposeErrorTests
     [Fact]
     public void DisposeComponentTree_ChildThrows_LogsAndContinues()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var faulty = new FaultingDisposable();
         var ok = new RecordingDisposable();
@@ -34,7 +34,7 @@ public class DisposeErrorTests
     [Fact]
     public async Task DisposeComponentTreeAsync_AsyncDisposeFaults_LogsAndContinues()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var faulty = new FaultingAsyncDisposable();
         var ok = new RecordingDisposable();

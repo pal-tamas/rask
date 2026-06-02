@@ -23,9 +23,9 @@ public class AsyncValidationDispatchTests
         using var host = RaskTestHost.Create<AsyncValidationApp>();
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
-        var sessionId = ExtractSessionId(initialHtml);
-        var inputId = ExtractAttr(initialHtml, "data-rask-on-input");
-        var changeId = ExtractAttr(initialHtml, "data-rask-on-change");
+        var sessionId = Markup.SessionId(initialHtml);
+        var inputId = Markup.Attr(initialHtml, "data-rask-on-input");
+        var changeId = Markup.Attr(initialHtml, "data-rask-on-change");
         Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 
@@ -60,22 +60,5 @@ public class AsyncValidationDispatchTests
         var html = JsonDocument.Parse(last!).RootElement.GetProperty("html").GetString()!;
         Assert.Contains("Already taken.", html);
         Assert.DoesNotContain("Checking...", html);
-    }
-
-    private static string ExtractSessionId(string html) =>
-        Regex.Match(html, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 }

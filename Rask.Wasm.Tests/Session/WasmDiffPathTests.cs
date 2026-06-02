@@ -15,17 +15,11 @@ namespace Rask.Wasm.Tests.Session;
 // shipped payload can be inspected directly. If the diff payload is sound
 // here, the bug is on the client side; if not, the bug is server-side.
 [Collection("WasmSession")]
-public class WasmDiffPathTests
+// Forced pins the diff path unconditionally so these assertions never depend on payload sizing.
+// Under Auto the StubApp's small in-place updates would also diff (the diff is smaller than
+// re-sending the body); Forced just removes that last size comparison from the equation.
+public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
-    public WasmDiffPathTests()
-    {
-        ScopedAssetRegistry.InvalidateAll();
-        // Forced pins the diff path unconditionally so these assertions never depend
-        // on payload sizing. Under Auto the StubApp's small in-place updates would also
-        // diff (the diff is smaller than re-sending the body); Forced just removes that
-        // last size comparison from the equation.
-        LiveOptions.DiffMode = LiveDiffMode.Forced;
-    }
 
     [Fact]
     public async Task ClickCounter_ThreeIncrements_ProducesDiffsWithCorrectUpdateText()
@@ -41,7 +35,7 @@ public class WasmDiffPathTests
                 + Encoding.UTF8.GetString(initial));
         }
 
-        var handlerId = ExtractFirstHandlerId(initial);
+        var handlerId = Markup.FirstHandlerId(initial);
         Assert.NotNull(handlerId);
         // Surface the actual handlerId in the failure if subsequent dispatches return
         // empty — helps distinguish "unknown handler id" from "byte-dedup'd payload".
@@ -88,26 +82,5 @@ public class WasmDiffPathTests
             Assert.True(path[0] is 0 or 1,
                 $"Click {click}: expected path[0]∈{{0,1}}, got [{string.Join(",", path)}]");
         }
-    }
-
-    private static (WasmLiveSession session, IServiceProvider services) NewSession()
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton<RouteState>();
-        services.AddSingleton<Navigator>();
-        var provider = services.BuildServiceProvider();
-        var app = ActivatorUtilities.CreateInstance<StubApp>(provider);
-        var session = new WasmLiveSession(app, provider);
-        JSInterop.Init(session);
-        return (session, provider);
-    }
-
-    private static string? ExtractFirstHandlerId(byte[] payload)
-    {
-        using var doc = JsonDocument.Parse(payload.AsMemory());
-        var html = doc.RootElement.GetProperty("html").GetString();
-        if (html is null) return null;
-        var m = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"([^\"]+)\"");
-        return m.Success ? m.Groups[1].Value : null;
     }
 }

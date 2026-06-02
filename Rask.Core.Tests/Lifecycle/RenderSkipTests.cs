@@ -10,7 +10,7 @@ public class RenderSkipTests
     [Fact]
     public void Render_TwiceWithUnchangedProps_OnlyRunsOnce()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new LifecycleTrackingComponent();
         var host = new StaticChildHost(child);
 
@@ -25,7 +25,7 @@ public class RenderSkipTests
     [Fact]
     public void Render_StateHasChangedOnChild_RerendersOnlyThatChild()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new LifecycleTrackingComponent();
         var host = new StaticChildHost(child);
 
@@ -43,22 +43,18 @@ public class RenderSkipTests
     [Fact]
     public void Render_PropsChange_RerendersThatComponent()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
-        using (var ctx = LiveRenderContext.Begin(c, sp))
+        using (RenderHarness.Render(c, sp, propsChanged: false))
         {
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, false);
             c.ToHtml();
         }
 
         Assert.Equal(1, c.RenderCount);
 
-        using (var ctx = LiveRenderContext.Begin(c, sp))
+        using (RenderHarness.Render(c, sp))
         {
-            var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
             c.ToHtml();
         }
 
@@ -68,7 +64,7 @@ public class RenderSkipTests
     [Fact]
     public void SkippedParent_KeepsDescendantsAlive_AcrossRenders()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var grandchild = new LifecycleTrackingComponent();
         var middle = new PassThroughChildHost(grandchild);
         var host = new StaticChildHost(middle);
@@ -93,7 +89,7 @@ public class RenderSkipTests
     [Fact]
     public void RootStateHasChanged_ForcesRootRender()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var root = new LifecycleTrackingComponent();
 
         root.RenderAsLiveRoot(sp);

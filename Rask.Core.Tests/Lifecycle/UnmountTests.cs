@@ -77,7 +77,7 @@ public class UnmountTests
     [Fact]
     public void OnUnmount_BottomUp_ChildrenBeforeParents()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var order = new List<string>();
         var leaf = new OrderingUnmount(order, "leaf");
@@ -96,7 +96,7 @@ public class UnmountTests
     [Fact]
     public void OnUnmount_FiresOnTreeRemoval_ViaRenderAsLiveRoot()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var leaf = new LifecycleTrackingComponent();
         var root = new SwitchableHost(leaf);
@@ -169,7 +169,7 @@ public class UnmountTests
     [Fact]
     public void OnUnmount_Throws_LoggedAndSiblingsStillTornDown()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var throwing = new LifecycleTrackingComponent
         {
@@ -202,7 +202,7 @@ public class UnmountTests
     [Fact]
     public void OnUnmount_DoesNotTriggerErrorBoundary()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         var child = new LifecycleTrackingComponent
         {
             OnUnmountImpl = () => throw new InvalidOperationException("unmount-boom")

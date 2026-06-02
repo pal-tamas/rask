@@ -83,7 +83,7 @@ public class StateHasChangedTests
 
     private static LiveSession NewSession(out IServiceScope scope)
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sp = RenderHarness.EmptyServices();
         scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         return new LiveSession("test-session", new StubComponent(Span()), scope);
     }

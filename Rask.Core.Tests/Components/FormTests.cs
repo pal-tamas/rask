@@ -67,26 +67,12 @@ public class FormTests
             Context: ctx)[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
-        var submitId = ExtractAttr(html, "data-rask-on-submit");
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
         Assert.Equal(0, validCalled);
         Assert.Equal(1, invalidCalled);
-    }
-
-    private static string? ExtractAttr(string html, string attr)
-    {
-        var marker = attr + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
-        {
-            return null;
-        }
-
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
     }
 
     private sealed class Person
