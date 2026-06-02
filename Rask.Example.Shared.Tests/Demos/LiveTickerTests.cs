@@ -234,13 +234,15 @@ public sealed class LiveTickerTests
 
     // PollOnceAsync captures the symbol before its simulated latency and drops the
     // result if the symbol changed mid-flight, so a stale asset's price never
-    // contaminates the new symbol's chart.
+    // contaminates the new symbol's chart. The switch also wakes the loop, so the
+    // first thing actually persisted is the NEW symbol's tick — never the stale one.
     [Fact]
     public async Task PollOnce_SymbolChangesMidFlight_DropsStaleResult()
     {
         var js = new FakeJsRuntime();
         var symbol = new Box<string>("BTC");
-        // Large interval ⇒ only the first poll cycle starts; it parks in the 50 ms
+        // Large interval ⇒ steady-state polling is gated; the symbol switch is what
+        // drives the next poll (via the wake). The first BTC poll parks in the 50 ms
         // simulated-latency Task.Delay while we flip the symbol underneath it.
         var host = BuildHost(js, symbol, interval: 5000);
 
@@ -249,11 +251,93 @@ public sealed class LiveTickerTests
         // which is the determinism margin for this race.
         symbol.Value = "ETH";
         host.RenderAsLiveRoot();
-        await Task.Delay(200);
 
-        // The BTC tick hit the symbol-changed guard and never persisted; ETH's first
-        // tick isn't due for 5 s, so nothing has been written.
-        Assert.Equal(0, js.CallCount("sessionStorage.setItem"));
+        // The woken loop polls ETH and persists it; the dropped BTC tick (≈70 000)
+        // never reaches storage.
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2),
+            "the symbol switch did not wake the poll loop");
+
+        var firstPersisted = js.GetCalls("sessionStorage.setItem")[0]!;
+        var persisted = JsonSerializer.Deserialize(
+            (string)firstPersisted[1]!, LiveTickerJsonContext.Default.PricePointArray)!;
+
+        // Everything written is ETH-magnitude (seed ≈2 500); a stale BTC-magnitude
+        // price would prove the mid-flight result leaked through.
+        Assert.NotEmpty(persisted);
+        Assert.All(persisted, p => Assert.True(
+            p.PriceUsd < 10_000m,
+            $"a stale BTC-magnitude price ({p.PriceUsd}) leaked into ETH's history"));
+    }
+
+    // A Symbol switch cancels the inter-tick delay (_wake), so the new asset is polled
+    // immediately instead of waiting out the full interval — the responsiveness fix.
+    [Fact]
+    public async Task SymbolSwitch_TriggersImmediatePoll()
+    {
+        var js = new FakeJsRuntime();
+        var symbol = new Box<string>("BTC");
+        // Large interval: without the wake the next poll wouldn't run for 5 s. The
+        // assertion is that switching symbols polls the new asset well inside that.
+        var host = BuildHost(js, symbol, interval: 5000);
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2),
+            "first poll never ran");
+        var beforeSwitch = js.GetCalls("sessionStorage.setItem").Count;
+
+        symbol.Value = "ETH";
+        host.RenderAsLiveRoot();
+
+        // A fresh persist lands far sooner than the 5 s interval would allow.
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count > beforeSwitch,
+            TimeSpan.FromSeconds(2),
+            "symbol switch did not wake the poll loop for an immediate tick");
+    }
+
+    // OnRenderedAsync is version-gated: a re-render that didn't change the rolling
+    // buffer must not re-marshal the array to Chart.js (no redundant draw). A real
+    // buffer change still draws.
+    [Fact]
+    public async Task OnRenderedAsync_SkipsDraw_WhenHistoryUnchanged()
+    {
+        var js = new FakeJsRuntime();
+        var symbol = new Box<string>("BTC");
+        // Large interval ⇒ one poll fires early, then the loop parks, so the buffer
+        // is stable while we probe the redraw gate.
+        var host = BuildHost(js, symbol, interval: 5000);
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => js.GetCalls("sessionStorage.setItem").Count >= 1,
+            TimeSpan.FromSeconds(2),
+            "first poll never ran");
+        // Let the first tick settle (the loop is now parked for 5 s), then render once
+        // to flush the pending tick's data into a draw so _lastDrawnVersion == _version.
+        await Task.Delay(100);
+        host.RenderAsLiveRoot();
+        await Task.Delay(50);
+
+        var drawsAfterFirstTick = js.GetCalls("Rask.LiveTicker.draw").Count;
+        Assert.True(drawsAfterFirstTick > 0);
+
+        // Re-renders with no data change must NOT add draws.
+        host.RenderAsLiveRoot();
+        host.RenderAsLiveRoot();
+        await Task.Delay(50);
+        Assert.Equal(drawsAfterFirstTick, js.GetCalls("Rask.LiveTicker.draw").Count);
+
+        // A real buffer change (symbol switch clears + reloads history) draws again.
+        symbol.Value = "ETH";
+        host.RenderAsLiveRoot();
+        await WaitFor.True(
+            () => js.GetCalls("Rask.LiveTicker.draw").Count > drawsAfterFirstTick,
+            TimeSpan.FromSeconds(2),
+            "a buffer change did not trigger a redraw");
     }
 
     // A price source that throws is caught in PollOnceAsync and surfaced through the

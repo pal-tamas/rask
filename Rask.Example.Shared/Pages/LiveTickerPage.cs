@@ -64,7 +64,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 public sealed class LiveTicker(IJSRuntime js) : Component
                 {
                     public string Symbol { get; set; } = "BTC";
-                    public int Interval { get; set; } = 3000;
+                    public int Interval { get; set; } = 1000;
 
                     protected override RenderResult Head =>
                         Script(LiveOptions.PathBase + "/lib/chartjs/chart.umd.js");
@@ -73,14 +73,17 @@ public sealed class LiveTickerPage(Navigator nav) : Component
 
                     protected override async Task OnMountAsync()
                     {
-                        await LoadFromStorageAsync(); // rehydrate from sessionStorage
+                        await LoadFromStorageAsync().ConfigureAwait(false);
                         var ct = CancellationToken;   // cancels on unmount
                         try
                         {
                             while (!ct.IsCancellationRequested)
                             {
-                                await PollOnceAsync(ct);          // synthetic feed → history
-                                await Task.Delay(Interval, ct);   // re-render after each await
+                                var wake = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                                Interlocked.Exchange(ref _wake, wake)?.Dispose();
+                                await PollOnceAsync(ct).ConfigureAwait(false);  // synthetic feed → history
+                                try { await Task.Delay(Interval, wake.Token).ConfigureAwait(false); }
+                                catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
                             }
                         }
                         catch (OperationCanceledException) { /* unmount */ }
@@ -94,14 +97,19 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                         {
                             _history.Clear();
                             await LoadFromStorageAsync(); // reseed from new symbol's history
+                            _wake?.Cancel();              // poll the new symbol immediately
                         }
                         _lastSymbol = Symbol;
                     }
 
                     protected override void OnRendered(bool firstRender) { /* paint latency */ }
 
-                    protected override async Task OnRenderedAsync(bool firstRender) =>
+                    protected override async Task OnRenderedAsync(bool firstRender)
+                    {
+                        if (_version == _lastDrawnVersion) return;  // buffer unchanged → skip JS
+                        _lastDrawnVersion = _version;
                         await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray());
+                    }
 
                     protected override void OnUnmount() { /* sync log */ }
 
@@ -110,7 +118,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 }
                 """,
                 Notes:
-                "OnMountAsync runs a long-lived poll loop — each await yields to LifecycleSyncContext, which re-renders. CancellationToken cancels on unmount, breaking the loop. OnRenderedAsync awaits IJSRuntime on every render; the publish-render mechanism keeps that pattern from looping. Storage round-trips go through standard sessionStorage.getItem / setItem via IJSRuntime."),
+                "OnMountAsync runs a long-lived poll loop. Every await uses ConfigureAwait(false) so the loop doesn't auto-render on each yield; instead it calls StateHasChanged() once per real data change — one render and one chart redraw per tick. The inter-tick delay is interruptible: a Symbol switch cancels _wake so the new asset polls immediately. OnRenderedAsync is version-gated, so a no-op publish render skips the IJSRuntime round-trip. CancellationToken cancels on unmount, breaking the loop. Storage round-trips go through standard sessionStorage.getItem / setItem via IJSRuntime."),
             Div(Class: "alert alert-info d-flex align-items-start mt-3")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[

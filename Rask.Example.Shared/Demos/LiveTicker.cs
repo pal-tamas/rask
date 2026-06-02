@@ -10,17 +10,32 @@ namespace Rask.Example.Shared.Demos;
 //
 //   * OnMount             — synchronous local init (record mount time).
 //   * OnMountAsync        — re-hydrate persisted history from sessionStorage,
-//                           then run the poll loop. Each await yields to the
-//                           framework's LifecycleSyncContext, which re-renders.
+//                           then run the poll loop. The loop awaits with
+//                           ConfigureAwait(false) so it does NOT lean on the
+//                           framework's auto-render-per-await; instead it calls
+//                           StateHasChanged() exactly once per real data change
+//                           (one render, one chart redraw per tick — see the
+//                           render-discipline note below).
 //   * OnPropsChanged*     — react to the [RouteParam] Symbol changing (the
-//                           parent page binds Symbol from the URL).
+//                           parent page binds Symbol from the URL). The async
+//                           half also wakes the poll loop (_wake.Cancel()) so the
+//                           new symbol shows a price within ~50 ms instead of
+//                           waiting out the running inter-tick delay.
 //   * OnRendered          — record first-paint latency on the inaugural render.
-//   * OnRenderedAsync     — push the rolling buffer into Chart.js via the
-//                           sibling LiveTicker.js. Idempotent; the publish-
-//                           render mechanism keeps the unguarded await safe.
-//   * OnUnmount*          — log teardown. The framework's CancellationToken
-//                           is already firing here, which is what cancels the
-//                           in-flight Task.Delay in the poll loop above.
+//   * OnRenderedAsync     — push the rolling buffer into Chart.js via the sibling
+//                           LiveTicker.js, but only when the buffer actually
+//                           changed since the last draw (version-gated, so a
+//                           no-op publish render doesn't re-marshal the array).
+//   * OnUnmount*          — log teardown. The framework's CancellationToken is
+//                           already firing here, which cancels both the in-flight
+//                           Task.Delay and the interruptible inter-tick delay.
+//
+// Render discipline: every await in the loop uses ConfigureAwait(false), so the
+// LifecycleSyncContext never auto-renders mid-loop; the single StateHasChanged()
+// after a point is appended is the one render per tick. Off-context mutation is
+// safe here — server renders run under the session lock and ticks are strictly
+// sequential, so the buffer is never mutated during a render; WASM is
+// single-threaded; and StateHasChanged() is a no-op once the component unmounts.
 //
 // The poll loop is fully synthetic — no external HTTP. Real public crypto
 // APIs (CoinCap, CoinGecko, Coinbase) all rate-limit or 403 server-to-server
@@ -30,7 +45,7 @@ namespace Rask.Example.Shared.Demos;
 // is deterministic and offline-safe.
 public sealed class LiveTicker(IJSRuntime js) : Component
 {
-    // ~3 min of points at the default 3 s poll. Bounded so a long-running tab
+    // ~1 min of points at the default 1 s poll. Bounded so a long-running tab
     // doesn't grow the sessionStorage entry indefinitely.
     private const int HistoryCapacity = 60;
     private const string StorageKeyPrefix = "rask-live-ticker:";
@@ -41,6 +56,17 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     private string? _lastSymbol;
     private DateTimeOffset _mountedAt;
 
+    // Recreated each loop iteration and linked to the lifetime CancellationToken.
+    // OnPropsChangedAsync cancels it to wake the inter-tick delay early so a symbol
+    // switch polls the new asset immediately instead of waiting out IntervalMs.
+    private CancellationTokenSource? _wake;
+
+    // Monotonic buffer version (++ on every _history mutation) vs the version last
+    // pushed to Chart.js. Lets OnRenderedAsync skip the JS round-trip on renders
+    // that didn't change the data (e.g. a publish-only re-render).
+    private int _version;
+    private int _lastDrawnVersion = -1;
+
     // Required factory parameter — properties with an initializer are excluded
     // by the generator, but we want callers to pass Symbol explicitly. Same
     // pattern as CodeSample.Source (CodeSample.cs:17).
@@ -50,11 +76,11 @@ public sealed class LiveTicker(IJSRuntime js) : Component
 
     // Nullable so the generator emits Interval as an optional factory parameter
     // (default null). Callers — production pages and unit tests alike — pass an
-    // explicit value when they want one; the default 3 s lives next to the read
-    // site below.
+    // explicit value when they want one; the default 1 s lives next to the read
+    // site below (denser points ⇒ a smoother-looking line).
     public int? Interval { get; set; }
 
-    private int IntervalMs => Interval ?? 3000;
+    private int IntervalMs => Interval ?? 1000;
 
     // Parent-owned log sink so OnUnmount* entries survive disposal — same pattern
     // LifecycleCycleProbe uses (LifecycleProbe.cs:49).
@@ -79,7 +105,8 @@ public sealed class LiveTicker(IJSRuntime js) : Component
 
     protected override async Task OnMountAsync()
     {
-        await LoadFromStorageAsync();
+        await LoadFromStorageAsync().ConfigureAwait(false);
+        StateHasChanged();
         Emit($"OnMountAsync: loaded {_history.Count} persisted points; starting poll loop");
 
         var ct = CancellationToken;
@@ -87,13 +114,34 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         {
             while (!ct.IsCancellationRequested)
             {
-                await PollOnceAsync(ct);
-                await Task.Delay(IntervalMs, ct).ConfigureAwait(true);
+                // Publish this iteration's wake BEFORE polling so a Symbol switch
+                // landing mid-poll still registers: PollOnceAsync drops the stale
+                // result, then the already-cancelled wake makes the inter-tick delay
+                // return immediately and the loop re-polls the new asset. Linked to ct
+                // so unmount tears the loop down. Exchange-before-Dispose mirrors
+                // Virtualize's superseded-CTS handling so a racing Cancel() is benign.
+                var wake = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                Interlocked.Exchange(ref _wake, wake)?.Dispose();
+
+                await PollOnceAsync(ct).ConfigureAwait(false);
+
+                try
+                {
+                    await Task.Delay(IntervalMs, wake.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    // Woken by a Symbol switch — fall through and poll immediately.
+                }
             }
         }
         catch (OperationCanceledException)
         {
             // Expected on unmount — fall through to the exit log.
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _wake, null)?.Dispose();
         }
 
         Emit("OnMountAsync: poll loop cancelled");
@@ -116,9 +164,25 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         if (_lastSymbol is not null && _lastSymbol != Symbol)
         {
             _history.Clear();
+            _version++;
             _error = null;
-            await LoadFromStorageAsync();
+            // Keep ConfigureAwait(true) here: this is a distinct hook invocation with
+            // its own fresh LifecycleSyncContext, so the auto-render paints the new
+            // symbol's (empty/hydrated) state. It is not poisoned by the loop's
+            // ConfigureAwait(false) chain — that runs on a separate invocation.
+            await LoadFromStorageAsync().ConfigureAwait(true);
             Emit($"OnPropsChangedAsync: switched to {Symbol}, loaded {_history.Count} persisted points");
+
+            // Wake the poll loop AFTER the buffer reset so the immediate poll sees the
+            // correct state. The Exchange-before-Dispose ordering in the loop makes a
+            // cancel-vs-recreate race benign; swallow the rare disposed-CTS case.
+            try
+            {
+                Volatile.Read(ref _wake)?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         _lastSymbol = Symbol;
@@ -138,7 +202,16 @@ public sealed class LiveTicker(IJSRuntime js) : Component
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
-        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray());
+        // Skip the JS round-trip when the buffer is unchanged since the last draw
+        // (e.g. a publish-only re-render). Set _lastDrawnVersion before the await so
+        // a re-entrant render during the in-flight call can't double-dispatch.
+        if (_version == _lastDrawnVersion)
+        {
+            return;
+        }
+
+        _lastDrawnVersion = _version;
+        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray()).ConfigureAwait(false);
         if (firstRender)
         {
             Emit("OnRenderedAsync(firstRender:true): Chart.js initialised");
@@ -201,9 +274,10 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         try
         {
             // Pretend network latency so the lifecycle/cancellation story stays
-            // faithful: the loop yields here, the CancellationToken cancels the
-            // Task.Delay on unmount, and the post-await continuation re-renders.
-            await Task.Delay(50, ct).ConfigureAwait(true);
+            // faithful: the loop yields here and the CancellationToken cancels the
+            // Task.Delay on unmount. ConfigureAwait(false) — the explicit
+            // StateHasChanged() below is the one render per tick.
+            await Task.Delay(50, ct).ConfigureAwait(false);
 
             // Symbol may have changed during the simulated latency; drop the
             // result so the chart isn't contaminated with the previous asset's data.
@@ -219,8 +293,10 @@ public sealed class LiveTicker(IJSRuntime js) : Component
                 _history.RemoveAt(0);
             }
 
+            _version++;
             _error = null;
-            await PersistAsync().ConfigureAwait(true);
+            StateHasChanged();                      // the one render (+ one redraw) per tick
+            await PersistAsync().ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -229,6 +305,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         catch (Exception ex)
         {
             _error = ex.Message;
+            StateHasChanged();                      // surface the #ticker-error alert
         }
     }
 
@@ -253,7 +330,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     {
         try
         {
-            var json = await js.InvokeAsync<string?>("sessionStorage.getItem", StorageKey).ConfigureAwait(true);
+            var json = await js.InvokeAsync<string?>("sessionStorage.getItem", StorageKey).ConfigureAwait(false);
             if (string.IsNullOrEmpty(json))
             {
                 return;
@@ -267,6 +344,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
 
             _history.Clear();
             _history.AddRange(arr);
+            _version++;
         }
         catch
         {
@@ -279,7 +357,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         try
         {
             var json = JsonSerializer.Serialize(_history.ToArray(), LiveTickerJsonContext.Default.PricePointArray);
-            await js.InvokeVoidAsync("sessionStorage.setItem", StorageKey, json).ConfigureAwait(true);
+            await js.InvokeVoidAsync("sessionStorage.setItem", StorageKey, json).ConfigureAwait(false);
         }
         catch
         {
