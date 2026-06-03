@@ -41,15 +41,15 @@ jobs:
         # so the runtime's WasmHostBuilder.CreateDefault auto-detect picks up the
         # prefix from document.baseURI on first paint and emits every scoped-asset
         # <link>/<script> under /<repo>/_rask/a/{hash}.{ext}.
-        run: dotnet publish Rask.Example.Wasm -c Release -o publish /p:RaskPathBase=/${{ github.event.repository.name }}
+        run: dotnet publish samples/Rask.Example.Wasm -c Release -o publish /p:RaskPathBase=/${{ github.event.repository.name }}
 
       - name: Resolve bundle directory
         id: bundle
         run: |
-          BUNDLE=Rask.Example.Wasm/bin/Release/net10.0-browser/browser-wasm/AppBundle
+          BUNDLE=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/browser-wasm/AppBundle
           if [ ! -d "$BUNDLE" ]; then
             echo "Could not locate the WASM AppBundle at $BUNDLE" >&2
-            find Rask.Example.Wasm/bin -maxdepth 5 -type d
+            find samples/Rask.Example.Wasm/bin -maxdepth 5 -type d
             exit 1
           fi
           echo "--- index.html (head) ---"

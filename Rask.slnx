@@ -1,0 +1,39 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj" />
+    <Project Path="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj" />
+    <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj" />
+    <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj" />
+    <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Rask.Core/Rask.Core.csproj" />
+    <Project Path="src/Rask.Generators/Rask.Generators.csproj" />
+    <Project Path="src/Rask.Server/Rask.Server.csproj" />
+    <Project Path="src/Rask.Templates/Rask.Templates.csproj" />
+    <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj" />
+    <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj" />
+    <Project Path="src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj" />
+    <Project Path="src/Rask.Wasm.Tasks/Rask.Wasm.Tasks.csproj" />
+    <Project Path="src/Rask.Wasm/Rask.Wasm.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj" />
+    <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj" />
+    <Project Path="tests/Rask.Example.Shared.Tests/Rask.Example.Shared.Tests.csproj" />
+    <Project Path="tests/Rask.Example.Wasm.Host.Tests/Rask.Example.Wasm.Host.Tests.csproj" />
+    <Project Path="tests/Rask.Example.Wasm.Tests/Rask.Example.Wasm.Tests.csproj" />
+    <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj" />
+    <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj" />
+    <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj" />
+    <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj" />
+    <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj" />
+    <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj" />
+    <Project Path="tests/Rask.Wasm.Hosting.Tests/Rask.Wasm.Hosting.Tests.csproj" />
+    <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj" />
+    <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj" />
+  </Folder>
+</Solution>

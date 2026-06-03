@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Server</RootNamespace>
+
+    <PackageId>Rask.Server</PackageId>
+    <Description>Rask server host. Renders Rask components from ASP.NET with live updates over a WebSocket. Includes Rask.Core and the Rask source generators.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Microsoft.JSInterop (IJSRuntime + JSRuntime base + DotNetDispatcher) is already supplied
+    transitively by the Microsoft.AspNetCore.App framework reference above, so no explicit
+    PackageReference is needed. This is the abstractions-only surface — it does not drag in
+    the Blazor renderer or circuit, so Rask's component model stays independent of
+    Microsoft.AspNetCore.Components.
+  -->
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Core.Tests"/>
+    <InternalsVisibleTo Include="Rask.Server.Tests"/>
+  </ItemGroup>
+
+  <!--
+    The embedded rask.js is generated at build time by splicing the shared
+    Rask.Core/Resources/rask-morph.js into Resources/rask.js at the
+    @@RASK_MORPH@@ marker. The generated artifact lives in $(IntermediateOutputPath)
+    so the source file in Resources/ stays free of duplicated morph code and
+    git status doesn't churn on build.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
+  </ItemGroup>
+
+  <Import Project="..\..\build\Rask.MinifyJs.targets"/>
+
+  <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
+          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-morph.js"
+          Outputs="$(IntermediateOutputPath)rask.js">
+    <PropertyGroup>
+      <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
+      <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
+      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskClientJs>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+    <!--
+      Release builds: strip block comments, full-line // comments, and blank lines from
+      the spliced client JS. Conservative — preserves mid-line behaviour so strings,
+      template literals, and regex literals stay untouched. Debug builds keep the
+      readable form to aid in-browser debugging.
+    -->
+    <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask.js"
+                  OutputFile="$(IntermediateOutputPath)rask.js"
+                  Condition=" '$(Configuration)' == 'Release' "/>
+  </Target>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <!--
+    Bundle Rask.Core.dll into lib/net10.0/ alongside Rask.Server.dll, and pack the source
+    generator at analyzers/dotnet/cs/. PrivateAssets="all" on the Core ProjectReference
+    keeps the Rask.Core "package" out of the nuspec dependency list — we explicitly pack
+    its DLL here. Microsoft.AspNetCore.App (declared as a FrameworkReference) covers all
+    of Core's runtime needs at consume time on net10.0.
+  -->
+  <ItemGroup>
+    <None Include="$(OutputPath)Rask.Core.dll"
+          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
+    <None Include="..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+
+</Project>
