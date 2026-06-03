@@ -169,7 +169,7 @@ public sealed class DisposalPage : Component
             entries.Count == 0
                 ? P(Class: "text-secondary small mb-0")["Empty — mount and unmount the probe."]
                 : Ol(Class: "list-group list-group-numbered list-group-flush",
-                    Id: id)[entries.Select(line => (Child)Li(Key: line, 
+                    Id: id)[entries.Select(line => Li(Key: line, 
                     Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]];
 
     private void MountSync()

@@ -1,7 +1,11 @@
-# Rask
+<div align="center">
 
-> A C# component framework for building live web apps — server-rendered over WebSockets, or fully client-side in the
-> browser via WebAssembly.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/rask-logo-dark.svg">
+  <img alt="Rask" src="assets/rask-logo.svg" width="300">
+</picture>
+
+### Live web apps in C#. One codebase — server-rendered over WebSockets, or client-side in the browser via WebAssembly.
 
 [![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
@@ -12,86 +16,85 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-## Contents
+**[Quick start](#-quick-start--server)** · **[Core concepts](#-core-concepts)** · **[Performance](#-performance)** · **[Live demo ↗](https://pal-tamas.github.io/rask/)**
 
-- [What is Rask?](#what-is-rask)
-- [Compared to Blazor](#compared-to-blazor)
-- [Install](#install)
-- [Quick Start — Server](#quick-start--server)
-- [Quick Start — WASM](#quick-start--wasm)
-- [Troubleshooting](#troubleshooting)
-- [Sub-path hosting & side-by-side apps](#sub-path-hosting--side-by-side-apps)
-- [Examples](#examples)
-- [Core concepts](#core-concepts)
-    - [Components](#components)
-    - [Interactivity](#interactivity)
-    - [Async data](#async-data)
-    - [Routing](#routing)
-    - [Page head contributions](#page-head-contributions)
-    - [Error boundaries](#error-boundaries)
-    - [Forms & validation](#forms--validation)
-    - [Files: upload and download](#files-upload-and-download)
-    - [Virtualization](#virtualization)
-    - [Scoped CSS](#scoped-css)
-    - [Scoped JS](#scoped-js)
-    - [Lifecycle reference](#lifecycle-reference)
-- [Performance](#performance)
-- [Status](#status)
-- [License](#license)
+</div>
 
-## What is Rask?
+---
 
-*Rask* is the Norwegian/Danish/Swedish word for **fast** or **quick**.
+Write components as plain C# classes. Return a tree of HTML from `Render()`. **No `.razor`, no JSX, no JavaScript to write** — and the *same* component code runs server-rendered with live WebSocket updates or fully client-side on WebAssembly.
 
-Rask is a component framework for .NET. You write components as plain C# classes, return a tree of HTML from `Render()`,
-and host the result one of three ways: server-rendered with live updates over a WebSocket, fully client-side in the
-browser via WebAssembly, or an ASP.NET app that serves a published WASM bundle. The **same component code runs under
-either host** — only the hosting glue changes.
+```csharp
+[Route("/counter")]
+public sealed class Counter : Component
+{
+    private int _count;
 
-What makes it different from other component frameworks:
+    protected override RenderResult Render() =>
+    [
+        H1()["Counter"],
+        P()[$"Current count: {_count}"],
+        Button(OnClick: () => _count++)["Click me"]
+    ];
+}
+```
 
-- **Text-first DSL.** No `.razor`, no JSX. You call `Div(...)[Span(...), "hi"]`, `Button(...)["click"]`, `H1()["title"]`
-  from C# — children attach through an indexer on every component, so the tree reads top-down like HTML and stays
-  type-checked, refactor-safe, and IDE-friendly.
-- **Source-generated factories.** Define `class Counter : Component` and a `Counter()` factory is generated for you.
-  Required vs. optional parameters fall out of property nullability automatically.
-- **Type-safe URLs.** Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"`
-  strings that rot.
-- **Scoped CSS, colocated.** Drop a sibling `{Component}.css` next to `{Component}.cs` and selectors are auto-scoped
-  to that type and hot-reloaded — no class-name discipline, no BEM, no leaks.
-- **Constructor DI in components.** `class Weather(IWeatherForecastService svc) : Component` works directly — no
-  `[Inject]` properties, no boilerplate.
-- **Error boundaries.** `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree
-  and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.
-- **Forms with async validation.** `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt
-  into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form as children.
-  Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing,
-  and rapid keystrokes cancel any prior in-flight validation (latest-wins).
+<sub>☝️ A complete, live, interactive component — routing, state, and event handling in a single C# class.</sub>
 
-## Compared to Blazor
+<details>
+<summary><b>Contents</b></summary>
+
+- [Why Rask](#-why-rask)
+- [Compared to Blazor](#-compared-to-blazor)
+- [Install](#-install)
+- [Quick Start — Server](#-quick-start--server)
+- [Quick Start — WASM](#-quick-start--wasm)
+- [Troubleshooting](#-troubleshooting)
+- [Sub-path hosting & side-by-side apps](#-sub-path-hosting--side-by-side-apps)
+- [Examples](#-examples)
+- [Core concepts](#-core-concepts) — Components · Interactivity · Async data · Routing · Head · Error boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Keyed lists · Live diff codec · Lifecycle
+- [Performance](#-performance)
+- [Status](#-status)
+- [License](#-license)
+
+</details>
+
+## ✨ Why Rask
+
+*Rask* is the Norwegian/Danish/Swedish word for **fast**. It's a component framework for .NET: you write components as
+plain C# classes, return a tree of HTML from `Render()`, and host the result one of three ways — server-rendered with
+live updates over a WebSocket, fully client-side in the browser via WebAssembly, or an ASP.NET app that serves a
+published WASM bundle. The **same component code runs under any host** — only the hosting glue changes.
+
+|     | Feature | What it means |
+|:---:|---------|---------------|
+| 🧩 | **Text-first DSL** | No `.razor`, no JSX. Call `Div(...)[Span(...), "hi"]`, `Button(...)["click"]`, `H1()["title"]` from C# — children attach through an indexer on every component, so the tree reads top-down like HTML and stays type-checked, refactor-safe, and IDE-friendly. |
+| ⚙️ | **Source-generated factories** | Define `class Counter : Component` and a `Counter()` factory is generated for you. Required vs. optional parameters fall out of property nullability automatically. |
+| 🔗 | **Type-safe URLs** | Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"` strings that rot. |
+| 🎨 | **Scoped CSS, colocated** | Drop a sibling `{Component}.css` next to `{Component}.cs` and selectors are auto-scoped to that type and hot-reloaded — no class-name discipline, no BEM, no leaks. |
+| 💉 | **Constructor DI** | `class Weather(IWeatherForecastService svc) : Component` works directly — no `[Inject]` properties, no boilerplate. |
+| 🛡️ | **Error boundaries** | `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant. |
+| ✅ | **Forms with async validation** | `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form. Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins). |
+| ⚡ | **Live diff codec** | After first paint, a small state change ships a minimal edit-op payload instead of re-serializing the page — a counter tick on a 50 KB page goes from ~50 KB to ~57 bytes on the wire. On by default. |
+| 🔑 | **Keyed lists** | Add a `Key:` to list items (Blazor `@key` parity) and inserts/removes/reorders reconcile by identity — shipping trusted structural diffs that preserve focus and input state on the survivors. A `RASK022` analyzer flags a list item that's missing a key. |
+
+## ⚖️ Compared to Blazor
 
 If you've worked in Blazor, here's how the day-to-day differs in Rask:
 
-- **No `.razor`.** Components are plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]` instead
-  of mixed markup + code. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just
-  work.
-- **No `[Inject]`.** Services come in through the constructor (`Counter(IClock clock) : Component`), exactly like
-  anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way.
-- **No `@page "/path"`.** `[Route("/path")]` goes on the class, and every route gets a generated **type-safe URL
-  builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes.
-- **No `RenderFragment` / `EventCallback`.** Children are `IEnumerable<Child>` and event handlers are plain delegates
-  (`OnClick: () => _count++`). No specialised types, no `@bind-Value:event`.
-- **Scoped CSS via sibling `.css`** (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded
-  under `dotnet watch`, with no `.razor.css` association ceremony. Same idea for JS: a sibling `{Component}.js` is
-  bundled and dispatched by the framework.
-- **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when
-  switching render mode. Server-only behaviours (multipart upload) and WASM-only behaviours (chunked file reads,
-  inline downloads) live in the hosts, not in your tree.
+| In Blazor | In Rask |
+|-----------|---------|
+| `.razor` files mixing markup + code | Plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]`. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just work. |
+| `[Inject]` properties | Services come in through the **constructor** (`Counter(IClock clock) : Component`), like anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way. |
+| `@page "/path"` | `[Route("/path")]` on the class, and every route gets a generated **type-safe URL builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes. |
+| `RenderFragment` / `EventCallback` | Children are `IEnumerable<Child>`; event handlers are plain delegates (`OnClick: () => _count++`). No specialised types, no `@bind-Value:event`. |
+| `.razor.css` association ceremony | Scoped CSS via a sibling `{Component}.css` (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded under `dotnet watch`. Same idea for JS: a sibling `{Component}.js` is bundled and dispatched by the framework. |
+| Separate render modes to wire up | **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when switching render mode. Server-only (multipart upload) and WASM-only (chunked file reads, inline downloads) behaviours live in the hosts, not in your tree. |
 
 Rask isn't a Blazor replacement so much as a different take on the same problem space. If those trade-offs appeal, the
 rest of this README walks through what they look like in practice.
 
-## Install
+## 📦 Install
 
 ### Scaffold a new project with `dotnet new` (recommended)
 
@@ -136,7 +139,7 @@ dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 
 pulls in `Rask.Wasm`. The validation packages add a global `using static` for their factory namespace, so
 `DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in scope without extra `using` lines.
 
-## Quick Start — Server
+## 🚀 Quick Start — Server
 
 Three files. Live, server-rendered, no JavaScript to write.
 
@@ -214,7 +217,7 @@ public sealed class HomePage : Component
 
 Run `dotnet run` and open the printed URL.
 
-## Quick Start — WASM
+## 🚀 Quick Start — WASM
 
 Two flavours: a **standalone** SPA that ships as a static bundle, or a **hosted** variant where an ASP.NET project
 serves the published WASM bundle alongside your own `/api/...` endpoints. The `App.cs` and `HomePage.cs` from the
@@ -279,7 +282,7 @@ layer.
 `app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation,
 and a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alongside it.
 
-## Troubleshooting
+## 🧰 Troubleshooting
 
 First-run snags and their fixes:
 
@@ -297,7 +300,7 @@ First-run snags and their fixes:
 - **Blank page or 404s on `/_rask/...` assets behind a reverse proxy or sub-path.** The app is almost certainly running
   under a URL prefix the framework doesn't know about — set `PathBase`. See *Sub-path hosting & side-by-side apps* below.
 
-## Sub-path hosting & side-by-side apps
+## 🌐 Sub-path hosting & side-by-side apps
 
 Every Rask hosting model accepts a per-app URL prefix (`PathBase`). Set it once and every framework-emitted URL —
 head asset `<link>`/`<script>` tags, the runtime `<script>` src, WebSocket connect, upload/download/auth endpoints,
@@ -335,7 +338,7 @@ Normalization: `"myapp"`, `"/myapp"`, and `"/myapp/"` all become `/myapp` intern
 default — unchanged behaviour). The CI workflow shipping `Rask.Example.Wasm` to GitHub Pages
 (`.github/workflows/pages.yml`) uses this property — copy that pattern for your own sub-path deploys.
 
-## Examples
+## 🧪 Examples
 
 Beyond the quick starts, the repo ships runnable showcase apps that exercise every feature end-to-end:
 
@@ -349,13 +352,22 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
   [`.github/workflows/pages.yml`](.github/workflows/pages.yml), so you can click through a full multi-page Rask app in
   the browser before cloning anything.
 
-## Core concepts
+## 🧩 Core concepts
 
-### Components
+The framework, feature by feature. Each section is collapsed — click to expand the one you need.
+
+<details>
+<summary><b>🔹 Components</b></summary>
+<br>
 
 Every component is a `sealed class : Component`. Override `Render()` and return a tree. Children attach via the
-`Component this[params IEnumerable<Child>]` indexer — strings and `Component`s convert implicitly to `Child`, so
-`H1()["Hello"]` and `Div()[Span(...), "text"]` both work.
+`Component this[params IEnumerable<Child>]` indexer — strings, `Component`s, and value types (`int`, `double`,
+`bool`, `DateOnly`, `Guid`, …) all convert implicitly to `Child`, so `H1()["Hello"]`, `Div()[Span(...), "text"]`,
+and `Td()[f.TemperatureC]` (no `.ToString()`) all work. Value types render with `InvariantCulture`, so the HTML
+stays locale-independent.
+
+When you project a list into the children, no per-item cast is needed — `Tbody()[rows.Select(r => Tr(Key: r.Id)[...])]`
+binds straight to the indexer (an `IEnumerable<Component>` overload handles the LINQ-pipeline shape).
 
 `Render()` (and the `Head` override) return `RenderResult`, which accepts three shapes:
 
@@ -384,7 +396,11 @@ Inject framework services through the **constructor**, not as properties:
 public sealed class Weather(IWeatherForecastService service) : Component { ... }
 ```
 
-### Interactivity
+</details>
+
+<details>
+<summary><b>⚡ Interactivity</b></summary>
+<br>
 
 Local state on fields, event handlers as plain delegates. A click triggers a server round-trip (server host) or a local
 re-render (WASM host) — same code.
@@ -404,7 +420,11 @@ public sealed class Counter : Component
 }
 ```
 
-### Async data
+</details>
+
+<details>
+<summary><b>⏳ Async data</b></summary>
+<br>
 
 Override `OnMountAsync` (runs once per instance) or `OnPropsChangedAsync` (runs every render). Each `await`
 triggers an automatic re-render after the continuation, so a loading placeholder turns into real data with no manual
@@ -431,7 +451,11 @@ public sealed class Weather(IWeatherForecastService service) : Component
 }
 ```
 
-### Routing
+</details>
+
+<details>
+<summary><b>🧭 Routing</b></summary>
+<br>
 
 `[Route]` registers a page. `[RouteParam]` and `[QueryParam]` bind URL pieces to properties. The generator emits a
 strongly-typed URL builder for each route, so links don't carry stringly-typed paths.
@@ -456,7 +480,11 @@ Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigat
 Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal
 built-in page if no app-defined one exists.
 
-### Page head contributions
+</details>
+
+<details>
+<summary><b>📑 Page head contributions</b></summary>
+<br>
 
 Any component can override `protected virtual RenderResult Head` to declare what belongs in `<head>` while that component
 is in the tree. The default is `default` — no contribution; a single tag, a collection expression of several tags, or
@@ -485,7 +513,11 @@ render's `<head>` reflects whatever components remain. Multiple instances of the
 a single emission. The `Head()` HTML element itself is **framework-managed** — passing it children is a `RASK019`
 compile error; everything goes through the override.
 
-### Error boundaries
+</details>
+
+<details>
+<summary><b>🛡️ Error boundaries</b></summary>
+<br>
 
 Wrap any subtree in `ErrorBoundary(...)` to catch render-time, sync/async lifecycle, and event-handler exceptions
 thrown by descendants. The fallback receives the exception plus a `recover` callback so the boundary can be reset.
@@ -504,7 +536,11 @@ ErrorBoundary(
 Without a `Fallback`, the boundary renders a built-in default error page. The `recover` callback passed to the
 fallback is the only reset path.
 
-### Forms & validation
+</details>
+
+<details>
+<summary><b>✅ Forms &amp; validation</b></summary>
+<br>
 
 Bind inputs two-way with `Input(Bind: () => model.Field)` — the input type is inferred from the property's CLR type
 (string → text, bool → checkbox, int → number, DateOnly → date, …) and new values flow back into the model on each
@@ -513,12 +549,36 @@ attached to its `EditContext`. Field errors render via `ValidationMessage` and a
 `ValidationSummary` — both are headless and take a required `Template:` lambda so you control the markup
 (e.g. `Template: errs => Div(Class: "err")[errs[0]]`).
 
+A bound `Select(Bind: () => model.Field)[Option(...), ...]` **pre-selects the option matching the current model value**
+— including a non-first option — even when the options are supplied through the `[...]` indexer; the marking is
+deferred to serialize time so the rendered `<select>` always reflects the bound state on first paint.
+
 `Input` / `Select` / `Textarea` also accept `AfterBind` / `AfterBindAsync` callbacks that fire **after** the new value
 is written to the model (and after validators see the change) — handy for dependent fields that need to rebind in the
 same render. Skipped on parse failure or no-op writes.
 
-Validation is opt-in — Rask.Core ships no validator by default. Add the package you want and drop the validator
-component inside the form:
+Validation comes in layers. **The lightest ships in `Rask.Core` — inline `Validate:` lambdas, no extra package:**
+
+- **Per-field inline rule** — pass a `Validate:` lambda directly to an `Input`. Three overloads cover the common
+  shapes: omit it, return `IEnumerable<string>` for sync rules, or return `ValueTask<IEnumerable<string>>` for async
+  (the `CancellationToken` cancels the in-flight check on the next keystroke). An empty sequence means valid; any
+  returned strings become the field's errors.
+- **Cross-field rule on the form** — pass `Validate:` to `Form<TModel>` to run a model-level check on submit (great
+  for "passwords must match" or "either email or phone is required"). `[FactoryGeneric]` narrows the lambda's
+  parameter to `TModel` so it's strongly typed.
+
+```csharp
+Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
+    Input(Bind: () => _model.Username,
+          Validate: name => name.Length < 3 ? ["Username is too short"] : []),
+    ValidationMessage(For: () => _model.Username,
+        Template: errs => Div(Class: "field-error")[errs[0]]),
+    Button(Type: "submit")["Sign up"]
+]
+```
+
+**For attribute- or rules-based validation, opt into a package** and drop its validator component inside the form — it
+wires into the form's `EditContext` and covers the whole reachable model graph from one place:
 
 - **`Rask.Validation.DataAnnotations`** — `DataAnnotationsValidator()` wires `[Required]` / `[EmailAddress]` / `[Range]`
   / `IValidatableObject` into the form's `EditContext`.
@@ -553,23 +613,11 @@ public sealed class SignupPage : Component
 
 #### Async validation
 
-For ad-hoc async rules (uniqueness probes, remote checks), implement `IAsyncFieldValidator` and add it to a manually
-built `EditContext`. The submit bridge awaits async validation before routing, and rapid keystrokes cancel any prior
-in-flight per-field check (latest-wins). `ValidatingIndicator` is headless too — pass a `Template:` lambda for
-whatever should show while the field is being checked (e.g. `Template: () => Span()["Checking..."]`).
-
-Two lighter-weight alternatives, when a full `IAsyncFieldValidator` is overkill:
-
-- **Per-field inline rule** — pass a `Validate:` lambda directly to an `Input`. Three overloads cover the common
-  shapes: omit it, return `IEnumerable<string>` for sync rules, or return `ValueTask<IEnumerable<string>>` for async
-  (the `CancellationToken` cancels the in-flight check on the next keystroke). An empty sequence means valid; any
-  returned strings become the field's errors.
-- **Cross-field rule on the form** — pass `Validate:` to `Form<TModel>` to run a model-level check on submit (great
-  for "passwords must match" or "either email or phone is required"). `[FactoryGeneric]` narrows the lambda's
-  parameter to `TModel` so it's strongly typed.
-
-Reach for `IAsyncFieldValidator` when the rule needs DI (an `HttpClient`, a repository) or when you want to reuse it
-across forms.
+The inline `Validate:` lambda already covers async per-field rules — return a `ValueTask<IEnumerable<string>>` and the
+submit bridge awaits it before routing, with rapid keystrokes cancelling any prior in-flight check (latest-wins). Reach
+for a full **`IAsyncFieldValidator`** when the rule needs DI (an `HttpClient`, a repository) or you want to reuse it
+across forms: implement it and add it to a manually built `EditContext`. `ValidatingIndicator` is headless too — pass a
+`Template:` lambda for whatever should show while the field is being checked (e.g. `Template: () => Span()["Checking..."]`).
 
 ```csharp
 public sealed class UniqueUsernameValidator : IAsyncFieldValidator
@@ -688,7 +736,11 @@ already applies to the root model (preserve its public properties via `[Dynamica
 `<TrimmerRootDescriptor>`) extends to every nested type. The full Forms/Complex-models showcase under `/nested-forms`
 demonstrates all four patterns side-by-side.
 
-### Files: upload and download
+</details>
+
+<details>
+<summary><b>📎 Files: upload and download</b></summary>
+<br>
 
 `Input(Type: "file", OnFiles: …)` accepts files; `Navigator.Download(...)` sends them. The same component code runs
 unchanged on Server and WASM — only the transport differs (multipart over the WebSocket on the server, JS-Map +
@@ -720,7 +772,11 @@ stream is only valid while the handler is on the stack — read whatever you nee
 files also surface through `FormData.Files(name)` and participate in submit. `Navigator.Download` must be called from
 an event handler. See `Rask.Example.Shared/Pages/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
 
-### Virtualization
+</details>
+
+<details>
+<summary><b>📜 Virtualization</b></summary>
+<br>
 
 `Virtualize<T>` is a headless windowed-list primitive — it emits no DOM of its own and instead invokes the `Render`
 delegate with the visible window of items plus the spacer offsets you wire into your own scroll container.
@@ -737,7 +793,7 @@ Virtualize<Row>(
         Div(Style: $"height:{ctx.OffsetBefore}px"),  // spacer for off-screen rows above
         Table()[
             Tbody()[
-                ctx.VisibleItems.Select(item => (Child)Tr()[
+                ctx.VisibleItems.Select(item => Tr(Key: item.Index)[
                     Td()[$"#{item.Index}"],
                     Td()[item.Value?.Name ?? ""]    // null while a placeholder is loading
                 ]).ToArray()
@@ -752,7 +808,11 @@ Provide exactly one of `Items` (in-memory) or `ItemsProvider` (async paging:
 global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true` until
 a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-row table demo.
 
-### Scoped CSS
+</details>
+
+<details>
+<summary><b>🎨 Scoped CSS</b></summary>
+<br>
 
 Drop a sibling `{Component}.css` file next to `{Component}.cs` and the source generator pairs them at compile time —
 selectors are auto-scoped to that component type, delivered per-component over a content-addressed HTTP endpoint, and
@@ -802,7 +862,11 @@ intentionally excluded from stamping), so a sibling rule like `body { ... }` wou
 The wrapper is stripped at compile time and the rule emits exactly the inner selector. `:global()` also works inside
 `@media` / `@supports` / `@container` / `@layer` blocks.
 
-### Scoped JS
+</details>
+
+<details>
+<summary><b>🟨 Scoped JS</b></summary>
+<br>
 
 Drop a sibling `{Component}.js` file next to `{Component}.cs` to colocate behavior with markup. The file exports any
 number of named functions; the framework wraps each file as
@@ -878,7 +942,53 @@ On **WASM**, the standard Blazor-WASM trimming constraint applies: `T` in `Invok
 call site (via `[DynamicallyAccessedMembers]` or a `JsonSerializerContext`). JSON primitives (`bool`, `int`, `long`,
 `double`, `string`) are always safe. Server has no such constraint.
 
-### Live rendering & the diff codec
+</details>
+
+<details>
+<summary><b>🔑 Keyed lists &amp; reconciliation</b></summary>
+<br>
+
+When you render a dynamic list, give each item a stable `Key:` so the framework can reconcile by **identity** instead of
+by position. `Key` is the last optional parameter on **every** generated factory (Blazor `@key` parity) — it takes any
+`object?`:
+
+```csharp
+Ul()[
+    _todos.Select(item => Li(Key: item.Id, Class: "list-group-item")[
+        Input(Bind: () => item.Done),
+        Span()[item.Title]
+    ])
+]
+```
+
+With keys, an insert / remove / reorder ships as a **trusted structural diff** (Insert/Remove/Move) instead of a
+positional full-HTML morph — so the surviving rows keep their focus, selection, scroll position, and uncommitted input
+state across the change. Without keys, the same edit reconciles by position and can blow away that DOM/IDL state on
+every row after the edit point.
+
+A few things worth knowing:
+
+- **It's an identity, not a reactive prop.** A `Key` change doesn't fire `OnPropsChanged` — a different key is a
+  different logical item, so it mounts fresh. Keys are excluded from the props diff, so a propertyless component keeps
+  its fast path.
+- **On elements** `Key` emits `data-rask-key`; on a **transparent component or `Fragment`** it auto-forwards onto that
+  item's first rendered element (so a keyed list item should render a single root element).
+- **`Data["rask-key"]` still works** for back-compat; when both are set, `Key` wins.
+
+**RASK022** (warning) nudges you when a list item is missing a key — it fires on a `.Select(...)` / `.SelectMany(...)`
+projection whose body becomes a `Child`, or an element `.Add(...)`-ed to a `List<Child>` inside a loop. Add a `Key:`
+(or a `Data` `rask-key`) to clear it. Suppress per-site with `#pragma warning disable RASK022`, or promote it to an
+error with `<WarningsAsErrors>RASK022</WarningsAsErrors>` in the `.csproj`.
+
+See `Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with keys
+on vs off to watch DOM state follow (or not follow) its row.
+
+</details>
+
+<details>
+<summary><b>🔁 Live rendering &amp; the diff codec</b></summary>
+<a id="live-rendering--the-diff-codec"></a>
+<br>
 
 A Rask app stays live after the first paint: the server pushes re-renders over a WebSocket, and WASM re-renders in the
 browser — the **same component code drives both**, only the transport differs. When state changes (an event handler
@@ -905,7 +1015,11 @@ The other modes are `LiveDiffMode.DisabledFull` (always full HTML — bit-for-bi
 `LiveDiffMode.Forced` (always diff when one is computable; for tests/benchmarks). The codec is transparent to your
 components and is exercised end-to-end on both hosts by the Playwright E2E suite.
 
-### Lifecycle reference
+</details>
+
+<details>
+<summary><b>♻️ Lifecycle reference</b></summary>
+<br>
 
 | Hook                                     | When                                                                                        |
 |------------------------------------------|---------------------------------------------------------------------------------------------|
@@ -918,7 +1032,12 @@ components and is exercised end-to-end on both hosts by the Playwright E2E suite
 The post-`await` auto re-render is a *publish-only* walk that does not re-fire `OnRendered`/`OnRenderedAsync` on
 already-rendered components, so an async hook that awaits a next-frame side effect won't loop (see **Async data**).
 
-## Performance
+</details>
+
+## 📊 Performance
+
+> **~1,800× smaller wire payloads** on a counter tick (the [diff codec](#live-rendering--the-diff-codec) ships ~57 bytes
+> where pre-codec shipped ~50 KB), and **faster, lighter small-tree renders** than Blazor's `HtmlRenderer` across the board.
 
 Headline numbers from `Rask.Benchmarks.VsBlazor` — Rask vs Blazor's
 `HtmlRenderer` (Scope 1, render hot path), `RenderTreeBuilder` parameter
@@ -960,7 +1079,9 @@ keyed-move path was also corrected in the process: the prior implementation
 emitted wrong DOM order for permutations needing 3+ moves — see
 [`Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md) §2.)
 
-**Reproduce:**
+<details>
+<summary><b>Reproduce</b></summary>
+<br>
 
 ```bash
 # Scope 1 — render hot path (24 benchmarks, ~12 min):
@@ -978,7 +1099,9 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic
 
 Results are written to `BenchmarkDotNet.Artifacts/results/`.
 
-## Status
+</details>
+
+## 📋 Status
 
 Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** (`net10.0` for ASP.NET hosts,
 `net10.0-browser` for WASM projects). Production use at your own discretion — issues and PRs welcome.
@@ -993,6 +1116,18 @@ Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** 
 - **Trimming:** `Rask.Example.Wasm` publishes with zero IL warnings. See `CLAUDE.md` for the contract that keeps it
   that way.
 
-## License
+## 📄 License
 
 Rask is released under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+⚡ **Rask** — *Norwegian/Danish/Swedish for "fast".*
+
+**[Live demo ↗](https://pal-tamas.github.io/rask/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)** · **[License](LICENSE)**
+
+Built with .NET 10. Issues and PRs welcome.
+
+</div>
