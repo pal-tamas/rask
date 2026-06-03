@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace Rask.Core.Live;
 
 /// <summary>
@@ -126,43 +128,146 @@ public static class FrameDiffer
         List<EditOp> output,
         out bool usedKeyedPath,
         string? newHtml = null)
+        => Diff(oldFrames, newFrames, output, new DiffScratch(), out usedKeyedPath, newHtml);
+
+    /// <summary>
+    ///     Scratch-pooled variant. <paramref name="scratch" /> carries the reusable
+    ///     collections the keyed-reconciliation path would otherwise allocate per render
+    ///     (key maps, surviving/live lists, the LIS set, and the per-parent child buffers).
+    ///     A long-lived <see cref="DiffScratch" /> owned per session (see
+    ///     <c>SessionRenderCache</c>) makes the steady-state keyed diff allocation-free;
+    ///     callers without one use the parameterless overloads, which allocate a transient
+    ///     scratch per call — unchanged behaviour for tests and one-shot callers.
+    /// </summary>
+    public static int Diff(
+        ReadOnlySpan<RenderFrame> oldFrames,
+        ReadOnlySpan<RenderFrame> newFrames,
+        List<EditOp> output,
+        DiffScratch scratch,
+        out bool usedKeyedPath,
+        string? newHtml = null)
     {
         var startCount = output.Count;
-        var path = new List<int>(8);
-        var ctx = new DiffContext();
+        scratch.ResetForDiff();
         DiffSiblings(oldFrames, 0, oldFrames.Length,
                      newFrames, 0, newFrames.Length,
-                     path, output, newHtml, ctx);
-        usedKeyedPath = ctx.UsedKeyedPath;
+                     output, newHtml, scratch);
+        usedKeyedPath = scratch.UsedKeyedPath;
         return output.Count - startCount;
     }
 
-    private sealed class DiffContext
+    /// <summary>
+    ///     Reusable scratch for the keyed-diff path. Holds the DOM-path accumulator plus a
+    ///     small free-list of per-parent keyed buffers (key maps, child lists, the LIS set).
+    ///     Reused across renders — cleared, not reallocated — so a keyed list diff allocates
+    ///     nothing in steady state. One instance per session; NOT thread-safe (the render
+    ///     loop is single-threaded per session). Created via the public parameterless ctor.
+    /// </summary>
+    public sealed class DiffScratch
     {
-        public bool UsedKeyedPath;
+        // Accessed only by the enclosing FrameDiffer (which, as the containing type, reaches
+        // these private members). Kept private so DiffScratch's public surface is just "an
+        // opaque reusable token the caller threads back in".
+        private readonly List<int> _path = new(8);
+        private bool _usedKeyedPath;
+
+        // Free-list of keyed-parent buffers. A keyed parent rents one for the lifetime of its
+        // DiffKeyedSiblings call — whose key maps and child lists stay live across the step-5
+        // inner-diff recursion — and returns it after. The pool grows to the maximum keyed
+        // nesting depth, then is reused forever.
+        private readonly Stack<KeyedBundle> _bundles = new();
+
+        internal List<int> Path => _path;
+
+        internal bool UsedKeyedPath
+        {
+            get => _usedKeyedPath;
+            set => _usedKeyedPath = value;
+        }
+
+        internal void ResetForDiff()
+        {
+            _path.Clear();
+            _usedKeyedPath = false;
+        }
+
+        internal KeyedBundle RentBundle() => _bundles.Count > 0 ? _bundles.Pop() : new KeyedBundle();
+
+        internal void ReturnBundle(KeyedBundle bundle)
+        {
+            bundle.Clear();
+            _bundles.Push(bundle);
+        }
+    }
+
+    // One keyed parent's working set. All collections start empty (a rented bundle is always
+    // cleared on return) and are reused across renders. Nested in FrameDiffer so it can name
+    // the private KeyedChild struct. Internal (not private) so DiffScratch's internal
+    // Rent/ReturnBundle members don't trip CS0050/CS0051 — it never appears in a public signature.
+    internal sealed class KeyedBundle
+    {
+        public readonly List<KeyedChild> OldKids = [];
+        public readonly List<KeyedChild> NewKids = [];
+        public readonly HashSet<string> Seen = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> OldByKey = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> NewByKey = new(StringComparer.Ordinal);
+        public readonly List<KeyedChild> Surviving = [];
+        public readonly List<int> Live = [];
+        public readonly HashSet<int> LisSet = [];
+
+        public void Clear()
+        {
+            OldKids.Clear();
+            NewKids.Clear();
+            Seen.Clear();
+            OldByKey.Clear();
+            NewByKey.Clear();
+            Surviving.Clear();
+            Live.Clear();
+            LisSet.Clear();
+        }
     }
 
     private static void DiffSiblings(
         ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
         ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
-        List<int> path,
         List<EditOp> output,
         string? newHtml,
-        DiffContext ctx)
+        DiffScratch scratch)
     {
+        var path = scratch.Path;
+
         // Keyed matching kicks in only when every child on BOTH sides is a keyed
         // Element. A single unkeyed child, or any non-Element sibling (text/raw/doctype)
         // mixed with elements, or a duplicate key on either side, falls back to the
         // positional walk below. This mirrors the morph engine's all-or-nothing keyed
         // reconciliation in Rask.Core/Resources/rask-morph.js — same parents that the
         // morph treats as keyed get the keyed diff path, no surprise divergence.
-        if (TryCollectKeyedChildren(oldFrames, oldStart, oldEnd, out var oldKids)
-            && TryCollectKeyedChildren(newFrames, newStart, newEnd, out var newKids))
+        //
+        // The keyed buffers (key maps + child lists) come from a pooled bundle that stays
+        // live through DiffKeyedSiblings' inner-diff recursion, so it's returned only after
+        // that call completes; the positional fallback returns it immediately.
+        var bundle = scratch.RentBundle();
+        if (TryCollectKeyedChildren(oldFrames, oldStart, oldEnd, bundle.OldKids, bundle.Seen))
         {
-            ctx.UsedKeyedPath = true;
-            DiffKeyedSiblings(oldFrames, oldKids!, newFrames, newKids!, path, output, newHtml, ctx);
-            return;
+            bundle.Seen.Clear();
+            if (TryCollectKeyedChildren(newFrames, newStart, newEnd, bundle.NewKids, bundle.Seen))
+            {
+                scratch.UsedKeyedPath = true;
+                try
+                {
+                    DiffKeyedSiblings(oldFrames, newFrames, output, newHtml, scratch, bundle);
+                }
+                finally
+                {
+                    scratch.ReturnBundle(bundle);
+                }
+
+                return;
+            }
         }
+
+        scratch.ReturnBundle(bundle);
 
 
         var oi = oldStart;
@@ -209,7 +314,7 @@ public static class FrameDiffer
                     path.Add(domSlot);
                     DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
                                  newFrames, newChildStart, newChildEnd,
-                                 path, output, newHtml, ctx);
+                                 output, newHtml, scratch);
                     path.RemoveAt(path.Count - 1);
 
                     oi += oldFrame.SubtreeLength;
@@ -400,7 +505,7 @@ public static class FrameDiffer
         return count;
     }
 
-    private struct KeyedChild
+    internal struct KeyedChild
     {
         public string Key;
         public int FrameIndex;
@@ -416,16 +521,16 @@ public static class FrameDiffer
     ///     codec — same definition of "keyed list" on both sides.
     /// </summary>
     private static bool TryCollectKeyedChildren(
-        ReadOnlySpan<RenderFrame> frames, int start, int end, out List<KeyedChild>? children)
+        ReadOnlySpan<RenderFrame> frames, int start, int end, List<KeyedChild> children, HashSet<string> seen)
     {
-        children = null;
+        // Fills the caller-supplied (pooled) buffers rather than allocating. On a false
+        // return the partial contents are discarded by the caller (ReturnBundle clears the
+        // whole bundle), so callers must not rely on them.
         if (start >= end)
         {
             return false;
         }
 
-        HashSet<string>? seen = null;
-        List<KeyedChild>? buffer = null;
         var i = start;
         while (i < end)
         {
@@ -451,7 +556,6 @@ public static class FrameDiffer
                 return false;
             }
 
-            seen ??= new HashSet<string>(StringComparer.Ordinal);
             if (!seen.Add(key))
             {
                 // Duplicate keys in the same sibling list — diagnostic-worthy but we
@@ -459,19 +563,12 @@ public static class FrameDiffer
                 return false;
             }
 
-            buffer ??= new List<KeyedChild>();
-            buffer.Add(new KeyedChild { Key = key, FrameIndex = i });
+            children.Add(new KeyedChild { Key = key, FrameIndex = i });
 
             i += f.SubtreeLength;
         }
 
-        if (buffer is null)
-        {
-            return false;
-        }
-
-        children = buffer;
-        return true;
+        return children.Count > 0;
     }
 
     private static string? ExtractRaskKey(ReadOnlySpan<RenderFrame> frames, int elementIndex, int end)
@@ -498,17 +595,25 @@ public static class FrameDiffer
     }
 
     private static void DiffKeyedSiblings(
-        ReadOnlySpan<RenderFrame> oldFrames, List<KeyedChild> oldKids,
-        ReadOnlySpan<RenderFrame> newFrames, List<KeyedChild> newKids,
-        List<int> path, List<EditOp> output, string? newHtml, DiffContext ctx)
+        ReadOnlySpan<RenderFrame> oldFrames,
+        ReadOnlySpan<RenderFrame> newFrames,
+        List<EditOp> output, string? newHtml,
+        DiffScratch scratch, KeyedBundle bundle)
     {
-        var oldByKey = new Dictionary<string, int>(oldKids.Count, StringComparer.Ordinal);
+        // All working collections come from the pooled bundle (cleared on rent), so a keyed
+        // diff allocates nothing here beyond the EditOp path arrays (intentional wire data)
+        // and the two ArrayPool-rented int buffers in the MOVES step below.
+        var path = scratch.Path;
+        var oldKids = bundle.OldKids;
+        var newKids = bundle.NewKids;
+
+        var oldByKey = bundle.OldByKey;
         for (var i = 0; i < oldKids.Count; i++)
         {
             oldByKey[oldKids[i].Key] = i;
         }
 
-        var newByKey = new Dictionary<string, int>(newKids.Count, StringComparer.Ordinal);
+        var newByKey = bundle.NewByKey;
         for (var j = 0; j < newKids.Count; j++)
         {
             newByKey[newKids[j].Key] = j;
@@ -537,7 +642,7 @@ public static class FrameDiffer
         // 2) Build tracking list = old children whose keys survived. Note we work with
         //    the KeyedChild structs (so we can look up frame data later) — the "current
         //    slot index" is the index within this list as it mutates during steps 3-4.
-        var surviving = new List<KeyedChild>(oldKids.Count);
+        var surviving = bundle.Surviving;
         foreach (var oc in oldKids)
         {
             if (newByKey.ContainsKey(oc.Key))
@@ -578,74 +683,87 @@ public static class FrameDiffer
         var n = surviving.Count;
         if (n > 0)
         {
-            var targets = new int[n];
-            for (var i = 0; i < n; i++)
+            // `targets` and `newIndexToSurv` are size-n scratch permutations used only within
+            // this step (before the step-5 recursion), so they come from ArrayPool — rented
+            // oversized, hence every loop bounds on `n`, never `.Length`. `lis` and `live`
+            // reuse the bundle's set/list.
+            var targets = ArrayPool<int>.Shared.Rent(n);
+            var newIndexToSurv = ArrayPool<int>.Shared.Rent(n);
+            try
             {
-                targets[i] = newByKey[surviving[i].Key];
-            }
-
-            var lis = ComputeLisIndexSet(targets);
-
-            // Elements ON the LIS are already in the right relative order — they never move.
-            // Everything else must be repositioned. We walk the NEW indices RIGHT-TO-LEFT and
-            // move each off-LIS element to sit immediately before the element at the next new
-            // index (its "anchor"). Going right-to-left, that anchor is already in its final
-            // slot, so anchoring against it places the moved node correctly — this is the
-            // standard correct minimal-move reconcile (Vue/Inferno).
-            //
-            // The earlier implementation walked target-ascending and inserted each node at its
-            // numeric target index in the mutating list. That is WRONG for permutations needing
-            // 3+ moves: insert-at-numeric-target does not account for the unmoved (LIS) backbone
-            // the nodes must weave around, so the resulting DOM order was incorrect. It went
-            // unnoticed because the only keyed-move test asserted op *count*, never the order.
-            //
-            // newIndexToSurv[j] = surviving-index whose new position is j. `targets` is a
-            // permutation of 0..n-1 (surviving and newKids share the same key set), so it is
-            // invertible.
-            var newIndexToSurv = new int[n];
-            for (var i = 0; i < n; i++)
-            {
-                newIndexToSurv[targets[i]] = i;
-            }
-
-            // `live` holds surviving-indices in current DOM order. Steps 1-3 already aligned
-            // `surviving` to the post-insert order, so this starts as 0..n-1 and we mutate it
-            // in lockstep with the moves the client will apply (detach at src, insert at dst).
-            var live = new List<int>(n);
-            for (var i = 0; i < n; i++)
-            {
-                live.Add(i);
-            }
-
-            for (var j = n - 1; j >= 0; j--)
-            {
-                var id = newIndexToSurv[j];
-                if (lis.Contains(id))
+                for (var i = 0; i < n; i++)
                 {
-                    continue;
+                    targets[i] = newByKey[surviving[i].Key];
                 }
 
-                var src = live.IndexOf(id);
-                live.RemoveAt(src);
+                var lis = bundle.LisSet;
+                ComputeLisIndexSet(targets, n, lis);
 
-                // Destination = current (post-detach) index of the anchor at new index j+1,
-                // or the end of the list when this is the last new index (no anchor).
-                var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
-
-                if (dst != src)
+                // Elements ON the LIS are already in the right relative order — they never move.
+                // Everything else must be repositioned. We walk the NEW indices RIGHT-TO-LEFT and
+                // move each off-LIS element to sit immediately before the element at the next new
+                // index (its "anchor"). Going right-to-left, that anchor is already in its final
+                // slot, so anchoring against it places the moved node correctly — this is the
+                // standard correct minimal-move reconcile (Vue/Inferno).
+                //
+                // The earlier implementation walked target-ascending and inserted each node at its
+                // numeric target index in the mutating list. That is WRONG for permutations needing
+                // 3+ moves: insert-at-numeric-target does not account for the unmoved (LIS) backbone
+                // the nodes must weave around, so the resulting DOM order was incorrect. It went
+                // unnoticed because the only keyed-move test asserted op *count*, never the order.
+                //
+                // newIndexToSurv[j] = surviving-index whose new position is j. `targets` is a
+                // permutation of 0..n-1 (surviving and newKids share the same key set), so it is
+                // invertible.
+                for (var i = 0; i < n; i++)
                 {
-                    output.Add(new EditOp(
-                        EditOpKind.MoveSubtree,
-                        PathPlus(path, dst),
-                        null,
-                        null,
-                        src,
-                        trusted: true));
+                    newIndexToSurv[targets[i]] = i;
                 }
 
-                // Re-insert even on the no-op (dst == src) case so `live` stays consistent for
-                // the remaining iterations' src/dst lookups.
-                live.Insert(dst, id);
+                // `live` holds surviving-indices in current DOM order. Steps 1-3 already aligned
+                // `surviving` to the post-insert order, so this starts as 0..n-1 and we mutate it
+                // in lockstep with the moves the client will apply (detach at src, insert at dst).
+                var live = bundle.Live;
+                for (var i = 0; i < n; i++)
+                {
+                    live.Add(i);
+                }
+
+                for (var j = n - 1; j >= 0; j--)
+                {
+                    var id = newIndexToSurv[j];
+                    if (lis.Contains(id))
+                    {
+                        continue;
+                    }
+
+                    var src = live.IndexOf(id);
+                    live.RemoveAt(src);
+
+                    // Destination = current (post-detach) index of the anchor at new index j+1,
+                    // or the end of the list when this is the last new index (no anchor).
+                    var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
+
+                    if (dst != src)
+                    {
+                        output.Add(new EditOp(
+                            EditOpKind.MoveSubtree,
+                            PathPlus(path, dst),
+                            null,
+                            null,
+                            src,
+                            trusted: true));
+                    }
+
+                    // Re-insert even on the no-op (dst == src) case so `live` stays consistent for
+                    // the remaining iterations' src/dst lookups.
+                    live.Insert(dst, id);
+                }
+            }
+            finally
+            {
+                ArrayPool<int>.Shared.Return(targets);
+                ArrayPool<int>.Shared.Return(newIndexToSurv);
             }
         }
 
@@ -701,7 +819,7 @@ public static class FrameDiffer
             path.Add(j);
             DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
                          newFrames, newChildStart, newChildEnd,
-                         path, output, newHtml, ctx);
+                         output, newHtml, scratch);
             path.RemoveAt(path.Count - 1);
         }
     }
@@ -720,52 +838,71 @@ public static class FrameDiffer
     // FrameDiffer's keyed reorder (the only consumer), so the choice between ties is benign.
     internal static HashSet<int> ComputeLisIndexSet(int[] arr)
     {
-        var n = arr.Length;
+        // Allocating convenience overload kept for the direct unit/micro benchmarks
+        // (LisAlgorithmTests, VsBlazor MicroBenchmarks). The hot path uses the pooled
+        // variant below.
         var result = new HashSet<int>();
-        if (n == 0)
-        {
-            return result;
-        }
-
-        var tails = new int[n];   // tails[k] = arr-index of smallest tail of LIS length k+1
-        var prev = new int[n];    // prev[i] = arr-index of LIS predecessor of i (or -1)
-        var tailsLen = 0;
-
-        for (var i = 0; i < n; i++)
-        {
-            var x = arr[i];
-
-            // Binary-search tails[0..tailsLen) for the first slot whose value is >= x.
-            var lo = 0;
-            var hi = tailsLen;
-            while (lo < hi)
-            {
-                var mid = (lo + hi) >> 1;
-                if (arr[tails[mid]] < x)
-                {
-                    lo = mid + 1;
-                }
-                else
-                {
-                    hi = mid;
-                }
-            }
-
-            prev[i] = lo > 0 ? tails[lo - 1] : -1;
-            tails[lo] = i;
-            if (lo == tailsLen)
-            {
-                tailsLen++;
-            }
-        }
-
-        var cur = tails[tailsLen - 1];
-        while (cur >= 0)
-        {
-            result.Add(cur);
-            cur = prev[cur];
-        }
-
+        ComputeLisIndexSet(arr, arr.Length, result);
         return result;
+    }
+
+    // Pooled variant: writes the LIS index set into <paramref name="result" /> (cleared first)
+    // for the first <paramref name="len" /> entries of <paramref name="arr" /> (which may be an
+    // oversized ArrayPool rental). Rents its two O(len) work arrays from the pool, so a keyed
+    // reorder's LIS computation allocates nothing.
+    internal static void ComputeLisIndexSet(int[] arr, int len, HashSet<int> result)
+    {
+        result.Clear();
+        if (len == 0)
+        {
+            return;
+        }
+
+        var tails = ArrayPool<int>.Shared.Rent(len);   // tails[k] = arr-index of smallest tail of LIS length k+1
+        var prev = ArrayPool<int>.Shared.Rent(len);    // prev[i] = arr-index of LIS predecessor of i (or -1)
+        try
+        {
+            var tailsLen = 0;
+
+            for (var i = 0; i < len; i++)
+            {
+                var x = arr[i];
+
+                // Binary-search tails[0..tailsLen) for the first slot whose value is >= x.
+                var lo = 0;
+                var hi = tailsLen;
+                while (lo < hi)
+                {
+                    var mid = (lo + hi) >> 1;
+                    if (arr[tails[mid]] < x)
+                    {
+                        lo = mid + 1;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                prev[i] = lo > 0 ? tails[lo - 1] : -1;
+                tails[lo] = i;
+                if (lo == tailsLen)
+                {
+                    tailsLen++;
+                }
+            }
+
+            var cur = tails[tailsLen - 1];
+            while (cur >= 0)
+            {
+                result.Add(cur);
+                cur = prev[cur];
+            }
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(tails);
+            ArrayPool<int>.Shared.Return(prev);
+        }
     }
 }
