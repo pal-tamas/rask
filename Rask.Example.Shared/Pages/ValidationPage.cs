@@ -19,7 +19,7 @@ public sealed class ValidationPage : Component
             CodeSample(
                 """
                 static Component FieldError(IReadOnlyList<string> msgs) =>
-                    Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small")[m])];
+                    Fragment()[msgs.Select(m => Div(Class: "text-danger small")[m])];
 
                 Form(Model: _model,
                      OnValidSubmit: (RegistrationModel m) =>
@@ -41,7 +41,7 @@ public sealed class ValidationPage : Component
                 static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
                     Div(Class: "alert alert-danger small mb-0")[
                         Ul(Class: "mb-0 ps-3")[
-                            entries.Select(e => (Child)Li()[
+                            entries.Select(e => Li()[
                                 Strong()[e.Field], ": ", e.Message
                             ])
                         ]
