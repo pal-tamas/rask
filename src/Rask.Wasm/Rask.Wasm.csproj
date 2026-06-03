@@ -18,6 +18,19 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!--
+      Build-order-only dependency on the MSBuild task project. Rask.Wasm.Tasks compiles
+      Rask.Wasm.Tasks.dll and (via its CopyTaskAssemblyToRaskWasmBuild target) drops it into
+      build/ here, where build/Rask.Wasm.targets loads it through <UsingTask AssemblyFile=...>
+      and where the build\** Pack glob picks it up for the nupkg. The DLL is a generated build
+      artifact (gitignored, not committed), so this reference guarantees it exists before
+      Rask.Wasm builds or packs. ReferenceOutputAssembly="false" + SkipGetTargetFrameworkProperties
+      keep it purely an ordering edge: no compile reference, no nupkg dependency, no cross-TFM
+      (net10.0-browser vs netstandard2.0) compatibility check.
+    -->
+    <ProjectReference Include="..\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
     <!--

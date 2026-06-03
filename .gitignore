@@ -107,3 +107,8 @@ PublishProfiles/
 # Derived favicon — copied from assets/favicon.svg by example csproj targets.
 Rask.Example.Server/wwwroot/favicon.svg
 Rask.Example.Wasm.Host/wwwroot/
+
+# Generated MSBuild task assembly — built by Rask.Wasm.Tasks and copied here on every
+# build (see CopyTaskAssemblyToRaskWasmBuild). Its MVID/timestamp/PDB-hash differ per
+# build environment, so committing it made it perpetually dirty in git.
+src/Rask.Wasm/build/Rask.Wasm.Tasks.dll
