@@ -11,7 +11,7 @@ public sealed class NestedSubObjectDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         [
@@ -77,7 +77,7 @@ public sealed class NestedListForeachDemo : Component
         _model.Items.Add(new LineItem { Description = "Coffee beans (250g)", Quantity = 2 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render()
     {
@@ -85,7 +85,7 @@ public sealed class NestedListForeachDemo : Component
         foreach (var item in _model.Items)
         {
             var captured = item; // foreach already captures per-iteration but make it loud.
-            rows.Add(Tr()[
+            rows.Add(Tr(Key: captured.Id)[
                 Td()[
                     Input(() => captured.Description, Class: "form-control form-control-sm"),
                     ValidationMessage(() => captured.Description, FieldError)
@@ -141,7 +141,7 @@ public sealed class NestedListIndexerDemo : Component
     public NestedListIndexerDemo() => _model.Skus.Add(new SkuRow { Code = "WIDGET-1", Price = 9.99m });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render()
     {
@@ -149,7 +149,7 @@ public sealed class NestedListIndexerDemo : Component
         for (var idx = 0; idx < _model.Skus.Count; idx++)
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
-            rows.Add(Tr()[
+            rows.Add(Tr(Key: _model.Skus[i].Id)[
                 Td(Class: "text-secondary small")[$"#{i + 1}"],
                 Td()[
                     Input(() => _model.Skus[i].Code, Class: "form-control form-control-sm"),
@@ -211,7 +211,7 @@ public sealed class NestedFluentValidationDemo : Component
     public NestedFluentValidationDemo() => _model.Lines.Add(new NestedOrderLine { Sku = "BOX-1", Quantity = 3 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render()
     {
@@ -219,7 +219,7 @@ public sealed class NestedFluentValidationDemo : Component
         foreach (var line in _model.Lines)
         {
             var captured = line;
-            rows.Add(Tr()[
+            rows.Add(Tr(Key: captured.Id)[
                 Td()[
                     Input(() => captured.Sku, Class: "form-control form-control-sm"),
                     ValidationMessage(() => captured.Sku, FieldError)
@@ -315,6 +315,9 @@ public sealed class CartModel
 
 public sealed class LineItem
 {
+    // Stable per-instance key for keyed row diffing (not bound to any input, no validation attrs).
+    public Guid Id { get; } = Guid.NewGuid();
+
     [Required(ErrorMessage = "Description is required.")]
     [StringLength(80)]
     public string Description { get; set; } = "";
@@ -330,6 +333,9 @@ public sealed class InvoiceModel
 
 public sealed class SkuRow
 {
+    // Stable per-instance key for keyed row diffing — survives the up/down reorder.
+    public Guid Id { get; } = Guid.NewGuid();
+
     [Required(ErrorMessage = "SKU is required.")]
     [RegularExpression("^[A-Z0-9-]{3,12}$", ErrorMessage = "Use uppercase letters, digits, and dashes (3-12 chars).")]
     public string Code { get; set; } = "";
@@ -353,6 +359,9 @@ public sealed class NestedOrderAddress
 
 public sealed class NestedOrderLine
 {
+    // Stable per-instance key for keyed row diffing.
+    public Guid Id { get; } = Guid.NewGuid();
+
     public string Sku { get; set; } = "";
     public int Quantity { get; set; } = 1;
 }

@@ -13,7 +13,7 @@ public sealed class ValidationFieldsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         [
@@ -69,7 +69,7 @@ public sealed class ValidationSummaryDemo : Component
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
             ],
             Ul(Class: "mb-0 ps-3")[
-                entries.Select(e => (Child)Li()[
+                entries.Select((e, i) => (Child)Li(Key: i)[
                     e.Field.Length == 0
                         ? (Child)e.Message
                         : (Child)Fragment()[Strong()[e.Field], ": ", e.Message]
@@ -122,7 +122,7 @@ public sealed class InlineValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -135,7 +135,7 @@ public sealed class InlineValidateDemo : Component
 
         return Div(Class: "alert alert-danger small mb-0")[
             Ul(Class: "mb-0 ps-3")[
-                formOnly.Select(e => (Child)Li()[e.Message])
+                formOnly.Select((e, i) => (Child)Li(Key: i)[e.Message])
             ]
         ];
     }
@@ -213,7 +213,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -384,7 +384,7 @@ public sealed class InlineAsyncValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -400,7 +400,7 @@ public sealed class InlineAsyncValidateDemo : Component
         }
 
         return Div(Class: "alert alert-danger small mb-0")[
-            Ul(Class: "mb-0 ps-3")[formOnly.Select(e => (Child)Li()[e.Message])]
+            Ul(Class: "mb-0 ps-3")[formOnly.Select((e, i) => (Child)Li(Key: i)[e.Message])]
         ];
     }
 
@@ -481,7 +481,7 @@ public sealed class AsyncValidationDemo : Component
                     Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
                     ValidatingIndicator(() => _model.Username, Checking),
                     ValidationMessage(() => _model.Username,
-                        msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])])
+                        msgs => Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])])
                 ],
                 Div()[
                     Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
@@ -572,7 +572,7 @@ public sealed class CrossFieldSummaryDemo : Component
             ? Fragment()
             : Div(Class: "alert alert-danger small mb-0")[
                 Ul(Class: "mb-0 ps-3")[
-                    entries.Select(e => (Child)Li()[
+                    entries.Select((e, i) => (Child)Li(Key: i)[
                         e.Field.Length == 0
                             ? (Child)e.Message
                             : (Child)Fragment()[Strong()[e.Field], ": ", e.Message]
@@ -625,7 +625,7 @@ public sealed class ValidatableObjectDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
@@ -636,7 +636,7 @@ public sealed class ValidatableObjectDemo : Component
         }
 
         return Div(Class: "alert alert-danger small mb-0")[
-            Ul(Class: "mb-0 ps-3")[formOnly.Select(e => (Child)Li()[e.Message])]
+            Ul(Class: "mb-0 ps-3")[formOnly.Select((e, i) => (Child)Li(Key: i)[e.Message])]
         ];
     }
 
@@ -711,7 +711,7 @@ public sealed class ProgrammaticValidateDemo : Component
     }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -803,7 +803,7 @@ public sealed class FluentValidationDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         [
@@ -856,7 +856,7 @@ public sealed class FirstErrorWinsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         [
@@ -899,7 +899,7 @@ public sealed class FluentValidationAsyncDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -969,7 +969,7 @@ public sealed class CustomAttributeDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         [
