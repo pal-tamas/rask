@@ -15,6 +15,9 @@ public sealed class App : Component
         Title()["Rask — feature showcase"],
         Meta("utf-8"),
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover"),
+        // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
+        // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
+        Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/img/rask-mark.svg"),
         // Vendored locally under wwwroot/lib and served from the app's own origin.
         // LiveOptions.PathBase keeps the URLs correct under a reverse-proxy prefix
         // (Server) or a sub-path deploy like GitHub Pages (WASM) — same prefix the
