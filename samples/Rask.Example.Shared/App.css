@@ -1,52 +1,59 @@
-:root {
-    --bs-primary: #0066B3;
-    --bs-primary-rgb: 0, 102, 179;
-    --bs-link-color: #0066B3;
-    --bs-link-color-rgb: 0, 102, 179;
-    --bs-link-hover-color: #00538F;
-    --bs-link-hover-color-rgb: 0, 83, 143;
-    --rask-accent: #0066B3;
-    --rask-accent-strong: #00538F;
-    --rask-accent-soft: #e3eff8;
+/* App.css is the brand palette + global cascade. App's own scope id only stamps the
+   elements App renders directly (html/head/body) — every rule below targets :root, a
+   global Bootstrap class, or an element rendered by ANOTHER component (which carries a
+   different scope id). So each must be wrapped in :global() to opt out of the scope-suffix
+   rewrite; without it the scoper appends [data-r-{App}] and the rule never matches (which
+   is why the brand palette silently fell back to Bootstrap's defaults before). */
+:global(:root) {
+    --bs-primary: #7C3AED;
+    --bs-primary-rgb: 124, 58, 237;
+    --bs-link-color: #6D28D9;
+    --bs-link-color-rgb: 109, 40, 217;
+    --bs-link-hover-color: #512BD4;
+    --bs-link-hover-color-rgb: 81, 43, 212;
+    --rask-accent: #7C3AED;
+    --rask-accent-strong: #512BD4;
+    --rask-accent-soft: #f1ebfd;
+    --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
 }
 
-.btn-primary {
-    --bs-btn-bg: #0066B3;
-    --bs-btn-border-color: #0066B3;
-    --bs-btn-hover-bg: #00538F;
-    --bs-btn-hover-border-color: #00538F;
-    --bs-btn-active-bg: #004678;
-    --bs-btn-active-border-color: #004678;
-    --bs-btn-disabled-bg: #0066B3;
-    --bs-btn-disabled-border-color: #0066B3;
+:global(.btn-primary) {
+    --bs-btn-bg: #7C3AED;
+    --bs-btn-border-color: #7C3AED;
+    --bs-btn-hover-bg: #6D28D9;
+    --bs-btn-hover-border-color: #6D28D9;
+    --bs-btn-active-bg: #512BD4;
+    --bs-btn-active-border-color: #512BD4;
+    --bs-btn-disabled-bg: #7C3AED;
+    --bs-btn-disabled-border-color: #7C3AED;
 }
 
-.btn-outline-primary {
-    --bs-btn-color: #0066B3;
-    --bs-btn-border-color: #0066B3;
-    --bs-btn-hover-bg: #0066B3;
-    --bs-btn-hover-border-color: #0066B3;
-    --bs-btn-active-bg: #0066B3;
-    --bs-btn-active-border-color: #0066B3;
+:global(.btn-outline-primary) {
+    --bs-btn-color: #6D28D9;
+    --bs-btn-border-color: #7C3AED;
+    --bs-btn-hover-bg: #7C3AED;
+    --bs-btn-hover-border-color: #7C3AED;
+    --bs-btn-active-bg: #6D28D9;
+    --bs-btn-active-border-color: #6D28D9;
 }
 
-body {
+:global(body) {
     font-feature-settings: "ss01", "cv11";
 }
 
-a {
+:global(a) {
     color: var(--rask-accent);
 }
 
-a:hover {
+:global(a:hover) {
     color: var(--rask-accent-strong);
 }
 
-code, pre {
+:global(code), :global(pre) {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
-:not(pre) > code {
+:global(:not(pre) > code) {
     background: var(--rask-accent-soft);
     color: var(--rask-accent);
     padding: 0.08rem 0.32rem;
@@ -54,23 +61,20 @@ code, pre {
     font-size: 0.86em;
 }
 
-pre {
+:global(pre) {
     margin: 0;
 }
 
-.rask-badge {
+:global(.rask-badge) {
     background: var(--rask-accent-soft);
     color: var(--rask-accent);
 }
 
-.text-accent {
+:global(.text-accent) {
     color: var(--rask-accent) !important;
 }
 
-/* App-global rules — shell tags (html, body, button, a) are excluded from
-   data-r-* stamping by HtmlSerializer, so :global() opts these selectors out of
-   the scope rewrite. Without :global() the scoper would append [data-r-{App}] to
-   `body` etc. and the rule would never match. */
+/* Shell-tag global rules. */
 :global(html) {
     -webkit-text-size-adjust: 100%;
 }

@@ -1,6 +1,46 @@
 .hero-card {
-    background: linear-gradient(135deg, var(--rask-accent-soft) 0%, #ffffff 100%);
-    border: 1px solid var(--bs-border-color);
+    position: relative;
+    overflow: hidden;
+    background: var(--rask-gradient);
+    border: 0;
+    color: #fff;
+    box-shadow: 0 18px 40px -18px rgba(81, 43, 212, 0.65);
+}
+
+/* Soft radial glow in the top-right corner for depth. */
+.hero-card::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 60%;
+    height: 160%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+}
+
+.hero-card .container-fluid {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 1.25rem;
+    background: #fff;
+    box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.45);
+}
+
+.hero-accent {
+    color: #e9d5ff;
+}
+
+.hero-lead {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .feature-card {

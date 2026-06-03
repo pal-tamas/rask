@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
 
 namespace Rask.Example.Shared.Pages;
@@ -13,23 +14,24 @@ public sealed class HomePage(Navigator nav) : Component
         [
             Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
                 Div(Class: "container-fluid py-3")[
+                    Div(Class: "hero-logo mb-4")[RaskLogo.Mark(76, "heroBolt")],
                     H1(Class: "display-5 fw-bold mb-3")[
                         "The Rask framework, ",
-                        Span(Class: "text-accent")["one page at a time."]
+                        Span(Class: "hero-accent")["one page at a time."]
                     ],
-                    P(Class: "fs-5 col-md-10 text-secondary mb-4")[
+                    P(Class: "fs-5 col-md-10 hero-lead mb-4")[
                         "A small C# DSL for HTML — components, routing, lifecycle, scoped CSS, ",
                         "and a browser-WASM client. This site is itself a Rask WASM app; ",
                         "every example below renders live in your browser."
                     ],
                     Div(Class: "d-flex flex-wrap gap-2")[
                         Button(
-                            Class: "btn btn-primary btn-lg",
+                            Class: "btn btn-light btn-lg fw-semibold",
                             OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"),
                             "Start with Tags"],
                         A("https://github.com/pal-tamas/rask",
                             "_blank",
-                            Class: "btn btn-outline-secondary btn-lg")[I(Class: "bi bi-github me-2"),
+                            Class: "btn btn-outline-light btn-lg")[I(Class: "bi bi-github me-2"),
                             "Source on GitHub"]
                     ]
                 ]
