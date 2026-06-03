@@ -22,7 +22,10 @@ public sealed class CodeSampleTests
 
         Assert.Contains("Sample title", html);
         Assert.Contains("A note", html);
-        Assert.Contains("var x = 1;", html);
+        // The C# source is tokenized server-side by ColorCode, so `var` is wrapped in a
+        // <span class="keyword"> rather than appearing as the literal contiguous string.
+        Assert.Contains(">var</span>", html);
+        Assert.Contains("class=\"keyword\"", html);
         Assert.Contains("the result", html);
         Assert.Contains("sample-card", html);
     }
@@ -43,26 +46,14 @@ public sealed class CodeSampleTests
     }
 
     [Fact]
-    public async Task OnRenderedAsync_InvokesRaskCodeSampleRendered()
+    public void LiveRender_ThroughApp_HighlightsServerSide_NoHljsAssets()
     {
-        var js = new FakeJsRuntime();
-        var host = new LiveHost(
-            () => CodeSample(Source: "x"),
-            TestServices.Default(js: js));
-
-        host.RenderAsLiveRoot();
-        await WaitFor.True(() => js.CallCount("Rask.CodeSample.rendered") > 0, TimeSpan.FromSeconds(2));
-
-        Assert.NotEmpty(js.GetCalls("Rask.CodeSample.rendered"));
-    }
-
-
-    [Fact]
-    public void LiveRender_ThroughApp_HljsScriptAndCssLandInHead()
-    {
-        // Render App so the head pipeline collects CodeSample's contributions (HomePage uses one).
+        // Highlighting is now produced server-side by ColorCode (token <span>s in the
+        // rendered HTML); there is no longer any highlight.js <link>/<script> in <head>.
+        // HomePage's CodeSample source contains C# string literals, so its tokenized
+        // output carries a <span class="string">.
         var html = new Rask.Example.Shared.App().RenderAsLiveRoot(TestServices.Default());
-        Assert.Contains("/lib/highlightjs/atom-one-dark.min.css", html);
-        Assert.Contains("/lib/highlightjs/highlight.min.js", html);
+        Assert.Contains("class=\"string\"", html);
+        Assert.DoesNotContain("/lib/highlightjs/", html);
     }
 }
