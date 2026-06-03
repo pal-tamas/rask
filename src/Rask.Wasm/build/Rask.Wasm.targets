@@ -55,9 +55,19 @@
     Build target copies it here). Runs on any build that produced an AppBundle —
     plain `dotnet build` for standalone-WASM dev, `dotnet publish` for release.
   -->
+  <!--
+    Do NOT gate this Condition on Exists(...Rask.Wasm.Tasks.dll). A UsingTask Condition is
+    evaluated at project-evaluation time, which precedes the build-order edge (Rask.Wasm's
+    ReferenceOutputAssembly="false" reference to Rask.Wasm.Tasks) that produces and copies the
+    DLL here. The DLL is a generated artifact (gitignored), so on a clean checkout it is absent
+    at evaluation — an Exists guard here would skip registration, then the invocation targets'
+    own Exists guards (now true) would fire BakeScopedAssetsTask against an unregistered task →
+    MSB4036. AssemblyFile-based UsingTasks load lazily (only when the task is invoked), and the
+    two invocation targets below keep their Exists guards, so registering unconditionally is safe.
+  -->
   <UsingTask TaskName="Rask.Wasm.Tasks.BakeScopedAssetsTask"
              AssemblyFile="$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll"
-             Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') "/>
+             Condition=" '$(WasmGenerateAppBundle)' == 'true' "/>
 
   <!--
     Hook after _WasmGenerateAppBundle (the actual SDK target that produces the bundle
