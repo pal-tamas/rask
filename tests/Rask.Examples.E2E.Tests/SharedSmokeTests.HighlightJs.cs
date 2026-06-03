@@ -16,6 +16,15 @@ namespace Rask.Examples.E2E.Tests;
 // they document the bug then drive the fix.
 public abstract partial class SharedSmokeTests
 {
+    // The WASM runtime parks Rask.* invokes until the per-component scoped JS
+    // (/_rask/a/{hash}.js) AND the same-origin highlight.min.js have loaded; its own
+    // backstop for that drain is SCOPED_ASSET_LOAD_TIMEOUT_MS = 30s (rask.wasm.js). On a
+    // cold deep-link over a constrained CI runner that drain can legitimately finish
+    // between 10s and 30s, so the test must wait at least as long as the runtime does.
+    // On a warm/healthy run highlighting settles in <1s and WaitForHljsAsync returns
+    // early, so this ceiling only bites on a genuinely slow cold boot.
+    protected const int HighlightSettleTimeoutMs = 35_000;
+
     [Fact]
     public Task Highlight_FirstLoad_ValidationPage_HighlightsEveryCodeBlock() => RunAsync(async () =>
     {
@@ -27,7 +36,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 10_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -59,12 +68,12 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 10_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
 
         await ClickSidebar("Routing");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Routing",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 10_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -78,7 +87,7 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 10_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
 
         await ClickSidebar("Welcome");
         await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
@@ -87,7 +96,7 @@ public abstract partial class SharedSmokeTests
         await ClickSidebar("Validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 10_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -109,7 +118,7 @@ public abstract partial class SharedSmokeTests
 
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("HttpClient + DI",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: 15_000);
+        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
     });
 
     private async Task AssertAllCodeBlocksHighlightedAsync(int timeoutMs)
@@ -122,9 +131,21 @@ public abstract partial class SharedSmokeTests
 
         var total = await Page.Locator("pre code[class*='language-']").CountAsync();
         var highlighted = await Page.Locator("pre code.hljs[class*='language-']").CountAsync();
-        Assert.True(total > 0, "No code blocks found on the page — selector mismatch?");
-        Assert.Equal(total, highlighted);
+        Assert.True(total > 0,
+            $"No code blocks found on the page — selector mismatch? [{await HljsDiagnosticsAsync()}]");
+        Assert.True(total == highlighted,
+            $"Only {highlighted}/{total} code blocks highlighted after {timeoutMs}ms. " +
+            $"[{await HljsDiagnosticsAsync()}]");
     }
+
+    // Snapshot of the highlight pipeline state, surfaced in assert messages so a CI
+    // failure distinguishes a slow cold load (hljs/RaskCodeSample never defined in time)
+    // from a genuine regression (both defined but highlight still didn't run).
+    protected Task<string> HljsDiagnosticsAsync() => Page.EvaluateAsync<string>(
+        "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
+        "const hl = all.filter(c => c.classList.contains('hljs')).length; " +
+        "return `hljs=${typeof window.hljs} RaskCodeSample=${!!(window.Rask && window.Rask.CodeSample)} " +
+        "blocks=${all.length} highlighted=${hl}`; }");
 
     // Shared by the deep-diagnostics tests in ExampleSmokeTests.HighlightJs.cs too.
     protected async Task WaitForHljsAsync(int timeoutMs)
