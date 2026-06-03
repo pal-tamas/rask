@@ -16,20 +16,22 @@ public abstract partial class ExampleSmokeTests
     {
         // Verifies the canonical first-mount sequence:
         //   OnMount → OnMountAsync → OnPropsChanged → OnPropsChangedAsync →
-        //   Render → OnRendered(firstRender:true) → OnRenderedAsync(firstRender:true)
+        //   Render → OnRendered(firstRender:true)
         // If any one of these is missing or out of order on a host, the test
         // fails and we know exactly where the framework drifted.
         await NavigateToAsync("/realtime/BTC");
 
         var log = Page.Locator("#ticker-log");
-        await Expect(log).ToContainTextAsync("OnMount: requesting persisted history",
+        await Expect(log).ToContainTextAsync("OnMount: starting ticker",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(log).ToContainTextAsync("OnPropsChanged: initial Symbol=BTC",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(log).ToContainTextAsync("OnRendered(firstRender:true)",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(log).ToContainTextAsync("OnRenderedAsync(firstRender:true): Chart.js initialised",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        // The chart is server-rendered SVG (no OnRenderedAsync / JS); it appears after
+        // the first tick, confirming the render path completed end-to-end.
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         // Order check: OnMount before OnPropsChanged before OnRendered.
         var entries = await log.AllInnerTextsAsync();
@@ -54,7 +56,7 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await Expect(Page.Locator("#ticker-log")).ToContainTextAsync(
-            "OnMount: requesting persisted history for BTC",
+            "OnMount: starting ticker for BTC",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         await Page.Locator("#ticker-switch-ETH").ClickAsync();
@@ -69,33 +71,7 @@ public abstract partial class ExampleSmokeTests
 
         // No second OnMount entry for ETH — the page instance was cached.
         var combined = string.Join("\n", await log.AllInnerTextsAsync());
-        Assert.DoesNotContain("OnMount: requesting persisted history for ETH", combined);
-    });
-
-    [Fact]
-    public Task Lifecycle_OnRenderedAsync_FiresAgainAfterPropChange() => RunAsync(async () =>
-    {
-        // Regression test for the highlight.js Wasm bug: OnRenderedAsync MUST
-        // fire again when a prop changes — otherwise scoped JS that runs from
-        // this hook (CodeSample.rendered, LiveTicker.draw) stops working as
-        // soon as anything in the URL or props shifts.
-        await NavigateToAsync("/realtime/BTC");
-        var log = Page.Locator("#ticker-log");
-        await Expect(log).ToContainTextAsync("OnRenderedAsync(firstRender:true): Chart.js initialised",
-            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
-
-        // Switch to ETH and assert the chart instance still exists.
-        await Page.Locator("#ticker-switch-ETH").ClickAsync();
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        await WaitForAsync(async () =>
-        {
-            var hasChart = await Page.EvaluateAsync<bool>(
-                "() => { const c = document.querySelector('canvas[data-rask-ticker]'); " +
-                "return !!(c && c.__raskChart); }");
-            return hasChart;
-        }, timeoutMs: 10_000, "Chart instance never attached to canvas after Symbol switch");
+        Assert.DoesNotContain("OnMount: starting ticker for ETH", combined);
     });
 
     [Fact]
@@ -110,7 +86,7 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await Expect(Page.Locator("#ticker-log")).ToContainTextAsync(
-            "OnMountAsync: loaded",
+            "OnMountAsync: starting poll loop",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         await ClickSidebar("Welcome");
@@ -126,16 +102,14 @@ public abstract partial class ExampleSmokeTests
     public Task Lifecycle_RoundTripNavigation_NewPageInstanceMountsCleanly() => RunAsync(async () =>
     {
         // /realtime/BTC → away → /realtime/BTC: the second visit must boot
-        // fully (Chart.js initialised, hook log shows OnMount + OnRenderedAsync
-        // again). If the framework left state behind from the prior page
-        // instance, the second mount would either log "lifecycle hook faulted"
-        // or fail to produce a Chart.js instance.
+        // fully (hook log shows OnMount again, the SVG chart re-renders). If the
+        // framework left state behind from the prior page instance, the second
+        // mount would either log "lifecycle hook faulted" or fail to render.
         await NavigateToAsync("/realtime/BTC");
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync(
-            "OnRenderedAsync(firstRender:true): Chart.js initialised",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         await ClickSidebar("Welcome");
         await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
@@ -145,40 +119,16 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        // Fresh log on the second visit must contain a brand-new mount entry
-        // AND a brand-new OnRenderedAsync firstRender:true entry.
+        // Fresh log on the second visit must contain a brand-new mount entry.
         var log = Page.Locator("#ticker-log");
-        await Expect(log).ToContainTextAsync("OnMount: requesting persisted history for BTC",
+        await Expect(log).ToContainTextAsync("OnMount: starting ticker for BTC",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Expect(log).ToContainTextAsync("OnRenderedAsync(firstRender:true): Chart.js initialised",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
-        // Chart instance attached to the freshly-rendered canvas.
-        await WaitForAsync(async () =>
-        {
-            var hasChart = await Page.EvaluateAsync<bool>(
-                "() => { const c = document.querySelector('canvas[data-rask-ticker]'); " +
-                "return !!(c && c.__raskChart); }");
-            return hasChart;
-        }, timeoutMs: 15_000, "Second-visit chart never attached — likely orphaned state from prior page instance");
+        // The SVG chart re-renders on the freshly-mounted page instance.
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         Assert.DoesNotContain("lifecycle hook on LiveTicker faulted", ServerLog);
         Assert.DoesNotContain("lifecycle hook on LiveTickerPage faulted", ServerLog);
     });
-
-    private static async Task WaitForAsync(Func<Task<bool>> predicate, int timeoutMs, string message)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (await predicate())
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
-
-        throw new Xunit.Sdk.XunitException($"Timed out after {timeoutMs} ms waiting for: {message}");
-    }
 }

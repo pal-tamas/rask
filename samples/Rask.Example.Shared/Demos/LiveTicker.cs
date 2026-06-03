@@ -1,34 +1,32 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.JSInterop;
-using Rask.Core.Live;
 
 namespace Rask.Example.Shared.Demos;
 
 // Lifecycle showcase with a simulated price feed. Each hook has a natural job:
 //
 //   * OnMount             — synchronous local init (record mount time).
-//   * OnMountAsync        — re-hydrate persisted history from sessionStorage,
-//                           then run the poll loop. The loop awaits with
+//   * OnMountAsync        — run the poll loop. The loop awaits with
 //                           ConfigureAwait(false) so it does NOT lean on the
 //                           framework's auto-render-per-await; instead it calls
 //                           StateHasChanged() exactly once per real data change
-//                           (one render, one chart redraw per tick — see the
-//                           render-discipline note below).
+//                           (one render per tick — see the render-discipline note
+//                           below).
 //   * OnPropsChanged*     — react to the [RouteParam] Symbol changing (the
 //                           parent page binds Symbol from the URL). The async
 //                           half also wakes the poll loop (_wake.Cancel()) so the
 //                           new symbol shows a price within ~50 ms instead of
 //                           waiting out the running inter-tick delay.
 //   * OnRendered          — record first-paint latency on the inaugural render.
-//   * OnRenderedAsync     — push the rolling buffer into Chart.js via the sibling
-//                           LiveTicker.js, but only when the buffer actually
-//                           changed since the last draw (version-gated, so a
-//                           no-op publish render doesn't re-marshal the array).
 //   * OnUnmount*          — log teardown. The framework's CancellationToken is
 //                           already firing here, which cancels both the in-flight
 //                           Task.Delay and the interruptible inter-tick delay.
+//
+// No JavaScript: the price history is drawn as a server-rendered SVG <Sparkline>
+// straight from Render(), so there is no Chart.js, no canvas, no scoped JS, and no
+// IJSRuntime round-trip. A live re-render simply re-emits the updated <svg> over the
+// same transport as the rest of the page — which is why this component has no
+// OnRenderedAsync hook: the chart is part of normal render output, not a post-render
+// side effect.
 //
 // Render discipline: every await in the loop uses ConfigureAwait(false), so the
 // LifecycleSyncContext never auto-renders mid-loop; the single StateHasChanged()
@@ -43,12 +41,11 @@ namespace Rask.Example.Shared.Demos;
 // preserves the lifecycle/async story end-to-end (the loop still yields on
 // every Task.Delay, the CancellationToken still cancels it on unmount) but
 // is deterministic and offline-safe.
-public sealed class LiveTicker(IJSRuntime js) : Component
+public sealed class LiveTicker : Component
 {
     // ~1 min of points at the default 1 s poll. Bounded so a long-running tab
-    // doesn't grow the sessionStorage entry indefinitely.
+    // doesn't grow the rolling buffer indefinitely.
     private const int HistoryCapacity = 60;
-    private const string StorageKeyPrefix = "rask-live-ticker:";
 
     private readonly List<PricePoint> _history = new();
     private string? _error;
@@ -60,12 +57,6 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     // OnPropsChangedAsync cancels it to wake the inter-tick delay early so a symbol
     // switch polls the new asset immediately instead of waiting out IntervalMs.
     private CancellationTokenSource? _wake;
-
-    // Monotonic buffer version (++ on every _history mutation) vs the version last
-    // pushed to Chart.js. Lets OnRenderedAsync skip the JS round-trip on renders
-    // that didn't change the data (e.g. a publish-only re-render).
-    private int _version;
-    private int _lastDrawnVersion = -1;
 
     // Required factory parameter — properties with an initializer are excluded
     // by the generator, but we want callers to pass Symbol explicitly. Same
@@ -92,22 +83,15 @@ public sealed class LiveTicker(IJSRuntime js) : Component
     // and surfaced via _error (the #ticker-error alert).
     public Func<string, decimal>? PriceSource { get; set; }
 
-    // The framework dedupes head-asset entries by full rendered HTML, so two
-    // LiveTicker instances on the same page share a single Chart.js script tag.
-    protected override RenderResult Head =>
-        Script(LiveOptions.PathBase + "/lib/chartjs/chart.umd.js");
-
     protected override void OnMount()
     {
         _mountedAt = DateTimeOffset.UtcNow;
-        Emit($"OnMount: requesting persisted history for {Symbol}");
+        Emit($"OnMount: starting ticker for {Symbol}");
     }
 
     protected override async Task OnMountAsync()
     {
-        await LoadFromStorageAsync().ConfigureAwait(false);
-        StateHasChanged();
-        Emit($"OnMountAsync: loaded {_history.Count} persisted points; starting poll loop");
+        Emit("OnMountAsync: starting poll loop");
 
         var ct = CancellationToken;
         try
@@ -159,19 +143,13 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         }
     }
 
-    protected override async Task OnPropsChangedAsync()
+    protected override Task OnPropsChangedAsync()
     {
         if (_lastSymbol is not null && _lastSymbol != Symbol)
         {
             _history.Clear();
-            _version++;
             _error = null;
-            // Keep ConfigureAwait(true) here: this is a distinct hook invocation with
-            // its own fresh LifecycleSyncContext, so the auto-render paints the new
-            // symbol's (empty/hydrated) state. It is not poisoned by the loop's
-            // ConfigureAwait(false) chain — that runs on a separate invocation.
-            await LoadFromStorageAsync().ConfigureAwait(true);
-            Emit($"OnPropsChangedAsync: switched to {Symbol}, loaded {_history.Count} persisted points");
+            Emit($"OnPropsChangedAsync: switched to {Symbol}, cleared history");
 
             // Wake the poll loop AFTER the buffer reset so the immediate poll sees the
             // correct state. The Exchange-before-Dispose ordering in the loop makes a
@@ -186,6 +164,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         }
 
         _lastSymbol = Symbol;
+        return Task.CompletedTask;
     }
 
     protected override void OnRendered(bool firstRender)
@@ -198,31 +177,6 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         _firstPaintAt = DateTimeOffset.UtcNow;
         var latency = (_firstPaintAt.Value - _mountedAt).TotalMilliseconds;
         Emit($"OnRendered(firstRender:true): first paint {latency:F0} ms after OnMount");
-    }
-
-    protected override async Task OnRenderedAsync(bool firstRender)
-    {
-        // Skip the JS round-trip when the buffer is unchanged since the last draw
-        // (e.g. a publish-only re-render). Set _lastDrawnVersion before the await so
-        // a re-entrant render during the in-flight call can't double-dispatch.
-        if (_version == _lastDrawnVersion)
-        {
-            return;
-        }
-
-        _lastDrawnVersion = _version;
-
-        // Record the first-render confirmation BEFORE the JS round-trip. firstRender is only
-        // ever true during the server's GET render, and that render's draw invoke is queued
-        // and flushed at WS hello — under load it can fault or race the deferred scoped-JS
-        // load, and a faulted task would swallow this Emit forever. AppendLog's
-        // StateHasChanged ships the line on the next render regardless of the draw outcome.
-        if (firstRender)
-        {
-            Emit("OnRenderedAsync(firstRender:true): Chart.js initialised");
-        }
-
-        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray()).ConfigureAwait(false);
     }
 
     protected override void OnUnmount() => Emit("OnUnmount: stopping (sync)");
@@ -264,12 +218,16 @@ public sealed class LiveTicker(IJSRuntime js) : Component
                     : Div(Class: "alert alert-warning py-2 px-3 small mb-3", Id: "ticker-error")[
                         I(Class: "bi bi-exclamation-triangle me-2"), $"Feed error: {_error}"
                     ],
-                // Wrapping the canvas in a fixed-height container lets Chart.js
-                // resize against a known box even before the first draw.
-                Div(Class: "ticker-chart-container", Style: "position: relative; height: 160px;")[
-                    Canvas(
-                        Id: "ticker-chart",
-                        Data: new Dictionary<string, string?> { ["rask-ticker"] = null })
+                // The chart is a server-rendered SVG drawn straight from the rolling buffer —
+                // no canvas, no Chart.js, no JS. The fixed-height container gives the stretchy
+                // <svg> a known box to fill.
+                Div(Class: "ticker-chart-container", Id: "ticker-chart",
+                    Style: "position: relative; height: 160px;")[
+                    _history.Count == 0
+                        ? (Child)P(Class: "text-secondary small mb-0")["Waiting for first tick…"]
+                        : Sparkline(
+                            Values: _history.Select(p => (double)p.PriceUsd).ToList(),
+                            Class: "ticker-chart-svg")
                 ]
             ]
         ];
@@ -300,10 +258,8 @@ public sealed class LiveTicker(IJSRuntime js) : Component
                 _history.RemoveAt(0);
             }
 
-            _version++;
             _error = null;
-            StateHasChanged();                      // the one render (+ one redraw) per tick
-            await PersistAsync().ConfigureAwait(false);
+            StateHasChanged();                      // the one render per tick
         }
         catch (OperationCanceledException)
         {
@@ -333,51 +289,7 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         _ => 100m
     };
 
-    private async Task LoadFromStorageAsync()
-    {
-        try
-        {
-            var json = await js.InvokeAsync<string?>("sessionStorage.getItem", StorageKey).ConfigureAwait(false);
-            if (string.IsNullOrEmpty(json))
-            {
-                return;
-            }
-
-            var arr = JsonSerializer.Deserialize(json, LiveTickerJsonContext.Default.PricePointArray);
-            if (arr is null)
-            {
-                return;
-            }
-
-            _history.Clear();
-            _history.AddRange(arr);
-            _version++;
-        }
-        catch
-        {
-            // Bad JSON / quota / cleared — start fresh.
-        }
-    }
-
-    private async Task PersistAsync()
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(_history.ToArray(), LiveTickerJsonContext.Default.PricePointArray);
-            await js.InvokeVoidAsync("sessionStorage.setItem", StorageKey, json).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Best-effort persistence; loss is acceptable for a demo.
-        }
-    }
-
-    private string StorageKey => StorageKeyPrefix + Symbol;
-
     private void Emit(string entry) => Log?.Invoke(entry);
 }
 
 public readonly record struct PricePoint(DateTimeOffset Timestamp, decimal PriceUsd);
-
-[JsonSerializable(typeof(PricePoint[]))]
-internal sealed partial class LiveTickerJsonContext : JsonSerializerContext;
