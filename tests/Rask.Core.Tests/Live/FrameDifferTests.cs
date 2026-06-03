@@ -479,6 +479,39 @@ public class FrameDifferTests
         Assert.Equal(after, live.ToArray());
     }
 
+    [Fact]
+    public void Diff_NestedKeyedList_OuterReorderAndInnerReorder_EmitsTrustedMovesAtBothDepths()
+    {
+        // Recursion-safety guard for the scratch-pooling optimisation. The outer keyed list's
+        // DiffKeyedSiblings call is still LIVE — its key map and child lists are read in the
+        // step-5 inner-diff loop — while it recurses into a kept row whose own children form a
+        // SECOND keyed list, re-entering DiffKeyedSiblings. Any scratch shared across that
+        // recursion must not be clobbered. This pins the exact ops so the pooled refactor is
+        // provably byte-identical: the outer row reorder and the inner span reorder both emit a
+        // single trusted MoveSubtree, at the right depths.
+        static Child Row(int key, bool innerSwapped)
+        {
+            Child a = C.Span(Key: $"{key}a")["A"];
+            Child b = C.Span(Key: $"{key}b")["B"];
+            var li = C.Li(Key: key);
+            return innerSwapped ? li[b, a] : li[a, b];
+        }
+
+        var before = Frames(C.Ul()[new List<Child> { Row(0, false), Row(1, false) }]);
+        var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[new List<Child> { Row(1, false), Row(0, true) }]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.True(usedKeyed);
+        Assert.Equal(2, ops.Count);
+        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+        Assert.All(ops, op => Assert.True(op.Trusted));
+        // Outer move is emitted first (step 4 precedes the step-5 inner recursion).
+        Assert.Equal(new[] { 0, 1 }, ops[0].Path);       // outer: rows reordered at the Ul (slot 0)
+        Assert.Equal(new[] { 0, 1, 1 }, ops[1].Path);    // inner: spans reordered inside row 0 at its new slot 1
+    }
+
     private static Component BuildKeyedRows(params int[] keys)
     {
         var rows = new List<Child>(keys.Length);
