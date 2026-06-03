@@ -35,6 +35,11 @@ public sealed class SessionRenderCache : IDisposable
     private FrameWriter? _current;
     private bool _hasPrevious;
 
+    // Reusable keyed-diff scratch, owned per session so the keyed reconciliation path
+    // (FrameDiffer.DiffKeyedSiblings) is allocation-free in steady state. Lazily created
+    // on first diff; nulled on Dispose alongside the frame buffers.
+    private FrameDiffer.DiffScratch? _scratch;
+
     /// <summary>
     ///     Acquire the buffer the caller should push onto
     ///     <see cref="FrameSinkScope" /> before invoking the render path. Resets
@@ -97,7 +102,7 @@ public sealed class SessionRenderCache : IDisposable
             return false;
         }
 
-        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, out usedKeyedPath, newHtml);
+        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, _scratch ??= new FrameDiffer.DiffScratch(), out usedKeyedPath, newHtml);
         if (rotate)
         {
             RotateBuffers();
@@ -151,5 +156,6 @@ public sealed class SessionRenderCache : IDisposable
         _previous = null;
         _current = null;
         _hasPrevious = false;
+        _scratch = null;
     }
 }

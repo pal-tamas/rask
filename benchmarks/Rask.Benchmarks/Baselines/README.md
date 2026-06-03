@@ -148,10 +148,11 @@ refactors or observability-only. All ship unconditionally (no flag gate).
 | 2 | Scope poppers as `ref struct` (3 popper classes → 1 `ContextScope`) | ✓ done | `LiveRenderContext.cs` |
 | 3 | `ScopedCssRegistry` lock-free read cache (`ConcurrentDictionary` front) | ✓ done | `ScopedCssRegistry.TryRegister` |
 | 4 | Skip scope push/pop for handler-free cached subtrees | deferred | needs `_cachedRenderResult` metadata |
-| 5 | Single-pass UTF-8 write in `BuildPayloadUtf8Spliced` (eliminate 2nd rent) | deferred | first-render-only win; diff codec dominates incremental |
+| 5 | Single-pass UTF-8 write in `BuildPayloadUtf8Spliced` (eliminate 2nd rent) | ✓ done | already single `ArrayPool.Rent` + 3× `GetBytes` into one buffer (`LivePayload.cs`) |
 | 6 | Coalesce-loop budget telemetry + worst-case bench | deferred | observability-only |
 | 7 | Children-indexer specialisation (drop `.Select(c => (Child)c)`) | ✓ done | `Component[IEnumerable<Component>]` |
 | 8 | Handler-id `string.Concat` cliff (prebake 1024 + stackalloc overflow) | ✓ done | `Component.RegisterHandler` |
+| 9 | Keyed-diff scratch pooling (per-session `DiffScratch`: pooled key maps / child lists / LIS set + `ArrayPool` permutation buffers) | ✓ done | `FrameDiffer.DiffScratch`, `SessionRenderCache._scratch` |
 
 ### Quick allocation deltas (HtmlSerializerBenchmarks, --job=short)
 
@@ -188,3 +189,35 @@ A quick smoke run (`--job short`) over `PayloadBytesPerUpdate` produced:
 `Allocated` includes the per-iteration tree build (List<Child>, components,
 attribute dictionaries) + the payload build. The wire-bytes column above is the
 subset that actually leaves the process.
+
+### Keyed-diff scratch pooling (item #9) — `FrameDifferBenchmarks`
+
+`PayloadBytesPerUpdate` measures the **full-render** path (`RenderAsLiveRoot` +
+`BuildPayloadUtf8WithRoot`) and never invokes `FrameDiffer`, so it can't show the
+keyed-diff allocation. `FrameDifferBenchmarks` isolates the diff: it pre-builds the
+before/after `RenderFrame[]` streams in `[GlobalSetup]` and the `[Benchmark]` body
+runs only `FrameDiffer.Diff`. `Reused` threads one `DiffScratch` across calls — the
+steady-state per-session path (`SessionRenderCache` owns the scratch); `Fresh`
+allocates a `DiffScratch` per call (the pre-pooling profile).
+
+`--job short`, swap-two-rows reorder:
+
+| Method                | Rows |     Mean | Allocated | Alloc ratio |
+|-----------------------|-----:|---------:|----------:|------------:|
+| Reorder_ReusedScratch |  100 |  10.7 µs |  7.13 KB  | 1.00 (base) |
+| Reorder_FreshScratch  |  100 |  13.5 µs | 54.35 KB  |   **7.63×** |
+| Reorder_ReusedScratch | 1000 | 128.6 µs | 70.41 KB  | 1.00 (base) |
+| Reorder_FreshScratch  | 1000 | 159.4 µs | 504.31 KB |   **7.16×** |
+
+Pooling the keyed working set cuts the keyed-reconcile allocation ~7× and the
+CPU ~20–24%. The residual (7 KB / 70 KB) is the `PathPlus` per-kept-row `int[]`
+in the step-5 inner-attribute diff (`NoChange_ReusedScratch` sits at the same
+70 KB with **zero** ops, confirming it's all `PathPlus`, not the keyed buffers) —
+intentional wire-shaped allocation left untouched; a lazy-`PathPlus` follow-up
+could reclaim it.
+
+The diff **output** is unchanged: `payload-bytes.csv` (`45/1, 57/2, 54/1, 112/1`)
+is byte-identical before/after, and all `FrameDifferTests` (incl. the random-
+permutation replay theory and a new nested-keyed-list recursion guard),
+`LisAlgorithmTests`, and `SessionRenderCacheTests` pass — pure allocation win, no
+behavioural change.
