@@ -114,12 +114,13 @@ public abstract partial class ExampleSmokeTests
             await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync(heading,
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-            await WaitForHljsAsync(timeoutMs: 10_000);
+            await WaitForHljsAsync(timeoutMs: HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code.hljs[class*='language-']").CountAsync();
-            Assert.True(total > 0, $"{path}: no code blocks found.");
+            Assert.True(total > 0, $"{path}: no code blocks found. [{await HljsDiagnosticsAsync()}]");
             Assert.True(highlighted == total,
-                $"{path}: only {highlighted}/{total} blocks highlighted on first paint.");
+                $"{path}: only {highlighted}/{total} blocks highlighted on first paint. " +
+                $"[{await HljsDiagnosticsAsync()}]");
         }
     });
 
@@ -144,7 +145,7 @@ public abstract partial class ExampleSmokeTests
         await Page.GotoAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await WaitForHljsAsync(timeoutMs: 10_000);
+        await WaitForHljsAsync(timeoutMs: HighlightSettleTimeoutMs);
 
         await Page.ReloadAsync();
 
@@ -158,11 +159,14 @@ public abstract partial class ExampleSmokeTests
 
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await WaitForHljsAsync(timeoutMs: 10_000);
+        await WaitForHljsAsync(timeoutMs: HighlightSettleTimeoutMs);
         var total = await Page.Locator("pre code[class*='language-']").CountAsync();
         var highlighted = await Page.Locator("pre code.hljs[class*='language-']").CountAsync();
-        Assert.True(total > 0, "/validation after refresh: no code blocks found.");
-        Assert.Equal(total, highlighted);
+        Assert.True(total > 0,
+            $"/validation after refresh: no code blocks found. [{await HljsDiagnosticsAsync()}]");
+        Assert.True(total == highlighted,
+            $"/validation after refresh: only {highlighted}/{total} highlighted. " +
+            $"[{await HljsDiagnosticsAsync()}]");
     });
 
     [Fact]
