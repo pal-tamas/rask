@@ -109,14 +109,36 @@ public sealed class Select : Element
         var name = Name ?? acc.PropertyName;
         ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
         var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
-        var current = BindingHelpers.FormatValue(acc.Getter());
-        var preselected = MarkSelected(Children, current);
 
-        return (Select)C.Select(
+        var select = (Select)C.Select(
             name, Required: Required, Disabled: Disabled, Size: Size,
             Autofocus: Autofocus, Autocomplete: Autocomplete,
             OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true, afterBind),
-            Id: Id, Class: Class, Style: Style, Data: Data)[preselected];
+            Id: Id, Class: Class, Style: Style, Data: Data)[Children];
+
+        // Defer option pre-selection to serialize time. Options supplied via the [...] indexer
+        // (the idiomatic `Select(Bind: …)[Option(…)…]` form) replace Children *after* this
+        // factory returns, so marking them here would be discarded. EnterChildrenScope marks
+        // the matching <option> just before the serializer reads Children — covering both the
+        // indexer and the Children: argument forms.
+        select._bound = true;
+        select._boundValue = BindingHelpers.FormatValue(acc.Getter());
+        return select;
+    }
+
+    // Set by BoundCore; non-bound selects (plain Generated.Select) leave _bound false and
+    // skip the serialize-time marking entirely.
+    private bool _bound;
+    private string _boundValue = "";
+
+    protected override IDisposable? EnterChildrenScope()
+    {
+        if (_bound && Children is not null)
+        {
+            Children = MarkSelected(Children, _boundValue);
+        }
+
+        return base.EnterChildrenScope();
     }
 
     private static IEnumerable<Child> MarkSelected(IEnumerable<Child> children, string current)
@@ -138,7 +160,9 @@ public sealed class Select : Element
             }
         }
 
-        return list;
+        // Return an array so Children stays a Child[] and the serializer's zero-allocation
+        // fast path (ChildrenArray => Children as Child[]) still applies after marking.
+        return list.ToArray();
     }
 
     private static Option MarkOption(Option opt, string current)
