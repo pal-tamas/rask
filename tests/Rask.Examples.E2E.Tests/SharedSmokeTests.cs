@@ -179,24 +179,17 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     });
 
     [Fact]
-    public Task ScopedJs_CodeSampleGetsHighlightAfterRender() => RunAsync(async () =>
+    public Task Highlight_BindingPage_HighlightsAfterNavigation() => RunAsync(async () =>
     {
-        // /binding renders ~8 CodeSample instances. CodeSample.cs's OnRendered hook
-        // calls InvokeJs("rendered", firstRender) and CodeSample.js's
-        // rendered(el, firstRender) invokes hljs.highlightElement on the nested
-        // <code class="language-csharp">. Highlight.js adds the `hljs` class on
-        // success.
-        //
-        // Regression: dispatch used to sit OUTSIDE the applyDom callback — so it
-        // ran against the pre-morph DOM (zero data-rask-mount elements for
-        // binding's CodeSamples, because home was still up) and never invoked
-        // rendered. The runtime now dispatches inside applyDom so morph and
-        // dispatch share a single callback, guaranteeing the ordering.
+        // /binding renders several CodeSample instances. Highlighting is produced
+        // server-side by ColorCode (token <span>s inside <code class="language-csharp">),
+        // so after navigating in-SPA to /binding the morph must apply that highlighted
+        // markup — the nested <code> must carry token spans, not flattened plain text.
         await NavigateToAsync("/binding");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await Expect(Page.Locator("pre code.language-csharp.hljs").First)
+        await Expect(Page.Locator("pre code.language-csharp span").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     });
 
