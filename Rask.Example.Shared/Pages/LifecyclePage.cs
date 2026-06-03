@@ -54,7 +54,7 @@ public sealed class LifecyclePage : Component
                         : Ol(
                             Class: "list-group list-group-numbered list-group-flush",
                             Id: "lifecycle-cycle-log")[
-                            _cycleLog.Select(l => (Child)Li(
+                            _cycleLog.Select(l => (Child)Li(Key: l, 
                                 Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
                 ]
             ],

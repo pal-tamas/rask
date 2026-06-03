@@ -144,7 +144,7 @@ public sealed class TablePage(Navigator nav) : Component
                                 ]
                                 : (Child)Fragment()[
                                     visible.Select(p =>
-                                        (Child)Tr()[
+                                        (Child)Tr(Key: p.Id)[
                                             Td(Class: "text-secondary")[p.Id.ToString()],
                                             Td(Class: "fw-semibold")[p.Name],
                                             Td()[p.City],

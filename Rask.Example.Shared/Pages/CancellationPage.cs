@@ -48,6 +48,7 @@ public sealed class CancellationPage : Component
                         ? P(Class: "text-secondary small mb-0")["Mount and unmount the probe to populate this log."]
                         : Ol(Class: "list-group list-group-numbered list-group-flush cancel-log")[_log.Select(line =>
                             (Child)Li(
+                                Key: line,
                                 Class: "list-group-item ps-2 small")[Code(Class: "small")[line]]).ToArray()]
                 ]
             ],
