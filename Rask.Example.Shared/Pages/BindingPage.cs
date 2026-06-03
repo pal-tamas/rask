@@ -105,16 +105,18 @@ public sealed class BindingPage : Component
                 """
                 Select(Bind: () => _model.Track,
                        AfterBindAsync: async track => {
-                           _loading = true;
-                           StateHasChanged();          // surface "loading…" mid-await
+                           _loading = true;            // Rask renders at the await below — no StateHasChanged needed
                            await Task.Delay(300);      // simulated fetch
                            _languages = Catalog[track];
                            _model.Language = _languages[0];
                            _loading = false;
-                       })[ ... ]
+                       })[
+                    Option("")["— pick a track —"],    // placeholder = empty initial value
+                    Option("frontend")["Frontend"], ...
+                ]
                 """,
                 Notes:
-                "AfterBindAsync is awaited before the post-handler render, so validators see the new dependent state. A mid-await StateHasChanged() pushes the \"loading…\" UI before the simulated fetch completes; the dispatcher's per-await rendering picks it up.",
+                "Rask re-renders at every await suspension inside an async handler, so setting _loading before the await surfaces the \"loading…\" UI on its own — no manual StateHasChanged() is required. AfterBindAsync is still awaited before the post-handler render, so validators see the new dependent state. Note the empty-value placeholder option: it matches the initial model so the dropdown doesn't falsely show the first track, and so picking any track (including the first) fires a real change.",
                 Result: BindingAfterBindAsyncDemo())
         ];
 }
