@@ -240,8 +240,21 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     () => _model.Track,
                     AfterBindAsync: async track =>
                     {
+                        // Re-selecting the placeholder (or any unknown track) clears the
+                        // dependent list instead of throwing on _catalog[track].
+                        if (!_catalog.ContainsKey(track))
+                        {
+                            _languages = [];
+                            _model.Language = "";
+                            _loading = false;
+                            return;
+                        }
+
+                        // Rask re-renders at every await suspension inside an async handler, so
+                        // flipping _loading before the await below is enough to surface the
+                        // "loading…" UI — a manual StateHasChanged() here would only set a deferred
+                        // in-handler flag and push no frame.
                         _loading = true;
-                        await StateHasChangedAsync();
                         // Simulated remote fetch — swap for HttpClient.GetFromJsonAsync in real code.
                         // Pass the component's CancellationToken so unmount-during-fetch aborts
                         // the simulated work cleanly instead of mutating state on a stale instance.
@@ -260,6 +273,12 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     },
                     Id: "bind-async-track",
                     Class: "form-select")[
+                    // Placeholder matching the empty initial Track. Without it the <select>
+                    // visually defaults to "Frontend" while the model is still "" — and
+                    // re-picking the already-shown first option fires no change event, so the
+                    // async load never triggers. A selected placeholder keeps the initial
+                    // display honest and makes every track pick a real change.
+                    Option("")["— pick a track —"],
                     Option("frontend")["Frontend"],
                     Option("backend")["Backend"],
                     Option("data")["Data"]

@@ -7,10 +7,42 @@ namespace Rask.Core.Tests.Components;
 
 public class SelectTests
 {
-    // Preselection (MarkSelected) only runs over children passed through the factory's
-    // `params IEnumerable<Child> Children` slot — children attached via the indexer
-    // overwrite the preselected list. These tests therefore use the `Children:` named
-    // arg form rather than `Select(...)[Option(...)]`.
+    // Preselection (MarkSelected) marks the <option> whose value matches the bound model
+    // value at serialize time (Select.EnterChildrenScope), so it works whether options are
+    // supplied via the `Children:` factory argument OR the `[...]` indexer. The indexer
+    // cases below pin the latter (it used to silently fail — the indexer overwrote the
+    // factory-time preselection).
+
+    [Fact]
+    public void BoundSelect_IndexerChildren_PreselectsMatchingNonFirstOption()
+    {
+        // The exact shape that used to break: idiomatic indexer syntax, bound value matching
+        // a non-first option. Factory-time MarkSelected never saw these children.
+        var model = new ColorPicker { Color = "red" };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Color)[Option(""), Option("red"), Option("blue")]
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("<option value=\"red\" selected>", html);
+        Assert.DoesNotContain("<option value=\"\" selected>", html);
+        Assert.DoesNotContain("<option value=\"blue\" selected>", html);
+    }
+
+    [Fact]
+    public void BoundSelect_IndexerChildren_NullValue_PreselectsEmptyOption()
+    {
+        var model = new ColorPicker { Color = null };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Color)[Option(""), Option("red")]
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("<option value=\"\" selected>", html);
+        Assert.DoesNotContain("<option value=\"red\" selected>", html);
+    }
 
     [Fact]
     public void BoundSelect_NullValue_Preselects_EmptyValueOption()
