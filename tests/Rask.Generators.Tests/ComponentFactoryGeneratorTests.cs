@@ -760,4 +760,37 @@ public class ComponentFactoryGeneratorTests
             "string? P08 = null, string? P09 = null, object? Key = null)",
             output);
     }
+
+    [Fact]
+    public void InheritedPropertiesFromAbstractBase_PropagateToDerivedFactory_DerivedFirst()
+    {
+        // Mirrors the SVG design: an abstract intermediate base (like SvgElement) carries shared
+        // attributes that every concrete tag should expose as optional factory params. The derived
+        // type's own props come first (lower inheritance depth), inherited ones after.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public abstract class ShapeBase : Component
+                  {
+                      public string? Fill { get; set; }
+                      public string? Stroke { get; set; }
+                  }
+                  public sealed class Dot : ShapeBase
+                  {
+                      public string? Cx { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        // No factory for the abstract base; derived geometry prop precedes inherited presentation props.
+        Assert.DoesNotContain("ShapeBase ShapeBase(", output);
+        Assert.Contains(
+            "Dot(string? Cx = null, string? Fill = null, string? Stroke = null, object? Key = null)",
+            output);
+        Assert.Contains("__c.Fill = Fill;", output);
+        Assert.Contains("__c.Stroke = Stroke;", output);
+    }
 }
