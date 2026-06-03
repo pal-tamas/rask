@@ -12,11 +12,10 @@ namespace Rask.Examples.E2E.Tests;
 //
 // Root cause was in WasmLiveSession.BuildPayloadCoalescingRerendersAsync:
 // the first build emitted the navigation payload with a `history.url` field,
-// but `_pendingRenderInScope = true` (set by LiveTicker.OnRenderedAsync's
-// Chart.js draw completion firing RequestPublishRenderAsync via the
-// post-OnRenderedAsync auto-rerender mechanism) caused the loop to rebuild —
-// and the rebuild dropped `historyUrl`, producing a history-less final
-// payload. The client received the new HTML but no pushHistory call, so
+// but a rerender landing mid-dispatch (e.g. LiveTicker's poll-loop
+// StateHasChanged firing right after mount) caused the loop to rebuild — and
+// the rebuild dropped `historyUrl`, producing a history-less final payload.
+// The client received the new HTML but no pushHistory call, so
 // location.pathname stayed pinned.
 //
 // This test exists in StandaloneWasmExampleTests (not the shared inherited

@@ -18,7 +18,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
         [
             PageHeader.Render(
                 $"{Symbol} live ticker",
-                "A widget that exercises every lifecycle hook. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync drifts a synthetic price each tick (so the demo is deterministic and offline-safe); the chart re-renders via OnRenderedAsync; sessionStorage keeps the history across navigations."),
+                "A widget that exercises the lifecycle hooks. The Symbol comes from the [RouteParam] in the URL; switching it flips the route param and exercises OnPropsChanged. The poll loop in OnMountAsync drifts a synthetic price each tick (so the demo is deterministic and offline-safe). The chart is a server-rendered SVG drawn straight from the rolling buffer — no Chart.js, no canvas, and no JavaScript at all."),
             Div(Class: "btn-group mb-3", Id: "ticker-symbol-switcher")[
                 SwitchButton("BTC"),
                 SwitchButton("ETH"),
@@ -61,19 +61,15 @@ public sealed class LiveTickerPage(Navigator nav) : Component
             ],
             CodeSample(
                 """
-                public sealed class LiveTicker(IJSRuntime js) : Component
+                public sealed class LiveTicker : Component
                 {
                     public string Symbol { get; set; } = "BTC";
                     public int Interval { get; set; } = 1000;
-
-                    protected override RenderResult Head =>
-                        Script(LiveOptions.PathBase + "/lib/chartjs/chart.umd.js");
 
                     protected override void OnMount() { /* record _mountedAt */ }
 
                     protected override async Task OnMountAsync()
                     {
-                        await LoadFromStorageAsync().ConfigureAwait(false);
                         var ct = CancellationToken;   // cancels on unmount
                         try
                         {
@@ -91,34 +87,31 @@ public sealed class LiveTickerPage(Navigator nav) : Component
 
                     protected override void OnPropsChanged() { /* detect Symbol change */ }
 
-                    protected override async Task OnPropsChangedAsync()
+                    protected override Task OnPropsChangedAsync()
                     {
                         if (_lastSymbol is not null && _lastSymbol != Symbol)
                         {
-                            _history.Clear();
-                            await LoadFromStorageAsync(); // reseed from new symbol's history
-                            _wake?.Cancel();              // poll the new symbol immediately
+                            _history.Clear();         // start the new symbol fresh
+                            _wake?.Cancel();          // poll the new symbol immediately
                         }
                         _lastSymbol = Symbol;
+                        return Task.CompletedTask;
                     }
 
                     protected override void OnRendered(bool firstRender) { /* paint latency */ }
-
-                    protected override async Task OnRenderedAsync(bool firstRender)
-                    {
-                        if (_version == _lastDrawnVersion) return;  // buffer unchanged → skip JS
-                        _lastDrawnVersion = _version;
-                        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray());
-                    }
 
                     protected override void OnUnmount() { /* sync log */ }
 
                     protected override async Task OnUnmountAsync() =>
                         await Task.Delay(50); // stand-in for POST /stats/session-end
+
+                    protected override RenderResult Render() =>
+                        // The chart is just SVG — no Chart.js, no canvas, no JS round-trip.
+                        Sparkline(Values: _history.Select(p => (double)p.PriceUsd).ToList());
                 }
                 """,
                 Notes:
-                "OnMountAsync runs a long-lived poll loop. Every await uses ConfigureAwait(false) so the loop doesn't auto-render on each yield; instead it calls StateHasChanged() once per real data change — one render and one chart redraw per tick. The inter-tick delay is interruptible: a Symbol switch cancels _wake so the new asset polls immediately. OnRenderedAsync is version-gated, so a no-op publish render skips the IJSRuntime round-trip. CancellationToken cancels on unmount, breaking the loop. Storage round-trips go through standard sessionStorage.getItem / setItem via IJSRuntime."),
+                "OnMountAsync runs a long-lived poll loop. Every await uses ConfigureAwait(false) so the loop doesn't auto-render on each yield; instead it calls StateHasChanged() once per real data change — one render per tick. The inter-tick delay is interruptible: a Symbol switch cancels _wake so the new asset polls immediately. CancellationToken cancels on unmount, breaking the loop. There is no OnRenderedAsync: the chart is a server-rendered SVG (the Sparkline component) emitted straight from Render(), so the framework ships the updated <svg> over the same transport as the rest of the page — zero JavaScript."),
             Div(Class: "alert alert-info d-flex align-items-start mt-3")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[
@@ -127,7 +120,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                     Code()["Task.Delay"], " to simulate latency) so the demo is offline-safe. ",
                     "Switching to a real HTTP source is a one-line change in ",
                     Code()["PollOnceAsync"], "; the rest of the component — lifecycle, ",
-                    "cancellation, sessionStorage, chart redraws — is identical."
+                    "cancellation, the SVG chart — is identical."
                 ]
             ]
         ];
