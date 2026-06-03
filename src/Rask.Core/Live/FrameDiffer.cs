@@ -41,7 +41,19 @@ public enum EditOpKind : byte
     /// preceding ops already applied). Preserves DOM identity (focus, IDL property state, event
     /// listeners, iframe document state) since moving an existing node via
     /// <c>parent.insertBefore</c> doesn't materialise a new element.</summary>
-    MoveSubtree = 6
+    MoveSubtree = 6,
+
+    /// <summary>A batch of sibling moves under a single keyed parent. <see cref="EditOp.Path" />
+    /// resolves to the shared parent node; <see cref="EditOp.Moves" /> is a flat
+    /// <c>[dst0, src0, dst1, src1, …]</c> array, replayed in order with identical semantics to a
+    /// run of <see cref="MoveSubtree" /> ops (detach the source slot, then insert at the
+    /// destination slot in the post-detach sibling list). The order is load-bearing: each
+    /// dst/src pair is computed against the live DOM as mutated by all preceding pairs in the
+    /// batch, so it must not be reordered. Collapses N per-row moves (each re-emitting the full
+    /// parent path) into one op + one path — the dominant wire-bytes cost of a keyed-list
+    /// reorder. Like <see cref="MoveSubtree" /> it only ever comes from the keyed path and
+    /// preserves DOM identity.</summary>
+    PermutationBatch = 7
 }
 
 /// <summary>
@@ -56,7 +68,7 @@ public enum EditOpKind : byte
 /// </summary>
 public readonly struct EditOp
 {
-    public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false)
+    public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false, int[]? moves = null)
     {
         Kind = kind;
         Path = path;
@@ -64,6 +76,7 @@ public readonly struct EditOp
         Value = value;
         Length = length;
         Trusted = trusted;
+        Moves = moves;
     }
 
     public EditOpKind Kind { get; }
@@ -77,6 +90,11 @@ public readonly struct EditOp
     public string? Name { get; }
     public string? Value { get; }
     public int Length { get; }
+
+    /// <summary>For <see cref="EditOpKind.PermutationBatch" /> only: a flat
+    /// <c>[dst0, src0, dst1, src1, …]</c> array of sibling moves under the parent at
+    /// <see cref="Path" />, in apply order. Null for every other op kind.</summary>
+    public int[]? Moves { get; }
 
     /// <summary>True when this structural op was produced by the keyed-matching path
     /// (where the moved/inserted/removed node is identified by <c>data-rask-key</c>, so the
@@ -215,6 +233,11 @@ public static class FrameDiffer
         public readonly List<int> Live = [];
         public readonly HashSet<int> LisSet = [];
 
+        // Flat [dst0, src0, dst1, src1, …] accumulator for the step-4 move run. Reused across
+        // renders; the emitted PermutationBatch op gets a fresh copy (ToArray) so the consumer
+        // can hold the path/moves past the next render's Clear().
+        public readonly List<int> MovesBuffer = [];
+
         public void Clear()
         {
             OldKids.Clear();
@@ -225,6 +248,7 @@ public static class FrameDiffer
             Surviving.Clear();
             Live.Clear();
             LisSet.Clear();
+            MovesBuffer.Clear();
         }
     }
 
@@ -729,6 +753,13 @@ public static class FrameDiffer
                     live.Add(i);
                 }
 
+                // Accumulate the run's moves as flat [dst0, src0, dst1, src1, …] pairs instead of
+                // emitting one MoveSubtree op each — every op would re-emit the full parent path,
+                // which dominates the wire bytes of a large reorder. After the loop we ship a single
+                // PermutationBatch op carrying the shared parent path once. The flat array MUST stay
+                // in emission order: each dst/src is computed against `live` as mutated by all
+                // preceding pairs, so the client replays it left-to-right (see EditOpKind docs).
+                var moves = bundle.MovesBuffer;
                 for (var j = n - 1; j >= 0; j--)
                 {
                     var id = newIndexToSurv[j];
@@ -746,18 +777,24 @@ public static class FrameDiffer
 
                     if (dst != src)
                     {
-                        output.Add(new EditOp(
-                            EditOpKind.MoveSubtree,
-                            PathPlus(path, dst),
-                            null,
-                            null,
-                            src,
-                            trusted: true));
+                        moves.Add(dst);
+                        moves.Add(src);
                     }
 
                     // Re-insert even on the no-op (dst == src) case so `live` stays consistent for
                     // the remaining iterations' src/dst lookups.
                     live.Insert(dst, id);
+                }
+
+                if (moves.Count > 0)
+                {
+                    output.Add(new EditOp(
+                        EditOpKind.PermutationBatch,
+                        path.ToArray(),
+                        null,
+                        null,
+                        trusted: true,
+                        moves: moves.ToArray()));
                 }
             }
             finally

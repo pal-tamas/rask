@@ -204,6 +204,7 @@ public static class LivePayload
     ///         InsertSubtree     [k, path[], html, domCount]
     ///         RemoveSubtree     [k, path[], domCount]
     ///         MoveSubtree       [k, path[], sourceSlot]
+    ///         PermutationBatch  [k, parentPath[], moves[]]   // moves = [dst0,src0,dst1,src1,…]
     ///     </code>
     ///     vs the prior <c>{"k":..,"p":..,"n":..,"v":..,"l":..}</c> object shape this
     ///     drops the four key strings (<c>k</c>, <c>n</c>, <c>v</c>, <c>l</c>) and the
@@ -334,6 +335,14 @@ public static class LivePayload
                 case EditOpKind.RemoveSubtree:
                 case EditOpKind.MoveSubtree:
                     writer.WriteNumberValue(op.Length);
+                    break;
+                case EditOpKind.PermutationBatch:
+                    writer.WriteStartArray();
+                    if (op.Moves is { } moves)
+                    {
+                        foreach (var m in moves) writer.WriteNumberValue(m);
+                    }
+                    writer.WriteEndArray();
                     break;
             }
 

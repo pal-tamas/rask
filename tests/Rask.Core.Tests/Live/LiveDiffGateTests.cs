@@ -118,6 +118,7 @@ public class LiveDiffGateTests
     [InlineData(EditOpKind.InsertSubtree)]
     [InlineData(EditOpKind.RemoveSubtree)]
     [InlineData(EditOpKind.MoveSubtree)]
+    [InlineData(EditOpKind.PermutationBatch)]
     public void DiffOpsAreClientSupported_UntrustedStructuralOp_ReturnsFalse(EditOpKind kind)
     {
         Assert.False(LiveDiffGate.DiffOpsAreClientSupported([Op(kind, trusted: false)]));
@@ -127,6 +128,7 @@ public class LiveDiffGateTests
     [InlineData(EditOpKind.InsertSubtree)]
     [InlineData(EditOpKind.RemoveSubtree)]
     [InlineData(EditOpKind.MoveSubtree)]
+    [InlineData(EditOpKind.PermutationBatch)]
     public void DiffOpsAreClientSupported_TrustedStructuralOp_ReturnsTrue(EditOpKind kind)
     {
         // Keyed-matching path marks structural ops Trusted=true; those are safe to apply.

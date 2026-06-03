@@ -973,6 +973,25 @@
                     mvParent.insertBefore(mvNode, mvRef);
                     break;
                 }
+                case 7: { // PermutationBatch [k, parentPath, moves] — moves = [dst0,src0,dst1,src1,…]
+                    // path IS the parent (no trailing slot to split off). Replay each (dst,src)
+                    // pair in array order with the same detach-source-first semantics as a single
+                    // MoveSubtree: the server computed every pair against the live DOM as mutated
+                    // by the preceding pairs, so order is load-bearing — never reorder.
+                    var pbParent = resolvePath(path);
+                    if (!pbParent) break;
+                    var pbMoves = op[2] || [];
+                    for (var m = 0; m + 1 < pbMoves.length; m += 2) {
+                        var pbDst = pbMoves[m];
+                        var pbSrc = pbMoves[m + 1];
+                        var pbNode = relevantChild(pbParent, pbSrc);
+                        if (!pbNode) continue;
+                        pbParent.removeChild(pbNode);
+                        var pbRef = relevantChild(pbParent, pbDst);
+                        pbParent.insertBefore(pbNode, pbRef);
+                    }
+                    break;
+                }
                 default:
                     // Unknown op kind — newer server, older client. Bail to full reload
                     // so the user isn't stranded on a stale tree.

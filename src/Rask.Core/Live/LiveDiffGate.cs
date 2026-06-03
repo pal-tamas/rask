@@ -25,7 +25,8 @@ internal static class LiveDiffGate
             var op = ops[i];
             if ((op.Kind == EditOpKind.InsertSubtree
                  || op.Kind == EditOpKind.RemoveSubtree
-                 || op.Kind == EditOpKind.MoveSubtree)
+                 || op.Kind == EditOpKind.MoveSubtree
+                 || op.Kind == EditOpKind.PermutationBatch)
                 && !op.Trusted)
             {
                 return false;
