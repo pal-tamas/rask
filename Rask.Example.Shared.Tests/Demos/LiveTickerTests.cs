@@ -63,6 +63,27 @@ public sealed class LiveTickerTests
         Assert.NotEmpty(js.GetCalls("Rask.LiveTicker.draw"));
     }
 
+    // The first-render confirmation log must NOT depend on the Chart.js draw round-trip
+    // completing. On the server firstRender is only ever true during the GET render, and
+    // that render's draw invoke is queued and flushed at WS hello — under load it can fault
+    // (deferred scoped-JS load race) and a faulted task would swallow the Emit forever. The
+    // log line must still appear even when the draw invoke faults.
+    [Fact]
+    public async Task OnRenderedAsync_EmitsFirstRenderLog_EvenWhenDrawFaults()
+    {
+        var js = new FakeJsRuntime();
+        js.SetException("Rask.LiveTicker.draw",
+            new InvalidOperationException("Could not find Rask.LiveTicker.draw"));
+        var symbol = new Box<string>("BTC");
+        var host = BuildHost(js, symbol, interval: 1000);
+
+        host.RenderAsLiveRoot();
+        await WaitFor.True(() => host.Log.Contains("Chart.js initialised"), TimeSpan.FromSeconds(2));
+
+        Assert.Contains(host.Log.Snapshot(),
+            l => l.Contains("OnRenderedAsync(firstRender:true): Chart.js initialised"));
+    }
+
     [Fact]
     public async Task OnPropsChanged_LogsSymbolSwitch()
     {

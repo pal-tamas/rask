@@ -37,7 +37,7 @@ public sealed class LifecycleProbe : Component
             ],
             H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
             Ol(Class: "list-group list-group-numbered list-group-flush")[
-                _log.Select(l => (Child)Li(Key: l, Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+                _log.Select(l => Li(Key: l, Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
         ];
     }
 }

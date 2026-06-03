@@ -211,11 +211,18 @@ public sealed class LiveTicker(IJSRuntime js) : Component
         }
 
         _lastDrawnVersion = _version;
-        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray()).ConfigureAwait(false);
+
+        // Record the first-render confirmation BEFORE the JS round-trip. firstRender is only
+        // ever true during the server's GET render, and that render's draw invoke is queued
+        // and flushed at WS hello — under load it can fault or race the deferred scoped-JS
+        // load, and a faulted task would swallow this Emit forever. AppendLog's
+        // StateHasChanged ships the line on the next render regardless of the draw outcome.
         if (firstRender)
         {
             Emit("OnRenderedAsync(firstRender:true): Chart.js initialised");
         }
+
+        await js.InvokeVoidAsync("Rask.LiveTicker.draw", _history.ToArray()).ConfigureAwait(false);
     }
 
     protected override void OnUnmount() => Emit("OnUnmount: stopping (sync)");

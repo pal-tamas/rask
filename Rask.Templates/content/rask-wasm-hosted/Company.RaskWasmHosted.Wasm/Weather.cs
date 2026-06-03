@@ -25,10 +25,10 @@ public sealed class Weather(IWeatherForecastService service) : Component
                             Th()["Summary"]
                         ]
                     ],
-                    Tbody()[_forecasts.Select(f => (Child)Tr()[
+                    Tbody()[_forecasts.Select(f => Tr(Key: f.Date)[
                         Td()[f.Date.ToString("yyyy-MM-dd")],
-                        Td()[f.TemperatureC.ToString()],
-                        Td()[f.TemperatureF.ToString()],
+                        Td()[f.TemperatureC],
+                        Td()[f.TemperatureF],
                         Td()[f.Summary ?? ""]
                     ]).ToArray()]
                 ]
