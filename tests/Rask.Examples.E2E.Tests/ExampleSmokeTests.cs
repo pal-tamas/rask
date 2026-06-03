@@ -597,7 +597,7 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
         Assert.DoesNotContain("lifecycle hook on HttpPage faulted", ServerLog);
     });
 
-    // ---------- Live ticker (all eight lifecycle hooks in one component) ----------
+    // ---------- Live ticker (lifecycle hooks in one component, zero JS) ----------
     //
     // Lives here rather than in SharedSmokeTests because StandaloneWasm's
     // NavigateToAsync asserts on window.location matching the target path — that
@@ -620,15 +620,16 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
         // The hook activity panel proves the framework drove OnMount → OnMountAsync
-        // → OnRendered → OnRenderedAsync without us touching anything.
+        // → OnRendered without us touching anything.
         var log = Page.Locator("#ticker-log");
-        await Expect(log).ToContainTextAsync("OnMount: requesting persisted history",
+        await Expect(log).ToContainTextAsync("OnMount: starting ticker",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(log).ToContainTextAsync("OnRendered(firstRender:true)",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // The canvas (where Chart.js will paint) is always present from the static render.
-        await Expect(Page.Locator("canvas[data-rask-ticker]")).ToBeVisibleAsync(
+        // The chart is a server-rendered SVG (no canvas, no JS); it appears once the
+        // first tick lands.
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     });
 
@@ -689,34 +690,4 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
         var mountCount = System.Text.RegularExpressions.Regex.Matches(logText!, "OnMount: ").Count;
         Assert.Equal(1, mountCount);
     });
-
-    [Fact]
-    public Task LiveTicker_HistoryPersists_AcrossNavigation() => RunAsync(async () =>
-    {
-        // OnPropsChangedAsync re-hydrates from sessionStorage on symbol switch.
-        // Seed a known three-point SOL entry, then switch to /SOL — the log
-        // should report "loaded 3 persisted points".
-        await NavigateToAsync("/realtime/BTC");
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        await Page.EvaluateAsync(
-            """
-            () => sessionStorage.setItem(
-                'rask-live-ticker:SOL',
-                JSON.stringify([
-                    {Timestamp: '2026-01-01T00:00:00Z', PriceUsd: 140.0},
-                    {Timestamp: '2026-01-01T00:00:03Z', PriceUsd: 141.5},
-                    {Timestamp: '2026-01-01T00:00:06Z', PriceUsd: 142.2}
-                ]))
-            """);
-
-        await Page.Locator("#ticker-switch-SOL").ClickAsync();
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("SOL",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("loaded 3 persisted points",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-    });
-
 }

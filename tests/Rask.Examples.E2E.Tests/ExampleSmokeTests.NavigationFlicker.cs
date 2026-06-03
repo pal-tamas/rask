@@ -9,64 +9,36 @@ namespace Rask.Examples.E2E.Tests;
 public abstract partial class ExampleSmokeTests
 {
     [Fact]
-    public Task Nav_LiveTickerSymbolSwitch_ReusesCanvasInstance() => RunAsync(async () =>
+    public Task Nav_LiveTickerSymbolSwitch_UpdatesSvgChart() => RunAsync(async () =>
     {
         // /realtime/BTC → /realtime/ETH (in-page nav via switcher button).
-        // The canvas[data-rask-ticker] must remain a single element, and a
-        // chart instance must be attached after the switch. A regression that
-        // destroys + recreates the chart on every prop change would cause
-        // visible chart flicker.
+        // The chart is a server-rendered SVG (no canvas, no JS): a single <svg>
+        // must remain in #ticker-chart after the switch, redrawn for the new
+        // symbol from the same transport as the rest of the page.
         await NavigateToAsync("/realtime/BTC");
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        // Wait for chart to render.
-        await Page.WaitForTimeoutAsync(1500);
+        // Wait for the first tick to render the SVG chart.
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Switch — same canvas should keep its __raskChart instance.
         await Page.Locator("#ticker-switch-ETH").ClickAsync();
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Page.WaitForTimeoutAsync(500);
 
-        var hasChartAfter = await Page.EvaluateAsync<bool>(
-            "() => { const c = document.querySelector('canvas[data-rask-ticker]'); return !!(c && c.__raskChart); }");
-
-        var canvasCount = await Page.Locator("canvas[data-rask-ticker]").CountAsync();
-        Assert.Equal(1, canvasCount);
-        Assert.True(hasChartAfter, "Chart instance not attached after Symbol switch.");
+        // The new symbol's chart renders as a single SVG; never a <canvas>.
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal(1, await Page.Locator("#ticker-chart svg").CountAsync());
+        Assert.Equal(0, await Page.Locator("#ticker-chart canvas").CountAsync());
     });
 
-    [Fact]
-    public Task Nav_HeadAssets_NoDuplicateChartScriptAfterMultipleNavs() => RunAsync(async () =>
-    {
-        await NavigateToAsync("/realtime/BTC");
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Two-way binding");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Two-way binding",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Live ticker");
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        var chartScripts = await Page.Locator("head script[src*='chart']").CountAsync();
-        Assert.Equal(1, chartScripts);
-    });
-
-    // Regression: navigating away from /realtime/BTC produced a visible
-    // flicker — LiveTicker's chart.js Head contribution disappeared from the
-    // registry, every later head sibling shifted by one slot, and the morph's
-    // positional walk hit tag-name mismatches and REPLACED nodes (including
-    // the Bootstrap CSS link and, on the Server runtime, the scoped-css link).
-    // Removing a stylesheet drops its rules immediately → unstyled page.
-    //
-    // The fix emits a stable data-rask-key on every head asset so the morph's
-    // keyed branch matches by identity. This test stamps a JS marker on the
-    // Bootstrap link before nav and asserts the marker survives — i.e., the
-    // morph moved the link rather than destroying and recreating it.
+    // Regression (head-morph node identity): navigating away from a page must MOVE
+    // unchanged head siblings rather than destroy + recreate them — removing a
+    // stylesheet drops its rules immediately and produces a visible flicker. The fix
+    // emits a stable data-rask-key on every head asset so the morph matches by identity.
+    // This stamps a JS marker on the Bootstrap link before nav and asserts it survives.
     [Fact]
     public Task Nav_AwayFromLiveTicker_PreservesHeadAssetNodeIdentity() => RunAsync(async () =>
     {
@@ -74,18 +46,15 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        // Stamp a marker on the Bootstrap CSS link (present on every page via App.Head)
-        // and on the chart.js script (present only on the LiveTicker page). The
-        // Bootstrap link must survive nav; the chart.js script must be cleanly removed.
+        // Stamp a marker on the Bootstrap CSS link (present on every page via App.Head).
+        // It must survive nav — the morph should move it, not recreate it.
         var stamped = await Page.EvaluateAsync<bool>(@"() => {
             var bs = document.querySelector('link[href*=""bootstrap/bootstrap.min.css""]');
-            var chart = document.querySelector('script[src*=""chart.umd.js""]');
-            if (!bs || !chart) return false;
+            if (!bs) return false;
             bs.__raskFlickerProbe = 'bootstrap';
-            chart.__raskFlickerProbe = 'chart';
             return true;
         }");
-        Assert.True(stamped, "Pre-nav probes (bootstrap link + chart script) not found in <head>.");
+        Assert.True(stamped, "Pre-nav probe (bootstrap link) not found in <head>.");
 
         await ClickSidebar("Lifecycle");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Lifecycle hooks",
@@ -98,10 +67,6 @@ public abstract partial class ExampleSmokeTests
         Assert.True(preserved,
             "Bootstrap <link> was replaced during nav from LiveTicker — head morph displaced " +
             "an unchanged stylesheet, which drops its rules and produces a visible flicker.");
-
-        var chartGone = await Page.EvaluateAsync<int>(
-            "() => document.querySelectorAll('script[src*=\"chart.umd.js\"]').length");
-        Assert.Equal(0, chartGone);
     });
 
     // Regression: highlight.js decorates the <code> blocks once after their
