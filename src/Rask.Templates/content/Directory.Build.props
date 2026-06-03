@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    Template content is materialised into a downstream consumer's repo by
+    `dotnet new`, where this repo's root Directory.Packages.props is absent.
+    Disable Central Package Management here so the RASK_PKG_VERSION placeholder
+    versions in the template .csproj files pass through unchanged (avoids NU1008
+    when these projects are restored in-place during this repo's build).
+    This file also stops the upward Directory.Build.props walk into the repo root.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+</Project>

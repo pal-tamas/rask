@@ -33,35 +33,35 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj') }}
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore Rask.sln
+        run: dotnet restore Rask.slnx
 
       - name: Build
-        run: dotnet build Rask.sln -c Release --no-restore
+        run: dotnet build Rask.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test Rask.sln -c Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=normal"
+        run: dotnet test Rask.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=normal"
 
       - name: Pack Rask.Server
-        run: dotnet pack Rask.Server/Rask.Server.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Server/Rask.Server.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Wasm
-        run: dotnet pack Rask.Wasm/Rask.Wasm.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Wasm.Hosting
-        run: dotnet pack Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Validation.DataAnnotations
-        run: dotnet pack Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Validation.FluentValidation
-        run: dotnet pack Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release --no-build -o ./artifacts
 
       - name: Pack Rask.Templates
-        run: dotnet pack Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
+        run: dotnet pack src/Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
 
       - name: Upload packages
         uses: actions/upload-artifact@v5

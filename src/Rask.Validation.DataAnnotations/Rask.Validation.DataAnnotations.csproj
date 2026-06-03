@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Validation.DataAnnotations</PackageId>
+    <Description>Rask validator that runs System.ComponentModel.DataAnnotations over the form model. Drop `DataAnnotationsValidator()` inside a `Form&lt;T&gt;` to wire attribute-based validation (`[Required]`, `[Range]`, `IValidatableObject`, …) into Rask's EditContext. No external dependencies beyond Rask.Core.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- Trimming is safe: page types reach the runtime via the route registry's generated
+         module initialiser, which emits [DynamicDependency] per registered page; the reflection
+         sites in RouteChainRenderer / PageBinder / RouteValueParser are either DAM-annotated or
+         carry a documented suppression. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <!-- The showcase doesn't format culture-sensitive values, so drop the ~2.6 MB of ICU data
+         shipped under _framework/icudt*.dat. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Suppress IL2104 from Microsoft.JSInterop. The underlying warnings (IL2065 / IL2111)
+         live in DotNetDispatcher.ScanAssemblyForCallableMethods — Blazor's reflection-driven
+         [JSInvokable] scanner. Rask apps that only INVOKE JS (the common case) never trigger
+         that path. WASM apps that DO mark methods [JSInvokable] should add a
+         [DynamicDependency] on those methods (standard Blazor WASM mitigation). -->
+    <NoWarn>$(NoWarn);IL2104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <!-- Vendored third-party assets (Bootstrap, Bootstrap Icons + fonts, Chart.js,
+       Highlight.js), the placeholder image, and the HTTP-demo JSON fixture. The WASM
+       SDK copies these into the AppBundle root, preserving the wwwroot-relative
+       subpath, so both WasmAppHost (standalone `dotnet run`) and Rask.Example.Wasm.Host
+       (which serves the published bundle) expose them at /lib, /img, /data. -->
+  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
+    <WasmExtraFilesToDeploy Include="wwwroot\**\*"
+                            TargetPath="%(RecursiveDir)%(Filename)%(Extension)"/>
+  </ItemGroup>
+
+</Project>

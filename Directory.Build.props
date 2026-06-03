@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
-    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all"/>
+    <PackageReference Include="MinVer" PrivateAssets="all"/>
   </ItemGroup>
 
   <!--
@@ -55,13 +55,13 @@
   <PropertyGroup>
     <RaskGlobalUsings Condition=" '$(RaskGlobalUsings)' == '' AND $(MSBuildProjectName.StartsWith('Rask.')) AND !$(MSBuildProjectName.StartsWith('Rask.Example.')) ">false</RaskGlobalUsings>
   </PropertyGroup>
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Server\build\Rask.Server.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
 
 </Project>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 matches what MSBuild loads at build time. The task runs inside
+      the MSBuild host process (either dotnet build's worker or VS's). Targeting newer
+      frameworks would refuse to load on full-framework MSBuild and break Windows VS
+      builds for consumers. The implementation deliberately avoids C# 12+ features so
+      this constraint stays cheap to maintain.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Rask.Wasm.Tasks</RootNamespace>
+
+    <!--
+      This is a build-only assembly; it ships inside Rask.Wasm's package/build folder,
+      not as a runtime reference. IncludeBuildOutput=false stops the consumer's
+      compile from picking it up; the targets file loads it explicitly via <UsingTask>.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.Build.Utilities.Core: provides Task, TaskItem, Log. ExcludeAssets=runtime
+      because MSBuild's own assembly resolver provides these at runtime; bundling them
+      would clash with the host MSBuild's copy.
+    -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Copy the built task DLL next to Rask.Wasm/build/Rask.Wasm.targets so the
+    <UsingTask AssemblyFile="$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll" /> in
+    that targets file resolves the same way for in-repo consumers and for NuGet
+    consumers (the package copies build/ verbatim). Runs after Build so each rebuild
+    refreshes the deployed task. Cheap: one file, ~20 KB.
+  -->
+  <Target Name="CopyTaskAssemblyToRaskWasmBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Wasm\build\" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

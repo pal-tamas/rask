@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Examples.E2E.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest"/>
+    <!-- Caps cross-collection parallelism (see xunit.runner.json). The four browser-host
+         collection fixtures (Server, Wasm.Host, StandaloneWasm, SubPathWasm) each boot a
+         full `dotnet run` host plus a Chromium page; running all four concurrently
+         over-subscribes the 2-core CI runner and starves the slowest fixture
+         (StandaloneWasm / WasmAppHost cold boot), so its CodeSample pages miss the deferred
+         scoped-JS highlight window and the Highlight/ScopedJs/Memory tests time out with
+         "no code blocks". Local multi-core boxes pass at full parallelism; this makes CI
+         behave the same. -->
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Wasm.Host\Rask.Example.Wasm.Host.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"/>
+  </ItemGroup>
+
+</Project>
