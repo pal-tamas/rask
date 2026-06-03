@@ -584,8 +584,17 @@
     }
 
     function triggerDownload(url, filename) {
+        // url is framework-built (/_rask/download/...); resolve + reject anything
+        // that isn't same-origin so a javascript:/cross-origin href can never land here.
+        var resolved;
+        try {
+            resolved = new URL(url, location.href);
+        } catch (_) {
+            return;
+        }
+        if (resolved.origin !== location.origin) return;
         var a = document.createElement("a");
-        a.href = url;
+        a.href = resolved.href;
         a.download = filename;
         a.style.display = "none";
         document.body.appendChild(a);
