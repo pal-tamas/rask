@@ -104,23 +104,12 @@ public abstract partial class ExampleSmokeTests
         Assert.Equal(0, chartGone);
     });
 
-    // Regression: highlight.js decorates the <code> blocks once after their
-    // first render. Subsequent server-driven re-renders ship plain-text markup,
-    // so the morph strips the spans; CodeSample.OnRenderedAsync re-invokes hljs
-    // immediately, which rebuilt the spans EVERY time because the JS deleted
-    // dataset.highlighted before calling highlightElement. That delete+rebuild
-    // cycle (combined with a burst of post-await re-renders from LifecyclePage's
-    // probe) was the visible flicker the user reported.
-    //
-    // The fix lives in CodeSample.js: the idempotency guard
-    //     if (code.dataset.highlighted) return;
-    // skips re-highlighting blocks hljs already decorated, so framework replays
-    // of OnRenderedAsync don't tear down and rebuild the spans.
-    //
-    // This test asserts the end state — the code block is still highlighted
-    // after a re-render burst triggered by the "Mount probe" button — and that
-    // the initial span count is preserved (hljs didn't tokenize the empty
-    // post-morph text or otherwise corrupt the highlight).
+    // Regression: highlighting is rendered server-side as ColorCode token <span>s
+    // inside the <code class="language-csharp"> block. Subsequent server-driven
+    // re-renders ship the same highlighted markup, so the morph must preserve those
+    // spans rather than flatten them to plain text. A re-render burst (from
+    // LifecyclePage's "Mount probe", whose OnMountAsync awaits then emits another
+    // render) must leave the code block highlighted with its span count intact.
     [Fact]
     public Task Nav_LifecyclePageRerender_KeepsCodeBlockHighlighted() => RunAsync(async () =>
     {
@@ -128,22 +117,21 @@ public abstract partial class ExampleSmokeTests
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Lifecycle hooks",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await Expect(Page.Locator(".sample-card code.hljs span.hljs-keyword").First)
+        await Expect(Page.Locator(".sample-card code.language-csharp span.keyword").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
-        var initialSpans = await Page.Locator(".sample-card code.hljs span").CountAsync();
-        Assert.True(initialSpans > 0, "Expected hljs spans before re-render trigger.");
+        var initialSpans = await Page.Locator(".sample-card code.language-csharp span").CountAsync();
+        Assert.True(initialSpans > 0, "Expected token spans before re-render trigger.");
 
         // Trigger a re-render burst. The probe's OnMountAsync awaits 450 ms,
-        // then emits another render — each one previously caused hljs to
-        // tear down and rebuild the spans.
+        // then emits another render — the morph must not strip the Raw spans.
         await Page.Locator("#lifecycle-cycle-mount").ClickAsync();
         await Page.WaitForTimeoutAsync(1000);
 
         // End state must still be highlighted and span count preserved.
-        await Expect(Page.Locator(".sample-card code.hljs"))
+        await Expect(Page.Locator(".sample-card code.language-csharp"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
-        var finalSpans = await Page.Locator(".sample-card code.hljs span").CountAsync();
+        var finalSpans = await Page.Locator(".sample-card code.language-csharp span").CountAsync();
         Assert.Equal(initialSpans, finalSpans);
     });
 }

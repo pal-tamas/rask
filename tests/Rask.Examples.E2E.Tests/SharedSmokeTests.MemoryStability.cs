@@ -61,11 +61,10 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Memory_DownAndUpNavToCodeSamplePages_NoUnboundedGrowth() => RunAsync(async () =>
     {
-        // Specific to the highlight.js regression class: bouncing between
-        // CodeSample-heavy pages must not leak. Each page mounts ~15 CodeSample
-        // instances, each subscribing to a JS invocation. If OnRenderedAsync
-        // closures, the IJSRuntime call queue, or the head-asset cache leak,
-        // this test catches it.
+        // Bouncing between CodeSample-heavy pages must not leak. Each page mounts
+        // ~15 CodeSample instances that tokenize their source server-side. If the
+        // highlight cache, the head-asset cache, or component lifecycle closures
+        // grow without bound, this test catches it.
         await NavigateToAsync("/");
         await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
@@ -89,7 +88,7 @@ public abstract partial class SharedSmokeTests
 
         Assert.True(after < baseline * 4 + 30_000_000,
             $"Heap grew across CodeSample-heavy navs. baseline={baseline:N0} after={after:N0}. " +
-            "Likely culprit: hljs <link>/<script> head dedup leak OR CodeSample lifecycle closures.");
+            "Likely culprit: highlight-cache or head-asset cache growth OR CodeSample lifecycle closures.");
     });
 
     private async Task<long> SampleJsHeapAsync()

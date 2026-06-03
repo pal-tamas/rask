@@ -121,9 +121,8 @@ public abstract partial class SharedSmokeTests
     // ---------- helper ----------
 
     // Poll a predicate until it returns true or the timeout elapses. Used for
-    // assertions on values that mutate over time (chart instance attached,
-    // hljs class applied) where Playwright's Expect doesn't have a direct
-    // matcher.
+    // assertions on values that mutate over time where Playwright's Expect
+    // doesn't have a direct matcher.
     private static async Task WaitForAsync(Func<Task<bool>> predicate, int timeoutMs, string message)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);

@@ -3,35 +3,27 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
-// highlight.js coverage — documents two user-reported regressions:
-//
-//   Bug #1 (Server):  highlight.js never runs. No code block ever gets the
-//                     .hljs class on Rask.Example.Server.
-//   Bug #2 (Wasm):    highlight.js runs on first load but stops working after
-//                     in-SPA navigation to any other CodeSample-bearing page.
-//
-// CodeSample.OnRenderedAsync invokes `Rask.CodeSample.rendered` via IJSRuntime
-// — both bugs trace back to that hook's behaviour across hosts and across
-// navigation. These tests will FAIL on a regressed host; that's the point —
-// they document the bug then drive the fix.
+// Syntax-highlighting coverage. Highlighting is produced SERVER-SIDE by ColorCode
+// (CodeSample tokenizes its C# Source into <span class="keyword|string|comment|…">
+// markup injected via Raw()), so the highlighted spans are part of the very first
+// render — there is no client-side highlight.js, no head <link>/<script>, and no
+// async settle. These tests assert that every `pre code[class*=language-]` block
+// carries token spans on first paint and after in-SPA navigation (the morph must
+// not flatten the Raw spans), and that no highlight.js asset is requested.
 public abstract partial class SharedSmokeTests
 {
-    // The WASM runtime parks Rask.* invokes until the per-component scoped JS
-    // (/_rask/a/{hash}.js) AND the same-origin highlight.min.js have loaded; its own
-    // backstop for that drain is SCOPED_ASSET_LOAD_TIMEOUT_MS = 30s (rask.wasm.js). On a
-    // cold deep-link over a constrained CI runner that drain can legitimately finish
-    // between 10s and 30s, so the test must wait at least as long as the runtime does.
-    // On a warm/healthy run highlighting settles in <1s and WaitForHljsAsync returns
-    // early, so this ceiling only bites on a genuinely slow cold boot.
+    // Highlighting lands in the first render, but on a cold WASM boot the whole page
+    // (heading + code) only paints once the runtime has loaded; this ceiling lets the
+    // span check ride out that boot on a constrained CI runner. On a warm run the spans
+    // are present immediately and WaitForHighlightedSpansAsync returns early.
     protected const int HighlightSettleTimeoutMs = 35_000;
 
     [Fact]
     public Task Highlight_FirstLoad_ValidationPage_HighlightsEveryCodeBlock() => RunAsync(async () =>
     {
-        // /validation embeds 15 CodeSample instances. On first load every
-        // `pre code[class*=language-]` block must end up with the .hljs class
-        // applied — that's the visible signal hljs ran. Bug #1 (Server) makes
-        // this fail because the hook never reaches the JS runtime.
+        // /validation embeds many CodeSample instances. On first load every
+        // `pre code[class*=language-]` block must contain ColorCode token spans —
+        // that's the visible signal the server-side highlighter ran.
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -40,31 +32,26 @@ public abstract partial class SharedSmokeTests
     });
 
     [Fact]
-    public Task Highlight_FirstLoad_HljsAssetsLandInHead() => RunAsync(async () =>
+    public Task Highlight_FirstLoad_NoHljsAssetsInHead() => RunAsync(async () =>
     {
-        // The framework auto-emits CodeSample.Head into the page <head>. If the
-        // hljs stylesheet or core script isn't reaching head on a given host,
-        // hljs is undefined when CodeSample.rendered runs and the highlight is
-        // a no-op. This test isolates the head-asset emission from the hook
-        // invocation, so a failure here means head contribution is broken.
+        // Highlighting moved server-side, so the old highlight.js <link>/<script>
+        // must no longer be contributed to <head> by any CodeSample.
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var styleCount = await Page.Locator("head link[href*='highlight']").CountAsync();
-        var scriptCount = await Page.Locator("head script[src*='highlight.min.js']").CountAsync();
-        Assert.True(styleCount >= 1, $"Expected hljs stylesheet in head; found {styleCount}.");
-        Assert.True(scriptCount >= 1, $"Expected hljs script in head; found {scriptCount}.");
+        var scriptCount = await Page.Locator("head script[src*='highlight']").CountAsync();
+        Assert.Equal(0, styleCount);
+        Assert.Equal(0, scriptCount);
     });
 
     [Fact]
     public Task Highlight_AfterCrossPageNavigation_StillHighlightsOnDestination() => RunAsync(async () =>
     {
-        // The Wasm-specific bug: hljs works on first load but breaks on the
-        // SECOND page. We start on /validation (confirm hljs works there),
-        // then sidebar-nav to /routing — a different page with CodeSamples —
-        // and demand hljs runs there too. If OnRenderedAsync only fires on
-        // the very first SPA mount, this test catches the regression.
+        // Highlighting must be present on a SECOND page reached by in-SPA navigation:
+        // the destination's render ships the highlighted <code> and the morph must
+        // apply the Raw spans, not flatten them to plain text.
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -79,11 +66,9 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_AfterRoundTripNav_RehighlightsOnReturn() => RunAsync(async () =>
     {
-        // /validation → / (no CodeSamples) → /validation. On the return visit,
-        // every code block must be highlighted again. A regression where the
-        // hook only fires on the very first mount in a SPA session would let
-        // the initial visit pass but break the return — this test discriminates
-        // between "fires on first mount only" and "fires on every mount".
+        // /validation → / (no CodeSamples) → /validation. On the return visit every
+        // code block must carry token spans again — guards against the morph dropping
+        // the Raw spans when a CodeSample page is re-entered.
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -102,11 +87,9 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Highlight_RapidNavBetweenCodeSamplePages_AlwaysSettlesHighlighted() => RunAsync(async () =>
     {
-        // Stress-tests the hook under rapid in-SPA navigation. After a chain
-        // of sidebar clicks across multiple CodeSample-heavy pages, the final
-        // page must end up fully highlighted. Catches "the last nav cancelled
-        // a pending hljs apply()" or "the hook queued behind a render and was
-        // dropped" races.
+        // Stress-tests highlighting under rapid in-SPA navigation. After a chain of
+        // sidebar clicks across multiple CodeSample-heavy pages, the final page must
+        // end up with every code block highlighted (no morph dropped the spans).
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
@@ -123,41 +106,39 @@ public abstract partial class SharedSmokeTests
 
     private async Task AssertAllCodeBlocksHighlightedAsync(int timeoutMs)
     {
-        // hljs adds the .hljs class on the same <code> element that already
-        // has the .language-* class. We wait until every code element with a
-        // language-* class also has .hljs — that's the contract of
-        // highlightElement. If hljs never runs, the counts diverge.
-        await WaitForHljsAsync(timeoutMs);
+        // ColorCode wraps tokens in <span class="…"> inside the <code class="language-*">.
+        // We wait until every code element with a language-* class contains at least one
+        // token span — that's the contract of the server-side highlighter.
+        await WaitForHighlightedSpansAsync(timeoutMs);
 
         var total = await Page.Locator("pre code[class*='language-']").CountAsync();
-        var highlighted = await Page.Locator("pre code.hljs[class*='language-']").CountAsync();
+        var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
         Assert.True(total > 0,
-            $"No code blocks found on the page — selector mismatch? [{await HljsDiagnosticsAsync()}]");
+            $"No code blocks found on the page — selector mismatch? [{await HighlightDiagnosticsAsync()}]");
         Assert.True(total == highlighted,
-            $"Only {highlighted}/{total} code blocks highlighted after {timeoutMs}ms. " +
-            $"[{await HljsDiagnosticsAsync()}]");
+            $"Only {highlighted}/{total} code blocks carried token spans after {timeoutMs}ms. " +
+            $"[{await HighlightDiagnosticsAsync()}]");
     }
 
-    // Snapshot of the highlight pipeline state, surfaced in assert messages so a CI
-    // failure distinguishes a slow cold load (hljs/RaskCodeSample never defined in time)
-    // from a genuine regression (both defined but highlight still didn't run).
-    protected Task<string> HljsDiagnosticsAsync() => Page.EvaluateAsync<string>(
+    // Snapshot of the highlight state, surfaced in assert messages so a CI failure
+    // distinguishes a slow cold WASM boot (no blocks rendered yet) from a genuine
+    // regression (blocks present but carrying no token spans).
+    protected Task<string> HighlightDiagnosticsAsync() => Page.EvaluateAsync<string>(
         "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
-        "const hl = all.filter(c => c.classList.contains('hljs')).length; " +
-        "return `hljs=${typeof window.hljs} RaskCodeSample=${!!(window.Rask && window.Rask.CodeSample)} " +
-        "blocks=${all.length} highlighted=${hl}`; }");
+        "const hl = all.filter(c => c.querySelector('span[class]')).length; " +
+        "return `blocks=${all.length} withSpans=${hl}`; }");
 
     // Shared by the deep-diagnostics tests in ExampleSmokeTests.HighlightJs.cs too.
-    protected async Task WaitForHljsAsync(int timeoutMs)
+    protected async Task WaitForHighlightedSpansAsync(int timeoutMs)
     {
-        // Poll until every targeted code block carries .hljs. We use a
-        // page-side function to avoid round-tripping per-element queries.
+        // Poll until every targeted code block carries at least one token span. On a warm
+        // run this is true on the first tick; the loop only bites on a cold WASM boot.
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)
         {
             var settled = await Page.EvaluateAsync<bool>(
                 "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
-                "return all.length > 0 && all.every(c => c.classList.contains('hljs')); }");
+                "return all.length > 0 && all.every(c => c.querySelector('span[class]') !== null); }");
             if (settled)
             {
                 return;
