@@ -20,32 +20,32 @@ Deterministic — no measurement noise. Each row is one incremental update from 
 
 | Scenario | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full | Rask diff vs Blazor |
 |---|---:|---:|---:|---:|---:|
-| CounterOnLargePage | 24,143 | **41** | 186 | 589× | **4.54×** Rask wins |
-| TextNodeUpdate | 24,026 | **50** | 193 | 481× | **3.86×** Rask wins |
-| DeepTreeCounterUpdate | 1,312 | **137** | 1,722 | 9.6× | **12.57×** Rask wins |
-| InputTypingBurst | 325 | **48** | 135 | 6.8× | **2.81×** Rask wins |
-| AttributeUpdate | 38,393 | **54** | 140 | 711× | **2.59×** Rask wins |
-| ClassToggle | 1,265 | **92** | 227 | 13.8× | **2.47×** Rask wins |
-| DeleteMiddleRow | 6,580 | **36** | 96 | 183× | **2.67×** Rask wins |
-| MultiAttributeUpdate | 346 | **269** | 576 | 1.3× | **2.14×** Rask wins |
-| KeyedList100Reorder | 6,646 | **49** | 128 | 136× | **2.61×** Rask wins |
-| NestedKeyedReorder | 9,286 | **49** | 128 | 190× | **2.61×** Rask wins |
-| AppendRow | 6,714 | **108** | 224 | 62× | **2.07×** Rask wins |
-| AttributeBurstUpdate | 6,556 | **2,037** | 4,596 | 3.2× | **2.26×** Rask wins |
-| KeyedListLargeAppend | 10,046 | **4,273** | 5,957 | 2.4× | **1.39×** Rask wins |
-| KeyedList50Reversal | 3,346 | **685** | 896 | 4.9× | **1.31×** Rask wins² |
-| ConditionalRenderingToggle | **2,069** | 2,032 | 4,588 | 1.0× | **2.22×** Rask wins¹ |
-| Lifecycle_Insert100 | **7,546** | 9,093 | 24,604 | 0.8× | **3.26×** Rask wins¹ |
-| Lifecycle_Remove100 | **66** | 1,223 | 2,080 | 0.1× | **31.5×** Rask wins¹ |
-| VirtualizationScroll | 649 | 440 | 193³ | 1.5× | 0.44×³ |
-| Scale_KeyedReorder_5000 | 347,846 | **53** | 128 | 6,563× | **2.42×** Rask wins |
-| Scale_KeyedRandomPermutation_1000 | 67,846 | **14,936** | 16,096 | 4.5× | **1.08×** Rask wins² |
-| Scale_KeyedAppendMiddle_2000 | 137,916 | **111** | 225 | 1,243× | **2.03×** Rask wins |
-| Scale_DeepTreeMutationByDepth_200 | 5,236 | **441** | 6,522 | 11.9× | **14.79×** Rask wins |
-| Realistic_DashboardWidgets_Tick | 4,032 | **43** | 218 | 94× | **5.07×** Rask wins |
-| Realistic_TableSort_Reverse | 17,296 | 3,873 | **3,360** | 4.5× | 0.87×⁴ |
-| Realistic_FormValidationChurn_Field0 | 1,398 | **109** | 310 | 12.8× | **2.84×** Rask wins |
-| Realistic_NavSwitch_0to1 | 4,294 | **2,526** | 7,003 | 1.7× | **2.77×** Rask wins |
+| CounterOnLargePage | 24,114 | **41** | 186 | 588× | **4.54×** Rask wins |
+| TextNodeUpdate | 23,997 | **50** | 193 | 480× | **3.86×** Rask wins |
+| DeepTreeCounterUpdate | 1,283 | **137** | 1,722 | 9.4× | **12.57×** Rask wins |
+| InputTypingBurst | 296 | **48** | 135 | 6.2× | **2.81×** Rask wins |
+| AttributeUpdate | 38,364 | **54** | 140 | 710× | **2.59×** Rask wins |
+| ClassToggle | 1,236 | **92** | 227 | 13.4× | **2.47×** Rask wins |
+| DeleteMiddleRow | 6,551 | **36** | 96 | 182× | **2.67×** Rask wins |
+| MultiAttributeUpdate | 317 | **269** | 576 | 1.2× | **2.14×** Rask wins |
+| KeyedList100Reorder | 6,617 | **43** | 128 | 154× | **2.98×** Rask wins⁵ |
+| NestedKeyedReorder | 9,257 | **43** | 128 | 215× | **2.98×** Rask wins⁵ |
+| AppendRow | 6,685 | **108** | 224 | 62× | **2.07×** Rask wins |
+| AttributeBurstUpdate | 6,527 | **2,037** | 4,596 | 3.2× | **2.26×** Rask wins |
+| KeyedListLargeAppend | 10,017 | **4,273** | 5,957 | 2.3× | **1.39×** Rask wins |
+| KeyedList50Reversal | 3,317 | **269** | 896 | 12.3× | **3.33×** Rask wins⁵ |
+| ConditionalRenderingToggle | **2,040** | 2,032 | 4,588 | 1.0× | **2.26×** Rask wins¹ |
+| Lifecycle_Insert100 | **7,517** | 9,093 | 24,604 | 0.8× | **3.27×** Rask wins¹ |
+| Lifecycle_Remove100 | **37** | 1,223 | 2,080 | 0.0× | **56.2×** Rask wins¹ |
+| VirtualizationScroll | 620 | 440 | 193³ | 1.4× | 0.44×³ |
+| Scale_KeyedReorder_5000 | 347,817 | **47** | 128 | 7,400× | **2.72×** Rask wins⁵ |
+| Scale_KeyedRandomPermutation_1000 | 67,817 | **6,669** | 16,096 | 10.2× | **2.41×** Rask wins⁵ |
+| Scale_KeyedAppendMiddle_2000 | 137,887 | **111** | 225 | 1,242× | **2.03×** Rask wins |
+| Scale_DeepTreeMutationByDepth_200 | 5,207 | **441** | 6,522 | 11.8× | **14.79×** Rask wins |
+| Realistic_DashboardWidgets_Tick | 4,003 | **43** | 218 | 93× | **5.07×** Rask wins |
+| Realistic_TableSort_Reverse | 17,267 | **1,123** | 3,360 | 15.4× | **2.99×** Rask wins⁵ |
+| Realistic_FormValidationChurn_Field0 | 1,369 | **109** | 310 | 12.6× | **2.84×** Rask wins |
+| Realistic_NavSwitch_0to1 | 4,265 | **2,526** | 7,003 | 1.7× | **2.77×** Rask wins |
 
 ¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: the
 diff codec emits positional structural ops (untrusted `Insert/Remove`) on these
@@ -53,20 +53,8 @@ cases, and the live-session gate routes them through the full-HTML morph path
 regardless of byte count — same reason the historic morph-vs-diff DOM-identity
 regression existed for mid-list replacements. The "Rask Full" column shows what
 the production `DiffMode.Auto` gate actually ships; the comparison readers should
-use is `min(diff, full)` vs Blazor — 7,546 vs 24,604 = 3.26× on insert, 66 vs
-2,080 = 31.5× on remove, 2,069 vs 4,588 = 2.22× on toggle.
-
-² `KeyedList50Reversal` and `Scale_KeyedRandomPermutation_1000`: keyed reversal /
-random-permutation worst cases (reversal LIS length = 1; random permutation has
-many off-LIS moves). Both were soft spots in the previous baseline —
-`KeyedList50Reversal` a statistical tie (895 B vs 896 B) and
-`Scale_KeyedRandomPermutation_1000` a 0.86× loss (18.7 KB vs 16.1 KB). The
-O(N log N) patience-sort LIS (`ComputeLisIndexSet`, commit `48ebd53`) plus the
-live-render `LiveState` hoist tightened the diff path enough that both now win
-(1.31× and 1.08×). They remain the thinnest wins in the suite because each
-`MoveSubtree` still re-emits its full DOM path even when adjacent moves share a
-prefix; a path-prefix-dedup or a permutation-batch op-kind would widen them
-further (see `Realistic_TableSort_Reverse` below, which has not yet crossed over).
+use is `min(diff, full)` vs Blazor — 7,517 vs 24,604 = 3.27× on insert, 37 vs
+2,080 = 56.2× on remove, 2,040 vs 4,588 = 2.25× on toggle.
 
 ³ `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain
 `@for` loop and the "diff" is a single text-node update; the Rask side renders
@@ -74,17 +62,33 @@ further (see `Realistic_TableSort_Reverse` below, which has not yet crossed over
 The numbers reflect what each renderer pays in their respective best case, not
 a like-for-like comparison — see the
 [VirtualizationScroll caveat in §Blazor flavors covered](#blazor-flavors-covered).
+This is now the **only** non-like-for-like row in the suite — with the
+`PermutationBatch` op kind (footnote ⁵) shipped, every like-for-like scenario
+wins on bytes.
 
-⁴ `Realistic_TableSort_Reverse`: the sole remaining like-for-like byte loss —
-3,873 B vs Blazor's 3,360 B (0.87×). A full 200-row reversal is the LIS worst case
-(LIS length 1 → 199 of 200 rows enter as moves) at depth-4 paths, so each
-`MoveSubtree` re-emits the shared `[div, table, tbody]` prefix. Blazor's
-`RenderBatchWriter` interns that overhead across the batch and pays less per move.
-This improved from 0.72× to 0.87× since the previous baseline (the same LIS +
-`LiveState` work that flipped the footnote-² scenarios) but has not yet crossed
-over. Closing it needs a path-prefix-dedup across consecutive ops or a
-permutation-batch op-kind — left as an open lever, small enough in real-app
-practice that we ship and accept it as the one known byte soft spot.
+⁵ **`PermutationBatch` (op kind 7) — keyed-reorder runs ship one op, not N.**
+Previously a keyed list reorder emitted one `MoveSubtree` op per moved row, and
+every op re-emitted its full DOM path even though all moves under one keyed parent
+share an identical prefix. A 200-row reversal (`Realistic_TableSort_Reverse`, LIS
+length 1 → 199 moves at depth-4 paths) was the LIS worst case and the **sole
+remaining like-for-like byte loss** (3,873 B vs Blazor's 3,360 B, 0.87×).
+`FrameDiffer.DiffKeyedSiblings` now accumulates the move run's `(dst,src)` pairs and
+emits a **single** `PermutationBatch` op `[7, parentPath[], [dst0,src0,…]]` that
+carries the shared parent path once (`src/Rask.Core/Live/FrameDiffer.cs`,
+`LivePayload.cs`, and both client `applyDiff` interpreters). Results vs the previous
+baseline:
+- `Realistic_TableSort_Reverse`: 3,873 B → **1,123 B**, 0.87× → **2.99×** (the loss is closed).
+- `KeyedList50Reversal`: 685 B → **269 B**, 1.31× → **3.33×**.
+- `Scale_KeyedRandomPermutation_1000`: 14,936 B → **6,669 B**, 1.08× → **2.41×**.
+- `KeyedList100Reorder` / `NestedKeyedReorder`: 49 B → **43 B** (2.61× → 2.98×);
+  `Scale_KeyedReorder_5000`: 53 B → **47 B**.
+
+The op stays `Trusted` (keyed identity preserved — moves re-parent existing nodes,
+so focus/IDL state survives) and rides the same gate as `MoveSubtree`. Backward-compat:
+an old client that doesn't know kind 7 hits the `applyDiff` `default` case and does a
+full `location.reload()` (safe, degraded); both `rask.js` and `rask.wasm.js` ship from
+the same build as the server, so a deployed server's clients always have the matching
+interpreter.
 
 - **CounterOnLargePage** and **TextNodeUpdate** are the scenarios the Rask diff codec
   was designed for — one small value mutates inside a large unchanged DOM. The
@@ -98,8 +102,9 @@ practice that we ship and accept it as the one known byte soft spot.
 - **KeyedList100Reorder** and **DeleteMiddleRow** now both run through
   `FrameDiffer`'s keyed-matching branch. When every child of a parent carries a
   unique `data-rask-key`, the differ permutes by key instead of by sibling index:
-  a swap emits two `MoveSubtree` ops (the LIS-minimal move count), a mid-list
-  delete emits a single `RemoveSubtree`. Both ops are flagged `Trusted` so the
+  a swap emits one `PermutationBatch` op carrying the LIS-minimal move set (the
+  two-move swap collapses to one op of 43 B; see footnote ⁵), a mid-list delete
+  emits a single `RemoveSubtree`. Both ops are flagged `Trusted` so the
   live-session gate ships them as diff instead of routing to full-HTML morph —
   see [Closing the keyed-list gap](#closing-the-keyed-list-gap-frame-differ-keyed-matching).
   **Note:** the move-emission order was corrected (right-to-left anchor-based; the
@@ -110,7 +115,7 @@ practice that we ship and accept it as the one known byte soft spot.
   mount or unmount). The diff codec loses to full-HTML on these — the production
   `Auto` mode gate (`diffBytes * 4 < html.Length`) ships the full HTML instead.
   Comparing `min(diff, full)` against Blazor, Rask wins both directions (3.26× on
-  insert at 7,546 vs 24,604, 31.5× on remove at 66 vs 2,080).
+  insert at 7,517 vs 24,604, 56.2× on remove at 37 vs 2,080).
 
 The "Rask Full" column is the byte count of the full-HTML payload Rask would have
 shipped before the diff codec existed (`BuildPayloadUtf8WithRoot`). The "Rask Diff"
@@ -215,11 +220,11 @@ Benchmark classes (one per scenario):
 - `LiveDiffPayload_CounterOnLargePageBenchmarks` — stateful Rask root mutates one counter cell
 - `LiveDiffPayload_TextNodeUpdateBenchmarks`
 - `LiveDiffPayload_AttributeUpdateBenchmarks` — single `data-*` flip on a 20-attr × 100-element tree
-- `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (2 `MoveSubtree` ops)
+- `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (one `PermutationBatch` op carrying 2 moves)
 - `LiveDiffPayload_NestedKeyedReorderBenchmarks` — 20 keyed cards × 5 inner keyed rows, swap two outer cards (validates the keyed path recurses into kept cards with zero inner ops)
 - `LiveDiffPayload_InputTypingBurstBenchmarks` — three-field form, single keystroke into field A's value (validates attribute-diff scoping; sibling inputs and labels stay quiet)
 - `LiveDiffPayload_ConditionalRenderingToggleBenchmarks` — show/hide a 50-row panel between header and footer (validates the positional Insert/Remove → full-HTML fallback path; production ships full HTML, still beats Blazor's batch)
-- `LiveDiffPayload_KeyedListReversalBenchmarks` — reverse a 50-row keyed list (LIS worst case: 49 `MoveSubtree` ops; surfaces the per-op JSON-key overhead that's currently held back from the backlog)
+- `LiveDiffPayload_KeyedListReversalBenchmarks` — reverse a 50-row keyed list (LIS worst case: 49 moves, now shipped as one `PermutationBatch` op carrying the shared parent path once — the case that motivated the batch op)
 - `LiveDiffPayload_ClassToggleBenchmarks` — move "active" class between sidebar items (the most common UI mutation; two `SetAttribute` ops)
 - `LiveDiffPayload_DeepTreeCounterUpdateBenchmarks` — counter at the bottom of a 50-deep div nest (measures the path-encoding tax explicitly; 11.25× Rask win — biggest gap in the suite)
 - `LiveDiffPayload_MultiAttributeUpdateBenchmarks` — theme switch flips 5 attrs on the root in one render (5 `SetAttribute` ops; descendants stay quiet)
@@ -330,16 +335,16 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- keyed-list-dump
 **KeyedList100Reorder** (rows 5 and 95 swapped):
 
 ```
-MoveSubtree  path=1.0.0.5   src=95   40 bytes
-MoveSubtree  path=1.0.0.95  src=6    40 bytes
+PermutationBatch  path=1.0.0   2moves   43 bytes
 ```
 
-2 ops, **57 bytes** wire total. Each op encodes as a positional JSON array
-`[6, [1,0,0,N], srcSlot]`; path encodes the destination slot, the trailing
-slot carries the source. The client detaches the source FIRST, then resolves
-the destination `refNode` in the post-detach sibling list, so both indices
-follow the same coordinate model the server's keyed differ uses when emitting
-moves.
+1 op, **43 bytes** wire total (down from 57 B / 2 ops before the batch op). The op
+encodes as a positional JSON array `[7, [1,0,0], [dst0,src0,dst1,src1]]`: the path is
+the shared parent (no trailing slot), and the flat `moves` array carries each move's
+destination then source slot in apply order. The client detaches each source FIRST,
+then resolves the destination `refNode` in the post-detach sibling list, replaying the
+pairs in order — the same coordinate model the server's keyed differ uses when
+computing the move set against its progressively-mutated `live` list.
 
 **DeleteMiddleRow** (row index 50 removed from a 100-row list):
 
@@ -359,10 +364,13 @@ RemoveSubtree  path=1.0.0.50  len=1  40 bytes
    client does to its DOM.
 3. **Moves.** Compute `target[i] = newSlot(surviving[i].Key)`. Find the longest
    strictly increasing subsequence of `target` — elements in the LIS stay put;
-   elements off the LIS need to move. Emit `MoveSubtree` for each off-LIS
-   element, sorted by destination ascending. This is the same minimal-moves
-   strategy React's reconciler uses; for the 100-row swap it emits exactly 2
-   moves (the LIS keeps 98 elements).
+   elements off the LIS need to move. Walk new indices right-to-left, anchoring each
+   off-LIS element against the already-placed element to its right, and accumulate the
+   `(dst,src)` pairs into one `PermutationBatch` op (the shared parent path is emitted
+   once). This is the same minimal-moves strategy React's reconciler uses; for the
+   100-row swap it produces exactly 2 moves (the LIS keeps 98 elements), shipped as a
+   single op. The pairs stay in emission order because each is computed against the
+   progressively-mutated live list.
 4. **Inner diffs.** For each kept element (same key both sides), recurse into
    attribute and child diffs at the new slot path so the client's
    post-permutation DOM walk lands on the right node.
@@ -560,32 +568,84 @@ to Rask's stateful-root pattern (single attach, N re-renders).
 
 > BDN-pinned numbers pending machine quiesce. Re-pin with the filter above on an
 > otherwise-idle machine to capture full Mean / Allocated / Gen0 / Gen1 / Gen2
-> / Lock Contentions columns.
+> / Lock Contentions columns. The deterministic `mem-footprint` report below covers
+> the allocation-per-update and retained-heap story without BDN timing noise.
+
+## Memory footprint — deterministic (`mem-footprint`)
+
+```
+dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- mem-footprint
+```
+
+A no-BDN report (`Reports/VsBlazorMemFootprintReport.cs`) measured with precise GC
+counters — `GC.GetAllocatedBytesForCurrentThread()` for per-update allocation,
+`GC.GetTotalMemory(true)` deltas for retained heap. Pinned 2026-06-03, .NET 10.0.5,
+Apple M4 Pro.
+
+**Allocation per incremental update** (steady-state, production-relevant — lower is better):
+
+| Scenario | Rask /update | Blazor /update | Rask vs Blazor |
+|---|---:|---:|---:|
+| CounterOnLargePage | 69,598 B | **31,470 B** | 0.45× — Blazor allocates less |
+
+**Retained heap per rendered tree** (architectural tradeoff):
+
+| Scenario | Rask /tree | Blazor /tree | Rask vs Blazor |
+|---|---:|---:|---:|
+| LargePage_200Rows | 326,685 B | **222,798 B** | 0.68× |
+| KeyedList_100Rows | 158,029 B | **57,790 B** | 0.37× |
+
+**Read this honestly — it is a tradeoff, not a clean Rask win.** Rask's optimisation
+target is *bytes on the wire* (the headline table: 2–15× fewer, now with no
+like-for-like loss). It buys that by **re-serialising the whole page to HTML on every
+render and diffing the frame stream** — production `LiveSession` materialises the full
+`html = View.RenderAsLiveRoot(...)` string each update (`src/Rask.Server/LiveSession.cs`)
+before `TryComputeDiff`, so a counter tick on a 24 KB page allocates a fresh ~24 KB
+string plus the transient render tree even though it ships a ~40-byte diff. Blazor
+diffs its *retained* render tree directly and touches only changed `RenderTreeFrame`s,
+so it allocates roughly half as much per steady-state update. Likewise a tree HELD in
+memory costs Rask more — it keeps a `Component` object graph (one heap object per
+element) where Blazor packs dense frame structs — though in production Rask
+rebuilds-and-discards element trees per render rather than retaining them.
+
+The takeaway: **Rask trades higher server-side per-update allocation and a heavier
+retained tree for far smaller wire payloads** — the right call when the bottleneck is
+network latency / bandwidth / mobile data, the wrong one when it's server RAM under
+many idle-but-mounted sessions. (Note: this steady-state per-update figure differs from
+the *attach-inclusive* Scope 2 number — `228 KB` Blazor vs `95.5 KB` Rask — which
+folds in Blazor's one-time full-tree attach batch; amortised over a long-lived session,
+the per-update picture above is the representative one. The two are measuring different
+things, not contradicting each other; reconciling the Scope 2 row to a steady-state
+basis is a noted follow-up.)
 
 ## Known regressions / soft spots (post-v2 expansion)
 
-1. **`Realistic_TableSort_Reverse`** — Rask 3.87 KB vs Blazor 3.36 KB (0.87×). The
-   sole remaining like-for-like byte loss. Reversal is the LIS worst case (LIS
+1. ~~**`Realistic_TableSort_Reverse`** — the sole remaining like-for-like byte loss.~~
+   **Resolved** by the `PermutationBatch` op kind (headline-table footnote ⁵): the
+   200-row reversal now ships **1,123 B vs Blazor's 3,360 B (2.99× Rask win)** as one
+   batch op instead of 199 per-row `MoveSubtree` ops. With it, every like-for-like
+   scenario in the suite wins on bytes; `VirtualizationScroll` (footnote ³) is the only
+   non-like-for-like row left. Historical context — what the loss was and why:
+   Rask 3.87 KB vs Blazor 3.36 KB (0.87×). Reversal is the LIS worst case (LIS
    length 1); 199 of 200 rows enter as moves, and each `MoveSubtree` re-emits its
    full depth-4 path. Blazor's `RenderBatchWriter` interns the per-move overhead
    across the batch.
 
-Resolved since the previous baseline (no longer losses):
-- **`Scale_KeyedRandomPermutation_1000`** — was 0.86× (18.7 KB vs 16.1 KB), now
-  **1.08×** (14.9 KB vs 16.1 KB), a win.
-- **`KeyedList50Reversal`** — was a 895 B vs 896 B tie, now **1.31×** (685 B vs
-  896 B), a win.
-  Both flipped after the O(N log N) patience-sort LIS (`ComputeLisIndexSet`,
-  `48ebd53`) and the live-render `LiveState` hoist tightened the diff path.
+Resolved since the previous baseline (no longer losses), all sharpened further by the
+`PermutationBatch` op kind:
+- **`Realistic_TableSort_Reverse`** — was the sole loss at 0.87× (3,873 B); now
+  **2.99×** (1,123 B). Closed by `PermutationBatch`.
+- **`Scale_KeyedRandomPermutation_1000`** — was 0.86× (18.7 KB vs 16.1 KB); the
+  O(N log N) patience-sort LIS + `LiveState` hoist took it to 1.08× (14.9 KB), and
+  `PermutationBatch` to **2.41×** (6,669 B).
+- **`KeyedList50Reversal`** — was a 895 B vs 896 B tie, then 1.31× (685 B); now
+  **3.33×** (269 B).
 
-The remaining `TableSort_Reverse` loss has the same root cause the two resolved
-scenarios did: keyed-list move-set bytes grow linearly with move count because
-Rask emits the full path per op. Open levers (none pre-decided):
-- Path-prefix dedup across consecutive ops (see existing "Held back" note).
-- A new `PermutationBatch` op kind that carries the destination permutation as
-  one path + an int array of source slots, amortising the path overhead across
-  all moves in the batch.
-
-The `Scale_*` and `Realistic_*` benchmarks surface the cost so the backlog can
-prioritise; both levers are wire-bytes optimisations on `BuildPayloadUtf8Diff` +
-the client `applyDiff` interpreters, not differ-throughput work.
+`PermutationBatch` (op kind 7) was the chosen lever over cross-op path-prefix-dedup:
+keyed-list move-set bytes grew linearly with move count because Rask emitted the full
+parent path per `MoveSubtree`. `FrameDiffer.DiffKeyedSiblings` now ships one
+`[7, parentPath[], [dst0,src0,…]]` op carrying the shared path once, decoded by both
+`applyDiff` interpreters (`rask.js` / `rask.wasm.js` case 7). It is a wire-bytes
+optimisation on `BuildPayloadUtf8Diff` + the clients, not differ-throughput work; the
+differ still computes the same minimal LIS move set, it's just framed once. No keyed
+soft spots remain on the bytes axis.

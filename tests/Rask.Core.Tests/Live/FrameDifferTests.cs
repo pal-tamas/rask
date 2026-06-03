@@ -209,7 +209,7 @@ public class FrameDifferTests
     // into full-HTML fallback).
 
     [Fact]
-    public void Diff_KeyedList_RowsSwapped_EmitsTwoMoveOpsWithTrustedFlag()
+    public void Diff_KeyedList_RowsSwapped_EmitsSinglePermutationBatchWithTrustedFlag()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3));
         var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 3, 2, 1));
@@ -218,13 +218,15 @@ public class FrameDifferTests
         FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
 
         Assert.True(usedKeyed);
-        // Minimal-moves strategy: LIS length 2 of a 4-element permutation bounds the move
-        // count at <= N - LIS = 2 ops, but a well-chosen LIS combined with the
-        // `src == target` short-circuit can land in <= 1 op (some elements happen to
-        // already be at their target slot). Either is correct — assert the upper bound.
-        Assert.InRange(ops.Count, 1, 2);
-        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
-        Assert.All(ops, op => Assert.True(op.Trusted, "Keyed moves must be marked Trusted so the live-session gate doesn't divert to full HTML."));
+        // The whole move run under one keyed parent collapses into a single PermutationBatch
+        // op carrying the shared parent path once. LIS length 2 of a 4-element permutation
+        // bounds the move count at <= N - LIS = 2 pairs (4 ints), flattened into op.Moves.
+        var batch = Assert.Single(ops);
+        Assert.Equal(EditOpKind.PermutationBatch, batch.Kind);
+        Assert.True(batch.Trusted, "Keyed moves must be marked Trusted so the live-session gate doesn't divert to full HTML.");
+        Assert.NotNull(batch.Moves);
+        Assert.True(batch.Moves!.Length is 2 or 4, "Expected 1–2 (dst,src) pairs.");
+        Assert.Equal(0, batch.Moves.Length % 2);
     }
 
     [Fact]
@@ -400,11 +402,12 @@ public class FrameDifferTests
     }
 
     [Fact]
-    public void Diff_KeyedList_HundredRowSwap_EmitsTwoMoves_NotNinetyRewrites()
+    public void Diff_KeyedList_HundredRowSwap_EmitsSingleBatchOfTwoMoves_NotNinetyRewrites()
     {
         // The headline scenario — KeyedList100Reorder: swap rows 5 and 95 in a 100-row
         // list. Positional diff emits 2 SetAttribute + 2 UpdateText (205 bytes vs
-        // Blazor's 128). Keyed matching emits exactly 2 MoveSubtree ops.
+        // Blazor's 128). Keyed matching emits one PermutationBatch carrying exactly 2 moves
+        // (4 ints) and the shared parent path once.
         var orderBefore = new int[100];
         var orderAfter = new int[100];
         for (var i = 0; i < 100; i++)
@@ -421,9 +424,10 @@ public class FrameDifferTests
         FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed);
 
         Assert.True(usedKeyed);
-        Assert.Equal(2, ops.Count);
-        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
-        Assert.All(ops, op => Assert.True(op.Trusted));
+        var batch = Assert.Single(ops);
+        Assert.Equal(EditOpKind.PermutationBatch, batch.Kind);
+        Assert.True(batch.Trusted);
+        Assert.Equal(4, batch.Moves!.Length); // 2 (dst,src) pairs
     }
 
     [Theory]
@@ -434,13 +438,12 @@ public class FrameDifferTests
     [InlineData(250, 99)]
     public void Diff_KeyedList_RandomPermutation_MoveOpsReproduceTargetOrder(int n, int seed)
     {
-        // Strong correctness gate for the keyed MoveSubtree loop: for a random permutation
-        // (same key set, no inserts/removes) the diff emits only MoveSubtree ops. Replaying
-        // them against the before-order — exactly as the client interpreter does: detach at
-        // `src` (op.Length), then insert before the post-detach node at `target`
-        // (op.Path[^1]) — must reproduce the after-order. This pins the (src,target) move
-        // semantics regardless of the algorithm that computes them, so it guards any future
-        // rewrite of the loop (e.g. an O(N log N) order-statistics replacement).
+        // Strong correctness gate for the keyed move loop: for a random permutation (same key
+        // set, no inserts/removes) the diff emits a single PermutationBatch op. Replaying its
+        // flat [dst0,src0,dst1,src1,…] pairs against the before-order — exactly as the client
+        // interpreter does: detach at `src`, then insert before the post-detach node at `dst` —
+        // must reproduce the after-order. This pins the (dst,src) move semantics regardless of
+        // the algorithm that computes them, so it guards any future rewrite of the loop.
         var rng = new Random(seed);
         var before = new int[n];
         for (var i = 0; i < n; i++)
@@ -463,32 +466,40 @@ public class FrameDifferTests
         FrameDiffer.Diff(beforeFrames, afterFrames, ops, out var usedKeyed);
 
         Assert.True(usedKeyed);
-        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+        // A non-identity permutation produces exactly one batch op (identity → zero ops).
+        Assert.True(ops.Count <= 1);
 
-        // Replay the move ops against a live list of keys, mirroring the DOM interpreter.
+        // Replay the batch's (dst,src) pairs against a live list of keys, mirroring the DOM
+        // interpreter (detach at src, insert at dst in the post-detach list).
         var live = new List<int>(before);
-        foreach (var op in ops)
+        if (ops.Count == 1)
         {
-            var src = op.Length;
-            var target = op.Path[^1];
-            var moved = live[src];
-            live.RemoveAt(src);
-            live.Insert(target, moved);
+            var batch = ops[0];
+            Assert.Equal(EditOpKind.PermutationBatch, batch.Kind);
+            var moves = batch.Moves!;
+            for (var m = 0; m + 1 < moves.Length; m += 2)
+            {
+                var dst = moves[m];
+                var src = moves[m + 1];
+                var moved = live[src];
+                live.RemoveAt(src);
+                live.Insert(dst, moved);
+            }
         }
 
         Assert.Equal(after, live.ToArray());
     }
 
     [Fact]
-    public void Diff_NestedKeyedList_OuterReorderAndInnerReorder_EmitsTrustedMovesAtBothDepths()
+    public void Diff_NestedKeyedList_OuterReorderAndInnerReorder_EmitsTrustedBatchesAtBothDepths()
     {
         // Recursion-safety guard for the scratch-pooling optimisation. The outer keyed list's
         // DiffKeyedSiblings call is still LIVE — its key map and child lists are read in the
         // step-5 inner-diff loop — while it recurses into a kept row whose own children form a
         // SECOND keyed list, re-entering DiffKeyedSiblings. Any scratch shared across that
-        // recursion must not be clobbered. This pins the exact ops so the pooled refactor is
-        // provably byte-identical: the outer row reorder and the inner span reorder both emit a
-        // single trusted MoveSubtree, at the right depths.
+        // recursion must not be clobbered (including the MovesBuffer the batch accumulates into).
+        // This pins the exact ops: the outer row reorder and the inner span reorder each emit a
+        // single trusted PermutationBatch, at the right parent depths and non-interleaved.
         static Child Row(int key, bool innerSwapped)
         {
             Child a = C.Span(Key: $"{key}a")["A"];
@@ -505,11 +516,13 @@ public class FrameDifferTests
 
         Assert.True(usedKeyed);
         Assert.Equal(2, ops.Count);
-        Assert.All(ops, op => Assert.Equal(EditOpKind.MoveSubtree, op.Kind));
+        Assert.All(ops, op => Assert.Equal(EditOpKind.PermutationBatch, op.Kind));
         Assert.All(ops, op => Assert.True(op.Trusted));
-        // Outer move is emitted first (step 4 precedes the step-5 inner recursion).
-        Assert.Equal(new[] { 0, 1 }, ops[0].Path);       // outer: rows reordered at the Ul (slot 0)
-        Assert.Equal(new[] { 0, 1, 1 }, ops[1].Path);    // inner: spans reordered inside row 0 at its new slot 1
+        // The batch op's Path is the PARENT (no trailing dst slot — that now lives in Moves).
+        // Outer batch is emitted first (step 4 precedes the step-5 inner recursion).
+        Assert.Equal(new[] { 0 }, ops[0].Path);          // outer: rows reordered under the Ul (slot 0)
+        Assert.Equal(new[] { 0, 1 }, ops[1].Path);       // inner: spans reordered inside row 0 at its new slot 1
+        Assert.All(ops, op => Assert.Equal(2, op.Moves!.Length)); // one (dst,src) pair each
     }
 
     private static Component BuildKeyedRows(params int[] keys)

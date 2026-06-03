@@ -115,10 +115,15 @@ internal static class KeyedListDiffDump
                 var pathPreview = string.Join('.', op.Path);
                 var nameDisplay = op.Name ?? "";
                 var valueLen = op.Value?.Length ?? 0;
+                // PermutationBatch carries its payload in Moves (flat [dst,src,…]); surface the
+                // pair count in the Length column so the dump stays informative for kind 7.
+                var lengthDisplay = op.Kind == EditOpKind.PermutationBatch
+                    ? $"{op.Moves!.Length / 2}moves"
+                    : op.Length.ToString(CultureInfo.InvariantCulture);
                 Console.WriteLine(string.Format(
                     CultureInfo.InvariantCulture,
                     "{0},{1},{2},{3},{4},{5},{6},{7}",
-                    i, op.Kind, op.Path.Length, pathPreview, nameDisplay, valueLen, op.Length, encoded));
+                    i, op.Kind, op.Path.Length, pathPreview, nameDisplay, valueLen, lengthDisplay, encoded));
             }
             else if (i == 10)
             {
