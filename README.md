@@ -1036,8 +1036,12 @@ already-rendered components, so an async hook that awaits a next-frame side effe
 
 ## 📊 Performance
 
-> **~1,800× smaller wire payloads** on a counter tick (the [diff codec](#live-rendering--the-diff-codec) ships ~57 bytes
-> where pre-codec shipped ~50 KB), and **faster, lighter small-tree renders** than Blazor's `HtmlRenderer` across the board.
+> **Rask beats Blazor on bytes-on-the-wire in every like-for-like live-update scenario**
+> (2–15× fewer bytes than Blazor's `RenderBatch`), and renders small trees faster and
+> lighter than Blazor's `HtmlRenderer`. The [diff codec](#live-rendering--the-diff-codec)
+> ships ~1,800× smaller payloads on a counter tick (~57 bytes where pre-codec shipped
+> ~50 KB). The trade-off, reported honestly below: Rask uses more *server* memory per
+> update to buy those tiny payloads.
 
 Headline numbers from `Rask.Benchmarks.VsBlazor` — Rask vs Blazor's
 `HtmlRenderer` (Scope 1, render hot path), `RenderTreeBuilder` parameter
@@ -1062,22 +1066,38 @@ columns; bold marks the winner.
 | Scale: keyed-list reorder (5 000 rows)            | 1 625 µs (1.08×) | **1 505 µs** | 3 391 KB      | **3 266 KB**  |
 | Scale: random permutation 1 000 keyed rows        | 477 µs (1.39×) | **343 µs**     | 632 KB        | **457 KB**    |
 
-**Where Rask wins:** small-tree renders, attribute-heavy markup, live diffs
-that touch only a few nodes on a large page, virtualised lists, and the
-"realistic" patterns (dashboard tick, nav switch). The
-[diff codec](#live-rendering--the-diff-codec) is the main lever — a counter
-tick on a 200-row page ships ~57 bytes over the wire vs ~50 KB pre-codec
-(see [`benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md`](benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md)
-for the full residual-loss breakdown).
+**Where Rask wins (wire bytes):** the [diff codec](#live-rendering--the-diff-codec)
+is the main lever — a counter tick on a 200-row page ships ~41 bytes over the wire
+vs ~24 KB pre-codec, and **every like-for-like scenario in the head-to-head suite now
+ships fewer bytes than Blazor's `RenderBatch`** (2–15×). A keyed-list reorder is the
+latest to cross over: the move run collapses into one `PermutationBatch` op carrying
+the shared parent path once, so a 200-row reverse-sort drops from 3.9 KB to **1.1 KB
+(2.99× vs Blazor)** — the last like-for-like byte loss, now a win. See the full
+per-scenario table and methodology in
+[`benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md`](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md).
 
-**Where Rask trails:** sustained 10 000-iteration churn workloads, and
-keyed-list reorders on the allocation axis (1.04–1.42× — time is now at or
-below Blazor parity). Both come from the same root cause — Rask elements are
-heap `Component` instances vs Blazor's struct render-tree frames — and are
-documented as accepted trade-offs in the Justifications doc above. (The
-keyed-move path was also corrected in the process: the prior implementation
-emitted wrong DOM order for permutations needing 3+ moves — see
-[`Justifications.md`](benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md) §2.)
+**Where Rask wins (CPU/alloc):** small-tree renders, attribute-heavy markup, live diffs
+that touch only a few nodes on a large page, virtualised lists, and the "realistic"
+patterns (dashboard tick, nav switch).
+
+**Where Rask trails (server memory):** Rask optimises *bytes on the wire*, and it pays
+for that with server-side memory. It re-serialises the whole page to HTML on every
+render and diffs the frame stream, so a steady-state update allocates more than Blazor
+(which diffs its retained render tree directly) — measured deterministically at ~70 KB
+vs ~31 KB per update on the 200-row counter page. It also retains a heavier tree (a
+`Component` object graph vs Blazor's packed struct render-tree frames). The trade is the
+whole point: **far smaller wire payloads in exchange for more server CPU/RAM** — the
+right call when the bottleneck is the network, the wrong one for server RAM under many
+idle-but-mounted sessions. (The `LiveDiff` alloc rows in the table above show Rask
+*lower* — those are BenchmarkDotNet per-op figures that fold in Blazor's one-time
+full-tree attach batch; amortised over a long-lived session, the steady-state per-update
+number here is the representative one. Same measurement, different baseline — not a
+contradiction.) Reproduce with `-- mem-footprint` (below); the full allocation +
+retained-heap tables and methodology live in
+[`vs-blazor.md`](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md). Sustained
+10 000-iteration churn workloads trail for the same root cause and are documented as
+accepted trade-offs in
+[`Justifications.md`](benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md).
 
 <details>
 <summary><b>Reproduce</b></summary>
@@ -1095,6 +1115,10 @@ dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter 
 
 # Scope 6/7 — realistic patterns + sustained-load:
 dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*' '*MemoryGc_*' --job short
+
+# Deterministic reports (GC counters, no BDN timing noise):
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- payload-bytes     # wire bytes per update vs Blazor
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- mem-footprint     # alloc/update + retained heap vs Blazor
 ```
 
 Results are written to `BenchmarkDotNet.Artifacts/results/`.
