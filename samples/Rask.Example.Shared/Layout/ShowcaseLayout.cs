@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
 using static Rask.Example.Shared.Layout.Generated;
 
 namespace Rask.Example.Shared.Layout;
@@ -62,14 +63,15 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                         I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
                     ],
                     Button(
-                        Class: "navbar-brand fw-semibold border-0 bg-transparent",
+                        Class: "navbar-brand fw-semibold border-0 bg-transparent d-inline-flex align-items-center gap-2",
                         OnClick: () =>
                         {
                             _drawerOpen = false;
                             nav.Navigate("/");
                         })[
-                        "Rask ",
-                        Span(Class: "badge rounded-pill rask-badge ms-1")["showcase"]
+                        RaskLogo.Mark(24, "brandBolt"),
+                        Span()["Rask"],
+                        Span(Class: "badge rounded-pill rask-badge")["showcase"]
                     ],
                     Div(Class: "d-flex align-items-center gap-2 ms-auto")[
                         PathDisplay(),
