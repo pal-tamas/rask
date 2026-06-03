@@ -77,7 +77,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
             _todos.Count == 0
                 ? Div(Class: "text-muted small")["No todos yet — click \"New todo\" to add one."]
                 : Ul(Class: "list-group")[
-                    _todos.Select(item => (Child)Li(Class: "list-group-item d-flex align-items-center gap-2")[
+                    _todos.Select(item => (Child)Li(Key: item.Id, Class: "list-group-item d-flex align-items-center gap-2")[
                         Input(
                             () => item.Completed,
                             Id: $"todo-done-{item.Id}",
@@ -116,7 +116,7 @@ public sealed class TodoFormDialog : Component
     public required Action<TodoForm> OnSave { get; set; }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select(m => (Child)Div(Class: "text-danger small mt-1")[m])];
+        Fragment()[msgs.Select((m, i) => (Child)Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
         Dialog(Open: Open)[
