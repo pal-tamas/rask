@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Validation.FluentValidation</PackageId>
+    <Description>Rask validator that delegates to a `FluentValidation.IValidator`. Drop `FluentValidationValidator(new MyValidator())` inside a `Form&lt;T&gt;` to wire FluentValidation rules into Rask's EditContext, including async per-field validation. Depends on FluentValidation 12.x.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+</Project>

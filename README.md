@@ -342,10 +342,10 @@ default — unchanged behaviour). The CI workflow shipping `Rask.Example.Wasm` t
 
 Beyond the quick starts, the repo ships runnable showcase apps that exercise every feature end-to-end:
 
-- **`Rask.Example.Server`** / **`Rask.Example.Wasm`** / **`Rask.Example.Wasm.Host`** — the same showcase under each
-  host model. Run one with `dotnet run --project Rask.Example.Server` (or `Rask.Example.Wasm.Host`) and open the printed
+- **`samples/Rask.Example.Server`** / **`samples/Rask.Example.Wasm`** / **`samples/Rask.Example.Wasm.Host`** — the same showcase under each
+  host model. Run one with `dotnet run --project samples/Rask.Example.Server` (or `samples/Rask.Example.Wasm.Host`) and open the printed
   URL.
-- **`Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation, nested-form
+- **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation, nested-form
   binding, routing, JS interop, virtualization (a 10K-row table), and file upload/download. These are the canonical
   references cited throughout *Core concepts* below.
 - **Live demo** — every push to `main` publishes `Rask.Example.Wasm` to GitHub Pages via
@@ -770,7 +770,7 @@ public sealed class ReportPage(Navigator nav) : Component
 `RaskFile` exposes `Name`, `Size`, `ContentType`, `LastModified`, plus `OpenReadStream(maxAllowedSize, ct)`. The
 stream is only valid while the handler is on the stack — read whatever you need before returning. Inside a `Form`,
 files also surface through `FormData.Files(name)` and participate in submit. `Navigator.Download` must be called from
-an event handler. See `Rask.Example.Shared/Pages/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
+an event handler. See `samples/Rask.Example.Shared/Pages/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
 
 </details>
 
@@ -806,7 +806,7 @@ Virtualize<Row>(
 Provide exactly one of `Items` (in-memory) or `ItemsProvider` (async paging:
 `Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>`). With a provider, `Virtualize` caches loaded items by
 global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true` until
-a fetch completes. See `Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-row table demo.
+a fetch completes. See `samples/Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-row table demo.
 
 </details>
 
@@ -980,7 +980,7 @@ projection whose body becomes a `Child`, or an element `.Add(...)`-ed to a `List
 (or a `Data` `rask-key`) to clear it. Suppress per-site with `#pragma warning disable RASK022`, or promote it to an
 error with `<WarningsAsErrors>RASK022</WarningsAsErrors>` in the `.csproj`.
 
-See `Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with keys
+See `samples/Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with keys
 on vs off to watch DOM state follow (or not follow) its row.
 
 </details>
@@ -1067,7 +1067,7 @@ that touch only a few nodes on a large page, virtualised lists, and the
 "realistic" patterns (dashboard tick, nav switch). The
 [diff codec](#live-rendering--the-diff-codec) is the main lever — a counter
 tick on a 200-row page ships ~57 bytes over the wire vs ~50 KB pre-codec
-(see [`Rask.Benchmarks.VsBlazor/Reports/Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md)
+(see [`benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md`](benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md)
 for the full residual-loss breakdown).
 
 **Where Rask trails:** sustained 10 000-iteration churn workloads, and
@@ -1077,7 +1077,7 @@ heap `Component` instances vs Blazor's struct render-tree frames — and are
 documented as accepted trade-offs in the Justifications doc above. (The
 keyed-move path was also corrected in the process: the prior implementation
 emitted wrong DOM order for permutations needing 3+ moves — see
-[`Justifications.md`](Rask.Benchmarks.VsBlazor/Reports/Justifications.md) §2.)
+[`Justifications.md`](benchmarks/Rask.Benchmarks.VsBlazor/Reports/Justifications.md) §2.)
 
 <details>
 <summary><b>Reproduce</b></summary>
@@ -1085,16 +1085,16 @@ emitted wrong DOM order for permutations needing 3+ moves — see
 
 ```bash
 # Scope 1 — render hot path (24 benchmarks, ~12 min):
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*RenderHotPath_*' --job short
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter '*RenderHotPath_*' --job short
 
 # Scope 2 — live-diff payload (32 benchmarks, ~15 min):
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffPayload_*' --job short
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffPayload_*' --job short
 
 # Scope 3 — scale sweeps:
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Scale_*' --job short
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter '*Scale_*' --job short
 
 # Scope 6/7 — realistic patterns + sustained-load:
-dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*' '*MemoryGc_*' --job short
+dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor -- --filter '*Realistic_*' '*MemoryGc_*' --job short
 ```
 
 Results are written to `BenchmarkDotNet.Artifacts/results/`.

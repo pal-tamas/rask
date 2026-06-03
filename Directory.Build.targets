@@ -7,13 +7,13 @@
     on $(WasmGenerateAppBundle)). Downstream NuGet consumers get the
     same auto-import via build/ in each .nupkg.
   -->
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm.Hosting\build\Rask.Wasm.Hosting.targets') "/>
 
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm\build\Rask.Wasm.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.targets') "/>
 
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Core\build\Rask.Core.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core\build\Rask.Core.targets') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets"
+          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.Core.targets') "/>
 
 </Project>
