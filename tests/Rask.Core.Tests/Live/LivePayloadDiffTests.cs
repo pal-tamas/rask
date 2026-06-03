@@ -163,6 +163,32 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
+    public void BuildPayloadUtf8Diff_PermutationBatch_EncodesMovesArray()
+    {
+        // PermutationBatch is [k, parentPath, moves] where moves is a flat
+        // [dst0,src0,dst1,src1,…] array. op[1] is the PARENT path (no trailing slot);
+        // the per-move dst/src live in op[2]. Zero is a legitimate slot, so the encoder
+        // must emit every entry verbatim and in order.
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.PermutationBatch, new[] { 1, 0, 0 }, null, null, trusted: true,
+                moves: new[] { 95, 5, 0, 96 })
+        };
+
+        var output = new ArrayBufferWriter<byte>(128);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        var json = Encoding.UTF8.GetString(output.WrittenSpan);
+        using var doc = JsonDocument.Parse(json);
+        var opsArr = doc.RootElement.GetProperty("ops").EnumerateArray().ToList();
+
+        Assert.Single(opsArr);
+        Assert.Equal((int)EditOpKind.PermutationBatch, opsArr[0][0].GetInt32());
+        Assert.Equal(new[] { 1, 0, 0 }, opsArr[0][1].EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal(new[] { 95, 5, 0, 96 }, opsArr[0][2].EnumerateArray().Select(e => e.GetInt32()).ToArray());
+    }
+
+    [Fact]
     public void BuildPayloadUtf8Diff_InsertSubtree_EncodesHtmlAndDomCount()
     {
         var ops = new List<EditOp>

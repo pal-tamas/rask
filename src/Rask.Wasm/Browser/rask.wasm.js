@@ -741,6 +741,25 @@ function applyDiff(ops, names) {
                 mvParent.insertBefore(mvNode, mvRef);
                 break;
             }
+            case 7: { // PermutationBatch [k, parentPath, moves] — moves = [dst0,src0,dst1,src1,…]
+                // path IS the parent (no trailing slot to split off). Replay each (dst,src)
+                // pair in array order with the same detach-source-first semantics as a single
+                // MoveSubtree: the server computed every pair against the live DOM as mutated
+                // by the preceding pairs, so order is load-bearing — never reorder.
+                const pbParent = resolvePath(path);
+                if (!pbParent) break;
+                const pbMoves = op[2] || [];
+                for (let m = 0; m + 1 < pbMoves.length; m += 2) {
+                    const pbDst = pbMoves[m];
+                    const pbSrc = pbMoves[m + 1];
+                    const pbNode = relevantChild(pbParent, pbSrc);
+                    if (!pbNode) continue;
+                    pbParent.removeChild(pbNode);
+                    const pbRef = relevantChild(pbParent, pbDst);
+                    pbParent.insertBefore(pbNode, pbRef);
+                }
+                break;
+            }
             default:
                 console.warn("[Rask] Unknown diff op kind: " + k);
                 location.reload();
