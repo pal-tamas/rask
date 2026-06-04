@@ -598,6 +598,15 @@ public abstract class Component
         if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev is T t)
         {
             instance = t;
+            // The factory re-applies every factory-param property each render, but Children is
+            // set by the `[...]` indexer AFTER the factory returns — and a childless element
+            // (no indexer) never sets it. Reset it here so a reused instance can't inherit the
+            // previous occupant's children. Without this, a structural move that shifts the
+            // positional cache onto a former-parent instance (e.g. an empty drop-zone div lands
+            // on an old card's slot) keeps that parent's subtree wired in, producing a cyclic
+            // tree and a stack overflow when serialized. The indexer overwrites this for any
+            // element that does declare children.
+            instance.Children = null;
         }
         else
         {
@@ -624,6 +633,9 @@ public abstract class Component
         if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
         {
             instance = prev;
+            // See the generic overload: clear children on reuse so a childless element can't
+            // inherit a former occupant's subtree after a positional-cache shift.
+            instance.Children = null;
         }
         else
         {

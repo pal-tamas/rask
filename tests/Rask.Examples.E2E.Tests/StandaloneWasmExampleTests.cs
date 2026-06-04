@@ -36,6 +36,7 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
         ["/disposal"] = "Disposal",
         ["/events"] = "Events",
         ["/virtualize"] = "Virtualize",
+        ["/drag-drop"] = "Drag & drop",
         ["/boom"] = "Error boundary",
         ["/binding"] = "Two-way binding",
         ["/validation"] = "Validation",

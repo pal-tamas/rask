@@ -811,6 +811,38 @@ a fetch completes. See `samples/Rask.Example.Shared/Pages/VirtualizePage.cs` for
 </details>
 
 <details>
+<summary><b>🔀 Drag & drop</b></summary>
+<br>
+
+`DragDrop` is a headless drag-and-drop primitive — it owns no DOM and tracks only the in-flight drag, handing your
+`Body` delegate a `DragDropContext`. You draw the draggable items and drop zones, wire the context's
+`DragStart` / `DragOver` / `Drop` / `DragEnd` onto them, and move your own data when `OnDrop` reports where the drag
+landed. **Zones are arbitrary string keys** — one zone is a sortable list, several are a Kanban board.
+
+```csharp
+DragDrop(
+    Body: ctx => Ul()[
+        _fruits.Select((fruit, i) => Li(
+            Key: fruit,                                       // stable Key → trusted keyed reconciliation
+            Draggable: true,
+            Class: ctx.IsDropTarget("list", i) ? "drop-target" : null,
+            OnDragStart: ctx.DragStart("list", i),
+            OnDragOver: ctx.DragOver("list", i),              // optional: live drop-target highlight
+            OnDrop: ctx.Drop("list", i),
+            OnDragEnd: ctx.DragEnd)[fruit])
+    ],
+    OnDrop: m => Reorder(m.FromIndex, m.ToIndex))             // m: (FromZone,FromIndex) -> (ToZone,ToIndex)
+```
+
+Drag handlers are **parameterless** (like `OnClick`): the dragged item's identity rides the handler closure, not the
+event payload, so no custom wire type is needed. `Draggable` / `OnDragStart` / `OnDragOver` / `OnDrop` / `OnDragEnd` are
+universal attributes on every element. A multi-column Kanban board is the same primitive with one zone per column — a
+single `OnDrop` handler moves the card across lists. See `samples/Rask.Example.Shared/Pages/DragDropPage.cs` for both a
+sortable list and a Kanban board.
+
+</details>
+
+<details>
 <summary><b>🎨 Scoped CSS</b></summary>
 <br>
 
