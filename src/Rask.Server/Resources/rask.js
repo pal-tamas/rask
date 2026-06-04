@@ -673,6 +673,56 @@
         });
     }
 
+    // ----- Drag & drop -------------------------------------------------------
+    // HTML5 native DnD bound to parameterless C# handlers (same dispatch path as click). The
+    // dragged item's identity rides the handler's closure, not the payload, so messages carry
+    // only {id, type}. dragstart must seed dataTransfer so the drag is valid in Firefox; dragover
+    // must preventDefault on a drop target or the browser rejects the drop. The optional
+    // data-rask-on-dragover round-trip drives a server-rendered drop-target highlight — deduped
+    // to one message per hovered element so a continuous dragover stream doesn't flood the socket.
+    var lastDragOverEl = null;
+
+    document.addEventListener("dragstart", function (e) {
+        var t = e.target.closest("[data-rask-on-dragstart]");
+        if (!t || !inRoot(t)) return;
+        if (e.dataTransfer) {
+            try {
+                e.dataTransfer.setData("text/plain", "");
+            } catch (err) {
+            }
+            e.dataTransfer.effectAllowed = "move";
+        }
+        lastDragOverEl = null;
+        send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
+    });
+
+    document.addEventListener("dragover", function (e) {
+        var t = e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]");
+        if (!t || !inRoot(t)) return;
+        // preventDefault is what marks this element as a valid drop target.
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        if (!t.hasAttribute("data-rask-on-dragover")) return;
+        if (t === lastDragOverEl) return; // dedupe: only notify when the hovered target changes
+        lastDragOverEl = t;
+        send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
+    });
+
+    document.addEventListener("drop", function (e) {
+        var t = e.target.closest("[data-rask-on-drop]");
+        if (!t || !inRoot(t)) return;
+        e.preventDefault();
+        lastDragOverEl = null;
+        send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
+    });
+
+    document.addEventListener("dragend", function (e) {
+        lastDragOverEl = null;
+        var t = e.target.closest("[data-rask-on-dragend]");
+        if (!t || !inRoot(t)) return;
+        send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
+    });
+
     // ----- IJSRuntime global-JS dispatcher -----------------------------------
     // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
     // "sessionStorage.getItem", we resolve it on window, invoke it with args, then
