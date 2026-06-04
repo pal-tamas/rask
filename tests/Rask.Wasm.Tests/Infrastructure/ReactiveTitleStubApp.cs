@@ -14,7 +14,7 @@ internal sealed class ReactiveTitleStubApp : Component
     private int _count;
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             Html()[
                 Head()[Title()[$"count-{_count}"]],

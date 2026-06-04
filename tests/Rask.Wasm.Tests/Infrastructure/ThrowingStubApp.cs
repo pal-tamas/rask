@@ -8,7 +8,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 internal sealed class ThrowingStubApp : Component
 {
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             Html()[
                 Head()[Title()["throw"]],

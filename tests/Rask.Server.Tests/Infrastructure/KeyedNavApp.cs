@@ -31,17 +31,17 @@ public sealed class KeyedNavApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["keyed-nav"]],
                 new Body()[
                     new H1()[$"path={_route.Path} count={_items.Count}"],
                     Ul()[
-                        _items.Select(i => (Child)Li(
+                        _items.Select(i => Li(
                             Class: "row",
                             Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
-                            $"item {i}"]).ToArray()
+                            $"item {i}"])
                     ]
                 ]
             ]

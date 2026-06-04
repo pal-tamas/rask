@@ -82,7 +82,7 @@ public sealed class BoomPage : Component
                         // Intentionally bypass the factory: RenderThrower is [SkipFactory] and
                         // exists only to demonstrate that a descendant whose Render() throws is
                         // caught by the enclosing ErrorBoundary.
-                        _throwOnRender ? (Child)new RenderThrower() : Text(string.Empty)
+                        _throwOnRender ? new RenderThrower() : Text(string.Empty)
 #pragma warning restore RASK014
                     ]
                 ]),
