@@ -52,10 +52,3 @@
 .dd-card:active {
     cursor: grabbing;
 }
-
-.dd-column-tail {
-    min-height: 1.75rem;
-    border-radius: 0.375rem;
-    border: 1px dashed transparent;
-    transition: border-color 0.1s ease;
-}

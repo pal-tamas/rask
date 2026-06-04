@@ -60,14 +60,16 @@ public sealed class DragDropPage : Component
                             OnDrop: ctx.Drop("list", i),
                             OnDragEnd: ctx.DragEnd)[fruit])
                     ],
-                    OnDrop: m => Reorder(m.FromIndex, m.ToIndex));
+                    // move.ApplyTo(list) does the reorder: dragging down lands the item
+                    // after the target, dragging up before it, so either end is reachable.
+                    OnDrop: m => m.ApplyTo(_fruits));
 
                 // A Kanban board is the same primitive with one zone per column —
                 // OnDrop reports (FromZone, FromIndex) -> (ToZone, ToIndex) so a single
-                // handler moves the card across lists.
+                // handler moves the card across lists: m.ApplyTo(_board[m.FromZone], _board[m.ToZone]).
                 """,
                 Notes:
-                "Drag handlers are parameterless (like OnClick) — the dragged item's identity rides the handler closure, not the event payload, so no custom wire type is needed. Items carry a stable Key: so reorders ship trusted keyed structural diff ops that preserve survivors' DOM state.")
+                "Drag handlers are parameterless (like OnClick) — the dragged item's identity rides the handler closure, not the event payload, so no custom wire type is needed. DragDropMove.ApplyTo handles the direction-aware insert math (down-after, up-before) for both same-list and cross-list moves. Items carry a stable Key: so reorders ship trusted keyed structural diff ops that preserve survivors' DOM state.")
         ];
 
     // ----- Demo A: sortable list ---------------------------------------------
@@ -118,24 +120,8 @@ public sealed class DragDropPage : Component
         return Ul(Class: "list-group dd-list", Id: "dd-fruit-list")[rows];
     }
 
-    private void ReorderFruit(DragDropMove move)
-    {
-        if (move.FromIndex < 0 || move.FromIndex >= _fruits.Count || move.FromIndex == move.ToIndex)
-        {
-            return;
-        }
-
-        var item = _fruits[move.FromIndex];
-        _fruits.RemoveAt(move.FromIndex);
-        var insertAt = Math.Clamp(move.ToIndex, 0, _fruits.Count);
-        // The removal shifted everything after FromIndex down by one; correct the target.
-        if (move.FromIndex < insertAt)
-        {
-            insertAt--;
-        }
-
-        _fruits.Insert(insertAt, item);
-    }
+    // Direction-aware: dragging down lands after the target, dragging up lands before it.
+    private void ReorderFruit(DragDropMove move) => move.ApplyTo(_fruits);
 
     // ----- Demo B: Kanban board ----------------------------------------------
 
@@ -156,7 +142,7 @@ public sealed class DragDropPage : Component
         foreach (var zone in _columns)
         {
             var cards = _board[zone];
-            var cardChildren = new List<Child>(cards.Count + 1);
+            var cardChildren = new List<Child>(cards.Count);
             for (var i = 0; i < cards.Count; i++)
             {
                 var card = cards[i];
@@ -188,16 +174,16 @@ public sealed class DragDropPage : Component
                 ]);
             }
 
-            // A tail drop region so a card can land at the end of (or into an empty) column.
+            // The whole column body is the drop-at-end zone, so a card can land in empty space, at
+            // the tail of a column, or into an empty column. Cards inside carry their own per-index
+            // drop handlers; the client's e.target.closest(...) resolves the innermost match, so
+            // hovering a card targets that card and hovering empty space targets the column end.
             var dropAtEnd = cards.Count;
-            var zoneIsTarget = string.Equals(ctx.TargetZone, zone, StringComparison.Ordinal)
-                               && ctx.TargetIndex == dropAtEnd;
-            cardChildren.Add(Div(
-                Key: $"{zone}-end",
-                Class: zoneIsTarget ? "dd-column-tail dd-drop-target" : "dd-column-tail",
-                OnDragOver: ctx.DragOver(zone, dropAtEnd),
-                OnDrop: ctx.Drop(zone, dropAtEnd),
-                Data: new Dictionary<string, string?> { ["testid"] = $"col-{zone}-end" }));
+            var bodyCls = "dd-column-body";
+            if (ctx.IsDropTarget(zone, dropAtEnd))
+            {
+                bodyCls += " dd-drop-target";
+            }
 
             cols.Add(Div(Key: zone, Class: "col")[
                 Div(Class: "dd-column h-100")[
@@ -206,7 +192,9 @@ public sealed class DragDropPage : Component
                         Span(Class: "badge bg-secondary rounded-pill")[cards.Count.ToString()]
                     ],
                     Div(
-                        Class: "dd-column-body",
+                        Class: bodyCls,
+                        OnDragOver: ctx.DragOver(zone, dropAtEnd),
+                        OnDrop: ctx.Drop(zone, dropAtEnd),
                         Data: new Dictionary<string, string?> { ["testid"] = $"col-{zone}" })[cardChildren]
                 ]
             ]);
@@ -217,26 +205,9 @@ public sealed class DragDropPage : Component
 
     private void MoveCard(DragDropMove move)
     {
-        if (!_board.TryGetValue(move.FromZone, out var from) || !_board.TryGetValue(move.ToZone, out var to))
+        if (_board.TryGetValue(move.FromZone, out var from) && _board.TryGetValue(move.ToZone, out var to))
         {
-            return;
+            move.ApplyTo(from, to);
         }
-
-        if (move.FromIndex < 0 || move.FromIndex >= from.Count)
-        {
-            return;
-        }
-
-        var card = from[move.FromIndex];
-        from.RemoveAt(move.FromIndex);
-
-        var insertAt = Math.Clamp(move.ToIndex, 0, to.Count);
-        // Same-column move: the removal shifted later cards down, so correct the target.
-        if (ReferenceEquals(from, to) && move.FromIndex < insertAt)
-        {
-            insertAt--;
-        }
-
-        to.Insert(insertAt, card);
     }
 }
