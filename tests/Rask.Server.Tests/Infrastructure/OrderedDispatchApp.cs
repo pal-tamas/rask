@@ -38,7 +38,7 @@ public sealed class OrderedDispatchApp : Component
         for (var i = 0; i < HandlerCount; i++)
         {
             var captured = i;
-            children.Add(Button(OnClickAsync: () => RecordAsync(captured))[$"#{captured}"]);
+            children.Add(Button(OnClickAsync: () => RecordAsync(captured), Key: captured)[$"#{captured}"]);
         }
 
         return Fragment()[children.ToArray()];

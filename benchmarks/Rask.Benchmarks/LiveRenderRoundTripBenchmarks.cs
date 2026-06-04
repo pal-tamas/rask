@@ -71,7 +71,7 @@ public class LiveRenderRoundTripBenchmarks
         var rows = new List<Child>(20);
         for (var i = 0; i < 20; i++)
         {
-            rows.Add(B.RowItem(i));
+            rows.Add(B.RowItem(i, Key: i));
         }
 
         return C.Fragment()[

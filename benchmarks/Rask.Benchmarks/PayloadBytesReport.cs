@@ -112,7 +112,7 @@ internal static class PayloadBytesReport
         var rows = new List<Child>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
@@ -159,7 +159,7 @@ internal static class PayloadBytesReport
         for (var i = 0; i < rowCount; i++)
         {
             var text = i == rowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
                 C.Span(Class: "label")[text],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
