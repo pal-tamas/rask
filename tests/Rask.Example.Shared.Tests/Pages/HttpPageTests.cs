@@ -32,7 +32,10 @@ public sealed class HttpPageTests
     [Fact]
     public async Task OnMountAsync_HttpFailure_SetsErrorPath()
     {
-        var (http, _) = FakeHttp.Throwing(new HttpRequestException("boom"));
+        // A genuine HTTP-status failure carries a StatusCode and must still surface the
+        // error banner (the demo's error handling is a real feature).
+        var (http, _) = FakeHttp.Throwing(
+            new HttpRequestException("boom", inner: null, statusCode: HttpStatusCode.InternalServerError));
         var routeState = new RouteState { Path = "/http" };
         var services = TestServices.Default(http: http, routeState: routeState);
 
@@ -41,8 +44,26 @@ public sealed class HttpPageTests
         await Task.Delay(120);
         var html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
 
-        // Either error banner or loading spinner is acceptable as long as the page didn't throw.
-        Assert.True(html.Contains("alert-danger") || html.Contains("Loading"));
+        Assert.Contains("alert-danger", html);
+    }
+
+    [Fact]
+    public async Task OnMountAsync_BrowserAbort_DoesNotShowError()
+    {
+        // A hard browser refresh kills the in-flight fetch outside the AbortController, so it
+        // surfaces as an HttpRequestException with no StatusCode ("TypeError: Load failed").
+        // That's a teardown artifact and must not render the error banner.
+        var (http, _) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
+        var routeState = new RouteState { Path = "/http" };
+        var services = TestServices.Default(http: http, routeState: routeState);
+
+        new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        await Task.Delay(120);
+        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+
+        // No error banner — the swallowed abort leaves the page on its loading state.
+        Assert.DoesNotContain("alert-danger", html);
+        Assert.Contains("Loading", html);
     }
 
     [Fact]

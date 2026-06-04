@@ -6,6 +6,14 @@ let dotnetExports = null;
 let root = null;
 let basePath = null;
 
+// Serializes render application across payloads. A navigation diff may defer its
+// body swap until the new page's scoped CSS loads (applyHeadThenWaitForCss), which
+// opens a microtask/timer gap during which .NET could deliver the next render. Both
+// the diff and full-HTML paths chain through this tail promise so a deferred body
+// always commits before the following payload's ops — paths in a later diff are
+// computed against the render this one produces, so they must not be applied first.
+let _renderQueue = Promise.resolve();
+
 // scopedJsReady starts true: per-component scripts ship as
 // <script src="/_rask/a/{hash}.js" defer> tags in the initial HTML's <head> (and
 // are morphed in/out as components mount/unmount). The browser's defer semantics
@@ -50,6 +58,12 @@ const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 // (404) still surfaces fast: its <script> fires an 'error' event that drains the gate
 // immediately, so the long window only ever applies to a slow-but-loading asset.
 const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
+// Hard cap on how long a navigation diff defers the body swap waiting for a newly
+// mounted page's scoped stylesheet to load (see applyHeadThenWaitForCss). A warm,
+// content-addressed /_rask/a/{hash}.css load resolves in a few ms; the cap only ever
+// applies to a genuinely slow/failed sheet, where we'd rather show the (briefly
+// unstyled) page than stall navigation.
+const CSS_FOUC_GUARD_MS = 500;
 
 function isAssetAlreadyLoaded(url) {
     if (!url || !window.performance || !performance.getEntriesByName) return false;
@@ -121,6 +135,33 @@ function scanHeadAssets() {
 
 function headAssetsReady() {
     return pendingHeadAssets.size === 0;
+}
+
+// Morph the incoming <head> into the live one, then return a Promise that resolves
+// once every *newly added* stylesheet has reached a terminal state (load / error /
+// CSS_FOUC_GUARD_MS timeout). On a navigation diff the body ops must not be applied
+// until the new page's scoped CSS (<link href="/_rask/a/{hash}.css">) is in place,
+// or the freshly-swapped body paints unstyled for a beat (FOUC). Stylesheets already
+// present + loaded before the morph — the warm-cache case — are skipped via
+// isAssetAlreadyLoaded, so a return of null means "nothing to wait for, apply the
+// body synchronously" and warm navigations keep today's instant timing.
+function applyHeadThenWaitForCss(freshHead) {
+    const before = new Set();
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+        if (l.href && isAssetAlreadyLoaded(l.href)) before.add(l.href);
+    });
+    morph(document.head, freshHead);
+    const pending = [];
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+        if (!l.href || before.has(l.href) || isAssetAlreadyLoaded(l.href)) return;
+        pending.push(new Promise((resolve) => {
+            const done = () => resolve();
+            l.addEventListener("load", done, {once: true});
+            l.addEventListener("error", done, {once: true});
+            setTimeout(done, CSS_FOUC_GUARD_MS);
+        }));
+    });
+    return pending.length ? Promise.all(pending) : null;
 }
 
 function maybeDrainPendingInvokes() {
@@ -770,29 +811,42 @@ function applyDiff(ops, names) {
 
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
-    // Diff-mode payload: apply ops directly against the live DOM. Still flow
-    // history below so SPA navigation continues to work alongside the diff.
+    // Diff-mode payload: apply ops directly against the live DOM. Both paths chain
+    // through _renderQueue so a diff that defers its body for a CSS load can't be
+    // overtaken by the next payload (see _renderQueue).
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
+        _renderQueue = _renderQueue.then(() => applyDiffReply(reply), () => applyDiffReply(reply));
+        return;
+    }
+    _renderQueue = _renderQueue.then(() => applyFullReply(reply), () => applyFullReply(reply));
+}
+
+function applyDiffReply(reply) {
+    // The head isn't in the diff frame stream (user Head contributions are collected +
+    // spliced render-side), so a head change rides the payload as a <head> fragment.
+    // Morph it into document.head FIRST — keyed reconciliation (data-rask-key) keeps
+    // unchanged scoped-CSS links, and morph skips data-rask-managed boot bundles so they
+    // survive. When the new page adds a not-yet-cached scoped stylesheet, defer the body
+    // ops until it loads so the swapped body never paints unstyled (FOUC).
+    const applyBody = () => {
         applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
-        // The head isn't in the diff frame stream (user Head contributions are collected +
-        // spliced render-side), so a head change rides the payload as a <head> fragment.
-        // Morph it into document.head — keyed reconciliation (data-rask-key) keeps unchanged
-        // scoped-CSS links so there's no flash, and morph skips data-rask-managed boot
-        // bundles so they survive. The scanHeadAssets() below then tracks any new assets.
-        if (typeof reply.head === "string") {
-            const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
-            if (freshHead) morph(document.head, freshHead);
-        }
         applyHistory(reply.history);
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
         // (keyed InsertSubtree). Track them so their load events feed the Rask.* invoke
-        // gate, then drain anything now unblocked — the full-HTML morph path (applyDom)
-        // does the same after morph().
+        // gate, then drain anything now unblocked — the full-HTML morph path does the same.
         scanHeadAssets();
         maybeDrainPendingInvokes();
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
-        return;
+    };
+    if (typeof reply.head === "string") {
+        const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
+        const wait = freshHead ? applyHeadThenWaitForCss(freshHead) : null;
+        if (wait) return wait.then(applyBody);
     }
+    applyBody();
+}
+
+function applyFullReply(reply) {
     let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
         const doc = new DOMParser().parseFromString(reply.html, "text/html");
