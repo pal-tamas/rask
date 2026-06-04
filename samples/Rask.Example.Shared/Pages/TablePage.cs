@@ -136,16 +136,16 @@ public sealed class TablePage(Navigator nav) : Component
                         ],
                         Tbody()[
                             totalFiltered == 0
-                                ? (Child)Tr()[
+                                ? Tr()[
                                     Td(6, Class: "text-center text-secondary py-4")[
                                         I(Class: "bi bi-search me-2"),
                                         "No people match your search."
                                     ]
                                 ]
-                                : (Child)Fragment()[
+                                : Fragment()[
                                     visible.Select(p =>
-                                        (Child)Tr(Key: p.Id)[
-                                            Td(Class: "text-secondary")[p.Id.ToString()],
+                                        Tr(Key: p.Id)[
+                                            Td(Class: "text-secondary")[p.Id],
                                             Td(Class: "fw-semibold")[p.Name],
                                             Td()[p.City],
                                             Td()[
@@ -166,8 +166,8 @@ public sealed class TablePage(Navigator nav) : Component
                             ? "Showing 0 of 0"
                             : $"Showing {from}–{to} of {totalFiltered}",
                         filter.Length > 0
-                            ? (Child)Span(Class: "ms-1")[$"(filtered from {_people.Length} total)"]
-                            : (Child)Fragment()
+                            ? Span(Class: "ms-1")[$"(filtered from {_people.Length} total)"]
+                            : Fragment()
                     ],
                     Nav()[
                         Ul(Class: "pagination pagination-sm mb-0")[BuildPagination(page, totalPages)]
@@ -311,7 +311,7 @@ public sealed class TablePage(Navigator nav) : Component
                 "button",
                 Class: "page-link",
                 OnClick: () => nav.SetQuery("page", n.ToString()))[
-                n.ToString()
+                n
             ]
         ];
     }

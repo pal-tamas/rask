@@ -340,12 +340,12 @@ public class FrameDifferTests
         // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
         // codec doesn't disagree with the client about which path applied.
         var before = Frames(C.Ul()[
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
-            (Child)C.Li()["two"]
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
+            C.Li()["two"]
         ]);
         var afterFrames = Frames(C.Ul()[
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
-            (Child)C.Li()["two"]
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
+            C.Li()["two"]
         ]);
 
         var ops = new List<EditOp>();
@@ -362,12 +362,12 @@ public class FrameDifferTests
     public void Diff_KeyedList_DuplicateKeys_FallsBackToPositional()
     {
         var before = Frames(C.Ul()[
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
         var afterFrames = Frames(C.Ul()[
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
 
         var ops = new List<EditOp>();
@@ -385,10 +385,10 @@ public class FrameDifferTests
         // treats this as a fresh node: remove the old, insert the new at the same slot.
         // Both ops carry Trusted so the gate ships them as diff.
         var before = Frames(C.Ul()[
-            (Child)C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
+            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
         ]);
         var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[
-            (Child)C.Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
+            C.Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
         ]);
 
         var ops = new List<EditOp>();

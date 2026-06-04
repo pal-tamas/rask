@@ -91,7 +91,11 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         //    and `(Child)` cast wrapping it. Its converted type tells us it becomes a sibling Child.
         var outer = ClimbToChildExpression(invocation);
         var typeInfo = model.GetTypeInfo(outer, context.CancellationToken);
-        if (!IsChild(typeInfo.Type, child) && !IsChild(typeInfo.ConvertedType, child))
+        var isChildLike =
+            IsChild(typeInfo.Type, child) || IsChild(typeInfo.ConvertedType, child)
+            || InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
+            || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
+        if (!isChildLike)
         {
             return;
         }
