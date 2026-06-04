@@ -7,10 +7,10 @@ public sealed class Audio : Element
     protected override string TagName => "audio";
 
     public string? Src { get; set; }
-    public bool Controls { get; set; }
-    public bool Autoplay { get; set; }
-    public bool Loop { get; set; }
-    public bool Muted { get; set; }
+    public bool? Controls { get; set; }
+    public bool? Autoplay { get; set; }
+    public bool? Loop { get; set; }
+    public bool? Muted { get; set; }
     public string? Preload { get; set; }
     public string? CrossOrigin { get; set; }
 
@@ -22,22 +22,22 @@ public sealed class Audio : Element
             AppendAttr(sb, "src", Src);
         }
 
-        if (Controls)
+        if (Controls is true)
         {
             AppendAttr(sb, "controls", null);
         }
 
-        if (Autoplay)
+        if (Autoplay is true)
         {
             AppendAttr(sb, "autoplay", null);
         }
 
-        if (Loop)
+        if (Loop is true)
         {
             AppendAttr(sb, "loop", null);
         }
 
-        if (Muted)
+        if (Muted is true)
         {
             AppendAttr(sb, "muted", null);
         }

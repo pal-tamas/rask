@@ -16,7 +16,7 @@ internal sealed class RouteTitleStubApp : Component
     public RouteTitleStubApp(RouteState routeState) => _routeState = routeState;
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             Html()[
                 Head()[Title()[$"title-{_routeState.Path}"]],

@@ -202,7 +202,7 @@ public sealed class BindingAfterBindDemo : Component
                     () => _model.City,
                     Id: "bind-after-city",
                     Class: "form-select")[
-                    _cities.Select(c => Option(c)[c])
+                    _cities.Select(c => Option(c, Key: c)[c])
                 ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[
@@ -295,7 +295,7 @@ public sealed class BindingAfterBindAsyncDemo : Component
                     Disabled: _loading || _languages.Length == 0)[
                     _languages.Length == 0
                         ? [Option("")["— pick a track —"]]
-                        : _languages.Select(l => Option(l)[l])
+                        : _languages.Select(l => Option(l, Key: l)[l])
                 ]
             ],
             Pre(Class: "small mb-0 p-3 bg-light border rounded")[

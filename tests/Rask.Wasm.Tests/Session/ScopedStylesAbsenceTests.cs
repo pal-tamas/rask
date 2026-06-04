@@ -57,7 +57,7 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
         protected override RenderResult Head => Title()["wasm-stub"];
 
         protected override RenderResult Render() =>
-            Fragment()[
+            [
                 Doctype(),
                 Html()[
                     Head(),

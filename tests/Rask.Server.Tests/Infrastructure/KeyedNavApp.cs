@@ -31,7 +31,7 @@ public sealed class KeyedNavApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["keyed-nav"]],

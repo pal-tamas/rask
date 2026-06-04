@@ -21,7 +21,7 @@ public sealed class OrderedDispatchApp : Component
     public string Sequence { get; private set; } = "";
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["ordered-dispatch"]],

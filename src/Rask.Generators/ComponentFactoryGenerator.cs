@@ -526,12 +526,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                                  || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
                                      SpecialType.System_Nullable_T);
 
-                // Non-nullable value types (bool, int, enums, etc.) carry an implicit `default(T)`
-                // — emit them as optional factory parameters with `default` as the literal default
-                // rather than forcing the caller to pass a value. Matches the hand-written facade
-                // pattern where `bool Disabled = false`, `int Width = 0`, etc.
-                var hasImplicitDefault = !isNullable && prop.Type.IsValueType;
-
                 var typeFqn = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
                     .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
                                               | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
@@ -542,7 +536,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     isNullable,
                     hasInitializer,
                     prop.IsRequired,
-                    hasImplicitDefault,
                     depth,
                     filePath,
                     spanStart,
@@ -596,14 +589,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             return "null";
         }
 
-        if (p.HasImplicitDefault)
-        {
-            // Value type: `default` is `false` / `0` / first enum value — same shape the
-            // hand-written facade used (e.g. `bool Disabled = false`).
-            return "default";
-        }
-
-        // Defensive: should not be called for non-nullable reference properties (they're required).
+        // Defensive: should not be called for non-nullable properties (value or reference) without
+        // an initializer — they're required factory parameters with no default.
         return "default";
     }
 
@@ -704,7 +691,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             : typeFqn;
 
     private static bool IsRequiredFactoryParam(PropInfo p) =>
-        !p.IsNullable && !p.HasInitializer && !p.HasImplicitDefault;
+        !p.IsNullable && !p.HasInitializer;
 
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely
@@ -1274,7 +1261,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsNullable,
         bool HasInitializer,
         bool UserMarkedRequired,
-        bool HasImplicitDefault,
         int InheritanceDepth,
         string DeclaringFilePath,
         int DeclaringSpanStart,

@@ -19,7 +19,7 @@ public sealed class CheckboxJsInvokeApp(IJSRuntime js) : Component
         await js.InvokeVoidAsync("test.noop", firstRender);
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["checkbox"]],

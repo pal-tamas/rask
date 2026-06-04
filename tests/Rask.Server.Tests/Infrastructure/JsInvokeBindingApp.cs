@@ -22,7 +22,7 @@ public sealed class JsInvokeBindingApp(IJSRuntime js) : Component
         await js.InvokeVoidAsync("test.noop", firstRender);
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["js-invoke-binding"]],
