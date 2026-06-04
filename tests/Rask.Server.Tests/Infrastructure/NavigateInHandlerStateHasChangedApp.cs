@@ -27,7 +27,7 @@ public sealed class NavigateInHandlerStateHasChangedApp : Component
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["nav-coalesce"]],

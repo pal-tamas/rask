@@ -25,7 +25,7 @@ public sealed class AsyncValidationApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[
                 new Head()[new Title()["async-validation"]],

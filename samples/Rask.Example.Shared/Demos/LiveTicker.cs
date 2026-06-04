@@ -205,8 +205,8 @@ public sealed class LiveTicker : Component
                 ],
                 Div(Class: "d-flex align-items-baseline gap-3 mb-3")[
                     _history.Count == 0
-                        ? (Child)Span(Class: "fs-3 text-secondary", Id: "ticker-price")["Waiting for first tick…"]
-                        : (Child)Span(Class: "fs-2 fw-bold", Id: "ticker-price")[
+                        ? Span(Class: "fs-3 text-secondary", Id: "ticker-price")["Waiting for first tick…"]
+                        : Span(Class: "fs-2 fw-bold", Id: "ticker-price")[
                             $"${current.ToString("N2", CultureInfo.InvariantCulture)}"],
                     _history.Count > 1
                         ? Span(Class: $"fs-6 fw-semibold {changeClass}", Id: "ticker-change")[
@@ -224,7 +224,7 @@ public sealed class LiveTicker : Component
                 Div(Class: "ticker-chart-container", Id: "ticker-chart",
                     Style: "position: relative; height: 160px;")[
                     _history.Count == 0
-                        ? (Child)P(Class: "text-secondary small mb-0")["Waiting for first tick…"]
+                        ? P(Class: "text-secondary small mb-0")["Waiting for first tick…"]
                         : Sparkline(
                             Values: _history.Select(p => (double)p.PriceUsd).ToList(),
                             Class: "ticker-chart-svg")

@@ -10,7 +10,7 @@ public sealed class ThrowingApp : Component
     public int Counter;
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["throw"]],
                 new Body()[new P()[$"count={Counter}"],

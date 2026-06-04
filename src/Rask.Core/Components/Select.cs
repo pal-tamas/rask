@@ -194,7 +194,7 @@ public sealed class Select : Element
         }
 
         var newChildren = og.Children.Select(c =>
-            c.Component is Option o ? (Child)MarkOption(o, current) : c).ToArray();
+            c.Component is Option o ? MarkOption(o, current) : c).ToArray();
         return new Optgroup
         {
             Disabled = og.Disabled,

@@ -68,7 +68,7 @@ public sealed class VirtualizePage : Component
                         ],
                         Tbody()[
                             ctx.VisibleItems.Select(item =>
-                                (Child)Tr(
+                                Tr(
                                     Style: $"height:{ctx.ItemSize}px;",
                                     // data-rask-key engages the morph algorithm's keyed
                                     // reconciliation path: scrolling the window moves the
@@ -123,7 +123,7 @@ public sealed class VirtualizePage : Component
                         ],
                         Tbody()[
                             ctx.VisibleItems.Select(item =>
-                                (Child)Tr(
+                                Tr(
                                     Style: $"height:{ctx.ItemSize}px;",
                                     Data: new Dictionary<string, string?>
                                     {
@@ -131,7 +131,7 @@ public sealed class VirtualizePage : Component
                                         ["rask-key"] = item.Index.ToString(),
                                         ["placeholder"] = item.IsPlaceholder ? "true" : null
                                     })[
-                                    Td()[item.IsPlaceholder ? "—" : item.Value!.Index.ToString()],
+                                    Td()[item.IsPlaceholder ? "—" : item.Value!.Index],
                                     Td()[item.IsPlaceholder ? "—" : item.Value!.Name],
                                     Td()[item.IsPlaceholder ? "—" : item.Value!.City],
                                     Td(Style: "text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]

@@ -14,7 +14,7 @@ public sealed class TestApp : Component
     public TestApp(RouteState routeState) => _routeState = routeState;
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["test"]],
                 new Body()[new H1()[$"path={_routeState.Path}"],

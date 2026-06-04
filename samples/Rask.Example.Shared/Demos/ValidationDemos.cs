@@ -71,8 +71,8 @@ public sealed class ValidationSummaryDemo : Component
             Ul(Class: "mb-0 ps-3")[
                 entries.Select((e, i) => Li(Key: i)[
                     e.Field.Length == 0
-                        ? (Child)e.Message
-                        : (Child)Fragment()[Strong()[e.Field], ": ", e.Message]
+                        ? e.Message
+                        : Fragment()[Strong()[e.Field], ": ", e.Message]
                 ])
             ]
         ];
@@ -574,8 +574,8 @@ public sealed class CrossFieldSummaryDemo : Component
                 Ul(Class: "mb-0 ps-3")[
                     entries.Select((e, i) => Li(Key: i)[
                         e.Field.Length == 0
-                            ? (Child)e.Message
-                            : (Child)Fragment()[Strong()[e.Field], ": ", e.Message]
+                            ? e.Message
+                            : Fragment()[Strong()[e.Field], ": ", e.Message]
                     ])
                 ]
             ];
