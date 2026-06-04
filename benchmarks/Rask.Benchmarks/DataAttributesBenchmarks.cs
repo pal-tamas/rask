@@ -40,9 +40,9 @@ public class DataAttributesBenchmarks
         {
             var data = new Dictionary<string, string?>
             {
-                ["rask-key"] = $"k{i}", ["index"] = i.ToString(), ["state"] = "idle", ["test-id"] = $"row-{i}"
+                ["index"] = i.ToString(), ["state"] = "idle", ["test-id"] = $"row-{i}"
             };
-            rows.Add(C.Div(Class: "row", Data: data)[
+            rows.Add(C.Div(Class: "row", Data: data, Key: $"k{i}")[
                 C.Span(Data: new Dictionary<string, string?> { ["label"] = "x" })[$"Item {i}"]
             ]);
         }

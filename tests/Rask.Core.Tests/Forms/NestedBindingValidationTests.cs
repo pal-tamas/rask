@@ -121,7 +121,7 @@ public class NestedBindingValidationTests
             Input(() => p.Address.Street,
                 _ => new[] { "model-plus-context" }),
             ValidationMessage(() => p.Address.Street,
-                msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
+                msgs => Fragment()[msgs.Select((m, i) => (Child)Div(Class: "err", Key: i)[m])])
         ]);
 
         var initial = view.RenderAsLiveRoot();
@@ -220,7 +220,7 @@ public class NestedBindingValidationTests
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             ValidationMessage(() => m.Address.PostalCode,
-                msgs => Fragment()[msgs.Select(s => (Child)Div(Class: "err")[s])])
+                msgs => Fragment()[msgs.Select((s, i) => (Child)Div(Class: "err", Key: i)[s])])
         ]);
 
         var initial = view.RenderAsLiveRoot();
@@ -272,7 +272,7 @@ public class NestedBindingValidationTests
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             ValidationMessage(() => m.Address.PostalCode,
-                msgs => Fragment()[msgs.Select(s => (Child)Div(Class: "err")[s])])
+                msgs => Fragment()[msgs.Select((s, i) => (Child)Div(Class: "err", Key: i)[s])])
         ]);
 
         var initial = view.RenderAsLiveRoot();
@@ -369,7 +369,7 @@ public class NestedBindingValidationTests
                 v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
             ValidationMessage(() => p.Address.Street,
-                msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
+                msgs => Fragment()[msgs.Select((m, i) => (Child)Div(Class: "err", Key: i)[m])])
         ]);
 
         var initial = view.RenderAsLiveRoot();
@@ -395,7 +395,7 @@ public class NestedBindingValidationTests
                 v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
             ValidationMessage(() => p.Address.Street,
-                msgs => Fragment()[msgs.Select(m => (Child)Div(Class: "err")[m])])
+                msgs => Fragment()[msgs.Select((m, i) => (Child)Div(Class: "err", Key: i)[m])])
         ]);
 
         var initial = view.RenderAsLiveRoot();

@@ -52,7 +52,7 @@ public class ValidationMessageTests
         var view = new StubComponent(() => Form(Context: ctx, Model: p)[
             ValidationSummary(entries =>
                 Ul(Class: "validation-summary")[
-                    entries.Select(e => (Child)Li()[e.Message]).ToArray()
+                    entries.Select((e, i) => (Child)Li(Key: i)[e.Message]).ToArray()
                 ])
         ]);
         var html = view.RenderAsLiveRoot();

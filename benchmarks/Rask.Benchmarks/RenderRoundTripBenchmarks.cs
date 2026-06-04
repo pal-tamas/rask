@@ -30,7 +30,7 @@ public class RenderRoundTripBenchmarks
         var rows = new List<Child>(15);
         for (var i = 0; i < 15; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Input("text", $"f{i}", $"v{i}")

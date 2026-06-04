@@ -107,7 +107,7 @@ public class PayloadBytesPerUpdate
         var rows = new List<Child>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
@@ -161,7 +161,7 @@ public class PayloadBytesPerUpdate
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
                 C.Span(Class: "label")[text],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
