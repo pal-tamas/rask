@@ -229,7 +229,7 @@ internal sealed class JsRoundTripApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
 
@@ -265,7 +265,7 @@ internal sealed class JsClickApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["t"]],
                 new Body()[
@@ -290,7 +290,7 @@ internal sealed class JsRenderStormApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
 
@@ -313,7 +313,7 @@ internal sealed class JsErrorApp : Component
     }
 
     protected override RenderResult Render() =>
-        Fragment()[
+        [
             Doctype(),
             new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
 

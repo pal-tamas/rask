@@ -198,8 +198,8 @@ public class VirtualizeTests
         var view = new StubComponent(() => Virtualize(
             ctx => Div()[
                 ctx.VisibleItems.Select(item =>
-                    (Child)Div(Data: new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
-                        item.Value!.ToString()])
+                    Div(Data: new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
+                        item.Value!])
             ],
             items,
             ItemSize: 20,

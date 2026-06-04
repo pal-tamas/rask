@@ -93,7 +93,7 @@ public class DownloadTokenPullTests : ResettingTestBase
         }
 
         protected override RenderResult Render() =>
-            Fragment()[
+            [
                 Doctype(),
                 Html()[
                     Head()[Title()["dl"]],

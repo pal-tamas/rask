@@ -100,7 +100,7 @@ public class HeadAssetRenderTests
         public PageShell(Component body) => _body = body;
 
         protected override RenderResult Render() =>
-            Fragment()[
+            [
                 Doctype(),
                 Html("en")[
                     // Head() is framework-managed: the serializer auto-inserts the
@@ -126,7 +126,7 @@ public class HeadAssetRenderTests
         protected override RenderResult Head => Title()[_title];
 
         protected override RenderResult Render() =>
-            Fragment()[
+            [
                 Doctype(),
                 Html("en")[
                     // Head() is framework-managed: the serializer auto-inserts the

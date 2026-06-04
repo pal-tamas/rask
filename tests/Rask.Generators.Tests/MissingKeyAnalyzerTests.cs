@@ -30,7 +30,7 @@ public class MissingKeyAnalyzerTests
     public async Task SelectProjection_NoKey_ReportsRask022()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "return Ul()[ _items.Select(i => (Child)Li()[i.ToString()]) ];")));
+            "return Ul()[ _items.Select(i => Li()[i.ToString()]) ];")));
         Assert.Equal("RASK022", d.Id);
         Assert.Contains("Li", d.GetMessage());
     }
@@ -51,14 +51,14 @@ public class MissingKeyAnalyzerTests
     public async Task SelectProjection_WithKey_NoDiagnostic()
     {
         Assert.Empty(await Diagnostics(App(
-            "return Ul()[ _items.Select(i => (Child)Li(Key: i)[i.ToString()]) ];")));
+            "return Ul()[ _items.Select(i => Li(Key: i)[i.ToString()]) ];")));
     }
 
     [Fact]
     public async Task SelectProjection_WithDataRaskKey_NoDiagnostic()
     {
         Assert.Empty(await Diagnostics(App("""
-            return Ul()[ _items.Select(i => (Child)Li(
+            return Ul()[ _items.Select(i => Li(
                 Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[i.ToString()]) ];
             """)));
     }
@@ -79,7 +79,7 @@ public class MissingKeyAnalyzerTests
         // Li is the projected list item (flagged once); the nested Code is Li's child, not a
         // sibling in the reconciled list, so it must NOT be flagged.
         var d = Assert.Single(await Diagnostics(App(
-            "return Ul()[ _items.Select(i => (Child)Li()[ Code()[i.ToString()] ]) ];")));
+            "return Ul()[ _items.Select(i => Li()[ Code()[i.ToString()] ]) ];")));
         Assert.Contains("Li", d.GetMessage());
     }
 
