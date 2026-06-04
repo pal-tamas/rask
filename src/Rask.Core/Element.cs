@@ -14,6 +14,18 @@ public abstract class Element : Component
     public string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
+    // Native HTML5 drag-and-drop, available on every element. `Draggable` emits draggable="true"
+    // (nullable so it stays an optional factory param — Blazor-parity with the other HTML attrs);
+    // the four handlers bind the dragstart/dragover/drop/dragend DOM events to parameterless C#
+    // delegates (Action or Func<Task>), wired by the client runtime via data-rask-on-drag*. The
+    // dragged item's identity is carried by the handler's closure, not the event payload — see
+    // the headless DragDrop primitive (DragDrop.cs) and the DragDropContext it hands consumers.
+    public bool? Draggable { get; set; }
+    public Delegate? OnDragStart { get; set; }
+    public Delegate? OnDragOver { get; set; }
+    public Delegate? OnDrop { get; set; }
+    public Delegate? OnDragEnd { get; set; }
+
     // Subclasses transform the `class` attribute value without re-implementing the universal
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
     protected virtual string? ResolveClass() => Class;
@@ -61,6 +73,37 @@ public abstract class Element : Component
         if (key is not null)
         {
             AppendAttr(sb, "data-", "rask-key", key);
+        }
+
+        // Drag-and-drop: a universal attribute (draggable) plus the data-rask-on-drag* handler
+        // hooks. Emitted here in the universal section, before subclass tag-specifics (which run
+        // after base.WriteAttributes). Unset (null / no handler) emits nothing.
+        if (Draggable is true)
+        {
+            AppendAttr(sb, "draggable", "true");
+        }
+
+        if (LiveRenderContext.Current is { } ctx)
+        {
+            if (OnDragStart is not null)
+            {
+                AppendAttr(sb, "data-rask-on-dragstart", ctx.RegisterHandler(OnDragStart));
+            }
+
+            if (OnDragOver is not null)
+            {
+                AppendAttr(sb, "data-rask-on-dragover", ctx.RegisterHandler(OnDragOver));
+            }
+
+            if (OnDrop is not null)
+            {
+                AppendAttr(sb, "data-rask-on-drop", ctx.RegisterHandler(OnDrop));
+            }
+
+            if (OnDragEnd is not null)
+            {
+                AppendAttr(sb, "data-rask-on-dragend", ctx.RegisterHandler(OnDragEnd));
+            }
         }
     }
 }
