@@ -12,12 +12,12 @@ public sealed class Select : Element
     protected override string TagName => "select";
 
     public string? Name { get; set; }
-    public bool Multiple { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
+    public bool? Multiple { get; set; }
+    public bool? Required { get; set; }
+    public bool? Disabled { get; set; }
     public int? Size { get; set; }
     public string? Form { get; set; }
-    public bool Autofocus { get; set; }
+    public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
     public Action<string>? OnChange { get; set; }
 
@@ -167,7 +167,7 @@ public sealed class Select : Element
 
     private static Option MarkOption(Option opt, string current)
     {
-        if (opt.Selected || opt.Value != current)
+        if (opt.Selected is true || opt.Value != current)
         {
             return opt;
         }
@@ -215,17 +215,17 @@ public sealed class Select : Element
             AppendAttr(sb, "name", Name);
         }
 
-        if (Multiple)
+        if (Multiple is true)
         {
             AppendAttr(sb, "multiple", null);
         }
 
-        if (Required)
+        if (Required is true)
         {
             AppendAttr(sb, "required", null);
         }
 
-        if (Disabled)
+        if (Disabled is true)
         {
             AppendAttr(sb, "disabled", null);
         }
@@ -240,7 +240,7 @@ public sealed class Select : Element
             AppendAttr(sb, "form", Form);
         }
 
-        if (Autofocus)
+        if (Autofocus is true)
         {
             AppendAttr(sb, "autofocus", null);
         }

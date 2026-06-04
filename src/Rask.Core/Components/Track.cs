@@ -11,7 +11,7 @@ public sealed class Track : Element
     public string? Src { get; set; }
     public string? Srclang { get; set; }
     public string? Label { get; set; }
-    public bool Default { get; set; }
+    public bool? Default { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -36,7 +36,7 @@ public sealed class Track : Element
             AppendAttr(sb, "label", Label);
         }
 
-        if (Default)
+        if (Default is true)
         {
             AppendAttr(sb, "default", null);
         }

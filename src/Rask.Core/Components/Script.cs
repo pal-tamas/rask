@@ -8,11 +8,11 @@ public sealed class Script : Element
 
     public string? Src { get; set; }
     public string? Type { get; set; }
-    public bool Async { get; set; }
-    public bool Defer { get; set; }
+    public bool? Async { get; set; }
+    public bool? Defer { get; set; }
     public string? CrossOrigin { get; set; }
     public string? Integrity { get; set; }
-    public bool NoModule { get; set; }
+    public bool? NoModule { get; set; }
     public string? ReferrerPolicy { get; set; }
     public string? Charset { get; set; }
 
@@ -29,12 +29,12 @@ public sealed class Script : Element
             AppendAttr(sb, "type", Type);
         }
 
-        if (Async)
+        if (Async is true)
         {
             AppendAttr(sb, "async", null);
         }
 
-        if (Defer)
+        if (Defer is true)
         {
             AppendAttr(sb, "defer", null);
         }
@@ -49,7 +49,7 @@ public sealed class Script : Element
             AppendAttr(sb, "integrity", Integrity);
         }
 
-        if (NoModule)
+        if (NoModule is true)
         {
             AppendAttr(sb, "nomodule", null);
         }

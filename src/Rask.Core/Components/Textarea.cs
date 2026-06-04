@@ -15,13 +15,13 @@ public sealed class Textarea : Element
     public int? Rows { get; set; }
     public int? Cols { get; set; }
     public string? Placeholder { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
-    public bool ReadOnly { get; set; }
+    public bool? Required { get; set; }
+    public bool? Disabled { get; set; }
+    public bool? ReadOnly { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
     public string? Wrap { get; set; }
-    public bool Autofocus { get; set; }
+    public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
     public string? Form { get; set; }
     public string? Dirname { get; set; }
@@ -175,17 +175,17 @@ public sealed class Textarea : Element
             AppendAttr(sb, "placeholder", Placeholder);
         }
 
-        if (Required)
+        if (Required is true)
         {
             AppendAttr(sb, "required", null);
         }
 
-        if (Disabled)
+        if (Disabled is true)
         {
             AppendAttr(sb, "disabled", null);
         }
 
-        if (ReadOnly)
+        if (ReadOnly is true)
         {
             AppendAttr(sb, "readonly", null);
         }
@@ -205,7 +205,7 @@ public sealed class Textarea : Element
             AppendAttr(sb, "wrap", Wrap);
         }
 
-        if (Autofocus)
+        if (Autofocus is true)
         {
             AppendAttr(sb, "autofocus", null);
         }

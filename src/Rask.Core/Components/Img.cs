@@ -19,7 +19,7 @@ public sealed class Img : Element
     public string? ReferrerPolicy { get; set; }
     public string? Decoding { get; set; }
     public string? UseMap { get; set; }
-    public bool Ismap { get; set; }
+    public bool? Ismap { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -79,7 +79,7 @@ public sealed class Img : Element
             AppendAttr(sb, "usemap", UseMap);
         }
 
-        if (Ismap)
+        if (Ismap is true)
         {
             AppendAttr(sb, "ismap", null);
         }

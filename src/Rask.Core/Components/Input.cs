@@ -17,10 +17,10 @@ public sealed class Input : Element
     public string? Name { get; set; }
     public string? Value { get; set; }
     public string? Placeholder { get; set; }
-    public bool Required { get; set; }
-    public bool Disabled { get; set; }
-    public bool ReadOnly { get; set; }
-    public bool Checked { get; set; }
+    public bool? Required { get; set; }
+    public bool? Disabled { get; set; }
+    public bool? ReadOnly { get; set; }
+    public bool? Checked { get; set; }
     public string? Min { get; set; }
     public string? Max { get; set; }
     public string? Step { get; set; }
@@ -28,16 +28,16 @@ public sealed class Input : Element
     public int? Size { get; set; }
     public int? MaxLength { get; set; }
     public int? MinLength { get; set; }
-    public bool Multiple { get; set; }
+    public bool? Multiple { get; set; }
     public string? Accept { get; set; }
     public string? Alt { get; set; }
     public string? Autocomplete { get; set; }
-    public bool Autofocus { get; set; }
+    public bool? Autofocus { get; set; }
     public string? Form { get; set; }
     public string? FormAction { get; set; }
     public string? FormEnctype { get; set; }
     public string? FormMethod { get; set; }
-    public bool FormNovalidate { get; set; }
+    public bool? FormNovalidate { get; set; }
     public string? FormTarget { get; set; }
     public string? List { get; set; }
     public string? Src { get; set; }
@@ -245,22 +245,22 @@ public sealed class Input : Element
             AppendAttr(sb, "placeholder", Placeholder);
         }
 
-        if (Required)
+        if (Required is true)
         {
             AppendAttr(sb, "required", null);
         }
 
-        if (Disabled)
+        if (Disabled is true)
         {
             AppendAttr(sb, "disabled", null);
         }
 
-        if (ReadOnly)
+        if (ReadOnly is true)
         {
             AppendAttr(sb, "readonly", null);
         }
 
-        if (Checked)
+        if (Checked is true)
         {
             AppendAttr(sb, "checked", null);
         }
@@ -300,7 +300,7 @@ public sealed class Input : Element
             AppendAttr(sb, "minlength", MinLength.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (Multiple)
+        if (Multiple is true)
         {
             AppendAttr(sb, "multiple", null);
         }
@@ -320,7 +320,7 @@ public sealed class Input : Element
             AppendAttr(sb, "autocomplete", Autocomplete);
         }
 
-        if (Autofocus)
+        if (Autofocus is true)
         {
             AppendAttr(sb, "autofocus", null);
         }
@@ -345,7 +345,7 @@ public sealed class Input : Element
             AppendAttr(sb, "formmethod", FormMethod);
         }
 
-        if (FormNovalidate)
+        if (FormNovalidate is true)
         {
             AppendAttr(sb, "formnovalidate", null);
         }

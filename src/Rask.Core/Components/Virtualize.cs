@@ -48,12 +48,12 @@ public sealed class Virtualize : Component
     public Delegate? ItemsProvider { get; set; }
 
     public int ItemSize { get; set; }
-    public int OverscanCount { get; set; }
+    public int? OverscanCount { get; set; }
 
     // Pre-scroll initial viewport guess. Drives the first render's window size before any
     // scroll event has arrived to set _clientHeight. Should be the scrollable container's
     // approximate visible height in px.
-    public int InitialClientHeight { get; set; }
+    public int? InitialClientHeight { get; set; }
 
     // The render fragment. Called with the type-erased VirtualizationState every render;
     // returns the user's chosen root Component for the virtualized region. Stored under the
@@ -135,8 +135,8 @@ public sealed class Virtualize : Component
         var itemSize = ItemSize;
         var clientHeight = _clientHeight > 0
             ? _clientHeight
-            : Math.Max(InitialClientHeight, itemSize);
-        var overscan = Math.Max(0, OverscanCount);
+            : Math.Max(InitialClientHeight ?? 0, itemSize);
+        var overscan = Math.Max(0, OverscanCount ?? 0);
 
         int totalCount;
         if (Items is not null)
