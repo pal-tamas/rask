@@ -74,7 +74,7 @@ public class HtmlSerializerBenchmarks
         var rows = new List<Child>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", "_blank", "noopener", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32, "lazy"),
@@ -121,7 +121,7 @@ public class HtmlSerializerBenchmarks
             // All values are encoding-free ASCII so the HtmlEncoder.Encode call returns
             // a string allocation that's literally identical to the input. The proposed
             // fast-path (scan-for-special-chars, append verbatim) elides that allocation.
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
                 C.Span(Class: "label")[$"item {i}"],
                 C.Span(Class: "value")[$"value {i}"],
                 C.Span(Class: "meta")[$"meta {i}"],

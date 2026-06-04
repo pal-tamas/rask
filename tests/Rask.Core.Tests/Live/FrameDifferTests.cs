@@ -586,7 +586,7 @@ public class FrameDifferTests
         var rows = new List<Child>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}")[
+            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"]
             ]);
         }
