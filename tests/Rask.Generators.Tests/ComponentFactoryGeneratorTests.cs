@@ -341,8 +341,10 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("Widget(int Count = default, object? Key = null)", output);
+        // Non-nullable value type with no initializer is a required factory parameter (no default).
+        Assert.Contains("Widget(int Count, object? Key = null)", output);
         Assert.DoesNotContain("Count = null", output);
+        Assert.DoesNotContain("Count = default", output);
     }
 
     [Fact]

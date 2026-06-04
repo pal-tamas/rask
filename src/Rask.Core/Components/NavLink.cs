@@ -19,8 +19,8 @@ public sealed class NavLink : Element
     // factory generator. To opt out of active styling, pass an empty string.
     public string? ActiveClass { get; set; }
 
-    // default(NavLinkMatch) == Exact (enum's 0th value), so no initializer is needed here.
-    public NavLinkMatch ActiveMatch { get; set; }
+    // Optional: null is treated as Exact (the default match mode).
+    public NavLinkMatch? ActiveMatch { get; set; }
 
     protected override void OnMount()
     {
@@ -82,7 +82,7 @@ public sealed class NavLink : Element
             return false;
         }
 
-        return ActiveMatch switch
+        return (ActiveMatch ?? NavLinkMatch.Exact) switch
         {
             NavLinkMatch.Exact => MatchExact(route, Href.Value.Path, Href.Value.QueryString),
             NavLinkMatch.Prefix => MatchPrefix(route.Path, Href.Value.Path),

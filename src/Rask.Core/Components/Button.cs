@@ -8,7 +8,7 @@ public sealed class Button : Element
     protected override string TagName => "button";
 
     public string? Type { get; set; }
-    public bool Disabled { get; set; }
+    public bool? Disabled { get; set; }
     public string? Name { get; set; }
     public string? Value { get; set; }
     public Action? OnClick { get; set; }
@@ -22,7 +22,7 @@ public sealed class Button : Element
             AppendAttr(sb, "type", Type);
         }
 
-        if (Disabled)
+        if (Disabled is true)
         {
             AppendAttr(sb, "disabled", null);
         }

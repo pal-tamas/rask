@@ -29,7 +29,7 @@ public sealed class Form : Element
     public string? Target { get; set; }
     public string? AcceptCharset { get; set; }
     public string? Autocomplete { get; set; }
-    public bool Novalidate { get; set; }
+    public bool? Novalidate { get; set; }
     public string? Name { get; set; }
     public Action<FormData>? OnSubmit { get; set; }
 
@@ -185,7 +185,7 @@ public sealed class Form : Element
             AppendAttr(sb, "autocomplete", Autocomplete);
         }
 
-        if (Novalidate)
+        if (Novalidate is true)
         {
             AppendAttr(sb, "novalidate", null);
         }

@@ -16,7 +16,7 @@ public sealed class Link : Element
     public string? As { get; set; }
     public string? CrossOrigin { get; set; }
     public string? ReferrerPolicy { get; set; }
-    public bool Disabled { get; set; }
+    public bool? Disabled { get; set; }
     public string? Color { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -67,7 +67,7 @@ public sealed class Link : Element
             AppendAttr(sb, "referrerpolicy", ReferrerPolicy);
         }
 
-        if (Disabled)
+        if (Disabled is true)
         {
             AppendAttr(sb, "disabled", null);
         }
