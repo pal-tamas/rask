@@ -19,6 +19,11 @@ public sealed class HttpPage(HttpClient http) : Component
     {
         try { _post = await http.GetFromJsonAsync("data/posts-1.json", HttpJsonContext.Default.Post, CancellationToken); }
         catch (OperationCanceledException) { }
+        // On WASM a hard browser refresh kills the in-flight fetch outside the
+        // AbortController, so it surfaces as an HttpRequestException with no StatusCode
+        // ("TypeError: Load failed") rather than an OperationCanceledException. That's a
+        // teardown artifact, not a real error — ignore it like a cancellation.
+        catch (HttpRequestException ex) when (ex.StatusCode is null) { }
         catch (Exception ex) { _error = ex.Message; }
     }
 
