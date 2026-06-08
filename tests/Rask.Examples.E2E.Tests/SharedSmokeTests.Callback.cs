@@ -7,8 +7,9 @@ public abstract partial class SharedSmokeTests
     [Fact]
     public Task Callback_ChildEmit_RerendersParent() => RunAsync(async () =>
     {
-        // The child's star button only dirties the child on click; the parent's rating line
-        // updates solely because the Callback re-renders its receiver (the parent). If receiver
+        // The child's star button only dirties the child on click, and the child invokes the
+        // parent's plain delegate off that path; the parent's rating line updates solely because
+        // the framework auto-wraps the delegate to re-render its owner (the parent). If that
         // re-render were broken, the text would stay at "Click a star to rate."
         await NavigateToAsync("/callback");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Callback",

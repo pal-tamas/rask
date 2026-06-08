@@ -16,6 +16,7 @@ namespace Rask.Generators;
 public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 {
     private const string ComponentFullName = "Rask.Core.Component";
+    private const string ElementFullName = "Rask.Core.Element";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
@@ -374,6 +375,47 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
+    private static bool InheritsFromElement(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol; t is not null; t = t.BaseType)
+        {
+            if (t.OriginalDefinition.ToDisplayString() == ElementFullName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // An event-callback delegate prop whose invocation should re-render its owner: an
+    // Action/Action<T>/Func<Task>/Func<T,Task> shape (void- or Task-returning, arity <= 1). The
+    // return-type rule excludes template/data delegates — Func<…,Component>, Func<…,ValueTask<…>>
+    // (Virtualize.ItemsProvider), Func<…,Child> (ErrorBoundary.Fallback), Func<…,IEnumerable<…>>
+    // (validators) — so only true parent→child callbacks are wrapped.
+    private static bool IsAutoRerenderDelegate(ITypeSymbol type)
+    {
+        if (type is not INamedTypeSymbol named || named.TypeKind != TypeKind.Delegate)
+        {
+            return false;
+        }
+
+        var invoke = named.DelegateInvokeMethod;
+        if (invoke is null || invoke.Parameters.Length > 1)
+        {
+            return false;
+        }
+
+        var ret = invoke.ReturnType;
+        if (ret.SpecialType == SpecialType.System_Void)
+        {
+            return true;
+        }
+
+        return ret.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+               == "global::System.Threading.Tasks.Task";
+    }
+
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
     {
         var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
@@ -438,6 +480,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var result = new List<PropInfo>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        // Element subclasses (Button, Input, Form, …) forward their delegate props straight onto a
+        // DOM element, where handler-owner resolution already re-renders the parent for free. Only
+        // plain (non-Element) components host parent↔child callbacks that need auto-wrapping; this
+        // also keeps the render hot path (and the CounterAllocationPin) free of wrapper closures.
+        var isElement = InheritsFromElement(symbol);
 
         // Walk the inheritance chain (most-derived first). Properties on a derived type
         // shadow same-name properties on a base — the `seen` set enforces "first wins" so
@@ -530,6 +578,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
                                               | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
 
+                var isAutoRerenderDelegate = !isElement && IsAutoRerenderDelegate(prop.Type);
+
                 result.Add(new PropInfo(
                     prop.Name,
                     typeFqn,
@@ -539,7 +589,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     depth,
                     filePath,
                     spanStart,
-                    spanLength));
+                    spanLength,
+                    isAutoRerenderDelegate));
             }
         }
 
@@ -584,15 +635,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static string DefaultLiteralFor(PropInfo p)
     {
-        if (p.IsNullable)
-        {
-            return "null";
-        }
-
-        // Non-nullable Callback/Callback<T> params default to the empty callback (default(struct)).
-        // For any other non-nullable property without an initializer this is unreachable — those
-        // are required factory parameters with no default.
-        return "default";
+        // Only optional params reach this; the optional set is exactly the nullable props (a
+        // non-nullable prop with no initializer is a required factory param with no default).
+        return p.IsNullable ? "null" : "default";
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
@@ -692,18 +737,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             : typeFqn;
 
     private static bool IsRequiredFactoryParam(PropInfo p) =>
-        !p.IsNullable && !p.HasInitializer && !IsOptionalValueStruct(p);
-
-    // Callback / Callback<T> are non-nullable structs whose `default` is a meaningful "unset"
-    // (== Empty). The default rules would make a declared callback prop a *required* factory
-    // parameter; treat it as optional, defaulting to `default`. (ElementRef is a reference type,
-    // so a declared `ElementRef?` prop is already optional via the IsNullable path.)
-    private static bool IsOptionalValueStruct(PropInfo p)
-    {
-        var t = StripNullable(p.TypeFqn);
-        return t == "global::Rask.Core.Callback"
-               || t.StartsWith("global::Rask.Core.Callback<", StringComparison.Ordinal);
-    }
+        !p.IsNullable && !p.HasInitializer;
 
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely
@@ -721,7 +755,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // path, and means a Key change never fires OnPropsChanged (a different key is a different
         // logical item, which mounts fresh rather than re-rendering the old instance).
         var hasKeyProp = paramProps.Any(IsKeyProp);
-        var diffProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
+
+        // nonKeyProps need re-assignment every render (drives the full-vs-fast path choice).
+        // foldProps is the subset that participates in the propsChanged diff: it also excludes
+        // auto-wrapped event-callback delegates, which are a fresh wrapper closure every render
+        // (never meaningfully equal — diffing them is pure noise that would defeat the
+        // `propsChanged: false` fast path for any callback-receiving component). They are still
+        // assigned each render, just not folded.
+        var nonKeyProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
+        var foldProps = nonKeyProps.Where(p => !p.IsAutoRerenderDelegate).ToList();
 
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
@@ -759,7 +801,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(')').AppendLine(c.TypeParameterConstraints);
         sb.AppendLine("    {");
 
-        if (diffProps.Count == 0)
+        if (nonKeyProps.Count == 0)
         {
             // Legacy parameterless factory shape preserved (Key, if present, is assigned but not
             // diffed — so this fast path still emits propsChanged: false).
@@ -848,7 +890,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
         }
 
-        EmitSnapshotsAndAssignments(sb, paramProps, diffProps);
+        EmitSnapshotsAndAssignments(sb, paramProps, foldProps);
         sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
         sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
         sb.AppendLine("        return __c;");
@@ -1133,8 +1175,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     // assignProps: every factory param re-applied to the (possibly cached) instance each render —
-    // includes Key. foldProps: the subset that participates in the propsChanged diff — excludes
-    // Key (a reconciliation identity, not a reactive prop).
+    // includes Key and auto-wrapped delegates. foldProps: the subset that participates in the
+    // propsChanged diff — excludes Key (a reconciliation identity) and auto-wrapped delegates
+    // (a fresh wrapper closure each render).
     private static void EmitSnapshotsAndAssignments(StringBuilder sb,
         IReadOnlyList<PropInfo> assignProps, IReadOnlyList<PropInfo> foldProps)
     {
@@ -1145,10 +1188,27 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Name).AppendLine(";");
         }
 
-        // Re-apply ALL params (including Key) so cached instances see fresh values.
+        // Re-apply ALL params (including Key) so cached instances see fresh values. Event-callback
+        // delegates are wrapped so invoking them re-renders the owning component (see AutoCallback).
         foreach (var p in assignProps)
         {
-            sb.Append("        __c.").Append(p.Name).Append(" = ").Append(p.Name).AppendLine(";");
+            sb.Append("        __c.").Append(p.Name).Append(" = ");
+            if (p.IsAutoRerenderDelegate)
+            {
+                // Wrap returns a nullable delegate (null in → null out); a non-nullable prop never
+                // passes null, so the null-forgiving `!` is safe and silences CS8601.
+                sb.Append("global::Rask.Core.AutoCallback.Wrap(").Append(p.Name).Append(')');
+                if (!p.IsNullable)
+                {
+                    sb.Append('!');
+                }
+            }
+            else
+            {
+                sb.Append(p.Name);
+            }
+
+            sb.AppendLine(";");
         }
 
         if (foldProps.Count == 0)
@@ -1276,7 +1336,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         int InheritanceDepth,
         string DeclaringFilePath,
         int DeclaringSpanStart,
-        int DeclaringSpanLength);
+        int DeclaringSpanLength,
+        bool IsAutoRerenderDelegate);
 }
 
 internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
