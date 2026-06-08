@@ -87,16 +87,20 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
-    public void GenericCallbackProperty_IsOptionalParamWithDefault()
+    public void EventCallbackDelegateProp_OnComponent_IsAutoWrapped()
     {
-        // Callback<T> is a non-nullable struct, so the default rules would make it required.
-        // The generator special-cases it to an optional param defaulting to the empty callback.
+        // A void- or Task-returning delegate prop on a plain component is wrapped so invoking it
+        // re-renders the owning component, and is excluded from the propsChanged fold (a fresh
+        // wrapper closure each render can never be meaningfully equal — keeps the fast path).
         var src = """
+                  using System;
+                  using System.Threading.Tasks;
                   using Rask.Core;
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public Callback<int> OnTick { get; set; }
+                      public Action<int>? OnSelect { get; set; }
+                      public Func<Task>? OnSaveAsync { get; set; }
                       public override RenderResult Render() => this;
                   }
                   """;
@@ -104,19 +108,26 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("global::Rask.Core.Callback<int> OnTick = default", output);
-        Assert.Contains("__c.OnTick = OnTick;", output);
+        Assert.Contains("__c.OnSelect = global::Rask.Core.AutoCallback.Wrap(OnSelect);", output);
+        Assert.Contains("__c.OnSaveAsync = global::Rask.Core.AutoCallback.Wrap(OnSaveAsync);", output);
+        // Not folded into the diff — no equality comparison over a callback delegate.
+        Assert.DoesNotContain("__old_OnSelect", output);
+        Assert.DoesNotContain("__old_OnSaveAsync", output);
     }
 
     [Fact]
-    public void NonGenericCallbackProperty_IsOptionalParamWithDefault()
+    public void CallbackOnlyComponent_StaysOnPropsChangedFastPath()
     {
+        // A component whose only param is an event callback is still assigned (wrapped) every
+        // render, but folds to propsChanged: false (the gate splits "needs assignment" from
+        // "participates in diff").
         var src = """
+                  using System;
                   using Rask.Core;
                   namespace Demo;
                   public sealed class Widget : Component
                   {
-                      public Callback OnClick { get; set; }
+                      public Action? OnClick { get; set; }
                       public override RenderResult Render() => this;
                   }
                   """;
@@ -124,8 +135,58 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("global::Rask.Core.Callback OnClick = default", output);
+        Assert.Contains("__c.OnClick = global::Rask.Core.AutoCallback.Wrap(OnClick);", output);
+        Assert.Contains("var __propsChanged = false;", output);
+    }
+
+    [Fact]
+    public void NonCallbackDelegateProps_AreNotWrapped()
+    {
+        // Template/data delegates return a value (Component / Task<T> / ValueTask<T> / IEnumerable),
+        // so the return-type rule leaves them assigned verbatim and folded normally.
+        var src = """
+                  using System;
+                  using System.Threading.Tasks;
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public Func<int, Task<int>>? Loader { get; set; }
+                      public Func<int, ValueTask<string>>? Provider { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains("__c.Loader = Loader;", output);
+        Assert.Contains("__c.Provider = Provider;", output);
+        Assert.DoesNotContain("AutoCallback.Wrap", output);
+    }
+
+    [Fact]
+    public void DelegatePropOnElementSubclass_IsNotWrapped()
+    {
+        // Element subclasses forward delegate props straight to the DOM, where handler-owner
+        // resolution already re-renders the parent — wrapping would only add a hot-path closure
+        // and a redundant re-render. So delegate props on an Element are assigned verbatim.
+        var src = """
+                  using System;
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class MyButton : Element
+                  {
+                      public Action<int>? OnClick { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
         Assert.Contains("__c.OnClick = OnClick;", output);
+        Assert.DoesNotContain("AutoCallback.Wrap", output);
     }
 
     [Fact]
