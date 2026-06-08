@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authentication;
 using Rask.Example.Shared.Demos;
 
 namespace Rask.Example.Shared;
@@ -20,6 +21,12 @@ public static class ExampleServiceCollectionExtensions
     {
         services.AddSingleton(sp => new HttpClient { BaseAddress = httpBaseAddress(sp) });
         services.AddSingleton<IBannedWordService, BannedWordService>();
+
+        // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
+        // type (so the demo can sign in/out) and as IUserProvider (so Component.User resolves it).
+        // Defaults to anonymous, so other pages are unaffected.
+        services.AddSingleton<DemoUserProvider>();
+        services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<DemoUserProvider>());
         return services;
     }
 }

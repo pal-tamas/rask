@@ -589,8 +589,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             return "null";
         }
 
-        // Defensive: should not be called for non-nullable properties (value or reference) without
-        // an initializer — they're required factory parameters with no default.
+        // Non-nullable Callback/Callback<T> params default to the empty callback (default(struct)).
+        // For any other non-nullable property without an initializer this is unreachable — those
+        // are required factory parameters with no default.
         return "default";
     }
 
@@ -691,7 +692,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             : typeFqn;
 
     private static bool IsRequiredFactoryParam(PropInfo p) =>
-        !p.IsNullable && !p.HasInitializer;
+        !p.IsNullable && !p.HasInitializer && !IsOptionalValueStruct(p);
+
+    // Callback / Callback<T> are non-nullable structs whose `default` is a meaningful "unset"
+    // (== Empty). The default rules would make a declared callback prop a *required* factory
+    // parameter; treat it as optional, defaulting to `default`. (ElementRef is a reference type,
+    // so a declared `ElementRef?` prop is already optional via the IsNullable path.)
+    private static bool IsOptionalValueStruct(PropInfo p)
+    {
+        var t = StripNullable(p.TypeFqn);
+        return t == "global::Rask.Core.Callback"
+               || t.StartsWith("global::Rask.Core.Callback<", StringComparison.Ordinal);
+    }
 
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely

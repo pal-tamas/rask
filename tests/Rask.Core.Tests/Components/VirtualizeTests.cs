@@ -257,4 +257,55 @@ public class VirtualizeTests
 
         Assert.True(fetchObservedCt.IsCancellationRequested);
     }
+
+    [Fact]
+    public async Task ItemsProvider_IgnoresCancellation_CompletesAfterUnmount_DroppedSafely()
+    {
+        // The harsher race: a provider that ignores its CancellationToken and resolves AFTER the
+        // component unmounted. CancelAndDisposeActiveFetch nulls _activeFetch, so the post-await
+        // guard (cts.IsCancellationRequested || !ReferenceEquals(_activeFetch, cts)) must drop the
+        // result — no cache write, no StateHasChanged on the disposed component, no throw/hang.
+        var providerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completedAfterRelease = false;
+
+        Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<string>>> provider = async req =>
+        {
+            providerStarted.TrySetResult();
+            await release.Task; // deliberately does NOT observe req.CancellationToken
+            completedAfterRelease = true;
+            return new ItemsProviderResult<string>(new[] { "loaded" }, 1);
+        };
+
+        var show = true;
+        var view = new StubComponent(() => show
+            ? Virtualize<string>(
+                ctx => Div(),
+                ItemsProvider: provider,
+                ItemSize: 20,
+                InitialClientHeight: 100)
+            : Div());
+
+        view.RenderAsLiveRoot();
+        await providerStarted.Task;
+
+        // Unmount mid-fetch (the fetch is parked on `release`).
+        show = false;
+        view.RenderAsLiveRoot();
+
+        // Let the provider finish; the guard must absorb the late result.
+        release.SetResult();
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (!completedAfterRelease && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.True(completedAfterRelease, "provider should run to completion even after unmount");
+        // The continuation ran to the guard and returned; re-rendering the host stays clean
+        // (no stale data leaked back through a disposed Virtualize).
+        var html = view.RenderAsLiveRoot();
+        Assert.DoesNotContain("loaded", html);
+    }
 }

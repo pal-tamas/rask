@@ -45,6 +45,7 @@ public abstract class Component
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
+        public ElementRef? ElementRef;
         public bool HasInitialized;
         public bool HasRenderedOnce;
         public bool IsUnmounted;
@@ -171,6 +172,30 @@ public abstract class Component
     // reused even after the global state changed. User code should set internal state +
     // call StateHasChanged() instead — only opt in if you genuinely cannot.
     protected virtual bool BypassRenderCache => false;
+
+    // Set the first time this component reads a context value (Context.Get/Required/Has-via-Get).
+    // Such a component depends on ambient state the framework doesn't diff, so — like
+    // BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
+    // Latched on: once a consumer, always a consumer (its Render path can read different
+    // context types across renders).
+    private bool _consumesContext;
+    internal void MarkConsumesContextInternal() => _consumesContext = true;
+
+    // Backing store for Element.Ref, hoisted into the lazy LiveState so a plain element (the
+    // overwhelming majority — refs are opt-in) keeps `_live` null and pays nothing for the
+    // feature. The setter only forces a LiveState allocation when an actual ref is assigned;
+    // setting `default` on a ref-less element is a no-op.
+    internal ElementRef? ElementRefInternal
+    {
+        get => _live?.ElementRef;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.ElementRef = value;
+            }
+        }
+    }
 
     /// <summary>
     ///     The current user, resolved from <see cref="IUserProvider" /> in the active render scope.
@@ -555,7 +580,8 @@ public abstract class Component
         // serializer still walks Live.CachedRenderResult, so any descendant whose own
         // Live.StateDirty or Live.PropsDirty IS set will re-render itself — ancestors don't need to
         // re-execute to permit that.
-        if (Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty && !BypassRenderCache)
+        if (Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty
+            && !BypassRenderCache && !_consumesContext)
         {
             return Live.CachedRenderResult;
         }

@@ -14,6 +14,18 @@ public abstract class Element : Component
     public string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
+    // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
+    // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].
+    // Storage is hoisted into the lazy LiveState (ElementRefInternal) so a ref-less element keeps
+    // `_live` null and adds zero footprint — direct fields on Element are what the LiveState hoist
+    // exists to avoid. The generator special-cases ElementRef to an optional factory parameter
+    // (Blazor @ref parity, available on every element).
+    public ElementRef? Ref
+    {
+        get => ElementRefInternal;
+        set => ElementRefInternal = value;
+    }
+
     // Native HTML5 drag-and-drop, available on every element. `Draggable` emits draggable="true"
     // (nullable so it stays an optional factory param — Blazor-parity with the other HTML attrs);
     // the four handlers bind the dragstart/dragover/drop/dragend DOM events to parameterless C#
@@ -73,6 +85,13 @@ public abstract class Element : Component
         if (key is not null)
         {
             AppendAttr(sb, "data-", "rask-key", key);
+        }
+
+        // Element ref handle (JS interop): a data-* attribute, emitted alongside rask-key so it
+        // sits in the universal data-* group, before drag hooks and tag-specifics.
+        if (Ref is { } elementRef)
+        {
+            AppendAttr(sb, "data-", "rask-ref", elementRef.Id);
         }
 
         // Drag-and-drop: a universal attribute (draggable) plus the data-rask-on-drag* handler
