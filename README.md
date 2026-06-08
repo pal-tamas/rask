@@ -52,7 +52,7 @@ public sealed class Counter : Component
 - [Troubleshooting](#-troubleshooting)
 - [Sub-path hosting & side-by-side apps](#-sub-path-hosting--side-by-side-apps)
 - [Examples](#-examples)
-- [Core concepts](#-core-concepts) — Components · Interactivity · Async data · Routing · Head · Error boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Keyed lists · Live diff codec · Lifecycle
+- [Core concepts](#-core-concepts) — Components · Interactivity · Context · Async data · Routing · Auth · Head · Error boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Element refs · Keyed lists · Live diff codec · Lifecycle
 - [Performance](#-performance)
 - [Status](#-status)
 - [License](#-license)
@@ -420,6 +420,88 @@ public sealed class Counter : Component
 }
 ```
 
+**Child → parent callbacks are plain delegate props** — `Action`, `Action<T>`, `Func<Task>`, `Func<T, Task>`. There is
+no `Callback`/`EventCallback` type. The generated factory wraps a qualifying delegate so invoking it runs your handler
+**and then re-renders the component that owns it** (the lambda's `this`). The child stays oblivious to the parent, and
+the parent never wires `StateHasChanged()` by hand:
+
+```csharp
+// Reusable child — knows nothing about the parent's state.
+public sealed class RatingStars : Component
+{
+    public int Value { get; set; }
+    public Action<int>? OnRate { get; set; }   // a plain delegate prop
+
+    protected override RenderResult Render() =>
+        Div()[
+            Enumerable.Range(1, 5).Select(i => (Child)Button(
+                OnClick: () => OnRate?.Invoke(i),  // child invokes; parent re-renders
+                Key: i)[i <= Value ? "★" : "☆"])
+        ];
+}
+
+// Parent — the lambda captures `this`, so invoking OnRate re-renders this component.
+public sealed class RatingDemo : Component
+{
+    private int _rating;
+
+    protected override RenderResult Render() =>
+        [
+            RatingStars(Value: _rating, OnRate: n => _rating = n),
+            P()[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
+        ];
+}
+```
+
+HTML element handlers (`Button.OnClick`, …) are **not** wrapped — they reach the DOM directly, where a re-render is
+already free. Wrapping is confined to your own components, keeping the render hot path allocation-free. A static method,
+or a lambda closing over a local instead of `this`, has no component target, so no auto re-render fires — write the
+lambda inside the component that should update.
+
+</details>
+
+<details>
+<summary><b>🧠 Context (provide / consume)</b></summary>
+<br>
+
+Pass a value down the tree without prop-drilling, React-style. Provide it high up; read it deep, through intermediate
+components that know nothing about it. `Context.Provide<T>(Value:)` is a transparent node (no DOM); consume with
+`Context.Get<T>()` (null if absent), `Context.Required<T>()` (throws), or `Context.Has<T>()`. Nearest provider wins,
+matched by type — provide a concrete type, consume by an interface it implements.
+
+```csharp
+public sealed record Theme(string Name, bool IsDark);
+
+public sealed class ThemeDemo : Component
+{
+    private Theme _theme = new("Light", false);
+
+    protected override RenderResult Render() =>
+        Context.Provide<Theme>(Value: _theme)[      // provided to the whole subtree
+            Button(OnClick: () => _theme = _theme.IsDark ? new("Light", false) : new("Dark", true))[
+                $"Toggle — {_theme.Name}"],
+            ThemeCard()                             // intermediate: no theme prop passed in
+        ];
+}
+
+public sealed class ThemeCard : Component       // theme-unaware; render-cached after first paint
+{
+    protected override RenderResult Render() => Div()["Nested: ", ThemeBadge()];
+}
+
+public sealed class ThemeBadge : Component      // the consumer
+{
+    protected override RenderResult Render()
+    {
+        var theme = Context.Required<Theme>();  // reading latches it out of the render cache…
+        return Span()[theme.IsDark ? "🌙 Dark" : "☀️ Light"];
+    }
+}
+```
+
+Reading a context value opts the consumer out of the render cache, so it re-reads when the provider re-renders — even
+straight through a cached intermediate (here `ThemeCard` never re-renders, yet `ThemeBadge` updates on every toggle).
+
 </details>
 
 <details>
@@ -479,6 +561,39 @@ Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigat
 
 Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal
 built-in page if no app-defined one exists.
+
+</details>
+
+<details>
+<summary><b>🔐 Auth gating (built-in <code>User</code>)</b></summary>
+<br>
+
+There is no `AuthorizeView` component. Every component exposes `Component.User` — a never-null `ClaimsPrincipal` resolved
+from the scoped `IUserProvider` (back it with a cookie/JWT on Server, or `/api/me` on WASM). Gate in `Render()` with
+plain C#, and subscribe to the provider's `Changed` event so a sign-in originating anywhere re-renders the gate:
+
+```csharp
+public sealed class AccountPanel : Component
+{
+    private readonly IUserProvider _auth;
+    public AccountPanel(IUserProvider auth) => _auth = auth;   // inject via the ctor
+
+    protected override void OnMount() => _auth.Changed += StateHasChanged;
+    protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
+
+    protected override RenderResult Render() =>
+        User.Identity?.IsAuthenticated == true
+            ? Fragment()[
+                P()["Signed in as ", Strong()[User.Identity!.Name ?? "?"]],
+                User.IsInRole("admin")                      // role-gated branch
+                    ? Div()["🔑 Admin-only panel"]
+                    : (Child)Fragment()]
+            : P()["You are signed out."];
+}
+```
+
+For whole-page gating, put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on the page
+component — the `RouteAuthorizationGuard` enforces it before the page renders.
 
 </details>
 
@@ -736,6 +851,30 @@ already applies to the root model (preserve its public properties via `[Dynamica
 `<TrimmerRootDescriptor>`) extends to every nested type. The full Forms/Complex-models showcase under `/nested-forms`
 demonstrates all four patterns side-by-side.
 
+#### Radio & checkbox groups
+
+`RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an `ICollection<TItem>`,
+toggling each item in place. Both are transparent `Fragment`s built on the same `Input.Bound` machinery as the rest of
+the form, so changes flow through the `EditContext` (validation, touched-tracking) like any bound field:
+
+```csharp
+Form(_prefs)[
+    RadioGroup(
+        () => _prefs.Plan,                                  // single value
+        Options: new[] { Plan.Free, Plan.Pro, Plan.Team },
+        OptionLabel: p => Span()[p.ToString()]),
+
+    CheckboxGroup<string>(                                  // a collection — toggles in place
+        () => _prefs.Interests,
+        Options: new[] { "Web", "Mobile", "AI", "Games" },
+        OptionLabel: t => Span()[t])
+]
+```
+
+`CheckboxGroup` usually needs the explicit type argument (`CheckboxGroup<string>`) when the bound collection is a
+concrete `List<T>`. Membership is compared with `EqualityComparer<TItem>.Default`. Changing any option re-renders the
+component that declared the group, so a live summary updates immediately.
+
 </details>
 
 <details>
@@ -973,6 +1112,45 @@ export async function loadFromCdn(url) {
 On **WASM**, the standard Blazor-WASM trimming constraint applies: `T` in `InvokeAsync<T>` must be kept rooted on the
 call site (via `[DynamicallyAccessedMembers]` or a `JsonSerializerContext`). JSON primitives (`bool`, `int`, `long`,
 `double`, `string`) are always safe. Server has no such constraint.
+
+</details>
+
+<details>
+<summary><b>🎯 Element refs (JS interop)</b></summary>
+<br>
+
+Every element takes a `Ref:` parameter so you can reach the live DOM node from C#. Mint one with `ElementRef.New()`,
+store it in a **field** (so its id stays stable across renders), and pass it to `IJSRuntime` — it serializes to a marker
+the client revives into the real element before your JS runs:
+
+```csharp
+public sealed class MeasureDemo : Component
+{
+    private readonly IJSRuntime _js;
+    private readonly ElementRef _input = ElementRef.New();
+    private readonly ElementRef _box = ElementRef.New();
+
+    public MeasureDemo(IJSRuntime js) => _js = js;
+
+    protected override RenderResult Render() =>
+        Div()[
+            Input(Ref: _input, Type: "text"),
+            Div(Ref: _box)["A box whose width JS will read."],
+            Button(OnClickAsync: () => _input.FocusAsync(_js))["Focus the input"],
+            Button(OnClickAsync: MeasureBox)["Measure the box"]
+        ];
+
+    private async Task MeasureBox()
+    {
+        // The ref resolves to the real element before width() is called with it.
+        var width = await _js.InvokeAsync<double>("Rask.MeasureDemo.width", _box);
+        // … use width …
+    }
+}
+```
+
+Built-in helpers cover the common cases without any JS of your own: `ElementRefInterop.FocusAsync`, `BlurAsync`,
+`ScrollIntoViewAsync` (and `ElementRef.FocusAsync(js)` as shown). For anything else, hand the ref to your scoped JS.
 
 </details>
 
