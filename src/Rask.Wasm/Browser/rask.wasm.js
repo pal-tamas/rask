@@ -6,6 +6,14 @@ let dotnetExports = null;
 let root = null;
 let basePath = null;
 
+// Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
+// The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
+window.__raskEl = window.__raskEl || {
+    focus: function (el) { if (el) el.focus(); },
+    blur: function (el) { if (el) el.blur(); },
+    scrollIntoView: function (el, opts) { if (el) el.scrollIntoView(opts || { behavior: "smooth", block: "nearest" }); }
+};
+
 // Serializes render application across payloads. A navigation diff may defer its
 // body swap until the new page's scoped CSS loads (applyHeadThenWaitForCss), which
 // opens a microtask/timer gap during which .NET could deliver the next render. Both
@@ -1154,8 +1162,14 @@ function jsResolveIdentifier(target, identifier) {
 }
 
 function jsReviver(_key, value) {
-    if (value && typeof value === "object" && typeof value.__jsObjectId === "number") {
-        return jsObjectRefs.get(value.__jsObjectId);
+    if (value && typeof value === "object") {
+        if (typeof value.__jsObjectId === "number") {
+            return jsObjectRefs.get(value.__jsObjectId);
+        }
+        // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
+        if (typeof value.__raskRef__ === "string") {
+            return document.querySelector('[data-rask-ref="' + value.__raskRef__ + '"]');
+        }
     }
     return value;
 }

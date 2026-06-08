@@ -87,6 +87,48 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
+    public void GenericCallbackProperty_IsOptionalParamWithDefault()
+    {
+        // Callback<T> is a non-nullable struct, so the default rules would make it required.
+        // The generator special-cases it to an optional param defaulting to the empty callback.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public Callback<int> OnTick { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains("global::Rask.Core.Callback<int> OnTick = default", output);
+        Assert.Contains("__c.OnTick = OnTick;", output);
+    }
+
+    [Fact]
+    public void NonGenericCallbackProperty_IsOptionalParamWithDefault()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public Callback OnClick { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains("global::Rask.Core.Callback OnClick = default", output);
+        Assert.Contains("__c.OnClick = OnClick;", output);
+    }
+
+    [Fact]
     public void MixedProps_RequiredBeforeOptional()
     {
         var src = """

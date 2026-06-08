@@ -230,6 +230,23 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Diff_MixedKeyedAndUnkeyedSiblings_FallsBackToPositional_NoTrustedOps()
+    {
+        // The keyed reconciliation path requires EVERY direct child to carry data-rask-key. A
+        // mix of keyed and unkeyed siblings must fall back to the positional sibling walk
+        // (usedKeyed == false) — it must never emit a trusted PermutationBatch/Move that would
+        // misalign the unkeyed rows on the client.
+        var before = Frames(BuildMixedRows((0, true), (1, false), (2, true)));
+        var (afterFrames, afterHtml) = FramesAndHtml(BuildMixedRows((2, true), (1, false), (0, true)));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
+
+        Assert.False(usedKeyed);
+        Assert.All(ops, op => Assert.False(op.Trusted, "mixed keyed/unkeyed siblings must not produce trusted ops"));
+    }
+
+    [Fact]
     public void Diff_KeyedList_ViaKeyProperty_UsesKeyedPathWithTrustedRemove()
     {
         // The first-class Key property emits the same data-rask-key the differ keys on, so a
@@ -536,6 +553,19 @@ public class FrameDifferTests
         }
 
         return C.Ul()[rows];
+    }
+
+    private static Component BuildMixedRows(params (int Key, bool Keyed)[] rows)
+    {
+        var children = new List<Child>(rows.Length);
+        foreach (var (key, keyed) in rows)
+        {
+            children.Add(keyed
+                ? C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
+                : C.Li()[$"Item {key}"]);
+        }
+
+        return C.Ul()[children];
     }
 
     // Same shape as BuildKeyedRows but keyed via the first-class Key property instead of a
