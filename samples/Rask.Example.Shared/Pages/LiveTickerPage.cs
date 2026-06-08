@@ -45,7 +45,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                                     Class: "list-group list-group-numbered list-group-flush",
                                     Id: "ticker-log",
                                     Style: "max-height: 360px; overflow-y: auto;")[
-                                    _log.Select(l => Li(Key: l, 
+                                    _log.Select((l, i) => Li(Key: i,
                                         Class: "list-group-item ps-2 small bg-transparent")[
                                         Code(Class: "small")[l]]).ToArray()]
                         ]

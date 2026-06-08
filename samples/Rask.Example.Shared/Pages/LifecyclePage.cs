@@ -54,7 +54,7 @@ public sealed class LifecyclePage : Component
                         : Ol(
                             Class: "list-group list-group-numbered list-group-flush",
                             Id: "lifecycle-cycle-log")[
-                            _cycleLog.Select(l => Li(Key: l, 
+                            _cycleLog.Select((l, i) => Li(Key: i,
                                 Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
                 ]
             ],
@@ -108,7 +108,7 @@ public sealed class LifecyclePage : Component
                 }
                 """,
                 Notes:
-                "OnMount* fires once on first creation; OnPropsChanged* on every render; OnRendered* after the render commits; OnUnmount* once on disposal (children before parents). StateHasChanged() inside OnUnmount* is a no-op — the component is already leaving the tree."),
+                "OnMount* fires once on first creation; OnPropsChanged* on first render and whenever a bound prop or route/query param actually changes — a bare event-handler re-render (like the Trigger button above) does NOT refire it; OnRendered* after every render commits; OnUnmount* once on disposal (children before parents). StateHasChanged() inside OnUnmount* is a no-op — the component is already leaving the tree."),
             Div(Class: "alert alert-danger d-flex align-items-start mt-3")[
                 I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
                 Div()[
