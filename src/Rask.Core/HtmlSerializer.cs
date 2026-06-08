@@ -138,6 +138,49 @@ internal static class HtmlSerializer
                 SerializeErrorBoundary(boundary, sb);
                 break;
 
+            case Context context:
+            {
+                // Transparent like Fragment: push the provided value onto the ambient stack for
+                // the duration of the children walk, so any descendant's Render() (which runs
+                // inside this synchronous walk) resolves it via Context.Get<T>(). A keyed
+                // provider forwards its Key onto the first element its children render.
+                var ctxKey = context.Key?.ToString();
+                if (ctxKey is not null)
+                {
+                    KeyForwardScope.Arm(ctxKey);
+                }
+
+                using (ContextStack.Push(context.ValueType, context.Name, context.Value))
+                {
+                    try
+                    {
+                        if (context.ChildrenArray is { } ctxArray)
+                        {
+                            for (var i = 0; i < ctxArray.Length; i++)
+                            {
+                                Serialize(ctxArray[i].Component, sb);
+                            }
+                        }
+                        else if (context.Children is { } ctxChildren)
+                        {
+                            foreach (var child in ctxChildren)
+                            {
+                                Serialize(child.Component, sb);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (ctxKey is not null)
+                        {
+                            KeyForwardScope.Clear();
+                        }
+                    }
+                }
+
+                break;
+            }
+
             case { TagNameInternal: { } tagName } el:
                 var live = LiveRenderContext.Current;
                 var scopeId = live?.CurrentScopeId;

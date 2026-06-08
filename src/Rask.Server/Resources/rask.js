@@ -1,6 +1,14 @@
 (function () {
     "use strict";
 
+    // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
+    // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
+    window.__raskEl = window.__raskEl || {
+        focus: function (el) { if (el) el.focus(); },
+        blur: function (el) { if (el) el.blur(); },
+        scrollIntoView: function (el, opts) { if (el) el.scrollIntoView(opts || { behavior: "smooth", block: "nearest" }); }
+    };
+
     var root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
@@ -859,8 +867,14 @@
     function jsonReviver(key, value) {
         // Inverse of the placeholder write: replace {__jsObjectId:<id>} from the .NET
         // side with the live JS object. Skips other shapes.
-        if (value && typeof value === "object" && typeof value.__jsObjectId === "number") {
-            return jsObjectRefs.get(value.__jsObjectId);
+        if (value && typeof value === "object") {
+            if (typeof value.__jsObjectId === "number") {
+                return jsObjectRefs.get(value.__jsObjectId);
+            }
+            // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
+            if (typeof value.__raskRef__ === "string") {
+                return document.querySelector('[data-rask-ref="' + value.__raskRef__ + '"]');
+            }
         }
         return value;
     }

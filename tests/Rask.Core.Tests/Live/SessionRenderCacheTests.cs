@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Core;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Generated;
 
@@ -71,5 +72,72 @@ public class SessionRenderCacheTests
 
         var op = Assert.Single(ops);
         Assert.Equal("3", op.Value);
+    }
+
+    // ---- coalescing (rotate:false) invariants ----
+    // The WASM coalescing loop builds a payload several times within one dispatch but ships only
+    // the last build, so it diffs every intermediate build against the stable last-sent baseline
+    // (rotate:false) and Snapshot()s exactly once afterwards. These pin that contract.
+
+    [Fact]
+    public void TryComputeDiff_RotateFalse_KeepsDiffingAgainstStableBaseline()
+    {
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        // Baseline "a" (first render rotates to establish it).
+        Assert.False(RenderInto(cache, C.Div()["a"], ops, rotate: true));
+
+        // Two intermediate builds, neither rotating — both diff against "a".
+        Assert.True(RenderInto(cache, C.Div()["b"], ops, rotate: false));
+        Assert.NotEmpty(ops);
+        Assert.True(RenderInto(cache, C.Div()["c"], ops, rotate: false));
+        Assert.NotEmpty(ops);
+
+        // The baseline must still be "a": rendering "a" now (rotate:true) yields zero ops. If a
+        // rotate:false call had wrongly promoted _current, the baseline would be "b"/"c" and this
+        // would show a spurious diff.
+        Assert.True(RenderInto(cache, C.Div()["a"], ops, rotate: true));
+        Assert.Empty(ops);
+    }
+
+    [Fact]
+    public void Snapshot_AfterRotateFalse_CommitsTheLastBuildAsBaseline()
+    {
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        RenderInto(cache, C.Div()["a"], ops, rotate: true);  // baseline a
+        RenderInto(cache, C.Div()["b"], ops, rotate: false); // intermediate, no rotate
+        cache.Snapshot();                                    // commit "b" exactly once
+
+        // Baseline is now "b": rendering "b" yields no diff; rendering "a" would.
+        Assert.True(RenderInto(cache, C.Div()["b"], ops, rotate: true));
+        Assert.Empty(ops);
+    }
+
+    [Fact]
+    public void TryComputeDiff_OnFalseReturn_StillRotates_SoNoDoubleRotateIsNeeded()
+    {
+        // The invariant TryComputeDiff rotates on EVERY call (true or false): a first render
+        // returns false but must still establish the baseline. A following identical render then
+        // diffs against it (zero ops) — proving the false-return path rotated.
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        Assert.False(RenderInto(cache, C.Div()["x"], ops, rotate: true)); // false, but rotates
+        Assert.True(RenderInto(cache, C.Div()["x"], ops, rotate: true));  // has baseline now
+        Assert.Empty(ops);
+    }
+
+    private static bool RenderInto(SessionRenderCache cache, Component tree, List<EditOp> ops, bool rotate)
+    {
+        var sb = new StringBuilder();
+        using (FrameSinkScope.Push(cache.PrepareCurrentBuffer()))
+        {
+            HtmlSerializer.Serialize(tree, sb);
+        }
+
+        return cache.TryComputeDiff(ops, rotate);
     }
 }
