@@ -16,6 +16,7 @@ public sealed class JwtUserProvider(HttpClient http, TokenStore tokens) : IUserP
 
     public async Task EnsureLoadedAsync()
     {
+        IsLoading = true; // bridge the anonymous→authed flash (LoadAsync's finally clears it)
         await tokens.InitAsync();
         await LoadAsync();
     }

@@ -37,6 +37,11 @@ public sealed class Authorize : Component
     // gate the Policy branch and to decide whether to show the Authorizing slot.
     private bool? _policyAllowed;
 
+    // Monotonic token: each policy evaluation captures the current value at entry; a slower in-flight
+    // evaluation whose token is no longer current must not overwrite a newer verdict (avoids a
+    // last-completer-wins race when the principal changes mid-flight).
+    private int _policyGen;
+
     // Transparent — Authorize itself emits nothing, it only selects one slot. (Same as the base
     // default; stated explicitly to document the headless contract.)
     protected override string? TagName => null;
@@ -168,25 +173,46 @@ public sealed class Authorize : Component
 
     private async Task EvaluatePolicyAsync(ClaimsPrincipal principal)
     {
-        // Resolve the named policy through the provider, then authorize against its requirements —
-        // the same path RouteAuthorizationGuard uses for [Authorize(Policy = ...)].
-        var policyProvider = _services?.GetService<IAuthorizationPolicyProvider>();
-        var authz = _services?.GetService<IAuthorizationService>();
-        if (policyProvider is null || authz is null)
+        // Capture the generation at entry (synchronously, before any await). A newer evaluation will
+        // bump it; this one then drops its result rather than clobbering the fresher verdict.
+        var gen = ++_policyGen;
+        bool allowed;
+        try
         {
-            _policyAllowed = false;
-            return;
+            // Resolve the named policy through the provider, then authorize against its requirements —
+            // the same path RouteAuthorizationGuard uses for [Authorize(Policy = ...)].
+            var policyProvider = _services?.GetService<IAuthorizationPolicyProvider>();
+            var authz = _services?.GetService<IAuthorizationService>();
+            if (policyProvider is null || authz is null)
+            {
+                allowed = false;
+            }
+            else
+            {
+                var policy = await policyProvider.GetPolicyAsync(Policy!).ConfigureAwait(false);
+                if (policy is null)
+                {
+                    allowed = false;
+                }
+                else
+                {
+                    var result = await authz.AuthorizeAsync(principal, resource: null, policy).ConfigureAwait(false);
+                    allowed = result.Succeeded;
+                }
+            }
+        }
+        catch
+        {
+            // Fail closed: a throw from policy resolution/evaluation denies rather than leaving the gate
+            // stuck on the Authorizing slot. (This path also runs from a fire-and-forget continuation in
+            // OnUserChanged, where an unobserved throw would otherwise be swallowed silently.)
+            allowed = false;
         }
 
-        var policy = await policyProvider.GetPolicyAsync(Policy!).ConfigureAwait(false);
-        if (policy is null)
+        if (gen == _policyGen)
         {
-            _policyAllowed = false;
-            return;
+            _policyAllowed = allowed;
         }
-
-        var result = await authz.AuthorizeAsync(principal, resource: null, policy).ConfigureAwait(false);
-        _policyAllowed = result.Succeeded;
     }
 
     private static RenderResult RenderSlot(Child? slot) =>

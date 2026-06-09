@@ -397,8 +397,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             {
                 var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
                 var redirectPath = authResult.Outcome == RouteAuthorizationOutcome.Forbid
-                    ? "/forbidden"
-                    : "/login";
+                    ? RouteAuthorizationGuard.ForbidPath
+                    : RouteAuthorizationGuard.ChallengePath;
                 routeState.Path = redirectPath;
                 if (authResult.Outcome == RouteAuthorizationOutcome.Challenge)
                 {

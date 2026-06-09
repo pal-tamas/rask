@@ -875,8 +875,8 @@ public static class RaskEndpointExtensions
                     // through the configured auth scheme's own LoginPath/AccessDeniedPath.)
                     var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
                     var redirectPath = result.Outcome == RouteAuthorizationOutcome.Forbid
-                        ? "/forbidden"
-                        : "/login";
+                        ? RouteAuthorizationGuard.ForbidPath
+                        : RouteAuthorizationGuard.ChallengePath;
                     routeState.Path = redirectPath;
                     if (result.Outcome == RouteAuthorizationOutcome.Challenge)
                     {
@@ -969,7 +969,13 @@ public static class RaskEndpointExtensions
     }
 
     // True when the request carries no Origin/Referer (same-origin fetches may omit Origin — the
-    // ticket secrecy covers those) or one whose scheme+host+port matches the request's own host.
+    // ticket secrecy covers those) or one whose host matches the request's own host.
+    //
+    // We compare host only — NOT scheme/port. Behind a TLS-terminating reverse proxy the browser's
+    // Origin is https://app (:443) while request.Scheme/Host can be http (:80) unless ForwardedHeaders
+    // is wired, so a scheme/port match would 403 a legitimate sign-in. Host is the CSRF-relevant axis
+    // and the single-use session-bound ticket is the real authority (see RedeemAuthTicketAsync), so a
+    // host-only check is the right belt-and-braces.
     private static bool IsSameOrigin(HttpRequest request)
     {
         var origin = request.Headers.Origin.ToString();
@@ -989,10 +995,10 @@ public static class RaskEndpointExtensions
             return false;
         }
 
-        var self = new Uri(request.Scheme + "://" + request.Host.Value);
-        return string.Equals(originUri.Scheme, self.Scheme, StringComparison.OrdinalIgnoreCase)
-               && string.Equals(originUri.Host, self.Host, StringComparison.OrdinalIgnoreCase)
-               && originUri.Port == self.Port;
+        // request.Host.Host is the host without the port (empty if the Host header is missing/malformed).
+        var selfHost = request.Host.Host;
+        return !string.IsNullOrEmpty(selfHost)
+               && string.Equals(originUri.Host, selfHost, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<string> ResolveAuthSchemeAsync(IServiceProvider services, string? explicitScheme)

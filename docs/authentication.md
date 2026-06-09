@@ -503,6 +503,11 @@ host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserPro
 
 > ⚠️ A token in `localStorage` is readable by any script on the page (XSS). For maximum security prefer the
 > **HttpOnly-cookie** scheme — the token never reaches JS at all (see [Cookie + WASM](#cookie--wasm)).
+>
+> Note: the runnable JWT samples and `dotnet new rask-wasm --auth` scaffold this **plaintext-`localStorage`**
+> `TokenStore` as the starting point. Treat it as the floor, not the recommendation — pair it with
+> short-lived access tokens (minutes, not hours), HTTPS, and a strict CSP, or graft on the encrypted-at-rest
+> `ProtectedTokenStore` below before going to production.
 
 **Harden it — encrypted at rest (`ProtectedTokenStore`).** Instead of plain `localStorage`, encrypt the token
 with ASP.NET Data Protection before storing — the browser holds only ciphertext (a server protect/unprotect

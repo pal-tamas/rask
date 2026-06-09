@@ -33,7 +33,11 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
     public bool IsLoading { get; private set; }
     public event Action? Changed;
 
-    public Task EnsureLoadedAsync() => LoadAsync();
+    public Task EnsureLoadedAsync()
+    {
+        IsLoading = true; // bridge the anonymous→authed flash (LoadAsync's finally clears it)
+        return LoadAsync();
+    }
 
     public async Task RefreshAsync()
     {
