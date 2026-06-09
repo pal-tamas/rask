@@ -59,7 +59,28 @@
 
     var sessionId = root.getAttribute("data-rask-root");
     var proto = location.protocol === "https:" ? "wss:" : "ws:";
-    var wsUrl = proto + "//" + location.host + prependBase("/rask/ws");
+    var baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
+
+    // JWT-on-WebSocket hook. Browsers can't set Authorization headers on a WS upgrade, so a
+    // bearer-token app carries the access token on the URL as ?access_token= (the SignalR pattern;
+    // pair it with AddJwtBearer's OnMessageReceived reading the query for the Rask WS path). The
+    // token is read fresh on every (re)connect from window.Rask.authToken (string or function) or a
+    // <meta name="rask-access-token"> tag. With no token set this is a no-op — cookie auth is
+    // unaffected and the URL is unchanged.
+    function buildWsUrl() {
+        var token = null;
+        try {
+            var r = window.Rask;
+            if (r && typeof r.authToken === "function") token = r.authToken();
+            else if (r && typeof r.authToken === "string") token = r.authToken;
+            if (!token) {
+                var meta = document.querySelector('meta[name="rask-access-token"]');
+                if (meta) token = meta.getAttribute("content");
+            }
+        } catch (e) { token = null; }
+        if (!token) return baseWsUrl;
+        return baseWsUrl + (baseWsUrl.indexOf("?") >= 0 ? "&" : "?") + "access_token=" + encodeURIComponent(token);
+    }
 
     var ws = null;
     var queue = [];
@@ -68,11 +89,23 @@
     var reconnectTimer = null;
     var suppressEvents = false;
     var overlay = installOverlay();
+    // The reconnect overlay doubles as the auth-handshake indicator. During a sign-in/out the
+    // socket is deliberately closed and reconnected to pick up the new cookie; that reconnect is
+    // an authentication step, not a dropped connection, so the overlay says "Authenticating…"
+    // instead of "Reconnecting…" for its duration.
+    var overlayMsg = overlay.querySelector(".rask-overlay__msg");
+    var authInProgress = false;
+    var RECONNECT_MSG = "Reconnecting…";
+    var AUTH_MSG = "Authenticating…";
+
+    function setOverlayMessage(text) {
+        if (overlayMsg) overlayMsg.textContent = text;
+    }
 
     connect();
 
     function connect() {
-        ws = new WebSocket(wsUrl);
+        ws = new WebSocket(buildWsUrl());
 
         ws.addEventListener("open", function () {
             open = true;
@@ -81,6 +114,11 @@
             ws.send(JSON.stringify({type: "hello", session: sessionId}));
             for (var i = 0; i < queue.length; i++) ws.send(queue[i]);
             queue.length = 0;
+            // Auth reconnect completed — restore the default message for any future drop.
+            if (authInProgress) {
+                authInProgress = false;
+                setOverlayMessage(RECONNECT_MSG);
+            }
             hideOverlay();
         });
 
@@ -154,7 +192,7 @@
         el.innerHTML =
             '<div class="rask-overlay__card">' +
             '<span class="rask-overlay__spinner" aria-hidden="true"></span>' +
-            '<span>Reconnecting…</span>' +
+            '<span class="rask-overlay__msg">Reconnecting…</span>' +
             '</div>';
         document.documentElement.appendChild(el);
         return el;
@@ -454,6 +492,11 @@
 
     function redeemAuthTicket(auth) {
         suppressEvents = true;
+        // The imminent socket close + reconnect is an auth step — show "Authenticating…" up front
+        // so the user never sees "Reconnecting…" for a deliberate sign-in/out.
+        authInProgress = true;
+        setOverlayMessage(AUTH_MSG);
+        showOverlay();
         fetch(prependBase("/_rask/auth/redeem"), {
             method: "POST",
             headers: {"content-type": "application/json"},

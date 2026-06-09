@@ -7,8 +7,8 @@ using Rask.Core.Authentication;
 namespace Rask.Core.Tests.Authentication;
 
 // The built-in Component.User (resolved from IUserProvider in the active render scope) is the
-// supported way to gate content — no AuthorizeView component. These pin that gating in Render()
-// reflects the provider's principal, including role checks.
+// imperative way to gate content (the declarative counterpart is the Authorize component — see
+// AuthorizeTests). These pin that gating in Render() reflects the provider's principal, incl. roles.
 public class UserGatingTests
 {
     [Fact]

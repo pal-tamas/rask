@@ -24,7 +24,6 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
-        Services.TryAddSingleton<RaskAuthorizationOptions>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();
         // IJSRuntime backed by the WASM JSImport/JSExport bridge. Singleton — one

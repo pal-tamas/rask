@@ -27,3 +27,31 @@ public sealed class SubPathWasmExampleCollection
 {
     public const string Name = "SubPathWasmExample";
 }
+
+[CollectionDefinition(Name)]
+public sealed class AuthExampleCollection
+    : ICollectionFixture<AuthExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "AuthExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class JwtServerAuthExampleCollection
+    : ICollectionFixture<JwtServerAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "JwtServerAuthExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class WasmCookieAuthExampleCollection
+    : ICollectionFixture<WasmCookieAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "WasmCookieAuthExample";
+}
+
+[CollectionDefinition(Name)]
+public sealed class WasmJwtAuthExampleCollection
+    : ICollectionFixture<WasmJwtAuthAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "WasmJwtAuthExample";
+}

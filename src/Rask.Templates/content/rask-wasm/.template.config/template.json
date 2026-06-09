@@ -12,5 +12,23 @@
   },
   "sourceName": "Company.RaskWasm",
   "preferNameDirectory": true,
-  "defaultName": "RaskApp"
+  "defaultName": "RaskApp",
+  "symbols": {
+    "auth": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Scaffold a JWT bearer login against an external API (token in localStorage, attached as Authorization: Bearer). Point BaseAddress at your auth API — a standalone SPA has no host of its own."
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!auth)",
+          "exclude": [ "Auth/**" ]
+        }
+      ]
+    }
+  ]
 }
