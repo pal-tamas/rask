@@ -94,13 +94,18 @@ public sealed class JwtUserProvider(HttpClient http, TokenStore tokens) : IUserP
                 return;
             }
 
-            var me = await http.GetFromJsonAsync("api/me", AuthJson.Default.MeDto);
+            // GetAsync (not GetFromJsonAsync): a 204 No Content would make GetFromJsonAsync throw a
+            // JsonException on the empty body; treat anything but a 200-with-body as anonymous.
+            using var resp = await http.GetAsync("api/me");
+            var me = resp.StatusCode == System.Net.HttpStatusCode.OK
+                ? await resp.Content.ReadFromJsonAsync(AuthJson.Default.MeDto)
+                : null;
             _current = me is { Name: { } name }
                 ? new ClaimsPrincipal(new ClaimsIdentity(
                     [new Claim(ClaimTypes.Name, name), .. me.Roles.Select(r => new Claim(ClaimTypes.Role, r))], "jwt"))
                 : new ClaimsPrincipal(new ClaimsIdentity());
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
             _current = new ClaimsPrincipal(new ClaimsIdentity());
         }

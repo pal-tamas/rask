@@ -14,7 +14,7 @@ public sealed class MembersPage : Component
     protected override RenderResult Render() =>
         Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
             Authorize(
-                NotAuthorized: P()["Please ", A(Href: "/login")["sign in"], "."],
+                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."],
                 Authorized: MemberContent())
         ];
 }

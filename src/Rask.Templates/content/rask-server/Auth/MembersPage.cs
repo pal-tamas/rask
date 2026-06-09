@@ -15,7 +15,7 @@ public sealed class MembersPage : Component
     protected override RenderResult Render() =>
         Div(Class: "welcome-card")[
             Authorize(
-                NotAuthorized: P()["Please ", A(Href: "/login")["sign in"], "."],
+                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."],
                 Authorized: MemberContent())
         ];
 }

@@ -32,14 +32,21 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
     {
         try
         {
-            var me = await http.GetFromJsonAsync("api/me", AuthJson.Default.MeDto);
+            // GetAsync (not GetFromJsonAsync): an anonymous /api/me returns 204 No Content, and
+            // GetFromJsonAsync would throw a JsonException trying to deserialize the empty body
+            // (its try/catch only caught HttpRequestException). Treat anything but a 200-with-body
+            // as anonymous.
+            using var resp = await http.GetAsync("api/me");
+            var me = resp.StatusCode == System.Net.HttpStatusCode.OK
+                ? await resp.Content.ReadFromJsonAsync(AuthJson.Default.MeDto)
+                : null;
             _current = me is { Name: { } name }
                 ? new ClaimsPrincipal(new ClaimsIdentity(
                     [new Claim(ClaimTypes.Name, name), .. me.Roles.Select(r => new Claim(ClaimTypes.Role, r))],
                     "api"))
                 : new ClaimsPrincipal(new ClaimsIdentity());
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
         {
             _current = new ClaimsPrincipal(new ClaimsIdentity());
         }

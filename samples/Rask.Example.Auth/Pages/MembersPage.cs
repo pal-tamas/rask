@@ -15,11 +15,14 @@ namespace Rask.Example.Auth.Pages;
 public sealed class MembersPage : Component
 {
     protected override RenderResult Render() =>
-        Div(Id: "members", Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
-            Authorize(
-                Authorizing: P(Id: "members-authorizing")["Signing you in…"],
-                NotAuthorized: P(Id: "members-anon")["Please ", A(Href: "/login")["sign in"], "."],
-                Authorized: MemberContent())
+        Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
+            Div(Class: "card-body")[
+                Authorize(
+                    Authorizing: P(Id: "members-authorizing", Class: "text-secondary mb-0")["Signing you in…"],
+                    NotAuthorized: P(Id: "members-anon", Class: "mb-0")[
+                        "Please ", NavLink(Href: "/login")["sign in"], "."],
+                    Authorized: MemberContent())
+            ]
         ];
 }
 
@@ -29,13 +32,15 @@ public sealed class MemberContent(IAuthSignIn auth) : Component
 {
     protected override RenderResult Render() =>
         Fragment()[
-            H1(Id: "members-greeting")[$"Welcome, {User.Identity?.Name}"],
-            P()["This page is gated by ", Code()["[Authorize]"], " plus the Authorize component."],
+            H1(Id: "members-greeting", Class: "h3 mb-3")[$"Welcome, {User.Identity?.Name}"],
+            P(Class: "text-secondary")["This page is gated by ", Code()["[Authorize]"],
+                " plus the Authorize component."],
             // Role gate: only an admin sees this.
             Authorize(
                 Roles: ["admin"],
-                Authorized: Div(Id: "admin-note", Style: "color:#7a5c00")["🔑 You have admin access."],
+                Authorized: Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."],
                 NotAuthorized: (Child)Fragment()),
-            Button(Id: "logout", OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
+            Button(Id: "logout", OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"),
+                Class: "btn btn-outline-primary")["Sign out"]
         ];
 }
