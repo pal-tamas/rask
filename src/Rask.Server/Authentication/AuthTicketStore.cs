@@ -19,6 +19,8 @@ internal sealed record AuthTicket(
 
 internal sealed class AuthTicketStore : IAuthTicketStore
 {
+    // Lifetime of a one-shot sign-in/out redeem ticket. Short by design (the ticket is the authority
+    // for setting the cookie). Mutable static so tests can force expiry; not a public knob.
     internal static TimeSpan Ttl = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<string, AuthTicket> _tickets = new();

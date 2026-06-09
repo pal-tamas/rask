@@ -40,6 +40,14 @@
   <PropertyGroup>
     <_RaskInRepoImplicitUsings>false</_RaskInRepoImplicitUsings>
     <_RaskInRepoImplicitUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.')) ">true</_RaskInRepoImplicitUsings>
+    <!--
+      The validation packages inject their own global usings (Rask.Validation.* below). Downstream
+      consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force
+      every Rask.Example.* project to reference the validation libs just to satisfy the generated usings.
+      The auth samples (Rask.Example.Auth*) don't use validation, so skip those usings for them.
+    -->
+    <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) ">false</_RaskExampleValidationUsings>
   </PropertyGroup>
 
   <!--
@@ -60,8 +68,8 @@
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
+          Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
-          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
+          Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
 
 </Project>

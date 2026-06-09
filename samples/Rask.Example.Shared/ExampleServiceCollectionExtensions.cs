@@ -24,9 +24,13 @@ public static class ExampleServiceCollectionExtensions
 
         // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
         // type (so the demo can sign in/out) and as IUserProvider (so Component.User resolves it).
-        // Defaults to anonymous, so other pages are unaffected.
-        services.AddSingleton<DemoUserProvider>();
-        services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<DemoUserProvider>());
+        // Defaults to anonymous, so other pages are unaffected. Scoped — NOT singleton — so each
+        // live session gets its own principal (matching the framework's own SessionUserProvider,
+        // RaskEndpointExtensions.AddScoped). A singleton would share one signed-in user across every
+        // Server connection, leaking auth state between sessions (and between E2E tests). On WASM
+        // there's a single session, so scoped resolves once from the root provider — same behaviour.
+        services.AddScoped<DemoUserProvider>();
+        services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<DemoUserProvider>());
         return services;
     }
 }

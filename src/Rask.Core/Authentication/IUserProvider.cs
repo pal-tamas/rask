@@ -19,4 +19,13 @@ public interface IUserProvider
     ///     Default is a no-op.
     /// </summary>
     Task RefreshAsync() => Task.CompletedTask;
+
+    /// <summary>
+    ///     <c>true</c> while the principal is still being established — e.g. a WASM provider's
+    ///     <see cref="EnsureLoadedAsync" />/<see cref="RefreshAsync" /> is in flight. The declarative
+    ///     <see cref="Rask.Core.Components.Authorize" /> component shows its <c>Authorizing</c> slot
+    ///     while this is true, bridging the anonymous→authenticated flash. Providers with a
+    ///     synchronously-known principal (server cookie, anonymous) leave the default <c>false</c>.
+    /// </summary>
+    bool IsLoading => false;
 }

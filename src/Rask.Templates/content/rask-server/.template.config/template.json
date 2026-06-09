@@ -12,5 +12,23 @@
   },
   "sourceName": "Company.RaskServer",
   "preferNameDirectory": true,
-  "defaultName": "RaskApp"
+  "defaultName": "RaskApp",
+  "symbols": {
+    "auth": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Scaffold a cookie-backed login: a /login form, a credential store, a protected /members page, and the auth wiring."
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!auth)",
+          "exclude": [ "Auth/**" ]
+        }
+      ]
+    }
+  ]
 }

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Example.Auth.WasmCookie.Host</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Auth.WasmCookie\Rask.Example.Auth.WasmCookie.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"/>
+  </ItemGroup>
+
+  <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="wwwroot"/>
+  </Target>
+
+</Project>
