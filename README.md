@@ -346,8 +346,13 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
   host model. Run one with `dotnet run --project samples/Rask.Example.Server` (or `samples/Rask.Example.Wasm.Host`) and open the printed
   URL.
 - **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation, nested-form
-  binding, routing, JS interop, virtualization (a 10K-row table), and file upload/download. These are the canonical
-  references cited throughout *Core concepts* below.
+  binding, routing, JS interop, virtualization (a 10K-row table), file upload/download, and **auth gating** (the `/user`
+  page shows both imperative `Component.User` and the declarative `Authorize` component). These are the canonical
+  references cited throughout *Core concepts* below. For production auth flows see **[docs/authentication.md](docs/authentication.md)**.
+- **`samples/Rask.Example.Auth`** — a minimal, runnable **cookie-login** app: a `/login` form, a protected
+  `/members` page (`[Authorize]` + the `Authorize` component), role-gated admin content, and sign-out over the live
+  runtime. `dotnet run --project samples/Rask.Example.Auth` and visit `/members`. The full login round trip is covered
+  by a browser E2E (`AuthExampleTests`).
 - **Live demo** — every push to `main` publishes `Rask.Example.Wasm` to GitHub Pages via
   [`.github/workflows/pages.yml`](.github/workflows/pages.yml), so you can click through a full multi-page Rask app in
   the browser before cloning anything.
@@ -568,9 +573,9 @@ built-in page if no app-defined one exists.
 <summary><b>🔐 Auth gating (built-in <code>User</code>)</b></summary>
 <br>
 
-There is no `AuthorizeView` component. Every component exposes `Component.User` — a never-null `ClaimsPrincipal` resolved
-from the scoped `IUserProvider` (back it with a cookie/JWT on Server, or `/api/me` on WASM). Gate in `Render()` with
-plain C#, and subscribe to the provider's `Changed` event so a sign-in originating anywhere re-renders the gate:
+Every component exposes `Component.User` — a never-null `ClaimsPrincipal` resolved from the scoped `IUserProvider`
+(back it with a cookie/JWT on Server, or `/api/me` on WASM). Gate **imperatively** in `Render()` with plain C#, and
+subscribe to the provider's `Changed` event so a sign-in originating anywhere re-renders the gate:
 
 ```csharp
 public sealed class AccountPanel : Component
@@ -592,8 +597,22 @@ public sealed class AccountPanel : Component
 }
 ```
 
+Or gate **declaratively** with the headless `Authorize` component — three slots, no markup of its own:
+
+```csharp
+Authorize(
+    Roles: ["admin"],
+    Authorized:    Div()["🔑 Admin tools"],
+    NotAuthorized: A(Href: "/login")["Sign in"],
+    Authorizing:   Spinner());                 // shown while the principal/policy resolves
+```
+
 For whole-page gating, put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on the page
 component — the `RouteAuthorizationGuard` enforces it before the page renders.
+
+**Going to production?** See **[docs/authentication.md](docs/authentication.md)** for complete, copy-pasteable flows:
+cookie & JWT on both Server and WASM, ASP.NET Identity, Keycloak/OIDC, protected token storage, the
+auth configured through ASP.NET's own AddCookie/AddJwtBearer, and a security checklist.
 
 </details>
 

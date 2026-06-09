@@ -103,6 +103,52 @@ public class AuthRedeemEndpointTests
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
+    [Fact]
+    public async Task Redeem_ForeignOrigin_Returns403()
+    {
+        using var host = CreateHost();
+        var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
+        var ticketId = store.Issue(
+            AuthAction.SignIn,
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "TestCookie")),
+            "TestCookie",
+            "session-1");
+
+        var req = new HttpRequestMessage(HttpMethod.Post, "/_rask/auth/redeem")
+        {
+            Content = JsonContent.Create(new { ticket = ticketId, session = "session-1" })
+        };
+        req.Headers.Add("Origin", "https://evil.example");
+
+        var resp = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+        // The cross-origin request was bounced before the ticket was consumed — it still redeems.
+        Assert.True(store.TryRedeem(ticketId, "session-1", out _));
+    }
+
+    [Fact]
+    public async Task Redeem_SameOrigin_Succeeds()
+    {
+        using var host = CreateHost();
+        var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
+        var ticketId = store.Issue(
+            AuthAction.SignIn,
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "TestCookie")),
+            "TestCookie",
+            "session-1");
+
+        var req = new HttpRequestMessage(HttpMethod.Post, "/_rask/auth/redeem")
+        {
+            Content = JsonContent.Create(new { ticket = ticketId, session = "session-1" })
+        };
+        req.Headers.Add("Origin", "http://localhost");
+
+        var resp = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+    }
+
     private static RaskTestHost CreateHost() =>
         RaskTestHost.Create<SignInTestApp>(
             services =>

@@ -27,3 +27,10 @@ public sealed class SubPathWasmExampleCollection
 {
     public const string Name = "SubPathWasmExample";
 }
+
+[CollectionDefinition(Name)]
+public sealed class AuthExampleCollection
+    : ICollectionFixture<AuthExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "AuthExample";
+}

@@ -4,6 +4,7 @@
     <Project Path="benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/Rask.Example.Auth/Rask.Example.Auth.csproj" />
     <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj" />
     <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj" />
     <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj" />

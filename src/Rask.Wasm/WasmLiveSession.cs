@@ -395,11 +395,10 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                 .ConfigureAwait(false);
             if (authResult.Outcome != RouteAuthorizationOutcome.Allow)
             {
-                var options = Services.GetRequiredService<RaskAuthorizationOptions>();
                 var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
                 var redirectPath = authResult.Outcome == RouteAuthorizationOutcome.Forbid
-                    ? options.ForbidPath
-                    : options.ChallengePath;
+                    ? "/forbidden"
+                    : "/login";
                 routeState.Path = redirectPath;
                 if (authResult.Outcome == RouteAuthorizationOutcome.Challenge)
                 {

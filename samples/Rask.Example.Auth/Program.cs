@@ -1,14 +1,8 @@
-using Company.RaskServer;
-using Rask.Server;
-//#if (auth)
 using Microsoft.AspNetCore.Authentication.Cookies;
-//#endif
+using Rask.Example.Auth;
+using Rask.Server;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddRask();
-builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>();
-//#if (auth)
 
 // Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -17,23 +11,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.Cookie.Name = "rask.auth";
         o.LoginPath = "/login";
         o.AccessDeniedPath = "/forbidden";
+        o.ExpireTimeSpan = TimeSpan.FromHours(8);
+        o.SlidingExpiration = true;
     });
 builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
-//#endif
+builder.Services.AddRask();
 
 var app = builder.Build();
 
-app.MapStaticAssets();
-//#if (auth)
+app.UseStaticFiles();
+app.UseRouting();
 // Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.
 app.UseAuthentication();
 app.UseAuthorization();
-//#endif
-
-// To host this app under a sub-path (e.g. behind a reverse proxy mapping
-// /myapp/* → this server), pass pathBase. Every framework endpoint and
-// emitted URL is scoped under the prefix; user-space routes stay unprefixed.
-//   app.UseRask<App>(pathBase: "/myapp");
 app.UseRask<App>();
 
 app.Run();

@@ -42,6 +42,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
                       ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Auth\Rask.Example.Auth.csproj"
+                      ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Wasm.Host\Rask.Example.Wasm.Host.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>

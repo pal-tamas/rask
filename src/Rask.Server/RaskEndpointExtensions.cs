@@ -87,7 +87,6 @@ public static class RaskEndpointExtensions
 
         services.AddScoped<SessionUserProvider>();
         services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<SessionUserProvider>());
-        services.TryAddSingleton<RaskAuthorizationOptions>();
         services.AddAuthorization();
 
         // IJSRuntime compatibility. RaskJSRuntime + LiveSessionAccessor are scoped — one
@@ -101,17 +100,6 @@ public static class RaskEndpointExtensions
         services.AddScoped<RaskJSRuntime>();
         services.AddScoped<IJSRuntime>(sp => sp.GetRequiredService<RaskJSRuntime>());
         return services;
-    }
-
-    public static IServiceCollection AddRask(
-        this IServiceCollection services,
-        Action<RaskAuthorizationOptions> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-        var options = new RaskAuthorizationOptions();
-        configure(options);
-        services.AddSingleton(options);
-        return services.AddRask();
     }
 
     public static WebApplication UseRask<TApp>(
@@ -883,11 +871,12 @@ public static class RaskEndpointExtensions
                     .ConfigureAwait(false);
                 if (result.Outcome != RouteAuthorizationOutcome.Allow)
                 {
-                    var options = session.Services.GetRequiredService<RaskAuthorizationOptions>();
+                    // Client-side guard redirect targets. (The initial HTTP GET challenge already goes
+                    // through the configured auth scheme's own LoginPath/AccessDeniedPath.)
                     var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
                     var redirectPath = result.Outcome == RouteAuthorizationOutcome.Forbid
-                        ? options.ForbidPath
-                        : options.ChallengePath;
+                        ? "/forbidden"
+                        : "/login";
                     routeState.Path = redirectPath;
                     if (result.Outcome == RouteAuthorizationOutcome.Challenge)
                     {
@@ -923,6 +912,16 @@ public static class RaskEndpointExtensions
 
     private static async Task RedeemAuthTicketAsync(HttpContext ctx, IAuthTicketStore tickets)
     {
+        // Defense-in-depth CSRF: the redeem ticket is a single-use, session-bound, 128-bit secret
+        // delivered only over the authenticated same-origin WS frame, so classic cookie-CSRF can't
+        // forge it. As belt-and-braces we still reject a cross-origin Origin/Referer — a forged POST
+        // from another site is bounced before the (otherwise antiforgery-exempt) ticket is consulted.
+        if (!IsSameOrigin(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         string? ticketId = null;
         string? sessionId = null;
         try
@@ -967,6 +966,33 @@ public static class RaskEndpointExtensions
         }
 
         ctx.Response.StatusCode = StatusCodes.Status200OK;
+    }
+
+    // True when the request carries no Origin/Referer (same-origin fetches may omit Origin — the
+    // ticket secrecy covers those) or one whose scheme+host+port matches the request's own host.
+    private static bool IsSameOrigin(HttpRequest request)
+    {
+        var origin = request.Headers.Origin.ToString();
+        if (string.IsNullOrEmpty(origin))
+        {
+            var referer = request.Headers.Referer.ToString();
+            if (string.IsNullOrEmpty(referer))
+            {
+                return true;
+            }
+
+            origin = referer;
+        }
+
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
+        {
+            return false;
+        }
+
+        var self = new Uri(request.Scheme + "://" + request.Host.Value);
+        return string.Equals(originUri.Scheme, self.Scheme, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(originUri.Host, self.Host, StringComparison.OrdinalIgnoreCase)
+               && originUri.Port == self.Port;
     }
 
     private static async Task<string> ResolveAuthSchemeAsync(IServiceProvider services, string? explicitScheme)
