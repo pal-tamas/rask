@@ -10,7 +10,7 @@ Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each
 - [Cookie + Server](#cookie--server)
 - [Cookie + WASM](#cookie--wasm)
 - [JWT + Server](#jwt--server)
-- [JWT + WASM (protected storage)](#jwt--wasm-protected-storage)
+- [JWT + WASM](#jwt--wasm)
 - [Standalone WASM (no host)](#standalone-wasm-no-host)
 - [ASP.NET Identity](#aspnet-identity)
 - [Keycloak / OpenID Connect](#keycloak--openid-connect)
@@ -238,7 +238,10 @@ Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
 ## Cookie + WASM
 
 The WASM client has no server pipeline of its own, so the **API host** owns the cookie. The client hydrates
-its principal from `/api/me`.
+its principal from `/api/me`. Runnable: **`samples/Rask.Example.Auth.WasmCookie(.Host)`** (with a browser E2E).
+
+> **Scaffold it:** `dotnet new rask-wasm-hosted --auth` generates this — the host's `/api/login` + `/api/me` +
+> `/auth/logout`, and a client with `ApiUserProvider`, a login page, and a protected `/members` page.
 
 **On the API host** (`Rask.Wasm.Host` / your ASP.NET server):
 
@@ -314,30 +317,40 @@ unsupported — the cookie is set by the server):
 ```csharp
 public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navigator nav)
 {
-    public async Task<bool> LoginAsync(LoginModel m, string? returnUrl)
+    public async Task<bool> LoginAsync(string username, string password, string? returnUrl)
     {
-        var resp = await http.PostAsJsonAsync("api/login", new LoginDto(m.Username, m.Password), AuthJson.Default.Options);
+        var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.LoginDto);
         if (!resp.IsSuccessStatusCode) return false;
         await users.RefreshAsync();
-        nav.Navigate(returnUrl ?? "/");
+        nav.Navigate(returnUrl ?? "/members");
         return true;
+    }
+
+    public async Task LogoutAsync()
+    {
+        await http.PostAsync("auth/logout", null);
+        // Navigate first (still in the click-handler scope), then clear the principal — refreshing first
+        // closes the Authorize gate and unmounts the calling component before the navigation runs.
+        nav.Navigate("/login");
+        await users.RefreshAsync();
     }
 }
 ```
 
-**`Program.cs` (client):**
+**`Program.cs` (client)** — note `WasmHostBuilder.BaseAddress` (not Blazor's `HostEnvironment`):
 
 ```csharp
-var builder = WasmHostBuilder.CreateDefault(args);
-builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddSingleton<ApiUserProvider>();
-builder.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<ApiUserProvider>()); // overrides the anonymous default
-builder.Services.AddSingleton<WasmLoginService>();
-await builder.RunAsync<App>();
+var host = WasmHostBuilder.CreateDefault();
+host.Services.AddSingleton(_ => new HttpClient { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
+host.Services.AddSingleton<ApiUserProvider>();
+host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<ApiUserProvider>()); // overrides the anonymous default
+host.Services.AddSingleton<WasmLoginService>();
+await host.RunAsync<App>();
 ```
 
-Sign out with the built-in WASM signer (POSTs `/auth/logout`, refreshes, navigates):
-`await auth.SignOutAsync(returnUrl: "/");`
+Wire the form to `WasmLoginService.LoginAsync` and the sign-out button to `WasmLoginService.LogoutAsync`.
+(The built-in `WasmAuthSignIn.SignOutAsync` also works, but doing it through your own service keeps the
+navigate-before-refresh ordering explicit.)
 
 ---
 
@@ -354,8 +367,40 @@ Use this when you want a bearer-token API the same identity serves.
 > redirect, so route `[Authorize]` is the wrong tool for an interactive page). See
 > **`samples/Rask.Example.Auth.Jwt`**.
 
-The alternative below carries the token on the WS URL as `?access_token=` (the SignalR pattern) — simpler,
-but the token lands in server access logs, so keep it short-lived and HTTPS-only.
+**Recommended — `ProtectedSessionStorage`:**
+
+```csharp
+// Program.cs
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<ProtectedSessionStorage>();   // Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+builder.Services.AddSingleton<JwtIssuer>();
+builder.Services.AddSingleton<JwtValidator>();           // validates a raw JWT → ClaimsPrincipal
+builder.Services.AddRask();
+// no AddJwtBearer, no UseAuthentication — the principal is held in the live session, not middleware.
+
+// LoginPage submit handler (the WS is up, so JS interop works):
+var jwt = issuer.Issue(name, roles);
+await sessionStore.SetAsync("rask.jwt", jwt);            // encrypted at rest, decrypted only server-side
+if (validator.Validate(jwt) is { } principal)
+    users.Set(principal);                               // SessionUserProvider.Set — authenticated in-session
+nav.Navigate("/members");
+
+// A headless bootstrap re-establishes the principal on a fresh session / refresh:
+protected override async Task OnMountAsync()
+{
+    var result = await sessionStore.GetAsync<string>("rask.jwt");
+    if (result.Success && result.Value is { } jwt && validator.Validate(jwt) is { } principal)
+        users.Set(principal);
+}
+```
+
+The members page gates with the `Authorize` component (not route `[Authorize]`, which would 401). Full code:
+**`samples/Rask.Example.Auth.Jwt`**.
+
+---
+
+**Alternative — `?access_token` on the WS URL** (the SignalR pattern): simpler, but the token lands in
+server access logs, so keep it short-lived and HTTPS-only.
 
 **Issue + validate the token:**
 
@@ -414,13 +459,54 @@ exactly as for cookies.
 
 ---
 
-## JWT + WASM (protected storage)
+## JWT + WASM
 
-For a bearer-token SPA, the token rides the `Authorization` header on every `HttpClient` call. Per the
-"never store a plaintext token" rule, the token is **encrypted with ASP.NET Data Protection** before it
-touches browser storage.
+For a bearer-token SPA, the token rides the `Authorization` header on every `HttpClient` call. The runnable
+sample (**`samples/Rask.Example.Auth.WasmJwt(.Host)`**, with a browser E2E) keeps it simple: a plain
+**`localStorage`** token store (cleared on sign-out), a `BearerTokenHandler` that attaches it, and the host
+validating it with `AddJwtBearer`.
 
-**`ProtectedTokenStore` (reference implementation of `ITokenStore`):**
+**`TokenStore` (localStorage) + `BearerTokenHandler`:**
+
+```csharp
+public sealed class TokenStore(IJSRuntime js)
+{
+    public string? Token { get; private set; }   // in-memory copy the handler reads synchronously
+    public async Task InitAsync()        => Token = await js.InvokeAsync<string?>("localStorage.getItem", "rask.jwt");
+    public async Task SetAsync(string t) { Token = t; await js.InvokeVoidAsync("localStorage.setItem", "rask.jwt", t); }
+    public async Task ClearAsync()       { Token = null; await js.InvokeVoidAsync("localStorage.removeItem", "rask.jwt"); }
+}
+
+public sealed class BearerTokenHandler(TokenStore tokens) : DelegatingHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+    {
+        if (tokens.Token is { } token)
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return base.SendAsync(req, ct);
+    }
+}
+```
+
+Register the `HttpClient` with the handler; a `JwtUserProvider` hydrates from `/api/me` **only when a token is
+present** (so anonymous never hits a 401). On the host, `AddJwtBearer` validates the bearer and `/api/login`
+returns the signed JWT.
+
+```csharp
+host.Services.AddSingleton<TokenStore>();
+host.Services.AddSingleton(sp => new HttpClient(
+        new BearerTokenHandler(sp.GetRequiredService<TokenStore>()) { InnerHandler = new HttpClientHandler() })
+    { BaseAddress = new Uri(WasmHostBuilder.BaseAddress) });
+host.Services.AddSingleton<JwtUserProvider>();
+host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserProvider>());
+```
+
+> ⚠️ A token in `localStorage` is readable by any script on the page (XSS). For maximum security prefer the
+> **HttpOnly-cookie** scheme — the token never reaches JS at all (see [Cookie + WASM](#cookie--wasm)).
+
+**Harden it — encrypted at rest (`ProtectedTokenStore`).** Instead of plain `localStorage`, encrypt the token
+with ASP.NET Data Protection before storing — the browser holds only ciphertext (a server protect/unprotect
+round-trip, since a standalone SPA has no key ring):
 
 ```csharp
 public sealed class ProtectedTokenStore(IJSRuntime js, IDataProtectionProvider dp) : ITokenStore
@@ -430,51 +516,22 @@ public sealed class ProtectedTokenStore(IJSRuntime js, IDataProtectionProvider d
 
     public async ValueTask<string?> GetAsync()
     {
-        var cipher = await js.InvokeAsync<string?>("localStorage.getItem", Key)
-                     ?? await js.InvokeAsync<string?>("sessionStorage.getItem", Key);
+        var cipher = await js.InvokeAsync<string?>("localStorage.getItem", Key);
         if (string.IsNullOrEmpty(cipher)) return null;
         try { return _protector.Unprotect(cipher); }
         catch (CryptographicException) { await ClearAsync(); return null; } // tampered / key rotated
     }
 
-    public async ValueTask SetAsync(string token, bool persist)
-    {
-        var cipher = _protector.Protect(token);                     // ← ciphertext, never the raw JWT
-        var store = persist ? "localStorage" : "sessionStorage";    // remember-me vs tab-scoped
-        await js.InvokeVoidAsync($"{store}.setItem", Key, cipher);
-    }
+    public async ValueTask SetAsync(string token, bool persist) =>
+        await js.InvokeVoidAsync($"{(persist ? "localStorage" : "sessionStorage")}.setItem", Key, _protector.Protect(token));
 
-    public async ValueTask ClearAsync()
-    {
-        await js.InvokeVoidAsync("localStorage.removeItem", Key);
-        await js.InvokeVoidAsync("sessionStorage.removeItem", Key);
-    }
+    public async ValueTask ClearAsync() => await js.InvokeVoidAsync("localStorage.removeItem", Key);
 }
 ```
 
-> On WASM, ASP.NET Data Protection needs a key ring. For a browser-only SPA, deliver the protected blob from
-> the server (protect in the API, unprotect on `/api/me`), or — simpler and stronger — use the **HttpOnly
-> cookie** scheme so the token never reaches JS at all. Protected storage is the right call when you must
-> hold a bearer token client-side for a non-cookie API.
-
-**Attach the bearer token to outgoing calls:**
-
-```csharp
-public sealed class BearerTokenHandler(ITokenStore tokens) : DelegatingHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
-    {
-        if (await tokens.GetAsync() is { } token)
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return await base.SendAsync(req, ct);
-    }
-}
-```
-
-The `ApiUserProvider` from the cookie section works unchanged — it hydrates from `/api/me`, which is now
-validated by `AddJwtBearer`. Silent refresh is an **app responsibility** (Rask doesn't run a refresh timer):
-from a timer in a long-lived component, refresh the token before it expires and call `users.RefreshAsync()`
-— the provider raises `Changed` and the session re-renders.
+Silent refresh is an **app responsibility** (Rask doesn't run a refresh timer): from a timer in a long-lived
+component, refresh the token before it expires and call `users.RefreshAsync()` — the provider raises `Changed`
+and the session re-renders.
 
 ---
 
@@ -486,10 +543,13 @@ runtime is entirely in-browser (no WebSocket back to a Rask host). So there's no
 store the JWT client-side, decode it to a principal, and attach it to your `HttpClient` calls.** The external
 API must enable **CORS** for your app's origin and allow the `Authorization` header.
 
+> **Scaffold it:** `dotnet new rask-wasm --auth` generates the client pieces below (`TokenStore`,
+> `BearerTokenHandler`, `JwtUserProvider`, a login page) with a `BaseAddress` stub — point it at your API.
+
 > No host means no ASP.NET Data Protection key ring, so the encrypted "protected storage" option isn't
 > available here. Use a **short-lived** JWT in `sessionStorage` (cleared on tab close) with refresh, a strict
 > **CSP** to reduce XSS exposure, and HTTPS. If you need the token to never touch JS, you need a host — see
-> [JWT + WASM](#jwt--wasm-protected-storage) or the cookie flows.
+> [JWT + WASM](#jwt--wasm) or the cookie flows.
 
 **A token store** (in-memory + `sessionStorage`, read synchronously by the handler):
 
@@ -578,7 +638,7 @@ public sealed class LoginService(HttpClient http, TokenStore tokens, JwtUserProv
 {
     public async Task<bool> LoginAsync(string username, string password, string? returnUrl)
     {
-        var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.Options);
+        var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.LoginDto);
         if (!resp.IsSuccessStatusCode) return false;
         var dto = await resp.Content.ReadFromJsonAsync(AuthJson.Default.TokenDto);
         await tokens.SetAsync(dto!.Token);
@@ -605,17 +665,17 @@ public partial class AuthJson : JsonSerializerContext { } // keeps the WASM publ
 **`Program.cs`:**
 
 ```csharp
-var builder = WasmHostBuilder.CreateDefault(args);
+var host = WasmHostBuilder.CreateDefault();
 
-builder.Services.AddSingleton<TokenStore>();
-builder.Services.AddSingleton(sp => new HttpClient(
+host.Services.AddSingleton<TokenStore>();
+host.Services.AddSingleton(sp => new HttpClient(
         new BearerTokenHandler(sp.GetRequiredService<TokenStore>()) { InnerHandler = new HttpClientHandler() })
     { BaseAddress = new Uri("https://api.example.com/") });   // ← your external API (CORS-enabled)
-builder.Services.AddSingleton<JwtUserProvider>();
-builder.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserProvider>()); // overrides the anonymous default
-builder.Services.AddSingleton<LoginService>();
+host.Services.AddSingleton<JwtUserProvider>();
+host.Services.AddSingleton<IUserProvider>(sp => sp.GetRequiredService<JwtUserProvider>()); // overrides the anonymous default
+host.Services.AddSingleton<LoginService>();
 
-await builder.RunAsync<App>();
+await host.RunAsync<App>();
 ```
 
 `Component.User`, the `Authorize` component, and `[Authorize]` route gating all work against the decoded
