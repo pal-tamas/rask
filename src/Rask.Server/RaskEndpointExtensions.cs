@@ -37,6 +37,13 @@ public static class RaskEndpointExtensions
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
 
+    // Hard cap on a single reassembled inbound WS frame. Client→server messages (hello / event
+    // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP
+    // endpoint — never the socket — so this is generous headroom. It bounds a per-socket memory DoS
+    // where a client streams an unbounded fragmented frame the server would otherwise buffer whole
+    // before JsonDocument.Parse. Mutable static so a test can lower it; not a public knob.
+    internal static int MaxInboundFrameBytes = 8 * 1024 * 1024;
+
     private static FileSystemWatcher? _sourceWatcher;
     private static long _lastSourceChangeTicks;
 
@@ -487,6 +494,16 @@ public static class RaskEndpointExtensions
                         if (result.Count > 0)
                         {
                             message.Write(buffer.AsSpan(0, result.Count));
+                        }
+
+                        // Abort a socket that streams a frame past the cap rather than buffering it
+                        // whole — bounds per-socket memory against a fragmented-frame DoS.
+                        if (message.WrittenCount > MaxInboundFrameBytes)
+                        {
+                            try { ws.Abort(); }
+                            catch { }
+
+                            return;
                         }
                     } while (!result.EndOfMessage);
 

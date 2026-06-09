@@ -69,7 +69,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
     internal LiveSession Create(Func<IServiceProvider, Component> factory)
     {
         var scope = _scopeFactory.CreateScope();
-        var sessionId = Guid.NewGuid().ToString("N");
+        // Cryptographically-random id: it is the bearer secret for the WS / upload / download
+        // endpoints (see SecureToken), so it must not be a v4 GUID.
+        var sessionId = SecureToken.Create();
         if (scope.ServiceProvider.GetService<RaskSessionContext>() is { } sessionCtx)
         {
             sessionCtx.Id = sessionId;
