@@ -622,7 +622,14 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        EmitRegistryInitializer(spc, filtered);
+        // Deduplicate by fully-qualified type name before emitting the registry. A `partial`
+        // routed page whose declarations carry attributes on more than one part (e.g. [Route] on
+        // one and [Obsolete]/a source-gen attribute on another) yields one Candidate per attributed
+        // declaration — all with the same FQN. Emitting them all produced duplicate
+        // RouteRegistration entries (competing Route nodes for the same page) and duplicate
+        // [DynamicDependency] attributes. byFqn already keeps the first Candidate per FQN (its
+        // Templates reflect every [Route] on the merged symbol), so the registry uses that.
+        EmitRegistryInitializer(spc, byFqn.Values.ToList());
     }
 
     private static void EmitRegistryInitializer(SourceProductionContext spc, IReadOnlyList<Candidate> candidates)
