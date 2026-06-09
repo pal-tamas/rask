@@ -45,6 +45,14 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // state and the hello-time render is redundant. Skipping the redundant render is
     // what aligns Server's initial-mount OnRendered count with WASM's.
     private bool _renderRequestedWhileDetached;
+    // Set by AttachSocket on a reconnect to force the next render to bypass the HTML/buffer
+    // dedup and re-emit even when the rendered bytes match the prior socket's last frame.
+    // The dedup baselines (_lastSentBuffer/_lastSentHtml) are owned by the RenderAndSendAsync
+    // critical section, which can run on a background thread (a StateHasChanged from an async
+    // lifecycle continuation). Resetting them directly from AttachSocket would race that send,
+    // so the reset is deferred into the render lock: RenderAndSendAsync reads-and-clears this
+    // flag under _renderLock. Volatile so the cross-thread write is visible without the lock.
+    private volatile bool _forceResend;
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
@@ -239,25 +247,23 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
-        _socket = socket;
         _socketCt = ct;
         SuppressEventsUntilReconnect = false;
-        // A reconnect — possibly a different browser tab/window — needs the current HTML
-        // even when it byte-matches the prior socket's last frame. Reset the dedup baseline
-        // so the recovery render reliably emits.
-        _lastSentBuffer = null;
 
         if (_hasAttachedBefore)
         {
-            // Reconnect path — force a catch-up regardless of whether anything was
-            // observably dropped, since the prior send chain may have lost a frame.
-            // Also drop the HTML dedup baseline so the catch-up render reliably
-            // emits even when the browser's stale HTML matches the session's current
-            // render verbatim (the new socket's browser tab needs the bytes either way).
+            // Reconnect path — possibly a different browser tab/window — needs the current
+            // HTML even when it byte-matches the prior socket's last frame, since the prior
+            // send chain may have lost a frame. Force a catch-up and drop the dedup baselines
+            // so the recovery render reliably emits. The baseline reset is deferred into the
+            // render lock (see _forceResend) to avoid racing a background RenderAndSendAsync.
             _renderRequestedWhileDetached = true;
-            _lastSentHtml = null;
+            _forceResend = true;
         }
 
+        // Publish _socket last: a concurrent background render early-returns while it reads
+        // null/closed, so the new socket only becomes visible after the resend flag above.
+        _socket = socket;
         _hasAttachedBefore = true;
     }
 
@@ -361,6 +367,17 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
         {
+            // Consume a reconnect's resend request inside the lock that owns the dedup
+            // baselines, so AttachSocket never has to touch them from another thread. Clearing
+            // both forces this render past the HTML dedup (below) and the buffer dedup (line
+            // ~530), guaranteeing the catch-up frame reaches the freshly attached socket.
+            if (_forceResend)
+            {
+                _forceResend = false;
+                _lastSentBuffer = null;
+                _lastSentHtml = null;
+            }
+
             // Diff-codec path: capture the parallel RenderFrame[] stream during render so
             // we can produce a minimal edit-op payload instead of re-shipping the whole
             // body. Default (LiveDiffMode.DisabledFull) bypasses this entirely — the

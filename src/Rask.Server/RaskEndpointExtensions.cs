@@ -58,6 +58,7 @@ public static class RaskEndpointExtensions
         // set explicitly before AddRask was called. The static field starts at
         // Auto via its initializer, so the "no configure, no prior write" path
         // still lands on Auto without us re-writing it here.
+        var maxSessions = 0;
         if (configure is not null)
         {
             var liveOptions = new Rask.Core.Live.RaskLiveOptions();
@@ -68,9 +69,17 @@ public static class RaskEndpointExtensions
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
             Rask.Core.Live.LiveOptions.PathBase = liveOptions.PathBase;
+            // Session cap is a per-store instance value (not a static) so concurrent
+            // hosts/tests don't clobber each other through global state.
+            maxSessions = liveOptions.MaxSessions;
         }
 
-        services.AddSingleton<LiveSessionStore>();
+        services.AddSingleton(sp => new LiveSessionStore(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetService<IHostApplicationLifetime>())
+        {
+            MaxSessions = maxSessions,
+        });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -158,6 +167,18 @@ public static class RaskEndpointExtensions
                         await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
                         return;
                 }
+            }
+
+            // Session-cap backstop (RaskLiveOptions.MaxSessions). Reject before minting a new
+            // session so untrusted GET traffic can't exhaust memory; checked after the auth
+            // guard above so challenge/forbid redirects (which create no session) still work.
+            if (store.AtCapacity)
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                httpContext.Response.Headers.RetryAfter = "5";
+                await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
+                    .ConfigureAwait(false);
+                return;
             }
 
             var session = store.Create(sp =>
@@ -256,6 +277,19 @@ public static class RaskEndpointExtensions
                 if (!ctx.WebSockets.IsWebSocketRequest)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
+                }
+
+                // Cross-Site WebSocket Hijacking guard. The upgrade carries the user's auth
+                // cookie, and CORS does not apply to WebSocket handshakes, so a page on another
+                // origin could otherwise open an authenticated socket. Driving a session also
+                // needs the unguessable sessionId (delivered in the page HTML, unreadable
+                // cross-origin), but rejecting a mismatched Origin is the standard belt-and-
+                // suspenders. Reuses the same host-only same-origin check as the redeem endpoint
+                // (see IsSameOrigin) — non-browser clients omit Origin and are allowed.
+                if (!IsSameOrigin(ctx.Request))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
                 }
 
@@ -1028,12 +1062,32 @@ public static class RaskEndpointExtensions
             return "/";
         }
 
-        if (!returnUrl.StartsWith('/') || returnUrl.StartsWith("//", StringComparison.Ordinal))
+        // Local-redirect only. Accept an absolute path ("/foo"); reject anything that could
+        // leave the origin: a non-rooted value ("\evil.com", "https://evil.com"), a
+        // protocol-relative URL ("//evil.com"), or a backslash variant the browser
+        // normalises into one ("/\evil.com"). Mirrors ASP.NET's Url.IsLocalUrl. Control
+        // characters are rejected too — they can smuggle the value past downstream parsers.
+        if (returnUrl[0] != '/'
+            || (returnUrl.Length > 1 && (returnUrl[1] == '/' || returnUrl[1] == '\\'))
+            || ContainsControlCharacter(returnUrl))
         {
             return "/";
         }
 
         return returnUrl;
+    }
+
+    private static bool ContainsControlCharacter(string value)
+    {
+        foreach (var c in value)
+        {
+            if (char.IsControl(c))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
