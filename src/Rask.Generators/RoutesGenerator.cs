@@ -912,13 +912,19 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             {
                 var ident = qp.Name;
                 var qpName = qp.QueryParamName ?? qp.Name;
+                // URL-encode the query KEY at generation time (the value is encoded at runtime via
+                // EncodeExpr). The key is a compile-time constant, so baking the encoded form costs
+                // nothing and keeps an explicit [QueryParam("a b")] / a name with '&'/'=' from
+                // emitting a malformed query string. Property-name-derived keys are valid
+                // identifiers, so this is a no-op for them.
+                var encodedKey = Uri.EscapeDataString(qpName);
                 if (qp.IsNullable)
                 {
                     sb.Append("        if (").Append(ident).AppendLine(" is not null)");
                     sb.AppendLine("        {");
                     sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
                     sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                    sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(qpName))
+                    sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
                         .AppendLine("=\");");
                     sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
                     sb.AppendLine("        }");
@@ -928,7 +934,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                     // Non-nullable required query param — always emit
                     sb.AppendLine("        __qs ??= new global::System.Text.StringBuilder();");
                     sb.AppendLine("        __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                    sb.Append("        __qs.Append(\"").Append(EscapeForCSharpStringLiteral(qpName))
+                    sb.Append("        __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
                         .AppendLine("=\");");
                     sb.Append("        __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
                 }
