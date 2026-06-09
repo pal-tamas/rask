@@ -349,10 +349,13 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
   binding, routing, JS interop, virtualization (a 10K-row table), file upload/download, and **auth gating** (the `/user`
   page shows both imperative `Component.User` and the declarative `Authorize` component). These are the canonical
   references cited throughout *Core concepts* below. For production auth flows see **[docs/authentication.md](docs/authentication.md)**.
-- **`samples/Rask.Example.Auth`** — a minimal, runnable **cookie-login** app: a `/login` form, a protected
-  `/members` page (`[Authorize]` + the `Authorize` component), role-gated admin content, and sign-out over the live
-  runtime. `dotnet run --project samples/Rask.Example.Auth` and visit `/members`. The full login round trip is covered
-  by a browser E2E (`AuthExampleTests`).
+- **Runnable auth samples — one per cell of the `{Cookie, JWT} × {Server, WASM}` matrix**, each a minimal app
+  (`/login`, protected `/members`, role-gated admin, sign-out) with a browser E2E:
+  - **`Rask.Example.Auth`** — cookie + Server (the redeem handshake).
+  - **`Rask.Example.Auth.Jwt`** — JWT + Server; the token rides in **`ProtectedSessionStorage`** (encrypted, never in the URL or JS).
+  - **`Rask.Example.Auth.WasmCookie(.Host)`** — cookie + WASM (HttpOnly cookie, `/api/me` hydration).
+  - **`Rask.Example.Auth.WasmJwt(.Host)`** — JWT + WASM (bearer in localStorage, `Authorization: Bearer`).
+  Run a server cell with `dotnet run --project samples/Rask.Example.Auth.Jwt`; a WASM cell via its `.Host`. Full guide: **[docs/authentication.md](docs/authentication.md)**.
 - **Live demo** — every push to `main` publishes `Rask.Example.Wasm` to GitHub Pages via
   [`.github/workflows/pages.yml`](.github/workflows/pages.yml), so you can click through a full multi-page Rask app in
   the browser before cloning anything.

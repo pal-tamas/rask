@@ -5,6 +5,11 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Rask.Example.Auth/Rask.Example.Auth.csproj" />
+    <Project Path="samples/Rask.Example.Auth.Jwt/Rask.Example.Auth.Jwt.csproj" />
+    <Project Path="samples/Rask.Example.Auth.WasmCookie/Rask.Example.Auth.WasmCookie.csproj" />
+    <Project Path="samples/Rask.Example.Auth.WasmCookie.Host/Rask.Example.Auth.WasmCookie.Host.csproj" />
+    <Project Path="samples/Rask.Example.Auth.WasmJwt/Rask.Example.Auth.WasmJwt.csproj" />
+    <Project Path="samples/Rask.Example.Auth.WasmJwt.Host/Rask.Example.Auth.WasmJwt.Host.csproj" />
     <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj" />
     <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj" />
     <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj" />

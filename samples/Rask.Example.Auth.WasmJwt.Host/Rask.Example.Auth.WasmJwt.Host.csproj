@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Example.Auth.WasmJwt.Host</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Auth.WasmJwt\Rask.Example.Auth.WasmJwt.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true"/>
+  </ItemGroup>
+
+  <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="wwwroot"/>
+  </Target>
+
+</Project>
