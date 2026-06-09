@@ -33,6 +33,23 @@ public class RootGetEndpointTests
     }
 
     [Fact]
+    public async Task Get_ShellResponse_IsNotCacheable()
+    {
+        // The shell embeds the session id (data-rask-root), the de-facto bearer for the WS /
+        // upload / download endpoints, so it must never be cached by a shared proxy or bfcache.
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var response = await host.Http.GetAsync("/some-path");
+
+        response.EnsureSuccessStatusCode();
+        var cacheControl = response.Headers.CacheControl;
+        Assert.NotNull(cacheControl);
+        Assert.True(cacheControl!.NoStore);
+        Assert.True(cacheControl.NoCache);
+        Assert.True(cacheControl.Private);
+    }
+
+    [Fact]
     public async Task Get_HonoursPathFromRequest()
     {
         using var host = RaskTestHost.Create<TestApp>();

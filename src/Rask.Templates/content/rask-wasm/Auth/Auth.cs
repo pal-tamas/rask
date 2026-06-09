@@ -127,7 +127,8 @@ public sealed class JwtLoginService(HttpClient http, TokenStore tokens, IUserPro
         if (dto is null) return false;
         await tokens.SetAsync(dto.Token);
         await users.RefreshAsync();
-        nav.Navigate(returnUrl ?? "/members");
+        // Open-redirect guard: an attacker-supplied returnUrl must never navigate off-origin.
+        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 
