@@ -47,6 +47,25 @@ public class NavigatorTests
     }
 
     [Fact]
+    public void UnconsumedNavigation_DoesNotLeakIntoNextHandler()
+    {
+        // A handler that queues a navigation but never consumes it (e.g. it threw before
+        // TryConsumeHistory ran) must not leak that pending nav — including the replace flag —
+        // into the next dispatch and fire a navigation the user never triggered there.
+        var (nav, _) = Build("/start");
+
+        using (nav.EnterHandler())
+        {
+            nav.Navigate("/a", replace: true);
+        } // scope disposed WITHOUT TryConsumeHistory — simulates a faulted handler
+
+        using (nav.EnterHandler())
+        {
+            Assert.False(nav.TryConsumeHistory(out _, out _));
+        }
+    }
+
+    [Fact]
     public void Navigate_PathOnly_ClearsExistingQuery()
     {
         var (nav, state) = Build("/old", new Dictionary<string, StringValues> { ["b"] = "2" });

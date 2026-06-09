@@ -119,6 +119,13 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
 
     internal IDisposable EnterHandler()
     {
+        // Clear any navigation a prior handler queued but never consumed — e.g. it called
+        // Navigate(...) and then threw before TryConsumeHistory ran. Resetting on entry (rather
+        // than on scope dispose) starts each dispatch clean so a faulted handler can't leak its
+        // pending nav (and _replace flag) into the next one, while still allowing the caller to
+        // consume the navigation after the scope disposes.
+        _dirty = false;
+        _replace = false;
         _inHandler = true;
         return new HandlerScope(this);
     }

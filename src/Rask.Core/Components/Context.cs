@@ -94,10 +94,16 @@ public sealed class Context : Component
 
     /// <summary>
     ///     <c>true</c> when a value of type <typeparamref name="T" /> (optionally by
-    ///     <paramref name="name" />) is provided by an enclosing <see cref="Context" />. Does
-    ///     not mark the caller as a consumer.
+    ///     <paramref name="name" />) is provided by an enclosing <see cref="Context" />. Like
+    ///     <see cref="Get{T}" />, marks the caller a context consumer so it re-renders when an
+    ///     ancestor begins/stops providing the value — otherwise a component that gates purely on
+    ///     <c>Has</c> would be render-cached and show stale UI when the provider appears or leaves.
     /// </summary>
-    public static bool Has<T>(string? name = null) => ContextStack.TryGet(typeof(T), name, out _);
+    public static bool Has<T>(string? name = null)
+    {
+        MarkConsumer();
+        return ContextStack.TryGet(typeof(T), name, out _);
+    }
 
     private static void MarkConsumer() => LiveRenderContext.Current?.MarkCurrentConsumesContext();
 }

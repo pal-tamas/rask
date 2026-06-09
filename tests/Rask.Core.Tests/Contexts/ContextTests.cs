@@ -166,6 +166,28 @@ public class ContextTests
     }
 
     [Fact]
+    public void HasGate_MarksConsumer_RerendersWhenProviderRerenders()
+    {
+        // Context.Has<T>() must mark the caller a consumer just like Get<T>(), so a component that
+        // gates purely on Has bypasses the render cache and re-runs when the provider re-renders —
+        // otherwise it would stay cached and show stale UI when the value appears/changes.
+        var sp = RenderHarness.EmptyServices();
+        var consumer = new HasOnlyConsumer();
+        var plain = new PlainChild();
+        var host = new MutableThemeHost(new Theme("light"), consumer, plain);
+
+        host.RenderAsLiveRoot(sp);
+        Assert.Equal(1, consumer.RenderCount);
+        Assert.Equal(1, plain.RenderCount);
+
+        host.Theme = new Theme("dark");
+        host.RenderAsLiveRoot(sp);
+
+        Assert.Equal(2, consumer.RenderCount); // re-ran (consumer marked via Has)
+        Assert.Equal(1, plain.RenderCount);     // non-consumer sibling stays cached
+    }
+
+    [Fact]
     public void Get_OutsideRender_ReturnsDefault_RequiredThrows()
     {
         // No LiveRenderContext is active: the consumer-mark must no-op rather than NRE.
@@ -210,6 +232,17 @@ public class ContextTests
         {
             RenderCount++;
             return Span()["plain"];
+        }
+    }
+
+    private sealed class HasOnlyConsumer : Component
+    {
+        public int RenderCount;
+
+        protected override RenderResult Render()
+        {
+            RenderCount++;
+            return Span()[Context.Has<Theme>() ? "has" : "none"];
         }
     }
 
