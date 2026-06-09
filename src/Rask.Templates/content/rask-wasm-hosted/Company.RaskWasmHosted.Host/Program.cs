@@ -12,14 +12,33 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRask();
 //#if (auth)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(o => o.Cookie.Name = "rask.auth");
+    .AddCookie(o =>
+    {
+        o.Cookie.Name = "rask.auth";
+        // Secure-by-default: HTTPS-only and SameSite=Lax (so the cookie doesn't ride cross-site
+        // POSTs — the primary CSRF mitigation for the /api/login POST below). The dev launch
+        // profile runs on HTTPS; relax SecurePolicy only if you must serve over plain HTTP.
+        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+    });
 builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
 //#endif
 
 var app = builder.Build();
+
+// Transport security (applies whether or not auth is enabled): redirect HTTP→HTTPS, and in
+// non-Development emit HSTS so browsers refuse plain-HTTP for the configured max-age.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
 //#if (auth)
 // Populates HttpContext.User from the cookie so /api/me reflects the signed-in user.
 app.UseAuthentication();
+// Present so a [Authorize]/RequireAuthorization() you add to an endpoint is actually enforced.
+app.UseAuthorization();
 //#endif
 
 var weatherService = new LocalWeatherForecastService();
