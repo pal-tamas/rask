@@ -343,9 +343,19 @@ Sign out with the built-in WASM signer (POSTs `/auth/logout`, refreshes, navigat
 
 ## JWT + Server
 
-Use this when you want a bearer-token API the same identity serves. Because browsers can't set an
-`Authorization` header on a WebSocket upgrade, Rask carries the token on the WS URL as `?access_token=`
-(the SignalR pattern).
+Use this when you want a bearer-token API the same identity serves.
+
+> **Recommended (and what the runnable sample does): hold the JWT in
+> [`ProtectedSessionStorage`](https://learn.microsoft.com/aspnet/core/blazor/state-management).** It is
+> encrypted at rest via ASP.NET Data Protection and decrypted **only server-side**, so the raw token never
+> appears in the URL, in a cookie, or as a JS-readable value. Login validates the JWT into a principal and
+> sets it on the live session directly (`SessionUserProvider.Set`); a small headless bootstrap re-reads it on
+> refresh. Members pages gate with the `Authorize` component (a JWT bearer challenge returns 401, not a login
+> redirect, so route `[Authorize]` is the wrong tool for an interactive page). See
+> **`samples/Rask.Example.Auth.Jwt`**.
+
+The alternative below carries the token on the WS URL as `?access_token=` (the SignalR pattern) — simpler,
+but the token lands in server access logs, so keep it short-lived and HTTPS-only.
 
 **Issue + validate the token:**
 
