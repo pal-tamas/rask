@@ -98,5 +98,7 @@ public class ForwarderFactoryEmissionTests
         // No `<...>` after the component name; forwarder body delegates to the source method.
         Assert.Contains("public static global::Demo.Widget Widget(string? Class = null)", output);
         Assert.Contains("=> global::Demo.Widget.Convenience(Class);", output);
+        // Forwarders also carry the debugger-skip attribute (keeps stepping out of generated code).
+        Assert.Contains("[global::System.Diagnostics.DebuggerStepThrough]", output);
     }
 }
