@@ -2,12 +2,37 @@ using Microsoft.Extensions.Primitives;
 
 namespace Rask.Core.Routing;
 
+/// <summary>
+///     Imperative client-side navigation and query-string mutation, plus file downloads.
+///     Inject it through a component constructor (<c>public MyPage(Navigator nav)</c>) and call
+///     it from <b>event handlers only</b>.
+///     <para>
+///         Every method throws <see cref="InvalidOperationException" /> if called outside an event
+///         handler — e.g. during <c>Render()</c> or the initial GET. Navigation that needs to happen
+///         on load belongs in a lifecycle hook that runs a handler-equivalent path, or should be
+///         expressed as a route/redirect, not driven from render.
+///     </para>
+///     <para>
+///         Changes are applied to the shared <see cref="RouteState" /> and the resulting URL is
+///         pushed (or replaced) into browser history by the live runtime after the handler returns.
+///     </para>
+/// </summary>
 public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink = null)
 {
     private bool _dirty;
     private bool _inHandler;
     private bool _replace;
 
+    /// <summary>
+    ///     Navigates to <paramref name="url" /> (path + query together). Pass a type-safe
+    ///     <see cref="RouteUrl" /> from a generated <c>Routes.Page(...)</c> formatter.
+    /// </summary>
+    /// <param name="url">Target path and query string.</param>
+    /// <param name="replace">
+    ///     <c>true</c> replaces the current history entry instead of pushing a new one (no extra
+    ///     Back-button stop).
+    /// </param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void Navigate(RouteUrl url, bool replace = false)
     {
         EnsureInHandler();
@@ -19,6 +44,13 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>
+    ///     Navigates to <paramref name="path" />, <b>clearing any existing query string</b>. Use
+    ///     <see cref="SetQuery(string, string?)" /> afterwards, or the query overload, to keep params.
+    /// </summary>
+    /// <param name="path">Target path (e.g. <c>"/users/42"</c>).</param>
+    /// <param name="replace"><c>true</c> replaces the current history entry instead of pushing.</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void Navigate(string path, bool replace = false)
     {
         EnsureInHandler();
@@ -29,6 +61,15 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>
+    ///     Navigates to <paramref name="path" /> and <b>replaces</b> the query string with
+    ///     <paramref name="query" /> in one step. Entries with a <c>null</c> value are dropped;
+    ///     repeated keys are concatenated into a multi-value param.
+    /// </summary>
+    /// <param name="path">Target path.</param>
+    /// <param name="query">The complete new query string as key/value pairs.</param>
+    /// <param name="replace"><c>true</c> replaces the current history entry instead of pushing.</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void Navigate(string path, IEnumerable<KeyValuePair<string, string?>> query, bool replace = false)
     {
         EnsureInHandler();
@@ -40,6 +81,14 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>
+    ///     Sets or updates a single query parameter on the <b>current</b> path (the path is left
+    ///     unchanged). A <c>null</c> <paramref name="value" /> removes the key — equivalent to
+    ///     <see cref="RemoveQuery" />.
+    /// </summary>
+    /// <param name="key">Query parameter name (case-insensitive).</param>
+    /// <param name="value">New value, or <c>null</c> to remove the parameter.</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void SetQuery(string key, string? value)
     {
         EnsureInHandler();
@@ -58,6 +107,12 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>
+    ///     Sets or updates several query parameters on the current path in one update. Pairs with a
+    ///     <c>null</c> value remove that key; all other params are preserved.
+    /// </summary>
+    /// <param name="values">Parameters to set or remove.</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void SetQuery(params KeyValuePair<string, string?>[] values)
     {
         EnsureInHandler();
@@ -79,6 +134,9 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>Removes a single query parameter from the current path. Missing keys are a no-op.</summary>
+    /// <param name="key">Query parameter name (case-insensitive).</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void RemoveQuery(string key)
     {
         EnsureInHandler();
@@ -89,6 +147,8 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>Removes all query parameters from the current path, keeping the path.</summary>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public void ClearQuery()
     {
         EnsureInHandler();
@@ -96,6 +156,17 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         _dirty = true;
     }
 
+    /// <summary>
+    ///     Pushes a file to the browser as a download, from an in-memory byte array. Delivered over
+    ///     the live channel by the host's <see cref="IDownloadSink" /> (registered by
+    ///     <c>AddRask()</c> on the server and by the WASM host builder).
+    /// </summary>
+    /// <param name="filename">Suggested file name shown in the browser's save dialog.</param>
+    /// <param name="bytes">File contents.</param>
+    /// <param name="contentType">MIME type; defaults to <c>application/octet-stream</c> when null.</param>
+    /// <exception cref="InvalidOperationException">
+    ///     Called outside an event handler, or no <see cref="IDownloadSink" /> is registered.
+    /// </exception>
     public void Download(string filename, byte[] bytes, string? contentType = null)
     {
         EnsureInHandler();
@@ -104,6 +175,16 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         ResolveSink().Stage(filename, bytes, contentType);
     }
 
+    /// <summary>
+    ///     Pushes a file to the browser as a download, streaming from <paramref name="stream" />
+    ///     (the sink reads and disposes it). Prefer this overload for large payloads.
+    /// </summary>
+    /// <param name="filename">Suggested file name shown in the browser's save dialog.</param>
+    /// <param name="stream">Readable stream of file contents.</param>
+    /// <param name="contentType">MIME type; defaults to <c>application/octet-stream</c> when null.</param>
+    /// <exception cref="InvalidOperationException">
+    ///     Called outside an event handler, or no <see cref="IDownloadSink" /> is registered.
+    /// </exception>
     public void Download(string filename, Stream stream, string? contentType = null)
     {
         EnsureInHandler();
