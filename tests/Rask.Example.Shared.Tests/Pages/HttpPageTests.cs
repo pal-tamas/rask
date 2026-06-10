@@ -1,8 +1,6 @@
 using System.Net;
 using System.Text;
-using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -16,14 +14,14 @@ public sealed class HttpPageTests
             "{\"id\":1,\"title\":\"hello\",\"body\":\"the body text\"}";
         var (http, fakeHttp) = FakeHttp.WithJson(body);
         var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http: http, routeState: routeState);
+        var services = TestServices.Default(http, routeState: routeState);
 
         // Render via App so OnMountAsync fires. Wait for at least one fetch to complete.
-        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        var html = new Shared.App().RenderAsLiveRoot(services);
         await WaitFor.True(() => fakeHttp.RequestCount >= 1, TimeSpan.FromSeconds(2));
         // Re-render so the post is visible.
         await Task.Delay(50);
-        html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        html = new Shared.App().RenderAsLiveRoot(services);
 
         Assert.True(fakeHttp.RequestCount >= 1);
         // Verify the fetch went to the expected relative path.
@@ -36,14 +34,14 @@ public sealed class HttpPageTests
         // A genuine HTTP-status failure carries a StatusCode and must still surface the
         // error banner (the demo's error handling is a real feature).
         var (http, _) = FakeHttp.Throwing(
-            new HttpRequestException("boom", inner: null, statusCode: HttpStatusCode.InternalServerError));
+            new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
         var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http: http, routeState: routeState);
+        var services = TestServices.Default(http, routeState: routeState);
 
-        new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        new Shared.App().RenderAsLiveRoot(services);
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
         await Task.Delay(120);
-        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        var html = new Shared.App().RenderAsLiveRoot(services);
 
         Assert.Contains("alert-danger", html);
     }
@@ -69,11 +67,11 @@ public sealed class HttpPageTests
         };
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
         var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http: http, routeState: routeState);
+        var services = TestServices.Default(http, routeState: routeState);
 
         // Re-render the SAME app instance: the retried fetch resolves on a continuation after
         // the first render returns, and only the same HttpPage instance retains the result.
-        var app = new Rask.Example.Shared.App();
+        var app = new Shared.App();
         app.RenderAsLiveRoot(services);
         await WaitFor.True(() => handler.RequestCount >= 2, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
@@ -91,11 +89,11 @@ public sealed class HttpPageTests
         // never leave the page spinning forever.
         var (http, handler) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
         var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http: http, routeState: routeState);
+        var services = TestServices.Default(http, routeState: routeState);
 
         // Re-render the SAME app instance so the retry loop's terminal error (set on a
         // continuation) is observed; the loop makes MaxTransientRetries + 1 attempts then stops.
-        var app = new Rask.Example.Shared.App();
+        var app = new Shared.App();
         app.RenderAsLiveRoot(services);
         await WaitFor.True(() => handler.RequestCount > 3, TimeSpan.FromSeconds(3));
         await Task.Delay(50);
@@ -113,11 +111,11 @@ public sealed class HttpPageTests
     {
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
         var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http: http, routeState: routeState);
+        var services = TestServices.Default(http, routeState: routeState);
 
-        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        var html = new Shared.App().RenderAsLiveRoot(services);
         await Task.Delay(120);
-        html = new Rask.Example.Shared.App().RenderAsLiveRoot(services);
+        html = new Shared.App().RenderAsLiveRoot(services);
         Assert.Contains("HttpClient", html);
     }
 }

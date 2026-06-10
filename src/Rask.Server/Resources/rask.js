@@ -4,9 +4,15 @@
     // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
     // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
     window.__raskEl = window.__raskEl || {
-        focus: function (el) { if (el) el.focus(); },
-        blur: function (el) { if (el) el.blur(); },
-        scrollIntoView: function (el, opts) { if (el) el.scrollIntoView(opts || { behavior: "smooth", block: "nearest" }); }
+        focus: function (el) {
+            if (el) el.focus();
+        },
+        blur: function (el) {
+            if (el) el.blur();
+        },
+        scrollIntoView: function (el, opts) {
+            if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
+        }
     };
 
     var root = document.querySelector("[data-rask-root]");
@@ -33,6 +39,7 @@
     // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
     // base that breaks the WS/asset URLs on every deep route.
     var basePath = null;
+
     function getBasePath() {
         if (basePath !== null) return basePath;
         var baseEl = document.querySelector("base[href]");
@@ -45,12 +52,14 @@
         basePath = last < 0 ? "/" : p.slice(0, last + 1);
         return basePath;
     }
+
     function stripBase(pathname) {
         var b = getBasePath();
         if (b === "/" || !pathname) return pathname;
         if (pathname === b.slice(0, -1) || pathname === b) return "/";
         return pathname.indexOf(b) === 0 ? "/" + pathname.slice(b.length) : pathname;
     }
+
     function prependBase(url) {
         var b = getBasePath();
         if (b === "/" || typeof url !== "string" || url.charAt(0) !== "/" || url.indexOf(b) === 0) return url;
@@ -77,7 +86,9 @@
                 var meta = document.querySelector('meta[name="rask-access-token"]');
                 if (meta) token = meta.getAttribute("content");
             }
-        } catch (e) { token = null; }
+        } catch (e) {
+            token = null;
+        }
         if (!token) return baseWsUrl;
         return baseWsUrl + (baseWsUrl.indexOf("?") >= 0 ? "&" : "?") + "access_token=" + encodeURIComponent(token);
     }
@@ -138,12 +149,20 @@
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
             // message — paths in a later diff are computed against this render's output.
             if (data.kind === "diff" && Array.isArray(data.ops)) {
-                _renderQueue = _renderQueue.then(function () { return applyDiffReply(data); },
-                                                 function () { return applyDiffReply(data); });
+                _renderQueue = _renderQueue.then(function () {
+                        return applyDiffReply(data);
+                    },
+                    function () {
+                        return applyDiffReply(data);
+                    });
                 return;
             }
-            _renderQueue = _renderQueue.then(function () { return applyFullReply(data); },
-                                             function () { return applyFullReply(data); });
+            _renderQueue = _renderQueue.then(function () {
+                    return applyFullReply(data);
+                },
+                function () {
+                    return applyFullReply(data);
+                });
         });
 
         ws.addEventListener("close", scheduleReconnect);
@@ -283,13 +302,19 @@
             }
             maybeDrainPendingInvokes();
         };
-        el.addEventListener("load", function () { finish("load"); }, {once: true});
-        el.addEventListener("error", function () { finish("error"); }, {once: true});
+        el.addEventListener("load", function () {
+            finish("load");
+        }, {once: true});
+        el.addEventListener("error", function () {
+            finish("error");
+        }, {once: true});
         // Safety: the load/error event may have fired between insertion and
         // our listener attach (cache hit on a CDN). Performance.getEntriesByName
         // covers the common case; the timeout covers everything else so a
         // missed event doesn't hold Rask.* invokes forever.
-        setTimeout(function () { finish("timeout"); }, HEAD_ASSET_LOAD_TIMEOUT_MS);
+        setTimeout(function () {
+            finish("timeout");
+        }, HEAD_ASSET_LOAD_TIMEOUT_MS);
     }
 
     function scanHeadAssets() {
@@ -319,7 +344,9 @@
         document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
             if (!l.href || before.has(l.href) || isAssetAlreadyLoaded(l.href)) return;
             pending.push(new Promise(function (resolve) {
-                var done = function () { resolve(); };
+                var done = function () {
+                    resolve();
+                };
                 l.addEventListener("load", done, {once: true});
                 l.addEventListener("error", done, {once: true});
                 setTimeout(done, CSS_FOUC_GUARD_MS);
@@ -955,7 +982,7 @@
     // Comment nodes shift childNodes indices relative to the server's frame walk.
     // Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
     // match what FrameDiffer counts.
-    var _relevantNodeTypes = { 1: 1, 3: 1, 10: 1 };
+    var _relevantNodeTypes = {1: 1, 3: 1, 10: 1};
 
     function relevantChild(parent, index) {
         if (!parent || !parent.childNodes) return null;

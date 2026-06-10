@@ -16,8 +16,11 @@
       CS0618: Microsoft.AspNetCore.Components.RenderTree.Renderer carries Obsolete[ messages
               warning non-framework code away from inheriting it. Benchmarks deliberately do.
       BL0006: Blazor analyzer that fires on use of low-level RenderTree APIs. Intentional here.
+      RASK022: these benchmarks deliberately render keyless lists to measure the raw render
+               hot path against Blazor's equally-keyless BuildRenderTree. Adding Key: would
+               add per-row key handling and skew the comparison — keep them keyless on purpose.
     -->
-    <NoWarn>$(NoWarn);0436;0618;BL0006</NoWarn>
+    <NoWarn>$(NoWarn);0436;0618;BL0006;RASK022</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

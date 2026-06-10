@@ -26,7 +26,7 @@ internal static class ClassToggle
         {
             var cls = i == activeIndex ? "nav-item active" : "nav-item";
             items.Add(C.Li(Class: cls)[
-                C.A(Href: $"/page/{i}")[$"Page {i}"]
+                C.A($"/page/{i}")[$"Page {i}"]
             ]);
         }
 
@@ -54,6 +54,7 @@ internal static class ClassToggle
 
                 b.CloseElement();
             }
+
             b.CloseElement();
             b.CloseElement();
         }

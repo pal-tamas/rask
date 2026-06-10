@@ -19,9 +19,9 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 [MemoryDiagnoser]
 public class Dispatch_ButtonClickCounterPinnedBenchmarks
 {
-    private RaskHarness _rask = null!;
     private BlazorRenderBatchCapture _blazor = null!;
     private int _counter;
+    private RaskHarness _rask = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -64,13 +64,15 @@ public class Dispatch_ButtonClickCounterPinnedBenchmarks
 [MemoryDiagnoser]
 public class Dispatch_ButtonClickLargePagePinnedBenchmarks
 {
+    private BlazorRenderBatchCapture _blazor = null!;
+
+    private int _blazorCounter;
+
     // Stateful 200-row root: one event handler ticks the counter cell, the rest of
     // the page (200 rows) is unchanged across renders. This is the production shape
     // where the diff codec earns its keep — one mutation deep inside a quiet tree.
     private RaskHarness _rask = null!;
-    private BlazorRenderBatchCapture _blazor = null!;
     private StatefulLargePageWithCounter _stateful = null!;
-    private int _blazorCounter;
 
     [GlobalSetup]
     public void Setup()

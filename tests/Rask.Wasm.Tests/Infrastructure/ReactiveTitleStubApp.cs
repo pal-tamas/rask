@@ -1,5 +1,4 @@
 using Rask.Core;
-using Rask.Core.Routing;
 using static Rask.Core.Components.Generated;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
@@ -14,13 +13,14 @@ internal sealed class ReactiveTitleStubApp : Component
     private int _count;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head()[Title()[$"count-{_count}"]],
-                Body()[
-                    H1()[$"count={_count}"],
-                    Button(OnClick: () => _count++)["bump"]
-                ]
-            ]];
+    [
+        Doctype(),
+        Html()[
+            Head()[Title()[$"count-{_count}"]],
+            Body()[
+                H1()[$"count={_count}"],
+                Button(OnClick: () => _count++)["bump"]
+            ]
+        ]
+    ];
 }

@@ -151,7 +151,11 @@ public class HeadAssetRegistryTests
     {
         const string needle = "data-rask-key=\"";
         var start = html.IndexOf(needle, StringComparison.Ordinal);
-        if (start < 0) return null;
+        if (start < 0)
+        {
+            return null;
+        }
+
         start += needle.Length;
         var end = html.IndexOf('"', start);
         return end < 0 ? null : html.Substring(start, end - start);

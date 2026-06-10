@@ -46,6 +46,28 @@ public static class ScopedAssetRegistry
         new(@"(^|\n)\s*export\s+(?:default\s+)?function\s+(\w+)\s*\(",
             RegexOptions.Compiled);
 
+    internal static int CssEntryCount
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _cssByHash.Count;
+            }
+        }
+    }
+
+    internal static int JsEntryCount
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _jsByHash.Count;
+            }
+        }
+    }
+
     public static event Action<Type, AssetKind>? AssetChanged;
 
     /// <summary>
@@ -278,8 +300,6 @@ public static class ScopedAssetRegistry
         return snapshot;
     }
 
-    public readonly record struct EnumeratedEntry(string Hash, AssetKind Kind, ReadOnlyMemory<byte> Utf8);
-
     /// <summary>
     ///     Looks up the asset hash for a component's CSS. Returns false (with empty out)
     ///     when the type has no scoped CSS registered. Called by head emission to decide
@@ -365,28 +385,6 @@ public static class ScopedAssetRegistry
         return null;
     }
 
-    internal static int CssEntryCount
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _cssByHash.Count;
-            }
-        }
-    }
-
-    internal static int JsEntryCount
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _jsByHash.Count;
-            }
-        }
-    }
-
     private static void IncrementOrInsertLocked(
         Dictionary<string, AssetEntry> bucket, string hash, byte[] bytes)
     {
@@ -426,7 +424,7 @@ public static class ScopedAssetRegistry
         {
             var b = hash[i];
             chars[i * 2] = ToLowerHex(b >> 4);
-            chars[i * 2 + 1] = ToLowerHex(b & 0xF);
+            chars[(i * 2) + 1] = ToLowerHex(b & 0xF);
         }
 
         return new string(chars);
@@ -483,10 +481,14 @@ public static class ScopedAssetRegistry
         return sb.ToString();
     }
 
+    public readonly record struct EnumeratedEntry(string Hash, AssetKind Kind, ReadOnlyMemory<byte> Utf8);
+
     public readonly record struct AssetBytes(ReadOnlyMemory<byte> Utf8, string Etag);
 
     private sealed class AssetEntry
     {
+        public int RefCount;
+
         public AssetEntry(byte[] utf8, string etag)
         {
             Utf8 = utf8;
@@ -495,6 +497,5 @@ public static class ScopedAssetRegistry
 
         public byte[] Utf8 { get; }
         public string Etag { get; }
-        public int RefCount;
     }
 }

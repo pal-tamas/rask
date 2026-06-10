@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -81,12 +82,8 @@ public abstract partial class SharedSmokeTests
         // is invisible by construction — see comment above.
         var expected = new[]
         {
-            "OnMount",
-            "OnMountAsync (start)",
-            "OnPropsChanged (render #1)",
-            "OnPropsChangedAsync",
-            "OnRendered(firstRender: True)",
-            "OnMountAsync (after 450ms await)"
+            "OnMount", "OnMountAsync (start)", "OnPropsChanged (render #1)", "OnPropsChangedAsync",
+            "OnRendered(firstRender: True)", "OnMountAsync (after 450ms await)"
         };
 
         Assert.Equal(expected, entries);
@@ -198,11 +195,11 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         await Page.Locator("button:has-text('SetQuery page=1')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]page=1"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]page=1"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         await Page.Locator("button:has-text('SetQuery page=2')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]page=2"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]page=2"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 

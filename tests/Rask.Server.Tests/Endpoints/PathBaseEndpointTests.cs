@@ -144,5 +144,8 @@ public sealed class PathBaseEndpointTests
         Assert.Contains("path=/foo", body);
     }
 
-    private sealed class Widget : Component { protected override RenderResult Render() => this; }
+    private sealed class Widget : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

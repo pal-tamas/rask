@@ -37,7 +37,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         + "a loop should carry a stable Key (Blazor @key parity). Without it, insert/remove/reorder "
         + "falls back to a positional full-HTML morph and loses DOM identity (focus, input state) on "
         + "surviving nodes.",
-        helpLinkUri: DiagnosticHelp.Link("RASK022"));
+        DiagnosticHelp.Link("RASK022"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Rask022);
@@ -94,8 +94,8 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         var typeInfo = model.GetTypeInfo(outer, context.CancellationToken);
         var isChildLike =
             IsChild(typeInfo.Type, child) || IsChild(typeInfo.ConvertedType, child)
-            || InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
-            || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
+                                          || InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
+                                          || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
         if (!isChildLike)
         {
             return;
@@ -175,14 +175,17 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         // `outer` must be the DIRECTLY projected value — the lambda's expression body or a
         // returned expression — not a nested descendant element (e.g. a Code inside a projected
         // Li). Only the top-level projected item is the reconciled sibling that needs a Key.
-        LambdaExpressionSyntax? lambda = outer.Parent switch
+        var lambda = outer.Parent switch
         {
             LambdaExpressionSyntax direct => direct,
             ReturnStatementSyntax ret => EnclosingLambda(ret),
             _ => null
         };
 
-        return lambda?.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv } }
+        return lambda?.Parent is ArgumentSyntax
+               {
+                   Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv }
+               }
                && IsLinqProjection(inv);
     }
 

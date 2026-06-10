@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.Core.Tests.Live;
 using Rask.Core.Virtualization;
 
 #pragma warning disable RASK014 // test-defined StubComponent has no generated factory
@@ -228,6 +227,7 @@ public class VirtualizeTests
             providerStarted.TrySetResult();
             try { await Task.Delay(Timeout.Infinite, req.CancellationToken); }
             catch (OperationCanceledException) { }
+
             return new ItemsProviderResult<string>(Array.Empty<string>(), 0);
         };
 

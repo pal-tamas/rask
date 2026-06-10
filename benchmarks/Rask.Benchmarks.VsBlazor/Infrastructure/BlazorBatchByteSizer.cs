@@ -1,18 +1,19 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components.RenderTree;
+using Microsoft.AspNetCore.Components.Server;
 
 namespace Rask.Benchmarks.VsBlazor.Infrastructure;
 
 /// <summary>
-///     Serializes a <see cref="RenderBatch"/> to its on-the-wire byte sequence using
+///     Serializes a <see cref="RenderBatch" /> to its on-the-wire byte sequence using
 ///     the same internal <c>RenderBatchWriter</c> that Blazor Server's SignalR circuit
 ///     uses, and returns the byte count. We reach the internal type via reflection
 ///     because Blazor doesn't expose it; the cost of reflection is borne once at
 ///     setup (delegate cached) so per-iteration overhead is one virtual call plus the
 ///     real serializer body.
 ///     <para>
-///         If the type ever moves or is removed, <see cref="Measure"/> throws
-///         <see cref="InvalidOperationException"/> with a hint to switch to the
+///         If the type ever moves or is removed, <see cref="Measure" /> throws
+///         <see cref="InvalidOperationException" /> with a hint to switch to the
 ///         handwritten fallback. We pin the framework version against which the suite
 ///         was validated in <c>Baselines/vs-blazor.md</c>.
 ///     </para>
@@ -21,16 +22,13 @@ internal static class BlazorBatchByteSizer
 {
     private static readonly Lazy<RenderBatchWriterAdapter> Adapter = new(BuildAdapter);
 
-    public static long Measure(in RenderBatch batch)
-    {
-        return Adapter.Value.Measure(in batch);
-    }
+    public static long Measure(in RenderBatch batch) => Adapter.Value.Measure(in batch);
 
     private static RenderBatchWriterAdapter BuildAdapter()
     {
         // RenderBatchWriter lives in Microsoft.AspNetCore.Components.Server. Find it via
         // a known public type from the same assembly so we don't depend on Assembly.Load.
-        var serverAssembly = typeof(Microsoft.AspNetCore.Components.Server.ServerComponentsEndpointOptions).Assembly;
+        var serverAssembly = typeof(ServerComponentsEndpointOptions).Assembly;
         var writerType = serverAssembly.GetType(
                              "Microsoft.AspNetCore.Components.Server.Circuits.RenderBatchWriter")
                          ?? throw new InvalidOperationException(
@@ -38,15 +36,16 @@ internal static class BlazorBatchByteSizer
                              "fall back to the handwritten serializer (see vs-blazor.md methodology).");
 
         var allCtors = writerType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        var allMethods = writerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        var allMethods = writerType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
+                                               BindingFlags.DeclaredOnly)
             .Where(m => m.Name == "Write")
             .ToArray();
 
         var ctor = writerType.GetConstructor(
                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
-                       binder: null,
-                       types: [typeof(Stream), typeof(bool)],
-                       modifiers: null)
+                       null,
+                       [typeof(Stream), typeof(bool)],
+                       null)
                    ?? throw new InvalidOperationException(
                        "RenderBatchWriter(Stream, bool) ctor not found. Available ctors: " +
                        string.Join(" | ", allCtors.Select(c => c.ToString())));
@@ -54,9 +53,9 @@ internal static class BlazorBatchByteSizer
         var writeMethod = writerType.GetMethod(
                               "Write",
                               BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
-                              binder: null,
-                              types: [typeof(RenderBatch).MakeByRefType()],
-                              modifiers: null)
+                              null,
+                              [typeof(RenderBatch).MakeByRefType()],
+                              null)
                           ?? throw new InvalidOperationException(
                               "RenderBatchWriter.Write(in RenderBatch) not found. Available Write methods: " +
                               string.Join(" | ", allMethods.Select(m => m.ToString())));
@@ -72,8 +71,8 @@ internal static class BlazorBatchByteSizer
     private sealed class RenderBatchWriterAdapter
     {
         private readonly ConstructorInfo _ctor;
+        private readonly MemoryStream _stream = new(8 * 1024);
         private readonly MethodInfo _write;
-        private readonly MemoryStream _stream = new(capacity: 8 * 1024);
         private readonly object[] _writeArgs = new object[1];
 
         public RenderBatchWriterAdapter(ConstructorInfo ctor, MethodInfo write)

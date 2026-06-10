@@ -1,6 +1,5 @@
 using System.Text;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Live;
 
@@ -14,8 +13,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_IdenticalTrees_ProducesZeroOps()
     {
-        var before = Frames(C.Div(Class: "row")[C.Span()["Item 5"]]);
-        var after = Frames(C.Div(Class: "row")[C.Span()["Item 5"]]);
+        var before = Frames(Div(Class: "row")[Span()["Item 5"]]);
+        var after = Frames(Div(Class: "row")[Span()["Item 5"]]);
 
         var ops = new List<EditOp>();
         var count = FrameDiffer.Diff(before, after, ops);
@@ -31,8 +30,8 @@ public class FrameDifferTests
         // text node changes deep in an otherwise-identical tree. The diff should be
         // a single UpdateText op — not a full RemoveSubtree + InsertSubtree of the
         // surrounding element.
-        var before = Frames(C.Div(Class: "counter")[C.Span()["5"]]);
-        var after = Frames(C.Div(Class: "counter")[C.Span()["6"]]);
+        var before = Frames(Div(Class: "counter")[Span()["5"]]);
+        var after = Frames(Div(Class: "counter")[Span()["6"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -45,8 +44,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
     {
-        var before = Frames(C.Input("text", "f", "old", "edit"));
-        var after = Frames(C.Input("text", "f", "new", "edit"));
+        var before = Frames(Input("text", "f", "old", "edit"));
+        var after = Frames(Input("text", "f", "new", "edit"));
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -68,8 +67,8 @@ public class FrameDifferTests
         // checkbox losing its event handler (so it stopped responding after a click) and
         // gaining a spurious value="". Name-keyed diffing emits exactly one op for the
         // toggled attribute and leaves `list` (emitted AFTER `checked`) untouched.
-        var unchecked_ = Frames(C.Input("checkbox", "n", List: "dl"));
-        var checked_ = Frames(C.Input("checkbox", "n", Checked: true, List: "dl"));
+        var unchecked_ = Frames(Input("checkbox", "n", List: "dl"));
+        var checked_ = Frames(Input("checkbox", "n", Checked: true, List: "dl"));
 
         var on = new List<EditOp>();
         FrameDiffer.Diff(unchecked_, checked_, on);
@@ -87,8 +86,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_ChildAdded_ProducesInsertSubtreeOp()
     {
-        var before = Frames(C.Ul()[C.Li()["a"], C.Li()["b"]]);
-        var after = Frames(C.Ul()[C.Li()["a"], C.Li()["b"], C.Li()["c"]]);
+        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var after = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -100,8 +99,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_ChildRemoved_ProducesRemoveSubtreeOp()
     {
-        var before = Frames(C.Ul()[C.Li()["a"], C.Li()["b"], C.Li()["c"]]);
-        var after = Frames(C.Ul()[C.Li()["a"], C.Li()["b"]]);
+        var before = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+        var after = Frames(Ul()[Li()["a"], Li()["b"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -117,8 +116,8 @@ public class FrameDifferTests
         // span produces an UpdateText op whose Path walks: root-fragment-omitted →
         // div(0) → span(0) → text(0). The client uses this exact path to descend its
         // DOM tree and update the right node.
-        var before = Frames(C.Div()[C.Span()["one"]]);
-        var after = Frames(C.Div()[C.Span()["two"]]);
+        var before = Frames(Div()[Span()["one"]]);
+        var after = Frames(Div()[Span()["two"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -136,8 +135,8 @@ public class FrameDifferTests
     {
         // The element being changed is the SECOND div of the parent. Verifies the
         // sibling slot counter advances correctly past the first sibling.
-        var before = Frames(C.Div()[C.Div(Class: "a")["one"], C.Div(Class: "b")["two"]]);
-        var after = Frames(C.Div()[C.Div(Class: "a")["one"], C.Div(Class: "z")["two"]]);
+        var before = Frames(Div()[Div(Class: "a")["one"], Div(Class: "b")["two"]]);
+        var after = Frames(Div()[Div(Class: "a")["one"], Div(Class: "z")["two"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -174,8 +173,8 @@ public class FrameDifferTests
         // When the caller passes newHtml, FrameDiffer attaches the HTML slice for the
         // inserted subtree to op.Value. This is what makes the client-side InsertSubtree
         // applicable without a follow-up full render: the op carries everything needed.
-        var before = Frames(C.Ul()[C.Li()["a"], C.Li()["b"]]);
-        var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[C.Li()["a"], C.Li()["b"], C.Li()["c"]]);
+        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops, afterHtml);
@@ -189,8 +188,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_WithoutNewHtml_InsertSubtreeOmitsFragment()
     {
-        var before = Frames(C.Ul()[C.Li()["a"]]);
-        var afterFrames = Frames(C.Ul()[C.Li()["a"], C.Li()["b"]]);
+        var before = Frames(Ul()[Li()["a"]]);
+        var afterFrames = Frames(Ul()[Li()["a"], Li()["b"]]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops);
@@ -223,7 +222,8 @@ public class FrameDifferTests
         // bounds the move count at <= N - LIS = 2 pairs (4 ints), flattened into op.Moves.
         var batch = Assert.Single(ops);
         Assert.Equal(EditOpKind.PermutationBatch, batch.Kind);
-        Assert.True(batch.Trusted, "Keyed moves must be marked Trusted so the live-session gate doesn't divert to full HTML.");
+        Assert.True(batch.Trusted,
+            "Keyed moves must be marked Trusted so the live-session gate doesn't divert to full HTML.");
         Assert.NotNull(batch.Moves);
         Assert.True(batch.Moves!.Length is 2 or 4, "Expected 1–2 (dst,src) pairs.");
         Assert.Equal(0, batch.Moves.Length % 2);
@@ -356,13 +356,13 @@ public class FrameDifferTests
         // One child without data-rask-key drops the whole parent back to the positional
         // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
         // codec doesn't disagree with the client about which path applied.
-        var before = Frames(C.Ul()[
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
-            C.Li()["two"]
+        var before = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one"],
+            Li()["two"]
         ]);
-        var afterFrames = Frames(C.Ul()[
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
-            C.Li()["two"]
+        var afterFrames = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["one!"],
+            Li()["two"]
         ]);
 
         var ops = new List<EditOp>();
@@ -378,13 +378,13 @@ public class FrameDifferTests
     [Fact]
     public void Diff_KeyedList_DuplicateKeys_FallsBackToPositional()
     {
-        var before = Frames(C.Ul()[
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        var before = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
-        var afterFrames = Frames(C.Ul()[
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
+        var afterFrames = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["a!"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "dup" })["b"]
         ]);
 
         var ops = new List<EditOp>();
@@ -401,11 +401,11 @@ public class FrameDifferTests
         // Same data-rask-key but the element kind changed (Li → Span). The keyed branch
         // treats this as a fresh node: remove the old, insert the new at the same slot.
         // Both ops carry Trusted so the gate ships them as diff.
-        var before = Frames(C.Ul()[
-            C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
+        var before = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["original"]
         ]);
-        var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[
-            C.Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[
+            Span(Data: new Dictionary<string, string?> { ["rask-key"] = "x" })["replaced"]
         ]);
 
         var ops = new List<EditOp>();
@@ -432,6 +432,7 @@ public class FrameDifferTests
             orderBefore[i] = i;
             orderAfter[i] = i;
         }
+
         (orderAfter[5], orderAfter[95]) = (orderAfter[95], orderAfter[5]);
 
         var before = Frames(BuildKeyedRows(orderBefore));
@@ -519,14 +520,14 @@ public class FrameDifferTests
         // single trusted PermutationBatch, at the right parent depths and non-interleaved.
         static Child Row(int key, bool innerSwapped)
         {
-            Child a = C.Span(Key: $"{key}a")["A"];
-            Child b = C.Span(Key: $"{key}b")["B"];
-            var li = C.Li(Key: key);
+            Child a = Span(Key: $"{key}a")["A"];
+            Child b = Span(Key: $"{key}b")["B"];
+            var li = Li(Key: key);
             return innerSwapped ? li[b, a] : li[a, b];
         }
 
-        var before = Frames(C.Ul()[new List<Child> { Row(0, false), Row(1, false) }]);
-        var (afterFrames, afterHtml) = FramesAndHtml(C.Ul()[new List<Child> { Row(1, false), Row(0, true) }]);
+        var before = Frames(Ul()[new List<Child> { Row(0, false), Row(1, false) }]);
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[new List<Child> { Row(1, false), Row(0, true) }]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
@@ -537,8 +538,8 @@ public class FrameDifferTests
         Assert.All(ops, op => Assert.True(op.Trusted));
         // The batch op's Path is the PARENT (no trailing dst slot — that now lives in Moves).
         // Outer batch is emitted first (step 4 precedes the step-5 inner recursion).
-        Assert.Equal(new[] { 0 }, ops[0].Path);          // outer: rows reordered under the Ul (slot 0)
-        Assert.Equal(new[] { 0, 1 }, ops[1].Path);       // inner: spans reordered inside row 0 at its new slot 1
+        Assert.Equal(new[] { 0 }, ops[0].Path); // outer: rows reordered under the Ul (slot 0)
+        Assert.Equal(new[] { 0, 1 }, ops[1].Path); // inner: spans reordered inside row 0 at its new slot 1
         Assert.All(ops, op => Assert.Equal(2, op.Moves!.Length)); // one (dst,src) pair each
     }
 
@@ -547,12 +548,12 @@ public class FrameDifferTests
         var rows = new List<Child>(keys.Length);
         foreach (var k in keys)
         {
-            rows.Add(C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
+            rows.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
                 $"Item {k}"
             ]);
         }
 
-        return C.Ul()[rows];
+        return Ul()[rows];
     }
 
     private static Component BuildMixedRows(params (int Key, bool Keyed)[] rows)
@@ -561,11 +562,11 @@ public class FrameDifferTests
         foreach (var (key, keyed) in rows)
         {
             children.Add(keyed
-                ? C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
-                : C.Li()[$"Item {key}"]);
+                ? Li(Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[$"Item {key}"]
+                : Li()[$"Item {key}"]);
         }
 
-        return C.Ul()[children];
+        return Ul()[children];
     }
 
     // Same shape as BuildKeyedRows but keyed via the first-class Key property instead of a
@@ -575,10 +576,10 @@ public class FrameDifferTests
         var rows = new List<Child>(keys.Length);
         foreach (var k in keys)
         {
-            rows.Add(C.Li(Key: k)[$"Item {k}"]);
+            rows.Add(Li(Key: k)[$"Item {k}"]);
         }
 
-        return C.Ul()[rows];
+        return Ul()[rows];
     }
 
     private static Component BuildKeyedRowsWithLabel(params (string Key, string Label)[] rows)
@@ -586,10 +587,10 @@ public class FrameDifferTests
         var items = new List<Child>(rows.Length);
         foreach (var (key, label) in rows)
         {
-            items.Add(C.Li(Data: new Dictionary<string, string?> { ["rask-key"] = key })[label]);
+            items.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = key })[label]);
         }
 
-        return C.Ul()[items];
+        return Ul()[items];
     }
 
     private static RenderFrame[] Frames(Component tree)
@@ -616,14 +617,14 @@ public class FrameDifferTests
         var rows = new List<Child>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
-            rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
-                C.Span(Class: "label")[$"Item {i}"]
+            rows.Add(Div(Class: "row", Id: $"r{i}", Key: i)[
+                Span(Class: "label")[$"Item {i}"]
             ]);
         }
 
-        return C.Div(Class: "container")[
-            C.Div(Class: "counter")[C.Span(Class: "value")[counter.ToString()]],
-            C.Div(Class: "body")[rows]
+        return Div(Class: "container")[
+            Div(Class: "counter")[Span(Class: "value")[counter.ToString()]],
+            Div(Class: "body")[rows]
         ];
     }
 }

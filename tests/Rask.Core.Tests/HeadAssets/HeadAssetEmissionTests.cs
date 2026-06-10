@@ -162,10 +162,8 @@ public class HeadAssetEmissionTests
     [Fact]
     public void NullArguments_Throw()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => HeadAssetRegistry.EmitMountedAssets(null!, Array.Empty<Type>()));
-        Assert.Throws<ArgumentNullException>(
-            () => HeadAssetRegistry.EmitMountedAssets(new StringBuilder(), null!));
+        Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitMountedAssets(null!, Array.Empty<Type>()));
+        Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitMountedAssets(new StringBuilder(), null!));
     }
 
     // ─── User Head × per-component asset coexistence ─────────────────────
@@ -196,7 +194,7 @@ public class HeadAssetEmissionTests
     public void UserCdnScript_AppearsBeforePerComponentScript()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Script(Src: "https://cdn.example/chartjs.js"));
+        registry.Add(Script("https://cdn.example/chartjs.js"));
 
         ScopedAssetRegistry.RegisterJs(typeof(JsOnly), "export function f() {}");
 
@@ -299,8 +297,8 @@ public class HeadAssetEmissionTests
         var registry = new HeadAssetRegistry();
         registry.Add(Title("First"));
         registry.Add(Title("Second"));
-        registry.Add(Base(Href: "/old/"));
-        registry.Add(Base(Href: "/new/"));
+        registry.Add(Base("/old/"));
+        registry.Add(Base("/new/"));
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Equal(1, CountOccurrences(html, "<title"));
@@ -340,11 +338,38 @@ public class HeadAssetEmissionTests
         return count;
     }
 
-    private sealed class NoAssets : Component { protected override RenderResult Render() => this; }
-    private sealed class CssOnly : Component { protected override RenderResult Render() => this; }
-    private sealed class JsOnly : Component { protected override RenderResult Render() => this; }
-    private sealed class BothAssets : Component { protected override RenderResult Render() => this; }
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
-    private sealed class WidgetB : Component { protected override RenderResult Render() => this; }
-    private sealed class WidgetC : Component { protected override RenderResult Render() => this; }
+    private sealed class NoAssets : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class CssOnly : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class JsOnly : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class BothAssets : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class WidgetB : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class WidgetC : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

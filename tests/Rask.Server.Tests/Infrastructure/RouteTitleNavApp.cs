@@ -22,13 +22,13 @@ public sealed class RouteTitleNavApp : Component
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()[$"t-{_routeState.Path}"]],
-                new Body()[
-                    new H1()[$"path={_routeState.Path}"]
-                ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()[$"t-{_routeState.Path}"]],
+            new Body()[
+                new H1()[$"path={_routeState.Path}"]
             ]
-        ];
+        ]
+    ];
 }

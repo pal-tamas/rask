@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -117,7 +118,7 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
         var assetUrl = $"{url}/_rask/a/{Path.GetFileName(jsFile)}";
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
         using var resp = await http.GetAsync(assetUrl, ct);
-        if (resp.StatusCode != System.Net.HttpStatusCode.OK)
+        if (resp.StatusCode != HttpStatusCode.OK)
         {
             throw new InvalidOperationException(
                 $"{ProjectRelativePath} served {assetUrl} with HTTP {(int)resp.StatusCode} (expected 200). " +

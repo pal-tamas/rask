@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -30,7 +31,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         await Page.Locator("button:has-text('New todo')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/todos/new$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         await Expect(Page.Locator("#todo-title")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
@@ -52,11 +53,11 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
         await Page.Locator("button:has-text('Add')").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/todos$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(baseRows + 1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
-        await Expect(Page.Locator(".todo-title", new() { HasTextString = "Wire up reconnect" }))
+        await Expect(Page.Locator(".todo-title", new PageLocatorOptions { HasTextString = "Wire up reconnect" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
     });
 
@@ -76,9 +77,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#todo-title").FillAsync("Read the new README");
         await Page.Locator("button:has-text('Save')").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/todos$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page.Locator(".todo-title", new() { HasTextString = "Read the new README" }))
+        await Expect(Page.Locator(".todo-title", new PageLocatorOptions { HasTextString = "Read the new README" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
     });
 
@@ -114,7 +115,7 @@ public abstract partial class SharedSmokeTests
         // Scope the Cancel selector to the dialog — otherwise it matches the
         // sidebar's "Cancellation" entry which also contains the substring "Cancel".
         await Page.Locator("dialog[open] button:has-text('Cancel')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/todos$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         await Expect(Page.Locator("#todo-title")).Not.ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
@@ -148,7 +149,7 @@ public abstract partial class SharedSmokeTests
         var firstRowCheckbox = Page.Locator(".list-group-item").First.Locator("input[type='checkbox']");
         await firstRowCheckbox.CheckAsync();
         await Page.WaitForTimeoutAsync(200);
-        await Expect(Page.Locator(".todo-title.completed", new() { HasTextString = titleText }))
+        await Expect(Page.Locator(".todo-title.completed", new PageLocatorOptions { HasTextString = titleText }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
     });
 }

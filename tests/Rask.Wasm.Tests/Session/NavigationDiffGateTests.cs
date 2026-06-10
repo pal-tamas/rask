@@ -1,10 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
 using Rask.Core.Live;
-using Rask.Core.Routing;
-using Rask.Core.ScopedAssets;
 using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
@@ -20,7 +16,6 @@ namespace Rask.Wasm.Tests.Session;
 // write is safe.
 public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
-
     [Fact]
     public async Task Navigate_SameHead_ShipsDiffWithHistory()
     {
@@ -134,7 +129,8 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
 
         using var doc = JsonDocument.Parse(result.AsMemory());
         Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
-        Assert.True(doc.RootElement.TryGetProperty("head", out var head), "reactive title change must ship a head fragment");
+        Assert.True(doc.RootElement.TryGetProperty("head", out var head),
+            "reactive title change must ship a head fragment");
         Assert.Contains("count-1", head.GetString());
         Assert.NotEmpty(doc.RootElement.GetProperty("ops").EnumerateArray());
         Assert.False(doc.RootElement.TryGetProperty("history", out _), "no navigation → no history");

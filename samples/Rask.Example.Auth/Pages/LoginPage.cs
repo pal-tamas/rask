@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Rask.Core.Authentication;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.Pages;
@@ -51,6 +50,6 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         // SignInAsync drives the redeem handshake; the returnUrl lands the user back on the protected page.
-        await auth.SignInAsync(new ClaimsPrincipal(identity), returnUrl: ReturnUrl ?? "/members");
+        await auth.SignInAsync(new ClaimsPrincipal(identity), ReturnUrl ?? "/members");
     }
 }

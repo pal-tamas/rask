@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Rask.Core;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -19,7 +17,7 @@ public sealed class LiveTickerTests
     public async Task OnMountAsync_PopulatesHistoryFromSyntheticFeed()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, interval: 30);
+        var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
@@ -38,7 +36,7 @@ public sealed class LiveTickerTests
     public async Task OnPropsChanged_LogsSymbolSwitch()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, interval: 30);
+        var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("OnPropsChangedAsync"), TimeSpan.FromSeconds(2));
@@ -55,7 +53,7 @@ public sealed class LiveTickerTests
     public async Task OnUnmount_FiresOnRemovalFromTree()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, interval: 30);
+        var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(() => host.Log.Contains("OnMountAsync"), TimeSpan.FromSeconds(2));
@@ -75,7 +73,7 @@ public sealed class LiveTickerTests
     public async Task PollLoop_StopsAfterUnmount()
     {
         var symbol = new Box<string>("BTC");
-        var host = BuildHost(symbol, interval: 30);
+        var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
@@ -100,7 +98,7 @@ public sealed class LiveTickerTests
     {
         var symbol = new Box<string>("BTC");
         var counter = 0;
-        var host = BuildHost(symbol, interval: 1, priceSource: _ => 10_000m + counter++);
+        var host = BuildHost(symbol, 1, _ => 10_000m + counter++);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
@@ -130,7 +128,7 @@ public sealed class LiveTickerTests
         // Large interval ⇒ steady-state polling is gated; the symbol switch is what
         // drives the next poll (via the wake). The first BTC poll parks in the 50 ms
         // simulated-latency Task.Delay while we flip the symbol underneath it.
-        var host = BuildHost(symbol, interval: 5000);
+        var host = BuildHost(symbol, 5000);
 
         host.RenderAsLiveRoot();
         // The flip lands within microseconds — well inside the 50 ms in-flight window,
@@ -156,7 +154,7 @@ public sealed class LiveTickerTests
         var symbol = new Box<string>("BTC");
         // Large interval: without the wake the next poll wouldn't run for 5 s. The
         // assertion is that switching symbols polls the new asset well inside that.
-        var host = BuildHost(symbol, interval: 5000);
+        var host = BuildHost(symbol, 5000);
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
@@ -184,8 +182,8 @@ public sealed class LiveTickerTests
     {
         var symbol = new Box<string>("BTC");
         var host = BuildHost(
-            symbol, interval: 30,
-            priceSource: _ => throw new InvalidOperationException("feed offline"));
+            symbol, 30,
+            _ => throw new InvalidOperationException("feed offline"));
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
@@ -214,32 +212,13 @@ public sealed class LiveTickerTests
         Assert.Equal(2, Regex.Matches(html, "ticker-chart-container").Count);
     }
 
-    // Full-shell root hosting two LiveTickers so the head pipeline runs (same
-    // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
-    // emitting a colliding Generated.TwoTickerRoot() factory.
-    [SkipFactory]
-    private sealed class TwoTickerRoot(Action<string> log) : Component
-    {
-        protected override RenderResult Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head(),
-                Body()[
-                    LiveTicker(Symbol: "BTC", Interval: 5000, Log: log),
-                    LiveTicker(Symbol: "ETH", Interval: 5000, Log: log)
-                ]
-            ]
-        ];
-    }
-
     private static LiveHost BuildHost(
         Box<string> symbol, int interval, Func<string, decimal>? priceSource = null)
     {
         LiveHost? host = null;
         host = new LiveHost(
             () => LiveTicker(
-                Symbol: symbol.Value, Interval: interval, Log: host!.Log.Add, PriceSource: priceSource),
+                symbol.Value, interval, host!.Log.Add, priceSource),
             LiveHost.Services());
         return host;
     }
@@ -258,6 +237,25 @@ public sealed class LiveTickerTests
         return m.Success
             ? decimal.Parse(m.Groups[1].Value, NumberStyles.Number, CultureInfo.InvariantCulture)
             : 0m;
+    }
+
+    // Full-shell root hosting two LiveTickers so the head pipeline runs (same
+    // RenderAsLiveRoot path App uses). [SkipFactory] keeps the generator from
+    // emitting a colliding Generated.TwoTickerRoot() factory.
+    [SkipFactory]
+    private sealed class TwoTickerRoot(Action<string> log) : Component
+    {
+        protected override RenderResult Render() =>
+        [
+            Doctype(),
+            Html("en")[
+                Head(),
+                Body()[
+                    LiveTicker("BTC", 5000, log),
+                    LiveTicker("ETH", 5000, log)
+                ]
+            ]
+        ];
     }
 
     private sealed class Box<T>(T initial)

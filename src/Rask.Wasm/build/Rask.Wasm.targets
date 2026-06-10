@@ -87,7 +87,7 @@
     across configurations because the source generator is deterministic.
   -->
   <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
-    <_RaskBakeInputAssemblies Include="$(OutDir)*.dll" Exclude="$(OutDir)publish/**;$(OutDir)AppBundle/**" />
+    <_RaskBakeInputAssemblies Include="$(OutDir)*.dll" Exclude="$(OutDir)publish/**;$(OutDir)AppBundle/**"/>
   </ItemGroup>
 
   <!--

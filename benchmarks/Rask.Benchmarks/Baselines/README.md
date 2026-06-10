@@ -28,19 +28,19 @@ dotnet run -c Release --project Rask.Benchmarks -- payload-bytes
 
 ### Current numbers (default `LiveDiffMode.Auto` on both Server and WASM)
 
-| Scenario             | Full payload | Diff payload | Diff ops |   Reduction |
-|----------------------|-------------:|-------------:|---------:|------------:|
-| CounterOnLargePage   |      62,577  |          45  |        1 |   **1,391×** |
-| KeyedList100Reorder  |       6,720  |          57  |        2 |      **118×** |
-| TextNodeUpdate       |      62,460  |          54  |        1 |   **1,157×** |
-| AppendRowToList100   |       6,788  |         112  |        1 |       **61×** |
+| Scenario            | Full payload | Diff payload | Diff ops |  Reduction |
+|---------------------|-------------:|-------------:|---------:|-----------:|
+| CounterOnLargePage  |       62,577 |           45 |        1 | **1,391×** |
+| KeyedList100Reorder |        6,720 |           57 |        2 |   **118×** |
+| TextNodeUpdate      |       62,460 |           54 |        1 | **1,157×** |
+| AppendRowToList100  |        6,788 |          112 |        1 |    **61×** |
 
 All four scenarios beat the plan's targets:
 
-- `CounterOnLargePage`  target ≤ **200** bytes  → **45**  ✓ (positional per-op JSON shaved ~12 B)
-- `KeyedList100Reorder` target ≤ **500** bytes  → **57**  ✓ (LIS-minimal `MoveSubtree` pair, positional encoded)
-- `TextNodeUpdate`      target ≤ **100** bytes  → **54**  ✓
-- `AppendRowToList100`  target ≤ **300** bytes  → **112** ✓ (UnsafeRelaxedJsonEscaping halved the HTML-fragment bytes)
+- `CounterOnLargePage`  target ≤ **200** bytes → **45**  ✓ (positional per-op JSON shaved ~12 B)
+- `KeyedList100Reorder` target ≤ **500** bytes → **57**  ✓ (LIS-minimal `MoveSubtree` pair, positional encoded)
+- `TextNodeUpdate`      target ≤ **100** bytes → **54**  ✓
+- `AppendRowToList100`  target ≤ **300** bytes → **112** ✓ (UnsafeRelaxedJsonEscaping halved the HTML-fragment bytes)
 
 Full-payload bytes also dropped ~40% across the board after the WS writer switched
 to `UnsafeRelaxedJsonEscaping` — the default `Utf8JsonWriter` escaping rewrites
@@ -142,24 +142,24 @@ default" and the README updates to cite this CSV.
 Five of the eight planned micro-wins are landed; the remaining three are larger
 refactors or observability-only. All ship unconditionally (no flag gate).
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 1 | `Text` / attribute encoding fast-path (skip `HtmlEncoder` for plain ASCII) | ✓ done | `HtmlSerializer.AppendEncoded` |
-| 2 | Scope poppers as `ref struct` (3 popper classes → 1 `ContextScope`) | ✓ done | `LiveRenderContext.cs` |
-| 3 | `ScopedCssRegistry` lock-free read cache (`ConcurrentDictionary` front) | ✓ done | `ScopedCssRegistry.TryRegister` |
-| 4 | Skip scope push/pop for handler-free cached subtrees | deferred | needs `_cachedRenderResult` metadata |
-| 5 | Single-pass UTF-8 write in `BuildPayloadUtf8Spliced` (eliminate 2nd rent) | ✓ done | already single `ArrayPool.Rent` + 3× `GetBytes` into one buffer (`LivePayload.cs`) |
-| 6 | Coalesce-loop budget telemetry + worst-case bench | deferred | observability-only |
-| 7 | Children-indexer specialisation (drop `.Select(c => (Child)c)`) | ✓ done | `Component[IEnumerable<Component>]` |
-| 8 | Handler-id `string.Concat` cliff (prebake 1024 + stackalloc overflow) | ✓ done | `Component.RegisterHandler` |
-| 9 | Keyed-diff scratch pooling (per-session `DiffScratch`: pooled key maps / child lists / LIS set + `ArrayPool` permutation buffers) | ✓ done | `FrameDiffer.DiffScratch`, `SessionRenderCache._scratch` |
+| # | Item                                                                                                                              | Status   | Where                                                                              |
+|---|-----------------------------------------------------------------------------------------------------------------------------------|----------|------------------------------------------------------------------------------------|
+| 1 | `Text` / attribute encoding fast-path (skip `HtmlEncoder` for plain ASCII)                                                        | ✓ done   | `HtmlSerializer.AppendEncoded`                                                     |
+| 2 | Scope poppers as `ref struct` (3 popper classes → 1 `ContextScope`)                                                               | ✓ done   | `LiveRenderContext.cs`                                                             |
+| 3 | `ScopedCssRegistry` lock-free read cache (`ConcurrentDictionary` front)                                                           | ✓ done   | `ScopedCssRegistry.TryRegister`                                                    |
+| 4 | Skip scope push/pop for handler-free cached subtrees                                                                              | deferred | needs `_cachedRenderResult` metadata                                               |
+| 5 | Single-pass UTF-8 write in `BuildPayloadUtf8Spliced` (eliminate 2nd rent)                                                         | ✓ done   | already single `ArrayPool.Rent` + 3× `GetBytes` into one buffer (`LivePayload.cs`) |
+| 6 | Coalesce-loop budget telemetry + worst-case bench                                                                                 | deferred | observability-only                                                                 |
+| 7 | Children-indexer specialisation (drop `.Select(c => (Child)c)`)                                                                   | ✓ done   | `Component[IEnumerable<Component>]`                                                |
+| 8 | Handler-id `string.Concat` cliff (prebake 1024 + stackalloc overflow)                                                             | ✓ done   | `Component.RegisterHandler`                                                        |
+| 9 | Keyed-diff scratch pooling (per-session `DiffScratch`: pooled key maps / child lists / LIS set + `ArrayPool` permutation buffers) | ✓ done   | `FrameDiffer.DiffScratch`, `SessionRenderCache._scratch`                           |
 
 ### Quick allocation deltas (HtmlSerializerBenchmarks, --job=short)
 
-| Method | Allocated (before Phase 2) | Allocated (after) | Reduction |
-|--------|--------------------------:|------------------:|----------:|
-| RenderTextHeavyTree     | 108.57 KB | 97.58 KB | **-10%** |
-| RenderTreeWithScopedCss |  54.70 KB | 45.32 KB | **-17%** |
+| Method                  | Allocated (before Phase 2) | Allocated (after) | Reduction |
+|-------------------------|---------------------------:|------------------:|----------:|
+| RenderTextHeavyTree     |                  108.57 KB |          97.58 KB |  **-10%** |
+| RenderTreeWithScopedCss |                   54.70 KB |          45.32 KB |  **-17%** |
 
 (ShortRun timing noise hides the time impact; allocation numbers are
 deterministic. A longer run will pin the time delta.)
@@ -180,11 +180,11 @@ dotnet run -c Release --project Rask.Benchmarks -- --filter '*PayloadBytesPerUpd
 
 A quick smoke run (`--job short`) over `PayloadBytesPerUpdate` produced:
 
-| Method              |     Mean | Allocated |
-|---------------------|---------:|----------:|
-| CounterOnLargePage  | 258 µs   |  999 KB   |
-| KeyedList100Reorder |  39 µs   |  195 KB   |
-| TextNodeUpdate      | 261 µs   |  997 KB   |
+| Method              |   Mean | Allocated |
+|---------------------|-------:|----------:|
+| CounterOnLargePage  | 258 µs |    999 KB |
+| KeyedList100Reorder |  39 µs |    195 KB |
+| TextNodeUpdate      | 261 µs |    997 KB |
 
 `Allocated` includes the per-iteration tree build (List<Child>, components,
 attribute dictionaries) + the payload build. The wire-bytes column above is the
@@ -204,9 +204,9 @@ allocates a `DiffScratch` per call (the pre-pooling profile).
 
 | Method                | Rows |     Mean | Allocated | Alloc ratio |
 |-----------------------|-----:|---------:|----------:|------------:|
-| Reorder_ReusedScratch |  100 |  10.7 µs |  7.13 KB  | 1.00 (base) |
-| Reorder_FreshScratch  |  100 |  13.5 µs | 54.35 KB  |   **7.63×** |
-| Reorder_ReusedScratch | 1000 | 128.6 µs | 70.41 KB  | 1.00 (base) |
+| Reorder_ReusedScratch |  100 |  10.7 µs |   7.13 KB | 1.00 (base) |
+| Reorder_FreshScratch  |  100 |  13.5 µs |  54.35 KB |   **7.63×** |
+| Reorder_ReusedScratch | 1000 | 128.6 µs |  70.41 KB | 1.00 (base) |
 | Reorder_FreshScratch  | 1000 | 159.4 µs | 504.31 KB |   **7.16×** |
 
 Pooling the keyed working set cuts the keyed-reconcile allocation ~7× and the

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
 

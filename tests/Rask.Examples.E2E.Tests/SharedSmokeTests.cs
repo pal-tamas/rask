@@ -15,9 +15,9 @@ namespace Rask.Examples.E2E.Tests;
 // SPA fallback (deep links 404).
 public abstract partial class SharedSmokeTests : IAsyncLifetime
 {
+    private readonly List<string> _console = new();
     private readonly PlaywrightFixture _pw;
     private IBrowserContext _ctx = default!;
-    private readonly List<string> _console = new();
 
     protected IPage Page = default!;
 
@@ -35,8 +35,20 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         // the real client-side cause (e.g. a scoped-JS "Could not find … on target" force-fault
         // that trips RootErrorBoundary) in the CI log — the C# stack alone only shows the wait
         // timeout, not why the app never became interactive.
-        Page.Console += (_, msg) => { lock (_console) _console.Add($"[{msg.Type}] {msg.Text}"); };
-        Page.PageError += (_, err) => { lock (_console) _console.Add($"[pageerror] {err}"); };
+        Page.Console += (_, msg) =>
+        {
+            lock (_console)
+            {
+                _console.Add($"[{msg.Type}] {msg.Text}");
+            }
+        };
+        Page.PageError += (_, err) =>
+        {
+            lock (_console)
+            {
+                _console.Add($"[pageerror] {err}");
+            }
+        };
     }
 
     public async Task DisposeAsync() => await _ctx.DisposeAsync();
@@ -62,7 +74,11 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         finally
         {
             string[] console;
-            lock (_console) console = _console.ToArray();
+            lock (_console)
+            {
+                console = _console.ToArray();
+            }
+
             await TestArtifacts.DumpAsync(Page, FixtureName, testName, ServerLog, console);
         }
     }
@@ -73,22 +89,38 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     private async Task DumpDiagnosticsAsync(string testName)
     {
         string[] console;
-        lock (_console) console = _console.ToArray();
+        lock (_console)
+        {
+            console = _console.ToArray();
+        }
 
         string? boundary = null;
         try
         {
             var html = await Page.ContentAsync();
             if (html.Contains("Something went wrong", StringComparison.Ordinal))
+            {
                 boundary = "RootErrorBoundary fallback PRESENT (\"Something went wrong\") — the app crashed";
+            }
         }
-        catch { /* page may be closed */ }
+        catch
+        {
+            /* page may be closed */
+        }
 
         Console.WriteLine($"===== E2E DIAG {FixtureName}.{testName} =====");
         Console.WriteLine($"  url: {Page.Url}");
-        if (boundary is not null) Console.WriteLine($"  {boundary}");
+        if (boundary is not null)
+        {
+            Console.WriteLine($"  {boundary}");
+        }
+
         Console.WriteLine($"  browser console ({console.Length} msgs):");
-        foreach (var line in console.TakeLast(40)) Console.WriteLine($"    {line}");
+        foreach (var line in console.TakeLast(40))
+        {
+            Console.WriteLine($"    {line}");
+        }
+
         Console.WriteLine($"===== /E2E DIAG {FixtureName}.{testName} =====");
     }
 
@@ -1940,5 +1972,4 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             .ToContainTextAsync("Generated 1 time(s).",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
-
 }

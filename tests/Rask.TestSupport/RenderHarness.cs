@@ -31,17 +31,16 @@ public static class RenderHarness
     public readonly struct RenderScope<T> : IDisposable
         where T : Component
     {
-        private readonly LiveRenderContext _ctx;
-
         internal RenderScope(LiveRenderContext ctx, T resolved)
         {
-            _ctx = ctx;
+            Context = ctx;
             Resolved = resolved;
         }
 
-        public LiveRenderContext Context => _ctx;
+        public LiveRenderContext Context { get; }
+
         public T Resolved { get; }
 
-        public void Dispose() => _ctx.Dispose();
+        public void Dispose() => Context.Dispose();
     }
 }

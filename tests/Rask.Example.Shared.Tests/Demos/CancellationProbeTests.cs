@@ -1,5 +1,3 @@
-using Rask.Core;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -12,7 +10,7 @@ public sealed class CancellationProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => CancellationProbe(Log: log.Add, InstanceId: 1),
+            () => CancellationProbe(log.Add, 1),
             TestServices.Default());
 
         host.RenderAsLiveRoot();
@@ -31,7 +29,7 @@ public sealed class CancellationProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => CancellationProbe(Log: log.Add, InstanceId: 9),
+            () => CancellationProbe(log.Add, 9),
             TestServices.Default());
 
         host.RenderAsLiveRoot();

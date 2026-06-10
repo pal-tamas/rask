@@ -166,5 +166,8 @@ public class AssetEndpointParityTests
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
     }
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

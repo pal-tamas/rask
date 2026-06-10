@@ -12,12 +12,16 @@ namespace Rask.Core.Components;
 ///     a named authorization policy), with <b>no markup of its own</b> (transparent like
 ///     <see cref="Fragment" />):
 ///     <list type="bullet">
-///         <item><see cref="Authorized" /> — the user passes the gate. Falls back to the children
-///         indexer when the slot is null, so <c>Authorize(Roles: "admin")[ adminPanel ]</c> works.</item>
+///         <item>
+///             <see cref="Authorized" /> — the user passes the gate. Falls back to the children
+///             indexer when the slot is null, so <c>Authorize(Roles: "admin")[ adminPanel ]</c> works.
+///         </item>
 ///         <item><see cref="NotAuthorized" /> — the user is denied (default: renders nothing).</item>
-///         <item><see cref="Authorizing" /> — the provider is still loading, or a <see cref="Policy" />
-///         evaluation is in flight (default: renders nothing). Bridges the anonymous→authenticated
-///         flash on WASM, where the principal hydrates asynchronously.</item>
+///         <item>
+///             <see cref="Authorizing" /> — the provider is still loading, or a <see cref="Policy" />
+///             evaluation is in flight (default: renders nothing). Bridges the anonymous→authenticated
+///             flash on WASM, where the principal hydrates asynchronously.
+///         </item>
 ///     </list>
 ///     <para>
 ///         <see cref="Roles" /> and the authenticated check are evaluated synchronously in
@@ -30,9 +34,6 @@ namespace Rask.Core.Components;
 /// </summary>
 public sealed class Authorize : Component
 {
-    private IUserProvider? _provider;
-    private IServiceProvider? _services;
-
     // null = "policy not yet evaluated" (or no policy). true/false once resolved. Read in Render to
     // gate the Policy branch and to decide whether to show the Authorizing slot.
     private bool? _policyAllowed;
@@ -41,6 +42,8 @@ public sealed class Authorize : Component
     // evaluation whose token is no longer current must not overwrite a newer verdict (avoids a
     // last-completer-wins race when the principal changes mid-flight).
     private int _policyGen;
+    private IUserProvider? _provider;
+    private IServiceProvider? _services;
 
     // Transparent — Authorize itself emits nothing, it only selects one slot. (Same as the base
     // default; stated explicitly to document the headless contract.)
@@ -167,7 +170,8 @@ public sealed class Authorize : Component
     private async Task RefreshPolicyThenRenderAsync()
     {
         StateHasChanged(); // paint the Authorizing slot immediately
-        await EvaluatePolicyAsync(_provider?.Current ?? new ClaimsPrincipal(new ClaimsIdentity())).ConfigureAwait(false);
+        await EvaluatePolicyAsync(_provider?.Current ?? new ClaimsPrincipal(new ClaimsIdentity()))
+            .ConfigureAwait(false);
         StateHasChanged(); // paint the resolved verdict
     }
 
@@ -196,7 +200,7 @@ public sealed class Authorize : Component
                 }
                 else
                 {
-                    var result = await authz.AuthorizeAsync(principal, resource: null, policy).ConfigureAwait(false);
+                    var result = await authz.AuthorizeAsync(principal, null, policy).ConfigureAwait(false);
                     allowed = result.Succeeded;
                 }
             }

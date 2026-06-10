@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Running;
+using Rask.Benchmarks.VsBlazor.Reports;
 
 // Mirror Rask.Benchmarks/Program.cs: subcommands first, then default to BDN.
 //   payload-bytes   — deterministic wire-bytes-per-update report (no measurement noise), CSV
@@ -7,17 +8,17 @@ using BenchmarkDotNet.Running;
 // Anything else passes straight through to BenchmarkDotNet.
 if (args.Length >= 1 && args[0] == "payload-bytes")
 {
-    return Rask.Benchmarks.VsBlazor.Reports.VsBlazorPayloadBytesReport.Run(args);
+    return VsBlazorPayloadBytesReport.Run(args);
 }
 
 if (args.Length >= 1 && args[0] == "keyed-list-dump")
 {
-    return Rask.Benchmarks.VsBlazor.Reports.KeyedListDiffDump.Run(args);
+    return KeyedListDiffDump.Run(args);
 }
 
 if (args.Length >= 1 && args[0] == "mem-footprint")
 {
-    return Rask.Benchmarks.VsBlazor.Reports.VsBlazorMemFootprintReport.Run(args);
+    return VsBlazorMemFootprintReport.Run(args);
 }
 
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);

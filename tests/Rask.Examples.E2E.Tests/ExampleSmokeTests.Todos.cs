@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -47,7 +48,7 @@ public abstract partial class ExampleSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
 
         await Page.GoBackAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/todos$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         await Expect(Page.Locator("#todo-title")).Not.ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });

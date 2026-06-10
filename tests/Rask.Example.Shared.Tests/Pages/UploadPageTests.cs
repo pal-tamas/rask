@@ -12,7 +12,7 @@ public sealed class UploadPageTests
     public void Render_BeforeFileChosen_ShowsNoFileSelected()
     {
         var routeState = new RouteState { Path = "/upload" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("upload-input", html);

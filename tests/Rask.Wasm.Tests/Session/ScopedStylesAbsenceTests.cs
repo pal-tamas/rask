@@ -1,8 +1,5 @@
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
-using Rask.Core.Components;
-using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using static Rask.Core.Components.Generated;
 
@@ -57,12 +54,12 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
         protected override RenderResult Head => Title()["wasm-stub"];
 
         protected override RenderResult Render() =>
-            [
-                Doctype(),
-                Html()[
-                    Head(),
-                    Body()[Div(Class: "tag")["hi"]]
-                ]
-            ];
+        [
+            Doctype(),
+            Html()[
+                Head(),
+                Body()[Div(Class: "tag")["hi"]]
+            ]
+        ];
     }
 }

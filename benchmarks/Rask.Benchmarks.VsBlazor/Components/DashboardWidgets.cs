@@ -22,16 +22,15 @@ internal static class DashboardWidgets
     public sealed class StatefulDashboard : Component
 #pragma warning restore RASK014
     {
-        private List<Child>? _staticSidebar;
         private List<Child>? _staticAlerts;
+        private List<Child>? _staticSidebar;
         private List<Child>? _staticStatusGrid;
-        private int _counter;
 
-        public int Counter => _counter;
+        public int Counter { get; private set; }
 
         public void Tick()
         {
-            _counter++;
+            Counter++;
             StateHasChanged();
         }
 
@@ -77,7 +76,7 @@ internal static class DashboardWidgets
                     // Widget 1: counter — the only mutating widget
                     C.Div(Class: "widget counter-widget", Id: "w-counter")[
                         C.Span(Class: "widget-title")["Live count"],
-                        C.Span(Class: "widget-value")[_counter.ToString()]
+                        C.Span(Class: "widget-value")[Counter.ToString()]
                     ],
                     // Widget 2: chart placeholder
                     C.Div(Class: "widget chart-widget", Id: "w-chart")[
@@ -136,7 +135,8 @@ internal static class DashboardWidgets
             b.OpenElement(10, "aside");
             b.AddAttribute(11, "class", "sidebar");
             b.OpenElement(12, "ul");
-            string[] navItems = ["/dashboard:Dashboard", "/reports:Reports", "/users:Users", "/settings:Settings", "/help:Help"];
+            string[] navItems =
+                ["/dashboard:Dashboard", "/reports:Reports", "/users:Users", "/settings:Settings", "/help:Help"];
             foreach (var item in navItems)
             {
                 var parts = item.Split(':');
@@ -148,6 +148,7 @@ internal static class DashboardWidgets
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
             b.CloseElement();
 
@@ -203,6 +204,7 @@ internal static class DashboardWidgets
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
 
             // Widget 4: alerts
@@ -230,6 +232,7 @@ internal static class DashboardWidgets
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
             b.CloseElement();
 
@@ -258,6 +261,7 @@ internal static class DashboardWidgets
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
             b.CloseElement();
 

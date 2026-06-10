@@ -52,13 +52,12 @@ internal static class NestedKeyedList
     public sealed class StatefulNestedKeyedList : Component
 #pragma warning restore RASK014
     {
-        public int OuterCapacity { get; init; } = OuterCardCount;
-
         private Child[]? _cardsByKey;
         private int[]? _order;
         private List<Child>? _scratch;
         private int _swapA = 3;
         private int _swapB;
+        public int OuterCapacity { get; init; } = OuterCardCount;
 
         public int[] CurrentOrder
         {
@@ -88,12 +87,17 @@ internal static class NestedKeyedList
             {
                 _scratch.Add(_cardsByKey![_order[i]]);
             }
+
             return C.Div(Class: "deck")[_scratch];
         }
 
         private void EnsureSeeded()
         {
-            if (_cardsByKey is not null) return;
+            if (_cardsByKey is not null)
+            {
+                return;
+            }
+
             _cardsByKey = new Child[OuterCapacity];
             for (var k = 0; k < OuterCapacity; k++)
             {
@@ -106,6 +110,7 @@ internal static class NestedKeyedList
                         C.Span()[$"Card {k} · row {r}"]
                     ]);
                 }
+
                 _cardsByKey[k] = C.Div(
                     Class: "card",
                     Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
@@ -113,10 +118,14 @@ internal static class NestedKeyedList
                     C.Ul()[rows]
                 ];
             }
+
             if (_order is null)
             {
                 _order = new int[OuterCapacity];
-                for (var i = 0; i < OuterCapacity; i++) _order[i] = i;
+                for (var i = 0; i < OuterCapacity; i++)
+                {
+                    _order[i] = i;
+                }
             }
         }
     }
@@ -153,6 +162,7 @@ internal static class NestedKeyedList
 
                     b.CloseElement();
                 }
+
                 b.CloseElement();
 
                 b.CloseElement();

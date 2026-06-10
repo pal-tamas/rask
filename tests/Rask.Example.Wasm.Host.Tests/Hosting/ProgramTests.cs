@@ -1,8 +1,6 @@
 using System.Net;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Example.Wasm.Host.Tests.Infrastructure;
 using Rask.Wasm.Hosting;
 

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.Jwt.Pages;
@@ -16,7 +15,7 @@ public sealed class HomePage : Component
                     "The JWT authenticates the live WebSocket — it rides the upgrade as ", Code()["?access_token="],
                     " (set via ", Code()["window.Rask.authToken"], "). The members page gates content with the ",
                     Code()["Authorize"], " component over that authenticated socket."],
-                NavLink(Href: "/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

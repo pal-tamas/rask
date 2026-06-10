@@ -12,7 +12,7 @@ public class ContextTests
         var sp = RenderHarness.EmptyServices();
         var consumer = new ThemeConsumer();
         var root = new StubComponent(() =>
-            Context.Provide<Theme>(Value: new Theme("light"))[consumer]);
+            Context.Provide<Theme>(new Theme("light"))[consumer]);
 
         var html = root.RenderAsLiveRoot(sp);
 
@@ -27,9 +27,9 @@ public class ContextTests
         var outer = new ThemeConsumer();
         var inner = new ThemeConsumer();
         var root = new StubComponent(() =>
-            Context.Provide<Theme>(Value: new Theme("outer"))[
+            Context.Provide<Theme>(new Theme("outer"))[
                 outer,
-                Context.Provide<Theme>(Value: new Theme("inner"))[inner]
+                Context.Provide(new Theme("inner"))[inner]
             ]);
 
         root.RenderAsLiveRoot(sp);
@@ -60,7 +60,7 @@ public class ContextTests
         // A provider explicitly supplying a null reference: Has is true, the value is null, and
         // Required returns null rather than throwing — the "no provider" path.
         var root = new StubComponent(() =>
-            Context.Provide<Theme?>(Value: null)[probe]);
+            Context.Provide<Theme?>(null)[probe]);
 
         root.RenderAsLiveRoot(sp);
 
@@ -74,7 +74,7 @@ public class ContextTests
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new IntProbe();
-        var root = new StubComponent(() => Context.Provide<int>(Value: 42)[probe]);
+        var root = new StubComponent(() => Context.Provide(42)[probe]);
 
         root.RenderAsLiveRoot(sp);
 
@@ -87,7 +87,7 @@ public class ContextTests
         var sp = RenderHarness.EmptyServices();
         var probe = new GreeterProbe();
         var root = new StubComponent(() =>
-            Context.Provide<EnGreeter>(Value: new EnGreeter())[probe]);
+            Context.Provide(new EnGreeter())[probe]);
 
         root.RenderAsLiveRoot(sp);
 
@@ -101,8 +101,8 @@ public class ContextTests
         var sp = RenderHarness.EmptyServices();
         var probe = new NamedProbe();
         var root = new StubComponent(() =>
-            Context.Provide<string>(Value: "primary", Name: "a")[
-                Context.Provide<string>(Value: "secondary", Name: "b")[probe]
+            Context.Provide<string>("primary", "a")[
+                Context.Provide<string>("secondary", "b")[probe]
             ]);
 
         root.RenderAsLiveRoot(sp);
@@ -119,13 +119,13 @@ public class ContextTests
         var inner = new ContextProbe();
         var sibling = new ContextProbe();
         var root = new StubComponent(() => new Fragment(
-            Context.Provide<Theme>(Value: new Theme("scoped"))[inner],
+            Context.Provide(new Theme("scoped"))[inner],
             sibling));
 
         root.RenderAsLiveRoot(sp);
 
-        Assert.True(inner.Has);          // inside the provider subtree
-        Assert.False(sibling.Has);       // stack popped before the sibling renders
+        Assert.True(inner.Has); // inside the provider subtree
+        Assert.False(sibling.Has); // stack popped before the sibling renders
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class ContextTests
     {
         var sp = RenderHarness.EmptyServices();
         var root = new StubComponent(() =>
-            Context.Provide<int>(Value: 1, Key: "k1")[Div()["body"]]);
+            Context.Provide(1, Key: "k1")[Div()["body"]]);
 
         var html = root.RenderAsLiveRoot(sp);
 
@@ -184,7 +184,7 @@ public class ContextTests
         host.RenderAsLiveRoot(sp);
 
         Assert.Equal(2, consumer.RenderCount); // re-ran (consumer marked via Has)
-        Assert.Equal(1, plain.RenderCount);     // non-consumer sibling stays cached
+        Assert.Equal(1, plain.RenderCount); // non-consumer sibling stays cached
     }
 
     [Fact]
@@ -212,8 +212,8 @@ public class ContextTests
 
     private sealed class ThemeConsumer : Component
     {
-        public int RenderCount;
         public string? LastSeen;
+        public int RenderCount;
 
         protected override RenderResult Render()
         {
@@ -248,8 +248,8 @@ public class ContextTests
 
     private sealed class ContextProbe : Component
     {
-        public bool Has;
         public Theme? GotOptional;
+        public bool Has;
         public bool RequiredThrew;
 
         protected override RenderResult Render()
@@ -326,7 +326,7 @@ public class ContextTests
             ctx.NotifyParameters(con, false);
             var pl = ctx.GetOrCreate(_ => _plain);
             ctx.NotifyParameters(pl, false);
-            return Context.Provide<Theme>(Value: Theme)[con, pl];
+            return Context.Provide(Theme)[con, pl];
         }
     }
 }

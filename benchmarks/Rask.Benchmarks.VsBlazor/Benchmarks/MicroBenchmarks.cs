@@ -20,18 +20,15 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 [MemoryDiagnoser]
 public class Micro_HtmlSerializerAppendEncodedBenchmarks
 {
-    [ParamsSource(nameof(Inputs))]
-    public InputCase Input { get; set; } = null!;
+    private StringBuilder _sb = null!;
+
+    [ParamsSource(nameof(Inputs))] public InputCase Input { get; set; } = null!;
 
     public static IEnumerable<InputCase> Inputs => new[]
     {
-        new InputCase("safe-ascii-16", "data-test-row-42"),
-        new InputCase("safe-ascii-200", new string('x', 200)),
-        new InputCase("encoder-fallback", "tom&jerry"),
-        new InputCase("utf-8-multibyte", "árvíztűrő")
+        new InputCase("safe-ascii-16", "data-test-row-42"), new InputCase("safe-ascii-200", new string('x', 200)),
+        new InputCase("encoder-fallback", "tom&jerry"), new InputCase("utf-8-multibyte", "árvíztűrő")
     };
-
-    private StringBuilder _sb = null!;
 
     [GlobalSetup]
     public void Setup() => _sb = new StringBuilder(1024);
@@ -40,16 +37,10 @@ public class Micro_HtmlSerializerAppendEncodedBenchmarks
     public void Reset() => _sb.Clear();
 
     [Benchmark(Baseline = true)]
-    public void Baseline_HtmlEncoderDefault()
-    {
-        _sb.Append(HtmlEncoder.Default.Encode(Input.Value));
-    }
+    public void Baseline_HtmlEncoderDefault() => _sb.Append(HtmlEncoder.Default.Encode(Input.Value));
 
     [Benchmark]
-    public void Rask_AppendEncoded()
-    {
-        HtmlSerializer.AppendEncoded(_sb, Input.Value);
-    }
+    public void Rask_AppendEncoded() => HtmlSerializer.AppendEncoded(_sb, Input.Value);
 
     public sealed record InputCase(string Label, string Value)
     {
@@ -67,13 +58,14 @@ public class Micro_FrameDifferDiffBenchmarks
         KeyedSwap50Rows
     }
 
-    [Params(Scenario.IdentityZeroOps, Scenario.SingleTextChange, Scenario.KeyedSwap50Rows)]
-    public Scenario Case { get; set; }
+    private RenderFrame[] _after = null!;
 
     private RenderFrame[] _before = null!;
-    private RenderFrame[] _after = null!;
     private string? _newHtml;
     private List<EditOp> _output = null!;
+
+    [Params(Scenario.IdentityZeroOps, Scenario.SingleTextChange, Scenario.KeyedSwap50Rows)]
+    public Scenario Case { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -92,7 +84,12 @@ public class Micro_FrameDifferDiffBenchmarks
             case Scenario.KeyedSwap50Rows:
                 var orderBefore = new int[50];
                 var orderAfter = new int[50];
-                for (var i = 0; i < 50; i++) { orderBefore[i] = i; orderAfter[i] = i; }
+                for (var i = 0; i < 50; i++)
+                {
+                    orderBefore[i] = i;
+                    orderAfter[i] = i;
+                }
+
                 (orderAfter[10], orderAfter[20]) = (orderAfter[20], orderAfter[10]);
                 _before = MicroBenchHarness.BuildFrames(KeyedList.BuildRask(orderBefore));
                 var pair = MicroBenchHarness.BuildFramesAndHtml(KeyedList.BuildRask(orderAfter));
@@ -113,19 +110,18 @@ public class Micro_FrameDifferDiffBenchmarks
 [MemoryDiagnoser]
 public class Micro_FrameDifferLisBenchmarks
 {
+    private int[] _input = null!;
+
     // O(n²) LIS for keyed reorders. Reverse is the worst case (every pair inversion);
     // the LIS itself is length 1, so the whole array enters the diff as MoveSubtree ops.
     // Identity is the best case (LIS = full array; zero moves). RandomPermutation is the
     // average-case scaling baseline. OneOutOfOrder is the typical real-world shape
     // (a single swap inside an otherwise-sorted list).
-    [Params(10, 100, 500, 2000)]
-    public int N { get; set; }
+    [Params(10, 100, 500, 2000)] public int N { get; set; }
 
     [Params(MicroBenchHarness.LisShape.Identity, MicroBenchHarness.LisShape.Reverse,
         MicroBenchHarness.LisShape.RandomPermutation, MicroBenchHarness.LisShape.OneOutOfOrder)]
     public MicroBenchHarness.LisShape Shape { get; set; }
-
-    private int[] _input = null!;
 
     [GlobalSetup]
     public void Setup() => _input = MicroBenchHarness.BuildLisInput(N, Shape);
@@ -137,11 +133,11 @@ public class Micro_FrameDifferLisBenchmarks
 [MemoryDiagnoser]
 public class Micro_LivePayloadBuildDiffBenchmarks
 {
-    [Params(1, 10, 100, 500)]
-    public int OpCount { get; set; }
+    private ArrayBufferWriter<byte> _buffer = null!;
 
     private List<EditOp> _ops = null!;
-    private ArrayBufferWriter<byte> _buffer = null!;
+
+    [Params(1, 10, 100, 500)] public int OpCount { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -189,20 +185,19 @@ public class Micro_FrameWriterGrowthBenchmarks
     // re-rents the growth path triggers. Re-instantiating per iteration is intentional —
     // measures the cold-rent + grow pattern, not steady-state pooled reuse (which is
     // already covered by RaskHarness throughput).
-    [Params(10, 100, 1000)]
-    public int Cycles { get; set; }
+    [Params(10, 100, 1000)] public int Cycles { get; set; }
 
     [Benchmark]
     public int Rask_FrameWriterGrow()
     {
-        var w = new FrameWriter(initialCapacity: 16);
+        var w = new FrameWriter(16);
         for (var i = 0; i < Cycles; i++)
         {
-            var idx = w.OpenElement("div", scopeId: null, selfClosing: false, htmlStart: 0);
+            var idx = w.OpenElement("div", null, false, 0);
             w.Attribute("class", "row");
             w.Attribute("id", "r");
             w.Text("text", 0, 4);
-            w.CloseElement(idx, htmlEnd: 0);
+            w.CloseElement(idx, 0);
         }
 
         return w.Count;
@@ -218,9 +213,9 @@ public class Micro_SessionRenderCacheRotateBenchmarks
     // itself (the high-water-mark path of the diff codec — the part that has to stay
     // free of per-render allocation).
     private SessionRenderCache _cache = null!;
-    private Component _trivial = null!;
-    private StringBuilder _sb = null!;
     private List<EditOp> _ops = null!;
+    private StringBuilder _sb = null!;
+    private Component _trivial = null!;
 
     [GlobalSetup]
     public void Setup()

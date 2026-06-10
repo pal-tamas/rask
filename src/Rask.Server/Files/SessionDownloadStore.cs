@@ -29,6 +29,13 @@ internal sealed class SessionDownloadStore : IDisposable
     {
         var token = Guid.NewGuid().ToString("N");
         var path = Path.Combine(Path.GetTempPath(), $"rask-download-{token}.bin");
+        // Eagerly copy to a temp file (synchronously) rather than holding the caller's
+        // stream until the download HTTP request arrives. This decouples the file's
+        // lifetime from the source stream — IDownloadSink.Stage / Navigator.Download are
+        // synchronous, fire-and-forget APIs called from an event handler, so the stream
+        // (often a `using` MemoryStream/FileStream) may be disposed the moment the handler
+        // returns. Copying now is the price of that contract; keep it sync to avoid
+        // turning the whole public Download path async.
         using (var f = File.Create(path))
         {
             stream.CopyTo(f);

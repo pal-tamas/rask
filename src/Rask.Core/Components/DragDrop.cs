@@ -16,11 +16,6 @@ namespace Rask.Core.Components;
 // `Body` parameter (named so to avoid colliding with Component.Render(), same as Virtualize).
 public sealed class DragDrop : Component
 {
-    private string? _sourceZone;
-    private int _sourceIndex = -1;
-    private string? _targetZone;
-    private int _targetIndex = -1;
-
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
     // chosen root Component for the drag region. Named "Body" (not "Render") to avoid colliding
     // with Component.Render().
@@ -34,38 +29,42 @@ public sealed class DragDrop : Component
     // observe through props, so every render must re-execute — same reasoning as Virtualize.
     protected override bool BypassRenderCache => true;
 
-    internal string? SourceZoneInternal => _sourceZone;
-    internal int SourceIndexInternal => _sourceIndex;
-    internal string? TargetZoneInternal => _targetZone;
-    internal int TargetIndexInternal => _targetIndex;
+    internal string? SourceZoneInternal { get; private set; }
+
+    internal int SourceIndexInternal { get; private set; } = -1;
+
+    internal string? TargetZoneInternal { get; private set; }
+
+    internal int TargetIndexInternal { get; private set; } = -1;
+
     internal bool HasAsyncDrop => OnDropAsync is not null;
 
     internal void BeginDrag(string zone, int index)
     {
-        _sourceZone = zone;
-        _sourceIndex = index;
-        _targetZone = null;
-        _targetIndex = -1;
+        SourceZoneInternal = zone;
+        SourceIndexInternal = index;
+        TargetZoneInternal = null;
+        TargetIndexInternal = -1;
     }
 
     internal void HoverTarget(string zone, int index)
     {
         // Ignore hover updates when no drag is active (a stray dragover after a drop).
-        if (_sourceZone is null)
+        if (SourceZoneInternal is null)
         {
             return;
         }
 
-        _targetZone = zone;
-        _targetIndex = index;
+        TargetZoneInternal = zone;
+        TargetIndexInternal = index;
     }
 
     internal void EndDrag()
     {
-        _sourceZone = null;
-        _sourceIndex = -1;
-        _targetZone = null;
-        _targetIndex = -1;
+        SourceZoneInternal = null;
+        SourceIndexInternal = -1;
+        TargetZoneInternal = null;
+        TargetIndexInternal = -1;
     }
 
     internal void CommitDrop(string zone, int index)
@@ -89,8 +88,8 @@ public sealed class DragDrop : Component
     // keeps the state consistent if the handler triggers a synchronous re-render.
     private DragDropMove? TryTakeMove(string zone, int index)
     {
-        var sourceZone = _sourceZone;
-        var sourceIndex = _sourceIndex;
+        var sourceZone = SourceZoneInternal;
+        var sourceIndex = SourceIndexInternal;
         EndDrag();
         return sourceZone is null ? null : new DragDropMove(sourceZone, sourceIndex, zone, index);
     }

@@ -25,7 +25,7 @@ var app = builder.Build();
 // at a re-published AppBundle under a prefix without a dedicated executable.
 // In a real app you'd just hardcode the pathBase you want.
 app.UseRask<App>(
-    bundlePath: Environment.GetEnvironmentVariable("RASK_BUNDLE_DIR"),
-    pathBase: Environment.GetEnvironmentVariable("RASK_PATHBASE") ?? string.Empty);
+    Environment.GetEnvironmentVariable("RASK_BUNDLE_DIR"),
+    Environment.GetEnvironmentVariable("RASK_PATHBASE") ?? string.Empty);
 
 app.Run();

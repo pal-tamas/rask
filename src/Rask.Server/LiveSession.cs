@@ -15,6 +15,12 @@ namespace Rask.Server;
 
 internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 {
+    // IJSRuntime queue. Calls land here via RaskJSRuntime.BeginInvokeJS and get drained
+    // into the next outbound payload by RenderAndSendAsync. A plain List under lock —
+    // contention is bounded by the session's outer Lock semaphore (one handler at a time),
+    // so writes only race with the drain at flush time.
+    private readonly List<PendingJsInvoke> _pendingJsInvokes = new();
+
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
     // handler thread) from racing the HandlerSyncContext.RunWithRendersAsync renders (fired on
@@ -24,27 +30,8 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // wins, dropping the other's payload, or both call _socket.SendAsync on the same WebSocket.
     private readonly SemaphoreSlim _renderLock = new(1, 1);
 
-    // IJSRuntime queue. Calls land here via RaskJSRuntime.BeginInvokeJS and get drained
-    // into the next outbound payload by RenderAndSendAsync. A plain List under lock —
-    // contention is bounded by the session's outer Lock semaphore (one handler at a time),
-    // so writes only race with the drain at flush time.
-    private readonly List<PendingJsInvoke> _pendingJsInvokes = new();
-    private ArrayBufferWriter<byte>? _lastSentBuffer;
-    // Last rendered HTML (the `html` string the framework produced last time we
-    // sent a frame). Used to skip noop publish-renders that would otherwise
-    // re-morph identical HTML and clobber JS-applied DOM state (e.g. the
-    // `.hljs` class hljs added to <code> elements after the previous
-    // OnRenderedAsync invoke completed). Set after a successful send.
-    private string? _lastSentHtml;
-    // Set true whenever a render request lands with no live socket — async lifecycle
-    // continuations from OnMountAsync / OnRenderedAsync that resolve during the HTTP-GET-
-    // to-WS-hello handoff window, or while a session is between sockets across a
-    // reconnect. AttachSocket reads it from the hello handler to decide whether a
-    // catch-up render is actually needed: when nothing was dropped, the HTML the browser
-    // already has from the GET response (or the prior socket) still matches the session
-    // state and the hello-time render is redundant. Skipping the redundant render is
-    // what aligns Server's initial-mount OnRendered count with WASM's.
-    private bool _renderRequestedWhileDetached;
+    private List<EditOp>? _diffOps;
+
     // Set by AttachSocket on a reconnect to force the next render to bypass the HTML/buffer
     // dedup and re-emit even when the rendered bytes match the prior socket's last frame.
     // The dedup baselines (_lastSentBuffer/_lastSentHtml) are owned by the RenderAndSendAsync
@@ -53,8 +40,24 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // so the reset is deferred into the render lock: RenderAndSendAsync reads-and-clears this
     // flag under _renderLock. Volatile so the cross-thread write is visible without the lock.
     private volatile bool _forceResend;
-    private WebSocket? _socket;
-    private CancellationToken _socketCt;
+
+    // True after the first socket has ever attached to this session. Lets AttachSocket
+    // distinguish the GET→hello first attach (where the browser's HTML is guaranteed to
+    // match the session's state because the browser literally just rendered the GET
+    // response) from a subsequent reconnect (where the browser may have missed the prior
+    // socket's last frame due to a partial send, a tab background, or any other transport
+    // gap we can't observe from this side). First-attach skips the redundant render;
+    // reconnect always renders.
+    private bool _hasAttachedBefore;
+
+    private ArrayBufferWriter<byte>? _lastSentBuffer;
+
+    // Last rendered HTML (the `html` string the framework produced last time we
+    // sent a frame). Used to skip noop publish-renders that would otherwise
+    // re-morph identical HTML and clobber JS-applied DOM state (e.g. the
+    // `.hljs` class hljs added to <code> elements after the previous
+    // OnRenderedAsync invoke completed). Set after a successful send.
+    private string? _lastSentHtml;
 
     // Set by RequestRenderInternalAsync when StateHasChanged fires while a handler
     // dispatch is mid-flight (InHandlerScope=true). RenderAndSendCoalescingAsync
@@ -67,17 +70,28 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // Mirrors WasmLiveSession._pendingRenderInScope (Rask.Wasm/WasmLiveSession.cs:41).
     private bool _pendingRenderInScope;
 
+    // Diff-codec state. Populated only when LiveOptions.DiffMode != DisabledFull, so
+    // the default path pays nothing for these. Both fields are lazy because the
+    // common production path today still ships full HTML.
+    private SessionRenderCache? _renderCache;
+
+    // Set true whenever a render request lands with no live socket — async lifecycle
+    // continuations from OnMountAsync / OnRenderedAsync that resolve during the HTTP-GET-
+    // to-WS-hello handoff window, or while a session is between sockets across a
+    // reconnect. AttachSocket reads it from the hello handler to decide whether a
+    // catch-up render is actually needed: when nothing was dropped, the HTML the browser
+    // already has from the GET response (or the prior socket) still matches the session
+    // state and the hello-time render is redundant. Skipping the redundant render is
+    // what aligns Server's initial-mount OnRendered count with WASM's.
+    private bool _renderRequestedWhileDetached;
+    private WebSocket? _socket;
+    private CancellationToken _socketCt;
+
     // Two-buffer swap: `_writeBuffer` receives the next frame, `_lastSentBuffer` holds the
     // previous send (dedup compare target). After SendAsync the references swap so the just-
     // sent buffer becomes the dedup baseline without any byte[] copy. Both writers persist
     // across the session's lifetime; ResetWrittenCount keeps the underlying rented array hot.
     private ArrayBufferWriter<byte> _writeBuffer = new(4096);
-
-    // Diff-codec state. Populated only when LiveOptions.DiffMode != DisabledFull, so
-    // the default path pays nothing for these. Both fields are lazy because the
-    // common production path today still ships full HTML.
-    private SessionRenderCache? _renderCache;
-    private List<EditOp>? _diffOps;
 
     public LiveSession(string id, Component view, IServiceScope scope)
     {
@@ -139,9 +153,11 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         Scope.Dispose();
     }
 
-    public Task RequestRenderAsync() => RequestRenderInternalAsync(publishOnly: false);
+    public Task RequestRenderAsync() => RequestRenderInternalAsync(false);
 
-    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(publishOnly: true);
+    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
+
+    Task IRenderHandle.RenderInScopeAsync() => RenderAndSendAsync(null, false);
 
     private async Task RequestRenderInternalAsync(bool publishOnly)
     {
@@ -176,8 +192,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             Lock.Release();
         }
     }
-
-    Task IRenderHandle.RenderInScopeAsync() => RenderAndSendAsync(null, false);
 
     private void ReleaseFileStores()
     {
@@ -235,15 +249,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         SeedInitialHtml(html);
         return html;
     }
-
-    // True after the first socket has ever attached to this session. Lets AttachSocket
-    // distinguish the GET→hello first attach (where the browser's HTML is guaranteed to
-    // match the session's state because the browser literally just rendered the GET
-    // response) from a subsequent reconnect (where the browser may have missed the prior
-    // socket's last frame due to a partial send, a tab background, or any other transport
-    // gap we can't observe from this side). First-attach skips the redundant render;
-    // reconnect always renders.
-    private bool _hasAttachedBefore;
 
     public void AttachSocket(WebSocket socket, CancellationToken ct)
     {
@@ -484,7 +489,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // full HTML (first render, oversized diff, structural ops) the client morphs to
             // match the server's frame snapshot, so the next render diffs cleanly against it.
             if (frameWriter is not null && _renderCache is not null
-                && auth is null && download is null)
+                                        && auth is null && download is null)
             {
                 _diffOps ??= new List<EditOp>();
                 diffPathEntered = true;
@@ -581,8 +586,10 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     ///     single outbound payload. The first send emits the captured navigation/auth
     ///     state; if an in-handler StateHasChanged set <see cref="_pendingRenderInScope" />
     ///     (e.g. <c>RouteState.Changed</c> subscribers on a layout above the Router),
-    ///     rebuild up to twice — re-threading <paramref name="historyUrl" />, <paramref
-    ///     name="replace" />, and <paramref name="auth" /> so the actually-sent payload
+    ///     rebuild up to twice — re-threading <paramref name="historyUrl" />,
+    ///     <paramref
+    ///         name="replace" />
+    ///     , and <paramref name="auth" /> so the actually-sent payload
     ///     still carries them. Dropping any of those on a rebuild silently swallows
     ///     handler-initiated navigation, the c11b61d invariant ported from
     ///     <c>WasmLiveSession.BuildPayloadCoalescingRerendersAsync</c>. The

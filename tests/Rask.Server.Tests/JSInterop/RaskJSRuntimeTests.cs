@@ -44,13 +44,7 @@ public class RaskJSRuntimeTests
 
             var taskId = invoke.GetProperty("id").GetInt64();
             // Send jsResult: emulate JS-side returning "stored-value" for sessionStorage.getItem.
-            await ws.SendJsonAsync(new
-            {
-                type = "jsResult",
-                id = taskId,
-                success = true,
-                result = "stored-value"
-            });
+            await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = true, result = "stored-value" });
         }
 
         // Wait for the TCS to be completed by the await-continuation in the component.
@@ -72,13 +66,7 @@ public class RaskJSRuntimeTests
         using var doc = JsonDocument.Parse(first!);
         var invoke = doc.RootElement.GetProperty("jsInvokes")[0];
         var taskId = invoke.GetProperty("id").GetInt64();
-        await ws.SendJsonAsync(new
-        {
-            type = "jsResult",
-            id = taskId,
-            success = false,
-            error = "TypeError: nope"
-        });
+        await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = false, error = "TypeError: nope" });
 
         var ex = await JsErrorApp.Caught.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.IsType<JSException>(ex);
@@ -182,7 +170,11 @@ public class RaskJSRuntimeTests
         while (DateTime.UtcNow < deadline)
         {
             var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100));
-            if (frame is null) continue;
+            if (frame is null)
+            {
+                continue;
+            }
+
             trailing++;
             using var doc = JsonDocument.Parse(frame);
             if (doc.RootElement.TryGetProperty("jsInvokes", out var arr))
@@ -210,8 +202,8 @@ public class RaskJSRuntimeTests
         using var scope = sp.CreateScope();
 
         var js = scope.ServiceProvider.GetRequiredService<IJSRuntime>();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await js.InvokeAsync<string>("anything", "arg").AsTask());
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await js.InvokeAsync<string>("anything", "arg").AsTask());
         Assert.Contains("Rask session", ex.Message);
     }
 }
@@ -219,19 +211,18 @@ public class RaskJSRuntimeTests
 #pragma warning disable RASK014 // private test-helper Component subclasses
 internal sealed class JsRoundTripApp : Component
 {
-    public static TaskCompletionSource<string?> LastResult { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     private readonly IJSRuntime _js;
 
-    public JsRoundTripApp(IJSRuntime js)
-    {
-        _js = js;
-    }
+    public JsRoundTripApp(IJSRuntime js) => _js = js;
+
+    public static TaskCompletionSource<string?> LastResult { get; } =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
+    ];
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {
@@ -254,23 +245,21 @@ internal sealed class JsRoundTripApp : Component
 
 internal sealed class JsClickApp : Component
 {
-    public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public static string? LastStatus;
 
     private readonly IJSRuntime _js;
 
-    public JsClickApp(IJSRuntime js)
-    {
-        _js = js;
-    }
+    public JsClickApp(IJSRuntime js) => _js = js;
+    public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[new Head()[new Title()["t"]],
-                new Body()[
-                    Button(OnClickAsync: SetAsync)["set"]
-                ]]];
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["t"]],
+            new Body()[
+                Button(OnClickAsync: SetAsync)["set"]
+            ]]
+    ];
 
     private async Task SetAsync()
     {
@@ -284,15 +273,13 @@ internal sealed class JsRenderStormApp : Component
 {
     private readonly IJSRuntime _js;
 
-    public JsRenderStormApp(IJSRuntime js)
-    {
-        _js = js;
-    }
+    public JsRenderStormApp(IJSRuntime js) => _js = js;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
+    ];
 
     // Intentionally NO firstRender guard — the whole point is to assert the framework
     // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
@@ -303,19 +290,18 @@ internal sealed class JsRenderStormApp : Component
 
 internal sealed class JsErrorApp : Component
 {
-    public static TaskCompletionSource<Exception> Caught { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
     private readonly IJSRuntime _js;
 
-    public JsErrorApp(IJSRuntime js)
-    {
-        _js = js;
-    }
+    public JsErrorApp(IJSRuntime js) => _js = js;
+
+    public static TaskCompletionSource<Exception> Caught { get; } =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]];
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
+    ];
 
     protected override async Task OnRenderedAsync(bool firstRender)
     {

@@ -1,5 +1,3 @@
-using Rask.Core.Authentication;
-
 namespace Rask.Example.Shared.Demos;
 
 // Auth-gating with the built-in Component.User — no AuthorizeView component. The demo injects the

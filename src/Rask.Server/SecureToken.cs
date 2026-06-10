@@ -11,5 +11,5 @@ internal static class SecureToken
     // contractual cryptographic-strength guarantee (the runtime happens to use a CSPRNG on current
     // platforms, but the API doesn't promise it), whereas RandomNumberGenerator is guaranteed CSPRNG.
     // Same length/charset as Guid "N", so it's a drop-in anywhere these round-trip as opaque strings.
-    public static string Create() => RandomNumberGenerator.GetHexString(32, lowercase: true);
+    public static string Create() => RandomNumberGenerator.GetHexString(32, true);
 }

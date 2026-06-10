@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using FluentValidation;
-using Rask.Core;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
@@ -136,11 +134,11 @@ public sealed class NestedFormDemosTests
         Assert.Contains(result.Errors, e => e.PropertyName == "City");
     }
 
-    private static List<System.ComponentModel.DataAnnotations.ValidationResult> Validate(object instance)
+    private static List<ValidationResult> Validate(object instance)
     {
         var ctx = new ValidationContext(instance);
-        var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
-        Validator.TryValidateObject(instance, ctx, results, validateAllProperties: true);
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(instance, ctx, results, true);
         return results;
     }
 }

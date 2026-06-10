@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
 using Rask.Server.Tests.Infrastructure;
@@ -185,5 +184,8 @@ public class AssetEndpointSecurityTests
         Assert.NotEqual(HttpStatusCode.Found, response.StatusCode); // not redirected to login
     }
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

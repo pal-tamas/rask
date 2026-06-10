@@ -327,6 +327,7 @@ public class AssetEndpointTests
             bigSource.Append(".class").Append(i).Append(" { color: rgb(")
                 .Append(i % 256).Append(",0,0); padding: 1px 2px 3px 4px; margin: 0; }\n");
         }
+
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), bigSource.ToString());
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
@@ -351,7 +352,10 @@ public class AssetEndpointTests
 
     // ─── Test fixtures ───────────────────────────────────────────────────
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }
 
 [CollectionDefinition("ScopedAssets", DisableParallelization = true)]

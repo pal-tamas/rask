@@ -6,7 +6,8 @@ internal static class TestArtifacts
 {
     private static readonly string Root = Path.Combine(LocateRepoRoot(), "TestResults", "E2E");
 
-    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog, string[]? console = null)
+    public static async Task DumpAsync(IPage page, string fixtureName, string testName, string serverLog,
+        string[]? console = null)
     {
         var safeName = string.Concat(testName.Select(c => char.IsLetterOrDigit(c) || c is '_' or '-' ? c : '_'));
         var dir = Path.Combine(Root, fixtureName, safeName);

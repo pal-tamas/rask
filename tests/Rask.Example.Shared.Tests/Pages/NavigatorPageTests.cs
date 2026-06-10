@@ -1,7 +1,5 @@
-using Rask.Core;
-using Rask.Core.Routing;
 using Microsoft.Extensions.Primitives;
-using Rask.Example.Shared.Pages;
+using Rask.Core.Routing;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -12,7 +10,7 @@ public sealed class NavigatorPageTests
     public void Render_EmptyQuery_ShowsEmptyPlaceholder()
     {
         var routeState = new RouteState { Path = "/navigator" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
         Assert.Contains("(empty)", html);
     }
@@ -22,11 +20,10 @@ public sealed class NavigatorPageTests
     {
         var query = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
-            ["page"] = "2",
-            ["sort"] = "asc"
+            ["page"] = "2", ["sort"] = "asc"
         });
         var routeState = new RouteState { Path = "/navigator", Query = query };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
         Assert.Contains("page=2", html);
         Assert.Contains("sort=asc", html);
@@ -44,10 +41,9 @@ public sealed class NavigatorPageTests
     [Fact]
     public void RemoveQuery_FromHandler_DropsKey()
     {
-        var initial = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["page"] = "2"
-        });
+        var initial =
+            new QueryCollection(
+                new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["page"] = "2" });
         var routeState = new RouteState { Path = "/navigator", Query = initial };
         var nav = new Navigator(routeState);
 
@@ -60,8 +56,7 @@ public sealed class NavigatorPageTests
     {
         var initial = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
-            ["a"] = "1",
-            ["b"] = "2"
+            ["a"] = "1", ["b"] = "2"
         });
         var routeState = new RouteState { Path = "/navigator", Query = initial };
         var nav = new Navigator(routeState);

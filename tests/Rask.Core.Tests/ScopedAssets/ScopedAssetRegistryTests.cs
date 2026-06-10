@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Security.Cryptography;
 using System.Text;
 using Rask.Core.ScopedAssets;
 
@@ -259,7 +260,7 @@ public class ScopedAssetRegistryTests
             // Use the same hash function the registry uses (via a register/read round-trip
             // against a unique type per iteration would be heavier; here we just want a
             // pre-image-distinct sample to assert post-image distinctness empirically).
-            using var sha = System.Security.Cryptography.SHA256.Create();
+            using var sha = SHA256.Create();
             var full = sha.ComputeHash(bytes);
             var sb = new StringBuilder(12);
             for (var j = 0; j < 6; j++)
@@ -324,10 +325,8 @@ public class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void GetByHash_UnknownHash_ReturnsNull()
-    {
+    public void GetByHash_UnknownHash_ReturnsNull() =>
         Assert.Null(ScopedAssetRegistry.GetByHash("ffffffffffff", AssetKind.Css));
-    }
 
     [Fact]
     public void AssetBytes_EtagIsHashWrappedInDoubleQuotes()
@@ -345,10 +344,10 @@ public class ScopedAssetRegistryTests
     [Fact]
     public void Concurrent_RegisterDistinctTypes_AllSucceed()
     {
-        var types = new Type[]
+        var types = new[]
         {
-            typeof(P0), typeof(P1), typeof(P2), typeof(P3), typeof(P4),
-            typeof(P5), typeof(P6), typeof(P7), typeof(P8), typeof(P9)
+            typeof(P0), typeof(P1), typeof(P2), typeof(P3), typeof(P4), typeof(P5), typeof(P6), typeof(P7),
+            typeof(P8), typeof(P9)
         };
 
         Parallel.ForEach(types, t =>
@@ -485,23 +484,21 @@ public class ScopedAssetRegistryTests
     [Fact]
     public void RegisterCss_NullType_Throws()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => ScopedAssetRegistry.RegisterCss(null!, ".x {}"));
+        Assert.Throws<ArgumentNullException>(() => ScopedAssetRegistry.RegisterCss(null!, ".x {}"));
     }
 
     [Fact]
     public void RegisterCss_OpenGeneric_Throws()
     {
-        var ex = Assert.Throws<ArgumentException>(
-            () => ScopedAssetRegistry.RegisterCss(typeof(Generic<>), ".x {}"));
+        var ex = Assert.Throws<ArgumentException>(() => ScopedAssetRegistry.RegisterCss(typeof(Generic<>), ".x {}"));
         Assert.Contains("Open generic", ex.Message);
     }
 
     [Fact]
     public void RegisterJs_OpenGeneric_Throws()
     {
-        Assert.Throws<ArgumentException>(
-            () => ScopedAssetRegistry.RegisterJs(typeof(Generic<>), "export function f(){}"));
+        Assert.Throws<ArgumentException>(() =>
+            ScopedAssetRegistry.RegisterJs(typeof(Generic<>), "export function f(){}"));
     }
 
     [Fact]
@@ -562,8 +559,8 @@ public class ScopedAssetRegistryTests
     {
         // A type from a collectible AssemblyLoadContext: while the registry holds it,
         // the ALC cannot collect. This is the documented constraint.
-        var alc = new AssemblyLoadContext("test-alc-" + Guid.NewGuid(), isCollectible: true);
-        WeakReference alcWeak = new WeakReference(alc);
+        var alc = new AssemblyLoadContext("test-alc-" + Guid.NewGuid(), true);
+        var alcWeak = new WeakReference(alc);
 
         // Register the current-assembly type using the same ALC's resolution path.
         // The registry's strong Type reference would keep an actual ALC-loaded assembly
@@ -579,16 +576,13 @@ public class ScopedAssetRegistryTests
         // The registration itself stays valid (its type isn't from the unloaded ALC).
         Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
         _ = alcWeak; // referenced to silence unused warnings; full collectible-ALC test
-                     // would need a runtime-emitted assembly which is heavy for this suite
+        // would need a runtime-emitted assembly which is heavy for this suite
     }
 
     // ─── Enumeration (for publish-time bake) ──────────────────────────────
 
     [Fact]
-    public void EnumerateAll_EmptyRegistry_YieldsNothing()
-    {
-        Assert.Empty(ScopedAssetRegistry.EnumerateAll());
-    }
+    public void EnumerateAll_EmptyRegistry_YieldsNothing() => Assert.Empty(ScopedAssetRegistry.EnumerateAll());
 
     [Fact]
     public void EnumerateAll_YieldsRegisteredCssAndJsEntries_WithDistinctHashesAndKinds()
@@ -631,26 +625,85 @@ public class ScopedAssetRegistryTests
 
     // ─── Test fixture types ───────────────────────────────────────────────
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
-    private sealed class WidgetB : Component { protected override RenderResult Render() => this; }
-    private sealed class P0 : Component { protected override RenderResult Render() => this; }
-    private sealed class P1 : Component { protected override RenderResult Render() => this; }
-    private sealed class P2 : Component { protected override RenderResult Render() => this; }
-    private sealed class P3 : Component { protected override RenderResult Render() => this; }
-    private sealed class P4 : Component { protected override RenderResult Render() => this; }
-    private sealed class P5 : Component { protected override RenderResult Render() => this; }
-    private sealed class P6 : Component { protected override RenderResult Render() => this; }
-    private sealed class P7 : Component { protected override RenderResult Render() => this; }
-    private sealed class P8 : Component { protected override RenderResult Render() => this; }
-    private sealed class P9 : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 
-    private sealed class Generic<T> : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetB : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 
-    private class BaseWidget : Component { protected override RenderResult Render() => this; }
-    private sealed class DerivedWidget : BaseWidget { }
+    private sealed class P0 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P1 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P2 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P3 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P4 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P5 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P6 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P7 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P8 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class P9 : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class Generic<T> : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private class BaseWidget : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class DerivedWidget : BaseWidget
+    {
+    }
 
     internal static class Outer
     {
-        internal sealed class Inner : Component { protected override RenderResult Render() => this; }
+        internal sealed class Inner : Component
+        {
+            protected override RenderResult Render() => this;
+        }
     }
 }

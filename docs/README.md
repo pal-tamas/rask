@@ -9,6 +9,8 @@ Guides and references for building with Rask. New here? Start with the project
 |-------|----------------|
 | [Getting started](getting-started.md) | Install the templates, scaffold an app, write your first component, add interactivity and a route. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
+| [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), `Virtualize`, drag-and-drop. |
+| [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), asset delivery. |
 | [Forms & validation](forms.md) | Two-way binding, `Form<T>`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnPropsChanged` / `OnRendered` / `OnUnmount`, async-hook rules, cancellation, common gotchas. |
 | [Authentication](authentication.md) | Production auth: cookie & JWT, Server & WASM, `Authorize`, route guards, Identity / Keycloak / Auth0 / Cognito / Duende. |

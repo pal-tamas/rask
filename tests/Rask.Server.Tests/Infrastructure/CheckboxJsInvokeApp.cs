@@ -1,7 +1,6 @@
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Core.Forms;
 
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>
 
@@ -19,16 +18,16 @@ public sealed class CheckboxJsInvokeApp(IJSRuntime js) : Component
         await js.InvokeVoidAsync("test.noop", firstRender);
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["checkbox"]],
-                new Body()[
-                    Form(_m)[Input(() => _m.Subscribe, Id: "sub")],
-                    new P()[$"S={_m.Subscribe}"]
-                ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()["checkbox"]],
+            new Body()[
+                Form(_m)[Input(() => _m.Subscribe, Id: "sub")],
+                new P()[$"S={_m.Subscribe}"]
             ]
-        ];
+        ]
+    ];
 
     private sealed class Model
     {

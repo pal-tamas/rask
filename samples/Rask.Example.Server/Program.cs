@@ -10,7 +10,7 @@ using Rask.Server;
 // developers) flip modes without recompiling — useful for diff-vs-morph A/B
 // debugging.
 if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
-    && Enum.TryParse<LiveDiffMode>(diffModeName, ignoreCase: true, out var diffMode))
+    && Enum.TryParse<LiveDiffMode>(diffModeName, true, out var diffMode))
 {
     LiveOptions.DiffMode = diffMode;
 }
@@ -54,7 +54,7 @@ app.MapGet("/_diag", (LiveSessionStore store) =>
     return Results.Json(new
     {
         sessions = store.Count,
-        gcMemoryBytes = GC.GetTotalMemory(forceFullCollection: true),
+        gcMemoryBytes = GC.GetTotalMemory(true),
         gen0 = GC.CollectionCount(0),
         gen1 = GC.CollectionCount(1),
         gen2 = GC.CollectionCount(2)

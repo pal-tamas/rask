@@ -20,7 +20,7 @@ internal static class DeepTreeCounter
 
     public static Component BuildRask(int counter)
     {
-        Component leaf = C.Span(Class: "counter")[counter.ToString()];
+        var leaf = C.Span(Class: "counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
             leaf = C.Div(Class: $"d{i}")[leaf];

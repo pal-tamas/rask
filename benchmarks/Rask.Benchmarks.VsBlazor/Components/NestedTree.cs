@@ -13,7 +13,7 @@ internal static class NestedTree
 {
     public static Component BuildRask(int depth)
     {
-        Component leaf = C.Span()["leaf"];
+        var leaf = C.Span()["leaf"];
         for (var i = 0; i < depth; i++)
         {
             leaf = C.Div(Class: $"d{i}")[leaf];

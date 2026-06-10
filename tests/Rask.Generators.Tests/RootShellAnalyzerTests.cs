@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -14,31 +13,31 @@ public class RootShellAnalyzerTests
     // the tests don't need to reference the host assemblies. The shell factories (Doctype/Html/
     // Head/Body) are matched by name, so the App declares same-named local helpers.
     private const string EntryStubs = """
-        using Rask.Core;
-        namespace Rask.Server { public static class RaskEndpointExtensions {
-            public static void UseRask<TApp>(object app) where TApp : Component { } } }
-        namespace Rask.Wasm { public sealed class WasmHostBuilder {
-            public void RunAsync<TApp>() where TApp : Component { } } }
-        """;
+                                      using Rask.Core;
+                                      namespace Rask.Server { public static class RaskEndpointExtensions {
+                                          public static void UseRask<TApp>(object app) where TApp : Component { } } }
+                                      namespace Rask.Wasm { public sealed class WasmHostBuilder {
+                                          public void RunAsync<TApp>() where TApp : Component { } } }
+                                      """;
 
     private static string App(string renderBody) => $$"""
-        using Rask.Core;
-        namespace Demo;
-        public sealed class App : Component
-        {
-            private static object Doctype() => null!;
-            private static object Html(string lang) => null!;
-            private static object Head() => null!;
-            private static object Body() => null!;
-            protected override RenderResult Render() { {{renderBody}} return this; }
-        }
-        """;
+                                                      using Rask.Core;
+                                                      namespace Demo;
+                                                      public sealed class App : Component
+                                                      {
+                                                          private static object Doctype() => null!;
+                                                          private static object Html(string lang) => null!;
+                                                          private static object Head() => null!;
+                                                          private static object Body() => null!;
+                                                          protected override RenderResult Render() { {{renderBody}} return this; }
+                                                      }
+                                                      """;
 
     [Fact]
     public async Task UseRask_RootMissingBody_ReportsRask021()
     {
         var src = EntryStubs + App("Doctype(); Html(\"en\"); Head();")
-                  + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);
@@ -50,7 +49,7 @@ public class RootShellAnalyzerTests
     public async Task UseRask_FullShell_NoDiagnostic()
     {
         var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
-                  + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
 
         Assert.Empty(await GetDiagnosticsAsync(src));
     }
@@ -59,7 +58,7 @@ public class RootShellAnalyzerTests
     public async Task RunAsync_WasmEntry_RootMissingShell_ReportsRask021()
     {
         var src = EntryStubs + App("Body();")
-                  + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
+                             + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);

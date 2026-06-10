@@ -1,7 +1,8 @@
+using System.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Rask.Core.ScopedAssets;
-using Rask.Wasm.Tasks;
+using Rask.Example.Shared;
 
 namespace Rask.Wasm.Tasks.Tests;
 
@@ -25,17 +26,15 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(_bundleDir, recursive: true); }
-        catch { /* best effort */ }
+        try { Directory.Delete(_bundleDir, true); }
+        catch
+        {
+            /* best effort */
+        }
     }
 
     private static BakeScopedAssetsTask NewTask(string bundleDir, ITaskItem[] assemblies)
-        => new()
-        {
-            BundleDir = bundleDir,
-            Assemblies = assemblies,
-            BuildEngine = new StubBuildEngine()
-        };
+        => new() { BundleDir = bundleDir, Assemblies = assemblies, BuildEngine = new StubBuildEngine() };
 
     [Fact]
     public void EmptyBundleDir_ReturnsTrue_NoOutput()
@@ -67,10 +66,8 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     [Fact]
     public void AssembliesPointToNothing_ReturnsTrue_NoFilesWritten()
     {
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll"))
-        });
+        var task = NewTask(_bundleDir,
+            new ITaskItem[] { new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll")) });
 
         Assert.True(task.Execute());
         // _rask/a/ may or may not get created (registry still scanned); critical is no .css/.js files.
@@ -90,15 +87,11 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         // already contains its entries. The task RefreshAll-loops over those registration
         // classes, then writes one file per (hash, kind) entry.
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(Rask.Example.Shared.App).Assembly.Location;
+        var exampleSharedDll = typeof(App).Assembly.Location;
         Assert.True(File.Exists(raskCoreDll), $"Rask.Core.dll not at {raskCoreDll}");
         Assert.True(File.Exists(exampleSharedDll), $"Rask.Example.Shared.dll not at {exampleSharedDll}");
 
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(raskCoreDll),
-            new TaskItem(exampleSharedDll),
-        });
+        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) });
 
         Assert.True(task.Execute());
 
@@ -116,13 +109,9 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     public void RealAssemblies_BakedFilenamesMatchHashAndExtension()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(Rask.Example.Shared.App).Assembly.Location;
+        var exampleSharedDll = typeof(App).Assembly.Location;
 
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(raskCoreDll),
-            new TaskItem(exampleSharedDll),
-        });
+        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) });
         task.Execute();
 
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
@@ -142,11 +131,12 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     {
         // The real assemblies register a non-empty scoped-asset set, so even with the
         // fail-fast guard armed the bake succeeds.
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
-            new TaskItem(typeof(Rask.Example.Shared.App).Assembly.Location),
-        });
+        var task = NewTask(_bundleDir,
+            new ITaskItem[]
+            {
+                new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
+                new TaskItem(typeof(App).Assembly.Location)
+            });
         task.FailOnEmpty = true;
 
         Assert.True(task.Execute());
@@ -164,10 +154,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         ScopedAssetRegistry.InvalidateAllCss();
         ScopedAssetRegistry.InvalidateAllJs();
 
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
-        });
+        var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location) });
         task.FailOnEmpty = true;
 
         Assert.False(task.Execute());
@@ -179,10 +166,8 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     {
         // No Rask.Core in the assembly set → registry never resolves → silent no-op even
         // with the guard armed (a non-Rask WASM project must not be failed by the bake).
-        var task = NewTask(_bundleDir, new ITaskItem[]
-        {
-            new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll")),
-        });
+        var task = NewTask(_bundleDir,
+            new ITaskItem[] { new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll")) });
         task.FailOnEmpty = true;
 
         Assert.True(task.Execute());
@@ -193,12 +178,8 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     public void Rerun_OverwritesSameFiles_Idempotent()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
-        var exampleSharedDll = typeof(Rask.Example.Shared.App).Assembly.Location;
-        var assemblies = new ITaskItem[]
-        {
-            new TaskItem(raskCoreDll),
-            new TaskItem(exampleSharedDll),
-        };
+        var exampleSharedDll = typeof(App).Assembly.Location;
+        var assemblies = new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(exampleSharedDll) };
 
         NewTask(_bundleDir, assemblies).Execute();
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
@@ -234,7 +215,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         public bool BuildProjectFile(
             string projectFileName,
             string[] targetNames,
-            System.Collections.IDictionary globalProperties,
-            System.Collections.IDictionary targetOutputs) => false;
+            IDictionary globalProperties,
+            IDictionary targetOutputs) => false;
     }
 }

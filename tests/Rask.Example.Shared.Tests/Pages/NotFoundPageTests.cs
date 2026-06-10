@@ -1,5 +1,6 @@
 using System.Reflection;
 using Rask.Core.Routing;
+using Rask.Example.Shared.Layout;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
@@ -11,7 +12,7 @@ public sealed class NotFoundPageTests
     public void Render_ShowsRouteInBody()
     {
         var routeState = new RouteState { Path = "/__unknown" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("Page not found", html);
@@ -20,16 +21,14 @@ public sealed class NotFoundPageTests
     }
 
     [Fact]
-    public void NotFoundAttribute_AppliedToType()
-    {
+    public void NotFoundAttribute_AppliedToType() =>
         Assert.NotNull(typeof(NotFoundPage).GetCustomAttribute<NotFoundAttribute>());
-    }
 
     [Fact]
     public void HasParentRoute_ShowcaseLayout()
     {
         var parent = typeof(NotFoundPage).GetCustomAttribute<ParentRouteAttribute>();
         Assert.NotNull(parent);
-        Assert.Equal(typeof(Rask.Example.Shared.Layout.ShowcaseLayout), parent!.Parent);
+        Assert.Equal(typeof(ShowcaseLayout), parent!.Parent);
     }
 }

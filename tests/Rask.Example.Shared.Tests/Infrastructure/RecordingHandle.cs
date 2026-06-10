@@ -4,8 +4,8 @@ namespace Rask.Example.Shared.Tests.Infrastructure;
 
 internal sealed class RecordingHandle : IRenderHandle
 {
-    public int RequestRenderCount;
     public int RequestPublishRenderCount;
+    public int RequestRenderCount;
 
     public Task RequestRenderAsync()
     {

@@ -90,7 +90,8 @@ public sealed class TablePage(Navigator nav) : Component
         var from = totalFiltered == 0 ? 0 : ((page - 1) * size) + 1;
         var to = totalFiltered == 0 ? 0 : from + visible.Length - 1;
 
-        return [
+        return
+        [
             PageHeader.Render(
                 "Data table",
                 "Sortable columns, paged rows, search and page-size selector — all driven from the URL query string. Bookmark or share any view."),

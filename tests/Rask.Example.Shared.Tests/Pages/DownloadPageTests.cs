@@ -12,7 +12,7 @@ public sealed class DownloadPageTests
     public void Render_EmitsDownloadButton_AndZeroCount()
     {
         var routeState = new RouteState { Path = "/download" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("download-report", html);

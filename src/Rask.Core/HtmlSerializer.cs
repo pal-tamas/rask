@@ -23,6 +23,19 @@ internal static class HtmlSerializer
         "0123456789" +
         " -._/:,?!()*=#%");
 
+    private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
+    {
+        "html",
+        "head",
+        "body",
+        "title",
+        "meta",
+        "link",
+        "script",
+        "style",
+        "base"
+    };
+
     /// <summary>
     ///     Append <paramref name="value" /> to <paramref name="sb" /> HTML-encoded.
     ///     Fast path: when every char is in the safe-ASCII set the
@@ -48,19 +61,6 @@ internal static class HtmlSerializer
 
         sb.Append(HtmlEncoder.Default.Encode(value));
     }
-
-    private static readonly HashSet<string> _shellTags = new(StringComparer.Ordinal)
-    {
-        "html",
-        "head",
-        "body",
-        "title",
-        "meta",
-        "link",
-        "script",
-        "style",
-        "base"
-    };
 
     public static void Serialize(Component component, StringBuilder sb)
     {
@@ -206,6 +206,7 @@ internal static class HtmlSerializer
                     {
                         frames.CloseElement(elementFrameIdx, sb.Length);
                     }
+
                     break;
                 }
 
@@ -259,6 +260,7 @@ internal static class HtmlSerializer
                 {
                     frames.CloseElement(elementFrameIdx, sb.Length);
                 }
+
                 break;
 
             default:
@@ -315,6 +317,7 @@ internal static class HtmlSerializer
                         }
                     }
                 }
+
                 break;
         }
     }

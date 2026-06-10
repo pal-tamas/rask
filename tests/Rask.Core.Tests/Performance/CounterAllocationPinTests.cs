@@ -1,6 +1,4 @@
-using Rask.Core.Components;
 using Xunit.Abstractions;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Performance;
 
@@ -53,22 +51,22 @@ public class CounterAllocationPinTests
     }
 
     private static Component BuildFullPageShell() =>
-        C.Fragment()[
-            C.Doctype(),
-            C.Html()[
-                C.Body()[
-                    C.Div(Class: "counter", Id: "counter")[
-                        C.Span(Class: "value")["42"],
-                        C.Button(Class: "inc")["+"]
+        Fragment()[
+            Doctype(),
+            Html()[
+                Body()[
+                    Div(Class: "counter", Id: "counter")[
+                        Span(Class: "value")["42"],
+                        Button(Class: "inc")["+"]
                     ]
                 ]
             ]
         ];
 
     private static Component BuildInner() =>
-        C.Div(Class: "counter", Id: "counter")[
-            C.Span(Class: "value")["42"],
-            C.Button(Class: "inc")["+"]
+        Div(Class: "counter", Id: "counter")[
+            Span(Class: "value")["42"],
+            Button(Class: "inc")["+"]
         ];
 
     private static void WarmUp(Func<Component> build)
@@ -93,6 +91,7 @@ public class CounterAllocationPinTests
         {
             _ = build().ToHtml();
         }
+
         var after = GC.GetAllocatedBytesForCurrentThread();
 
         return (after - before) / iterations;

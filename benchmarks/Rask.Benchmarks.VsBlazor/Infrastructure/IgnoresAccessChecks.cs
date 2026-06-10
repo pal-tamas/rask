@@ -14,7 +14,7 @@ namespace System.Runtime.CompilerServices;
 ///         checks. Calls into internal Blazor types still go through reflection
 ///         (see <c>BlazorBatchByteSizer</c>). The attribute is here so that, if a future
 ///         reflection-emit / source-generator path replaces the reflection calls, the
-///         JIT will not throw <see cref="MemberAccessException"/> at runtime.
+///         JIT will not throw <see cref="MemberAccessException" /> at runtime.
 ///     </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]

@@ -7,8 +7,6 @@ using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.Core.ScopedCss;
-using Rask.Core.ScopedJs;
 
 namespace Rask.Wasm;
 
@@ -16,16 +14,32 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
+    // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
+    // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
+    // Dispose is never called, but keeping the teardown correct guards tests and any future
+    // multi-session / re-init path.
+    private readonly IUserProvider? _userProvider;
+
     // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented
     // backing array hot. Eliminates the per-render ArrayBufferWriter allocation that
     // BuildPayloadUtf8WithRoot's byte[]-returning overload would otherwise make.
     private readonly ArrayBufferWriter<byte> _writeBuffer = new(4096);
-    private byte[]? _lastAppliedPayload;
+
+    private List<EditOp>? _diffOps;
+
     // Last rendered HTML string, used to suppress noop publish-renders that
     // would otherwise re-morph identical HTML and strip JS-applied DOM state
     // (e.g. the `.hljs` class hljs added in a prior frame's OnRenderedAsync).
     // Set after a successful ApplyRender.
     private string? _lastAppliedHtml;
+    private byte[]? _lastAppliedPayload;
+
+    // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
+    // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
+    // releasing the lock — catches state mutated by dispose callbacks that fire AFTER ToHtml
+    // serialised the first payload but BEFORE the dispatch returns.
+    private bool _pendingRenderInScope;
 
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
@@ -41,20 +55,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in.
     // Default path (DisabledFull) pays nothing for these.
     private SessionRenderCache? _renderCache;
-    private List<EditOp>? _diffOps;
-
-    // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
-    // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
-    // releasing the lock — catches state mutated by dispose callbacks that fire AFTER ToHtml
-    // serialised the first payload but BEFORE the dispatch returns.
-    private bool _pendingRenderInScope;
-
-    // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
-    // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
-    // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
-    // Dispose is never called, but keeping the teardown correct guards tests and any future
-    // multi-session / re-init path.
-    private readonly IUserProvider? _userProvider;
 
     public WasmLiveSession(Component view, IServiceProvider services)
     {
@@ -93,9 +93,43 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         _lock.Dispose();
     }
 
-    public Task RequestRenderAsync() => RequestRenderInternalAsync(publishOnly: false);
+    public Task RequestRenderAsync() => RequestRenderInternalAsync(false);
 
-    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(publishOnly: true);
+    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
+
+    async Task IRenderHandle.RenderInScopeAsync()
+    {
+        // Mirror Rask.Server LiveSession.RenderAndSendAsync: when the framework asks for a
+        // mid-await render (Component.InvokeWithRenderingAsync), build and push an intermediate
+        // payload directly via JSInterop.ApplyRender so transient UI state — e.g. the async-
+        // validator "Checking…" indicator that lives only during the validator's await window —
+        // reaches the browser before the post-handler payload supersedes it. The dispatcher
+        // already holds _lock and has InHandlerScope=true at this point, so no re-locking.
+        //
+        // Suppress the ambient SynchronizationContext (HandlerSyncContext, installed by
+        // Component.InvokeWithRenderingAsync) for the duration of this call: BuildPayloadAsync's
+        // internal `await Task.Yield()` would otherwise Post its continuation back through
+        // HandlerSyncContext, which re-enters this same method via _render — a render loop on
+        // the WASM JS task queue.
+        var prevCtx = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
+            {
+                return;
+            }
+
+            JSInterop.ApplyRender(payload);
+            _lastAppliedPayload = payload;
+            _lastAppliedHtml = html;
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prevCtx);
+        }
+    }
 
     private async Task RequestRenderInternalAsync(bool publishOnly)
     {
@@ -145,40 +179,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         {
             InHandlerScope = false;
             _lock.Release();
-        }
-    }
-
-    async Task IRenderHandle.RenderInScopeAsync()
-    {
-        // Mirror Rask.Server LiveSession.RenderAndSendAsync: when the framework asks for a
-        // mid-await render (Component.InvokeWithRenderingAsync), build and push an intermediate
-        // payload directly via JSInterop.ApplyRender so transient UI state — e.g. the async-
-        // validator "Checking…" indicator that lives only during the validator's await window —
-        // reaches the browser before the post-handler payload supersedes it. The dispatcher
-        // already holds _lock and has InHandlerScope=true at this point, so no re-locking.
-        //
-        // Suppress the ambient SynchronizationContext (HandlerSyncContext, installed by
-        // Component.InvokeWithRenderingAsync) for the duration of this call: BuildPayloadAsync's
-        // internal `await Task.Yield()` would otherwise Post its continuation back through
-        // HandlerSyncContext, which re-enters this same method via _render — a render loop on
-        // the WASM JS task queue.
-        var prevCtx = SynchronizationContext.Current;
-        SynchronizationContext.SetSynchronizationContext(null);
-        try
-        {
-            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
-            {
-                return;
-            }
-
-            JSInterop.ApplyRender(payload);
-            _lastAppliedPayload = payload;
-            _lastAppliedHtml = html;
-        }
-        finally
-        {
-            SynchronizationContext.SetSynchronizationContext(prevCtx);
         }
     }
 
@@ -321,7 +321,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
             try
             {
-                var (payload, html) = await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
+                var (payload, html) =
+                    await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 _lastAppliedPayload = payload;
                 _lastAppliedHtml = html;
                 return payload;
@@ -364,12 +365,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // un-sent render — shipping a tiny stale diff (e.g. a head-only diff after a real page
         // swap) that never updates the body. We commit the final render once, after the loop.
         _pendingRenderInScope = false;
-        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly, commitCache: false).ConfigureAwait(false);
+        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            result = await BuildPayloadAsync(historyUrl, replace, publishOnly, commitCache: false).ConfigureAwait(false);
+            result = await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         }
 
         // Commit the final, actually-sent render as the new diff baseline exactly once.
@@ -395,7 +396,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
     // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
     // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
-    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace, bool publishOnly = false, bool commitCache = true)
+    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace,
+        bool publishOnly = false, bool commitCache = true)
     {
         await Task.Yield();
 
@@ -492,7 +494,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
         // return value) so the fallback Snapshot doesn't double-rotate and strand _previous.
         var diffPathEntered = false;
         if (frameWriter is not null && _renderCache is not null
-            && download is null)
+                                    && download is null)
         {
             _diffOps ??= new List<EditOp>();
             diffPathEntered = true;
@@ -501,7 +503,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // navigation or a head change needs to flow — a query-only nav produces zero ops
             // yet must still pushState the URL; a head-only change must still ship the head
             // fragment. Zero ops + no history + unchanged head means nothing to send.
-            if (_renderCache.TryComputeDiff(_diffOps, rotate: commitCache, newHtml: html)
+            if (_renderCache.TryComputeDiff(_diffOps, commitCache, html)
                 && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
                 && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
             {
@@ -534,7 +536,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // ToArray at the end is still needed today because the JS interop boundary
             // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace,
-                auth: null, download: download);
+                null, download);
             // Only Snapshot when TryComputeDiff was NOT called (it would have rotated) AND we
             // own the commit (commitCache). When commitCache is false the coalescing loop
             // commits once after it settles, so rotating here would strand the baseline.
@@ -546,5 +548,4 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
         return (_writeBuffer.WrittenSpan.ToArray(), html);
     }
-
 }

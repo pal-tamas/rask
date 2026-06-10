@@ -10,50 +10,64 @@ namespace Rask.Core.Live;
 /// </summary>
 public enum EditOpKind : byte
 {
-    /// <summary>Set or replace an attribute's value on the element at
-    /// <see cref="EditOp.Path" />. <see cref="EditOp.Name" /> is the attribute name,
-    /// <see cref="EditOp.Value" /> is the new value (null for bare attributes).</summary>
+    /// <summary>
+    ///     Set or replace an attribute's value on the element at
+    ///     <see cref="EditOp.Path" />. <see cref="EditOp.Name" /> is the attribute name,
+    ///     <see cref="EditOp.Value" /> is the new value (null for bare attributes).
+    /// </summary>
     SetAttribute = 1,
 
-    /// <summary>Remove an attribute by name from the element at
-    /// <see cref="EditOp.Path" />.</summary>
+    /// <summary>
+    ///     Remove an attribute by name from the element at
+    ///     <see cref="EditOp.Path" />.
+    /// </summary>
     RemoveAttribute = 2,
 
-    /// <summary>Replace the text content of the text-or-raw node at
-    /// <see cref="EditOp.Path" />.</summary>
+    /// <summary>
+    ///     Replace the text content of the text-or-raw node at
+    ///     <see cref="EditOp.Path" />.
+    /// </summary>
     UpdateText = 3,
 
-    /// <summary>Insert a new subtree at <see cref="EditOp.Path" /> (the index of the
-    /// slot among the parent's existing DOM children; ops further into the same
-    /// parent reference subsequent indices). <see cref="EditOp.Value" /> carries the
-    /// pre-serialized HTML fragment for the inserted subtree (set by the codec at
-    /// wire-format time once HtmlSerializer captures per-frame byte offsets).</summary>
+    /// <summary>
+    ///     Insert a new subtree at <see cref="EditOp.Path" /> (the index of the
+    ///     slot among the parent's existing DOM children; ops further into the same
+    ///     parent reference subsequent indices). <see cref="EditOp.Value" /> carries the
+    ///     pre-serialized HTML fragment for the inserted subtree (set by the codec at
+    ///     wire-format time once HtmlSerializer captures per-frame byte offsets).
+    /// </summary>
     InsertSubtree = 4,
 
-    /// <summary>Remove a contiguous run of <see cref="EditOp.Length" /> sibling
-    /// subtrees starting at <see cref="EditOp.Path" />.</summary>
+    /// <summary>
+    ///     Remove a contiguous run of <see cref="EditOp.Length" /> sibling
+    ///     subtrees starting at <see cref="EditOp.Path" />.
+    /// </summary>
     RemoveSubtree = 5,
 
-    /// <summary>Move an existing sibling DOM node within its parent. <see cref="EditOp.Path" />
-    /// resolves to the destination slot among the parent's DOM-relevant children;
-    /// <see cref="EditOp.Length" /> is the source slot. The client detaches the node at the
-    /// source, then inserts at the destination slot in the post-detach sibling list — both
-    /// indexes are computed against the live DOM as it stands when this op runs (with any
-    /// preceding ops already applied). Preserves DOM identity (focus, IDL property state, event
-    /// listeners, iframe document state) since moving an existing node via
-    /// <c>parent.insertBefore</c> doesn't materialise a new element.</summary>
+    /// <summary>
+    ///     Move an existing sibling DOM node within its parent. <see cref="EditOp.Path" />
+    ///     resolves to the destination slot among the parent's DOM-relevant children;
+    ///     <see cref="EditOp.Length" /> is the source slot. The client detaches the node at the
+    ///     source, then inserts at the destination slot in the post-detach sibling list — both
+    ///     indexes are computed against the live DOM as it stands when this op runs (with any
+    ///     preceding ops already applied). Preserves DOM identity (focus, IDL property state, event
+    ///     listeners, iframe document state) since moving an existing node via
+    ///     <c>parent.insertBefore</c> doesn't materialise a new element.
+    /// </summary>
     MoveSubtree = 6,
 
-    /// <summary>A batch of sibling moves under a single keyed parent. <see cref="EditOp.Path" />
-    /// resolves to the shared parent node; <see cref="EditOp.Moves" /> is a flat
-    /// <c>[dst0, src0, dst1, src1, …]</c> array, replayed in order with identical semantics to a
-    /// run of <see cref="MoveSubtree" /> ops (detach the source slot, then insert at the
-    /// destination slot in the post-detach sibling list). The order is load-bearing: each
-    /// dst/src pair is computed against the live DOM as mutated by all preceding pairs in the
-    /// batch, so it must not be reordered. Collapses N per-row moves (each re-emitting the full
-    /// parent path) into one op + one path — the dominant wire-bytes cost of a keyed-list
-    /// reorder. Like <see cref="MoveSubtree" /> it only ever comes from the keyed path and
-    /// preserves DOM identity.</summary>
+    /// <summary>
+    ///     A batch of sibling moves under a single keyed parent. <see cref="EditOp.Path" />
+    ///     resolves to the shared parent node; <see cref="EditOp.Moves" /> is a flat
+    ///     <c>[dst0, src0, dst1, src1, …]</c> array, replayed in order with identical semantics to a
+    ///     run of <see cref="MoveSubtree" /> ops (detach the source slot, then insert at the
+    ///     destination slot in the post-detach sibling list). The order is load-bearing: each
+    ///     dst/src pair is computed against the live DOM as mutated by all preceding pairs in the
+    ///     batch, so it must not be reordered. Collapses N per-row moves (each re-emitting the full
+    ///     parent path) into one op + one path — the dominant wire-bytes cost of a keyed-list
+    ///     reorder. Like <see cref="MoveSubtree" /> it only ever comes from the keyed path and
+    ///     preserves DOM identity.
+    /// </summary>
     PermutationBatch = 7
 }
 
@@ -69,7 +83,8 @@ public enum EditOpKind : byte
 /// </summary>
 public readonly struct EditOp
 {
-    public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false, int[]? moves = null)
+    public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false,
+        int[]? moves = null)
     {
         Kind = kind;
         Path = path;
@@ -82,27 +97,33 @@ public readonly struct EditOp
 
     public EditOpKind Kind { get; }
 
-    /// <summary>Child-index sequence from the document root that identifies the
-    /// target DOM node (or, for <see cref="EditOpKind.InsertSubtree" /> /
-    /// <see cref="EditOpKind.RemoveSubtree" /> / <see cref="EditOpKind.MoveSubtree" />,
-    /// the slot among siblings).</summary>
+    /// <summary>
+    ///     Child-index sequence from the document root that identifies the
+    ///     target DOM node (or, for <see cref="EditOpKind.InsertSubtree" /> /
+    ///     <see cref="EditOpKind.RemoveSubtree" /> / <see cref="EditOpKind.MoveSubtree" />,
+    ///     the slot among siblings).
+    /// </summary>
     public int[] Path { get; }
 
     public string? Name { get; }
     public string? Value { get; }
     public int Length { get; }
 
-    /// <summary>For <see cref="EditOpKind.PermutationBatch" /> only: a flat
-    /// <c>[dst0, src0, dst1, src1, …]</c> array of sibling moves under the parent at
-    /// <see cref="Path" />, in apply order. Null for every other op kind.</summary>
+    /// <summary>
+    ///     For <see cref="EditOpKind.PermutationBatch" /> only: a flat
+    ///     <c>[dst0, src0, dst1, src1, …]</c> array of sibling moves under the parent at
+    ///     <see cref="Path" />, in apply order. Null for every other op kind.
+    /// </summary>
     public int[]? Moves { get; }
 
-    /// <summary>True when this structural op was produced by the keyed-matching path
-    /// (where the moved/inserted/removed node is identified by <c>data-rask-key</c>, so the
-    /// surrounding morph-baseline DOM state stays consistent under apply). Positional structural
-    /// ops set this to <c>false</c> and the live-session gates route them through the full-HTML
-    /// morph path. Non-structural ops (SetAttribute, RemoveAttribute, UpdateText) ignore the
-    /// flag — they're always safe to ship.</summary>
+    /// <summary>
+    ///     True when this structural op was produced by the keyed-matching path
+    ///     (where the moved/inserted/removed node is identified by <c>data-rask-key</c>, so the
+    ///     surrounding morph-baseline DOM state stays consistent under apply). Positional structural
+    ///     ops set this to <c>false</c> and the live-session gates route them through the full-HTML
+    ///     morph path. Non-structural ops (SetAttribute, RemoveAttribute, UpdateText) ignore the
+    ///     flag — they're always safe to ship.
+    /// </summary>
     public bool Trusted { get; }
 }
 
@@ -169,88 +190,10 @@ public static class FrameDiffer
         var startCount = output.Count;
         scratch.ResetForDiff();
         DiffSiblings(oldFrames, 0, oldFrames.Length,
-                     newFrames, 0, newFrames.Length,
-                     output, newHtml, scratch);
+            newFrames, 0, newFrames.Length,
+            output, newHtml, scratch);
         usedKeyedPath = scratch.UsedKeyedPath;
         return output.Count - startCount;
-    }
-
-    /// <summary>
-    ///     Reusable scratch for the keyed-diff path. Holds the DOM-path accumulator plus a
-    ///     small free-list of per-parent keyed buffers (key maps, child lists, the LIS set).
-    ///     Reused across renders — cleared, not reallocated — so a keyed list diff allocates
-    ///     nothing in steady state. One instance per session; NOT thread-safe (the render
-    ///     loop is single-threaded per session). Created via the public parameterless ctor.
-    /// </summary>
-    public sealed class DiffScratch
-    {
-        // Accessed only by the enclosing FrameDiffer (which, as the containing type, reaches
-        // these private members). Kept private so DiffScratch's public surface is just "an
-        // opaque reusable token the caller threads back in".
-        private readonly List<int> _path = new(8);
-        private bool _usedKeyedPath;
-
-        // Free-list of keyed-parent buffers. A keyed parent rents one for the lifetime of its
-        // DiffKeyedSiblings call — whose key maps and child lists stay live across the step-5
-        // inner-diff recursion — and returns it after. The pool grows to the maximum keyed
-        // nesting depth, then is reused forever.
-        private readonly Stack<KeyedBundle> _bundles = new();
-
-        internal List<int> Path => _path;
-
-        internal bool UsedKeyedPath
-        {
-            get => _usedKeyedPath;
-            set => _usedKeyedPath = value;
-        }
-
-        internal void ResetForDiff()
-        {
-            _path.Clear();
-            _usedKeyedPath = false;
-        }
-
-        internal KeyedBundle RentBundle() => _bundles.Count > 0 ? _bundles.Pop() : new KeyedBundle();
-
-        internal void ReturnBundle(KeyedBundle bundle)
-        {
-            bundle.Clear();
-            _bundles.Push(bundle);
-        }
-    }
-
-    // One keyed parent's working set. All collections start empty (a rented bundle is always
-    // cleared on return) and are reused across renders. Nested in FrameDiffer so it can name
-    // the private KeyedChild struct. Internal (not private) so DiffScratch's internal
-    // Rent/ReturnBundle members don't trip CS0050/CS0051 — it never appears in a public signature.
-    internal sealed class KeyedBundle
-    {
-        public readonly List<KeyedChild> OldKids = [];
-        public readonly List<KeyedChild> NewKids = [];
-        public readonly HashSet<string> Seen = new(StringComparer.Ordinal);
-        public readonly Dictionary<string, int> OldByKey = new(StringComparer.Ordinal);
-        public readonly Dictionary<string, int> NewByKey = new(StringComparer.Ordinal);
-        public readonly List<KeyedChild> Surviving = [];
-        public readonly List<int> Live = [];
-        public readonly HashSet<int> LisSet = [];
-
-        // Flat [dst0, src0, dst1, src1, …] accumulator for the step-4 move run. Reused across
-        // renders; the emitted PermutationBatch op gets a fresh copy (ToArray) so the consumer
-        // can hold the path/moves past the next render's Clear().
-        public readonly List<int> MovesBuffer = [];
-
-        public void Clear()
-        {
-            OldKids.Clear();
-            NewKids.Clear();
-            Seen.Clear();
-            OldByKey.Clear();
-            NewByKey.Clear();
-            Surviving.Clear();
-            Live.Clear();
-            LisSet.Clear();
-            MovesBuffer.Clear();
-        }
     }
 
     private static void DiffSiblings(
@@ -332,14 +275,14 @@ public static class FrameDiffer
 
                     // Attributes diff against the current element path.
                     DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
-                                   newFrames, ref newChildStart, newChildEnd,
-                                   PathPlus(path, domSlot), output);
+                        newFrames, ref newChildStart, newChildEnd,
+                        PathPlus(path, domSlot), output);
 
                     // Recurse into children. Push domSlot onto path, then diff inside.
                     path.Add(domSlot);
                     DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
-                                 newFrames, newChildStart, newChildEnd,
-                                 output, newHtml, scratch);
+                        newFrames, newChildStart, newChildEnd,
+                        output, newHtml, scratch);
                     path.RemoveAt(path.Count - 1);
 
                     oi += oldFrame.SubtreeLength;
@@ -530,12 +473,6 @@ public static class FrameDiffer
         return count;
     }
 
-    internal struct KeyedChild
-    {
-        public string Key;
-        public int FrameIndex;
-    }
-
     /// <summary>
     ///     Probes a sibling range for the all-or-nothing keyed contract: every direct child
     ///     must be an Element carrying a <c>data-rask-key</c> attribute, and the keys must be
@@ -661,7 +598,7 @@ public static class FrameDiffer
                 null,
                 null,
                 DomNodeCount(oldFrames, oc.FrameIndex, oc.FrameIndex + elem.SubtreeLength),
-                trusted: true));
+                true));
         }
 
         // 2) Build tracking list = old children whose keys survived. Note we work with
@@ -695,7 +632,7 @@ public static class FrameDiffer
                 null,
                 html,
                 DomNodeCount(newFrames, nc.FrameIndex, nc.FrameIndex + elem.SubtreeLength),
-                trusted: true));
+                true));
             surviving.Insert(j, nc);
         }
 
@@ -834,14 +771,14 @@ public static class FrameDiffer
                     null,
                     null,
                     DomNodeCount(oldFrames, oc.FrameIndex, oc.FrameIndex + oldElem.SubtreeLength),
-                    trusted: true));
+                    true));
                 output.Add(new EditOp(
                     EditOpKind.InsertSubtree,
                     PathPlus(path, j),
                     null,
                     SliceHtml(newHtml, newElem.HtmlStart, newElem.HtmlEnd),
                     DomNodeCount(newFrames, nc.FrameIndex, nc.FrameIndex + newElem.SubtreeLength),
-                    trusted: true));
+                    true));
                 continue;
             }
 
@@ -851,13 +788,13 @@ public static class FrameDiffer
             var newChildEnd = nc.FrameIndex + newElem.SubtreeLength;
 
             DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
-                           newFrames, ref newChildStart, newChildEnd,
-                           PathPlus(path, j), output);
+                newFrames, ref newChildStart, newChildEnd,
+                PathPlus(path, j), output);
 
             path.Add(j);
             DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
-                         newFrames, newChildStart, newChildEnd,
-                         output, newHtml, scratch);
+                newFrames, newChildStart, newChildEnd,
+                output, newHtml, scratch);
             path.RemoveAt(path.Count - 1);
         }
     }
@@ -896,8 +833,8 @@ public static class FrameDiffer
             return;
         }
 
-        var tails = ArrayPool<int>.Shared.Rent(len);   // tails[k] = arr-index of smallest tail of LIS length k+1
-        var prev = ArrayPool<int>.Shared.Rent(len);    // prev[i] = arr-index of LIS predecessor of i (or -1)
+        var tails = ArrayPool<int>.Shared.Rent(len); // tails[k] = arr-index of smallest tail of LIS length k+1
+        var prev = ArrayPool<int>.Shared.Rent(len); // prev[i] = arr-index of LIS predecessor of i (or -1)
         try
         {
             var tailsLen = 0;
@@ -946,5 +883,83 @@ public static class FrameDiffer
             ArrayPool<int>.Shared.Return(tails);
             ArrayPool<int>.Shared.Return(prev);
         }
+    }
+
+    /// <summary>
+    ///     Reusable scratch for the keyed-diff path. Holds the DOM-path accumulator plus a
+    ///     small free-list of per-parent keyed buffers (key maps, child lists, the LIS set).
+    ///     Reused across renders — cleared, not reallocated — so a keyed list diff allocates
+    ///     nothing in steady state. One instance per session; NOT thread-safe (the render
+    ///     loop is single-threaded per session). Created via the public parameterless ctor.
+    /// </summary>
+    public sealed class DiffScratch
+    {
+        // Free-list of keyed-parent buffers. A keyed parent rents one for the lifetime of its
+        // DiffKeyedSiblings call — whose key maps and child lists stay live across the step-5
+        // inner-diff recursion — and returns it after. The pool grows to the maximum keyed
+        // nesting depth, then is reused forever.
+        private readonly Stack<KeyedBundle> _bundles = new();
+
+        // Accessed only by the enclosing FrameDiffer (which, as the containing type, reaches
+        // these private members). Kept private so DiffScratch's public surface is just "an
+        // opaque reusable token the caller threads back in".
+
+        internal List<int> Path { get; } = new(8);
+
+        internal bool UsedKeyedPath { get; set; }
+
+        internal void ResetForDiff()
+        {
+            Path.Clear();
+            UsedKeyedPath = false;
+        }
+
+        internal KeyedBundle RentBundle() => _bundles.Count > 0 ? _bundles.Pop() : new KeyedBundle();
+
+        internal void ReturnBundle(KeyedBundle bundle)
+        {
+            bundle.Clear();
+            _bundles.Push(bundle);
+        }
+    }
+
+    // One keyed parent's working set. All collections start empty (a rented bundle is always
+    // cleared on return) and are reused across renders. Nested in FrameDiffer so it can name
+    // the private KeyedChild struct. Internal (not private) so DiffScratch's internal
+    // Rent/ReturnBundle members don't trip CS0050/CS0051 — it never appears in a public signature.
+    internal sealed class KeyedBundle
+    {
+        public readonly HashSet<int> LisSet = [];
+        public readonly List<int> Live = [];
+
+        // Flat [dst0, src0, dst1, src1, …] accumulator for the step-4 move run. Reused across
+        // renders; the emitted PermutationBatch op gets a fresh copy (ToArray) so the consumer
+        // can hold the path/moves past the next render's Clear().
+        public readonly List<int> MovesBuffer = [];
+        public readonly Dictionary<string, int> NewByKey = new(StringComparer.Ordinal);
+        public readonly List<KeyedChild> NewKids = [];
+        public readonly Dictionary<string, int> OldByKey = new(StringComparer.Ordinal);
+        public readonly List<KeyedChild> OldKids = [];
+        public readonly HashSet<string> Seen = new(StringComparer.Ordinal);
+        public readonly List<KeyedChild> Surviving = [];
+
+        public void Clear()
+        {
+            OldKids.Clear();
+            NewKids.Clear();
+            Seen.Clear();
+            OldByKey.Clear();
+            NewByKey.Clear();
+            Surviving.Clear();
+            Live.Clear();
+            LisSet.Clear();
+            MovesBuffer.Clear();
+        }
+    }
+
+    internal struct KeyedChild
+    {
+        public string Key;
+        public int FrameIndex;
     }
 }

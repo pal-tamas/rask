@@ -13,9 +13,10 @@ public sealed class NoOpApp : Component
     public int Hidden;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[new Head()[new Title()["noop"]],
-                new Body()[new H1()["static"],
-                    Button(OnClick: () => Hidden++)["noop"]]]];
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["noop"]],
+            new Body()[new H1()["static"],
+                Button(OnClick: () => Hidden++)["noop"]]]
+    ];
 }

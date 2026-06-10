@@ -25,23 +25,23 @@ public sealed class AsyncValidationApp : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["async-validation"]],
-                new Body()[
-                    Form<SignupModel>(_model, Context: _ctx)[
-                        Input(() => _model.Username),
-                        ValidatingIndicator(
-                            () => _model.Username,
-                            () => Span(Class: "spinner")["Checking..."]),
-                        ValidationMessage(
-                            () => _model.Username,
-                            msgs => Div(Class: "text-danger")[msgs[0]])
-                    ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()["async-validation"]],
+            new Body()[
+                Form<SignupModel>(_model, Context: _ctx)[
+                    Input(() => _model.Username),
+                    ValidatingIndicator(
+                        () => _model.Username,
+                        () => Span(Class: "spinner")["Checking..."]),
+                    ValidationMessage(
+                        () => _model.Username,
+                        msgs => Div(Class: "text-danger")[msgs[0]])
                 ]
             ]
-        ];
+        ]
+    ];
 
     public sealed class SignupModel
     {

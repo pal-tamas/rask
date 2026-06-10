@@ -37,17 +37,18 @@ internal static class KeyedList
     public sealed class StatefulKeyedList : Component
 #pragma warning restore RASK014
     {
+        private readonly Dictionary<int, Child> _rowsByKey = new();
+        private int[]? _order;
+        private List<Child>? _scratch;
+        private int _swapA = 5;
+
+        private int _swapB;
+
         // Default visible-row count for the initial order; benchmarks needing a non-zero
         // pre-seeded population set this (e.g. 100 for KeyedList100Reorder). Sparse-key
         // scenarios (Scale_KeyedAppendMiddle with inserted = N+1000) work transparently
         // because rows are lazy-allocated by key on demand into the dictionary below.
         public int InitialRowCount { get; init; } = 100;
-
-        private readonly Dictionary<int, Child> _rowsByKey = new();
-        private int[]? _order;
-        private List<Child>? _scratch;
-        private int _swapA = 5;
-        private int _swapB;
 
         public int[] CurrentOrder
         {
@@ -92,12 +93,17 @@ internal static class KeyedList
             {
                 _scratch.Add(GetOrCreateRow(order[i]));
             }
+
             return C.Div(Class: "list")[_scratch];
         }
 
         private Child GetOrCreateRow(int key)
         {
-            if (_rowsByKey.TryGetValue(key, out var row)) return row;
+            if (_rowsByKey.TryGetValue(key, out var row))
+            {
+                return row;
+            }
+
             row = C.Div(
                 Class: "row",
                 Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
@@ -109,9 +115,16 @@ internal static class KeyedList
 
         private void EnsureSeeded()
         {
-            if (_order is not null) return;
+            if (_order is not null)
+            {
+                return;
+            }
+
             _order = new int[InitialRowCount];
-            for (var i = 0; i < InitialRowCount; i++) _order[i] = i;
+            for (var i = 0; i < InitialRowCount; i++)
+            {
+                _order[i] = i;
+            }
         }
     }
 

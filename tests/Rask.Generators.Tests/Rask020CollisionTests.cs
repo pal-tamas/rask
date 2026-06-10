@@ -1,7 +1,4 @@
-using System.Collections.Immutable;
-using System.Reflection;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Rask.Generators.Tests;
 
@@ -19,8 +16,10 @@ public class Rask020CollisionTests
         var run = Run(
             new[]
             {
-                ("/proj/PageA/Counter.cs", "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
-                ("/proj/PageB/Counter.cs", "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                ("/proj/PageA/Counter.cs",
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                ("/proj/PageB/Counter.cs",
+                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
             },
             new[]
             {
@@ -43,8 +42,10 @@ public class Rask020CollisionTests
         var run = Run(
             new[]
             {
-                ("/proj/PageA/Counter.cs", "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
-                ("/proj/PageB/Counter.cs", "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                ("/proj/PageA/Counter.cs",
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                ("/proj/PageB/Counter.cs",
+                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
             },
             new[]
             {
@@ -61,14 +62,16 @@ public class Rask020CollisionTests
         var run = Run(
             new[]
             {
-                ("/proj/A/Widget.cs", "namespace A; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
-                ("/proj/B/Widget.cs", "namespace B; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
-                ("/proj/C/Widget.cs", "namespace C; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                ("/proj/A/Widget.cs",
+                    "namespace A; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                ("/proj/B/Widget.cs",
+                    "namespace B; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                ("/proj/C/Widget.cs",
+                    "namespace C; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
             },
             new[]
             {
-                ("/proj/A/Widget.js", "export function f() {}"),
-                ("/proj/B/Widget.js", "export function g() {}"),
+                ("/proj/A/Widget.js", "export function f() {}"), ("/proj/B/Widget.js", "export function g() {}"),
                 ("/proj/C/Widget.js", "export function h() {}")
             });
 
@@ -93,13 +96,14 @@ public class Rask020CollisionTests
         var run = Run(
             new[]
             {
-                ("/proj/A/Counter.cs", "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
-                ("/proj/B/Toggle.cs", "namespace B; public sealed class Toggle : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                ("/proj/A/Counter.cs",
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                ("/proj/B/Toggle.cs",
+                    "namespace B; public sealed class Toggle : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
             },
             new[]
             {
-                ("/proj/A/Counter.js", "export function f() {}"),
-                ("/proj/B/Toggle.js", "export function g() {}")
+                ("/proj/A/Counter.js", "export function f() {}"), ("/proj/B/Toggle.js", "export function g() {}")
             });
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK020");
@@ -109,11 +113,16 @@ public class Rask020CollisionTests
     public void Generator_EmitsScopedAssetRegistryRegistration()
     {
         var run = Run(
-            new[] { ("/proj/Counter.cs", "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }") },
+            new[]
+            {
+                ("/proj/Counter.cs",
+                    "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+            },
             new[] { ("/proj/Counter.js", "export function rendered(el) {}") });
 
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
-        Assert.Contains("global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(global::Foo.Counter)", generated);
+        Assert.Contains("global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(global::Foo.Counter)",
+            generated);
         Assert.DoesNotContain("ScopedJsRegistry", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }

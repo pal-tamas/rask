@@ -18,16 +18,11 @@ public class KeyTests
     }
 
     [Fact]
-    public void Key_NonStringValue_StringifiedOnEmit()
-    {
+    public void Key_NonStringValue_StringifiedOnEmit() =>
         Assert.Equal("<li data-rask-key=\"42\"></li>", Li(Key: 42).ToHtml());
-    }
 
     [Fact]
-    public void Key_Null_EmitsNothing()
-    {
-        Assert.Equal("<div></div>", Div().ToHtml());
-    }
+    public void Key_Null_EmitsNothing() => Assert.Equal("<div></div>", Div().ToHtml());
 
     [Fact]
     public void Key_AfterUserData_NoDuplicate()

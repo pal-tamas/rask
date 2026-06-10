@@ -19,7 +19,7 @@ public sealed class ContextThemeDemo : Component
 
     protected override RenderResult Render() =>
         // Provide the current theme to the whole subtree below.
-        Context.Provide<Theme>(Value: _theme)[
+        Context.Provide<Theme>(_theme)[
             Div(
                 Class: "border rounded p-3",
                 Style: _theme.IsDark ? "background:#212529;color:#e9ecef" : "background:#f8f9fa")[

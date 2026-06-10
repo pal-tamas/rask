@@ -7,12 +7,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Rask.Benchmarks.VsBlazor.Infrastructure;
 
 /// <summary>
-///     Subclass of <see cref="Renderer"/> that captures the byte count of each
-///     <see cref="RenderBatch"/> as it would be serialized over a Blazor Server SignalR
-///     circuit. Bytes are measured inside <see cref="UpdateDisplayAsync"/> (synchronously,
+///     Subclass of <see cref="Renderer" /> that captures the byte count of each
+///     <see cref="RenderBatch" /> as it would be serialized over a Blazor Server SignalR
+///     circuit. Bytes are measured inside <see cref="UpdateDisplayAsync" /> (synchronously,
 ///     before returning) so the pooled arrays underlying the batch are still valid.
 ///     <para>
-///         The serialization itself happens in <see cref="BlazorBatchByteSizer.Measure"/>,
+///         The serialization itself happens in <see cref="BlazorBatchByteSizer.Measure" />,
 ///         which reflects on the internal <c>RenderBatchWriter</c> type from
 ///         <c>Microsoft.AspNetCore.Components.Server</c>.
 ///     </para>
@@ -82,7 +82,7 @@ public sealed class BlazorRenderBatchCapture : Renderer
     ///     Two-shot: attach root with the first parameters and discard the initial-attach
     ///     batch, then re-render with the second parameters and return that batch's bytes.
     ///     This is the apples-to-apples shape against
-    ///     <see cref="RaskHarness.SeedPrevious"/> + <see cref="RaskHarness.RenderAndBuildDiffPayloadBytes"/>:
+    ///     <see cref="RaskHarness.SeedPrevious" /> + <see cref="RaskHarness.RenderAndBuildDiffPayloadBytes" />:
     ///     the returned bytes describe ONE incremental update, not the initial mount.
     /// </summary>
     public long MeasureIncrementalUpdate<TComponent>(ParameterView before, ParameterView after)
@@ -99,9 +99,9 @@ public sealed class BlazorRenderBatchCapture : Renderer
     }
 
     /// <summary>
-    ///     Sustained-load counterpart to <see cref="MeasureIncrementalUpdate{TComponent}"/>.
-    ///     Attaches the root ONCE, then drives <paramref name="cycles"/> re-renders each
-    ///     using parameters from <paramref name="parametersFor"/>. Returns the SUM of all
+    ///     Sustained-load counterpart to <see cref="MeasureIncrementalUpdate{TComponent}" />.
+    ///     Attaches the root ONCE, then drives <paramref name="cycles" /> re-renders each
+    ///     using parameters from <paramref name="parametersFor" />. Returns the SUM of all
     ///     per-cycle batch byte counts. Used by <c>MemoryGc_*</c> benches so root
     ///     attachment isn't paid per cycle (Rask's stateful root also pays it only once).
     /// </summary>
@@ -120,6 +120,7 @@ public sealed class BlazorRenderBatchCapture : Renderer
                 await RenderRootComponentAsync(componentId, parametersFor(i));
                 total += LastBatchByteCount;
             }
+
             return total;
         }).GetAwaiter().GetResult();
     }

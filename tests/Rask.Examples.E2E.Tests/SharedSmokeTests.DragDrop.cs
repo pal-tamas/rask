@@ -20,9 +20,7 @@ public abstract partial class SharedSmokeTests
         var dataTransfer = await Page.EvaluateHandleAsync("() => new DataTransfer()");
         var init = new Dictionary<string, object>
         {
-            ["dataTransfer"] = dataTransfer,
-            ["bubbles"] = true,
-            ["cancelable"] = true
+            ["dataTransfer"] = dataTransfer, ["bubbles"] = true, ["cancelable"] = true
         };
 
         await source.DispatchEventAsync("dragstart", init);
@@ -116,7 +114,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-testid='col-done'] .dd-card").Nth(1))
             .ToHaveAttributeAsync("data-testid", "card-4",
-            new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
+                new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-testid='col-doing'] [data-testid='card-4']")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
     });

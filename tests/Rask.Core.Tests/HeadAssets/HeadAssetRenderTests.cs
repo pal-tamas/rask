@@ -100,16 +100,16 @@ public class HeadAssetRenderTests
         public PageShell(Component body) => _body = body;
 
         protected override RenderResult Render() =>
-            [
-                Doctype(),
-                Html("en")[
-                    // Head() is framework-managed: the serializer auto-inserts the
-                    // head-asset sentinel inside, so contributions splice in without
-                    // any explicit placeholder.
-                    Head(),
-                    Body()[_body]
-                ]
-            ];
+        [
+            Doctype(),
+            Html("en")[
+                // Head() is framework-managed: the serializer auto-inserts the
+                // head-asset sentinel inside, so contributions splice in without
+                // any explicit placeholder.
+                Head(),
+                Body()[_body]
+            ]
+        ];
     }
 
     private sealed class ShellWithTitle : Component
@@ -126,16 +126,16 @@ public class HeadAssetRenderTests
         protected override RenderResult Head => Title()[_title];
 
         protected override RenderResult Render() =>
-            [
-                Doctype(),
-                Html("en")[
-                    // Head() is framework-managed: the serializer auto-inserts the
-                    // head-asset sentinel inside, so contributions splice in without
-                    // any explicit placeholder.
-                    Head(),
-                    Body()[_body]
-                ]
-            ];
+        [
+            Doctype(),
+            Html("en")[
+                // Head() is framework-managed: the serializer auto-inserts the
+                // head-asset sentinel inside, so contributions splice in without
+                // any explicit placeholder.
+                Head(),
+                Body()[_body]
+            ]
+        ];
     }
 
     private sealed class NoHeadComponent : Component

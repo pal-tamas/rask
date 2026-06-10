@@ -30,8 +30,6 @@ public class PayloadBytesPerUpdate
 {
     private const string SessionId = "session-bench";
 
-    private ArrayBufferWriter<byte> _writer = null!;
-
     // CounterOnLargePage: ~200 static rows + one counter cell. The static rows are the
     // "50 KB of unchanged DOM" payload-size-dominator that the diff codec must elide.
     private const int LargePageRowCount = 200;
@@ -49,6 +47,8 @@ public class PayloadBytesPerUpdate
     // diff — single UpdateText op, all surrounding bytes stable. Today's baseline still
     // re-ships the whole body because rendered HTML differs.
     private int _textCounter;
+
+    private ArrayBufferWriter<byte> _writer = null!;
 
     [GlobalSetup]
     public void Setup()

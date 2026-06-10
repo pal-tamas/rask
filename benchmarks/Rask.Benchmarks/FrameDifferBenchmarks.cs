@@ -21,14 +21,14 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class FrameDifferBenchmarks
 {
-    [Params(100, 1000)] public int RowCount { get; set; }
-
-    private RenderFrame[] _before = null!;
-    private RenderFrame[] _afterReorder = null!;
-    private RenderFrame[] _afterText = null!;
-    private string _afterReorderHtml = "";
     private readonly List<EditOp> _ops = new(64);
     private readonly FrameDiffer.DiffScratch _scratch = new();
+    private RenderFrame[] _afterReorder = null!;
+    private string _afterReorderHtml = "";
+    private RenderFrame[] _afterText = null!;
+
+    private RenderFrame[] _before = null!;
+    [Params(100, 1000)] public int RowCount { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -39,16 +39,16 @@ public class FrameDifferBenchmarks
             order[i] = i;
         }
 
-        _before = FramesOf(BuildKeyedList(order, textRow: -1));
+        _before = FramesOf(BuildKeyedList(order, -1));
 
         // Reorder: swap two entries (same shape as PayloadBytesPerUpdate.KeyedList100Reorder).
         var reordered = (int[])order.Clone();
         (reordered[5], reordered[RowCount - 5]) = (reordered[RowCount - 5], reordered[5]);
-        (_afterReorder, _afterReorderHtml) = FramesAndHtmlOf(BuildKeyedList(reordered, textRow: -1));
+        (_afterReorder, _afterReorderHtml) = FramesAndHtmlOf(BuildKeyedList(reordered, -1));
 
         // Same key order, one kept row's inner text changed — exercises the keyed step-5
         // inner-diff recursion (the path that re-enters DiffSiblings under a keyed parent).
-        _afterText = FramesOf(BuildKeyedList(order, textRow: RowCount / 2));
+        _afterText = FramesOf(BuildKeyedList(order, RowCount / 2));
     }
 
     [Benchmark(Baseline = true)]

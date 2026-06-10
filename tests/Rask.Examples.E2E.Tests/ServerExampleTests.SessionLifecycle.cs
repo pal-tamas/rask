@@ -196,8 +196,8 @@ public sealed partial class ServerExampleTests
 
             // Heap is allowed to grow by some margin (JIT, intern pool, etc.)
             // but should not be 10x baseline. This is a loose canary — a real
-                // leak would be orders of magnitude.
-            Assert.True(after.GcMemoryBytes < baseline.GcMemoryBytes * 10 + 50_000_000,
+            // leak would be orders of magnitude.
+            Assert.True(after.GcMemoryBytes < (baseline.GcMemoryBytes * 10) + 50_000_000,
                 $"GC heap suspect growth. baseline={baseline.GcMemoryBytes} after={after.GcMemoryBytes}");
         }
         finally
@@ -258,8 +258,10 @@ public sealed partial class ServerExampleTests
     }
 
     public sealed record DiagSnapshot(
-        [property: JsonPropertyName("sessions")] int Sessions,
-        [property: JsonPropertyName("gcMemoryBytes")] long GcMemoryBytes,
+        [property: JsonPropertyName("sessions")]
+        int Sessions,
+        [property: JsonPropertyName("gcMemoryBytes")]
+        long GcMemoryBytes,
         [property: JsonPropertyName("gen0")] int Gen0,
         [property: JsonPropertyName("gen1")] int Gen1,
         [property: JsonPropertyName("gen2")] int Gen2);

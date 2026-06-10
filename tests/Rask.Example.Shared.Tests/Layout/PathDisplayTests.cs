@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Layout;
 using Rask.Example.Shared.Tests.Infrastructure;

@@ -8,7 +8,8 @@ var host = WasmHostBuilder.CreateDefault();
 host.Services.AddSingleton<TokenStore>();
 // HttpClient with a BearerTokenHandler that attaches the JWT from the TokenStore to every request.
 host.Services.AddSingleton(sp =>
-    new HttpClient(new BearerTokenHandler(sp.GetRequiredService<TokenStore>()) { InnerHandler = new HttpClientHandler() })
+    new HttpClient(
+        new BearerTokenHandler(sp.GetRequiredService<TokenStore>()) { InnerHandler = new HttpClientHandler() })
     {
         BaseAddress = new Uri(WasmHostBuilder.BaseAddress)
     });

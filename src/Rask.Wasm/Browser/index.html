@@ -27,7 +27,8 @@
     <title>Rask WASM</title>
     <!-- Inline data-URI favicon (the Rask bolt) so the boot screen is branded with no
          external file dependency; the App's <head> morphs in its own <link> on first paint. -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 6 80 108'%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%23512BD4'/%3E%3C/linearGradient%3E%3Cpath d='M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z' fill='url(%23b)'/%3E%3C/svg%3E"/>
+    <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 6 80 108'%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%23512BD4'/%3E%3C/linearGradient%3E%3Cpath d='M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z' fill='url(%23b)'/%3E%3C/svg%3E" rel="icon"
+          type="image/svg+xml"/>
     <style id="rask-scoped"></style>
     <style>
         .rask-boot {
@@ -42,21 +43,42 @@
             color: #512BD4;
             background: #faf9fe;
         }
-        .rask-boot svg { width: 64px; height: 64px; animation: rask-pulse 1.4s ease-in-out infinite; }
+
+        .rask-boot svg {
+            width: 64px;
+            height: 64px;
+            animation: rask-pulse 1.4s ease-in-out infinite;
+        }
+
         .rask-boot .rask-spin {
-            width: 26px; height: 26px; border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
             border: 3px solid rgba(124, 58, 237, 0.22);
             border-top-color: #7C3AED;
             animation: rask-spin 0.8s linear infinite;
         }
-        @keyframes rask-spin { to { transform: rotate(360deg); } }
-        @keyframes rask-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+        @keyframes rask-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes rask-pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.55;
+            }
+        }
     </style>
 </head>
 <body data-rask-root>
 <div class="rask-boot">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 6 80 108" role="img" aria-label="Rask">
-        <linearGradient id="rask-boot-bolt" x1="0" y1="0" x2="1" y2="1">
+    <svg aria-label="Rask" role="img" viewBox="22 6 80 108" xmlns="http://www.w3.org/2000/svg">
+        <linearGradient id="rask-boot-bolt" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0" stop-color="#7C3AED"/>
             <stop offset="1" stop-color="#512BD4"/>
         </linearGradient>

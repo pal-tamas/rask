@@ -191,10 +191,17 @@ internal static partial class JSInterop
         Task.FromResult(Array.Empty<byte>());
 
     // Records the last BeginInvokeJSImport call so tests can assert dispatch shape.
-    public record BeginInvokeJsCall(string TaskId, string Identifier, string? ArgsJson, int ResultType, string TargetInstanceId);
+    public record BeginInvokeJsCall(
+        string TaskId,
+        string Identifier,
+        string? ArgsJson,
+        int ResultType,
+        string TargetInstanceId);
+
     public static BeginInvokeJsCall? LastBeginInvokeJsCall { get; private set; }
 
-    public static void BeginInvokeJSImport(string taskId, string identifier, string? argsJson, int resultType, string targetInstanceId) =>
+    public static void BeginInvokeJSImport(string taskId, string identifier, string? argsJson, int resultType,
+        string targetInstanceId) =>
         LastBeginInvokeJsCall = new BeginInvokeJsCall(taskId, identifier, argsJson, resultType, targetInstanceId);
 
     public static string? LastEndDotNetInvoke { get; private set; }
@@ -202,13 +209,22 @@ internal static partial class JSInterop
 
     public static void EndInvokeJSResult(string arguments)
     {
-        if (_runtime is null) return;
+        if (_runtime is null)
+        {
+            return;
+        }
+
         DotNetDispatcher.EndInvokeJS(_runtime, arguments);
     }
 
-    public static void BeginDotNetInvoke(string callId, string? assemblyName, string methodIdentifier, int dotNetObjectId, string argsJson)
+    public static void BeginDotNetInvoke(string callId, string? assemblyName, string methodIdentifier,
+        int dotNetObjectId, string argsJson)
     {
-        if (_runtime is null) return;
+        if (_runtime is null)
+        {
+            return;
+        }
+
         var info = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
         DotNetDispatcher.BeginInvokeDotNet(_runtime, info, argsJson);
     }

@@ -1,45 +1,9 @@
-using C = Rask.Core.Components.Generated;
-using Rask.Core;
-
 #pragma warning disable RASK014
 
 namespace Rask.Core.Tests.Live;
 
 public class CrossParentKeyedMoveTests
 {
-    private sealed class Board : Component
-    {
-        public Dictionary<string, List<int>> Cols = new()
-        {
-            ["todo"] = new() { 1, 2, 3 },
-            ["doing"] = new() { 4 },
-            ["done"] = new() { 5 },
-        };
-        private static readonly string[] Zones = { "todo", "doing", "done" };
-
-        private Child Column(string zone)
-        {
-            var cards = Cols[zone];
-            var children = new List<Child>();
-            foreach (var id in cards)
-                children.Add(C.Div(Key: id, Class: "card")[C.Div(Class: "card-body")[C.Span()[$"card{id}"]]]);
-            children.Add(C.Div(Key: $"{zone}-end", Class: "tail"));
-            return C.Div(Key: zone, Class: "col")[
-                C.Div(Class: "dd-column")[
-                    C.Div(Class: "dd-column-header")[C.Span()[zone], C.Span()[cards.Count.ToString()]],
-                    C.Div(Class: "dd-column-body")[children]
-                ]
-            ];
-        }
-
-        protected override RenderResult Render()
-        {
-            var cols = new List<Child>();
-            foreach (var z in Zones) cols.Add(Column(z));
-            return C.Div(Class: "board")[cols];
-        }
-    }
-
     [Fact]
     public void CrossParentKeyedMove_DoesNotCycle()
     {
@@ -53,5 +17,44 @@ public class CrossParentKeyedMoveTests
         var html2 = board.RenderAsLiveRoot();
         var count = html2.Split("card2").Length - 1;
         Assert.True(count == 1, $"expected card2 once, got {count}");
+    }
+
+    private sealed class Board : Component
+    {
+        private static readonly string[] Zones = { "todo", "doing", "done" };
+
+        public readonly Dictionary<string, List<int>> Cols = new()
+        {
+            ["todo"] = new List<int> { 1, 2, 3 }, ["doing"] = new List<int> { 4 }, ["done"] = new List<int> { 5 }
+        };
+
+        private Child Column(string zone)
+        {
+            var cards = Cols[zone];
+            var children = new List<Child>();
+            foreach (var id in cards)
+            {
+                children.Add(Div(Key: id, Class: "card")[Div(Class: "card-body")[Span()[$"card{id}"]]]);
+            }
+
+            children.Add(Div(Key: $"{zone}-end", Class: "tail"));
+            return Div(Key: zone, Class: "col")[
+                Div(Class: "dd-column")[
+                    Div(Class: "dd-column-header")[Span()[zone], Span()[cards.Count.ToString()]],
+                    Div(Class: "dd-column-body")[children]
+                ]
+            ];
+        }
+
+        protected override RenderResult Render()
+        {
+            var cols = new List<Child>();
+            foreach (var z in Zones)
+            {
+                cols.Add(Column(z));
+            }
+
+            return Div(Class: "board")[cols];
+        }
     }
 }

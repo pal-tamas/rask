@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,10 +20,9 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 [MemoryDiagnoser]
 public class Scale_StaticListLargeBenchmarks
 {
-    [Params(1000, 5000, 10000)]
-    public int RowCount { get; set; }
-
     private HtmlRenderer _blazor = null!;
+
+    [Params(1000, 5000, 10000)] public int RowCount { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -54,8 +54,8 @@ public class Scale_StaticListLargeBenchmarks
 
 public abstract class ScaleDiffBase
 {
-    protected RaskHarness Rask = null!;
     protected BlazorRenderBatchCapture Blazor = null!;
+    protected RaskHarness Rask = null!;
 
     [GlobalCleanup]
     public void Cleanup()
@@ -68,13 +68,13 @@ public abstract class ScaleDiffBase
 [MemoryDiagnoser]
 public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
 {
-    [Params(1000, 5000)]
-    public int N { get; set; }
+    private int[] _blazorOrder = null!;
 
     private KeyedList.StatefulKeyedList _stateful = null!;
-    private int[] _blazorOrder = null!;
     private int _swapA;
     private int _swapB;
+
+    [Params(1000, 5000)] public int N { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -124,13 +124,13 @@ public class Scale_KeyedReorderLargeBenchmarks : ScaleDiffBase
 [MemoryDiagnoser]
 public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
 {
-    [Params(100, 500, 1000)]
-    public int N { get; set; }
-
-    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _identity = null!;
     private int[] _permuted = null!;
+
+    private KeyedList.StatefulKeyedList _stateful = null!;
     private bool _useIdentity = true;
+
+    [Params(100, 500, 1000)] public int N { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -138,7 +138,11 @@ public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
         _identity = new int[N];
-        for (var i = 0; i < N; i++) _identity[i] = i;
+        for (var i = 0; i < N; i++)
+        {
+            _identity[i] = i;
+        }
+
         _permuted = MicroBenchHarness.BuildLisInput(N, MicroBenchHarness.LisShape.RandomPermutation);
 #pragma warning disable RASK014
         _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
@@ -175,13 +179,13 @@ public class Scale_KeyedRandomPermutationBenchmarks : ScaleDiffBase
 [MemoryDiagnoser]
 public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
 {
-    [Params(100, 500, 2000)]
-    public int N { get; set; }
+    private int[] _long = null!;
+    private int[] _short = null!;
 
     private KeyedList.StatefulKeyedList _stateful = null!;
-    private int[] _short = null!;
-    private int[] _long = null!;
     private bool _useShort = true;
+
+    [Params(100, 500, 2000)] public int N { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -189,12 +193,23 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
         _short = new int[N];
-        for (var i = 0; i < N; i++) _short[i] = i;
+        for (var i = 0; i < N; i++)
+        {
+            _short[i] = i;
+        }
+
         _long = new int[N + 1];
         var inserted = N + 1000; // unique key not present in _short
-        for (var i = 0; i < N / 2; i++) _long[i] = _short[i];
+        for (var i = 0; i < N / 2; i++)
+        {
+            _long[i] = _short[i];
+        }
+
         _long[N / 2] = inserted;
-        for (var i = N / 2; i < N; i++) _long[i + 1] = _short[i];
+        for (var i = N / 2; i < N; i++)
+        {
+            _long[i + 1] = _short[i];
+        }
 #pragma warning disable RASK014
         _stateful = new KeyedList.StatefulKeyedList { InitialRowCount = N };
 #pragma warning restore RASK014
@@ -230,10 +245,9 @@ public class Scale_KeyedAppendMiddleBenchmarks : ScaleDiffBase
 [MemoryDiagnoser]
 public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
 {
-    [Params(10, 50, 100, 200)]
-    public int Depth { get; set; }
-
     private int _counter;
+
+    [Params(10, 50, 100, 200)] public int Depth { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -269,11 +283,12 @@ public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
 
     private static Component BuildDeepTreeRask(int counter, int depth)
     {
-        Component leaf = C.Span(Class: "counter")[counter.ToString()];
+        var leaf = C.Span(Class: "counter")[counter.ToString()];
         for (var i = 0; i < depth; i++)
         {
             leaf = C.Div(Class: $"d{i}")[leaf];
         }
+
         return C.Fragment()[C.Doctype(), C.Html()[C.Body()[leaf]]];
     }
 
@@ -286,18 +301,22 @@ public class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
         [Parameter] public int Counter { get; set; }
         [Parameter] public int Depth { get; set; }
 
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder b)
+        protected override void BuildRenderTree(RenderTreeBuilder b)
         {
             for (var i = 0; i < Depth; i++)
             {
                 b.OpenElement(0, "div");
                 b.AddAttribute(1, "class", $"d{i}");
             }
+
             b.OpenElement(2, "span");
             b.AddAttribute(3, "class", "counter");
             b.AddContent(4, Counter.ToString());
             b.CloseElement();
-            for (var i = 0; i < Depth; i++) b.CloseElement();
+            for (var i = 0; i < Depth; i++)
+            {
+                b.CloseElement();
+            }
         }
     }
 }
