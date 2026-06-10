@@ -77,6 +77,44 @@ public class UploadDownloadEndpointTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Upload_CrossOrigin_IsRejected()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var sessionId = await CreateSessionAsync(host);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/upload/" + sessionId)
+        {
+            Content = BuildSingleFileForm("data.bin", new byte[] { 1, 2, 3 })
+        };
+        request.Headers.Add("Origin", "http://evil.example");
+
+        var response = await host.Http.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Download_CrossOrigin_IsRejected()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var sessionId = await CreateSessionAsync(host);
+
+        var store = host.Server.Services.GetRequiredService<SessionDownloadStore>();
+        var entry = store.StageBytes(sessionId, "report.txt", Encoding.UTF8.GetBytes("secret"), "text/plain");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/download/{sessionId}/{entry.Token}");
+        request.Headers.Add("Origin", "http://evil.example");
+
+        var response = await host.Http.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // The cross-origin attempt must not consume the one-shot entry — a legitimate same-origin
+        // fetch still succeeds afterward.
+        var legit = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}");
+        Assert.Equal(HttpStatusCode.OK, legit.StatusCode);
+    }
+
     private static async Task<string> CreateSessionAsync(RaskTestHost host)
     {
         var response = await host.Http.GetAsync("/");

@@ -7,8 +7,19 @@ using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-    builder.Configuration["Jwt:Key"] ?? JwtIssuer.DevKey));
+// JwtIssuer.DevKey is a public, hardcoded signing key — fine for the demo, but anyone could forge
+// tokens with it. Fail fast rather than silently fall back to it outside Development, so a deploy
+// that forgets to set Jwt:Key can't ship a forgeable-token endpoint.
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (jwtKey is null && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Jwt:Key is not configured. Set a strong signing key (e.g. via user-secrets, environment, " +
+        "or a secret store) before running outside Development — the built-in JwtIssuer.DevKey is " +
+        "public and lets anyone forge tokens.");
+}
+
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? JwtIssuer.DevKey));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>

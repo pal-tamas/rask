@@ -37,6 +37,13 @@ public static class RaskEndpointExtensions
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
 
+    // Hard cap on a single reassembled inbound WS frame. Client→server messages (hello / event
+    // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP
+    // endpoint — never the socket — so this is generous headroom. It bounds a per-socket memory DoS
+    // where a client streams an unbounded fragmented frame the server would otherwise buffer whole
+    // before JsonDocument.Parse. Mutable static so a test can lower it; not a public knob.
+    internal static int MaxInboundFrameBytes = 8 * 1024 * 1024;
+
     private static FileSystemWatcher? _sourceWatcher;
     private static long _lastSourceChangeTicks;
 
@@ -58,6 +65,7 @@ public static class RaskEndpointExtensions
         // set explicitly before AddRask was called. The static field starts at
         // Auto via its initializer, so the "no configure, no prior write" path
         // still lands on Auto without us re-writing it here.
+        var maxSessions = 0;
         if (configure is not null)
         {
             var liveOptions = new Rask.Core.Live.RaskLiveOptions();
@@ -68,9 +76,17 @@ public static class RaskEndpointExtensions
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
             Rask.Core.Live.LiveOptions.PathBase = liveOptions.PathBase;
+            // Session cap is a per-store instance value (not a static) so concurrent
+            // hosts/tests don't clobber each other through global state.
+            maxSessions = liveOptions.MaxSessions;
         }
 
-        services.AddSingleton<LiveSessionStore>();
+        services.AddSingleton(sp => new LiveSessionStore(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetService<IHostApplicationLifetime>())
+        {
+            MaxSessions = maxSessions,
+        });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -160,6 +176,18 @@ public static class RaskEndpointExtensions
                 }
             }
 
+            // Session-cap backstop (RaskLiveOptions.MaxSessions). Reject before minting a new
+            // session so untrusted GET traffic can't exhaust memory; checked after the auth
+            // guard above so challenge/forbid redirects (which create no session) still work.
+            if (store.AtCapacity)
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                httpContext.Response.Headers.RetryAfter = "5";
+                await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
+                    .ConfigureAwait(false);
+                return;
+            }
+
             var session = store.Create(sp =>
             {
                 // Wrap the App in an implicit RootErrorBoundary so an uncaught render /
@@ -180,6 +208,12 @@ public static class RaskEndpointExtensions
             var html = session.RenderInitialRoot();
             var content = LivePayload.InjectRootAttr(html, session.Id);
             httpContext.Response.ContentType = "text/html; charset=utf-8";
+            // The shell embeds the session id (data-rask-root), which is the de-facto bearer
+            // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
+            // history caching so an authenticated user's session id can't be persisted and
+            // replayed by another principal.
+            httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, private";
+            httpContext.Response.Headers.Pragma = "no-cache";
             await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
             // Schedule cleanup in case no WS ever connects for this session.
             // Browsers / probes can hit the catch-all for resources that don't
@@ -259,6 +293,19 @@ public static class RaskEndpointExtensions
                     return;
                 }
 
+                // Cross-Site WebSocket Hijacking guard. The upgrade carries the user's auth
+                // cookie, and CORS does not apply to WebSocket handshakes, so a page on another
+                // origin could otherwise open an authenticated socket. Driving a session also
+                // needs the unguessable sessionId (delivered in the page HTML, unreadable
+                // cross-origin), but rejecting a mismatched Origin is the standard belt-and-
+                // suspenders. Reuses the same host-only same-origin check as the redeem endpoint
+                // (see IsSameOrigin) — non-browser clients omit Origin and are allowed.
+                if (!IsSameOrigin(ctx.Request))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+
                 var wsUser = ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
                 // permessage-deflate negotiation: the browser advertises the extension in the
                 // upgrade request and we accept it. Render payloads are HTML-heavy and
@@ -302,8 +349,9 @@ public static class RaskEndpointExtensions
             .DisableAntiforgery();
 
         endpoints.MapGet(pathBase + "/_rask/download/{sessionId}/{token}",
-            (HttpContext ctx, string sessionId, string token, SessionDownloadStore downloads) =>
-                HandleDownloadAsync(ctx, sessionId, token, downloads));
+            (HttpContext ctx, string sessionId, string token, LiveSessionStore sessionStore,
+                    SessionDownloadStore downloads) =>
+                HandleDownloadAsync(ctx, sessionId, token, sessionStore, downloads));
 
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         SubscribeAssetChangedDebounced(sessionStore);
@@ -446,6 +494,16 @@ public static class RaskEndpointExtensions
                         if (result.Count > 0)
                         {
                             message.Write(buffer.AsSpan(0, result.Count));
+                        }
+
+                        // Abort a socket that streams a frame past the cap rather than buffering it
+                        // whole — bounds per-socket memory against a fragmented-frame DoS.
+                        if (message.WrittenCount > MaxInboundFrameBytes)
+                        {
+                            try { ws.Abort(); }
+                            catch { }
+
+                            return;
                         }
                     } while (!result.EndOfMessage);
 
@@ -636,7 +694,17 @@ public static class RaskEndpointExtensions
                 using (navigator.EnterHandler())
                 using (authSignIn.EnterHandler())
                 {
-                    if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
+                    // Re-check route authorization for the *current* principal before running the
+                    // handler. A user whose access was revoked mid-session (signed out elsewhere,
+                    // role removed, cookie expired and re-resolved on a reconnect) must not get to
+                    // fire a server-side handler on a page they can no longer view. When the guard
+                    // no longer passes, skip the handler entirely and let EnforceAuthAndRenderAsync
+                    // re-evaluate and ship the challenge/forbid redirect.
+                    if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
+                    {
+                        await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
+                    }
+                    else if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
                     {
                         string? historyUrl = null;
                         var historyReplace = false;
@@ -851,6 +919,24 @@ public static class RaskEndpointExtensions
         }
     }
 
+    // Evaluates the route guard for the session's current route + principal. Returns true when the
+    // route resolves and the guard allows it, or when no route resolves (nothing to gate — e.g. a
+    // NotFound page); false when the guard would challenge/forbid. Used to gate handler dispatch.
+    private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        if (!RouteResolver.TryResolve(routeState.Path, out var chain))
+        {
+            return true;
+        }
+
+        var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
+        var result = await RouteAuthorizationGuard
+            .EvaluateAsync(session.Services, chain, user)
+            .ConfigureAwait(false);
+        return result.Outcome == RouteAuthorizationOutcome.Allow;
+    }
+
     private static async Task EnforceAuthAndRenderAsync(
         LiveSession session,
         string? historyUrl,
@@ -1001,6 +1087,30 @@ public static class RaskEndpointExtensions
                && string.Equals(originUri.Host, selfHost, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Binds an id-addressed endpoint (upload / download) to the principal that owns the live
+    // session. The {sessionId} in the URL is the only thing tying the request to a session, so a
+    // leaked id must not let a *different* signed-in user drive a victim's session. An anonymous
+    // session is matched by anyone — the unguessable sessionId is the only authority then (the same
+    // posture the WS handshake takes); an authenticated session requires the request to carry the
+    // same authenticated identity.
+    private static bool SameSessionUser(ClaimsPrincipal request, ClaimsPrincipal owner)
+    {
+        if (owner.Identity?.IsAuthenticated != true)
+        {
+            return true;
+        }
+
+        if (request.Identity?.IsAuthenticated != true)
+        {
+            return false;
+        }
+
+        return string.Equals(UserKey(request), UserKey(owner), StringComparison.Ordinal);
+    }
+
+    private static string? UserKey(ClaimsPrincipal user) =>
+        user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.Identity?.Name;
+
     private static async Task<string> ResolveAuthSchemeAsync(IServiceProvider services, string? explicitScheme)
     {
         if (!string.IsNullOrEmpty(explicitScheme))
@@ -1021,20 +1131,9 @@ public static class RaskEndpointExtensions
         return CookieAuthenticationDefaults.AuthenticationScheme;
     }
 
-    internal static string SanitizeReturnUrl(string? returnUrl)
-    {
-        if (string.IsNullOrEmpty(returnUrl))
-        {
-            return "/";
-        }
-
-        if (!returnUrl.StartsWith('/') || returnUrl.StartsWith("//", StringComparison.Ordinal))
-        {
-            return "/";
-        }
-
-        return returnUrl;
-    }
+    // Local-redirect only — shared with the client route-guard and WASM login flows via
+    // Rask.Core's LocalUrl.Sanitize (single source of truth for the IsLocalUrl rule).
+    internal static string SanitizeReturnUrl(string? returnUrl) => LocalUrl.Sanitize(returnUrl);
 
     // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
     // HEAD returns the same headers with no body (handled by Results.Bytes internally).
@@ -1118,9 +1217,20 @@ public static class RaskEndpointExtensions
         SessionUploadStore uploads,
         RaskUploadOptions options)
     {
-        if (sessions.Get(sessionId) is null)
+        var session = sessions.Get(sessionId);
+        if (session is null)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        // The {sessionId} is the only credential on this multipart POST (DisableAntiforgery), so
+        // guard it like the WS handshake: reject cross-origin posts and require the request's
+        // authenticated user to match the session owner.
+        if (!IsSameOrigin(ctx.Request)
+            || !SameSessionUser(ctx.User, session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
         }
 
@@ -1206,8 +1316,26 @@ public static class RaskEndpointExtensions
         HttpContext ctx,
         string sessionId,
         string token,
+        LiveSessionStore sessions,
         SessionDownloadStore downloads)
     {
+        // A leaked download URL must not serve a victim's file to another principal: require the
+        // session to still exist and the request to be same-origin and from the session owner
+        // before consuming the one-shot entry.
+        var session = sessions.Get(sessionId);
+        if (session is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (!IsSameOrigin(ctx.Request)
+            || !SameSessionUser(ctx.User, session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         if (!downloads.TryTake(sessionId, token, out var entry) || entry is null)
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;

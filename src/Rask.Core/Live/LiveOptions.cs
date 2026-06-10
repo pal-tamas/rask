@@ -47,6 +47,19 @@ public sealed class RaskLiveOptions
     public LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
 
     /// <summary>
+    ///     Maximum number of concurrent live sessions the server will hold. Each session
+    ///     pins a component tree and a DI scope, so an unbounded count is a memory-exhaustion
+    ///     (DoS) surface for hosts exposed to untrusted traffic. <c>0</c> (default) means
+    ///     unlimited, preserving prior behaviour. When set, a GET that would create a session
+    ///     beyond the cap is answered with <c>503 Service Unavailable</c> + <c>Retry-After</c>;
+    ///     existing sessions and auth challenge/forbid redirects are unaffected. This is a
+    ///     coarse backstop — pair it with a reverse-proxy rate limit for precise control.
+    ///     Sessions are reclaimed shortly after their socket disconnects (the grace-period
+    ///     removal), so the live count tracks active clients, not cumulative visits.
+    /// </summary>
+    public int MaxSessions { get; set; }
+
+    /// <summary>
     ///     Per-app URL prefix. Empty (default) keeps every framework URL at the
     ///     origin root. A non-empty value like <c>"/appA"</c> scopes every emitted
     ///     framework URL (head asset links, runtime script src, WS connect, upload /

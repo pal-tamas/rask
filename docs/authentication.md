@@ -952,6 +952,9 @@ Define an IdentityResource/`role` claim and add it to the client's allowed scope
 |---|---|
 | **Redeem-ticket TTL** | 30s, fixed. The ticket is single-use, session-bound, 128-bit. |
 | **CSRF on `/_rask/auth/redeem`** | The secret session-bound ticket defeats classic CSRF; the endpoint additionally **rejects cross-origin `Origin`/`Referer`** (HTTP 403). |
+| **Session identity trust model** | A live session is keyed by an unguessable 128-bit id embedded in the page (same model as a Blazor circuit). The WS `hello` handler binds the session's user to the principal authenticated on that socket, so security rests on the **secrecy of the session id** — serve over HTTPS, don't log it or leak it via `Referer`. Cross-origin pages can't read it (same-origin policy). |
+| **Cross-Site WebSocket Hijacking** | CORS doesn't apply to WS handshakes and the upgrade carries the auth cookie, so the `/rask/ws` endpoint **rejects a cross-origin handshake** (HTTP 403) using the same host-only same-origin check as redeem. Clients sending no `Origin` (non-browser) are allowed. |
+| **Session-store growth (DoS)** | Each session pins a component tree + DI scope. Sessions are reclaimed shortly after their socket disconnects; set `RaskLiveOptions.MaxSessions` for a hard ceiling (a GET over the cap gets `503` + `Retry-After`). `0` = unlimited (default). Pair with a reverse-proxy rate limit. |
 | **Sign-out invalidation** | Redeem clears the cookie; the WS reconnect re-seeds `SessionUserProvider` to anonymous. `SessionUserProvider.Clear()` is available for explicit invalidation. |
 | **Session expiry → re-auth** | A swept live session pushes `{type:"session",status:"unknown"}`; `rask.js` reloads → fresh GET → route guard challenges to `ChallengePath?returnUrl=…`. |
 | **JWT on WebSocket** | Token rides `?access_token=` on the WS URL via `window.Rask.authToken`; pair with `AddJwtBearer`'s `OnMessageReceived`. |
@@ -967,7 +970,10 @@ Define an IdentityResource/`role` claim and add it to the client's allowed scope
 - ☑ If a token must be in the browser, store it **encrypted** (`ProtectedTokenStore`), never plaintext.
 - ☑ Short JWT lifetime + app-driven silent refresh so sessions stay smooth without long-lived tokens.
 - ☑ Keep `UseAuthentication()` **before** `UseRask()`.
-- ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local paths.
+- ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local same-origin paths (rejects `//`, `/\`, and backslash/control-char variants).
+- ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.
+- ☑ Behind a reverse proxy, wire **ForwardedHeaders** so the host-only same-origin checks (redeem + WS) see the public host.
+- ☑ For untrusted-traffic hosts, set `RaskLiveOptions.MaxSessions` and a reverse-proxy rate limit to bound session creation.
 - ☑ Rotate signing keys; manage the Data Protection key ring (persisted, encrypted at rest).
 
 ---

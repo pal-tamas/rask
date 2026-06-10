@@ -49,6 +49,13 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // serialised the first payload but BEFORE the dispatch returns.
     private bool _pendingRenderInScope;
 
+    // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
+    // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
+    // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
+    // Dispose is never called, but keeping the teardown correct guards tests and any future
+    // multi-session / re-init path.
+    private readonly IUserProvider? _userProvider;
+
     public WasmLiveSession(Component view, IServiceProvider services)
     {
         View = view;
@@ -64,6 +71,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
         if (services.GetService<IUserProvider>() is { } userProvider)
         {
+            _userProvider = userProvider;
             userProvider.Changed += OnUserChanged;
         }
     }
@@ -75,6 +83,12 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
 
     public void Dispose()
     {
+        // Unsubscribe first so a late Changed can't fire OnUserChanged on the now-disposed _lock.
+        if (_userProvider is not null)
+        {
+            _userProvider.Changed -= OnUserChanged;
+        }
+
         ComponentLifecycle.DisposeComponentTree(View);
         _lock.Dispose();
     }

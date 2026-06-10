@@ -157,6 +157,30 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
+    public void QueryParam_NameWithSpecialChars_IsUrlEncodedInGeneratedKey()
+    {
+        // An explicit query-param name with characters that are special in a query string must be
+        // URL-encoded in the emitted key, else the generated URL is malformed.
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/")]
+                  public sealed class HomePage : Component
+                  {
+                      [QueryParam("a b&c")] public string? Search { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("Demo.Routes.g.cs");
+
+        Assert.Contains("\"a%20b%26c=\"", output);
+        Assert.DoesNotContain("\"a b&c=\"", output);
+    }
+
+    [Fact]
     public void ParentRoute_PrefixesTemplateWithParentTemplate()
     {
         var src = """

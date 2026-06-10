@@ -81,7 +81,8 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         var resp = await http.PostAsJsonAsync("api/login", new LoginRequest(username, password), AuthJson.Default.LoginRequest);
         if (!resp.IsSuccessStatusCode) return false;
         await users.RefreshAsync();
-        nav.Navigate(returnUrl ?? "/members");
+        // Open-redirect guard: an attacker-supplied returnUrl must never navigate off-origin.
+        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 
