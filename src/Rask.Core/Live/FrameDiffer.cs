@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 
 namespace Rask.Core.Live;
 
@@ -929,6 +930,10 @@ public static class FrameDiffer
                 }
             }
 
+            // len > 0 (guarded above) and every iteration sets tails[lo] with lo <= tailsLen,
+            // bumping tailsLen on the first extension — so tailsLen is now >= 1 and the
+            // back-walk start index is in range.
+            Debug.Assert(tailsLen >= 1, "LIS tails must be non-empty for non-empty input");
             var cur = tails[tailsLen - 1];
             while (cur >= 0)
             {

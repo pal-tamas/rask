@@ -16,7 +16,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-**[Quick start](#-quick-start--server)** · **[Core concepts](#-core-concepts)** · **[Performance](#-performance)** · **[Live demo ↗](https://pal-tamas.github.io/rask/)**
+**[Quick start](#-quick-start--server)** · **[Core concepts](#-core-concepts)** · **[Docs ↗](docs/)** · **[Performance](#-performance)** · **[Live demo ↗](https://pal-tamas.github.io/rask/)**
 
 </div>
 
@@ -366,6 +366,17 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
 - **Live demo** — every push to `main` publishes `Rask.Example.Wasm` to GitHub Pages via
   [`.github/workflows/pages.yml`](.github/workflows/pages.yml), so you can click through a full multi-page Rask app in
   the browser before cloning anything.
+
+## 📚 Documentation
+
+The collapsible sections below are a feature-by-feature tour. For step-by-step guides and reference,
+see **[`docs/`](docs/)**:
+
+- **[Getting started](docs/getting-started.md)** — scaffold, first component, interactivity, routing.
+- **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · **[Authentication](docs/authentication.md)**
+- **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
+- **[Diagnostics (RASK001–022)](docs/diagnostics.md)** — every build error/warning and its fix.
+- **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.
 
 ## 🧩 Core concepts
 

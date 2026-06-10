@@ -29,7 +29,8 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         "Scoped-JS file '{0}' has no matching component class. Expected a Component subclass named '{1}' in the same folder.",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK017"));
 
     private static readonly DiagnosticDescriptor Rask018 = new(
         "RASK018",
@@ -37,7 +38,8 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         "Scoped-JS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK018"));
 
     private static readonly DiagnosticDescriptor Rask020 = new(
         "RASK020",
@@ -45,7 +47,8 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         "Two or more components with scoped JS share the simple type name '{0}': {1}. The browser-side namespace key window.Rask[\"{0}\"] is shared by all of them and the last registration silently wins. Rename one, move it to a differently-named sibling, or expose your exports under a sub-namespace inside the JS file. Promote to error in csproj with <WarningsAsErrors>RASK020</WarningsAsErrors>.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK020"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
