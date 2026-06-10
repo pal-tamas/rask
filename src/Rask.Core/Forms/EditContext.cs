@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Core.Forms;
 
-public sealed class EditContext
+public sealed class EditContext : IDisposable
 {
     // Default sticky window for the ValidatingIndicator. After PendingCount
     // drops to 0, the field stays "validating" for this many milliseconds —
@@ -84,6 +84,35 @@ public sealed class EditContext
     ///     it just won't proactively re-render on its own.
     /// </summary>
     internal Action? RequestRender { get; set; }
+
+    // True once Dispose has released this context's per-field timers/CTS. Set by the live render
+    // when the backing form unmounts. Purely diagnostic — nothing gates behaviour on it, and a
+    // disposed context re-arms its resources cleanly if the same instance is re-mounted.
+    internal bool IsDisposed { get; private set; }
+
+    /// <summary>
+    ///     Releases the per-field background resources this context owns: the one-shot
+    ///     sticky-dismissal <see cref="System.Threading.Timer" />s and any in-flight
+    ///     async-validation <see cref="CancellationTokenSource" />. The live render calls
+    ///     this when the form backing the context is unmounted, so a sticky timer that
+    ///     would otherwise outlive the form (default 200&#160;ms tail) can neither fire a
+    ///     stale render nor pin the context graph alive. Nulling <see cref="RequestRender" />
+    ///     additionally makes any timer callback already in flight no-op its render request.
+    ///     Idempotent — <see cref="System.Threading.Timer" /> / <see cref="CancellationTokenSource" />
+    ///     disposal is safe to repeat.
+    /// </summary>
+    public void Dispose()
+    {
+        IsDisposed = true;
+        RequestRender = null;
+        foreach (var s in _states.Values)
+        {
+            s.StickyTimer?.Dispose();
+            s.StickyTimer = null;
+            s.Cts?.Dispose();
+            s.Cts = null;
+        }
+    }
 
     public void AddValidator(IFieldValidator validator)
     {
@@ -390,6 +419,13 @@ public sealed class EditContext
         var state = GetOrCreate(field);
 
         // Latest-wins: cancel any prior in-flight run for this field.
+        // Note on the CTS lifecycle (looks racy, isn't): the live transports serialize handler
+        // execution end to end — the Server WS dispatcher and the WASM session each hold their
+        // lock across the whole awaited handler (which is where validation runs), so two
+        // ValidateFieldAsync calls for the same field never overlap. By the time a later call
+        // reaches here, the earlier one has already nulled state.Cts (sync + finally paths), so
+        // these Cancel/Dispose calls only ever touch a still-owned CTS — no double-dispose, no
+        // ObjectDisposedException. Keep validation off background threads to preserve this.
         state.Cts?.Cancel();
         state.Cts?.Dispose();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

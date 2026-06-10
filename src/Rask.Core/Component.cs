@@ -871,8 +871,29 @@ public abstract class Component
                     return true;
                 }
                 default:
-                    handler.DynamicInvoke();
+                {
+                    // Delegate signatures outside the fast-path list above can still arrive through
+                    // the untyped `Delegate?` slots (Element.OnDragStart/OnDragOver/OnDrop/OnDragEnd),
+                    // e.g. a method group typed Func<Task<T>> or Func<ValueTask>. Invoke reflectively;
+                    // if the result is an awaitable, pump it through the render path so exceptions reach
+                    // the ErrorBoundary and post-await state changes re-render — matching the explicit
+                    // Func<…, Task> cases. Without this, a returned Task is fire-and-forget: a fault is
+                    // unobserved and post-await mutations never render.
+                    var result = handler.DynamicInvoke();
+                    var pending = result switch
+                    {
+                        Task t => t,
+                        ValueTask vt => vt.AsTask(),
+                        _ => null,
+                    };
+                    if (pending is not null)
+                    {
+                        await InvokeWithRenderingAsync(() => pending).ConfigureAwait(false);
+                        owner.Live.StateDirty = true;
+                    }
+
                     return true;
+                }
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is not null)
@@ -1058,9 +1079,44 @@ public abstract class Component
         // Swap: the dict we wrote into this frame becomes next frame's `previous`;
         // the now-stale previous becomes the pool that next frame will Clear and reuse.
         var snapshot = ctx.SnapshotEditContexts();
+        // Dispose EditContexts that were alive last frame but weren't re-resolved this frame —
+        // i.e. the form they back was unmounted. Their sticky-dismissal timers would otherwise
+        // fire once more after teardown (pinning the context + render handle for the sticky
+        // tail). Compare by instance, not key: a Form shares one EditContext across its root
+        // model plus every sub-model key, so a context is dead only when no surviving key still
+        // points at it. Guarded on Count so the common form-free page pays nothing.
+        DisposeUnmountedEditContexts(previousEditContexts, snapshot);
         Live.EditContextsPool = Live.PersistedEditContexts;
         Live.PersistedEditContexts = snapshot;
         return html;
+    }
+
+    // Disposes EditContexts present in `previous` (last frame's set) whose instance no longer
+    // appears in `current` (this frame's set) — the forms they back were unmounted. Compares by
+    // reference identity because one EditContext is shared across a Form's many model keys, so a
+    // context survives if ANY current key still references it. No-ops when there's nothing to do.
+    private static void DisposeUnmountedEditContexts(
+        Dictionary<LiveRenderContext.ObjectKey, EditContext> previous,
+        Dictionary<LiveRenderContext.ObjectKey, EditContext> current)
+    {
+        if (previous.Count == 0)
+        {
+            return;
+        }
+
+        var survivors = new HashSet<EditContext>(ReferenceEqualityComparer.Instance);
+        foreach (var ctx in current.Values)
+        {
+            survivors.Add(ctx);
+        }
+
+        foreach (var ctx in previous.Values)
+        {
+            if (!survivors.Contains(ctx))
+            {
+                ctx.Dispose();
+            }
+        }
     }
 
     // Page-shell tokens a root render must produce, paired with the factory that emits each.

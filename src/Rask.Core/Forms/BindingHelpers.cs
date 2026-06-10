@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
@@ -20,6 +21,12 @@ internal static class BindingHelpers
     // that NullabilityInfoContext reads off the PropertyInfo. Unknown (NRT disabled in the
     // model's compilation context) is treated as non-nullable, matching pre-NRT behavior.
     private static readonly NullabilityInfoContext _nullabilityCtx = new();
+
+    // Memoizes the (reference-type) nullable-annotation verdict per PropertyInfo. The verdict is a
+    // pure function of the stable PropertyInfo, and NullabilityInfoContext is both reflection-heavy
+    // and not thread-safe (hence the lock around Create). Caching keeps the lock off the steady-state
+    // bind path — it's only ever taken once per property, on the first empty-value bind to it.
+    private static readonly ConcurrentDictionary<PropertyInfo, bool> _refTypeNullableCache = new();
 
     public static EditContext? ResolveBindingContext(object model) =>
         EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
@@ -295,12 +302,12 @@ internal static class BindingHelpers
             return false;
         }
 
-        NullabilityInfo info;
-        lock (_nullabilityCtx)
+        return _refTypeNullableCache.GetOrAdd(prop, static p =>
         {
-            info = _nullabilityCtx.Create(prop);
-        }
-
-        return info.WriteState == NullabilityState.Nullable;
+            lock (_nullabilityCtx)
+            {
+                return _nullabilityCtx.Create(p).WriteState == NullabilityState.Nullable;
+            }
+        });
     }
 }
