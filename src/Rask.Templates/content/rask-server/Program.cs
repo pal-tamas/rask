@@ -15,6 +15,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(o =>
     {
         o.Cookie.Name = "rask.auth";
+        // Secure-by-default: never send the auth cookie over plain HTTP, and use SameSite=Lax so it
+        // doesn't ride cross-site POSTs (CSRF). The dev launch profile runs on HTTPS so the cookie
+        // is set in development too; if you must serve over plain HTTP, relax SecurePolicy.
+        o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        o.Cookie.SameSite = SameSiteMode.Lax;
         o.LoginPath = "/login";
         o.AccessDeniedPath = "/forbidden";
     });
@@ -22,6 +27,15 @@ builder.Services.AddSingleton<ICredentialStore, DemoCredentialStore>();
 //#endif
 
 var app = builder.Build();
+
+// Transport security (applies whether or not auth is enabled): redirect HTTP→HTTPS, and in
+// non-Development emit HSTS so browsers refuse plain-HTTP for the configured max-age.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
 
 app.MapStaticAssets();
 //#if (auth)

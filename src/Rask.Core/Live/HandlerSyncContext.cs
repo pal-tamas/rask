@@ -11,10 +11,13 @@ internal sealed class HandlerSyncContext : SynchronizationContext
 
     public override void Post(SendOrPostCallback d, object? state)
     {
-        var task = Task.Run(() => RunWithRendersAsync(d, state));
+        // Schedule AND record under the same lock so DrainAsync can't snapshot _pending in the
+        // gap between Task.Run and the Add — which could otherwise let the drain return before a
+        // just-posted render completes. Task.Run always schedules on the pool (never inline), so
+        // holding the lock around it doesn't run user code under the lock.
         lock (_pending)
         {
-            _pending.Add(task);
+            _pending.Add(Task.Run(() => RunWithRendersAsync(d, state)));
         }
     }
 

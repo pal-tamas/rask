@@ -814,7 +814,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Escaped);
         }
 
         foreach (var p in optionalProps)
@@ -825,7 +825,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Name).Append(" = ")
+            sb.Append(p.TypeFqn).Append(' ').Append(p.Escaped).Append(" = ")
                 .Append(DefaultLiteralFor(p));
         }
 
@@ -1196,7 +1196,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         for (var i = 0; i < entries.Count; i++)
         {
             var p = entries[i];
-            sb.Append("                ").Append(p.Name).Append(" = ").Append(p.Name);
+            sb.Append("                ").Append(p.Escaped).Append(" = ").Append(p.Escaped);
             if (i < entries.Count - 1)
             {
                 sb.Append(',');
@@ -1219,19 +1219,21 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // nullable annotations round-trip).
         foreach (var p in foldProps)
         {
-            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Name).AppendLine(";");
+            // __old_<Name> is a fresh local (raw Name is a valid identifier even when Name is a
+            // keyword); the property access __c.<Name> must be '@'-escaped.
+            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Escaped).AppendLine(";");
         }
 
         // Re-apply ALL params (including Key) so cached instances see fresh values. Event-callback
         // delegates are wrapped so invoking them re-renders the owning component (see AutoCallback).
         foreach (var p in assignProps)
         {
-            sb.Append("        __c.").Append(p.Name).Append(" = ");
+            sb.Append("        __c.").Append(p.Escaped).Append(" = ");
             if (p.IsAutoRerenderDelegate)
             {
                 // Wrap returns a nullable delegate (null in → null out); a non-nullable prop never
                 // passes null, so the null-forgiving `!` is safe and silences CS8601.
-                sb.Append("global::Rask.Core.AutoCallback.Wrap(").Append(p.Name).Append(')');
+                sb.Append("global::Rask.Core.AutoCallback.Wrap(").Append(p.Escaped).Append(')');
                 if (!p.IsNullable)
                 {
                     sb.Append('!');
@@ -1239,7 +1241,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
             else
             {
-                sb.Append(p.Name);
+                sb.Append(p.Escaped);
             }
 
             sb.AppendLine(";");
@@ -1258,7 +1260,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             var p = foldProps[0];
             sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
-                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name)
+                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped)
                 .AppendLine(");");
             return;
         }
@@ -1268,7 +1270,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         {
             var p = foldProps[i];
             sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
-                .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Name).Append(')');
+                .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped).Append(')');
             sb.AppendLine(i < foldProps.Count - 1 ? " ||" : ";");
         }
     }
@@ -1361,6 +1363,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string DefaultLiteral,
         bool IsParams);
 
+    // A property/parameter name as a valid C# identifier in emitted code. ISymbol.Name strips the
+    // leading '@' from a verbatim identifier (a property declared `@event` has Name "event"), so a
+    // reserved keyword must be re-escaped with '@' wherever it is emitted as an identifier —
+    // otherwise the generated factory (`string? event = null`, `__c.event = event`) fails to
+    // compile in the consumer's build. Use this only for emitted identifiers; comparisons against
+    // metadata names (modelProperty, "Children", typed-delegate sets) keep the raw Name.
+    internal static string EscapeIdentifier(string name) =>
+        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
+
     private readonly record struct PropInfo(
         string Name,
         string TypeFqn,
@@ -1371,7 +1382,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string DeclaringFilePath,
         int DeclaringSpanStart,
         int DeclaringSpanLength,
-        bool IsAutoRerenderDelegate);
+        bool IsAutoRerenderDelegate)
+    {
+        // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
+        public string Escaped => EscapeIdentifier(Name);
+    }
 }
 
 internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>

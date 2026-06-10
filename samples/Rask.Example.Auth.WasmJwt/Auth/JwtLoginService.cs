@@ -23,7 +23,9 @@ public sealed class JwtLoginService(HttpClient http, TokenStore tokens, IUserPro
 
         await tokens.SetAsync(dto.Token);
         await users.RefreshAsync();
-        nav.Navigate(returnUrl ?? "/members");
+        // Open-redirect guard: never navigate off-origin from an attacker-supplied returnUrl
+        // (parity with the server's SanitizeReturnUrl). Unsafe values collapse to "/".
+        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 

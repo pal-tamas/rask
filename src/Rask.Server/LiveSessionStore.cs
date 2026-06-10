@@ -26,6 +26,22 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     public int Count => _sessions.Count;
 
+    /// <summary>
+    ///     Soft cap on concurrent sessions (<c>0</c> = unlimited). Set from
+    ///     <see cref="Rask.Core.Live.RaskLiveOptions.MaxSessions" /> at registration. The
+    ///     capacity gate is intentionally check-then-create rather than a hard atomic
+    ///     reservation: a burst can admit a handful of sessions past the cap, which is fine
+    ///     for a DoS backstop and keeps the common (uncapped) <see cref="Create" /> path free
+    ///     of extra synchronisation. Tests set it directly on the resolved singleton.
+    /// </summary>
+    public int MaxSessions { get; set; }
+
+    /// <summary>
+    ///     True when a new session would exceed <see cref="MaxSessions" />. The GET endpoint
+    ///     checks this before minting a session and returns 503 when it holds.
+    /// </summary>
+    public bool AtCapacity => MaxSessions > 0 && _sessions.Count >= MaxSessions;
+
     public async ValueTask DisposeAsync()
     {
         CancelAllPending();
@@ -53,7 +69,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
     internal LiveSession Create(Func<IServiceProvider, Component> factory)
     {
         var scope = _scopeFactory.CreateScope();
-        var sessionId = Guid.NewGuid().ToString("N");
+        // Cryptographically-random id: it is the bearer secret for the WS / upload / download
+        // endpoints (see SecureToken), so it must not be a v4 GUID.
+        var sessionId = SecureToken.Create();
         if (scope.ServiceProvider.GetService<RaskSessionContext>() is { } sessionCtx)
         {
             sessionCtx.Id = sessionId;

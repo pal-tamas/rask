@@ -29,7 +29,7 @@ internal sealed class AuthTicketStore : IAuthTicketStore
     public string Issue(AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        var id = Guid.NewGuid().ToString("N");
+        var id = SecureToken.Create();
         var ticket = new AuthTicket(action, principal, scheme, sessionId, DateTime.UtcNow.Add(Ttl));
         _tickets[id] = ticket;
         MaybeSweep();
