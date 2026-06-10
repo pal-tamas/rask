@@ -50,7 +50,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         var grouped = candidates.Collect();
 
-        context.RegisterSourceOutput(grouped, static (spc, list) => Emit(spc, list));
+        // RaskFactoryNavigation (default true) gates the per-factory `<see cref>` doc breadcrumb
+        // that links each generated factory to its component type (Quick-Doc / hover navigation;
+        // F12 still resolves to the generated method — Roslyn/ReSharper navigate generated symbols
+        // to the generated file, so use "Navigate to Type of Symbol" for a one-action jump to the
+        // component). `[DebuggerStepThrough]` is emitted unconditionally so the debugger always
+        // steps over the factory into user code.
+        var navigationEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
+            !p.GlobalOptions.TryGetValue("build_property.RaskFactoryNavigation", out var v)
+            || !string.Equals(v, "false", StringComparison.OrdinalIgnoreCase));
+
+        context.RegisterSourceOutput(grouped.Combine(navigationEnabled),
+            static (spc, t) => Emit(spc, t.Left, t.Right));
 
         var globalUsingsEnabled = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
             !p.GlobalOptions.TryGetValue("build_property.RaskGlobalUsings", out var v)
@@ -640,7 +651,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return p.IsNullable ? "null" : "default";
     }
 
-    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool emitNavigation)
     {
         if (candidates.IsDefaultOrEmpty)
         {
@@ -693,18 +704,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                EmitFactory(sb, c);
+                EmitFactory(sb, c, emitNavigation);
                 sb.AppendLine();
 
                 if (c.GenericFactory is { } gf)
                 {
-                    EmitGenericFactoryOverload(sb, c, gf);
+                    EmitGenericFactoryOverload(sb, c, gf, emitNavigation);
                     sb.AppendLine();
                 }
 
                 foreach (var f in c.Forwarders)
                 {
-                    EmitForwarderFactory(sb, c, f);
+                    EmitForwarderFactory(sb, c, f, emitNavigation);
                     sb.AppendLine();
                 }
             }
@@ -742,7 +753,26 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool IsParamProperty(PropInfo p) =>
         !p.HasInitializer; // properties with initializers are excluded entirely
 
-    private static void EmitFactory(StringBuilder sb, Candidate c)
+    // Emits the per-factory header trivia: a `<see cref>` doc breadcrumb that links to the
+    // component type (Quick-Doc / hover navigation; gated by RaskFactoryNavigation) and an
+    // always-on `[DebuggerStepThrough]` so the debugger steps over the factory into user code.
+    // F12 still lands on the generated method — stock Roslyn/ReSharper navigate a generated
+    // symbol to its generated document; "Navigate to Type of Symbol" jumps to the component.
+    private static void EmitMethodHeader(StringBuilder sb, Candidate c, bool emitNavigation)
+    {
+        if (emitNavigation)
+        {
+            // cref uses `{T}` (not `<T>`) for generic arity — the doc-comment cref syntax — so it
+            // resolves to the component type and renders as a navigable link.
+            var cref = c.FullyQualifiedName.Replace('<', '{').Replace('>', '}');
+            sb.Append("    /// <summary>Factory for the <see cref=\"").Append(cref)
+                .AppendLine("\"/> component.</summary>");
+        }
+
+        sb.AppendLine("    [global::System.Diagnostics.DebuggerStepThrough]");
+    }
+
+    private static void EmitFactory(StringBuilder sb, Candidate c, bool emitNavigation)
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var paramProps = c.Properties.Where(IsParamProperty).ToList();
@@ -772,6 +802,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var canUseObjectInit = c.HasParameterlessCtor || !c.HasDIConstructor;
 
         // Signature.
+        EmitMethodHeader(sb, c, emitNavigation);
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append(c.TypeParameters).Append('(');
         var first = true;
@@ -897,11 +928,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
     }
 
-    private static void EmitForwarderFactory(StringBuilder sb, Candidate c, ForwarderInfo f)
+    private static void EmitForwarderFactory(StringBuilder sb, Candidate c, ForwarderInfo f, bool emitNavigation)
     {
         var visibility = c.IsPublic ? "public" : "internal";
 
         // Signature: `public static {Component} {ComponentName}<...>(<params>) <constraints>`
+        EmitMethodHeader(sb, c, emitNavigation);
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append(f.TypeParameters).Append('(');
         for (var i = 0; i < f.Parameters.Count; i++)
@@ -942,7 +974,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine(");");
     }
 
-    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf)
+    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf, bool emitNavigation)
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var typedSet = new HashSet<string>(StringComparer.Ordinal);
@@ -976,7 +1008,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         if (typedValidators.Count == 0)
         {
             EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-                modelProperty, paramProps, ValidatorShape.None);
+                modelProperty, paramProps, ValidatorShape.None, emitNavigation);
             return;
         }
 
@@ -987,11 +1019,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // Both Sync and Async overloads make the validator parameter required so the No
         // overload remains the unambiguous match when the caller passes neither.
         EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.None);
+            modelProperty, paramProps, ValidatorShape.None, emitNavigation);
         EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.Sync);
+            modelProperty, paramProps, ValidatorShape.Sync, emitNavigation);
         EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
-            modelProperty, paramProps, ValidatorShape.Async);
+            modelProperty, paramProps, ValidatorShape.Async, emitNavigation);
     }
 
     private static void EmitOneOverload(
@@ -1005,8 +1037,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         HashSet<string> validatorSet,
         string modelProperty,
         List<PropInfo> paramProps,
-        ValidatorShape validatorShape)
+        ValidatorShape validatorShape,
+        bool emitNavigation)
     {
+        EmitMethodHeader(sb, c, emitNavigation);
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append('<').Append(gf.TypeParameter).Append(">(");
 
