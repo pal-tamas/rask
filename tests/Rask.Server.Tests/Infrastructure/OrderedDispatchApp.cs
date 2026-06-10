@@ -1,6 +1,5 @@
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Core.Routing;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
 
@@ -21,16 +20,16 @@ public sealed class OrderedDispatchApp : Component
     public string Sequence { get; private set; } = "";
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["ordered-dispatch"]],
-                new Body()[
-                    new P()[$"Sequence={Sequence}"],
-                    Buttons()
-                ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()["ordered-dispatch"]],
+            new Body()[
+                new P()[$"Sequence={Sequence}"],
+                Buttons()
             ]
-        ];
+        ]
+    ];
 
     private Component Buttons()
     {

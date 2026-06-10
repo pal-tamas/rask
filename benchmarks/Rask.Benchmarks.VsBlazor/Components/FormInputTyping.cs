@@ -21,12 +21,12 @@ internal static class FormInputTyping
     {
         return C.Form()[
             C.Label()["Field A"],
-            C.Input(Type: "text", Name: "a", Value: a),
+            C.Input("text", "a", a),
             C.Label()["Field B"],
-            C.Input(Type: "text", Name: "b", Value: b),
+            C.Input("text", "b", b),
             C.Label()["Field C"],
-            C.Input(Type: "text", Name: "c", Value: c),
-            C.Button(Type: "submit")["Save"]
+            C.Input("text", "c", c),
+            C.Button("submit")["Save"]
         ];
     }
 

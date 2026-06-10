@@ -28,7 +28,7 @@
       because MSBuild's own assembly resolver provides these at runtime; bundling them
       would clash with the host MSBuild's copy.
     -->
-    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
   </ItemGroup>
 
   <!--
@@ -39,7 +39,7 @@
     refreshes the deployed task. Cheap: one file, ~20 KB.
   -->
   <Target Name="CopyTaskAssemblyToRaskWasmBuild" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Wasm\build\" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Wasm\build\" SkipUnchangedFiles="true"/>
   </Target>
 
 </Project>

@@ -14,11 +14,11 @@ dotnet run --project samples/Rask.Example.Wasm.Host   # browser-WASM
 
 ## Layout
 
-| Folder | Contents |
-|--------|----------|
-| `Pages/` | One routed page per feature (`[Route]`), each pairing a runnable demo with its source. |
-| `Demos/` | Reusable demo components used by the pages (e.g. `ContextDemos`, `CallbackDemos`, `ElementRefDemo`). |
-| `Layout/` | `ShowcaseLayout` — the shell, sidebar nav, and the route table that drives both. |
+| Folder    | Contents                                                                                             |
+|-----------|------------------------------------------------------------------------------------------------------|
+| `Pages/`  | One routed page per feature (`[Route]`), each pairing a runnable demo with its source.               |
+| `Demos/`  | Reusable demo components used by the pages (e.g. `ContextDemos`, `CallbackDemos`, `ElementRefDemo`). |
+| `Layout/` | `ShowcaseLayout` — the shell, sidebar nav, and the route table that drives both.                     |
 
 `Pages/HomePage.cs` is the feature index; its card list mirrors the nav in
 `Layout/ShowcaseLayout.cs`.

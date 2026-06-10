@@ -29,26 +29,21 @@ public sealed class AssetLoadingPage : Component
                 Code()["Cache-Control: public, max-age=31536000, immutable"],
                 ". Open DevTools → Network and observe each section below."
             ],
-
             Section("Basic scoped CSS",
                 "One component with a sibling .css file. Exactly one <link> request.",
                 BasicScopedCss()),
-
             Section("JS-only component",
                 "Sibling .js, no .css. Used to regress when the mounted-set only tracked CSS components. " +
                 "Click the button — it dispatches via IJSRuntime to the scoped JS module.",
                 JsOnlyDemo()),
-
             Section("Two components, two URLs",
                 "Different rewritten content → different content hash → two independent <link>s. " +
                 "Either component edited in isolation only re-fetches its own bytes.",
                 Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
-
             Section("Lazy mount / unmount",
                 "Toggle the button. On mount, the framework adds the child's <link> via the head morph; " +
                 "on unmount, the tag is removed. The browser keeps the CSS bytes cached, so re-mounting is instant.",
                 LazyMount()),
-
             Div(Class: "alert alert-info d-flex align-items-start mt-5")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[

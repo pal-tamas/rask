@@ -37,10 +37,7 @@ internal sealed class RaskJSRuntime : JSRuntime
 {
     private readonly LiveSessionAccessor _accessor;
 
-    public RaskJSRuntime(LiveSessionAccessor accessor)
-    {
-        _accessor = accessor;
-    }
+    public RaskJSRuntime(LiveSessionAccessor accessor) => _accessor = accessor;
 
     private LiveSession CurrentSession =>
         _accessor.Session ?? throw new InvalidOperationException(

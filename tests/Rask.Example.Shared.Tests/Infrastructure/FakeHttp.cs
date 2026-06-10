@@ -6,8 +6,8 @@ namespace Rask.Example.Shared.Tests.Infrastructure;
 
 internal sealed class FakeHttp : HttpMessageHandler
 {
-    public Func<HttpRequestMessage, Task<HttpResponseMessage>>? Handler { get; set; }
     public int RequestCount;
+    public Func<HttpRequestMessage, Task<HttpResponseMessage>>? Handler { get; set; }
     public List<HttpRequestMessage> Requests { get; } = [];
 
     public static (HttpClient Client, FakeHttp Handler) WithPrices(params (string Asset, decimal Price)[] prices)

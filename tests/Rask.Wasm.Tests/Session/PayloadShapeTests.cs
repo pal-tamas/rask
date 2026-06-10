@@ -1,11 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
-using Rask.Core.Routing;
-using Rask.Core.ScopedAssets;
-using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
 
@@ -14,7 +9,6 @@ namespace Rask.Wasm.Tests.Session;
 // (framework default is LiveDiffMode.Auto).
 public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
-
     [Fact]
     public async Task InitialRender_AlwaysIncludesDataRaskRootEqualsWasm()
     {

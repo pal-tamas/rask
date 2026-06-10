@@ -6,7 +6,7 @@ public class SvgPaintTests
     public void ClipPath_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<clipPath clipPathUnits=\"userSpaceOnUse\"></clipPath>",
-            ClipPath(ClipPathUnits: "userSpaceOnUse").ToHtml());
+            ClipPath("userSpaceOnUse").ToHtml());
 
     [Fact]
     public void ClipPath_InheritedClipPathPresentationProp_StillAvailable() =>
@@ -21,6 +21,6 @@ public class SvgPaintTests
         Assert.Equal(
             "<mask maskUnits=\"userSpaceOnUse\" maskContentUnits=\"userSpaceOnUse\" " +
             "x=\"0\" y=\"0\" width=\"10\" height=\"10\"></mask>",
-            Mask(MaskUnits: "userSpaceOnUse", MaskContentUnits: "userSpaceOnUse",
-                X: "0", Y: "0", Width: "10", Height: "10").ToHtml());
+            Mask("userSpaceOnUse", "userSpaceOnUse",
+                "0", "0", "10", "10").ToHtml());
 }

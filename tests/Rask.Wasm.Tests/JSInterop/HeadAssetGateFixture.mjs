@@ -26,7 +26,7 @@
 // line on stdout and asserts the recorded values match the bug pattern.
 // When the bug is fixed (gate stops draining on 'error'/timeout), the
 // expectations flip and the test reads as a regression guard.
-import { readFileSync } from "node:fs";
+import {readFileSync} from "node:fs";
 
 const bundlePath = process.argv[2];
 if (!bundlePath) {
@@ -44,13 +44,27 @@ function makeStubElement(tagName) {
         _children: [],
         parentNode: null,
         textContent: "",
-        get rel() { return attrs.get("rel") ?? ""; },
-        get src() { return attrs.get("src") ?? ""; },
-        get href() { return attrs.get("href") ?? ""; },
-        get id() { return attrs.get("id") ?? ""; },
-        set id(v) { attrs.set("id", String(v)); },
-        get text() { return el.textContent; },
-        set text(v) { el.textContent = String(v); },
+        get rel() {
+            return attrs.get("rel") ?? "";
+        },
+        get src() {
+            return attrs.get("src") ?? "";
+        },
+        get href() {
+            return attrs.get("href") ?? "";
+        },
+        get id() {
+            return attrs.get("id") ?? "";
+        },
+        set id(v) {
+            attrs.set("id", String(v));
+        },
+        get text() {
+            return el.textContent;
+        },
+        set text(v) {
+            el.textContent = String(v);
+        },
         hasAttribute: (name) => attrs.has(name),
         getAttribute: (name) => (attrs.has(name) ? attrs.get(name) : null),
         setAttribute: (name, value) => attrs.set(name, String(value)),
@@ -61,7 +75,7 @@ function makeStubElement(tagName) {
         },
         _dispatch: (type) => {
             const fns = listeners.get(type) || [];
-            for (const fn of fns.slice()) fn({ type, target: el });
+            for (const fn of fns.slice()) fn({type, target: el});
         },
         appendChild: (child) => {
             el._children.push(child);
@@ -69,7 +83,7 @@ function makeStubElement(tagName) {
             return child;
         },
         get attributes() {
-            return [...attrs.entries()].map(([name, value]) => ({ name, value }));
+            return [...attrs.entries()].map(([name, value]) => ({name, value}));
         }
     };
     return el;
@@ -98,30 +112,37 @@ body.setAttribute("data-rask-root", "");
 globalThis.document = {
     head,
     body,
-    documentElement: { tagName: "HTML" },
+    documentElement: {tagName: "HTML"},
     getElementById: (id) => head._children.find(c => c.getAttribute("id") === id) || null,
     createElement: (tag) => makeStubElement(tag),
     querySelector: (sel) => {
         if (sel === "[data-rask-root]") return body;
         return null;
     },
-    addEventListener: () => {}
+    addEventListener: () => {
+    }
 };
 globalThis.window = globalThis;
 // The bundle wires top-level `window.addEventListener("popstate", ...)` and a
 // few `document.addEventListener(...)` handlers at module init. Provide
 // no-op stubs so the import doesn't fault — the gate scenarios under test
 // never dispatch any of these events.
-globalThis.addEventListener = () => {};
-globalThis.performance = { getEntriesByName: () => [] };
-globalThis.location = { pathname: "/", search: "" };
-globalThis.history = { replaceState: () => {}, pushState: () => {} };
-globalThis.cancelAnimationFrame = () => {};
+globalThis.addEventListener = () => {
+};
+globalThis.performance = {getEntriesByName: () => []};
+globalThis.location = {pathname: "/", search: ""};
+globalThis.history = {
+    replaceState: () => {
+    }, pushState: () => {
+    }
+};
+globalThis.cancelAnimationFrame = () => {
+};
 globalThis.requestAnimationFrame = () => 0;
 // Node already exposes a (getter-only) `crypto` global on v19+; skip the
 // override if one is present so the assignment doesn't fault here.
 if (typeof globalThis.crypto === "undefined") {
-    globalThis.crypto = { randomUUID: () => "stub-uuid" };
+    globalThis.crypto = {randomUUID: () => "stub-uuid"};
 }
 
 // Capture the gate's 5-second safety timeout so the test can fire it on
@@ -143,6 +164,7 @@ const mod = await import(moduleUrl);
 
 // ----- Helpers -----
 const encoder = new TextEncoder();
+
 function applyRenderJson(reply) {
     mod.applyRender(encoder.encode(JSON.stringify(reply)));
 }
@@ -169,11 +191,13 @@ mod.setExports({
     Rask: {
         Wasm: {
             JSInterop: {
-                Dispatch: () => {},
+                Dispatch: () => {
+                },
                 // Production wires EndInvokeJSResult to a [JSExport]. The gate
                 // calls it after running a queued invoke; without the stub the
                 // bundle logs a noisy error to stderr.
-                EndInvokeJSResult: () => {}
+                EndInvokeJSResult: () => {
+                }
             }
         }
     }
@@ -181,7 +205,7 @@ mod.setExports({
 
 // Open the scoped-JS half of the gate. Without html the runtime skips
 // morph + the post-morph scanHeadAssets re-run — only applyScopedJs fires.
-applyRenderJson({ jsHash: "test-hash", jsText: "// scoped-js bundle stub" });
+applyRenderJson({jsHash: "test-hash", jsText: "// scoped-js bundle stub"});
 
 // Capture console.warn so we can assert the gate emits a diagnostic when
 // a Head asset terminates without successfully defining its global.

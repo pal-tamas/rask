@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
-using Rask.Wasm;
 using Rask.Wasm.Files;
 using static Rask.Core.Components.Generated;
 
@@ -44,7 +43,7 @@ public class DisposalTests
         // Stage far more than the cap without ever pulling — the orphaned-download leak case.
         for (var i = 0; i < 100; i++)
         {
-            sink.Stage($"f{i}.bin", new byte[] { (byte)i }, null);
+            sink.Stage($"f{i}.bin", new[] { (byte)i }, null);
         }
 
         Assert.True(sink.RetainedCount <= 16,
@@ -75,6 +74,8 @@ public class DisposalTests
     {
         private Action? _changed;
 
+        public int SubscriberCount => _changed?.GetInvocationList().Length ?? 0;
+
         public ClaimsPrincipal Current { get; } = new(new ClaimsIdentity());
 
         public event Action? Changed
@@ -82,7 +83,5 @@ public class DisposalTests
             add => _changed += value;
             remove => _changed -= value;
         }
-
-        public int SubscriberCount => _changed?.GetInvocationList().Length ?? 0;
     }
 }

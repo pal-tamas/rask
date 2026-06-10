@@ -1,5 +1,3 @@
-using Rask.Server;
-
 namespace Rask.Server.Tests.Security;
 
 /// <summary>
@@ -20,15 +18,15 @@ public class SanitizeReturnUrlTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("//evil.com")]                 // protocol-relative
-    [InlineData("/\\evil.com")]                // backslash → browser normalises to "//"
-    [InlineData("\\evil.com")]                 // leading backslash
+    [InlineData("//evil.com")] // protocol-relative
+    [InlineData("/\\evil.com")] // backslash → browser normalises to "//"
+    [InlineData("\\evil.com")] // leading backslash
     [InlineData("\\\\evil.com")]
-    [InlineData("https://evil.com")]           // absolute URL
+    [InlineData("https://evil.com")] // absolute URL
     [InlineData("http://evil.com")]
-    [InlineData("javascript:alert(1)")]        // not rooted
-    [InlineData("evil.com")]                    // relative, not rooted
-    [InlineData("/foo\r\nSet-Cookie: x")]      // control chars
+    [InlineData("javascript:alert(1)")] // not rooted
+    [InlineData("evil.com")] // relative, not rooted
+    [InlineData("/foo\r\nSet-Cookie: x")] // control chars
     [InlineData("/foo\tbar")]
     public void NonLocal_OrMalformed_CollapsesToRoot(string? input)
         => Assert.Equal("/", RaskEndpointExtensions.SanitizeReturnUrl(input));

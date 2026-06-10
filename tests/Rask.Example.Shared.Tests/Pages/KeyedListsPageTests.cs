@@ -1,5 +1,4 @@
 using System.Reflection;
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -12,7 +11,7 @@ public sealed class KeyedListsPageTests
     public void Route_KeyedLists_RendersSeededRows()
     {
         var routeState = new RouteState { Path = "/keyed-lists" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("Apple", html);
@@ -25,7 +24,7 @@ public sealed class KeyedListsPageTests
     [Fact]
     public void KeysOn_ByDefault_EmitsDataRaskKeyPerRow()
     {
-        var html = RenderRows(useKeys: true);
+        var html = RenderRows(true);
 
         Assert.Contains("data-rask-key=\"1\"", html);
         Assert.Contains("data-rask-key=\"5\"", html);
@@ -35,7 +34,7 @@ public sealed class KeyedListsPageTests
     [Fact]
     public void KeysOff_OmitsDataRaskKey_ButStillRendersRows()
     {
-        var html = RenderRows(useKeys: false);
+        var html = RenderRows(false);
 
         Assert.DoesNotContain("data-rask-key", html);
         Assert.Contains("Apple", html);

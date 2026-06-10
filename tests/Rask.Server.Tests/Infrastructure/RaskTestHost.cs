@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Server.Tests.Infrastructure;
 
@@ -32,7 +33,7 @@ internal sealed class RaskTestHost : IDisposable
         // Reset the static PathBase so a pathBase-configured host doesn't leak
         // into subsequent tests in the same AppDomain. Cheap; matches the
         // existing Diff-mode reset convention.
-        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
+        LiveOptions.PathBase = string.Empty;
     }
 
     public static RaskTestHost Create<TApp>(

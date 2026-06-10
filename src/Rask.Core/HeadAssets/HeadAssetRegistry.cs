@@ -20,6 +20,15 @@ namespace Rask.Core.HeadAssets;
 internal sealed class HeadAssetRegistry
 {
     internal const string Sentinel = "<!--__rask_head_assets__-->";
+
+    /// <summary>
+    ///     Reserved prefix for framework-emitted asset <c>data-rask-key</c> values.
+    ///     User-declared head tags whose key starts with this prefix are rejected (to
+    ///     prevent accidental morph identity collisions with framework tags).
+    /// </summary>
+    internal const string FrameworkAssetKeyPrefix = "rsk-";
+
+    private static readonly char[] _attrSpecials = { '&', '"', '<', '>' };
     private readonly List<string> _orderedHtml = new();
     private readonly List<string> _orderedKeys = new();
 
@@ -257,19 +266,10 @@ internal sealed class HeadAssetRegistry
         }
 
         return s.Replace("&", "&amp;")
-                .Replace("\"", "&quot;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
+            .Replace("\"", "&quot;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;");
     }
-
-    private static readonly char[] _attrSpecials = { '&', '"', '<', '>' };
-
-    /// <summary>
-    ///     Reserved prefix for framework-emitted asset <c>data-rask-key</c> values.
-    ///     User-declared head tags whose key starts with this prefix are rejected (to
-    ///     prevent accidental morph identity collisions with framework tags).
-    /// </summary>
-    internal const string FrameworkAssetKeyPrefix = "rsk-";
 
     /// <summary>
     ///     Emits one <c>&lt;link href="/_rask/a/{hash}.css"&gt;</c> per mounted component
@@ -355,7 +355,7 @@ internal sealed class HeadAssetRegistry
     // cause an attribute morph instead of an insert+remove, which is still safe.
     private static string ContentHash(string s)
     {
-        uint hash = 2166136261u;
+        var hash = 2166136261u;
         for (var i = 0; i < s.Length; i++)
         {
             hash ^= s[i];

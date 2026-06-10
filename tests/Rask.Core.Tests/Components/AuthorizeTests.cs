@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 
@@ -55,7 +56,7 @@ public class AuthorizeTests
     public void RoleMatch_RendersAuthorized()
     {
         var html = Render(User("root", "admin"),
-            () => Authorize(Roles: ["admin"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize(["admin"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }
@@ -64,7 +65,7 @@ public class AuthorizeTests
     public void RoleMiss_RendersNotAuthorized()
     {
         var html = Render(User("alice", "user"),
-            () => Authorize(Roles: ["admin"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize(["admin"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
 
         Assert.Contains("DENIED", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -74,7 +75,7 @@ public class AuthorizeTests
     public void AnyOfRoles_MatchesOnEither()
     {
         var html = Render(User("alice", "editor"),
-            () => Authorize(Roles: ["admin", "editor"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
+            () => Authorize(["admin", "editor"], Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }
@@ -83,7 +84,8 @@ public class AuthorizeTests
     public void ProviderLoading_RendersAuthorizingSlot()
     {
         var html = Render(new LoadingUser(),
-            () => Authorize(Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"], Authorizing: Span()["LOADING"]));
+            () => Authorize(Authorized: Span()["AUTHED"], NotAuthorized: Span()["DENIED"],
+                Authorizing: Span()["LOADING"]));
 
         Assert.Contains("LOADING", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -121,7 +123,8 @@ public class AuthorizeTests
         services.AddSingleton<IAuthorizationService>(new SyncRoleAuthz());
     }
 
-    private static string Render(IUserProvider provider, Func<Component> gate, Action<IServiceCollection>? configure = null)
+    private static string Render(IUserProvider provider, Func<Component> gate,
+        Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection().AddSingleton(provider);
         configure?.Invoke(services);
@@ -173,7 +176,7 @@ public class AuthorizeTests
         {
             foreach (var req in requirements)
             {
-                if (req is Microsoft.AspNetCore.Authorization.Infrastructure.RolesAuthorizationRequirement roles
+                if (req is RolesAuthorizationRequirement roles
                     && !roles.AllowedRoles.Any(user.IsInRole))
                 {
                     return Task.FromResult(AuthorizationResult.Failed());

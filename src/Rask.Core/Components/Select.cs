@@ -9,6 +9,10 @@ namespace Rask.Core.Components;
 
 public sealed class Select : Element
 {
+    // Set by BoundCore; non-bound selects (plain Generated.Select) leave _bound false and
+    // skip the serialize-time marking entirely.
+    private bool _bound;
+    private string _boundValue = "";
     protected override string TagName => "select";
 
     public string? Name { get; set; }
@@ -125,11 +129,6 @@ public sealed class Select : Element
         select._boundValue = BindingHelpers.FormatValue(acc.Getter());
         return select;
     }
-
-    // Set by BoundCore; non-bound selects (plain Generated.Select) leave _bound false and
-    // skip the serialize-time marking entirely.
-    private bool _bound;
-    private string _boundValue = "";
 
     protected override IDisposable? EnterChildrenScope()
     {

@@ -1,6 +1,4 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -11,7 +9,7 @@ public sealed class HomePageTests
     public void Render_AtRoot_EmitsHeroAndAllFeatureCards()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("The Rask framework", html);
@@ -34,7 +32,7 @@ public sealed class HomePageTests
     public void Render_EmitsHelloWorldSnippet()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("Hello, world!", html);

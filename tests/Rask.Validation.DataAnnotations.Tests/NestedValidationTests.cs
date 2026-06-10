@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Rask.Core;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory

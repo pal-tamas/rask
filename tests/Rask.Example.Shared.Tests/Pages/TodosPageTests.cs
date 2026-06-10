@@ -1,5 +1,5 @@
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -12,7 +12,7 @@ public sealed class TodosPageTests
     public void Route_TodosList_RendersSeededItems()
     {
         var routeState = new RouteState { Path = "/todos" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("Read the Rask README", html);
@@ -24,7 +24,7 @@ public sealed class TodosPageTests
     public void Route_TodosNew_OpensDialogInAddMode()
     {
         var routeState = new RouteState { Path = "/todos/new" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains(">Add todo<", html);
@@ -165,10 +165,10 @@ public sealed class TodosPageTests
     public void TodoForm_EmptyTitle_FailsRequired()
     {
         var instance = new TodoForm();
-        var ctx = new System.ComponentModel.DataAnnotations.ValidationContext(instance);
-        var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
-        System.ComponentModel.DataAnnotations.Validator.TryValidateObject(
-            instance, ctx, results, validateAllProperties: true);
+        var ctx = new ValidationContext(instance);
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(
+            instance, ctx, results, true);
         Assert.NotEmpty(results);
     }
 

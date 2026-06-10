@@ -16,17 +16,17 @@ public sealed class WasmJSRuntimeTests
     public async Task InvokeAsync_RoundTrip_CompletesWithJsResult()
     {
         var runtime = new WasmJSRuntime();
-        Rask.Wasm.JSInterop.Init(runtime);
+        JSInterop.Init(runtime);
 
         var task = runtime.InvokeAsync<string>("sessionStorage.getItem", "my-key").AsTask();
 
-        var call = Rask.Wasm.JSInterop.LastBeginInvokeJsCall;
+        var call = JSInterop.LastBeginInvokeJsCall;
         Assert.NotNull(call);
         Assert.Equal("sessionStorage.getItem", call!.Identifier);
         Assert.Equal("[\"my-key\"]", call.ArgsJson);
 
         var taskId = long.Parse(call.TaskId);
-        Rask.Wasm.JSInterop.EndInvokeJSResult(BuildResult(taskId, success: true, resultJson: "\"stored-value\""));
+        JSInterop.EndInvokeJSResult(BuildResult(taskId, true, "\"stored-value\""));
 
         var observed = await task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal("stored-value", observed);
@@ -36,12 +36,12 @@ public sealed class WasmJSRuntimeTests
     public async Task InvokeAsync_ErrorReply_PropagatesAsJSException()
     {
         var runtime = new WasmJSRuntime();
-        Rask.Wasm.JSInterop.Init(runtime);
+        JSInterop.Init(runtime);
 
         var task = runtime.InvokeAsync<string>("nonexistent.method").AsTask();
 
-        var taskId = long.Parse(Rask.Wasm.JSInterop.LastBeginInvokeJsCall!.TaskId);
-        Rask.Wasm.JSInterop.EndInvokeJSResult(BuildResult(taskId, success: false, error: "TypeError: boom"));
+        var taskId = long.Parse(JSInterop.LastBeginInvokeJsCall!.TaskId);
+        JSInterop.EndInvokeJSResult(BuildResult(taskId, false, error: "TypeError: boom"));
 
         var ex = await Assert.ThrowsAsync<JSException>(() => task.WaitAsync(TimeSpan.FromSeconds(2)));
         Assert.Contains("TypeError: boom", ex.Message);
@@ -51,18 +51,18 @@ public sealed class WasmJSRuntimeTests
     public async Task InvokeVoidAsync_VoidResult_Completes()
     {
         var runtime = new WasmJSRuntime();
-        Rask.Wasm.JSInterop.Init(runtime);
+        JSInterop.Init(runtime);
 
         var task = runtime.InvokeVoidAsync("sessionStorage.setItem", "k", "v").AsTask();
 
-        var call = Rask.Wasm.JSInterop.LastBeginInvokeJsCall;
+        var call = JSInterop.LastBeginInvokeJsCall;
         Assert.NotNull(call);
         // JSCallResultType.JSVoidResult == 3 — verifies the void overload routes through
         // the same dispatch surface without expecting a serializable result.
         Assert.Equal(3, call!.ResultType);
 
         var taskId = long.Parse(call.TaskId);
-        Rask.Wasm.JSInterop.EndInvokeJSResult(BuildResult(taskId, success: true, resultJson: "null"));
+        JSInterop.EndInvokeJSResult(BuildResult(taskId, true, "null"));
 
         await task.WaitAsync(TimeSpan.FromSeconds(2));
     }

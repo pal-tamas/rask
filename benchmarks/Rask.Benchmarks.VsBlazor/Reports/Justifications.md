@@ -17,6 +17,7 @@ constructing the tree per call — `Scope_StaticListLarge`,
 
 **Root cause:** Rask elements are heap-allocated `class Component` instances
 (`Rask.Core/Component.cs`). Each instance carries roughly:
+
 - 16 B object header
 - ~10 nullable reference slots (handlers, children dict, edit-context pool,
   parent map, …) — held as `_field?` and lazy-instantiated, but the slot
@@ -49,6 +50,7 @@ across every RenderHotPath scenario (0.29×–0.83×). The remaining gap is the 
 footprint plus the per-call `Child[]` array on multi-child elements.
 
 **Further mitigation paths (not pursued in this program):**
+
 - Replace the `params Child[]` indexer with a small inline struct-buffer (≤2 slots)
   for the common one/two-child element. Evaluated and **declined**: it adds ~16 B to
   *every* Element (including the leaf-heavy static-list/text scenarios where it doesn't
@@ -85,11 +87,11 @@ dominant constant factor. The move count and wire bytes are unchanged (still
 LIS-minimal); only the computation got correct and cheaper. Measured on
 `Scale_KeyedRandomPermutation` (Apple M4 Pro, short-run, directional):
 
-| N    | Before (buggy) | After (correct) |
-|------|----------------|-----------------|
+| N    | Before (buggy) | After (correct)         |
+|------|----------------|-------------------------|
 | 100  | 1.17× Blazor   | **0.79×** (Rask faster) |
-| 500  | 3.16×          | **1.06×** (parity) |
-| 1000 | 5.87×          | **~1.4×** |
+| 500  | 3.16×          | **1.06×** (parity)      |
+| 1000 | 5.87×          | **~1.4×**               |
 
 Realistic keyed-list sizes (≤500 rows) are now at or below Blazor parity. The residual
 ~1.4× on a 1000-element *random* permutation is the leftover O(N²) of the

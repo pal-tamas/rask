@@ -28,7 +28,8 @@ public sealed class LifecycleProbe : Component
     protected override RenderResult Render()
     {
         _renderCount++;
-        return [
+        return
+        [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 Span(Class: "badge text-bg-primary fs-6")[$"Render #{_renderCount}"],
                 Button(
@@ -37,7 +38,8 @@ public sealed class LifecycleProbe : Component
             ],
             H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
             Ol(Class: "list-group list-group-numbered list-group-flush")[
-                _log.Select((l, i) => Li(Key: i, Class: "list-group-item ps-2 small")[Code(Class: "small")[l]]).ToArray()]
+                _log.Select((l, i) => Li(Key: i, Class: "list-group-item ps-2 small")[Code(Class: "small")[l]])
+                    .ToArray()]
         ];
     }
 }

@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -65,7 +64,7 @@ public class AutoCallbackTests
     public void Wrap_NullDelegate_ReturnsNull()
     {
         Assert.Null(AutoCallback.Wrap((Action?)null));
-        Assert.Null(AutoCallback.Wrap((Func<Task>?)null));
+        Assert.Null(AutoCallback.Wrap(null));
         Assert.Null(AutoCallback.Wrap((Action<int>?)null));
         Assert.Null(AutoCallback.Wrap((Func<int, Task>?)null));
     }
@@ -77,7 +76,7 @@ public class AutoCallbackTests
         // closure, not a Component) have no component to re-render — Wrap returns them unchanged,
         // so there is no extra allocation and no spurious re-render (same limitation Blazor's
         // EventCallback and the old Callback had).
-        Action<int> staticMethod = NoOp;
+        var staticMethod = NoOp;
         Assert.Same(staticMethod, AutoCallback.Wrap(staticMethod));
 
         var local = 0;
@@ -141,11 +140,11 @@ public class AutoCallbackTests
         private readonly Mode _mode;
         public readonly Fireable Child = new();
         public int Count;
-        public string? Text;
-        public int RenderCount;
         public Action<int>? OnAdd;
         public Func<int, Task>? OnAddAsync;
         public Action<string>? OnText;
+        public int RenderCount;
+        public string? Text;
 
         public Receiver(Mode mode) => _mode = mode;
 
@@ -194,7 +193,7 @@ public class AutoCallbackTests
         // path would only dirty the child; the wrapped parent delegate re-renders the parent.
         public ValueTask FireWrappedInOwnLambda(int n)
         {
-            Action wrappedInChildLambda = () => Owner!.OnAdd!(n);
+            var wrappedInChildLambda = () => Owner!.OnAdd!(n);
             wrappedInChildLambda();
             return default;
         }

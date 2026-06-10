@@ -12,8 +12,8 @@ namespace Rask.Server.Tests.Infrastructure;
 // coalescing send loop). The rows are keyed via data-rask-key.
 public sealed class KeyedNavApp : Component
 {
-    private readonly RouteState _route;
     private readonly List<int> _items = [1, 2];
+    private readonly RouteState _route;
 
     public KeyedNavApp(RouteState route) => _route = route;
 
@@ -31,19 +31,19 @@ public sealed class KeyedNavApp : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()["keyed-nav"]],
-                new Body()[
-                    new H1()[$"path={_route.Path} count={_items.Count}"],
-                    Ul()[
-                        _items.Select(i => Li(
-                            Class: "row",
-                            Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
-                            $"item {i}"])
-                    ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()["keyed-nav"]],
+            new Body()[
+                new H1()[$"path={_route.Path} count={_items.Count}"],
+                Ul()[
+                    _items.Select(i => Li(
+                        Class: "row",
+                        Data: new Dictionary<string, string?> { ["rask-key"] = i.ToString() })[
+                        $"item {i}"])
                 ]
             ]
-        ];
+        ]
+    ];
 }

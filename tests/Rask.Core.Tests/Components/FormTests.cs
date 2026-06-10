@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Rask.Core.Forms;
-using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
@@ -18,7 +17,7 @@ public class FormTests
     {
         Assert.Equal(
             "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" enctype=\"multipart/form-data\" target=\"_blank\" accept-charset=\"utf-8\" autocomplete=\"off\" novalidate name=\"n\"></form>",
-            Form(Enctype: "multipart/form-data", "_blank", "utf-8", "off", true, "n", Id: "i", Class: "c", Style: "s",
+            Form("multipart/form-data", "_blank", "utf-8", "off", true, "n", Id: "i", Class: "c", Style: "s",
                 Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 

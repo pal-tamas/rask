@@ -1,7 +1,5 @@
 using System.Text;
-using Rask.Core;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Live;
 
@@ -16,7 +14,7 @@ public class SessionRenderCacheTests
         var sb = new StringBuilder();
         var ops = new List<EditOp>();
 
-        var hasDiff = cache.Render(C.Div(Class: "x")["hi"], sb, ops);
+        var hasDiff = cache.Render(Div(Class: "x")["hi"], sb, ops);
 
         Assert.False(hasDiff);
         Assert.Empty(ops);
@@ -30,11 +28,11 @@ public class SessionRenderCacheTests
         var ops = new List<EditOp>();
 
         var sb1 = new StringBuilder();
-        cache.Render(C.Div(Class: "counter")[C.Span()["1"]], sb1, ops);
+        cache.Render(Div(Class: "counter")[Span()["1"]], sb1, ops);
         Assert.Empty(ops);
 
         var sb2 = new StringBuilder();
-        var hasDiff = cache.Render(C.Div(Class: "counter")[C.Span()["2"]], sb2, ops);
+        var hasDiff = cache.Render(Div(Class: "counter")[Span()["2"]], sb2, ops);
 
         Assert.True(hasDiff);
         var op = Assert.Single(ops);
@@ -49,8 +47,8 @@ public class SessionRenderCacheTests
         var ops = new List<EditOp>();
         var sb = new StringBuilder();
 
-        cache.Render(C.Div()["hi"], sb, ops);
-        cache.Render(C.Div()["hi"], sb, ops);
+        cache.Render(Div()["hi"], sb, ops);
+        cache.Render(Div()["hi"], sb, ops);
 
         Assert.Empty(ops);
     }
@@ -65,10 +63,10 @@ public class SessionRenderCacheTests
         var ops = new List<EditOp>();
         var sb = new StringBuilder();
 
-        cache.Render(C.Div()[C.Span()["1"]], sb, ops);  // 1
-        cache.Render(C.Div()[C.Span()["2"]], sb, ops);  // diff vs 1
+        cache.Render(Div()[Span()["1"]], sb, ops); // 1
+        cache.Render(Div()[Span()["2"]], sb, ops); // diff vs 1
         ops.Clear();
-        cache.Render(C.Div()[C.Span()["3"]], sb, ops);  // diff vs 2
+        cache.Render(Div()[Span()["3"]], sb, ops); // diff vs 2
 
         var op = Assert.Single(ops);
         Assert.Equal("3", op.Value);
@@ -86,18 +84,18 @@ public class SessionRenderCacheTests
         var ops = new List<EditOp>();
 
         // Baseline "a" (first render rotates to establish it).
-        Assert.False(RenderInto(cache, C.Div()["a"], ops, rotate: true));
+        Assert.False(RenderInto(cache, Div()["a"], ops, true));
 
         // Two intermediate builds, neither rotating — both diff against "a".
-        Assert.True(RenderInto(cache, C.Div()["b"], ops, rotate: false));
+        Assert.True(RenderInto(cache, Div()["b"], ops, false));
         Assert.NotEmpty(ops);
-        Assert.True(RenderInto(cache, C.Div()["c"], ops, rotate: false));
+        Assert.True(RenderInto(cache, Div()["c"], ops, false));
         Assert.NotEmpty(ops);
 
         // The baseline must still be "a": rendering "a" now (rotate:true) yields zero ops. If a
         // rotate:false call had wrongly promoted _current, the baseline would be "b"/"c" and this
         // would show a spurious diff.
-        Assert.True(RenderInto(cache, C.Div()["a"], ops, rotate: true));
+        Assert.True(RenderInto(cache, Div()["a"], ops, true));
         Assert.Empty(ops);
     }
 
@@ -107,12 +105,12 @@ public class SessionRenderCacheTests
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
-        RenderInto(cache, C.Div()["a"], ops, rotate: true);  // baseline a
-        RenderInto(cache, C.Div()["b"], ops, rotate: false); // intermediate, no rotate
-        cache.Snapshot();                                    // commit "b" exactly once
+        RenderInto(cache, Div()["a"], ops, true); // baseline a
+        RenderInto(cache, Div()["b"], ops, false); // intermediate, no rotate
+        cache.Snapshot(); // commit "b" exactly once
 
         // Baseline is now "b": rendering "b" yields no diff; rendering "a" would.
-        Assert.True(RenderInto(cache, C.Div()["b"], ops, rotate: true));
+        Assert.True(RenderInto(cache, Div()["b"], ops, true));
         Assert.Empty(ops);
     }
 
@@ -125,8 +123,8 @@ public class SessionRenderCacheTests
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
 
-        Assert.False(RenderInto(cache, C.Div()["x"], ops, rotate: true)); // false, but rotates
-        Assert.True(RenderInto(cache, C.Div()["x"], ops, rotate: true));  // has baseline now
+        Assert.False(RenderInto(cache, Div()["x"], ops, true)); // false, but rotates
+        Assert.True(RenderInto(cache, Div()["x"], ops, true)); // has baseline now
         Assert.Empty(ops);
     }
 

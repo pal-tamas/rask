@@ -47,7 +47,7 @@ public class SessionUploadStoreTests
 
         // Callback writes nothing; the entry size falls back to the declared size.
         var entry = await store.StageAsync(
-            "session-1", "empty.bin", "text/plain", size: 42, DateTimeOffset.UnixEpoch,
+            "session-1", "empty.bin", "text/plain", 42, DateTimeOffset.UnixEpoch,
             _ => Task.CompletedTask);
 
         Assert.Equal(42, entry.Size);

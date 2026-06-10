@@ -16,17 +16,17 @@ public class SvgClashNamingTests
     public void SvgA_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<a href=\"/docs\" target=\"_blank\">link</a>",
-            SvgA(Href: "/docs", Target: "_blank")["link"].ToHtml());
+            SvgA("/docs", "_blank")["link"].ToHtml());
 
     [Fact]
     public void SvgScript_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<script href=\"/a.js\" type=\"text/javascript\"></script>",
-            SvgScript(Href: "/a.js", Type: "text/javascript").ToHtml());
+            SvgScript("/a.js", "text/javascript").ToHtml());
 
     [Fact]
     public void SvgStyle_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<style type=\"text/css\" media=\"screen\">.x{fill:red}</style>",
-            SvgStyle(Type: "text/css", Media: "screen")[Raw(".x{fill:red}")].ToHtml());
+            SvgStyle("text/css", "screen")[Raw(".x{fill:red}")].ToHtml());
 }

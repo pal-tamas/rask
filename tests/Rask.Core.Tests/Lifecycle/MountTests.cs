@@ -44,7 +44,7 @@ public class MountTests
 
         for (var i = 0; i < 3; i++)
         {
-            using (RenderHarness.Render(c, sp, propsChanged: false)) { }
+            using (RenderHarness.Render(c, sp, false)) { }
         }
 
         Assert.Equal(1, c.PropsChangedCount);

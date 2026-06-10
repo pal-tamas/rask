@@ -6,29 +6,39 @@ namespace Rask.Core.Live;
 /// </summary>
 public enum LiveDiffMode
 {
-    /// <summary>Always ship the full rendered HTML — the behaviour Rask had
-    /// before the diff codec landed. Default; safe; matches existing tests and the
-    /// existing client morph path.</summary>
+    /// <summary>
+    ///     Always ship the full rendered HTML — the behaviour Rask had
+    ///     before the diff codec landed. Default; safe; matches existing tests and the
+    ///     existing client morph path.
+    /// </summary>
     DisabledFull = 0,
 
-    /// <summary>Ship a <see cref="LivePayload.BuildPayloadUtf8Diff" /> payload
-    /// whenever a diff is computable and client-applicable. Falls back to full HTML
-    /// only when the diff would be <em>larger</em> than re-sending the body, on the
-    /// first render (no baseline), on structural ops the client interpreter can't
-    /// apply without morph-quality book-keeping (positional
-    /// <see cref="EditOpKind.InsertSubtree" /> / <see cref="EditOpKind.RemoveSubtree" />
-    /// / <see cref="EditOpKind.MoveSubtree" /> — keyed list edits are diffed), and on
-    /// out-of-band side effects (auth, download, jsInvokes, navigation). This is the
-    /// default: any genuine in-place state change ships as a diff regardless of page
-    /// size.</summary>
+    /// <summary>
+    ///     Ship a <see cref="LivePayload.BuildPayloadUtf8Diff" /> payload
+    ///     whenever a diff is computable and client-applicable. Falls back to full HTML
+    ///     only when the diff would be <em>larger</em> than re-sending the body, on the
+    ///     first render (no baseline), on structural ops the client interpreter can't
+    ///     apply without morph-quality book-keeping (positional
+    ///     <see cref="EditOpKind.InsertSubtree" /> / <see cref="EditOpKind.RemoveSubtree" />
+    ///     / <see cref="EditOpKind.MoveSubtree" /> — keyed list edits are diffed), and on
+    ///     out-of-band side effects (auth, download, jsInvokes, navigation). This is the
+    ///     default: any genuine in-place state change ships as a diff regardless of page
+    ///     size.
+    /// </summary>
     Auto = 1,
 
-    /// <summary>Always ship a diff payload when one is computable, <em>even when it
-    /// would be larger than the full HTML</em>. Mostly useful for tests and
-    /// benchmarks that want to lock in the diff path regardless of byte size.
-    /// Otherwise identical to <see cref="Auto" /> — still falls back to full HTML on
-    /// the first render, on structural ops, and on out-of-band side effects (auth,
-    /// download) that the diff wire format doesn't yet carry.</summary>
+    /// <summary>
+    ///     Always ship a diff payload when one is computable,
+    ///     <em>
+    ///         even when it
+    ///         would be larger than the full HTML
+    ///     </em>
+    ///     . Mostly useful for tests and
+    ///     benchmarks that want to lock in the diff path regardless of byte size.
+    ///     Otherwise identical to <see cref="Auto" /> — still falls back to full HTML on
+    ///     the first render, on structural ops, and on out-of-band side effects (auth,
+    ///     download) that the diff wire format doesn't yet carry.
+    /// </summary>
     Forced = 2
 }
 
@@ -44,6 +54,7 @@ public enum LiveDiffMode
 /// </summary>
 public sealed class RaskLiveOptions
 {
+    private string _pathBase = string.Empty;
     public LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
 
     /// <summary>
@@ -74,7 +85,6 @@ public sealed class RaskLiveOptions
         get => _pathBase;
         set => _pathBase = RaskPath.Normalize(value);
     }
-    private string _pathBase = string.Empty;
 }
 
 /// <summary>
@@ -87,6 +97,7 @@ public sealed class RaskLiveOptions
 /// </summary>
 public static class LiveOptions
 {
+    private static string _pathBase = string.Empty;
     public static LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
 
     /// <summary>
@@ -98,7 +109,6 @@ public static class LiveOptions
         get => _pathBase;
         set => _pathBase = RaskPath.Normalize(value);
     }
-    private static string _pathBase = string.Empty;
 }
 
 /// <summary>
@@ -114,11 +124,27 @@ public static class RaskPath
     /// </summary>
     public static string Normalize(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
         var s = value.Trim();
-        if (s == "/") return string.Empty;
-        if (s[0] != '/') s = "/" + s;
-        while (s.Length > 1 && s[^1] == '/') s = s[..^1];
+        if (s == "/")
+        {
+            return string.Empty;
+        }
+
+        if (s[0] != '/')
+        {
+            s = "/" + s;
+        }
+
+        while (s.Length > 1 && s[^1] == '/')
+        {
+            s = s[..^1];
+        }
+
         return s;
     }
 }

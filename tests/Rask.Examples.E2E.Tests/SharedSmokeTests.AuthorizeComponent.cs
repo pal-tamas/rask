@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -12,26 +13,30 @@ public abstract partial class SharedSmokeTests
     {
         await NavigateToAsync("/user");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("User & auth gating",
-            new() { Timeout = 30_000 });
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var demo = Page.Locator("#authorize-demo");
 
         // Anonymous → the NotAuthorized fallback slot.
-        await Expect(demo).ToContainTextAsync("Sign in to see member content", new() { Timeout = 10_000 });
+        await Expect(demo).ToContainTextAsync("Sign in to see member content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(demo).Not.ToContainTextAsync("Admin-only content");
 
         // Plain user → the authenticated ("standard access") slot, but not the admin slot.
         await demo.Locator("button:has-text('Sign in as user')").ClickAsync();
-        await Expect(demo).ToContainTextAsync("standard access", new() { Timeout = 10_000 });
+        await Expect(demo).ToContainTextAsync("standard access",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(demo).Not.ToContainTextAsync("Admin-only content");
 
         // Sign out → back to the fallback slot.
         await demo.Locator("button:has-text('Sign out')").ClickAsync();
-        await Expect(demo).ToContainTextAsync("Sign in to see member content", new() { Timeout = 10_000 });
+        await Expect(demo).ToContainTextAsync("Sign in to see member content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Admin → the role-gated Authorized slot.
         await demo.Locator("button:has-text('Sign in as admin')").ClickAsync();
-        await Expect(demo).ToContainTextAsync("Admin-only content", new() { Timeout = 10_000 });
+        await Expect(demo).ToContainTextAsync("Admin-only content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(demo).Not.ToContainTextAsync("Sign in to see member content");
     });
 }

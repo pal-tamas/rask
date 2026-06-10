@@ -1,8 +1,10 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using Rask.Benchmarks.VsBlazor.Benchmarks;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
 using Rask.Core;
+using Generated = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Reports;
 
@@ -60,7 +62,12 @@ internal static class VsBlazorPayloadBytesReport
         const int n = 5000;
         var before = new int[n];
         var after = new int[n];
-        for (var i = 0; i < n; i++) { before[i] = i; after[i] = i; }
+        for (var i = 0; i < n; i++)
+        {
+            before[i] = i;
+            after[i] = i;
+        }
+
         (after[0], after[n - 1]) = (after[n - 1], after[0]);
 
         using var rask = new RaskHarness();
@@ -86,7 +93,11 @@ internal static class VsBlazorPayloadBytesReport
     {
         const int n = 1000;
         var identity = new int[n];
-        for (var i = 0; i < n; i++) identity[i] = i;
+        for (var i = 0; i < n; i++)
+        {
+            identity[i] = i;
+        }
+
         var permuted = MicroBenchHarness.BuildLisInput(n, MicroBenchHarness.LisShape.RandomPermutation);
 
         using var rask = new RaskHarness();
@@ -112,11 +123,22 @@ internal static class VsBlazorPayloadBytesReport
     {
         const int n = 2000;
         var shortArr = new int[n];
-        for (var i = 0; i < n; i++) shortArr[i] = i;
+        for (var i = 0; i < n; i++)
+        {
+            shortArr[i] = i;
+        }
+
         var longArr = new int[n + 1];
-        for (var i = 0; i < n / 2; i++) longArr[i] = shortArr[i];
+        for (var i = 0; i < n / 2; i++)
+        {
+            longArr[i] = shortArr[i];
+        }
+
         longArr[n / 2] = n + 1000;
-        for (var i = n / 2; i < n; i++) longArr[i + 1] = shortArr[i];
+        for (var i = n / 2; i < n; i++)
+        {
+            longArr[i + 1] = shortArr[i];
+        }
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(shortArr));
@@ -143,15 +165,16 @@ internal static class VsBlazorPayloadBytesReport
 
         Component Build(int counter)
         {
-            Component leaf = global::Rask.Core.Components.Generated.Span(Class: "counter")[counter.ToString()];
+            var leaf = Generated.Span(Class: "counter")[counter.ToString()];
             for (var i = 0; i < depth; i++)
             {
-                leaf = global::Rask.Core.Components.Generated.Div(Class: $"d{i}")[leaf];
+                leaf = Generated.Div(Class: $"d{i}")[leaf];
             }
-            return global::Rask.Core.Components.Generated.Fragment()[
-                global::Rask.Core.Components.Generated.Doctype(),
-                global::Rask.Core.Components.Generated.Html()[
-                    global::Rask.Core.Components.Generated.Body()[leaf]]];
+
+            return Generated.Fragment()[
+                Generated.Doctype(),
+                Generated.Html()[
+                    Generated.Body()[leaf]]];
         }
 
         using var rask = new RaskHarness();
@@ -160,17 +183,18 @@ internal static class VsBlazorPayloadBytesReport
         var raskFull = rask.RenderAndBuildFullPayloadBytes(Build(1));
 
         using var blazor = new BlazorRenderBatchCapture();
-        var blazorBytes = blazor.MeasureIncrementalUpdate<Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree>(
-            ParameterView.FromDictionary(new Dictionary<string, object?>
-            {
-                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 0,
-                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
-            }),
-            ParameterView.FromDictionary(new Dictionary<string, object?>
-            {
-                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 1,
-                [nameof(Benchmarks.Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
-            }));
+        var blazorBytes =
+            blazor.MeasureIncrementalUpdate<Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree>(
+                ParameterView.FromDictionary(new Dictionary<string, object?>
+                {
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 0,
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
+                }),
+                ParameterView.FromDictionary(new Dictionary<string, object?>
+                {
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = 1,
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = depth
+                }));
 
         EmitRow("Scale_DeepTreeMutationByDepth_200", raskFull, raskDiff, blazorBytes);
     }
@@ -678,7 +702,8 @@ internal static class VsBlazorPayloadBytesReport
             [nameof(AttributeHeavyElements.BlazorAttributeHeavyMutateOne.AttrCount)] = attrCount,
             [nameof(AttributeHeavyElements.BlazorAttributeHeavyMutateOne.MutationSalt)] = 1
         });
-        var blazorBytes = blazor.MeasureIncrementalUpdate<AttributeHeavyElements.BlazorAttributeHeavyMutateOne>(before, after);
+        var blazorBytes =
+            blazor.MeasureIncrementalUpdate<AttributeHeavyElements.BlazorAttributeHeavyMutateOne>(before, after);
 
         EmitRow("AttributeUpdate", raskFull, raskDiff, blazorBytes);
     }
@@ -699,7 +724,8 @@ internal static class VsBlazorPayloadBytesReport
         {
             [nameof(LargePageWithCounter.BlazorLargePageWithCounter.Counter)] = 1
         });
-        var blazorBytes = blazor.MeasureIncrementalUpdate<LargePageWithCounter.BlazorLargePageWithCounter>(before, after);
+        var blazorBytes =
+            blazor.MeasureIncrementalUpdate<LargePageWithCounter.BlazorLargePageWithCounter>(before, after);
 
         EmitRow("CounterOnLargePage", raskFull, raskDiff, blazorBytes);
     }
@@ -720,7 +746,8 @@ internal static class VsBlazorPayloadBytesReport
         {
             [nameof(LargePageWithCounter.BlazorLargePageWithDeepTextCell.Counter)] = 1
         });
-        var blazorBytes = blazor.MeasureIncrementalUpdate<LargePageWithCounter.BlazorLargePageWithDeepTextCell>(before, after);
+        var blazorBytes =
+            blazor.MeasureIncrementalUpdate<LargePageWithCounter.BlazorLargePageWithDeepTextCell>(before, after);
 
         EmitRow("TextNodeUpdate", raskFull, raskDiff, blazorBytes);
     }

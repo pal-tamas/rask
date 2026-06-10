@@ -201,7 +201,8 @@ public sealed class LiveTicker : Component
             Div(Class: "card-body")[
                 Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
                     H3(Class: "h4 mb-0 fw-semibold", Id: "ticker-symbol")[Symbol],
-                    Span(Class: "text-secondary small")[$"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
+                    Span(Class: "text-secondary small")[
+                        $"poll {IntervalMs} ms · {_history.Count}/{HistoryCapacity} pts"]
                 ],
                 Div(Class: "d-flex align-items-baseline gap-3 mb-3")[
                     _history.Count == 0
@@ -226,7 +227,7 @@ public sealed class LiveTicker : Component
                     _history.Count == 0
                         ? P(Class: "text-secondary small mb-0")["Waiting for first tick…"]
                         : Sparkline(
-                            Values: _history.Select(p => (double)p.PriceUsd).ToList(),
+                            _history.Select(p => (double)p.PriceUsd).ToList(),
                             Class: "ticker-chart-svg")
                 ]
             ]
@@ -259,7 +260,7 @@ public sealed class LiveTicker : Component
             }
 
             _error = null;
-            StateHasChanged();                      // the one render per tick
+            StateHasChanged(); // the one render per tick
         }
         catch (OperationCanceledException)
         {
@@ -268,7 +269,7 @@ public sealed class LiveTicker : Component
         catch (Exception ex)
         {
             _error = ex.Message;
-            StateHasChanged();                      // surface the #ticker-error alert
+            StateHasChanged(); // surface the #ticker-error alert
         }
     }
 

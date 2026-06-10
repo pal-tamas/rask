@@ -16,29 +16,41 @@ namespace Rask.Core.Live;
 ///         Two ways to use this:
 ///         <list type="bullet">
 ///             <item>
-///                 <description><see cref="Render" />: the cache drives the render
-///                 directly. Returns the diff (or <c>null</c> on first render).</description>
+///                 <description>
+///                     <see cref="Render" />: the cache drives the render
+///                     directly. Returns the diff (or <c>null</c> on first render).
+///                 </description>
 ///             </item>
 ///             <item>
-///                 <description><see cref="PrepareCurrentBuffer" /> +
-///                 <see cref="TryComputeDiff" />: caller drives the render however it
-///                 likes (typically through <c>RenderAsLiveRoot</c>) while pushing
-///                 the returned buffer onto <see cref="FrameSinkScope" /> first. Use
-///                 this from <c>LiveSession</c>, which has its own render flow.</description>
+///                 <description>
+///                     <see cref="PrepareCurrentBuffer" /> +
+///                     <see cref="TryComputeDiff" />: caller drives the render however it
+///                     likes (typically through <c>RenderAsLiveRoot</c>) while pushing
+///                     the returned buffer onto <see cref="FrameSinkScope" /> first. Use
+///                     this from <c>LiveSession</c>, which has its own render flow.
+///                 </description>
 ///             </item>
 ///         </list>
 ///     </para>
 /// </summary>
 public sealed class SessionRenderCache : IDisposable
 {
-    private FrameWriter? _previous;
     private FrameWriter? _current;
     private bool _hasPrevious;
+    private FrameWriter? _previous;
 
     // Reusable keyed-diff scratch, owned per session so the keyed reconciliation path
     // (FrameDiffer.DiffKeyedSiblings) is allocation-free in steady state. Lazily created
     // on first diff; nulled on Dispose alongside the frame buffers.
     private FrameDiffer.DiffScratch? _scratch;
+
+    public void Dispose()
+    {
+        _previous = null;
+        _current = null;
+        _hasPrevious = false;
+        _scratch = null;
+    }
 
     /// <summary>
     ///     Acquire the buffer the caller should push onto
@@ -86,7 +98,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     ship as diff; positional structural ops still route to the full-HTML morph path.
     /// </summary>
     public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml = null)
-        => TryComputeDiff(output, out usedKeyedPath, newHtml, rotate: true);
+        => TryComputeDiff(output, out usedKeyedPath, newHtml, true);
 
     public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml, bool rotate)
     {
@@ -102,7 +114,8 @@ public sealed class SessionRenderCache : IDisposable
             return false;
         }
 
-        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output, _scratch ??= new FrameDiffer.DiffScratch(), out usedKeyedPath, newHtml);
+        FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output,
+            _scratch ??= new FrameDiffer.DiffScratch(), out usedKeyedPath, newHtml);
         if (rotate)
         {
             RotateBuffers();
@@ -120,10 +133,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     corrupts the next diff: edits computed against an out-of-date snapshot
     ///     applied to a DOM the client has already moved past.
     /// </summary>
-    public void Snapshot()
-    {
-        RotateBuffers();
-    }
+    public void Snapshot() => RotateBuffers();
 
     /// <summary>
     ///     One-shot render + diff. Mostly useful for tests and the
@@ -149,13 +159,5 @@ public sealed class SessionRenderCache : IDisposable
     {
         (_previous, _current) = (_current, _previous);
         _hasPrevious = true;
-    }
-
-    public void Dispose()
-    {
-        _previous = null;
-        _current = null;
-        _hasPrevious = false;
-        _scratch = null;
     }
 }

@@ -6,7 +6,7 @@ using C = Rask.Core.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
-///     Companion scenarios to <see cref="KeyedList"/> reorder: one row appended at
+///     Companion scenarios to <see cref="KeyedList" /> reorder: one row appended at
 ///     the end of a 100-row keyed list (or, in the delete variant, one row removed
 ///     from the middle). Stresses the <c>InsertSubtree</c> / <c>RemoveSubtree</c>
 ///     diff op kinds — the cases the live-diff gate explicitly checks for before
@@ -18,7 +18,7 @@ internal static class AppendDeleteRowChurn
 
     /// <summary>
     ///     Build a Rask tree from a row id sequence. Identical row shape to
-    ///     <see cref="KeyedList"/> so the differ can match them across renders by
+    ///     <see cref="KeyedList" /> so the differ can match them across renders by
     ///     the <c>rask-key</c> data attribute.
     /// </summary>
     public static Component BuildRask(int[] order)
@@ -46,13 +46,14 @@ internal static class AppendDeleteRowChurn
     public sealed class StatefulAppendDeleteList : Component
 #pragma warning restore RASK014
     {
+        private readonly Dictionary<int, Child> _rowsByKey = new();
+        private int[]? _currentOrder;
+
+        private List<Child>? _scratch;
+
         // Capacity is kept for the seeded-initial-order branch; sparse keys (e.g. N+1000)
         // work transparently because rows are lazy-built into the dictionary on demand.
         public int Capacity { get; init; } = InitialRowCount + 1;
-
-        private readonly Dictionary<int, Child> _rowsByKey = new();
-        private int[]? _currentOrder;
-        private List<Child>? _scratch;
 
         public int[] CurrentOrder
         {
@@ -80,12 +81,17 @@ internal static class AppendDeleteRowChurn
             {
                 _scratch.Add(GetOrCreateRow(order[i]));
             }
+
             return C.Div(Class: "list")[_scratch];
         }
 
         private Child GetOrCreateRow(int key)
         {
-            if (_rowsByKey.TryGetValue(key, out var row)) return row;
+            if (_rowsByKey.TryGetValue(key, out var row))
+            {
+                return row;
+            }
+
             row = C.Div(
                 Class: "row",
                 Data: new Dictionary<string, string?> { ["rask-key"] = key.ToString() })[
@@ -97,9 +103,16 @@ internal static class AppendDeleteRowChurn
 
         private void EnsureSeeded()
         {
-            if (_currentOrder is not null) return;
+            if (_currentOrder is not null)
+            {
+                return;
+            }
+
             _currentOrder = new int[InitialRowCount];
-            for (var i = 0; i < InitialRowCount; i++) _currentOrder[i] = i;
+            for (var i = 0; i < InitialRowCount; i++)
+            {
+                _currentOrder[i] = i;
+            }
         }
     }
 

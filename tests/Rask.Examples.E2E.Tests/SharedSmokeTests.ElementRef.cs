@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -12,13 +13,13 @@ public abstract partial class SharedSmokeTests
         // broken the input would never gain focus.
         await NavigateToAsync("/element-ref");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Element refs",
-            new() { Timeout = 30_000 });
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var input = Page.Locator("main .sample-result-body input");
-        await Expect(input).Not.ToBeFocusedAsync(new() { Timeout = 10_000 });
+        await Expect(input).Not.ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
 
         await Page.Locator("main .sample-result-body button:has-text('Focus the input')").ClickAsync();
-        await Expect(input).ToBeFocusedAsync(new() { Timeout = 10_000 });
+        await Expect(input).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
     });
 
     [Fact]
@@ -28,10 +29,10 @@ public abstract partial class SharedSmokeTests
         // the resolved element and returns its width — proving refs reach user JS, not just builtins.
         await NavigateToAsync("/element-ref");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Element refs",
-            new() { Timeout = 30_000 });
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         await Page.Locator("main .sample-result-body button:has-text('Measure the box')").ClickAsync();
         await Expect(Page.Locator("main .sample-result-body p"))
-            .ToContainTextAsync("Box width:", new() { Timeout = 10_000 });
+            .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 }

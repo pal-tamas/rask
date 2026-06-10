@@ -50,7 +50,7 @@ public sealed class Sparkline : Component
         if (n == 0)
         {
             return Frame()[
-                SvgText(X: Num(W / 2), Y: Num(H / 2), TextAnchor: "middle",
+                SvgText(Num(W / 2), Num(H / 2), TextAnchor: "middle",
                     DominantBaseline: "middle", FontFamily: "sans-serif", FontSize: "12",
                     Fill: "#adb5bd")["No data"]
             ];
@@ -71,13 +71,14 @@ public sealed class Sparkline : Component
             }
         }
 
-        var plotW = W - 2 * PadX;
+        var plotW = W - (2 * PadX);
         var plotH = H - PadTop - PadBottom;
         var baseY = H - PadBottom;
 
-        double X(int i) => n == 1 ? PadX + plotW / 2 : PadX + plotW * i / (n - 1);
+        double X(int i) => n == 1 ? PadX + (plotW / 2) : PadX + (plotW * i / (n - 1));
+
         // Higher value ⇒ smaller y (SVG y grows downward). Flat series ⇒ centre the line.
-        double Y(double v) => max <= min ? PadTop + plotH / 2 : PadTop + plotH * (1 - (v - min) / (max - min));
+        double Y(double v) => max <= min ? PadTop + (plotH / 2) : PadTop + (plotH * (1 - ((v - min) / (max - min))));
 
         var sb = new StringBuilder();
         for (var i = 0; i < n; i++)
@@ -98,33 +99,33 @@ public sealed class Sparkline : Component
         var children = new List<Child>
         {
             // Light horizontal gridlines (top / middle / baseline).
-            Line(X1: Num(PadX), Y1: Num(PadTop), X2: Num(W - PadX), Y2: Num(PadTop),
+            Line(Num(PadX), Num(PadTop), Num(W - PadX), Num(PadTop),
                 Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
-            Line(X1: Num(PadX), Y1: Num(PadTop + plotH / 2), X2: Num(W - PadX), Y2: Num(PadTop + plotH / 2),
+            Line(Num(PadX), Num(PadTop + (plotH / 2)), Num(W - PadX), Num(PadTop + (plotH / 2)),
                 Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
-            Line(X1: Num(PadX), Y1: Num(baseY), X2: Num(W - PadX), Y2: Num(baseY),
+            Line(Num(PadX), Num(baseY), Num(W - PadX), Num(baseY),
                 Stroke: "rgba(0,0,0,0.05)", StrokeWidth: "1"),
 
             // Filled area under the line: the trend points closed down to the baseline.
-            Polygon(Points: $"{Num(X(0))},{Num(baseY)} {points} {Num(lastX)},{Num(baseY)}",
+            Polygon($"{Num(X(0))},{Num(baseY)} {points} {Num(lastX)},{Num(baseY)}",
                 Fill: AreaColor, Stroke: "none")
         };
 
         // A single point has no line to draw; skip the polyline and just mark the point.
         if (n > 1)
         {
-            children.Add(Polyline(Points: points, Fill: "none", Stroke: StrokeColor,
+            children.Add(Polyline(points, Fill: "none", Stroke: StrokeColor,
                 StrokeWidth: "2", StrokeLinejoin: "round", StrokeLinecap: "round"));
         }
 
         // Min / max value labels on the y-axis.
-        children.Add(SvgText(X: Num(PadX + 2), Y: Num(PadTop + 10), FontFamily: "sans-serif",
+        children.Add(SvgText(Num(PadX + 2), Num(PadTop + 10), FontFamily: "sans-serif",
             FontSize: "11", Fill: "#6c757d")[Money(max)]);
-        children.Add(SvgText(X: Num(PadX + 2), Y: Num(baseY - 3), FontFamily: "sans-serif",
+        children.Add(SvgText(Num(PadX + 2), Num(baseY - 3), FontFamily: "sans-serif",
             FontSize: "11", Fill: "#6c757d")[Money(min)]);
 
         // Last-point marker carrying a native SVG <title> tooltip (no JS).
-        children.Add(Circle(Cx: Num(lastX), Cy: Num(lastY), R: "3.5", Fill: StrokeColor)[
+        children.Add(Circle(Num(lastX), Num(lastY), "3.5", Fill: StrokeColor)[
             SvgTitle()[Money(values[n - 1])]
         ]);
 
@@ -132,8 +133,8 @@ public sealed class Sparkline : Component
     }
 
     private Component Frame() =>
-        Svg(Width: "100%", Height: "100%", ViewBox: $"0 0 {Num(W)} {Num(H)}",
-            PreserveAspectRatio: "none", Class: Class);
+        Svg("100%", "100%", $"0 0 {Num(W)} {Num(H)}",
+            "none", Class: Class);
 
     private static string Num(double v) => v.ToString("0.##", Inv);
 

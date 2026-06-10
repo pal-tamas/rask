@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -12,8 +11,8 @@ public sealed class CodeSampleTests
         var js = new FakeJsRuntime();
         var host = new LiveHost(
             () => CodeSample(
-                Source: "var x = 1;",
-                Title: "Sample title",
+                "var x = 1;",
+                "Sample title",
                 Notes: "A note",
                 Result: Div()["the result"]),
             TestServices.Default(js: js));
@@ -35,7 +34,7 @@ public sealed class CodeSampleTests
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => CodeSample(Source: "code"),
+            () => CodeSample("code"),
             TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
@@ -52,7 +51,7 @@ public sealed class CodeSampleTests
         // rendered HTML); there is no longer any highlight.js <link>/<script> in <head>.
         // HomePage's CodeSample source contains C# string literals, so its tokenized
         // output carries a <span class="string">.
-        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(TestServices.Default());
+        var html = new Shared.App().RenderAsLiveRoot(TestServices.Default());
         Assert.Contains("class=\"string\"", html);
         Assert.DoesNotContain("/lib/highlightjs/", html);
     }

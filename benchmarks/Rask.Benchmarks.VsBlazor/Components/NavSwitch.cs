@@ -40,7 +40,7 @@ internal static class NavSwitch
 
         return C.Div(Class: "nav-shell")[
             C.Nav()[C.Ul()[tabs]],
-            C.Main(Id: $"tab-{activeTab}")[contentRows]
+            C.Main($"tab-{activeTab}")[contentRows]
         ];
     }
 
@@ -48,14 +48,13 @@ internal static class NavSwitch
     public sealed class StatefulNavSwitch : Component
 #pragma warning restore RASK014
     {
-        private List<Child>?[] _tabContentCache = new List<Child>?[TabCount];
-        private int _activeTab;
+        private readonly List<Child>?[] _tabContentCache = new List<Child>?[TabCount];
 
-        public int ActiveTab => _activeTab;
+        public int ActiveTab { get; private set; }
 
         public void Switch(int tab)
         {
-            _activeTab = tab;
+            ActiveTab = tab;
             StateHasChanged();
         }
 
@@ -64,29 +63,30 @@ internal static class NavSwitch
             var tabs = new List<Child>(TabCount);
             for (var t = 0; t < TabCount; t++)
             {
-                var isActive = t == _activeTab;
+                var isActive = t == ActiveTab;
                 tabs.Add(C.Li(Class: isActive ? "tab active" : "tab")[
                     C.A($"#t{t}")[$"Tab {t}"]
                 ]);
             }
 
-            var content = _tabContentCache[_activeTab];
+            var content = _tabContentCache[ActiveTab];
             if (content is null)
             {
                 content = new List<Child>(RowsPerTab);
                 for (var i = 0; i < RowsPerTab; i++)
                 {
                     content.Add(C.Div(Class: "row")[
-                        C.Span(Class: "label")[$"Tab {_activeTab} row {i}"],
-                        C.A($"/tab/{_activeTab}/{i}")[$"open {i}"]
+                        C.Span(Class: "label")[$"Tab {ActiveTab} row {i}"],
+                        C.A($"/tab/{ActiveTab}/{i}")[$"open {i}"]
                     ]);
                 }
-                _tabContentCache[_activeTab] = content;
+
+                _tabContentCache[ActiveTab] = content;
             }
 
             return C.Div(Class: "nav-shell")[
                 C.Nav()[C.Ul()[tabs]],
-                C.Main(Id: $"tab-{_activeTab}")[content]
+                C.Main($"tab-{ActiveTab}")[content]
             ];
         }
     }
@@ -113,6 +113,7 @@ internal static class NavSwitch
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
             b.CloseElement();
 
@@ -132,6 +133,7 @@ internal static class NavSwitch
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.CloseElement();
 
             b.CloseElement();

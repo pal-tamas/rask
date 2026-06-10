@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using System.Net;
 using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -29,7 +29,7 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
     }
 
     private IPage Page => _page
-        ?? throw new InvalidOperationException("Test page accessed before InitializeAsync ran");
+                          ?? throw new InvalidOperationException("Test page accessed before InitializeAsync ran");
 
     public async Task InitializeAsync()
     {
@@ -37,10 +37,7 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
         // Playwright's absolute-path resolution doesn't drop the prefix — calling
         // Page.GotoAsync("/") with BaseURL "http://host/sub" goes to "http://host/"
         // (the leading "/" is absolute, not relative to the base path).
-        _context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = _app.OriginUrl
-        });
+        _context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.OriginUrl });
         _page = await _context.NewPageAsync();
     }
 
@@ -49,10 +46,18 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
         if (_page is not null)
         {
             try { await TestArtifacts.DumpAsync(_page, "SubPathWasm", "after-test", _app.ServerLog); }
-            catch { /* best effort */ }
+            catch
+            {
+                /* best effort */
+            }
+
             await _page.CloseAsync();
         }
-        if (_context is not null) await _context.DisposeAsync();
+
+        if (_context is not null)
+        {
+            await _context.DisposeAsync();
+        }
     }
 
     [Fact]
@@ -88,7 +93,7 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
         // The host moved every framework endpoint under /sub. A direct fetch to the
         // origin root must not be served — confirms endpoints aren't double-mapped.
         var response = await Page.APIRequest.GetAsync(_app.OriginUrl + "/");
-        Assert.Equal((int)System.Net.HttpStatusCode.NotFound, response.Status);
+        Assert.Equal((int)HttpStatusCode.NotFound, response.Status);
     }
 
     [Fact]
@@ -108,6 +113,6 @@ public sealed class WasmSubPathExampleTests : IAsyncLifetime
 
         var url = new Uri(new Uri(_app.OriginUrl), firstHref);
         var response = await Page.APIRequest.GetAsync(url.ToString());
-        Assert.Equal((int)System.Net.HttpStatusCode.OK, response.Status);
+        Assert.Equal((int)HttpStatusCode.OK, response.Status);
     }
 }

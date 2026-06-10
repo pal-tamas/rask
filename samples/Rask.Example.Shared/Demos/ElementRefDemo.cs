@@ -1,5 +1,4 @@
 using Microsoft.JSInterop;
-using Rask.Core;
 
 namespace Rask.Example.Shared.Demos;
 
@@ -8,9 +7,9 @@ namespace Rask.Example.Shared.Demos;
 // their ids stay stable across renders.
 public sealed class ElementRefDemo : Component
 {
-    private readonly IJSRuntime _js;
-    private readonly ElementRef _input = ElementRef.New();
     private readonly ElementRef _box = ElementRef.New();
+    private readonly ElementRef _input = ElementRef.New();
+    private readonly IJSRuntime _js;
     private string _measured = "";
 
     public ElementRefDemo(IJSRuntime js) => _js = js;
@@ -18,7 +17,7 @@ public sealed class ElementRefDemo : Component
     protected override RenderResult Render() =>
         Div()[
             Input(
-                Type: "text",
+                "text",
                 Class: "form-control mb-2",
                 Placeholder: "Focus me from C#",
                 Ref: _input),

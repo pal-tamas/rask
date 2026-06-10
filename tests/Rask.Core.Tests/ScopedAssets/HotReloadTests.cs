@@ -157,18 +157,30 @@ public class HotReloadTests
     private static void InvokeUpdateApplication(string handlerFullName, Type[]? types)
     {
         var handlerType = typeof(ScopedAssetRegistry).Assembly
-            .GetType(handlerFullName, throwOnError: true)!;
+            .GetType(handlerFullName, true)!;
         var update = handlerType.GetMethod(
             "UpdateApplication",
             BindingFlags.Public | BindingFlags.Static)!;
         update.Invoke(null, new object?[] { types });
     }
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
-    private sealed class WidgetB : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
+
+    private sealed class WidgetB : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 
     // Sentinel types whose Name matches the generator-emitted classes — the hot-reload
     // handler's gate is name-based, so a stand-in is enough for tests.
-    private sealed class __RaskScopedCssRegistration { }
-    private sealed class __RaskScopedJsRegistration { }
+    private sealed class __RaskScopedCssRegistration
+    {
+    }
+
+    private sealed class __RaskScopedJsRegistration
+    {
+    }
 }

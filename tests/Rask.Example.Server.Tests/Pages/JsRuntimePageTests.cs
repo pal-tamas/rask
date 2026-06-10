@@ -1,5 +1,5 @@
 using System.Reflection;
-using Rask.Core;
+using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
@@ -31,7 +31,7 @@ public sealed class JsRuntimePageTests
         js.SetResponse("sessionStorage.getItem", "stored-value");
         var page = new JsRuntimePage(js);
 
-        await InvokeOnRenderedAsync(page, firstRender: true);
+        await InvokeOnRenderedAsync(page, true);
 
         Assert.Equal("stored-value", GetField<string?>(page, "_lastRead"));
         Assert.Equal("Read on mount: stored-value", GetField<string?>(page, "_status"));
@@ -44,7 +44,7 @@ public sealed class JsRuntimePageTests
         // No SetResponse → returns default (null for string?).
         var page = new JsRuntimePage(js);
 
-        await InvokeOnRenderedAsync(page, firstRender: true);
+        await InvokeOnRenderedAsync(page, true);
 
         Assert.Null(GetField<string?>(page, "_lastRead"));
         Assert.Equal("(no value yet — try Set)", GetField<string?>(page, "_status"));
@@ -56,7 +56,7 @@ public sealed class JsRuntimePageTests
         var js = new FakeJsRuntime();
         var page = new JsRuntimePage(js);
 
-        await InvokeOnRenderedAsync(page, firstRender: false);
+        await InvokeOnRenderedAsync(page, false);
 
         // No call should have been made to sessionStorage.getItem.
         Assert.Equal(0, js.CallCount("sessionStorage.getItem"));
@@ -70,7 +70,7 @@ public sealed class JsRuntimePageTests
         js.SetException("sessionStorage.getItem", new InvalidOperationException("boom"));
         var page = new JsRuntimePage(js);
 
-        await InvokeOnRenderedAsync(page, firstRender: true);
+        await InvokeOnRenderedAsync(page, true);
 
         var status = GetField<string?>(page, "_status");
         Assert.NotNull(status);
@@ -173,7 +173,7 @@ public sealed class JsRuntimePageTests
     public void RouteAttribute_RegisteredAt_Jsruntime()
     {
         var attr = typeof(JsRuntimePage)
-            .GetCustomAttribute<Rask.Core.Routing.RouteAttribute>();
+            .GetCustomAttribute<RouteAttribute>();
         Assert.NotNull(attr);
         Assert.Equal("jsruntime", attr!.Template);
     }

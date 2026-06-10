@@ -9,9 +9,7 @@ namespace Rask.Example.Shared.Demos;
 // both itself (so the demo can sign in/out) and IUserProvider (so Component.User resolves it).
 public sealed class DemoUserProvider : IUserProvider
 {
-    private ClaimsPrincipal _current = new(new ClaimsIdentity());
-
-    public ClaimsPrincipal Current => _current;
+    public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());
 
     public event Action? Changed;
 
@@ -24,13 +22,13 @@ public sealed class DemoUserProvider : IUserProvider
         }
 
         // A ClaimsIdentity with a non-null authenticationType is treated as authenticated.
-        _current = new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "demo"));
+        Current = new ClaimsPrincipal(new ClaimsIdentity(claims, "demo"));
         Changed?.Invoke();
     }
 
     public void SignOut()
     {
-        _current = new ClaimsPrincipal(new ClaimsIdentity());
+        Current = new ClaimsPrincipal(new ClaimsIdentity());
         Changed?.Invoke();
     }
 }

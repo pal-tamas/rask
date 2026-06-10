@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;

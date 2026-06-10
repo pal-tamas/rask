@@ -185,7 +185,7 @@ public class UseRaskTests
     public async Task AddRaskNotRegistered_BrotliRequested_NoCompression()
     {
         using var bundle = new FakeBundleDirectory(8 * 1024);
-        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path, false);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
 
         var req = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
         req.Headers.AcceptEncoding.ParseAdd("br");

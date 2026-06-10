@@ -22,15 +22,15 @@ public sealed class RouteTitleStructuralNavApp : Component
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            new Html()[
-                new Head()[new Title()[$"t-{_routeState.Path}"]],
-                new Body()[
-                    _routeState.Path == "/destination"
-                        ? new Ul()[new Li()["a"], new Li()["b"], new Li()["c"]]
-                        : new Div()["plain"]
-                ]
+    [
+        Doctype(),
+        new Html()[
+            new Head()[new Title()[$"t-{_routeState.Path}"]],
+            new Body()[
+                _routeState.Path == "/destination"
+                    ? new Ul()[new Li()["a"], new Li()["b"], new Li()["c"]]
+                    : new Div()["plain"]
             ]
-        ];
+        ]
+    ];
 }

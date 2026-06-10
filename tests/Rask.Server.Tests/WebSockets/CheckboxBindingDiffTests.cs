@@ -1,4 +1,3 @@
-using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 using Rask.Server.Tests.Infrastructure;
 

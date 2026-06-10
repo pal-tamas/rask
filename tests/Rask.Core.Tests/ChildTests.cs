@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Core.Tests;
 
 public class ChildTests
@@ -45,18 +47,18 @@ public class ChildTests
     [Fact]
     public void ImplicitConversion_FromDouble_UsesInvariantCulture()
     {
-        var original = System.Threading.Thread.CurrentThread.CurrentCulture;
+        var original = Thread.CurrentThread.CurrentCulture;
         try
         {
             // A comma-decimal culture would render "1,5" if ToString ignored the provider.
-            System.Threading.Thread.CurrentThread.CurrentCulture =
-                new System.Globalization.CultureInfo("de-DE");
+            Thread.CurrentThread.CurrentCulture =
+                new CultureInfo("de-DE");
             Child child = 1.5;
             Assert.Equal("1.5", child.Component.ToHtml());
         }
         finally
         {
-            System.Threading.Thread.CurrentThread.CurrentCulture = original;
+            Thread.CurrentThread.CurrentCulture = original;
         }
     }
 

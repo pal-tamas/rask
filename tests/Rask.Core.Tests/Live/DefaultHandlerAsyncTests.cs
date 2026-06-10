@@ -15,7 +15,7 @@ public class DefaultHandlerAsyncTests
     public async Task UnmatchedAsyncSignature_IsAwaited_BeforeDispatchReturns()
     {
         var sp = RenderHarness.EmptyServices();
-        var owner = new UnmatchedAsyncOwner(throws: false);
+        var owner = new UnmatchedAsyncOwner(false);
 
         using var ctx = LiveRenderContext.Begin(owner, sp);
         _ = owner.ToHtml();
@@ -35,7 +35,7 @@ public class DefaultHandlerAsyncTests
     public async Task UnmatchedAsyncSignature_Throw_TripsAncestorBoundary()
     {
         var sp = RenderHarness.EmptyServices();
-        var owner = new UnmatchedAsyncOwner(throws: true);
+        var owner = new UnmatchedAsyncOwner(true);
         var boundary = ErrorBoundary();
         boundary.SetProps(new Child[] { owner }, null);
 

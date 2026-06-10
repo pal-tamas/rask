@@ -12,8 +12,8 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 
 public abstract class LiveDiffPayloadBase
 {
-    protected RaskHarness Rask = null!;
     protected BlazorRenderBatchCapture Blazor = null!;
+    protected RaskHarness Rask = null!;
 
     [GlobalCleanup]
     public void Cleanup()
@@ -26,13 +26,14 @@ public abstract class LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_CounterOnLargePageBenchmarks : LiveDiffPayloadBase
 {
+    private int _blazorCounter;
+
     // Stateful Rask root: 200 rows built once in Render(), only the counter cell
     // mutates across renders. Mirrors Blazor's "re-render with new parameters" path
     // where the unchanged subtree is not rebuilt. Before the switch the Rask side
     // allocated 621 KB / iter rebuilding the 200-row tree on every call; now it
     // measures the diff codec itself.
     private StatefulLargePageWithCounter _stateful = null!;
-    private int _blazorCounter;
 
     [GlobalSetup]
     public void Setup()
@@ -80,11 +81,12 @@ public class LiveDiffPayload_CounterOnLargePageBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_TextNodeUpdateBenchmarks : LiveDiffPayloadBase
 {
+    private int _counter;
+
     // Stateful Rask root: 199 of 200 rows cached, only the mutating-cell row is
     // rebuilt per Tick. Mirrors Blazor's parameter update which also only touches
     // the changed cell's frame slot.
     private StatefulLargePageWithDeepTextCell _stateful = null!;
-    private int _counter;
 
     [GlobalSetup]
     public void Setup()
@@ -171,6 +173,11 @@ public class LiveDiffPayload_AttributeUpdateBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
 {
+    private int[] _blazorOrder = null!;
+    private int _blazorSwapA;
+
+    private int _blazorSwapB;
+
     // Stateful Rask root: 100 rows wrapped as Child instances once on first render and
     // cached by key. The benchmark Tick swaps two slots of the order array and calls
     // StateHasChanged — the next render returns a reordered list pointing at the SAME
@@ -179,9 +186,6 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
     // update. Without this, the prior rebuild-per-iter Rask version was unfairly
     // allocating 100 fresh elements every call vs Blazor's 0.
     private KeyedList.StatefulKeyedList _stateful = null!;
-    private int[] _blazorOrder = null!;
-    private int _blazorSwapA;
-    private int _blazorSwapB;
 
     [GlobalSetup]
     public void Setup()
@@ -208,7 +212,8 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
     public long Blazor_KeyedList100Reorder()
     {
         var beforeOrder = (int[])_blazorOrder.Clone();
-        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) = (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
+        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) =
+            (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
         _blazorSwapA = (_blazorSwapA + 1) % _blazorOrder.Length;
         _blazorSwapB = (_blazorSwapB + 1) % _blazorOrder.Length;
 
@@ -234,13 +239,15 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
 {
+    private bool _appendedIsNext;
+    private int[] _appendedOrder = null!;
+
+    private int[] _baseOrder = null!;
+
     // Stateful Rask root: rows cached by key, only the visible-order array swaps each
     // tick. Mirrors Blazor's ParameterView-update path so the comparison measures
     // the diff codec, not Rask paying for 100+ fresh elements per call.
     private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
-    private int[] _baseOrder = null!;
-    private int[] _appendedOrder = null!;
-    private bool _appendedIsNext;
 
     [GlobalSetup]
     public void Setup()
@@ -308,12 +315,14 @@ public class LiveDiffPayload_AppendRowBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_DeleteMiddleRowBenchmarks : LiveDiffPayloadBase
 {
+    private int[] _fullOrder = null!;
+    private bool _missingIsNext;
+
+    private int[] _missingMiddleOrder = null!;
+
     // Stateful Rask root: same caching pattern as AppendRow above. Order array toggles
     // between 100 and 99 entries; rows themselves are reused across the swap.
     private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
-    private int[] _fullOrder = null!;
-    private int[] _missingMiddleOrder = null!;
-    private bool _missingIsNext;
 
     [GlobalSetup]
     public void Setup()
@@ -517,10 +526,10 @@ public class LiveDiffPayload_KeyedListLargeAppendBenchmarks : LiveDiffPayloadBas
     // way back. Row HTML is reused across the toggle — only the order array changes.
     private const int BaseRowCount = 100;
     private const int AppendCount = 50;
-    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _baseOrder = null!;
-    private int[] _largeOrder = null!;
     private bool _largeIsNext;
+    private int[] _largeOrder = null!;
+    private KeyedList.StatefulKeyedList _stateful = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -588,10 +597,10 @@ public class LiveDiffPayload_KeyedListReversalBenchmarks : LiveDiffPayloadBase
     // LIS worst case — every element off the LIS, but row instances are reused so the
     // diff path measures only the move-emission cost (and the patience-sort LIS).
     private const int RowCount = 50;
-    private KeyedList.StatefulKeyedList _stateful = null!;
     private int[] _forwardOrder = null!;
-    private int[] _reverseOrder = null!;
     private bool _reverseIsNext;
+    private int[] _reverseOrder = null!;
+    private KeyedList.StatefulKeyedList _stateful = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -794,6 +803,11 @@ public class LiveDiffPayload_InputTypingBurstBenchmarks : LiveDiffPayloadBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
 {
+    private int[] _blazorOrder = null!;
+    private int _blazorSwapA;
+
+    private int _blazorSwapB;
+
     // Outer keyed list (20 cards) × inner keyed list (5 rows each). Swap two outer
     // cards; inner content is identical post-swap. The keyed differ must (a) emit
     // two MoveSubtree ops at the outer level and (b) recurse into kept cards without
@@ -804,9 +818,6 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
     // Outer-order toggles per tick; rows reused across the swap. Mirrors Blazor's
     // ParameterView path so the diff codec is what's measured, not tree construction.
     private NestedKeyedList.StatefulNestedKeyedList _stateful = null!;
-    private int[] _blazorOrder = null!;
-    private int _blazorSwapA;
-    private int _blazorSwapB;
 
     [GlobalSetup]
     public void Setup()
@@ -832,7 +843,8 @@ public class LiveDiffPayload_NestedKeyedReorderBenchmarks : LiveDiffPayloadBase
     public long Blazor_NestedKeyedReorder()
     {
         var beforeOrder = (int[])_blazorOrder.Clone();
-        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) = (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
+        (_blazorOrder[_blazorSwapA], _blazorOrder[_blazorSwapB]) =
+            (_blazorOrder[_blazorSwapB], _blazorOrder[_blazorSwapA]);
         _blazorSwapA = (_blazorSwapA + 1) % _blazorOrder.Length;
         _blazorSwapB = (_blazorSwapB + 1) % _blazorOrder.Length;
 

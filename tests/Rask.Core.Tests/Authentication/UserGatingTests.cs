@@ -42,7 +42,7 @@ public class UserGatingTests
     {
         var html = Render(Principal("alice", "user"));
 
-        Assert.Contains("secret", html);          // authenticated content shows
+        Assert.Contains("secret", html); // authenticated content shows
         Assert.DoesNotContain("admin-panel", html); // but not the admin panel
     }
 

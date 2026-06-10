@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.WasmJwt.Pages;
@@ -16,7 +15,7 @@ public sealed class HomePage : Component
                     "A browser-WASM SPA that signs in against ", Code()["/api/login"],
                     ", stores the bearer JWT in localStorage, and sends it as ", Code()["Authorization: Bearer"],
                     " on every API call. ", Code()["/api/me"], " validates it server-side."],
-                NavLink(Href: "/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

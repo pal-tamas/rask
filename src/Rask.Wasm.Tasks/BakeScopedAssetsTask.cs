@@ -1,7 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -122,19 +122,30 @@ public sealed class BakeScopedAssetsTask : Task
         foreach (var item in Assemblies)
         {
             var dir = Path.GetDirectoryName(item.ItemSpec);
-            if (!string.IsNullOrEmpty(dir)) searchDirs.Add(dir);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                searchDirs.Add(dir);
+            }
         }
 
         AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
         {
             var simpleName = new AssemblyName(args.Name).Name;
-            if (simpleName is null) return null;
+            if (simpleName is null)
+            {
+                return null;
+            }
+
             foreach (var dir in searchDirs)
             {
                 var candidate = Path.Combine(dir, simpleName + ".dll");
                 if (File.Exists(candidate))
                 {
-                    try { return Assembly.LoadFrom(candidate); } catch { /* ignore */ }
+                    try { return Assembly.LoadFrom(candidate); }
+                    catch
+                    {
+                        /* ignore */
+                    }
                 }
             }
 
@@ -167,15 +178,18 @@ public sealed class BakeScopedAssetsTask : Task
 
             if (registryType is null && assembly.GetName().Name == "Rask.Core")
             {
-                registryType = assembly.GetType("Rask.Core.ScopedAssets.ScopedAssetRegistry", throwOnError: false);
+                registryType = assembly.GetType("Rask.Core.ScopedAssets.ScopedAssetRegistry", false);
             }
 
             // Source-generator-emitted registration classes are top-level (no namespace);
             // collect them so we can re-fire RefreshAll after invalidating the registry.
             foreach (var name in new[] { "__RaskScopedCssRegistration", "__RaskScopedJsRegistration" })
             {
-                var t = assembly.GetType(name, throwOnError: false);
-                if (t is not null) registrationTypes.Add(t);
+                var t = assembly.GetType(name, false);
+                if (t is not null)
+                {
+                    registrationTypes.Add(t);
+                }
             }
         }
 
@@ -221,7 +235,7 @@ public sealed class BakeScopedAssetsTask : Task
         Directory.CreateDirectory(outDir);
 
         var written = 0;
-        var entries = (System.Collections.IEnumerable)enumerateAll.Invoke(null, null)!;
+        var entries = (IEnumerable)enumerateAll.Invoke(null, null)!;
         foreach (var entry in entries)
         {
             var entryType = entry.GetType();

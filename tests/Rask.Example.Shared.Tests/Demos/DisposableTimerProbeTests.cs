@@ -1,5 +1,3 @@
-using Rask.Core;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -12,7 +10,7 @@ public sealed class DisposableTimerProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => DisposableTimerProbe(Log: log.Add, InstanceId: 1),
+            () => DisposableTimerProbe(log.Add, 1),
             TestServices.Default());
 
         host.RenderAsLiveRoot();
@@ -30,7 +28,7 @@ public sealed class DisposableTimerProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => UnmountTimerProbe(Log: log.Add, InstanceId: 2),
+            () => UnmountTimerProbe(log.Add, 2),
             TestServices.Default());
 
         host.RenderAsLiveRoot();
@@ -48,7 +46,7 @@ public sealed class DisposableTimerProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => DisposableAsyncProbe(Log: log.Add, InstanceId: 3),
+            () => DisposableAsyncProbe(log.Add, 3),
             TestServices.Default());
 
         host.RenderAsLiveRoot();

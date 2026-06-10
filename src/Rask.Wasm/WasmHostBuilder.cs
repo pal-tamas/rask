@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
-using Rask.Core.Authorization;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;

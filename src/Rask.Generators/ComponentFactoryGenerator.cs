@@ -976,7 +976,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine(");");
     }
 
-    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf, bool emitNavigation)
+    private static void EmitGenericFactoryOverload(StringBuilder sb, Candidate c, GenericFactoryConfig gf,
+        bool emitNavigation)
     {
         var visibility = c.IsPublic ? "public" : "internal";
         var typedSet = new HashSet<string>(StringComparer.Ordinal);
@@ -1331,6 +1332,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
     }
 
+    // A property/parameter name as a valid C# identifier in emitted code. ISymbol.Name strips the
+    // leading '@' from a verbatim identifier (a property declared `@event` has Name "event"), so a
+    // reserved keyword must be re-escaped with '@' wherever it is emitted as an identifier —
+    // otherwise the generated factory (`string? event = null`, `__c.event = event`) fails to
+    // compile in the consumer's build. Use this only for emitted identifiers; comparisons against
+    // metadata names (modelProperty, "Children", typed-delegate sets) keep the raw Name.
+    internal static string EscapeIdentifier(string name) =>
+        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
+
     private enum ValidatorShape { None, Sync, Async }
 
     private sealed record Candidate(
@@ -1364,15 +1374,6 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string Name,
         string DefaultLiteral,
         bool IsParams);
-
-    // A property/parameter name as a valid C# identifier in emitted code. ISymbol.Name strips the
-    // leading '@' from a verbatim identifier (a property declared `@event` has Name "event"), so a
-    // reserved keyword must be re-escaped with '@' wherever it is emitted as an identifier —
-    // otherwise the generated factory (`string? event = null`, `__c.event = event`) fails to
-    // compile in the consumer's build. Use this only for emitted identifiers; comparisons against
-    // metadata names (modelProperty, "Children", typed-delegate sets) keep the raw Name.
-    internal static string EscapeIdentifier(string name) =>
-        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;
 
     private readonly record struct PropInfo(
         string Name,

@@ -19,8 +19,8 @@
       static references without help, so it would drop the Register* method bodies
       (or replace them with throw-stubs).
     -->
-    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry" preserve="all" />
-    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry/EnumeratedEntry" preserve="all" />
-    <type fullname="Rask.Core.ScopedAssets.AssetKind" preserve="all" />
+    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry" preserve="all"/>
+    <type fullname="Rask.Core.ScopedAssets.ScopedAssetRegistry/EnumeratedEntry" preserve="all"/>
+    <type fullname="Rask.Core.ScopedAssets.AssetKind" preserve="all"/>
   </assembly>
 </linker>

@@ -41,7 +41,7 @@ public class HandlerOrderingTests
         // bug stays latent — which is exactly why the failure only surfaces
         // on loaded CI runners. Make the test fail deterministically when
         // chaining is broken by injecting that contention here.
-        using var stress = new ThreadPoolStress(workers: 8);
+        using var stress = new ThreadPoolStress(8);
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
@@ -94,7 +94,7 @@ public class HandlerOrderingTests
         // "01010101…" alternating is if a later h1 dispatched before its
         // paired h0. With chained dispatch the sequence is always strictly
         // alternating in arrival order.
-        using var stress = new ThreadPoolStress(workers: 8);
+        using var stress = new ThreadPoolStress(8);
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
@@ -176,6 +176,7 @@ public class HandlerOrderingTests
             _cts.Cancel();
             try { Task.WaitAll(_tasks, TimeSpan.FromSeconds(2)); }
             catch { }
+
             _cts.Dispose();
         }
     }

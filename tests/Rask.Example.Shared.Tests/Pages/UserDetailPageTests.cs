@@ -1,7 +1,5 @@
-using Rask.Core;
-using Rask.Core.Routing;
 using Microsoft.Extensions.Primitives;
-using Rask.Example.Shared.Pages;
+using Rask.Core.Routing;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -15,7 +13,7 @@ public sealed class UserDetailPageTests
     public void RouteParam_Id_BindsFromUrl(string path, string expectedId)
     {
         var routeState = new RouteState { Path = path };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains($"User #{expectedId}", html);
@@ -32,7 +30,7 @@ public sealed class UserDetailPageTests
             ["tab"] = "profile"
         });
         var routeState = new RouteState { Path = "/users/42", Query = query };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         // PageBinder runs through the Router and walks RouteState.Query, mapping
@@ -47,7 +45,7 @@ public sealed class UserDetailPageTests
     public void NoQueryParam_RendersNonePlaceholder()
     {
         var routeState = new RouteState { Path = "/users/42" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
         Assert.Contains("(none)", html);
     }

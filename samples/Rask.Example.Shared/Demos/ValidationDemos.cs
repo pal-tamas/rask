@@ -16,45 +16,46 @@ public sealed class ValidationFieldsDemo : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        [
-            Form<RegistrationModel>(
-                _model,
-                m => _submission = $"Registered: {m.Name} <{m.Email}>",
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                Div()[
-                    Label("v1-name", Class: "form-label small mb-1")["Name"],
-                    Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
-                    ValidationMessage(() => _model.Name, FieldError)
-                ],
-                Div()[
-                    Label("v1-email", Class: "form-label small mb-1")["Email"],
-                    Input(() => _model.Email, Id: "v1-email", Type: "email",
-                        Class: "form-control"),
-                    ValidationMessage(() => _model.Email, FieldError)
-                ],
-                Div()[
-                    Label("v1-age", Class: "form-label small mb-1")["Age"],
-                    Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
-                    ValidationMessage(() => _model.Age, FieldError)
-                ],
-                Div()[
-                    Label("v1-plan", Class: "form-label small mb-1")["Plan"],
-                    Select(() => _model.Plan, Id: "v1-plan", Class: "form-select")[
-                        Option("")["— choose —"],
-                        Option("free")["Free"],
-                        Option("pro")["Pro"],
-                        Option("team")["Team"]
-                    ],
-                    ValidationMessage(() => _model.Plan, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
-                ]
+    [
+        Form<RegistrationModel>(
+            _model,
+            m => _submission = $"Registered: {m.Name} <{m.Email}>",
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            Div()[
+                Label("v1-name", Class: "form-label small mb-1")["Name"],
+                Input(() => _model.Name, Id: "v1-name", Class: "form-control"),
+                ValidationMessage(() => _model.Name, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v1-email", Class: "form-label small mb-1")["Email"],
+                Input(() => _model.Email, Id: "v1-email", Type: "email",
+                    Class: "form-control"),
+                ValidationMessage(() => _model.Email, FieldError)
+            ],
+            Div()[
+                Label("v1-age", Class: "form-label small mb-1")["Age"],
+                Input(() => _model.Age, Id: "v1-age", Class: "form-control"),
+                ValidationMessage(() => _model.Age, FieldError)
+            ],
+            Div()[
+                Label("v1-plan", Class: "form-label small mb-1")["Plan"],
+                Select(() => _model.Plan, Id: "v1-plan", Class: "form-select")[
+                    Option("")["— choose —"],
+                    Option("free")["Free"],
+                    Option("pro")["Pro"],
+                    Option("team")["Team"]
+                ],
+                ValidationMessage(() => _model.Plan, FieldError)
+            ],
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class ValidationSummaryDemo : Component
@@ -78,42 +79,43 @@ public sealed class ValidationSummaryDemo : Component
         ];
 
     protected override RenderResult Render() =>
-        [
-            Form<RegistrationModel>(
-                _model,
-                m => _submission = $"Registered: {m.Name} <{m.Email}>",
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                ValidationSummary(SummaryAlert),
-                Div()[
-                    Label("v2-name", Class: "form-label small mb-1")["Name"],
-                    Input(() => _model.Name, Id: "v2-name", Class: "form-control")
-                ],
-                Div()[
-                    Label("v2-email", Class: "form-label small mb-1")["Email"],
-                    Input(() => _model.Email, Id: "v2-email", Type: "email",
-                        Class: "form-control")
-                ],
-                Div()[
-                    Label("v2-age", Class: "form-label small mb-1")["Age"],
-                    Input(() => _model.Age, Id: "v2-age", Class: "form-control")
-                ],
-                Div()[
-                    Label("v2-plan", Class: "form-label small mb-1")["Plan"],
-                    Select(() => _model.Plan, Id: "v2-plan", Class: "form-select")[
-                        Option("")["— choose —"],
-                        Option("free")["Free"],
-                        Option("pro")["Pro"],
-                        Option("team")["Team"]
-                    ]
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+    [
+        Form<RegistrationModel>(
+            _model,
+            m => _submission = $"Registered: {m.Name} <{m.Email}>",
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            ValidationSummary(SummaryAlert),
+            Div()[
+                Label("v2-name", Class: "form-label small mb-1")["Name"],
+                Input(() => _model.Name, Id: "v2-name", Class: "form-control")
+            ],
+            Div()[
+                Label("v2-email", Class: "form-label small mb-1")["Email"],
+                Input(() => _model.Email, Id: "v2-email", Type: "email",
+                    Class: "form-control")
+            ],
+            Div()[
+                Label("v2-age", Class: "form-label small mb-1")["Age"],
+                Input(() => _model.Age, Id: "v2-age", Class: "form-control")
+            ],
+            Div()[
+                Label("v2-plan", Class: "form-label small mb-1")["Plan"],
+                Select(() => _model.Plan, Id: "v2-plan", Class: "form-select")[
+                    Option("")["— choose —"],
+                    Option("free")["Free"],
+                    Option("pro")["Pro"],
+                    Option("team")["Team"]
                 ]
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class InlineValidateDemo : Component
@@ -141,38 +143,39 @@ public sealed class InlineValidateDemo : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            Form(
-                _model,
-                OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
-                Class: "vstack gap-3",
-                Validate: m =>
-                    m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
-                Div()[
-                    Label("v4-email", Class: "form-label small mb-1")["Email"],
-                    Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
-                        Validate: v =>
-                            v.Contains('@')
-                                ? Array.Empty<string>()
-                                : new[] { "Email looks wrong." }),
-                    ValidationMessage(() => _model.Email, FieldError)
-                ],
-                Div()[
-                    Label("v4-password", Class: "form-label small mb-1")["Password"],
-                    Input(() => _model.Password, Id: "v4-password", Type: "password", Class: "form-control")
-                ],
-                Div()[
-                    Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
-                    Input(() => _model.Confirm, Id: "v4-confirm", Type: "password", Class: "form-control")
-                ],
-                ValidationSummary(SummaryAlert),
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
-                ]
+    [
+        Form(
+            _model,
+            OnValidSubmit: m => _submission = $"Welcome, {m.Email}",
+            Class: "vstack gap-3",
+            Validate: m =>
+                m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
+            Div()[
+                Label("v4-email", Class: "form-label small mb-1")["Email"],
+                Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
+                    Validate: v =>
+                        v.Contains('@')
+                            ? Array.Empty<string>()
+                            : new[] { "Email looks wrong." }),
+                ValidationMessage(() => _model.Email, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v4-password", Class: "form-label small mb-1")["Password"],
+                Input(() => _model.Password, Id: "v4-password", Type: "password", Class: "form-control")
+            ],
+            Div()[
+                Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
+                Input(() => _model.Confirm, Id: "v4-confirm", Type: "password", Class: "form-control")
+            ],
+            ValidationSummary(SummaryAlert),
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class LoginModel
@@ -256,7 +259,8 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
         var tax = Math.Round(afterDiscount * 0.08m, 2);
         var total = afterDiscount + tax;
 
-        return [
+        return
+        [
             Form(
                 _model,
                 m => _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}",
@@ -416,34 +420,35 @@ public sealed class InlineAsyncValidateDemo : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            Form<PromoModel>(
-                _model,
-                OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
-                Class: "vstack gap-3",
-                Validate: async (m, ct) =>
-                {
-                    await Task.Yield();
-                    ct.ThrowIfCancellationRequested();
-                    return string.IsNullOrWhiteSpace(m.Code)
-                        ? new[] { "Code is required." }
-                        : Array.Empty<string>();
-                })[
-                Div()[
-                    Label("v10-code", Class: "form-label small mb-1")["Promo code"],
-                    Input(() => _model.Code, Id: "v10-code", Class: "form-control",
-                        Validate: CheckCodeAsync),
-                    ValidatingIndicator(() => _model.Code, Checking),
-                    ValidationMessage(() => _model.Code, FieldError)
-                ],
-                ValidationSummary(SummaryAlert),
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
-                ]
+    [
+        Form<PromoModel>(
+            _model,
+            OnValidSubmit: m => _submission = $"Redeemed: {m.Code}",
+            Class: "vstack gap-3",
+            Validate: async (m, ct) =>
+            {
+                await Task.Yield();
+                ct.ThrowIfCancellationRequested();
+                return string.IsNullOrWhiteSpace(m.Code)
+                    ? new[] { "Code is required." }
+                    : Array.Empty<string>();
+            })[
+            Div()[
+                Label("v10-code", Class: "form-label small mb-1")["Promo code"],
+                Input(() => _model.Code, Id: "v10-code", Class: "form-control",
+                    Validate: CheckCodeAsync),
+                ValidatingIndicator(() => _model.Code, Checking),
+                ValidationMessage(() => _model.Code, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            ValidationSummary(SummaryAlert),
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class PromoModel
@@ -469,27 +474,28 @@ public sealed class AsyncValidationDemo : Component
         ];
 
     protected override RenderResult Render() =>
-        [
-            Form<SignupModel>(
-                _model,
-                m => _submission = $"Signed up: {m.Username}",
-                Context: _ctx,
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                Div()[
-                    Label("v3-username", Class: "form-label small mb-1")["Username"],
-                    Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
-                    ValidatingIndicator(() => _model.Username, Checking),
-                    ValidationMessage(() => _model.Username,
-                        msgs => Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
-                ]
+    [
+        Form<SignupModel>(
+            _model,
+            m => _submission = $"Signed up: {m.Username}",
+            Context: _ctx,
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            Div()[
+                Label("v3-username", Class: "form-label small mb-1")["Username"],
+                Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
+                ValidatingIndicator(() => _model.Username, Checking),
+                ValidationMessage(() => _model.Username,
+                    msgs => Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class SignupModel
@@ -581,31 +587,32 @@ public sealed class CrossFieldSummaryDemo : Component
             ];
 
     protected override RenderResult Render() =>
-        [
-            Form<TripModel>(
-                _model,
-                OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
-                Class: "vstack gap-3",
-                Validate: m =>
-                    m.Return > m.Depart
-                        ? Array.Empty<string>()
-                        : new[] { "Return date must be after departure." })[
-                ValidationSummary(SummaryAlert),
-                Div()[
-                    Label("v5-depart", Class: "form-label small mb-1")["Departure"],
-                    Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
-                ],
-                Div()[
-                    Label("v5-return", Class: "form-label small mb-1")["Return"],
-                    Input(() => _model.Return, Id: "v5-return", Class: "form-control")
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
-                ]
+    [
+        Form<TripModel>(
+            _model,
+            OnValidSubmit: m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}",
+            Class: "vstack gap-3",
+            Validate: m =>
+                m.Return > m.Depart
+                    ? Array.Empty<string>()
+                    : new[] { "Return date must be after departure." })[
+            ValidationSummary(SummaryAlert),
+            Div()[
+                Label("v5-depart", Class: "form-label small mb-1")["Departure"],
+                Input(() => _model.Depart, Id: "v5-depart", Class: "form-control")
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v5-return", Class: "form-label small mb-1")["Return"],
+                Input(() => _model.Return, Id: "v5-return", Class: "form-control")
+            ],
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class TripModel
@@ -641,35 +648,36 @@ public sealed class ValidatableObjectDemo : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            Form<BookingModel>(
-                _model,
-                m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                ValidationSummary(SummaryAlert),
-                Div()[
-                    Label("v11-name", Class: "form-label small mb-1")["Name"],
-                    Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
-                    ValidationMessage(() => _model.Name, FieldError)
-                ],
-                Div()[
-                    Label("v11-departure", Class: "form-label small mb-1")["Departure"],
-                    Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
-                    ValidationMessage(() => _model.Departure, FieldError)
-                ],
-                Div()[
-                    Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
-                    Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
-                    ValidationMessage(() => _model.Arrival, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
-                ]
+    [
+        Form<BookingModel>(
+            _model,
+            m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}",
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            ValidationSummary(SummaryAlert),
+            Div()[
+                Label("v11-name", Class: "form-label small mb-1")["Name"],
+                Input(() => _model.Name, Id: "v11-name", Class: "form-control"),
+                ValidationMessage(() => _model.Name, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v11-departure", Class: "form-label small mb-1")["Departure"],
+                Input(() => _model.Departure, Id: "v11-departure", Class: "form-control"),
+                ValidationMessage(() => _model.Departure, FieldError)
+            ],
+            Div()[
+                Label("v11-arrival", Class: "form-label small mb-1")["Arrival"],
+                Input(() => _model.Arrival, Id: "v11-arrival", Class: "form-control"),
+                ValidationMessage(() => _model.Arrival, FieldError)
+            ],
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class BookingModel : IValidatableObject
@@ -721,36 +729,37 @@ public sealed class ProgrammaticValidateDemo : Component
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
     protected override RenderResult Render() =>
-        [
-            Form<TaskModel>(
-                _model,
-                m => _submission = $"Saved task: {m.Title}",
-                Context: _ctx,
-                Class: "vstack gap-3")[
-                Div()[
-                    Label("v6-title", Class: "form-label small mb-1")["Title"],
-                    Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
-                    ValidatingIndicator(() => _model.Title, Checking),
-                    ValidationMessage(() => _model.Title, FieldError)
-                ],
-                Div(Class: "d-flex gap-2")[
-                    Button(
-                        "button",
-                        Id: "v6-validate-now",
-                        Class: "btn btn-outline-secondary",
-                        OnClickAsync: ValidateNowAsync)[
-                        I(Class: "bi bi-search me-1"), "Validate now"
-                    ],
-                    Button(
-                        "submit",
-                        Id: "v6-submit",
-                        Disabled: _ctx.IsValidatingAny,
-                        Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
-                ]
+    [
+        Form<TaskModel>(
+            _model,
+            m => _submission = $"Saved task: {m.Title}",
+            Context: _ctx,
+            Class: "vstack gap-3")[
+            Div()[
+                Label("v6-title", Class: "form-label small mb-1")["Title"],
+                Input(() => _model.Title, Id: "v6-title", Class: "form-control"),
+                ValidatingIndicator(() => _model.Title, Checking),
+                ValidationMessage(() => _model.Title, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div(Class: "d-flex gap-2")[
+                Button(
+                    "button",
+                    Id: "v6-validate-now",
+                    Class: "btn btn-outline-secondary",
+                    OnClickAsync: ValidateNowAsync)[
+                    I(Class: "bi bi-search me-1"), "Validate now"
+                ],
+                Button(
+                    "submit",
+                    Id: "v6-submit",
+                    Disabled: _ctx.IsValidatingAny,
+                    Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class TaskModel
@@ -806,29 +815,30 @@ public sealed class FluentValidationDemo : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        [
-            Form<OrderModel>(
-                _model,
-                m => _submission = $"Ordered {m.Quantity} × {m.Product}",
-                Class: "vstack gap-3")[
-                FluentValidationValidator(new OrderValidator()),
-                Div()[
-                    Label("v7-product", Class: "form-label small mb-1")["Product"],
-                    Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
-                    ValidationMessage(() => _model.Product, FieldError)
-                ],
-                Div()[
-                    Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
-                    Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
-                    ValidationMessage(() => _model.Quantity, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-bag-check me-1"), "Order"]
-                ]
+    [
+        Form<OrderModel>(
+            _model,
+            m => _submission = $"Ordered {m.Quantity} × {m.Product}",
+            Class: "vstack gap-3")[
+            FluentValidationValidator(new OrderValidator()),
+            Div()[
+                Label("v7-product", Class: "form-label small mb-1")["Product"],
+                Input(() => _model.Product, Id: "v7-product", Class: "form-control"),
+                ValidationMessage(() => _model.Product, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v7-quantity", Class: "form-label small mb-1")["Quantity"],
+                Input(() => _model.Quantity, Id: "v7-quantity", Class: "form-control"),
+                ValidationMessage(() => _model.Quantity, FieldError)
+            ],
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-bag-check me-1"), "Order"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class OrderModel
@@ -859,28 +869,29 @@ public sealed class FirstErrorWinsDemo : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        [
-            Form<LicenseModel>(
-                _model,
-                m => _submission = $"Activated: {m.Code}",
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                Div()[
-                    Label("v8-code", Class: "form-label small mb-1")["License code"],
-                    Input(() => _model.Code, Id: "v8-code", Class: "form-control",
-                        Validate: v =>
-                            string.IsNullOrWhiteSpace(v)
-                                ? new[] { "Code is required." }
-                                : Array.Empty<string>()),
-                    ValidationMessage(() => _model.Code, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
-                ]
+    [
+        Form<LicenseModel>(
+            _model,
+            m => _submission = $"Activated: {m.Code}",
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            Div()[
+                Label("v8-code", Class: "form-label small mb-1")["License code"],
+                Input(() => _model.Code, Id: "v8-code", Class: "form-control",
+                    Validate: v =>
+                        string.IsNullOrWhiteSpace(v)
+                            ? new[] { "Code is required." }
+                            : Array.Empty<string>()),
+                ValidationMessage(() => _model.Code, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class LicenseModel
@@ -907,25 +918,26 @@ public sealed class FluentValidationAsyncDemo : Component
         ];
 
     protected override RenderResult Render() =>
-        [
-            Form<TicketModel>(
-                _model,
-                m => _submission = $"Reserved: {m.Code}",
-                Class: "vstack gap-3")[
-                FluentValidationValidator(new TicketValidator()),
-                Div()[
-                    Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
-                    Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
-                    ValidatingIndicator(() => _model.Code, Checking),
-                    ValidationMessage(() => _model.Code, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
-                ]
+    [
+        Form<TicketModel>(
+            _model,
+            m => _submission = $"Reserved: {m.Code}",
+            Class: "vstack gap-3")[
+            FluentValidationValidator(new TicketValidator()),
+            Div()[
+                Label("v9-code", Class: "form-label small mb-1")["Ticket code"],
+                Input(() => _model.Code, Id: "v9-code", Class: "form-control"),
+                ValidatingIndicator(() => _model.Code, Checking),
+                ValidationMessage(() => _model.Code, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class TicketModel
@@ -972,34 +984,35 @@ public sealed class CustomAttributeDemo : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        [
-            Form<CustomAttributeModel>(
-                _model,
-                m => _submission = $"Welcome, {m.Username}!",
-                Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                Div()[
-                    Label("v12-username", Class: "form-label small mb-1")["Username"],
-                    Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
-                    ValidationMessage(() => _model.Username, FieldError)
-                ],
-                Div()[
-                    Label("v12-password", Class: "form-label small mb-1")["Password"],
-                    Input(() => _model.Password, Id: "v12-password", Type: "password", Class: "form-control"),
-                    ValidationMessage(() => _model.Password, FieldError)
-                ],
-                Div()[
-                    Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
-                    Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: "password", Class: "form-control"),
-                    ValidationMessage(() => _model.ConfirmPassword, FieldError)
-                ],
-                Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-shield-check me-1"), "Create account"]
-                ]
+    [
+        Form<CustomAttributeModel>(
+            _model,
+            m => _submission = $"Welcome, {m.Username}!",
+            Class: "vstack gap-3")[
+            DataAnnotationsValidator(),
+            Div()[
+                Label("v12-username", Class: "form-label small mb-1")["Username"],
+                Input(() => _model.Username, Id: "v12-username", Class: "form-control"),
+                ValidationMessage(() => _model.Username, FieldError)
             ],
-            _submission is null
-                ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]];
+            Div()[
+                Label("v12-password", Class: "form-label small mb-1")["Password"],
+                Input(() => _model.Password, Id: "v12-password", Type: "password", Class: "form-control"),
+                ValidationMessage(() => _model.Password, FieldError)
+            ],
+            Div()[
+                Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
+                Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: "password", Class: "form-control"),
+                ValidationMessage(() => _model.ConfirmPassword, FieldError)
+            ],
+            Div()[
+                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-shield-check me-1"), "Create account"]
+            ]
+        ],
+        _submission is null
+            ? Fragment()
+            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+    ];
 }
 
 public sealed class CustomAttributeModel

@@ -18,34 +18,34 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes
 Deterministic — no measurement noise. Each row is one incremental update from the
 "before" state to the "after" state for an identically-shaped scenario.
 
-| Scenario | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full | Rask diff vs Blazor |
-|---|---:|---:|---:|---:|---:|
-| CounterOnLargePage | 24,114 | **41** | 186 | 588× | **4.54×** Rask wins |
-| TextNodeUpdate | 23,997 | **50** | 193 | 480× | **3.86×** Rask wins |
-| DeepTreeCounterUpdate | 1,283 | **137** | 1,722 | 9.4× | **12.57×** Rask wins |
-| InputTypingBurst | 296 | **48** | 135 | 6.2× | **2.81×** Rask wins |
-| AttributeUpdate | 38,364 | **54** | 140 | 710× | **2.59×** Rask wins |
-| ClassToggle | 1,236 | **92** | 227 | 13.4× | **2.47×** Rask wins |
-| DeleteMiddleRow | 6,551 | **36** | 96 | 182× | **2.67×** Rask wins |
-| MultiAttributeUpdate | 317 | **269** | 576 | 1.2× | **2.14×** Rask wins |
-| KeyedList100Reorder | 6,617 | **43** | 128 | 154× | **2.98×** Rask wins⁵ |
-| NestedKeyedReorder | 9,257 | **43** | 128 | 215× | **2.98×** Rask wins⁵ |
-| AppendRow | 6,685 | **108** | 224 | 62× | **2.07×** Rask wins |
-| AttributeBurstUpdate | 6,527 | **2,037** | 4,596 | 3.2× | **2.26×** Rask wins |
-| KeyedListLargeAppend | 10,017 | **4,273** | 5,957 | 2.3× | **1.39×** Rask wins |
-| KeyedList50Reversal | 3,317 | **269** | 896 | 12.3× | **3.33×** Rask wins⁵ |
-| ConditionalRenderingToggle | **2,040** | 2,032 | 4,588 | 1.0× | **2.26×** Rask wins¹ |
-| Lifecycle_Insert100 | **7,517** | 9,093 | 24,604 | 0.8× | **3.27×** Rask wins¹ |
-| Lifecycle_Remove100 | **37** | 1,223 | 2,080 | 0.0× | **56.2×** Rask wins¹ |
-| VirtualizationScroll | 620 | 440 | 193³ | 1.4× | 0.44×³ |
-| Scale_KeyedReorder_5000 | 347,817 | **47** | 128 | 7,400× | **2.72×** Rask wins⁵ |
-| Scale_KeyedRandomPermutation_1000 | 67,817 | **6,669** | 16,096 | 10.2× | **2.41×** Rask wins⁵ |
-| Scale_KeyedAppendMiddle_2000 | 137,887 | **111** | 225 | 1,242× | **2.03×** Rask wins |
-| Scale_DeepTreeMutationByDepth_200 | 5,207 | **441** | 6,522 | 11.8× | **14.79×** Rask wins |
-| Realistic_DashboardWidgets_Tick | 4,003 | **43** | 218 | 93× | **5.07×** Rask wins |
-| Realistic_TableSort_Reverse | 17,267 | **1,123** | 3,360 | 15.4× | **2.99×** Rask wins⁵ |
-| Realistic_FormValidationChurn_Field0 | 1,369 | **109** | 310 | 12.6× | **2.84×** Rask wins |
-| Realistic_NavSwitch_0to1 | 4,265 | **2,526** | 7,003 | 1.7× | **2.77×** Rask wins |
+| Scenario                             | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full |  Rask diff vs Blazor |
+|--------------------------------------|----------:|----------:|-------------:|-----------------------:|---------------------:|
+| CounterOnLargePage                   |    24,114 |    **41** |          186 |                   588× |  **4.54×** Rask wins |
+| TextNodeUpdate                       |    23,997 |    **50** |          193 |                   480× |  **3.86×** Rask wins |
+| DeepTreeCounterUpdate                |     1,283 |   **137** |        1,722 |                   9.4× | **12.57×** Rask wins |
+| InputTypingBurst                     |       296 |    **48** |          135 |                   6.2× |  **2.81×** Rask wins |
+| AttributeUpdate                      |    38,364 |    **54** |          140 |                   710× |  **2.59×** Rask wins |
+| ClassToggle                          |     1,236 |    **92** |          227 |                  13.4× |  **2.47×** Rask wins |
+| DeleteMiddleRow                      |     6,551 |    **36** |           96 |                   182× |  **2.67×** Rask wins |
+| MultiAttributeUpdate                 |       317 |   **269** |          576 |                   1.2× |  **2.14×** Rask wins |
+| KeyedList100Reorder                  |     6,617 |    **43** |          128 |                   154× | **2.98×** Rask wins⁵ |
+| NestedKeyedReorder                   |     9,257 |    **43** |          128 |                   215× | **2.98×** Rask wins⁵ |
+| AppendRow                            |     6,685 |   **108** |          224 |                    62× |  **2.07×** Rask wins |
+| AttributeBurstUpdate                 |     6,527 | **2,037** |        4,596 |                   3.2× |  **2.26×** Rask wins |
+| KeyedListLargeAppend                 |    10,017 | **4,273** |        5,957 |                   2.3× |  **1.39×** Rask wins |
+| KeyedList50Reversal                  |     3,317 |   **269** |          896 |                  12.3× | **3.33×** Rask wins⁵ |
+| ConditionalRenderingToggle           | **2,040** |     2,032 |        4,588 |                   1.0× | **2.26×** Rask wins¹ |
+| Lifecycle_Insert100                  | **7,517** |     9,093 |       24,604 |                   0.8× | **3.27×** Rask wins¹ |
+| Lifecycle_Remove100                  |    **37** |     1,223 |        2,080 |                   0.0× | **56.2×** Rask wins¹ |
+| VirtualizationScroll                 |       620 |       440 |         193³ |                   1.4× |               0.44×³ |
+| Scale_KeyedReorder_5000              |   347,817 |    **47** |          128 |                 7,400× | **2.72×** Rask wins⁵ |
+| Scale_KeyedRandomPermutation_1000    |    67,817 | **6,669** |       16,096 |                  10.2× | **2.41×** Rask wins⁵ |
+| Scale_KeyedAppendMiddle_2000         |   137,887 |   **111** |          225 |                 1,242× |  **2.03×** Rask wins |
+| Scale_DeepTreeMutationByDepth_200    |     5,207 |   **441** |        6,522 |                  11.8× | **14.79×** Rask wins |
+| Realistic_DashboardWidgets_Tick      |     4,003 |    **43** |          218 |                    93× |  **5.07×** Rask wins |
+| Realistic_TableSort_Reverse          |    17,267 | **1,123** |        3,360 |                  15.4× | **2.99×** Rask wins⁵ |
+| Realistic_FormValidationChurn_Field0 |     1,369 |   **109** |          310 |                  12.6× |  **2.84×** Rask wins |
+| Realistic_NavSwitch_0to1             |     4,265 | **2,526** |        7,003 |                   1.7× |  **2.77×** Rask wins |
 
 ¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: the
 diff codec emits positional structural ops (untrusted `Insert/Remove`) on these
@@ -77,6 +77,7 @@ emits a **single** `PermutationBatch` op `[7, parentPath[], [dst0,src0,…]]` th
 carries the shared parent path once (`src/Rask.Core/Live/FrameDiffer.cs`,
 `LivePayload.cs`, and both client `applyDiff` interpreters). Results vs the previous
 baseline:
+
 - `Realistic_TableSort_Reverse`: 3,873 B → **1,123 B**, 0.87× → **2.99×** (the loss is closed).
 - `KeyedList50Reversal`: 685 B → **269 B**, 1.31× → **3.33×**.
 - `Scale_KeyedRandomPermutation_1000`: 14,936 B → **6,669 B**, 1.08× → **2.41×**.
@@ -129,9 +130,9 @@ Blazor Server uses to put bytes onto the SignalR hub. See methodology below.
 ### What's measured
 
 - **Rask side:** drive the same `SessionRenderCache` + `FrameSinkScope` + `HtmlSerializer`
-  + `LivePayload.BuildPayloadUtf8Diff` pipeline that `LiveSession` uses to put bytes
-  onto the WebSocket. Reuses pooled buffers across iterations so steady-state
-  allocations match production.
+    + `LivePayload.BuildPayloadUtf8Diff` pipeline that `LiveSession` uses to put bytes
+      onto the WebSocket. Reuses pooled buffers across iterations so steady-state
+      allocations match production.
 - **Blazor side:** subclass `Microsoft.AspNetCore.Components.RenderTree.Renderer`,
   capture `RenderBatch` inside `UpdateDisplayAsync`, serialize it via reflection on
   the internal `RenderBatchWriter` (the same writer the SignalR circuit uses), report
@@ -191,6 +192,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*RenderHot
 ```
 
 Benchmark classes (one per scenario so BDN can assign Blazor as the [Baseline]):
+
 - `RenderHotPath_StaticListBenchmarks` with `[Params(5, 100, 1000)]`
 - `RenderHotPath_TextHeavyBenchmarks` with `[Params(5, 100, 1000)]`
 - `RenderHotPath_CounterBenchmarks`
@@ -201,9 +203,9 @@ Benchmark classes (one per scenario so BDN can assign Blazor as the [Baseline]):
 
 Smoke-run numbers (`--job short`):
 
-| Scenario | Blazor mean | Rask mean | Ratio |
-|---|---:|---:|---:|
-| Counter | 1,052 ns | **598 ns** | **0.57× — Rask 1.76× faster** |
+| Scenario | Blazor mean |  Rask mean |                         Ratio |
+|----------|------------:|-----------:|------------------------------:|
+| Counter  |    1,052 ns | **598 ns** | **0.57× — Rask 1.76× faster** |
 
 Re-run with the default job (no `--job short`) and pin the rest into this table when
 the suite stabilises.
@@ -217,19 +219,29 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*LiveDiffP
 ```
 
 Benchmark classes (one per scenario):
+
 - `LiveDiffPayload_CounterOnLargePageBenchmarks` — stateful Rask root mutates one counter cell
 - `LiveDiffPayload_TextNodeUpdateBenchmarks`
 - `LiveDiffPayload_AttributeUpdateBenchmarks` — single `data-*` flip on a 20-attr × 100-element tree
 - `LiveDiffPayload_KeyedList100ReorderBenchmarks` — two keyed rows swapped (one `PermutationBatch` op carrying 2 moves)
-- `LiveDiffPayload_NestedKeyedReorderBenchmarks` — 20 keyed cards × 5 inner keyed rows, swap two outer cards (validates the keyed path recurses into kept cards with zero inner ops)
-- `LiveDiffPayload_InputTypingBurstBenchmarks` — three-field form, single keystroke into field A's value (validates attribute-diff scoping; sibling inputs and labels stay quiet)
-- `LiveDiffPayload_ConditionalRenderingToggleBenchmarks` — show/hide a 50-row panel between header and footer (validates the positional Insert/Remove → full-HTML fallback path; production ships full HTML, still beats Blazor's batch)
-- `LiveDiffPayload_KeyedListReversalBenchmarks` — reverse a 50-row keyed list (LIS worst case: 49 moves, now shipped as one `PermutationBatch` op carrying the shared parent path once — the case that motivated the batch op)
-- `LiveDiffPayload_ClassToggleBenchmarks` — move "active" class between sidebar items (the most common UI mutation; two `SetAttribute` ops)
-- `LiveDiffPayload_DeepTreeCounterUpdateBenchmarks` — counter at the bottom of a 50-deep div nest (measures the path-encoding tax explicitly; 11.25× Rask win — biggest gap in the suite)
-- `LiveDiffPayload_MultiAttributeUpdateBenchmarks` — theme switch flips 5 attrs on the root in one render (5 `SetAttribute` ops; descendants stay quiet)
-- `LiveDiffPayload_AttributeBurstUpdateBenchmarks` — 100 rows each gain `data-loaded` when a state bit flips (100 `SetAttribute` ops sharing one attr name; baselines the case for the attribute-interning optimisation)
-- `LiveDiffPayload_KeyedListLargeAppendBenchmarks` — append 50 rows to a 100-row keyed list (50 keyed `InsertSubtree` ops carrying HTML fragments)
+- `LiveDiffPayload_NestedKeyedReorderBenchmarks` — 20 keyed cards × 5 inner keyed rows, swap two outer cards (validates
+  the keyed path recurses into kept cards with zero inner ops)
+- `LiveDiffPayload_InputTypingBurstBenchmarks` — three-field form, single keystroke into field A's value (validates
+  attribute-diff scoping; sibling inputs and labels stay quiet)
+- `LiveDiffPayload_ConditionalRenderingToggleBenchmarks` — show/hide a 50-row panel between header and footer (validates
+  the positional Insert/Remove → full-HTML fallback path; production ships full HTML, still beats Blazor's batch)
+- `LiveDiffPayload_KeyedListReversalBenchmarks` — reverse a 50-row keyed list (LIS worst case: 49 moves, now shipped as
+  one `PermutationBatch` op carrying the shared parent path once — the case that motivated the batch op)
+- `LiveDiffPayload_ClassToggleBenchmarks` — move "active" class between sidebar items (the most common UI mutation; two
+  `SetAttribute` ops)
+- `LiveDiffPayload_DeepTreeCounterUpdateBenchmarks` — counter at the bottom of a 50-deep div nest (measures the
+  path-encoding tax explicitly; 11.25× Rask win — biggest gap in the suite)
+- `LiveDiffPayload_MultiAttributeUpdateBenchmarks` — theme switch flips 5 attrs on the root in one render (5
+  `SetAttribute` ops; descendants stay quiet)
+- `LiveDiffPayload_AttributeBurstUpdateBenchmarks` — 100 rows each gain `data-loaded` when a state bit flips (100
+  `SetAttribute` ops sharing one attr name; baselines the case for the attribute-interning optimisation)
+- `LiveDiffPayload_KeyedListLargeAppendBenchmarks` — append 50 rows to a 100-row keyed list (50 keyed `InsertSubtree`
+  ops carrying HTML fragments)
 - `LiveDiffPayload_AppendRowBenchmarks` — append one row at end of 100-row keyed list
 - `LiveDiffPayload_DeleteMiddleRowBenchmarks` — remove row index 50 from 100-row keyed list (single `RemoveSubtree`)
 - `LiveDiffPayload_VirtualizationScrollBenchmarks` — Rask scroll shift vs Blazor one-row text change
@@ -240,9 +252,9 @@ All bench methods return `long` (byte count) so BDN reports wire bytes as "Mean"
 End-to-end cost of producing one diff payload — `LiveDiffPayload_CounterOnLargePage`
 after the stateful-counter harness fix (default job):
 
-| Scenario | Blazor mean | Rask mean | Blazor allocs | Rask allocs |
-|---|---:|---:|---:|---:|
-| CounterOnLargePage | 138.7 μs | **45.2 μs** (0.33×) | 228 KB | **95.5 KB** (0.42×) |
+| Scenario           | Blazor mean |           Rask mean | Blazor allocs |         Rask allocs |
+|--------------------|------------:|--------------------:|--------------:|--------------------:|
+| CounterOnLargePage |    138.7 μs | **45.2 μs** (0.33×) |        228 KB | **95.5 KB** (0.42×) |
 
 **Rask 3.07× faster end-to-end and allocates 0.42× of Blazor.** Pre-Step 1 the Rask
 side was at 98 μs / 621 KB, but the 621 KB measured tree rebuild rather than the
@@ -263,6 +275,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Dispatch_
 ```
 
 Benchmarks:
+
 - `Dispatch_ButtonClickCounterPinnedBenchmarks.{Blazor,Rask}_Dispatch_ButtonClick_Counter`
 - `Dispatch_ButtonClickLargePagePinnedBenchmarks.{Blazor,Rask}_Dispatch_ButtonClick_LargePage`
 
@@ -291,10 +304,10 @@ also runs synchronously on the BDN iteration thread. Validation gate: determinis
 Smoke-run numbers (`--job short`, retained from pre-fix pin for `Counter` — to be
 re-pinned at default job alongside the new `LargePage` row):
 
-| Method | Mean | Allocated |
-|---|---:|---:|
-| Blazor_Dispatch_ButtonClick_Counter | 2,331 ns | 5.77 KB |
-| Rask_Dispatch_ButtonClick_Counter | **875 ns** | **5.48 KB** |
+| Method                              |       Mean |   Allocated |
+|-------------------------------------|-----------:|------------:|
+| Blazor_Dispatch_ButtonClick_Counter |   2,331 ns |     5.77 KB |
+| Rask_Dispatch_ButtonClick_Counter   | **875 ns** | **5.48 KB** |
 
 **Rask 2.66× faster** on the dispatch + small-tree diff, slightly fewer allocations.
 
@@ -305,6 +318,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Startup_*
 ```
 
 Benchmarks:
+
 - `Startup_ActivateCounterPinnedBenchmarks.{Blazor,Rask}_Activate_Counter`
 - `Startup_FirstRenderCounterPinnedBenchmarks.{Blazor,Rask}_FirstRender_Counter`
 - `Startup_FirstRenderLargePagePinnedBenchmarks.{Blazor,Rask}_FirstRender_LargePage` (200 rows cold)
@@ -447,6 +461,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Micro_*'
 ```
 
 Benchmark classes:
+
 - `Micro_HtmlSerializerAppendEncodedBenchmarks` — `[Params]` safe-ascii-16,
   safe-ascii-200, encoder-fallback, utf-8-multibyte. Baseline = direct
   `HtmlEncoder.Default.Encode`. Validates the `SearchValues<char>` fast path stays
@@ -479,6 +494,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Scale_*'
 ```
 
 Benchmark classes:
+
 - `Scale_StaticListLargeBenchmarks` — `[Params(1000, 5000, 10000)]` render hot path
   vs `StaticList.BlazorStaticList`.
 - `Scale_KeyedReorderLargeBenchmarks` — `[Params(1000, 5000)]` two-element keyed
@@ -510,6 +526,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*Realistic
 ```
 
 Benchmark classes:
+
 - `Realistic_DashboardWidgetsBenchmarks` — header + nav sidebar + 6 widgets
   (counter, chart, table summary, alerts, status grid, footer). One counter widget
   ticks per iteration; the diff codec must keep the other five widget subtrees out
@@ -544,6 +561,7 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- --filter '*MemoryGc_
 ```
 
 Benchmark classes:
+
 - `MemoryGc_SustainedCounterChurnBenchmarks` — 10,000 counter increments on the
   200-row `StatefulLargePageWithCounter` per op. Headline pressure test; matches
   the production busy-dashboard ticker shape.
@@ -584,16 +602,16 @@ Apple M4 Pro.
 
 **Allocation per incremental update** (steady-state, production-relevant — lower is better):
 
-| Scenario | Rask /update | Blazor /update | Rask vs Blazor |
-|---|---:|---:|---:|
-| CounterOnLargePage | 69,598 B | **31,470 B** | 0.45× — Blazor allocates less |
+| Scenario           | Rask /update | Blazor /update |                Rask vs Blazor |
+|--------------------|-------------:|---------------:|------------------------------:|
+| CounterOnLargePage |     69,598 B |   **31,470 B** | 0.45× — Blazor allocates less |
 
 **Retained heap per rendered tree** (architectural tradeoff):
 
-| Scenario | Rask /tree | Blazor /tree | Rask vs Blazor |
-|---|---:|---:|---:|
-| LargePage_200Rows | 326,685 B | **222,798 B** | 0.68× |
-| KeyedList_100Rows | 158,029 B | **57,790 B** | 0.37× |
+| Scenario          | Rask /tree |  Blazor /tree | Rask vs Blazor |
+|-------------------|-----------:|--------------:|---------------:|
+| LargePage_200Rows |  326,685 B | **222,798 B** |          0.68× |
+| KeyedList_100Rows |  158,029 B |  **57,790 B** |          0.37× |
 
 **Read this honestly — it is a tradeoff, not a clean Rask win.** Rask's optimisation
 target is *bytes on the wire* (the headline table: 2–15× fewer, now with no
@@ -633,6 +651,7 @@ basis is a noted follow-up.)
 
 Resolved since the previous baseline (no longer losses), all sharpened further by the
 `PermutationBatch` op kind:
+
 - **`Realistic_TableSort_Reverse`** — was the sole loss at 0.87× (3,873 B); now
   **2.99×** (1,123 B). Closed by `PermutationBatch`.
 - **`Scale_KeyedRandomPermutation_1000`** — was 0.86× (18.7 KB vs 16.1 KB); the

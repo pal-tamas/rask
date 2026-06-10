@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using FluentValidation;
-using Rask.Core;
+using System.Diagnostics;
+using System.Reflection;
 using Rask.Core.Forms;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -172,10 +172,7 @@ public sealed class ValidationDemosTests
     }
 
     [Fact]
-    public void LicenseModel_ValidCode_NoErrors()
-    {
-        Assert.Empty(Validate(new LicenseModel { Code = "RAS-001" }));
-    }
+    public void LicenseModel_ValidCode_NoErrors() => Assert.Empty(Validate(new LicenseModel { Code = "RAS-001" }));
 
     [Fact]
     public void TripModel_DefaultDates_IsEdgeCase_ReturnEqualsDepart()
@@ -191,14 +188,12 @@ public sealed class ValidationDemosTests
     {
         var m = new BookingModel
         {
-            Name = "X",
-            Departure = new DateOnly(2020, 1, 1),
-            Arrival = new DateOnly(2020, 1, 5)
+            Name = "X", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2020, 1, 5)
         };
         var ctx = new ValidationContext(m);
         var results = m.Validate(ctx).ToList();
         Assert.Contains(results, r => r.MemberNames.Contains("Departure")
-            && r.ErrorMessage!.Contains("past"));
+                                      && r.ErrorMessage!.Contains("past"));
     }
 
     [Fact]
@@ -206,14 +201,12 @@ public sealed class ValidationDemosTests
     {
         var m = new BookingModel
         {
-            Name = "X",
-            Departure = new DateOnly(2026, 8, 1),
-            Arrival = new DateOnly(2026, 8, 1)
+            Name = "X", Departure = new DateOnly(2026, 8, 1), Arrival = new DateOnly(2026, 8, 1)
         };
         var ctx = new ValidationContext(m);
         var results = m.Validate(ctx).ToList();
         Assert.Contains(results, r => !r.MemberNames.Any()
-            && r.ErrorMessage!.Contains("after departure"));
+                                      && r.ErrorMessage!.Contains("after departure"));
     }
 
     [Fact]
@@ -221,9 +214,7 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat",
-            Password = "short",
-            ConfirmPassword = "short"
+            Username = "pat", Password = "short", ConfirmPassword = "short"
         });
         Assert.Contains(errors, e => e.MemberNames.Contains("Password"));
     }
@@ -233,9 +224,7 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat",
-            Password = "Pass1word",
-            ConfirmPassword = "DIFFERENT"
+            Username = "pat", Password = "Pass1word", ConfirmPassword = "DIFFERENT"
         });
         Assert.Contains(errors, e => e.MemberNames.Contains("ConfirmPassword"));
     }
@@ -245,9 +234,7 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat",
-            Password = "Pass1word",
-            ConfirmPassword = "Pass1word"
+            Username = "pat", Password = "Pass1word", ConfirmPassword = "Pass1word"
         });
         Assert.Empty(errors);
     }
@@ -443,7 +430,7 @@ public sealed class ValidationDemosTests
         var v = new UniqueUsernameValidator();
         var model = new SignupModel { Username = "" };
         var ctx = new EditContext(model);
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         await v.ValidateAsync(ctx, CancellationToken.None);
         sw.Stop();
         Assert.True(sw.ElapsedMilliseconds < 200,
@@ -455,8 +442,8 @@ public sealed class ValidationDemosTests
     {
         var v = new UniqueUsernameValidator();
         var ctx = new EditContext(new SignupModel { Username = "explode" });
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await v.ValidateAsync(ctx, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await v.ValidateAsync(ctx, CancellationToken.None));
     }
 
     [Fact]
@@ -475,7 +462,7 @@ public sealed class ValidationDemosTests
     {
         var v = new SlowTitleValidator();
         var ctx = new EditContext(new TaskModel { Title = "" });
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         await v.ValidateAsync(ctx, CancellationToken.None);
         sw.Stop();
         Assert.True(sw.ElapsedMilliseconds < 200);
@@ -487,14 +474,14 @@ public sealed class ValidationDemosTests
     {
         var ctx = new ValidationContext(instance);
         var results = new List<ValidationResult>();
-        Validator.TryValidateObject(instance, ctx, results, validateAllProperties: true);
+        Validator.TryValidateObject(instance, ctx, results, true);
         return results;
     }
 
     private static ValidationResult? InvokeIsValid(ValidationAttribute attr, object? value, ValidationContext ctx)
     {
         var mi = typeof(ValidationAttribute).GetMethod("IsValid",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            BindingFlags.Instance | BindingFlags.NonPublic,
             null, [typeof(object), typeof(ValidationContext)], null);
         return (ValidationResult?)mi!.Invoke(attr, [value, ctx]);
     }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Net.Http.Headers;
 using Rask.Core.ScopedAssets;
 
 namespace Rask.Wasm.Hosting;
@@ -54,7 +55,7 @@ internal static class RaskAssetEndpoint
                 bytes.Value.Utf8.ToArray(),
                 contentType,
                 enableRangeProcessing: true,
-                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue(bytes.Value.Etag))
+                entityTag: new EntityTagHeaderValue(bytes.Value.Etag))
             .ExecuteAsync(ctx);
     }
 

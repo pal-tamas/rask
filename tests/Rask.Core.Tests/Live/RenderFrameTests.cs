@@ -1,6 +1,5 @@
 using System.Text;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Live;
 
@@ -17,7 +16,7 @@ public class RenderFrameTests
         //                    Attribute(class, x)
         //                    Element(span) [SubtreeLength=2]
         //                      Text(hi)
-        var tree = C.Div(Class: "x")[C.Span()["hi"]];
+        var tree = Div(Class: "x")[Span()["hi"]];
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -41,7 +40,7 @@ public class RenderFrameTests
         // Sanity: the frame-producing path must be invisible when no scope is active.
         // If a future change inadvertently activates the scope unconditionally, this
         // test catches the leak.
-        var tree = C.Div(Class: "x", Id: "y")[C.Span()["hi"]];
+        var tree = Div(Class: "x", Id: "y")[Span()["hi"]];
 
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(tree, sb);
@@ -54,7 +53,7 @@ public class RenderFrameTests
     [Fact]
     public void Serialize_DoctypeAndFragment_EmitsDoctypeFrameAndWalksFragmentChildren()
     {
-        var tree = C.Fragment()[C.Doctype(), C.Div()["hi"]];
+        var tree = Fragment()[Doctype(), Div()["hi"]];
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -69,7 +68,7 @@ public class RenderFrameTests
     [Fact]
     public void Serialize_SelfClosingElement_SubtreeLengthIsOne_AndSelfClosingFlagSet()
     {
-        var tree = C.Br();
+        var tree = Br();
 
         var frames = RenderAndCaptureFrames(tree);
 
@@ -85,7 +84,7 @@ public class RenderFrameTests
     {
         // Element + multiple attributes: SubtreeLength must include all of them so a
         // diff consumer can skip the whole element by jumping (i + SubtreeLength).
-        var tree = C.A("https://example.com", "_blank", "noopener", Class: "lnk", Id: "go")["open"];
+        var tree = A("https://example.com", "_blank", "noopener", Class: "lnk", Id: "go")["open"];
 
         var frames = RenderAndCaptureFrames(tree);
 

@@ -1,6 +1,5 @@
 using Rask.Core.Routing;
 using Rask.Example.Shared.Demos;
-using static Rask.Example.Shared.Layout.Generated;
 
 namespace Rask.Example.Shared.Layout;
 
@@ -60,51 +59,51 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        [
-            Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top")[
-                Div(Class: "container-fluid")[
-                    Button(
-                        Class: "hamburger-btn",
-                        Type: "button",
-                        OnClick: () => _drawerOpen = !_drawerOpen)[
-                        I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
-                    ],
-                    Button(
-                        Class: "navbar-brand fw-semibold border-0 bg-transparent d-inline-flex align-items-center gap-2",
-                        OnClick: () =>
-                        {
-                            _drawerOpen = false;
-                            nav.Navigate("/");
-                        })[
-                        RaskLogo.Mark(24, "brandBolt"),
-                        Span()["Rask"],
-                        Span(Class: "badge rounded-pill rask-badge")["showcase"]
-                    ],
-                    Div(Class: "d-flex align-items-center gap-2 ms-auto")[
-                        PathDisplay(),
-                        A("https://github.com/pal-tamas/rask",
-                            "_blank",
-                            Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
-                    ]
-                ]
-            ],
-            Button(
-                Class: _drawerOpen ? "nav-backdrop drawer-open" : "nav-backdrop",
-                Type: "button",
-                OnClick: () => _drawerOpen = false),
+    [
+        Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top")[
             Div(Class: "container-fluid")[
-                Div(Class: "row")[
-                    Aside(Class: _drawerOpen
-                        ? "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav drawer-open"
-                        : "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav")[
-                        Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;")[BuildGroups()]
-                    ],
-                    Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
-                        Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]
-                    ]
+                Button(
+                    Class: "hamburger-btn",
+                    Type: "button",
+                    OnClick: () => _drawerOpen = !_drawerOpen)[
+                    I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
+                ],
+                Button(
+                    Class: "navbar-brand fw-semibold border-0 bg-transparent d-inline-flex align-items-center gap-2",
+                    OnClick: () =>
+                    {
+                        _drawerOpen = false;
+                        nav.Navigate("/");
+                    })[
+                    RaskLogo.Mark(24, "brandBolt"),
+                    Span()["Rask"],
+                    Span(Class: "badge rounded-pill rask-badge")["showcase"]
+                ],
+                Div(Class: "d-flex align-items-center gap-2 ms-auto")[
+                    PathDisplay(),
+                    A("https://github.com/pal-tamas/rask",
+                        "_blank",
+                        Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
                 ]
             ]
-        ];
+        ],
+        Button(
+            Class: _drawerOpen ? "nav-backdrop drawer-open" : "nav-backdrop",
+            Type: "button",
+            OnClick: () => _drawerOpen = false),
+        Div(Class: "container-fluid")[
+            Div(Class: "row")[
+                Aside(Class: _drawerOpen
+                    ? "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav drawer-open"
+                    : "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav")[
+                    Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;")[BuildGroups()]
+                ],
+                Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
+                    Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]
+                ]
+            ]
+        ]
+    ];
 
     private List<Child> BuildGroups()
     {
@@ -156,6 +155,6 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
 
         var trimmedPrefix = matchPrefix.TrimEnd('/');
         return string.Equals(trimmed, trimmedPrefix, StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith(trimmedPrefix + "/", StringComparison.OrdinalIgnoreCase);
+               || trimmed.StartsWith(trimmedPrefix + "/", StringComparison.OrdinalIgnoreCase);
     }
 }

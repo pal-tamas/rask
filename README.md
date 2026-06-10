@@ -16,13 +16,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-**[Quick start](#-quick-start--server)** · **[Core concepts](#-core-concepts)** · **[Docs ↗](docs/)** · **[Performance](#-performance)** · **[Live demo ↗](https://pal-tamas.github.io/rask/)**
+**[Quick start](#-quick-start--server)** · **[Core concepts](#-core-concepts)** · **[Docs ↗](docs/)** · *
+*[Performance](#-performance)** · **[Live demo ↗](https://pal-tamas.github.io/rask/)**
 
 </div>
 
 ---
 
-Write components as plain C# classes. Return a tree of HTML from `Render()`. **No `.razor`, no JSX, no JavaScript to write** — and the *same* component code runs server-rendered with live WebSocket updates or fully client-side on WebAssembly.
+Write components as plain C# classes. Return a tree of HTML from `Render()`. **No `.razor`, no JSX, no JavaScript to
+write** — and the *same* component code runs server-rendered with live WebSocket updates or fully client-side on
+WebAssembly.
 
 ```csharp
 [Route("/counter")]
@@ -52,7 +55,9 @@ public sealed class Counter : Component
 - [Troubleshooting](#-troubleshooting)
 - [Sub-path hosting & side-by-side apps](#-sub-path-hosting--side-by-side-apps)
 - [Examples](#-examples)
-- [Core concepts](#-core-concepts) — Components · Interactivity · Context · Async data · Routing · Auth · Head · Error boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Element refs · Keyed lists · Live diff codec · Lifecycle
+- [Core concepts](#-core-concepts) — Components · Interactivity · Context · Async data · Routing · Auth · Head · Error
+  boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Element refs · Keyed lists · Live
+  diff codec · Lifecycle
 - [Performance](#-performance)
 - [Status](#-status)
 - [License](#-license)
@@ -66,32 +71,32 @@ plain C# classes, return a tree of HTML from `Render()`, and host the result one
 live updates over a WebSocket, fully client-side in the browser via WebAssembly, or an ASP.NET app that serves a
 published WASM bundle. The **same component code runs under any host** — only the hosting glue changes.
 
-|     | Feature | What it means |
-|:---:|---------|---------------|
-| 🧩 | **Text-first DSL** | No `.razor`, no JSX. Call `Div(...)[Span(...), "hi"]`, `Button(...)["click"]`, `H1()["title"]` from C# — children attach through an indexer on every component, so the tree reads top-down like HTML and stays type-checked, refactor-safe, and IDE-friendly. |
-| ⚙️ | **Source-generated factories** | Define `class Counter : Component` and a `Counter()` factory is generated for you. Required vs. optional parameters fall out of property nullability automatically. |
-| 🔗 | **Type-safe URLs** | Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"` strings that rot. |
-| 🎨 | **Scoped CSS, colocated** | Drop a sibling `{Component}.css` next to `{Component}.cs` and selectors are auto-scoped to that type and hot-reloaded — no class-name discipline, no BEM, no leaks. |
-| 💉 | **Constructor DI** | `class Weather(IWeatherForecastService svc) : Component` works directly — no `[Inject]` properties, no boilerplate. |
-| 🛡️ | **Error boundaries** | `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant. |
-| ✅ | **Forms with async validation** | `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form. Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins). |
-| ⚡ | **Live diff codec** | After first paint, a small state change ships a minimal edit-op payload instead of re-serializing the page — a counter tick on a 50 KB page goes from ~50 KB to ~57 bytes on the wire. On by default. |
-| 🔑 | **Keyed lists** | Add a `Key:` to list items (Blazor `@key` parity) and inserts/removes/reorders reconcile by identity — shipping trusted structural diffs that preserve focus and input state on the survivors. A `RASK022` analyzer flags a list item that's missing a key. |
-| 🔐 | **Authentication, ASP.NET-native** | `Component.User` (a never-null `ClaimsPrincipal`) plus a headless `Authorize(Roles:, Policy:, Authorized:, NotAuthorized:, Authorizing:)` component for declarative gating, and `[Authorize]` on a page for route gating. No bespoke options — wire cookies/JWT/OIDC on ASP.NET's own `AddCookie`/`AddJwtBearer`/`AddAuthorization`. Runnable samples + `dotnet new --auth` cover cookie & JWT on both Server and WASM. See **[docs/authentication.md](docs/authentication.md)**. |
+|     | Feature                            | What it means                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+|:---:|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 🧩  | **Text-first DSL**                 | No `.razor`, no JSX. Call `Div(...)[Span(...), "hi"]`, `Button(...)["click"]`, `H1()["title"]` from C# — children attach through an indexer on every component, so the tree reads top-down like HTML and stays type-checked, refactor-safe, and IDE-friendly.                                                                                                                                                                                                                     |
+| ⚙️  | **Source-generated factories**     | Define `class Counter : Component` and a `Counter()` factory is generated for you. Required vs. optional parameters fall out of property nullability automatically.                                                                                                                                                                                                                                                                                                               |
+| 🔗  | **Type-safe URLs**                 | Every `[Route]` becomes a generated URL builder — `NavLink(HomePage(), ...)` instead of `"/"` strings that rot.                                                                                                                                                                                                                                                                                                                                                                   |
+| 🎨  | **Scoped CSS, colocated**          | Drop a sibling `{Component}.css` next to `{Component}.cs` and selectors are auto-scoped to that type and hot-reloaded — no class-name discipline, no BEM, no leaks.                                                                                                                                                                                                                                                                                                               |
+| 💉  | **Constructor DI**                 | `class Weather(IWeatherForecastService svc) : Component` works directly — no `[Inject]` properties, no boilerplate.                                                                                                                                                                                                                                                                                                                                                               |
+| 🛡️ | **Error boundaries**               | `ErrorBoundary(...)` catches render-time, lifecycle, and event-handler faults in its subtree and renders a fallback with a one-shot `recover` callback — no app-wide crashes from a bad descendant.                                                                                                                                                                                                                                                                               |
+|  ✅  | **Forms with async validation**    | `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form. Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins).                                                                                               |
+|  ⚡  | **Live diff codec**                | After first paint, a small state change ships a minimal edit-op payload instead of re-serializing the page — a counter tick on a 50 KB page goes from ~50 KB to ~57 bytes on the wire. On by default.                                                                                                                                                                                                                                                                             |
+| 🔑  | **Keyed lists**                    | Add a `Key:` to list items (Blazor `@key` parity) and inserts/removes/reorders reconcile by identity — shipping trusted structural diffs that preserve focus and input state on the survivors. A `RASK022` analyzer flags a list item that's missing a key.                                                                                                                                                                                                                       |
+| 🔐  | **Authentication, ASP.NET-native** | `Component.User` (a never-null `ClaimsPrincipal`) plus a headless `Authorize(Roles:, Policy:, Authorized:, NotAuthorized:, Authorizing:)` component for declarative gating, and `[Authorize]` on a page for route gating. No bespoke options — wire cookies/JWT/OIDC on ASP.NET's own `AddCookie`/`AddJwtBearer`/`AddAuthorization`. Runnable samples + `dotnet new --auth` cover cookie & JWT on both Server and WASM. See **[docs/authentication.md](docs/authentication.md)**. |
 
 ## ⚖️ Compared to Blazor
 
 If you've worked in Blazor, here's how the day-to-day differs in Rask:
 
-| In Blazor | In Rask |
-|-----------|---------|
-| `.razor` files mixing markup + code | Plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]`. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just work. |
-| `[Inject]` properties | Services come in through the **constructor** (`Counter(IClock clock) : Component`), like anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way. |
-| `@page "/path"` | `[Route("/path")]` on the class, and every route gets a generated **type-safe URL builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes. |
-| `RenderFragment` / `EventCallback` | Children are `IEnumerable<Child>`; event handlers are plain delegates (`OnClick: () => _count++`). Child→parent callbacks are plain delegate props too (`Action<T>?` / `Func<T,Task>?`) — invoking one auto-re-renders the parent that owns it, no `EventCallback` wrapper. No specialised types, no `@bind-Value:event`. |
-| `.razor.css` association ceremony | Scoped CSS via a sibling `{Component}.css` (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded under `dotnet watch`. Same idea for JS: a sibling `{Component}.js` is bundled and dispatched by the framework. |
-| Separate render modes to wire up | **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when switching render mode. Server-only (multipart upload) and WASM-only (chunked file reads, inline downloads) behaviours live in the hosts, not in your tree. |
-| `<AuthorizeView>` + `AuthenticationStateProvider` | `Component.User` everywhere (a never-null `ClaimsPrincipal`) and a headless `Authorize(...)` component with `Authorized`/`NotAuthorized`/`Authorizing` slots. Auth itself is configured on ASP.NET's **own** `AddCookie`/`AddJwtBearer`/`AddAuthorization` — Rask adds no parallel options surface. |
+| In Blazor                                         | In Rask                                                                                                                                                                                                                                                                                                                   |
+|---------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.razor` files mixing markup + code               | Plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]`. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just work.                                                                                                                                               |
+| `[Inject]` properties                             | Services come in through the **constructor** (`Counter(IClock clock) : Component`), like anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way.                                                                                                                         |
+| `@page "/path"`                                   | `[Route("/path")]` on the class, and every route gets a generated **type-safe URL builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes.                                                                                                                               |
+| `RenderFragment` / `EventCallback`                | Children are `IEnumerable<Child>`; event handlers are plain delegates (`OnClick: () => _count++`). Child→parent callbacks are plain delegate props too (`Action<T>?` / `Func<T,Task>?`) — invoking one auto-re-renders the parent that owns it, no `EventCallback` wrapper. No specialised types, no `@bind-Value:event`. |
+| `.razor.css` association ceremony                 | Scoped CSS via a sibling `{Component}.css` (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded under `dotnet watch`. Same idea for JS: a sibling `{Component}.js` is bundled and dispatched by the framework.                                                                               |
+| Separate render modes to wire up                  | **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when switching render mode. Server-only (multipart upload) and WASM-only (chunked file reads, inline downloads) behaviours live in the hosts, not in your tree.                                                |
+| `<AuthorizeView>` + `AuthenticationStateProvider` | `Component.User` everywhere (a never-null `ClaimsPrincipal`) and a headless `Authorize(...)` component with `Authorized`/`NotAuthorized`/`Authorizing` slots. Auth itself is configured on ASP.NET's **own** `AddCookie`/`AddJwtBearer`/`AddAuthorization` — Rask adds no parallel options surface.                       |
 
 Rask isn't a Blazor replacement so much as a different take on the same problem space. If those trade-offs appeal, the
 rest of this README walks through what they look like in practice.
@@ -300,7 +305,8 @@ First-run snags and their fixes:
   is a build error: `RASK015`/`RASK016` for CSS, `RASK017`/`RASK018` for JS. Two components with scoped JS that share a
   simple type name warn with `RASK020` (they'd collide at `window.Rask[Name]`). Check the build output.
 - **Blank page or 404s on `/_rask/...` assets behind a reverse proxy or sub-path.** The app is almost certainly running
-  under a URL prefix the framework doesn't know about — set `PathBase`. See *Sub-path hosting & side-by-side apps* below.
+  under a URL prefix the framework doesn't know about — set `PathBase`. See *Sub-path hosting & side-by-side apps*
+  below.
 
 ## 🌐 Sub-path hosting & side-by-side apps
 
@@ -344,19 +350,24 @@ default — unchanged behaviour). The CI workflow shipping `Rask.Example.Wasm` t
 
 Beyond the quick starts, the repo ships runnable showcase apps that exercise every feature end-to-end:
 
-- **`samples/Rask.Example.Server`** / **`samples/Rask.Example.Wasm`** / **`samples/Rask.Example.Wasm.Host`** — the same showcase under each
-  host model. Run one with `dotnet run --project samples/Rask.Example.Server` (or `samples/Rask.Example.Wasm.Host`) and open the printed
+- **`samples/Rask.Example.Server`** / **`samples/Rask.Example.Wasm`** / **`samples/Rask.Example.Wasm.Host`** — the same
+  showcase under each
+  host model. Run one with `dotnet run --project samples/Rask.Example.Server` (or `samples/Rask.Example.Wasm.Host`) and
+  open the printed
   URL.
-- **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation, nested-form
+- **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation,
+  nested-form
   binding, routing, JS interop, virtualization (a 10K-row table), file upload/download, and **auth gating** (the `/user`
   page shows both imperative `Component.User` and the declarative `Authorize` component). These are the canonical
-  references cited throughout *Core concepts* below. For production auth flows see **[docs/authentication.md](docs/authentication.md)**.
+  references cited throughout *Core concepts* below. For production auth flows see *
+  *[docs/authentication.md](docs/authentication.md)**.
 - **Runnable auth samples — one per cell of the `{Cookie, JWT} × {Server, WASM}` matrix**, each a minimal app
   (`/login`, a protected `/members`, role-gated admin content, sign-out) backed by a browser E2E:
-  - **`Rask.Example.Auth`** — cookie + Server (the redeem handshake).
-  - **`Rask.Example.Auth.Jwt`** — JWT + Server; the token rides in **`ProtectedSessionStorage`** (encrypted, never in the URL or JS).
-  - **`Rask.Example.Auth.WasmCookie(.Host)`** — cookie + WASM (HttpOnly cookie, `/api/me` hydration).
-  - **`Rask.Example.Auth.WasmJwt(.Host)`** — JWT + WASM (bearer in localStorage, `Authorization: Bearer`).
+    - **`Rask.Example.Auth`** — cookie + Server (the redeem handshake).
+    - **`Rask.Example.Auth.Jwt`** — JWT + Server; the token rides in **`ProtectedSessionStorage`** (encrypted, never in
+      the URL or JS).
+    - **`Rask.Example.Auth.WasmCookie(.Host)`** — cookie + WASM (HttpOnly cookie, `/api/me` hydration).
+    - **`Rask.Example.Auth.WasmJwt(.Host)`** — JWT + WASM (bearer in localStorage, `Authorization: Bearer`).
 
   Run a server cell directly — `dotnet run --project samples/Rask.Example.Auth.Jwt` — and a WASM cell via its host —
   `dotnet run --project samples/Rask.Example.Auth.WasmCookie.Host` — then visit `/members`. Sign in with
@@ -373,7 +384,8 @@ The collapsible sections below are a feature-by-feature tour. For step-by-step g
 see **[`docs/`](docs/)**:
 
 - **[Getting started](docs/getting-started.md)** — scaffold, first component, interactivity, routing.
-- **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · **[Authentication](docs/authentication.md)**
+- **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · *
+  *[Authentication](docs/authentication.md)**
 - **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
 - **[Diagnostics (RASK001–022)](docs/diagnostics.md)** — every build error/warning and its fix.
 - **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.
@@ -398,8 +410,10 @@ binds straight to the indexer (an `IEnumerable<Component>` overload handles the 
 `Render()` (and the `Head` override) return `RenderResult`, which accepts three shapes:
 
 - **A single component** — `Render() => Div()[...]` (converts implicitly).
-- **A collection expression** — `Render() => [Doctype(), Html(...)]` for multiple top-level nodes, with no wrapper element. (This is sugar for `Fragment()[...]`; the items are grouped into a `Fragment` internally.)
-- **`default`** — render nothing / no contribution. Conditionals target-type each branch, so `Render() => ready ? [Doctype(), Html(...)] : default;` works.
+- **A collection expression** — `Render() => [Doctype(), Html(...)]` for multiple top-level nodes, with no wrapper
+  element. (This is sugar for `Fragment()[...]`; the items are grouped into a `Fragment` internally.)
+- **`default`** — render nothing / no contribution. Conditionals target-type each branch, so
+  `Render() => ready ? [Doctype(), Html(...)] : default;` works.
 
 ```csharp
 public sealed class Greeting : Component
@@ -641,7 +655,8 @@ auth configured through ASP.NET's own AddCookie/AddJwtBearer, and a security che
 <summary><b>📑 Page head contributions</b></summary>
 <br>
 
-Any component can override `protected virtual RenderResult Head` to declare what belongs in `<head>` while that component
+Any component can override `protected virtual RenderResult Head` to declare what belongs in `<head>` while that
+component
 is in the tree. The default is `default` — no contribution; a single tag, a collection expression of several tags, or
 `default` for "nothing" are all valid (e.g. `Head => loggedIn ? [Meta(...)] : default`):
 
@@ -772,7 +787,8 @@ The inline `Validate:` lambda already covers async per-field rules — return a 
 submit bridge awaits it before routing, with rapid keystrokes cancelling any prior in-flight check (latest-wins). Reach
 for a full **`IAsyncFieldValidator`** when the rule needs DI (an `HttpClient`, a repository) or you want to reuse it
 across forms: implement it and add it to a manually built `EditContext`. `ValidatingIndicator` is headless too — pass a
-`Template:` lambda for whatever should show while the field is being checked (e.g. `Template: () => Span()["Checking..."]`).
+`Template:` lambda for whatever should show while the field is being checked (e.g.
+`Template: () => Span()["Checking..."]`).
 
 ```csharp
 public sealed class UniqueUsernameValidator : IAsyncFieldValidator
@@ -1081,7 +1097,8 @@ The wrapper is stripped at compile time and the rule emits exactly the inner sel
 
 Drop a sibling `{Component}.js` file next to `{Component}.cs` to colocate behavior with markup. The file exports any
 number of named functions; the framework wraps each file as
-`window.Rask["{TypeName}"] = (function () { /* exports */ return { … }; })();` — so each `export function rendered(...) { ... }`
+`window.Rask["{TypeName}"] = (function () { /* exports */ return { … }; })();` — so each
+`export function rendered(...) { ... }`
 becomes `window.Rask.{TypeName}.rendered`. Delivery mirrors scoped CSS: per-component and content-addressed, identical
 on Server and WASM. The framework auto-emits one `<script src="/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}">`
 per mounted component type with a registered script. `defer` means scoped JS runs after parse, so any CDN scripts you
@@ -1230,7 +1247,8 @@ projection whose body becomes a `Child`, or an element `.Add(...)`-ed to a `List
 (or a `Data` `rask-key`) to clear it. Suppress per-site with `#pragma warning disable RASK022`, or promote it to an
 error with `<WarningsAsErrors>RASK022</WarningsAsErrors>` in the `.csproj`.
 
-See `samples/Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with keys
+See `samples/Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with
+keys
 on vs off to watch DOM state follow (or not follow) its row.
 
 </details>
@@ -1297,24 +1315,25 @@ Headline numbers from `Rask.Benchmarks.VsBlazor` — Rask vs Blazor's
 `HtmlRenderer` (Scope 1, render hot path), `RenderTreeBuilder` parameter
 churn (Scope 2, live-diff payload). Measured 2026-05-27 on **Apple M4 Pro
 (14 logical cores, .NET 10.0.5)** with BenchmarkDotNet ShortRun (3 warmup
-+ 3 iteration + 1 launch, `[MemoryDiagnoser]`). Lower-is-better for both
-columns; bold marks the winner.
 
-| Scenario                                          | Rask time      | Blazor time    | Rask alloc    | Blazor alloc  |
-|---------------------------------------------------|----------------|----------------|---------------|---------------|
-| Counter render (1 button, 1 span)                 | **246 ns**     | 1 030 ns       | **1.59 KB**   | 3.37 KB       |
-| AttributeHeavy 100 elements × 20 attrs            | **88 µs**      | 147 µs         | **273 KB**    | 436 KB        |
-| AttributeHeavy 100 elements × 50 attrs            | **256 µs**     | 314 µs         | **842 KB**    | 1 028 KB      |
-| LiveDiff: counter on 200-row page                 | **49 µs**      | 136 µs         | **87 KB**     | 229 KB        |
-| LiveDiff: attribute update on 100 × 20 page       | **131 µs**     | 242 µs         | **343 KB**    | 589 KB        |
-| LiveDiff: input-typing burst (3-field form)       | **1.2 µs**     | 2.9 µs         | **5.81 KB**   | 5.84 KB       |
-| LiveDiff: multi-attribute (5 attrs on root)       | **1.1 µs**     | 3.1 µs         | **4.47 KB**   | 6.63 KB       |
-| Realistic: dashboard counter tick                 | **8.9 µs**     | 23.7 µs        | **27 KB**     | 49 KB         |
-| Realistic: navigation tab switch                  | **15.9 µs**    | 34.1 µs        | **25.7 KB**   | 56.7 KB       |
-| Virtualize 1000 items vs render-all (Rask wins)   | **1.9 µs**     | 163 µs         | **11.2 KB**   | 609 KB        |
-| Scale: keyed-list reorder (1 000 rows)            | **269 µs** (0.93×) | 290 µs     | 658 KB        | **464 KB**    |
-| Scale: keyed-list reorder (5 000 rows)            | 1 625 µs (1.08×) | **1 505 µs** | 3 391 KB      | **3 266 KB**  |
-| Scale: random permutation 1 000 keyed rows        | 477 µs (1.39×) | **343 µs**     | 632 KB        | **457 KB**    |
++ 3 iteration + 1 launch, `[MemoryDiagnoser]`). Lower-is-better for both
+  columns; bold marks the winner.
+
+| Scenario                                        | Rask time          | Blazor time  | Rask alloc  | Blazor alloc |
+|-------------------------------------------------|--------------------|--------------|-------------|--------------|
+| Counter render (1 button, 1 span)               | **246 ns**         | 1 030 ns     | **1.59 KB** | 3.37 KB      |
+| AttributeHeavy 100 elements × 20 attrs          | **88 µs**          | 147 µs       | **273 KB**  | 436 KB       |
+| AttributeHeavy 100 elements × 50 attrs          | **256 µs**         | 314 µs       | **842 KB**  | 1 028 KB     |
+| LiveDiff: counter on 200-row page               | **49 µs**          | 136 µs       | **87 KB**   | 229 KB       |
+| LiveDiff: attribute update on 100 × 20 page     | **131 µs**         | 242 µs       | **343 KB**  | 589 KB       |
+| LiveDiff: input-typing burst (3-field form)     | **1.2 µs**         | 2.9 µs       | **5.81 KB** | 5.84 KB      |
+| LiveDiff: multi-attribute (5 attrs on root)     | **1.1 µs**         | 3.1 µs       | **4.47 KB** | 6.63 KB      |
+| Realistic: dashboard counter tick               | **8.9 µs**         | 23.7 µs      | **27 KB**   | 49 KB        |
+| Realistic: navigation tab switch                | **15.9 µs**        | 34.1 µs      | **25.7 KB** | 56.7 KB      |
+| Virtualize 1000 items vs render-all (Rask wins) | **1.9 µs**         | 163 µs       | **11.2 KB** | 609 KB       |
+| Scale: keyed-list reorder (1 000 rows)          | **269 µs** (0.93×) | 290 µs       | 658 KB      | **464 KB**   |
+| Scale: keyed-list reorder (5 000 rows)          | 1 625 µs (1.08×)   | **1 505 µs** | 3 391 KB    | **3 266 KB** |
+| Scale: random permutation 1 000 keyed rows      | 477 µs (1.39×)     | **343 µs**   | 632 KB      | **457 KB**   |
 
 **Where Rask wins (wire bytes):** the [diff codec](#live-rendering--the-diff-codec)
 is the main lever — a counter tick on a 200-row page ships ~41 bytes over the wire
@@ -1324,7 +1343,8 @@ latest to cross over: the move run collapses into one `PermutationBatch` op carr
 the shared parent path once, so a 200-row reverse-sort drops from 3.9 KB to **1.1 KB
 (2.99× vs Blazor)** — the last like-for-like byte loss, now a win. See the full
 per-scenario table and methodology in
-[`benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md`](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md).
+[
+`benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md`](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md).
 
 **Where Rask wins (CPU/alloc):** small-tree renders, attribute-heavy markup, live diffs
 that touch only a few nodes on a large page, virtualised lists, and the "realistic"
@@ -1385,7 +1405,8 @@ Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** 
   example hosts.
 - **Benchmarks:** baselines for the render hot path live in `Rask.Benchmarks` (BenchmarkDotNet); committed reports
   under `BenchmarkDotNet.Artifacts/results/`. `Rask.Benchmarks.VsBlazor` adds a head-to-head suite measuring Rask
-  against Blazor on shared scenarios — render throughput and the wire-efficiency the [diff codec](#live-rendering--the-diff-codec)
+  against Blazor on shared scenarios — render throughput and the wire-efficiency
+  the [diff codec](#live-rendering--the-diff-codec)
   buys on live updates.
 - **Trimming:** `Rask.Example.Wasm` publishes with zero IL warnings. See `CLAUDE.md` for the contract that keeps it
   that way.
@@ -1400,7 +1421,8 @@ Rask is released under the [MIT License](LICENSE).
 
 ⚡ **Rask** — *Norwegian/Danish/Swedish for "fast".*
 
-**[Live demo ↗](https://pal-tamas.github.io/rask/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)** · **[License](LICENSE)**
+**[Live demo ↗](https://pal-tamas.github.io/rask/)** · **[NuGet ↗](https://www.nuget.org/packages/Rask.Server)** · *
+*[License](LICENSE)**
 
 Built with .NET 10. Issues and PRs welcome.
 

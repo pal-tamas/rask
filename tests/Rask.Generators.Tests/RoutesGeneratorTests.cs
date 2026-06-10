@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Tests;
@@ -585,7 +586,7 @@ public class RoutesGeneratorTests
         Assert.Contains("new(typeof(global::Demo.TodosPage), \"/todos/{id:guid}/edit\", null)", registry);
 
         // DynamicDependency is per-type, not per-template — exactly one entry per type.
-        var dynDepCount = System.Text.RegularExpressions.Regex
+        var dynDepCount = Regex
             .Matches(registry, "typeof\\(global::Demo\\.TodosPage\\)\\)\\]").Count;
         Assert.Equal(1, dynDepCount);
     }

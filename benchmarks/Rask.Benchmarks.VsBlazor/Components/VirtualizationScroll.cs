@@ -29,13 +29,15 @@ internal static class VirtualizationScroll
     public const int ViewportHeightPx = 240;
 
     private static readonly FieldInfo ScrollTopField = typeof(RaskVirtualize)
-        .GetField("_scrollTop", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("Rask.Core.Components.Virtualize._scrollTop field not found");
+                                                           .GetField("_scrollTop",
+                                                               BindingFlags.Instance | BindingFlags.NonPublic)
+                                                       ?? throw new InvalidOperationException(
+                                                           "Rask.Core.Components.Virtualize._scrollTop field not found");
 
     /// <summary>
     ///     Construct the Rask tree once. The returned root holds a reference to the
     ///     internal Virtualize instance so the caller can advance the simulated
-    ///     scroll position via <see cref="SetScrollTop"/> between renders.
+    ///     scroll position via <see cref="SetScrollTop" /> between renders.
     /// </summary>
     public static (Component Root, RaskVirtualize Instance) BuildRask()
     {
@@ -45,8 +47,8 @@ internal static class VirtualizationScroll
             items[i] = i;
         }
 
-        var virt = C.Virtualize<int>(
-            Render: ctx =>
+        var virt = C.Virtualize(
+            ctx =>
             {
                 var rows = new List<Child>(ctx.VisibleItems.Count);
                 foreach (var item in ctx.VisibleItems)
@@ -58,7 +60,7 @@ internal static class VirtualizationScroll
 
                 return C.Div(Class: "viewport", Style: $"height:{ViewportHeightPx}px;overflow:auto")[rows];
             },
-            Items: items,
+            items,
             ItemSize: ItemSizePx,
             OverscanCount: 0,
             InitialClientHeight: ViewportHeightPx);

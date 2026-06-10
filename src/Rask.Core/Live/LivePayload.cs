@@ -9,6 +9,19 @@ namespace Rask.Core.Live;
 
 public static class LivePayload
 {
+    // The Utf8JsonWriter default encoder is HTML-safe — it rewrites `<`, `>`, `&`, `+`,
+    // `'`, and a long list of other characters to `\uXXXX` escapes so the JSON can be
+    // embedded inside an HTML <script> tag without prematurely closing it. Diff payloads
+    // never appear inline in HTML (they flow over the WebSocket and are decoded by
+    // JSON.parse), and InsertSubtree ops carry whole HTML fragments where every `<` and
+    // `>` would otherwise pay a 5× byte tax. UnsafeRelaxedJsonEscaping only escapes the
+    // JSON-required characters (`"`, `\`, control bytes) — JSON.parse on the client
+    // produces the identical string either way, so this is a pure wire-size win.
+    private static readonly JsonWriterOptions DiffWriterOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public static string InjectRootAttr(string html, string sessionId)
     {
         // Linear scan for the first "<body" (case-insensitive). Faster than a compiled regex
@@ -232,19 +245,6 @@ public static class LivePayload
         writer.WriteStringValue(name);
     }
 
-    // The Utf8JsonWriter default encoder is HTML-safe — it rewrites `<`, `>`, `&`, `+`,
-    // `'`, and a long list of other characters to `\uXXXX` escapes so the JSON can be
-    // embedded inside an HTML <script> tag without prematurely closing it. Diff payloads
-    // never appear inline in HTML (they flow over the WebSocket and are decoded by
-    // JSON.parse), and InsertSubtree ops carry whole HTML fragments where every `<` and
-    // `>` would otherwise pay a 5× byte tax. UnsafeRelaxedJsonEscaping only escapes the
-    // JSON-required characters (`"`, `\`, control bytes) — JSON.parse on the client
-    // produces the identical string either way, so this is a pure wire-size win.
-    private static readonly JsonWriterOptions DiffWriterOptions = new()
-    {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
-
     public static void BuildPayloadUtf8Diff(
         ArrayBufferWriter<byte> output,
         IReadOnlyList<EditOp> ops,
@@ -266,8 +266,16 @@ public static class LivePayload
         for (var i = 0; i < ops.Count; i++)
         {
             var op = ops[i];
-            if (op.Name is null) continue;
-            if (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute) continue;
+            if (op.Name is null)
+            {
+                continue;
+            }
+
+            if (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute)
+            {
+                continue;
+            }
+
             nameCount ??= new Dictionary<string, int>(StringComparer.Ordinal);
             nameCount.TryGetValue(op.Name, out var c);
             nameCount[op.Name] = c + 1;
@@ -278,7 +286,11 @@ public static class LivePayload
         {
             foreach (var kv in nameCount)
             {
-                if (kv.Value < 3) continue;
+                if (kv.Value < 3)
+                {
+                    continue;
+                }
+
                 nameIndex ??= new Dictionary<string, int>(StringComparer.Ordinal);
                 internedNames ??= new List<string>();
                 nameIndex[kv.Key] = internedNames.Count;
@@ -297,6 +309,7 @@ public static class LivePayload
             {
                 writer.WriteStringValue(n);
             }
+
             writer.WriteEndArray();
         }
 
@@ -311,25 +324,47 @@ public static class LivePayload
             {
                 writer.WriteNumberValue(step);
             }
+
             writer.WriteEndArray();
 
             switch (op.Kind)
             {
                 case EditOpKind.SetAttribute:
                     WriteInternedOrString(writer, op.Name, nameIndex);
-                    if (op.Value is null) writer.WriteNullValue();
-                    else writer.WriteStringValue(op.Value);
+                    if (op.Value is null)
+                    {
+                        writer.WriteNullValue();
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(op.Value);
+                    }
+
                     break;
                 case EditOpKind.RemoveAttribute:
                     WriteInternedOrString(writer, op.Name, nameIndex);
                     break;
                 case EditOpKind.UpdateText:
-                    if (op.Value is null) writer.WriteNullValue();
-                    else writer.WriteStringValue(op.Value);
+                    if (op.Value is null)
+                    {
+                        writer.WriteNullValue();
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(op.Value);
+                    }
+
                     break;
                 case EditOpKind.InsertSubtree:
-                    if (op.Value is null) writer.WriteNullValue();
-                    else writer.WriteStringValue(op.Value);
+                    if (op.Value is null)
+                    {
+                        writer.WriteNullValue();
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(op.Value);
+                    }
+
                     writer.WriteNumberValue(op.Length);
                     break;
                 case EditOpKind.RemoveSubtree:
@@ -340,8 +375,12 @@ public static class LivePayload
                     writer.WriteStartArray();
                     if (op.Moves is { } moves)
                     {
-                        foreach (var m in moves) writer.WriteNumberValue(m);
+                        foreach (var m in moves)
+                        {
+                            writer.WriteNumberValue(m);
+                        }
                     }
+
                     writer.WriteEndArray();
                     break;
             }
@@ -405,7 +444,7 @@ public static class LivePayload
             return;
         }
 
-        int sliceStartChar = includeOnlyBody ? bodyOpenChar : 0;
+        var sliceStartChar = includeOnlyBody ? bodyOpenChar : 0;
         int sliceEndChar;
         if (includeOnlyBody)
         {

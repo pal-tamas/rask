@@ -26,8 +26,8 @@ internal static class TestServices
 
         sc.AddSingleton(http ?? new HttpClient { BaseAddress = new Uri("https://example.test/") });
         sc.AddSingleton<IJSRuntime>(js ?? new FakeJsRuntime());
-        sc.AddSingleton<IDownloadSink>(downloadSink ?? new CapturingDownloadSink());
-        sc.AddSingleton<IBannedWordService>(bannedWords ?? new BannedWordService());
+        sc.AddSingleton(downloadSink ?? new CapturingDownloadSink());
+        sc.AddSingleton(bannedWords ?? new BannedWordService());
 
         return sc.BuildServiceProvider();
     }

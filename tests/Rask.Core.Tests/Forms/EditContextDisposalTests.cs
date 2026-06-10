@@ -25,7 +25,7 @@ public class EditContextDisposalTests
         Assert.False(ctx.IsDisposed);
 
         show = false;
-        view.RenderAsLiveRoot();      // form unmounted → ctx not re-resolved this frame
+        view.RenderAsLiveRoot(); // form unmounted → ctx not re-resolved this frame
         Assert.True(ctx.IsDisposed);
     }
 
@@ -55,8 +55,8 @@ public class EditContextDisposalTests
         // so the finally arms the 100ms sticky timer.
         await ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"));
 
-        ctx.Dispose();                // must dispose the armed timer before it fires
-        await Task.Delay(250);        // well past the sticky window
+        ctx.Dispose(); // must dispose the armed timer before it fires
+        await Task.Delay(250); // well past the sticky window
 
         Assert.Equal(0, renderRequests);
         Assert.True(ctx.IsDisposed);
@@ -72,7 +72,7 @@ public class EditContextDisposalTests
         Assert.True(ctx.IsDisposed);
         Assert.Null(ctx.RequestRender);
 
-        ctx.Dispose();                // second dispose must not throw
+        ctx.Dispose(); // second dispose must not throw
         Assert.True(ctx.IsDisposed);
     }
 

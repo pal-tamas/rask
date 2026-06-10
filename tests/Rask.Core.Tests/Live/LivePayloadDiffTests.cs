@@ -60,14 +60,10 @@ public class LivePayloadDiffTests
         // Fire-and-forget IJSRuntime invokes ride the diff payload the same way they
         // ride the full-HTML payload, so a per-render js.InvokeVoidAsync no longer
         // forces the whole page onto the full-HTML path on the server runtime.
-        var ops = new List<EditOp>
-        {
-            new(EditOpKind.UpdateText, new[] { 0, 1 }, null, "echo")
-        };
+        var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0, 1 }, null, "echo") };
         var invokes = new List<PendingJsInvoke>
         {
-            new(7, "Rask.CodeSample.rendered", "[false]", 1, 0),
-            new(8, "sessionStorage.getItem", "[\"k\"]", 0, 42)
+            new(7, "Rask.CodeSample.rendered", "[false]", 1, 0), new(8, "sessionStorage.getItem", "[\"k\"]", 0, 42)
         };
 
         var output = new ArrayBufferWriter<byte>(256);
@@ -144,8 +140,8 @@ public class LivePayloadDiffTests
         // pick the wrong source.
         var ops = new List<EditOp>
         {
-            new(EditOpKind.MoveSubtree, new[] { 1, 0 }, null, null, length: 7, trusted: true),
-            new(EditOpKind.MoveSubtree, new[] { 1, 3 }, null, null, length: 0, trusted: true)
+            new(EditOpKind.MoveSubtree, new[] { 1, 0 }, null, null, 7, true),
+            new(EditOpKind.MoveSubtree, new[] { 1, 3 }, null, null, 0, true)
         };
 
         var output = new ArrayBufferWriter<byte>(128);
@@ -191,10 +187,7 @@ public class LivePayloadDiffTests
     [Fact]
     public void BuildPayloadUtf8Diff_InsertSubtree_EncodesHtmlAndDomCount()
     {
-        var ops = new List<EditOp>
-        {
-            new(EditOpKind.InsertSubtree, new[] { 0, 2 }, null, "<li>new</li>", length: 1, trusted: true)
-        };
+        var ops = new List<EditOp> { new(EditOpKind.InsertSubtree, new[] { 0, 2 }, null, "<li>new</li>", 1, true) };
 
         var output = new ArrayBufferWriter<byte>(128);
         LivePayload.BuildPayloadUtf8Diff(output, ops);
@@ -215,10 +208,7 @@ public class LivePayloadDiffTests
         // Bare HTML attributes (`disabled`, `required`) carry no value. The positional
         // format must still emit a slot so the client reads name and value from the
         // expected indices.
-        var ops = new List<EditOp>
-        {
-            new(EditOpKind.SetAttribute, new[] { 0 }, "disabled", null)
-        };
+        var ops = new List<EditOp> { new(EditOpKind.SetAttribute, new[] { 0 }, "disabled", null) };
 
         var output = new ArrayBufferWriter<byte>(64);
         LivePayload.BuildPayloadUtf8Diff(output, ops);
@@ -273,7 +263,7 @@ public class LivePayloadDiffTests
         {
             new(EditOpKind.SetAttribute, new[] { 0, 0 }, "class", "a"),
             new(EditOpKind.SetAttribute, new[] { 0, 1 }, "class", "b"),
-            new(EditOpKind.SetAttribute, new[] { 0, 2 }, "style", "color:red"),
+            new(EditOpKind.SetAttribute, new[] { 0, 2 }, "style", "color:red")
         };
 
         var output = new ArrayBufferWriter<byte>(256);
@@ -306,7 +296,7 @@ public class LivePayloadDiffTests
     public void BuildPayloadUtf8Diff_IncludesHistory_WhenProvided()
     {
         var output = new ArrayBufferWriter<byte>(128);
-        LivePayload.BuildPayloadUtf8Diff(output, new List<EditOp>(), "/page/2", replace: true);
+        LivePayload.BuildPayloadUtf8Diff(output, new List<EditOp>(), "/page/2", true);
 
         var json = Encoding.UTF8.GetString(output.WrittenSpan);
         using var doc = JsonDocument.Parse(json);

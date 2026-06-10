@@ -101,5 +101,8 @@ public sealed class HeadAssetPathBaseTests : IDisposable
         Assert.Contains($"href=\"/a/b/_rask/a/{hash}.css\"", html);
     }
 
-    private sealed class Widget : Component { protected override RenderResult Render() => this; }
+    private sealed class Widget : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

@@ -13,8 +13,8 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 
 public abstract class RealisticDiffBase
 {
-    protected RaskHarness Rask = null!;
     protected BlazorRenderBatchCapture Blazor = null!;
+    protected RaskHarness Rask = null!;
 
     [GlobalCleanup]
     public void Cleanup()
@@ -27,8 +27,8 @@ public abstract class RealisticDiffBase
 [MemoryDiagnoser]
 public class Realistic_DashboardWidgetsBenchmarks : RealisticDiffBase
 {
-    private DashboardWidgets.StatefulDashboard _stateful = null!;
     private int _blazorCounter;
+    private DashboardWidgets.StatefulDashboard _stateful = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -67,10 +67,10 @@ public class Realistic_DashboardWidgetsBenchmarks : RealisticDiffBase
 [MemoryDiagnoser]
 public class Realistic_TableSortFilterBenchmarks : RealisticDiffBase
 {
-    private TableSortFilter.StatefulTableSortFilter _stateful = null!;
     private int[] _initialOrder = null!;
-    private int[] _reversedOrder = null!;
     private bool _reversed;
+    private int[] _reversedOrder = null!;
+    private TableSortFilter.StatefulTableSortFilter _stateful = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -81,9 +81,17 @@ public class Realistic_TableSortFilterBenchmarks : RealisticDiffBase
         _stateful = new TableSortFilter.StatefulTableSortFilter();
 #pragma warning restore RASK014
         _initialOrder = new int[TableSortFilter.InitialRowCount];
-        for (var i = 0; i < TableSortFilter.InitialRowCount; i++) _initialOrder[i] = i;
+        for (var i = 0; i < TableSortFilter.InitialRowCount; i++)
+        {
+            _initialOrder[i] = i;
+        }
+
         _reversedOrder = new int[TableSortFilter.InitialRowCount];
-        for (var i = 0; i < TableSortFilter.InitialRowCount; i++) _reversedOrder[i] = TableSortFilter.InitialRowCount - 1 - i;
+        for (var i = 0; i < TableSortFilter.InitialRowCount; i++)
+        {
+            _reversedOrder[i] = TableSortFilter.InitialRowCount - 1 - i;
+        }
+
         Rask.SeedPrevious(_stateful);
     }
 
@@ -114,10 +122,10 @@ public class Realistic_TableSortFilterBenchmarks : RealisticDiffBase
 [MemoryDiagnoser]
 public class Realistic_FormValidationChurnBenchmarks : RealisticDiffBase
 {
-    private FormValidationChurn.StatefulForm _stateful = null!;
-    private string?[] _blazorValues = null!;
     private bool[] _blazorInvalid = null!;
+    private string?[] _blazorValues = null!;
     private int _cursor;
+    private FormValidationChurn.StatefulForm _stateful = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -168,8 +176,8 @@ public class Realistic_FormValidationChurnBenchmarks : RealisticDiffBase
 [MemoryDiagnoser]
 public class Realistic_NavSwitchBenchmarks : RealisticDiffBase
 {
-    private NavSwitch.StatefulNavSwitch _stateful = null!;
     private int _blazorActive;
+    private NavSwitch.StatefulNavSwitch _stateful = null!;
 
     [GlobalSetup]
     public void Setup()

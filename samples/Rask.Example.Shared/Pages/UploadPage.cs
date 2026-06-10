@@ -33,30 +33,30 @@ public sealed class UploadPage : Component
     }
 
     protected override RenderResult Render() =>
-        [
-            PageHeader.Render(
-                "File upload",
-                "Input(Type: \"file\", OnFiles: …) wires a file picker to a typed handler. RaskFile carries the metadata; OpenReadStream gives you a Stream for the bytes — over multipart POST on the server, via JS chunked reads on WASM."),
-            H2(Class: "h4 mt-4 mb-3")["Pick a file"],
-            CodeSample(
-                """
-                Input(Type: "file", OnFiles: files => {
-                    var file = files[0];
-                    _name = file.Name;
-                    _size = file.Size;
-                    _contentType = file.ContentType;
-                    _modified = file.LastModified;
-                })
+    [
+        PageHeader.Render(
+            "File upload",
+            "Input(Type: \"file\", OnFiles: …) wires a file picker to a typed handler. RaskFile carries the metadata; OpenReadStream gives you a Stream for the bytes — over multipart POST on the server, via JS chunked reads on WASM."),
+        H2(Class: "h4 mt-4 mb-3")["Pick a file"],
+        CodeSample(
+            """
+            Input(Type: "file", OnFiles: files => {
+                var file = files[0];
+                _name = file.Name;
+                _size = file.Size;
+                _contentType = file.ContentType;
+                _modified = file.LastModified;
+            })
 
-                // Inside the same handler — or any handler that ran while the
-                // file is still alive — read the bytes:
-                // using var s = file.OpenReadStream(maxAllowedSize, CancellationToken);
-                // await s.CopyToAsync(destination);
-                """,
-                Notes:
-                "The handler runs once per change event. RaskFile is only valid while the handler is on the stack — read whatever you need (bytes, metadata) before returning. The same component code runs unchanged on both hosts.",
-                Result: RenderResult())
-        ];
+            // Inside the same handler — or any handler that ran while the
+            // file is still alive — read the bytes:
+            // using var s = file.OpenReadStream(maxAllowedSize, CancellationToken);
+            // await s.CopyToAsync(destination);
+            """,
+            Notes:
+            "The handler runs once per change event. RaskFile is only valid while the handler is on the stack — read whatever you need (bytes, metadata) before returning. The same component code runs unchanged on both hosts.",
+            Result: RenderResult())
+    ];
 
     private Component RenderResult() =>
         Div()[

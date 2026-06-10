@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Components;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
+using Rask.Core;
 using RaskVirtualize = Rask.Core.Components.Virtualize;
 
 namespace Rask.Benchmarks.VsBlazor.Benchmarks;
@@ -14,8 +15,8 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 [MemoryDiagnoser]
 public class RenderHotPath_VirtualizedListBenchmarks : RenderHotPathBase
 {
+    private Component _raskRoot = null!;
     private RaskVirtualize _raskVirt = null!;
-    private Rask.Core.Component _raskRoot = null!;
 
     public override void Setup()
     {
@@ -42,10 +43,10 @@ public class RenderHotPath_VirtualizedListBenchmarks : RenderHotPathBase
 [MemoryDiagnoser]
 public class LiveDiffPayload_VirtualizationScrollBenchmarks : LiveDiffPayloadBase
 {
-    private RaskVirtualize _raskVirt = null!;
-    private Rask.Core.Component _raskRoot = null!;
-    private int _scrollStep;
     private int _blazorSalt;
+    private Component _raskRoot = null!;
+    private RaskVirtualize _raskVirt = null!;
+    private int _scrollStep;
 
     [GlobalSetup]
     public void Setup()

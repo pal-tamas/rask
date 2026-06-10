@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
+using Rask.Examples.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -50,7 +51,7 @@ public sealed partial class StandaloneWasmExampleTests
         }
         finally
         {
-            await Infrastructure.TestArtifacts.DumpAsync(
+            await TestArtifacts.DumpAsync(
                 Page, FixtureName, nameof(LiveTickerSidebarNav_UpdatesBrowserUrl), ServerLog);
         }
     }

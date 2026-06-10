@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Globalization;
+using System.Text;
 using Rask.Core;
 using Rask.Core.Live;
 using C = Rask.Core.Components.Generated;
@@ -68,7 +69,7 @@ internal static class PayloadBytesReport
         FrameDiffer.Diff(beforeFrames, afterFrames, ops, html);
 
         writer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8Diff(writer, ops, null, false);
+        LivePayload.BuildPayloadUtf8Diff(writer, ops);
         var diffBytes = writer.WrittenCount;
 
         Console.WriteLine(string.Format(
@@ -79,7 +80,7 @@ internal static class PayloadBytesReport
 
     private static RenderFrame[] CaptureFrames(Component tree)
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         var fw = new FrameWriter();
         using (FrameSinkScope.Push(fw))
         {

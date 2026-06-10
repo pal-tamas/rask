@@ -7,6 +7,17 @@ internal sealed class LifecycleLog
 {
     private readonly List<string> _entries = [];
 
+    public int Count
+    {
+        get
+        {
+            lock (_entries)
+            {
+                return _entries.Count;
+            }
+        }
+    }
+
     public void Add(string entry)
     {
         lock (_entries)
@@ -36,17 +47,6 @@ internal sealed class LifecycleLog
             }
 
             return false;
-        }
-    }
-
-    public int Count
-    {
-        get
-        {
-            lock (_entries)
-            {
-                return _entries.Count;
-            }
         }
     }
 }

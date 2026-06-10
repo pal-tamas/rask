@@ -66,7 +66,9 @@ app.UseRask(); // serve the published WASM AppBundle
 app.Run();
 
 public sealed record LoginRequest(string Username, string Password);
+
 public sealed record TokenResponse(string Token);
+
 public sealed record MeDto(string Name, string[] Roles);
 
 public interface ICredentialStore
@@ -98,9 +100,9 @@ public sealed class JwtIssuer(SymmetricSecurityKey key)
         }
 
         var token = new JwtSecurityToken(
-            issuer: "rask-jwt-demo",
-            audience: "rask-jwt-demo",
-            claims: claims,
+            "rask-jwt-demo",
+            "rask-jwt-demo",
+            claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 

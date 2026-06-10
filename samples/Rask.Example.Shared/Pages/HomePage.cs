@@ -1,4 +1,3 @@
-using System.Linq;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
@@ -9,8 +8,6 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class HomePage(Navigator nav) : Component
 {
-    protected override RenderResult Head => Title()["Welcome — Rask"];
-
     // The showcase index, grouped to mirror the left-hand nav. Every runnable demo page is
     // surfaced here so the home page doubles as a feature map.
     private static readonly string[] SectionOrder =
@@ -50,7 +47,8 @@ public sealed class HomePage(Navigator nav) : Component
         ("Styling", "bi-palette", "Scoped CSS", "Co-located, isolated component styles.", "/scoped-css"),
         ("Styling", "bi-link-45deg", "Asset loading", "Content-addressed scoped assets.", "/asset-loading"),
 
-        ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.", "/http"),
+        ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",
+            "/http"),
         ("Data & files", "bi-upload", "File upload", "Staged multipart uploads.", "/upload"),
         ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
 
@@ -58,65 +56,67 @@ public sealed class HomePage(Navigator nav) : Component
         ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime")
     ];
 
+    protected override RenderResult Head => Title()["Welcome — Rask"];
+
     protected override RenderResult Render() =>
-        [
-            Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
-                Div(Class: "container-fluid py-3")[
-                    Div(Class: "hero-logo mb-4")[RaskLogo.Mark(76, "heroBolt")],
-                    H1(Class: "display-5 fw-bold mb-3")[
-                        "The Rask framework, ",
-                        Span(Class: "hero-accent")["one page at a time."]
-                    ],
-                    P(Class: "fs-5 col-md-10 hero-lead mb-4")[
-                        "A small C# DSL for HTML — components, routing, lifecycle, scoped CSS, ",
-                        "and a browser-WASM client. This site is itself a Rask WASM app; ",
-                        "every example below renders live in your browser."
-                    ],
-                    Div(Class: "d-flex flex-wrap gap-2")[
-                        Button(
-                            Class: "btn btn-light btn-lg fw-semibold",
-                            OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"),
-                            "Start with Tags"],
-                        A("https://github.com/pal-tamas/rask",
-                            "_blank",
-                            Class: "btn btn-outline-light btn-lg")[I(Class: "bi bi-github me-2"),
-                            "Source on GitHub"]
-                    ]
-                ]
-            ],
-            CodeSample(
-                """
-                Fragment(
-                    Doctype(),
-                    Html("en")[
-                        Head()[Title()["Hi"]],
-                        Body()[
-                            H1()["Hello, world!"],
-                            P()["A page rendered with Rask."]
-                        ]
-                    ]
-                );
-                """,
-                "The minimal page",
-                Notes:
-                "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
-                Result: Fragment()[
-                    H1(Class: "h3 mb-2")["Hello, world!"],
-                    P(Class: "text-secondary mb-0")["A page rendered with Rask."]
-                ]),
-            H2(Class: "h4 mt-5 mb-1")["Explore the showcase"],
-            P(Class: "text-secondary mb-4")[
-                "Every page on the left has a runnable demo and the C# source that produced it."
-            ],
-            Div()[FeatureIndex()],
-            Div(Class: "alert alert-info d-flex align-items-start")[
-                I(Class: "bi bi-info-circle-fill me-3 fs-4"),
-                Div()[
-                    Strong()["Tip:"],
-                    " copy/paste any demo and its source into a fresh Rask project to follow along."
+    [
+        Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
+            Div(Class: "container-fluid py-3")[
+                Div(Class: "hero-logo mb-4")[RaskLogo.Mark(76, "heroBolt")],
+                H1(Class: "display-5 fw-bold mb-3")[
+                    "The Rask framework, ",
+                    Span(Class: "hero-accent")["one page at a time."]
+                ],
+                P(Class: "fs-5 col-md-10 hero-lead mb-4")[
+                    "A small C# DSL for HTML — components, routing, lifecycle, scoped CSS, ",
+                    "and a browser-WASM client. This site is itself a Rask WASM app; ",
+                    "every example below renders live in your browser."
+                ],
+                Div(Class: "d-flex flex-wrap gap-2")[
+                    Button(
+                        Class: "btn btn-light btn-lg fw-semibold",
+                        OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                        "Start with Tags"],
+                    A("https://github.com/pal-tamas/rask",
+                        "_blank",
+                        Class: "btn btn-outline-light btn-lg")[I(Class: "bi bi-github me-2"),
+                        "Source on GitHub"]
                 ]
             ]
-        ];
+        ],
+        CodeSample(
+            """
+            Fragment(
+                Doctype(),
+                Html("en")[
+                    Head()[Title()["Hi"]],
+                    Body()[
+                        H1()["Hello, world!"],
+                        P()["A page rendered with Rask."]
+                    ]
+                ]
+            );
+            """,
+            "The minimal page",
+            Notes:
+            "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
+            Result: Fragment()[
+                H1(Class: "h3 mb-2")["Hello, world!"],
+                P(Class: "text-secondary mb-0")["A page rendered with Rask."]
+            ]),
+        H2(Class: "h4 mt-5 mb-1")["Explore the showcase"],
+        P(Class: "text-secondary mb-4")[
+            "Every page on the left has a runnable demo and the C# source that produced it."
+        ],
+        Div()[FeatureIndex()],
+        Div(Class: "alert alert-info d-flex align-items-start")[
+            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            Div()[
+                Strong()["Tip:"],
+                " copy/paste any demo and its source into a fresh Rask project to follow along."
+            ]
+        ]
+    ];
 
     // Yields, per section in display order, a heading followed by a row of feature cards.
     private IEnumerable<Child> FeatureIndex()

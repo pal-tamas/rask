@@ -14,14 +14,15 @@ internal sealed class StubApp : Component
     public StubApp(RouteState routeState) => _routeState = routeState;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head()[Title()["stub"]],
-                Body()[
-                    H1()[$"path={_routeState.Path}"],
-                    P()[$"count={Counter}"],
-                    Button(OnClick: () => Counter++)["bump"]
-                ]
-            ]];
+    [
+        Doctype(),
+        Html()[
+            Head()[Title()["stub"]],
+            Body()[
+                H1()[$"path={_routeState.Path}"],
+                P()[$"count={Counter}"],
+                Button(OnClick: () => Counter++)["bump"]
+            ]
+        ]
+    ];
 }

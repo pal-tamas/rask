@@ -20,8 +20,8 @@ internal static class FormValidationChurn
     public sealed class StatefulForm : Component
 #pragma warning restore RASK014
     {
-        private readonly string[] _values = new string[FieldCount];
         private readonly bool[] _invalid = new bool[FieldCount];
+        private readonly string[] _values = new string[FieldCount];
 
         public void MutateField(int index)
         {
@@ -32,19 +32,20 @@ internal static class FormValidationChurn
 
         protected override RenderResult Render()
         {
-            var children = new List<Child>(FieldCount * 2 + 1);
+            var children = new List<Child>((FieldCount * 2) + 1);
             for (var i = 0; i < FieldCount; i++)
             {
                 var fieldClass = _invalid[i] ? "field invalid" : "field";
                 children.Add(C.Div(Class: fieldClass, Id: $"f{i}")[
                     C.Label()[$"Field {i}"],
-                    C.Input(Type: "text", Value: _values[i] ?? string.Empty),
+                    C.Input("text", Value: _values[i] ?? string.Empty),
                     _invalid[i]
                         ? C.Div(Class: "validation-msg")["required"]
                         : C.Div(Class: "validation-msg")
                 ]);
             }
-            children.Add(C.Button(Type: "submit")["Save"]);
+
+            children.Add(C.Button("submit")["Save"]);
 
             return C.Form()[children];
         }
@@ -73,10 +74,15 @@ internal static class FormValidationChurn
                 b.CloseElement();
                 b.OpenElement(9, "div");
                 b.AddAttribute(10, "class", "validation-msg");
-                if (Invalid[i]) b.AddContent(11, "required");
+                if (Invalid[i])
+                {
+                    b.AddContent(11, "required");
+                }
+
                 b.CloseElement();
                 b.CloseElement();
             }
+
             b.OpenElement(12, "button");
             b.AddAttribute(13, "type", "submit");
             b.AddContent(14, "Save");

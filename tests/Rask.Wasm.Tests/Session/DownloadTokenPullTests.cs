@@ -1,10 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Core.ScopedAssets;
 using Rask.Wasm.Files;
 using static Rask.Core.Components.Generated;
 
@@ -15,7 +13,6 @@ namespace Rask.Wasm.Tests.Session;
 [Collection("WasmSession")]
 public class DownloadTokenPullTests : ResettingTestBase
 {
-
     [Fact]
     public async Task DownloadTriggeredFromHandler_PayloadCarriesTokenNotBase64Bytes()
     {
@@ -68,8 +65,8 @@ public class DownloadTokenPullTests : ResettingTestBase
     private static (WasmLiveSession session, IServiceProvider services) NewSessionWithDownloadOnClick(
         string filename, byte[] bytes, string? contentType) =>
         NewSession<DownloadStubApp>(
-            appFactory: p => new DownloadStubApp(p.GetRequiredService<Navigator>(), filename, bytes, contentType),
-            configure: s => s.AddSingleton<IDownloadSink, WasmDownloadSink>());
+            p => new DownloadStubApp(p.GetRequiredService<Navigator>(), filename, bytes, contentType),
+            s => s.AddSingleton<IDownloadSink, WasmDownloadSink>());
 
     private static string ExtractToken(byte[] payload)
     {
@@ -93,13 +90,14 @@ public class DownloadTokenPullTests : ResettingTestBase
         }
 
         protected override RenderResult Render() =>
-            [
-                Doctype(),
-                Html()[
-                    Head()[Title()["dl"]],
-                    Body()[
-                        Button(OnClick: () => _nav.Download(_filename, _bytes, _contentType))["go"]
-                    ]
-                ]];
+        [
+            Doctype(),
+            Html()[
+                Head()[Title()["dl"]],
+                Body()[
+                    Button(OnClick: () => _nav.Download(_filename, _bytes, _contentType))["go"]
+                ]
+            ]
+        ];
     }
 }

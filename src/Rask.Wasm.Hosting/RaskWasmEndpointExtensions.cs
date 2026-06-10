@@ -69,7 +69,7 @@ public static class RaskWasmEndpointExtensions
         // runtime to resolve and JIT-init the defining assembly, which runs every
         // [ModuleInitializer] in that assembly. Discarded to make the intent obvious.
         _ = typeof(TApp);
-        return UseRask(endpoints, bundlePath, pathBase);
+        return endpoints.UseRask(bundlePath, pathBase);
     }
 
     public static IEndpointRouteBuilder UseRask(
@@ -119,6 +119,7 @@ public static class RaskWasmEndpointExtensions
                         await ctx.Response.WriteAsync($"Rask WASM AppBundle unavailable: {reason}.");
                     });
             }
+
             return endpoints;
         }
 
@@ -151,9 +152,7 @@ public static class RaskWasmEndpointExtensions
 
         app.UseDefaultFiles(new DefaultFilesOptions
         {
-            FileProvider = fileProvider,
-            RequestPath = pathBaseNormalized,
-            DefaultFileNames = new[] { "index.html" }
+            FileProvider = fileProvider, RequestPath = pathBaseNormalized, DefaultFileNames = new[] { "index.html" }
         });
 
         app.UseStaticFiles(new StaticFileOptions

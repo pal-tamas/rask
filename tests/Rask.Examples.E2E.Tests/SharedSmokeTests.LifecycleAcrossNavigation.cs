@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Xunit.Sdk;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -136,6 +137,6 @@ public abstract partial class SharedSmokeTests
             await Task.Delay(100);
         }
 
-        throw new Xunit.Sdk.XunitException($"Timed out after {timeoutMs} ms waiting for: {message}");
+        throw new XunitException($"Timed out after {timeoutMs} ms waiting for: {message}");
     }
 }

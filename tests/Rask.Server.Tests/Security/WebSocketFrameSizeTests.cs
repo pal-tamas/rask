@@ -1,5 +1,4 @@
 using System.Net.WebSockets;
-using Rask.Server;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Security;

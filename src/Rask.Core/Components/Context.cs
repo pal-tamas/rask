@@ -11,7 +11,7 @@ namespace Rask.Core.Components;
 ///     <code>
 ///     // provide (inside a Render)
 ///     Context.Provide&lt;Theme&gt;(Value: dark)[ Sidebar(), Content() ]
-///
+/// 
 ///     // consume (inside any descendant's Render)
 ///     var theme = Context.Required&lt;Theme&gt;();   // throws if no provider
 ///     var maybe = Context.Get&lt;Theme&gt;();        // null if no provider
@@ -53,13 +53,7 @@ public sealed class Context : Component
     ///     it is trim-safe. PascalCase parameter names match the generated-factory call style.
     /// </summary>
     public static Context Provide<TValue>(TValue Value, string? Name = null, object? Key = null) =>
-        new()
-        {
-            Value = Value,
-            ValueType = typeof(TValue),
-            Name = Name,
-            Key = Key
-        };
+        new() { Value = Value, ValueType = typeof(TValue), Name = Name, Key = Key };
 
     /// <summary>
     ///     The nearest provided value of type <typeparamref name="T" /> (optionally matched by
