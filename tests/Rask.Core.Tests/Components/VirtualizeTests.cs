@@ -308,4 +308,60 @@ public class VirtualizeTests
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("loaded", html);
     }
+
+    [Fact]
+    public void ItemsProvider_ProviderThrows_IsSwallowed_RenderSucceeds()
+    {
+        // FetchAsync wraps the provider call in try/catch(Exception): a throwing provider must be
+        // logged and dropped, never surfaced out of render. The window stays empty (count unknown).
+        VirtualizationContext<int>? captured = null;
+        var view = new StubComponent(() => Virtualize<int>(
+            ctx =>
+            {
+                captured = ctx;
+                return Div();
+            },
+            ItemsProvider: _ => throw new InvalidOperationException("provider boom"),
+            ItemSize: 20,
+            InitialClientHeight: 100));
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.NotNull(html);
+        Assert.Equal(0, captured!.TotalCount);
+        Assert.Empty(captured.VisibleItems);
+    }
+
+    [Fact]
+    public void Items_NonIListEnumerable_WindowsViaStreamingPath()
+    {
+        // A lazy iterator is neither IList nor ICollection, so CountItems and FillFromItems both
+        // take their streaming foreach branches rather than the indexed fast paths.
+        IEnumerable<int> Lazy()
+        {
+            for (var i = 0; i < 100; i++)
+            {
+                yield return i;
+            }
+        }
+
+        VirtualizationContext<int>? captured = null;
+        var view = new StubComponent(() => Virtualize(
+            ctx =>
+            {
+                captured = ctx;
+                return Div();
+            },
+            Lazy(),
+            ItemSize: 20,
+            OverscanCount: 0,
+            InitialClientHeight: 100));
+
+        view.RenderAsLiveRoot();
+
+        Assert.NotNull(captured);
+        Assert.Equal(100, captured!.TotalCount);
+        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, captured.VisibleItems.Select(v => v.Index));
+        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, captured.VisibleItems.Select(v => v.Value));
+    }
 }
