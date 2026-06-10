@@ -31,7 +31,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Route template '{0}' on '{1}' is malformed: {2}",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK003"));
 
     private static readonly DiagnosticDescriptor Rask004 = new(
         "RASK004",
@@ -39,7 +40,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Route segment '{{{0}}}' on '{1}' has no matching public settable property",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK004"));
 
     private static readonly DiagnosticDescriptor Rask005 = new(
         "RASK005",
@@ -47,7 +49,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has type '{2}', incompatible with route constraint '{3}'",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK005"));
 
     private static readonly DiagnosticDescriptor Rask006 = new(
         "RASK006",
@@ -55,7 +58,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has [QueryParam] but is also bound by path segment '{{{2}}}'",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK006"));
 
     private static readonly DiagnosticDescriptor Rask007 = new(
         "RASK007",
@@ -63,7 +67,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "[ParentRoute] forms a cycle starting at '{0}'",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK007"));
 
     private static readonly DiagnosticDescriptor Rask008 = new(
         "RASK008",
@@ -71,7 +76,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has [RouteParam] but no path segment matches '{2}'",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK008"));
 
     private static readonly DiagnosticDescriptor Rask009 = new(
         "RASK009",
@@ -79,7 +85,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2})",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK009"));
 
     private static readonly DiagnosticDescriptor Rask010 = new(
         "RASK010",
@@ -87,7 +94,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2})",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK010"));
 
     private static readonly DiagnosticDescriptor Rask011 = new(
         "RASK011",
@@ -95,7 +103,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Property '{0}.{1}' of type '{2}' must be 'string' or implement 'System.IParsable<{2}>' to be bound by [RouteParam]/[QueryParam]",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK011"));
 
     private static readonly DiagnosticDescriptor Rask012 = new(
         "RASK012",
@@ -103,7 +112,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Multiple [NotFound] components found in this assembly; only one is allowed ('{0}' is a duplicate)",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK012"));
 
     private static readonly DiagnosticDescriptor Rask013 = new(
         "RASK013",
@@ -111,7 +121,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         "Class '{0}' has both [NotFound] and [Route]; remove [Route] (NotFound is the catch-all)",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK013"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {

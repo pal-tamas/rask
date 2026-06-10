@@ -47,7 +47,8 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         "The Rask root component '{0}' does not render a complete page shell; missing: {1}. A root Render() should produce Doctype(), Html(...)[Head(), Body()[...]].",
         "Usage",
         DiagnosticSeverity.Warning,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK021"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Rask021);

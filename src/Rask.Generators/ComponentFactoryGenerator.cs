@@ -28,7 +28,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         "Property '{0}.{1}' is treated as a required factory parameter; consider also marking it 'required' for language-level enforcement",
         "Rask.Generators",
         DiagnosticSeverity.Hidden,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK001"));
 
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
@@ -36,7 +37,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         "Property '{0}.{1}' is marked 'required', but '{0}' has dependency-injected constructor parameters; the generated factory cannot honor 'required' through ActivatorUtilities.CreateInstance. Remove 'required' or remove DI parameters.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK002"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {

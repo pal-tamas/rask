@@ -19,7 +19,8 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
         "Do not instantiate '{0}' with 'new'; use the generated {1}Components.{0}(...) factory instead",
         "Usage",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK014"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Rask014);

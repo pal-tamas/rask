@@ -28,7 +28,8 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
         "Scoped-CSS file '{0}' has no matching component class. Expected a Component subclass named '{1}' in the same folder.",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK015"));
 
     private static readonly DiagnosticDescriptor Rask016 = new(
         "RASK016",
@@ -36,7 +37,8 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
         "Scoped-CSS file '{0}' matches multiple component classes named '{1}': {2}. Move one to disambiguate.",
         "Rask.Generators",
         DiagnosticSeverity.Error,
-        true);
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK016"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {

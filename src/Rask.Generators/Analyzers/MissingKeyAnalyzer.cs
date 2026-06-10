@@ -36,7 +36,8 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         "Elements/components produced in a .Select(...) projection or added to a Child collection in "
         + "a loop should carry a stable Key (Blazor @key parity). Without it, insert/remove/reorder "
         + "falls back to a positional full-HTML morph and loses DOM identity (focus, input state) on "
-        + "surviving nodes.");
+        + "surviving nodes.",
+        helpLinkUri: DiagnosticHelp.Link("RASK022"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
         ImmutableArray.Create(Rask022);
