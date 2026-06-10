@@ -7,6 +7,10 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+---
+
+## [0.7.0] - 2026-06-10
+
 ### Fixed
 - `SessionUploadStore` no longer blocks a thread-pool thread with sync-over-async
   (`.GetAwaiter().GetResult()`) while staging an upload — the copy is now awaited.
