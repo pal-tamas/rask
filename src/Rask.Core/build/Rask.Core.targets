@@ -22,9 +22,19 @@
     packed into the .nupkg.
   -->
 
+  <!--
+    RaskFactoryNavigation (default true) — exposed to the source generator. When true, each
+    generated factory carries a `<see cref>` doc breadcrumb linking to its component type, so
+    Quick-Doc / hover on `Foo(...)` offers a navigable link to `Foo`. (F12 still lands on the
+    generated method — Roslyn/ReSharper navigate generated symbols to the generated file; use
+    "Navigate to Type of Symbol" for a one-action jump to the component.) `[DebuggerStepThrough]`
+    is always emitted regardless. Set <RaskFactoryNavigation>false</RaskFactoryNavigation> to drop
+    the doc breadcrumb (e.g. if a project with documentation-file generation flags the crefs).
+  -->
   <ItemGroup>
     <CompilerVisibleProperty Include="RaskGlobalUsings"/>
     <CompilerVisibleProperty Include="RaskScopedJsAutoInclude"/>
+    <CompilerVisibleProperty Include="RaskFactoryNavigation"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
