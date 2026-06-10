@@ -47,9 +47,9 @@ public sealed class JwtIssuer(IConfiguration config)
         }
 
         var token = new JwtSecurityToken(
-            issuer: "rask-jwt-demo",
-            audience: "rask-jwt-demo",
-            claims: claims,
+            "rask-jwt-demo",
+            "rask-jwt-demo",
+            claims,
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: new SigningCredentials(KeyFrom(config), SecurityAlgorithms.HmacSha256));
 

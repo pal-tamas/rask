@@ -1,5 +1,3 @@
-using Rask.Core;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 

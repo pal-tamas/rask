@@ -154,5 +154,8 @@ public sealed class PathBaseEndpointTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    private sealed class Widget : Component { protected override RenderResult Render() => this; }
+    private sealed class Widget : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

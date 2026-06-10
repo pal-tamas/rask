@@ -687,7 +687,7 @@ public abstract partial class ExampleSmokeTests : SharedSmokeTests
         Assert.NotNull(logText);
         // Exactly one "OnMount:" entry — multiple would mean the previous page's
         // log leaked into the new one (a leak the framework forbids).
-        var mountCount = System.Text.RegularExpressions.Regex.Matches(logText!, "OnMount: ").Count;
+        var mountCount = Regex.Matches(logText!, "OnMount: ").Count;
         Assert.Equal(1, mountCount);
     });
 }

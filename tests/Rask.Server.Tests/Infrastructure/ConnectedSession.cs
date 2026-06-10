@@ -1,5 +1,5 @@
 using System.Net.WebSockets;
-using Rask.TestSupport;
+using Rask.Core;
 
 namespace Rask.Server.Tests.Infrastructure;
 
@@ -23,18 +23,6 @@ internal sealed class ConnectedSession : IAsyncDisposable
     public WebSocket Ws { get; }
     public LiveSession Session { get; }
 
-    public static async Task<ConnectedSession> Connect<TApp>() where TApp : Rask.Core.Component
-    {
-        var host = RaskTestHost.Create<TApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-        var session = host.Store.Get(sessionId)!;
-        return new ConnectedSession(host, ws, session);
-    }
-
     public async ValueTask DisposeAsync()
     {
         try
@@ -50,5 +38,17 @@ internal sealed class ConnectedSession : IAsyncDisposable
 
         Ws.Dispose();
         Host.Dispose();
+    }
+
+    public static async Task<ConnectedSession> Connect<TApp>() where TApp : Component
+    {
+        var host = RaskTestHost.Create<TApp>();
+        var initial = await host.Http.GetAsync("/start");
+        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var session = host.Store.Get(sessionId)!;
+        return new ConnectedSession(host, ws, session);
     }
 }

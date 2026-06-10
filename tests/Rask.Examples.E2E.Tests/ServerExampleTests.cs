@@ -5,7 +5,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Examples.E2E.Tests;
 
 [Collection(ServerExampleCollection.Name)]
-public sealed partial class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFixture pw) : ExampleSmokeTests(pw)
+public sealed partial class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFixture pw)
+    : ExampleSmokeTests(pw)
 {
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Server";

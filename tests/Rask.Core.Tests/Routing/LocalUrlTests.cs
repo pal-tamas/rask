@@ -17,12 +17,12 @@ public class LocalUrlTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("//evil.com")]            // protocol-relative
-    [InlineData("/\\evil.com")]           // backslash → browser normalises to "//"
-    [InlineData("\\evil.com")]            // leading backslash
-    [InlineData("https://evil.com")]      // absolute URL
-    [InlineData("javascript:alert(1)")]   // not rooted
-    [InlineData("evil.com")]              // relative, not rooted
+    [InlineData("//evil.com")] // protocol-relative
+    [InlineData("/\\evil.com")] // backslash → browser normalises to "//"
+    [InlineData("\\evil.com")] // leading backslash
+    [InlineData("https://evil.com")] // absolute URL
+    [InlineData("javascript:alert(1)")] // not rooted
+    [InlineData("evil.com")] // relative, not rooted
     [InlineData("/foo\r\nSet-Cookie: x")] // control chars
     [InlineData("/foo\tbar")]
     public void NonLocal_OrMalformed_CollapsesToRoot(string? input)

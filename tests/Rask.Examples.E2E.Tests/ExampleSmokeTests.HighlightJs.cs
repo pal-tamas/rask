@@ -18,11 +18,8 @@ public abstract partial class ExampleSmokeTests
         // spans as soon as the page paints (highlighting is part of the server render).
         var pages = new[]
         {
-            ("/validation", "Validation"),
-            ("/routing", "Routing"),
-            ("/navigator", "Navigator"),
-            ("/nested-forms", "Complex models"),
-            ("/http", "HttpClient + DI")
+            ("/validation", "Validation"), ("/routing", "Routing"), ("/navigator", "Navigator"),
+            ("/nested-forms", "Complex models"), ("/http", "HttpClient + DI")
         };
 
         foreach (var (path, heading) in pages)
@@ -31,7 +28,7 @@ public abstract partial class ExampleSmokeTests
             await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync(heading,
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-            await WaitForHighlightedSpansAsync(timeoutMs: HighlightSettleTimeoutMs);
+            await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0, $"{path}: no code blocks found. [{await HighlightDiagnosticsAsync()}]");
@@ -52,7 +49,7 @@ public abstract partial class ExampleSmokeTests
         await Page.GotoAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await WaitForHighlightedSpansAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
 
         await Page.ReloadAsync();
 
@@ -61,7 +58,7 @@ public abstract partial class ExampleSmokeTests
 
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await WaitForHighlightedSpansAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
         var total = await Page.Locator("pre code[class*='language-']").CountAsync();
         var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
         Assert.True(total > 0,

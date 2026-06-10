@@ -16,12 +16,13 @@ internal sealed class RouteTitleStubApp : Component
     public RouteTitleStubApp(RouteState routeState) => _routeState = routeState;
 
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            Html()[
-                Head()[Title()[$"title-{_routeState.Path}"]],
-                Body()[
-                    H1()[$"path={_routeState.Path}"]
-                ]
-            ]];
+    [
+        Doctype(),
+        Html()[
+            Head()[Title()[$"title-{_routeState.Path}"]],
+            Body()[
+                H1()[$"path={_routeState.Path}"]
+            ]
+        ]
+    ];
 }

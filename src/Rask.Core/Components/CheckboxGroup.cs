@@ -32,13 +32,13 @@ public static partial class Generated
         {
             var optionValue = option; // capture per iteration
             var isChecked = selected is not null && Contains(selected, optionValue, comparer);
-            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            var label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Label(Class: ItemClass)[
                 Input(
-                    Type: "checkbox",
-                    Name: groupName,
-                    Value: BindingHelpers.FormatValue(option),
+                    "checkbox",
+                    groupName,
+                    BindingHelpers.FormatValue(option),
                     Checked: isChecked,
                     Disabled: Disabled,
                     // The checkbox change payload carries the new checked state as a bool string.

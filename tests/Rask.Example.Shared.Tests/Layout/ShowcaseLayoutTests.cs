@@ -1,5 +1,5 @@
 using System.Reflection;
-using Rask.Core;
+using System.Text.RegularExpressions;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Layout;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -15,7 +15,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_EmitsNavbarAndAside()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("navbar navbar-dark bg-dark", html);
@@ -28,7 +28,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_GroupsLinks_UnderGroupHeaders()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         // BuildGroups emits an H6 per group label before the buttons in that group.
@@ -42,7 +42,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_RootPath_MarksAtLeastOneNavItemActive()
     {
         var routeState = new RouteState { Path = "/" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("nav-item-btn-active", html);
@@ -61,8 +61,8 @@ public sealed class ShowcaseLayoutTests
 
     [Theory]
     [InlineData("/tags", "/tags", true)]
-    [InlineData("/tags/", "/tags", true)]      // trailing slash trimmed
-    [InlineData("/TAGS", "/tags", true)]       // case-insensitive
+    [InlineData("/tags/", "/tags", true)] // trailing slash trimmed
+    [InlineData("/TAGS", "/tags", true)] // case-insensitive
     [InlineData("/binding", "/tags", false)]
     public void IsActive_NonRootHref_MatchesPathIgnoringCaseAndTrailingSlash(string path, string href, bool expected)
     {
@@ -84,7 +84,7 @@ public sealed class ShowcaseLayoutTests
     [InlineData("/realtime/BTC/", "/realtime/BTC", "/realtime", true)]
     [InlineData("/users/42", "/users/42", "/users", true)]
     [InlineData("/users/99", "/users/42", "/users", true)]
-    [InlineData("/realtimes/BTC", "/realtime/BTC", "/realtime", false)]    // prefix must be a full segment
+    [InlineData("/realtimes/BTC", "/realtime/BTC", "/realtime", false)] // prefix must be a full segment
     [InlineData("/lifecycle", "/realtime/BTC", "/realtime", false)]
     public void IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix(
         string path, string href, string? matchPrefix, bool expected)
@@ -101,7 +101,7 @@ public sealed class ShowcaseLayoutTests
         // from BTC inside the LiveTickerPage), the sidebar's "Live ticker" item
         // must still render with the active class.
         var routeState = new RouteState { Path = "/realtime/ETH" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Matches("nav-item-btn-active[^>]*>[^<]*<i class=\"bi bi-graph-up-arrow",
@@ -131,7 +131,7 @@ public sealed class ShowcaseLayoutTests
         // With BypassRenderCache=true the layout always re-rendered (working but
         // wasteful); with RouteState.Changed subscription it re-renders just on nav.
         var routeState = new RouteState { Path = "/" };
-        var app = new Rask.Example.Shared.App();
+        var app = new Shared.App();
         var services = TestServices.Default(routeState: routeState);
 
         var htmlAtRoot = app.RenderAsLiveRoot(services);
@@ -147,7 +147,7 @@ public sealed class ShowcaseLayoutTests
     }
 
     private static string CollapseWhitespace(string s) =>
-        System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ");
+        Regex.Replace(s, @"\s+", " ");
 
     private static bool InvokePrivateIsActive(ShowcaseLayout layout, string href, string? matchPrefix = null)
     {

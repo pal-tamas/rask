@@ -19,7 +19,7 @@ public abstract partial class ExampleSmokeTests
         await Page.EvaluateAsync(
             "() => { try { sessionStorage.removeItem('rask.jsruntime.demo'); } catch (_) {} }").ContinueWith(_ => { });
         await Page.GotoAsync("/jsruntime");
-        await Expect(Page.Locator("main h1.h3")).ToContainTextAsync("IJSRuntime",
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("IJSRuntime",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         await Page.Locator("#demo-input").FillAsync("after-reload");
@@ -28,7 +28,7 @@ public abstract partial class ExampleSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         await Page.ReloadAsync();
-        await Expect(Page.Locator("main h1.h3")).ToContainTextAsync("IJSRuntime",
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("IJSRuntime",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Read on mount: after-reload",

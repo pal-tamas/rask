@@ -1,5 +1,5 @@
+using System.Linq.Expressions;
 using Rask.Core.Forms;
-using Rask.Core.Tests.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
@@ -142,8 +142,8 @@ public class ValidationMessageTests
         gate.SetResult();
         await task;
 
-        view.RenderAsLiveRoot();  // sticky window starts
-        await Task.Delay(80);     // > 30ms sticky window
+        view.RenderAsLiveRoot(); // sticky window starts
+        await Task.Delay(80); // > 30ms sticky window
         var finalHtml = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validating-indicator", finalHtml);
     }
@@ -190,7 +190,7 @@ public class ValidationMessageTests
 
     private static class TestExpressions
     {
-        public static System.Linq.Expressions.Expression<Func<TProp>> For<TProp>(
-            System.Linq.Expressions.Expression<Func<TProp>> expr) => expr;
+        public static Expression<Func<TProp>> For<TProp>(
+            Expression<Func<TProp>> expr) => expr;
     }
 }

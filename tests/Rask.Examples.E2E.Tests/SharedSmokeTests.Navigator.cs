@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -14,13 +15,13 @@ public abstract partial class SharedSmokeTests
 
         await Page.Locator("button:has-text('SetQuery page=1')").ClickAsync();
         await Page.Locator("button:has-text('SetQuery sort=asc')").ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]sort=asc"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=asc"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         await Page.Locator("button:has-text('RemoveQuery page')").ClickAsync();
-        await Expect(Page).Not.ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]page="),
+        await Expect(Page).Not.ToHaveURLAsync(new Regex(".*[\\?&]page="),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]sort=asc"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=asc"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 
@@ -35,7 +36,7 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('SetQuery sort=asc')").ClickAsync();
         await Page.Locator("button:has-text('ClearQuery')").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/navigator$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/navigator$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 
@@ -60,7 +61,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
         await Expect(Page).ToHaveTitleAsync("User #137 — Rask",
             new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*/users/137$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/users/137$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 
@@ -78,11 +79,11 @@ public abstract partial class SharedSmokeTests
         // Navigate(path, query) — should drop sort/page, keep only from=button.
         await Page.Locator("button:has-text('Navigate(path, query)')").ClickAsync();
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]from=button"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]from=button"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page).Not.ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]sort="),
+        await Expect(Page).Not.ToHaveURLAsync(new Regex(".*[\\?&]sort="),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page).Not.ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]page="),
+        await Expect(Page).Not.ToHaveURLAsync(new Regex(".*[\\?&]page="),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 }

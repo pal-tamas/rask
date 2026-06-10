@@ -141,9 +141,11 @@ internal static class BundleSizeReport
         [
             Path.Combine(root, "samples", "Rask.Example.Wasm.Host", "bin", "Release", "net10.0", "publish", "wwwroot",
                 "_framework"),
-            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "publish", "wwwroot",
+            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "publish",
+                "wwwroot",
                 "_framework"),
-            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "browser-wasm", "publish",
+            Path.Combine(root, "samples", "Rask.Example.Wasm", "bin", "Release", "net10.0-browser", "browser-wasm",
+                "publish",
                 "wwwroot", "_framework")
         ];
 

@@ -48,7 +48,7 @@ public abstract partial class SharedSmokeTests
         var after = await SampleJsHeapAsync();
 
         Assert.True(after > 0, $"No heap reading available on this browser. baseline={baseline} after={after}");
-        Assert.True(after < baseline * 3 + 25_000_000,
+        Assert.True(after < (baseline * 3) + 25_000_000,
             $"JS heap grew unexpectedly. baseline={baseline:N0} after={after:N0} bytes. " +
             "Suspect: leaked component subscriptions, retained event handlers, or uncancelled lifecycle hooks.");
 
@@ -86,7 +86,7 @@ public abstract partial class SharedSmokeTests
 
         var after = await SampleJsHeapAsync();
 
-        Assert.True(after < baseline * 4 + 30_000_000,
+        Assert.True(after < (baseline * 4) + 30_000_000,
             $"Heap grew across CodeSample-heavy navs. baseline={baseline:N0} after={after:N0}. " +
             "Likely culprit: highlight-cache or head-asset cache growth OR CodeSample lifecycle closures.");
     });

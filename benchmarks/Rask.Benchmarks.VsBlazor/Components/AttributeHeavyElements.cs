@@ -6,7 +6,7 @@ using C = Rask.Core.Components.Generated;
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
-///     <see cref="ElementCount"/> div elements, each carrying <c>Class</c>, <c>Id</c>,
+///     <see cref="ElementCount" /> div elements, each carrying <c>Class</c>, <c>Id</c>,
 ///     <c>Style</c>, and <c>(attrCount - 3)</c> data-* attributes. Stresses
 ///     <c>Component.WriteAttributes</c> and the safe-ASCII fast path in
 ///     <c>HtmlSerializer.AppendEncoded</c> — the per-attribute encode + StringBuilder
@@ -41,7 +41,7 @@ internal static class AttributeHeavyElements
     }
 
     /// <summary>
-    ///     Same shape as <see cref="BuildRask"/> but element index 50 has one of its
+    ///     Same shape as <see cref="BuildRask" /> but element index 50 has one of its
     ///     data-* values flipped — gives the diff codec one <c>SetAttribute</c> op to
     ///     emit.
     /// </summary>

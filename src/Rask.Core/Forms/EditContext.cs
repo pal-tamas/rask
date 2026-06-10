@@ -12,13 +12,6 @@ public sealed class EditContext : IDisposable
     // <see cref="ValidatingStickyMs" />; set to 0 to opt out.
     public const int DefaultValidatingStickyMs = 200;
 
-    /// <summary>
-    ///     Override the sticky window for this context. Default 200 ms.
-    ///     Set to 0 to disable (the indicator disappears immediately when
-    ///     PendingCount drops to 0 — the pre-sticky behaviour).
-    /// </summary>
-    public int ValidatingStickyMs { get; set; } = DefaultValidatingStickyMs;
-
     private readonly List<IAsyncFieldValidator> _asyncValidators = new();
     private readonly Dictionary<FieldIdentifier, DelegateRegistration> _fieldDelegates = new();
     private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
@@ -26,6 +19,13 @@ public sealed class EditContext : IDisposable
     private Delegate? _formDelegate;
 
     public EditContext(object model) => Model = model ?? throw new ArgumentNullException(nameof(model));
+
+    /// <summary>
+    ///     Override the sticky window for this context. Default 200 ms.
+    ///     Set to 0 to disable (the indicator disappears immediately when
+    ///     PendingCount drops to 0 — the pre-sticky behaviour).
+    /// </summary>
+    public int ValidatingStickyMs { get; set; } = DefaultValidatingStickyMs;
 
     public object Model { get; }
 
@@ -70,9 +70,6 @@ public sealed class EditContext : IDisposable
         }
     }
 
-    public event Action<FieldIdentifier>? FieldChanged;
-    public event Action? ValidationStateChanged;
-
     /// <summary>
     ///     Optional fire-and-forget render-request callback wired by the
     ///     framework (LiveRenderContext) when this context is attached to a
@@ -113,6 +110,9 @@ public sealed class EditContext : IDisposable
             s.Cts = null;
         }
     }
+
+    public event Action<FieldIdentifier>? FieldChanged;
+    public event Action? ValidationStateChanged;
 
     public void AddValidator(IFieldValidator validator)
     {
@@ -794,7 +794,9 @@ public sealed class EditContext : IDisposable
         public List<string> Messages = new();
         public bool Modified;
         public int PendingCount;
-        public bool Touched;
+
+        public Timer? StickyTimer;
+
         // Sticky window. When PendingCount drops to 0 the EditContext stamps
         // a UTC deadline here so IsValidating(field) keeps returning true for
         // a short tail after the validator finishes — gives a 400ms async
@@ -803,7 +805,7 @@ public sealed class EditContext : IDisposable
         // and gets disposed when the next PendingCount > 0 starts or when
         // the field is no longer alive.
         public DateTimeOffset? StickyUntilUtc;
-        public Timer? StickyTimer;
+        public bool Touched;
     }
 
     private readonly struct DelegateRegistration

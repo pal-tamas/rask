@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -46,7 +45,7 @@ public class RenderSkipTests
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
 
-        using (RenderHarness.Render(c, sp, propsChanged: false))
+        using (RenderHarness.Render(c, sp, false))
         {
             c.ToHtml();
         }

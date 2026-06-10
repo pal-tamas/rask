@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -180,7 +179,11 @@ public class AsyncLifecycleRenderingTests
 
         protected override async Task OnRenderedAsync(bool firstRender)
         {
-            if (!firstRender) return;
+            if (!firstRender)
+            {
+                return;
+            }
+
             await Gate.Task;
         }
 
@@ -207,10 +210,10 @@ public class AsyncLifecycleRenderingTests
     // both continuations fire, exercising the multi-component cascade path.
     private sealed class MultiAwaitProbe : Component
     {
-        public int AOnRenderedCount;
-        public int BOnRenderedCount;
         private readonly AlwaysAwaitsProbe _a = new();
         private readonly AlwaysAwaitsProbe _b = new();
+        public int AOnRenderedCount;
+        public int BOnRenderedCount;
 
         public void ReleaseAll()
         {
@@ -224,8 +227,15 @@ public class AsyncLifecycleRenderingTests
         {
             // Tally hook re-entries on the root too — if the publishOnly walk is broken,
             // this counter pegs at hundreds.
-            if (firstRender) AOnRenderedCount++;
-            else BOnRenderedCount++;
+            if (firstRender)
+            {
+                AOnRenderedCount++;
+            }
+            else
+            {
+                BOnRenderedCount++;
+            }
+
             return Task.CompletedTask;
         }
     }
@@ -284,8 +294,8 @@ public class AsyncLifecycleRenderingTests
 
     private sealed class RecordingHandle : IRenderHandle
     {
-        public int RequestRenderCount;
         public int RequestPublishRenderCount;
+        public int RequestRenderCount;
 
         public Task RequestRenderAsync()
         {

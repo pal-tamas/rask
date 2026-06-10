@@ -1,12 +1,12 @@
 namespace Rask.Core.Live;
 
 /// <summary>
-/// Pure diff-codec gating helpers shared by both host sessions
-/// (<c>Rask.Server.LiveSession</c> and <c>Rask.Wasm.WasmLiveSession</c>). These carry no
-/// transport or session state — they decide, from the rendered HTML and the computed edit
-/// ops, whether a diff can be shipped and what slice of <c>&lt;head&gt;</c> rides along.
-/// Kept in one place so a fix to the head-fragment gating or the structural-op safety rule
-/// applies to both transports at once.
+///     Pure diff-codec gating helpers shared by both host sessions
+///     (<c>Rask.Server.LiveSession</c> and <c>Rask.Wasm.WasmLiveSession</c>). These carry no
+///     transport or session state — they decide, from the rendered HTML and the computed edit
+///     ops, whether a diff can be shipped and what slice of <c>&lt;head&gt;</c> rides along.
+///     Kept in one place so a fix to the head-fragment gating or the structural-op safety rule
+///     applies to both transports at once.
 /// </summary>
 internal static class LiveDiffGate
 {
@@ -50,12 +50,24 @@ internal static class LiveDiffGate
     {
         const string headClose = "</head>";
         var a = html.IndexOf(headClose, StringComparison.Ordinal);
-        if (a < 0) return false;
+        if (a < 0)
+        {
+            return false;
+        }
+
         var b = baseline.IndexOf(headClose, StringComparison.Ordinal);
-        if (b < 0) return false;
+        if (b < 0)
+        {
+            return false;
+        }
+
         a += headClose.Length;
         b += headClose.Length;
-        if (a != b) return false;
+        if (a != b)
+        {
+            return false;
+        }
+
         return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
     }
 
@@ -67,10 +79,18 @@ internal static class LiveDiffGate
     internal static string? ExtractHead(string html)
     {
         var open = html.IndexOf("<head", StringComparison.Ordinal);
-        if (open < 0) return null;
+        if (open < 0)
+        {
+            return null;
+        }
+
         const string headClose = "</head>";
         var close = html.IndexOf(headClose, StringComparison.Ordinal);
-        if (close < 0) return null;
+        if (close < 0)
+        {
+            return null;
+        }
+
         close += headClose.Length;
         return close <= open ? null : html.Substring(open, close - open);
     }

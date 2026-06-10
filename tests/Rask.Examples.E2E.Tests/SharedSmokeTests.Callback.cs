@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
@@ -13,13 +14,15 @@ public abstract partial class SharedSmokeTests
         // re-render were broken, the text would stay at "Click a star to rate."
         await NavigateToAsync("/callback");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Callback",
-            new() { Timeout = 30_000 });
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
         var line = Page.Locator("main .sample-result-body p");
-        await Expect(line).ToContainTextAsync("Click a star to rate", new() { Timeout = 10_000 });
+        await Expect(line).ToContainTextAsync("Click a star to rate",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Click the 4th star.
         await Page.Locator("main .sample-result-body button").Nth(3).ClickAsync();
-        await Expect(line).ToContainTextAsync("You rated: 4/5", new() { Timeout = 10_000 });
+        await Expect(line).ToContainTextAsync("You rated: 4/5",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 }

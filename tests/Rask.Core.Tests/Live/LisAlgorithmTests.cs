@@ -12,11 +12,11 @@ public class LisAlgorithmTests
     [Theory]
     [InlineData(new int[0], 0)]
     [InlineData(new[] { 5 }, 1)]
-    [InlineData(new[] { 1, 2, 3, 4, 5 }, 5)]                       // already sorted
-    [InlineData(new[] { 5, 4, 3, 2, 1 }, 1)]                       // reversed
-    [InlineData(new[] { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5 }, 4)]     // classic test
-    [InlineData(new[] { 10, 22, 9, 33, 21, 50, 41, 60, 80 }, 6)]   // Wikipedia LIS example
-    [InlineData(new[] { 0, 2, 4, 1, 3, 5 }, 4)]                    // interleaved
+    [InlineData(new[] { 1, 2, 3, 4, 5 }, 5)] // already sorted
+    [InlineData(new[] { 5, 4, 3, 2, 1 }, 1)] // reversed
+    [InlineData(new[] { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5 }, 4)] // classic test
+    [InlineData(new[] { 10, 22, 9, 33, 21, 50, 41, 60, 80 }, 6)] // Wikipedia LIS example
+    [InlineData(new[] { 0, 2, 4, 1, 3, 5 }, 4)] // interleaved
     public void ComputeLisIndexSet_ReturnsOptimalLengthIncreasingSubsequence(int[] input, int expectedLisLength)
     {
         var lisIndexes = FrameDiffer.ComputeLisIndexSet(input);
@@ -51,7 +51,11 @@ public class LisAlgorithmTests
     private static int NaiveLisLength(int[] arr)
     {
         var n = arr.Length;
-        if (n == 0) return 0;
+        if (n == 0)
+        {
+            return 0;
+        }
+
         var dp = new int[n];
         Array.Fill(dp, 1);
         var best = 1;
@@ -64,8 +68,13 @@ public class LisAlgorithmTests
                     dp[i] = dp[j] + 1;
                 }
             }
-            if (dp[i] > best) best = dp[i];
+
+            if (dp[i] > best)
+            {
+                best = dp[i];
+            }
         }
+
         return best;
     }
 }

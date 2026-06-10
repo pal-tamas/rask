@@ -3,6 +3,7 @@
 // NavigateToAsync waits for window.location to match /realtime/{Symbol},
 // which is timing-flaky on WasmAppHost. Kept as a placeholder so the future
 // addition of cross-host nav-flicker assertions has an obvious home.
+
 namespace Rask.Examples.E2E.Tests;
 
 public abstract partial class SharedSmokeTests

@@ -8,7 +8,7 @@ namespace Rask.Benchmarks.VsBlazor.Reports;
 
 /// <summary>
 ///     Deterministic "memory usage" report — the counterpart to the wire-bytes
-///     <see cref="VsBlazorPayloadBytesReport"/>. Emits two CSV blocks, both measured with
+///     <see cref="VsBlazorPayloadBytesReport" />. Emits two CSV blocks, both measured with
 ///     precise GC counters (no BenchmarkDotNet, no timing jitter):
 ///     <list type="number">
 ///         <item>
@@ -23,7 +23,7 @@ namespace Rask.Benchmarks.VsBlazor.Reports;
 ///         </item>
 ///         <item>
 ///             <b>Retained heap per rendered tree</b> — the architectural tradeoff, NOT
-///             Rask's production memory profile. Rask retains its <see cref="Component"/>
+///             Rask's production memory profile. Rask retains its <see cref="Component" />
 ///             object graph (one heap object per element) where Blazor packs dense
 ///             <c>RenderTreeFrame</c> structs, so a tree HELD in memory costs Rask more.
 ///             But Rask rebuilds-and-discards element trees per render in production rather
@@ -78,10 +78,19 @@ internal static class VsBlazorMemFootprintReport
 #pragma warning restore RASK014
         rask.SeedPrevious(stateful);
         // Warm up: first updates allocate the pooled buffers + cached rows once.
-        for (var i = 0; i < 64; i++) { stateful.Tick(); rask.RenderAndBuildDiffPayloadBytes(stateful); }
+        for (var i = 0; i < 64; i++)
+        {
+            stateful.Tick();
+            rask.RenderAndBuildDiffPayloadBytes(stateful);
+        }
 
         var raskBefore = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < Updates; i++) { stateful.Tick(); rask.RenderAndBuildDiffPayloadBytes(stateful); }
+        for (var i = 0; i < Updates; i++)
+        {
+            stateful.Tick();
+            rask.RenderAndBuildDiffPayloadBytes(stateful);
+        }
+
         var raskPerUpdate = (GC.GetAllocatedBytesForCurrentThread() - raskBefore) / Updates;
 
         // Blazor: attach once, then re-render with one changed parameter per update. The
@@ -110,8 +119,8 @@ internal static class VsBlazorMemFootprintReport
     private static void ReportFootprintLargePage()
     {
         var raskPerTree = MeasureRaskFootprint(() => LargePageWithCounter.BuildRask(0));
-        var blazorPerTree = MeasureBlazorFootprint(
-            renderer => () => renderer.RenderAsRootAndMeasure<LargePageWithCounter.BlazorLargePageWithCounter>(
+        var blazorPerTree = MeasureBlazorFootprint(renderer => () =>
+            renderer.RenderAsRootAndMeasure<LargePageWithCounter.BlazorLargePageWithCounter>(
                 CounterParams(0)));
 
         EmitFootprintRow("LargePage_200Rows", raskPerTree, blazorPerTree);
@@ -120,11 +129,14 @@ internal static class VsBlazorMemFootprintReport
     private static void ReportFootprintKeyedList100()
     {
         var order = new int[100];
-        for (var i = 0; i < order.Length; i++) order[i] = i;
+        for (var i = 0; i < order.Length; i++)
+        {
+            order[i] = i;
+        }
 
         var raskPerTree = MeasureRaskFootprint(() => KeyedList.BuildRask(order));
-        var blazorPerTree = MeasureBlazorFootprint(
-            renderer => () => renderer.RenderAsRootAndMeasure<KeyedList.BlazorKeyedList>(
+        var blazorPerTree = MeasureBlazorFootprint(renderer => () =>
+            renderer.RenderAsRootAndMeasure<KeyedList.BlazorKeyedList>(
                 ParameterView.FromDictionary(new Dictionary<string, object?>
                 {
                     [nameof(KeyedList.BlazorKeyedList.Order)] = order
@@ -174,11 +186,11 @@ internal static class VsBlazorMemFootprintReport
     {
         for (var i = 0; i < 3; i++)
         {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
             GC.WaitForPendingFinalizers();
         }
 
-        return GC.GetTotalMemory(forceFullCollection: true);
+        return GC.GetTotalMemory(true);
     }
 
     private static void EmitAllocRow(string scenario, long raskPerUpdate, long blazorPerUpdate)

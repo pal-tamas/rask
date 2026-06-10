@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Example.Shared.Demos;
 
 namespace Rask.Example.Shared.Tests.Demos;

@@ -29,7 +29,7 @@ public class SvgElementTests
             "clip-path=\"cp\" color=\"col\" display=\"d\" visibility=\"vis\" pointer-events=\"pe\" " +
             "cx=\"1\" cy=\"2\" r=\"3\"></circle>",
             Circle(
-                Cx: "1", Cy: "2", R: "3",
+                "1", "2", "3",
                 Fill: "f", FillOpacity: "fo", FillRule: "fr",
                 Stroke: "st", StrokeWidth: "sw", StrokeOpacity: "so",
                 StrokeLinecap: "slc", StrokeLinejoin: "slj",
@@ -61,7 +61,7 @@ public class SvgElementTests
     public void Render_NestedChildren_RendersInsideOpenCloseTags() =>
         Assert.Equal(
             "<svg viewBox=\"0 0 10 10\"><path d=\"M0 0\"></path><circle r=\"5\"></circle></svg>",
-            Svg(ViewBox: "0 0 10 10")[SvgPath(D: "M0 0"), Circle(R: "5")].ToHtml());
+            Svg(ViewBox: "0 0 10 10")[SvgPath("M0 0"), Circle(R: "5")].ToHtml());
 
     [Fact]
     public void Render_ShapeWithTitleChild_AllowsNestingForAccessibility() =>

@@ -68,16 +68,44 @@
    .sample-code so the generic class names don't leak page-wide. Fresh simple dark
    palette tuned to the #1f1d2b background / #e7e3ff base text. */
 :global(.sample-code .keyword),
-:global(.sample-code .preprocessorKeyword) { color: #c792ea; }
+:global(.sample-code .preprocessorKeyword) {
+    color: #c792ea;
+}
+
 :global(.sample-code .string),
-:global(.sample-code .stringCSharpVerbatim) { color: #c3e88d; }
-:global(.sample-code .stringEscape) { color: #89ddff; }
-:global(.sample-code .comment) { color: #6b6786; font-style: italic; }
-:global(.sample-code .xmlDocComment) { color: #6b6786; font-style: italic; }
-:global(.sample-code .xmlDocTag) { color: #8b87a8; }
-:global(.sample-code .number) { color: #f78c6c; }
-:global(.sample-code .className) { color: #82aaff; }
-:global(.sample-code .plainText) { color: #e7e3ff; }
+:global(.sample-code .stringCSharpVerbatim) {
+    color: #c3e88d;
+}
+
+:global(.sample-code .stringEscape) {
+    color: #89ddff;
+}
+
+:global(.sample-code .comment) {
+    color: #6b6786;
+    font-style: italic;
+}
+
+:global(.sample-code .xmlDocComment) {
+    color: #6b6786;
+    font-style: italic;
+}
+
+:global(.sample-code .xmlDocTag) {
+    color: #8b87a8;
+}
+
+:global(.sample-code .number) {
+    color: #f78c6c;
+}
+
+:global(.sample-code .className) {
+    color: #82aaff;
+}
+
+:global(.sample-code .plainText) {
+    color: #e7e3ff;
+}
 
 .sample-result-col {
     background: #fff;

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.Pages;
@@ -15,7 +14,7 @@ public sealed class HomePage : Component
                 P(Class: "card-text text-secondary")[
                     "A minimal, real cookie login: a protected ", Code()["/members"],
                     " page, a ", Code()["/login"], " form, and sign-out — all over Rask's live runtime."],
-                NavLink(Href: "/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

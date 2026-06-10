@@ -9,9 +9,15 @@ let basePath = null;
 // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
 // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
 window.__raskEl = window.__raskEl || {
-    focus: function (el) { if (el) el.focus(); },
-    blur: function (el) { if (el) el.blur(); },
-    scrollIntoView: function (el, opts) { if (el) el.scrollIntoView(opts || { behavior: "smooth", block: "nearest" }); }
+    focus: function (el) {
+        if (el) el.focus();
+    },
+    blur: function (el) {
+        if (el) el.blur();
+    },
+    scrollIntoView: function (el, opts) {
+        if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
+    }
 };
 
 // Serializes render application across payloads. A navigation diff may defer its
@@ -1056,8 +1062,12 @@ window.DotNet = window.DotNet || {
 
 export function endDotNetInvoke(resultJson) {
     let msg;
-    try { msg = JSON.parse(resultJson); }
-    catch (e) { console.error("[Rask] endDotNetInvoke: malformed JSON", e); return; }
+    try {
+        msg = JSON.parse(resultJson);
+    } catch (e) {
+        console.error("[Rask] endDotNetInvoke: malformed JSON", e);
+        return;
+    }
     const pending = dotNetPending.get(msg.callId);
     if (!pending) return;
     dotNetPending.delete(msg.callId);

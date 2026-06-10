@@ -34,13 +34,13 @@ public static partial class Generated
         {
             var optionValue = option; // capture per iteration for the handler closure
             var isChecked = current is TValue typed && comparer.Equals(option, typed);
-            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            var label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Label(Class: ItemClass)[
                 Input(
-                    Type: "radio",
-                    Name: groupName,
-                    Value: BindingHelpers.FormatValue(option),
+                    "radio",
+                    groupName,
+                    BindingHelpers.FormatValue(option),
                     Checked: isChecked,
                     Disabled: Disabled,
                     OnChangeAsync: async _ =>

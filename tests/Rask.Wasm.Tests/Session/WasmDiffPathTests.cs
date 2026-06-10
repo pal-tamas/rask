@@ -1,11 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
 using Rask.Core.Live;
-using Rask.Core.Routing;
-using Rask.Core.ScopedAssets;
-using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
 
@@ -20,7 +15,6 @@ namespace Rask.Wasm.Tests.Session;
 // re-sending the body); Forced just removes that last size comparison from the equation.
 public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
-
     [Fact]
     public async Task ClickCounter_ThreeIncrements_ProducesDiffsWithCorrectUpdateText()
     {

@@ -6,29 +6,12 @@ namespace Rask.Core.Tests.Forms;
 
 public class RadioCheckboxGroupTests
 {
-    private enum Color
-    {
-        Red,
-        Green,
-        Blue
-    }
-
-    private sealed class ColorModel
-    {
-        public Color Choice { get; set; } = Color.Red;
-    }
-
-    private sealed class TagsModel
-    {
-        public List<string> Tags { get; } = new();
-    }
-
     [Fact]
     public void RadioGroup_RendersOnePerOption_CurrentChecked()
     {
         var m = new ColorModel { Choice = Color.Green };
         var view = new StubComponent(() =>
-            Form(m)[RadioGroup(() => m.Choice, Options: new[] { Color.Red, Color.Green, Color.Blue })]);
+            Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })]);
 
         var html = view.RenderAsLiveRoot();
 
@@ -47,7 +30,7 @@ public class RadioCheckboxGroupTests
     {
         var m = new ColorModel { Choice = Color.Red };
         var view = new StubComponent(() =>
-            Form(m)[RadioGroup(() => m.Choice, Options: new[] { Color.Red, Color.Green, Color.Blue })]);
+            Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })]);
 
         var html = view.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
@@ -74,7 +57,7 @@ public class RadioCheckboxGroupTests
         var m = new TagsModel();
         m.Tags.Add("b");
         var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, Options: new[] { "a", "b", "c" })]);
+            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
 
         var html = view.RenderAsLiveRoot();
 
@@ -91,7 +74,7 @@ public class RadioCheckboxGroupTests
     {
         var m = new TagsModel();
         var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, Options: new[] { "a", "b", "c" })]);
+            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
 
         var html = view.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
@@ -110,7 +93,7 @@ public class RadioCheckboxGroupTests
         m.Tags.Add("a");
         m.Tags.Add("b");
         var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, Options: new[] { "a", "b", "c" })]);
+            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
 
         var html = view.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
@@ -149,5 +132,22 @@ public class RadioCheckboxGroupTests
         }
 
         return ids;
+    }
+
+    private enum Color
+    {
+        Red,
+        Green,
+        Blue
+    }
+
+    private sealed class ColorModel
+    {
+        public Color Choice { get; set; } = Color.Red;
+    }
+
+    private sealed class TagsModel
+    {
+        public List<string> Tags { get; } = new();
     }
 }

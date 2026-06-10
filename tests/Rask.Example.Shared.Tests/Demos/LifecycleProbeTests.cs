@@ -1,5 +1,3 @@
-using Rask.Core;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -14,7 +12,8 @@ public sealed class LifecycleProbeTests
 
         host.RenderAsLiveRoot();
         // OnMountAsync awaits 450ms; allow time for the full sequence.
-        await WaitFor.True(() => RenderedHtml(host).Contains("OnMountAsync (after 450ms await)"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => RenderedHtml(host).Contains("OnMountAsync (after 450ms await)"),
+            TimeSpan.FromSeconds(2));
 
         var html = host.RenderAsLiveRoot();
         Assert.Contains("OnMount", html);
@@ -30,7 +29,7 @@ public sealed class LifecycleProbeTests
         var log = new LifecycleLog();
         var instanceId = 7;
         var host = new LiveHost(
-            () => LifecycleCycleProbe(Log: log.Add, InstanceId: instanceId),
+            () => LifecycleCycleProbe(log.Add, instanceId),
             TestServices.Default());
 
         host.RenderAsLiveRoot();
@@ -44,7 +43,7 @@ public sealed class LifecycleProbeTests
     {
         var log = new LifecycleLog();
         var host = new LiveHost(
-            () => LifecycleCycleProbe(Log: log.Add, InstanceId: 1),
+            () => LifecycleCycleProbe(log.Add, 1),
             TestServices.Default());
 
         host.RenderAsLiveRoot();

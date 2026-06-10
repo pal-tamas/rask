@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.WasmCookie.Pages;
@@ -15,7 +14,7 @@ public sealed class HomePage : Component
                 P(Class: "card-text text-secondary")[
                     "A browser-WASM SPA that signs in against its host's ", Code()["/api/login"],
                     " (HttpOnly cookie) and hydrates the user from ", Code()["/api/me"], "."],
-                NavLink(Href: "/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

@@ -92,8 +92,8 @@ public class ChaosTests
         var roundtrip = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(bytes));
         Assert.Equal(bytes, roundtrip);
         // And the emoji's UTF-8 sequence (F0 9F 8E A8) survived.
-        Assert.Contains((byte)0xF0, (IEnumerable<byte>)bytes);
-        Assert.Contains((byte)0x9F, (IEnumerable<byte>)bytes);
+        Assert.Contains((byte)0xF0, bytes);
+        Assert.Contains((byte)0x9F, bytes);
     }
 
     [Fact]
@@ -134,5 +134,8 @@ public class ChaosTests
         Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
     }
 
-    private sealed class WidgetA : Component { protected override RenderResult Render() => this; }
+    private sealed class WidgetA : Component
+    {
+        protected override RenderResult Render() => this;
+    }
 }

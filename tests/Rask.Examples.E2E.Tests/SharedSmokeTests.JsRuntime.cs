@@ -20,7 +20,7 @@ public abstract partial class SharedSmokeTests
         // stays at "(idle)".
         await ClearJsRuntimeStorageAsync();
         await NavigateToAsync("/jsruntime");
-        await Expect(Page.Locator("main h1.h3")).ToContainTextAsync("IJSRuntime",
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("IJSRuntime",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         await Expect(Page.Locator("#demo-status")).ToContainTextAsync("no value yet",
@@ -34,7 +34,7 @@ public abstract partial class SharedSmokeTests
         // pulls it back via InvokeAsync<string?>. Status mirrors each step.
         await ClearJsRuntimeStorageAsync();
         await NavigateToAsync("/jsruntime");
-        await Expect(Page.Locator("main h1.h3")).ToContainTextAsync("IJSRuntime",
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("IJSRuntime",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         await Page.Locator("#demo-input").FillAsync("hello-rask");
@@ -54,7 +54,7 @@ public abstract partial class SharedSmokeTests
     {
         await ClearJsRuntimeStorageAsync();
         await NavigateToAsync("/jsruntime");
-        await Expect(Page.Locator("main h1.h3")).ToContainTextAsync("IJSRuntime",
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("IJSRuntime",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
 
         await Page.Locator("#demo-input").FillAsync("temp");

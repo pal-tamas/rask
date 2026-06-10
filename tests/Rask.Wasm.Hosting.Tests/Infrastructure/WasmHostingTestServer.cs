@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
+using Rask.Core.Live;
 
 namespace Rask.Wasm.Hosting.Tests.Infrastructure;
 
@@ -24,7 +25,7 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
         await _app.DisposeAsync();
         // Reset the static PathBase so tests configuring a prefix don't leak into
         // subsequent tests sharing the AppDomain.
-        Rask.Core.Live.LiveOptions.PathBase = string.Empty;
+        LiveOptions.PathBase = string.Empty;
     }
 
     public static async Task<WasmHostingTestServer> CreateAsync(
@@ -42,7 +43,7 @@ internal sealed class WasmHostingTestServer : IAsyncDisposable
 
         var app = builder.Build();
         app.UseRouting();
-        app.UseRask(bundlePath, pathBase: pathBase);
+        app.UseRask(bundlePath, pathBase);
 
         await app.StartAsync();
         return new WasmHostingTestServer(app);

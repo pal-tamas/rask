@@ -8,8 +8,8 @@ namespace Rask.Benchmarks.VsBlazor.Infrastructure;
 /// <summary>
 ///     Drives a single "previous-state → new-state" render cycle through the same code
 ///     path <c>LiveSession</c> uses on the wire: capture both renders' RenderFrame
-///     streams via the framework's <see cref="SessionRenderCache"/>, build the diff
-///     payload via <see cref="LivePayload.BuildPayloadUtf8Diff"/>. Reuses buffers across
+///     streams via the framework's <see cref="SessionRenderCache" />, build the diff
+///     payload via <see cref="LivePayload.BuildPayloadUtf8Diff" />. Reuses buffers across
 ///     invocations so steady-state allocations match production.
 ///     <para>
 ///         Mirrors the workflow in <c>Rask.Benchmarks/PayloadBytesPerUpdate.cs</c> and
@@ -25,12 +25,14 @@ public sealed class RaskHarness : IDisposable
     private readonly List<EditOp> _ops = new(32);
     private readonly ArrayBufferWriter<byte> _payloadBuffer = new(64 * 1024);
 
+    public void Dispose() => _cache.Dispose();
+
     /// <summary>
-    ///     Render <paramref name="tree"/>, populating the cache's "previous" slot. Call
-    ///     once at <c>[GlobalSetup]</c> to seed the before-state. <see cref="TryComputeDiff"/>
+    ///     Render <paramref name="tree" />, populating the cache's "previous" slot. Call
+    ///     once at <c>[GlobalSetup]</c> to seed the before-state. <see cref="TryComputeDiff" />
     ///     will return <c>false</c> on the very next call only if you call it directly on
     ///     this same render with no further frames; in normal use, call this then call
-    ///     <see cref="RenderAndBuildDiffPayloadBytes"/> with the new tree.
+    ///     <see cref="RenderAndBuildDiffPayloadBytes" /> with the new tree.
     /// </summary>
     public void SeedPrevious(Component tree)
     {
@@ -46,7 +48,7 @@ public sealed class RaskHarness : IDisposable
     }
 
     /// <summary>
-    ///     Render <paramref name="tree"/>, diff against the previous capture, build the
+    ///     Render <paramref name="tree" />, diff against the previous capture, build the
     ///     UTF-8 diff payload, and return its byte count. After this call, the cache
     ///     holds this render as the new "previous", so the next call diffs against it.
     /// </summary>
@@ -66,7 +68,7 @@ public sealed class RaskHarness : IDisposable
         _cache.TryComputeDiff(_ops, _htmlBuffer.ToString());
 
         _payloadBuffer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8Diff(_payloadBuffer, _ops, null, false);
+        LivePayload.BuildPayloadUtf8Diff(_payloadBuffer, _ops);
         return _payloadBuffer.WrittenCount;
     }
 
@@ -85,7 +87,7 @@ public sealed class RaskHarness : IDisposable
 
     /// <summary>
     ///     Render-to-HTML only — no live root, no payload wrap. Equivalent to calling
-    ///     <see cref="Component.ToHtml"/> but with a pooled writer (matches the same
+    ///     <see cref="Component.ToHtml" /> but with a pooled writer (matches the same
     ///     pool path the framework uses internally).
     /// </summary>
     public string RenderHtml(Component tree)
@@ -94,6 +96,4 @@ public sealed class RaskHarness : IDisposable
         HtmlSerializer.Serialize(tree, _htmlBuffer);
         return _htmlBuffer.ToString();
     }
-
-    public void Dispose() => _cache.Dispose();
 }

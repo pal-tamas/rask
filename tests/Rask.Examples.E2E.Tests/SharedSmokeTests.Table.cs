@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -33,21 +34,21 @@ public abstract partial class SharedSmokeTests
 
         // Click 1: ascending.
         await nameHeader.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]sort=name"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]dir=asc"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]dir=asc"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         // Click 2: descending.
         await nameHeader.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]dir=desc"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]dir=desc"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         // Click 3: cleared (sort= empty, dir=asc).
         await nameHeader.ClickAsync();
         // URL still has dir=asc but sort= empty. Asserting absence of dir=desc
         // and presence of dir=asc.
-        await Expect(Page).Not.ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]dir=desc"),
+        await Expect(Page).Not.ToHaveURLAsync(new Regex(".*[\\?&]dir=desc"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     });
 
@@ -61,7 +62,7 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("input[type='search']").FillAsync("Linus");
         await Page.WaitForTimeoutAsync(300);
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]filter=Linus"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         var rowCount = await Page.Locator("tbody tr").CountAsync();
@@ -92,7 +93,7 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
         await Page.WaitForTimeoutAsync(200);
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]size=25"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]size=25"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
@@ -109,7 +110,7 @@ public abstract partial class SharedSmokeTests
 
         // Click the numbered page-2 item.
         await Page.Locator(".page-item .page-link:has-text('2')").First.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(".*[\\?&]page=2"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]page=2"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
 
         var firstRowIdAfter = await Page.Locator("tbody tr td").First.InnerTextAsync();

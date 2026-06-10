@@ -24,35 +24,35 @@ public class SvgContainerTests
     public void Use_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<use href=\"#icon\" x=\"1\" y=\"2\" width=\"3\" height=\"4\"></use>",
-            Use(Href: "#icon", X: "1", Y: "2", Width: "3", Height: "4").ToHtml());
+            Use("#icon", "1", "2", "3", "4").ToHtml());
 
     [Fact]
     public void Symbol_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<symbol viewBox=\"0 0 24 24\" preserveAspectRatio=\"xMinYMin\" x=\"1\" y=\"2\" " +
             "width=\"3\" height=\"4\" refX=\"5\" refY=\"6\"></symbol>",
-            Symbol(ViewBox: "0 0 24 24", PreserveAspectRatio: "xMinYMin", X: "1", Y: "2",
-                Width: "3", Height: "4", RefX: "5", RefY: "6").ToHtml());
+            Symbol("0 0 24 24", "xMinYMin", "1", "2",
+                "3", "4", "5", "6").ToHtml());
 
     [Fact]
     public void Marker_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<marker markerWidth=\"10\" markerHeight=\"10\" refX=\"5\" refY=\"5\" orient=\"auto\" " +
             "markerUnits=\"strokeWidth\" viewBox=\"0 0 10 10\" preserveAspectRatio=\"none\"></marker>",
-            Marker(MarkerWidth: "10", MarkerHeight: "10", RefX: "5", RefY: "5", Orient: "auto",
-                MarkerUnits: "strokeWidth", ViewBox: "0 0 10 10", PreserveAspectRatio: "none").ToHtml());
+            Marker("10", "10", "5", "5", "auto",
+                "strokeWidth", "0 0 10 10", "none").ToHtml());
 
     [Fact]
     public void ForeignObject_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<foreignObject x=\"1\" y=\"2\" width=\"3\" height=\"4\"></foreignObject>",
-            ForeignObject(X: "1", Y: "2", Width: "3", Height: "4").ToHtml());
+            ForeignObject("1", "2", "3", "4").ToHtml());
 
     [Fact]
     public void Image_AllPropsSet_EmitsExpectedAttributes() =>
         Assert.Equal(
             "<image x=\"1\" y=\"2\" width=\"3\" height=\"4\" href=\"/a.png\" " +
             "preserveAspectRatio=\"xMidYMid slice\"></image>",
-            Image(X: "1", Y: "2", Width: "3", Height: "4", Href: "/a.png",
-                PreserveAspectRatio: "xMidYMid slice").ToHtml());
+            Image("1", "2", "3", "4", "/a.png",
+                "xMidYMid slice").ToHtml());
 }

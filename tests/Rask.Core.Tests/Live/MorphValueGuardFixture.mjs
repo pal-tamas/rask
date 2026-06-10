@@ -12,7 +12,7 @@
 //
 // The C# test (MorphValueGuardTests) runs this in a node subprocess and asserts
 // the single JSON line on stdout. Exits non-zero on an internal stub failure.
-import { readFileSync } from "node:fs";
+import {readFileSync} from "node:fs";
 
 const morphPath = process.argv[2];
 if (!morphPath) {
@@ -41,7 +41,7 @@ function makeInput(attrs) {
         setAttribute: (n, v) => a.set(n, String(v)),
         removeAttribute: (n) => a.delete(n),
         get attributes() {
-            return [...a.entries()].map(([name, value]) => ({ name, value }));
+            return [...a.entries()].map(([name, value]) => ({name, value}));
         }
     };
     return el;
@@ -49,7 +49,7 @@ function makeInput(attrs) {
 
 // A spectator element that owns focus, so morph's focus guard (activeElement !==
 // from) lets the value-sync path run — the realistic post-blur state.
-const elsewhere = { nodeType: 1, nodeName: "BODY", tagName: "BODY" };
+const elsewhere = {nodeType: 1, nodeName: "BODY", tagName: "BODY"};
 
 globalThis.window = globalThis;
 globalThis.document = {
@@ -61,7 +61,7 @@ globalThis.document = {
 const src = readFileSync(morphPath, "utf8");
 const factory = new Function(
     src + "\n;return { morph, raskNotePendingValue, raskShouldSuppressValue };");
-const { morph, raskNotePendingValue, raskShouldSuppressValue } = factory();
+const {morph, raskNotePendingValue, raskShouldSuppressValue} = factory();
 
 // Change-only inputs: data-rask-on-change present, NO data-rask-on-input, so morph
 // treats the server value as canonical (the pre-fix clobber path). The runtime
@@ -71,7 +71,7 @@ const DEFAULT = "2026-07-05";
 const LATER = "2030-01-01";
 
 // ---- Scenario 1: lagging stale render must not clobber a committed edit ----
-const dateInput = makeInput({ "data-rask-on-change": "h78", "value": DEFAULT });
+const dateInput = makeInput({"data-rask-on-change": "h78", "value": DEFAULT});
 dateInput.value = DEFAULT;
 
 // User edits to COMMITTED. Dispatch records the pre-edit attribute (DEFAULT).
@@ -79,26 +79,26 @@ raskNotePendingValue(dateInput, dateInput.getAttribute("value"));
 dateInput.value = COMMITTED;
 
 // A render the server computed BEFORE the change lands, carrying the stale DEFAULT.
-morph(dateInput, makeInput({ "data-rask-on-change": "h78", "value": DEFAULT }));
+morph(dateInput, makeInput({"data-rask-on-change": "h78", "value": DEFAULT}));
 const afterStale = dateInput.value;
 
 // The authoritative echo of the user's value lands — applies, releases the guard.
-morph(dateInput, makeInput({ "data-rask-on-change": "h78", "value": COMMITTED }));
+morph(dateInput, makeInput({"data-rask-on-change": "h78", "value": COMMITTED}));
 const afterEcho = dateInput.value;
 
 // A genuine later server-driven change wins (guard already released).
-morph(dateInput, makeInput({ "data-rask-on-change": "h78", "value": LATER }));
+morph(dateInput, makeInput({"data-rask-on-change": "h78", "value": LATER}));
 const afterLater = dateInput.value;
 
 // ---- Scenario 2: server CORRECTION must apply (the int-clear regression) ----
 // User clears a non-nullable int (value="") whose model snaps to 0. The server's
 // authoritative response is "0" — different from the user's "" AND from the pre-edit
 // "30" — so it must win, not be suppressed.
-const intInput = makeInput({ "data-rask-on-change": "h99", "value": "30" });
+const intInput = makeInput({"data-rask-on-change": "h99", "value": "30"});
 intInput.value = "30";
 raskNotePendingValue(intInput, intInput.getAttribute("value")); // records "30"
 intInput.value = "";                                            // user cleared
-morph(intInput, makeInput({ "data-rask-on-change": "h99", "value": "0" }));
+morph(intInput, makeInput({"data-rask-on-change": "h99", "value": "0"}));
 const afterCorrection = intInput.value;
 
 process.stdout.write(JSON.stringify({

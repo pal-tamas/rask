@@ -27,8 +27,6 @@ public sealed class LiveRenderContext : IDisposable
     // the using-block exits still observes `Current == this`. Callers that need the
     // narrower meaning (e.g. RaskJSRuntime.BeginInvokeJS deciding whether the current
     // frame will drain a queued invoke for them) check IsActive instead of Current.
-    private bool _active = true;
-    internal bool IsActive => _active;
 
     private LiveRenderContext(
         Component root,
@@ -44,6 +42,8 @@ public sealed class LiveRenderContext : IDisposable
         _previous = _current.Value;
         _current.Value = this;
     }
+
+    internal bool IsActive { get; private set; } = true;
 
     public static LiveRenderContext? Current => _current.Value;
 
@@ -82,7 +82,7 @@ public sealed class LiveRenderContext : IDisposable
 
     public void Dispose()
     {
-        _active = false;
+        IsActive = false;
         _current.Value = _previous;
     }
 
@@ -237,6 +237,19 @@ public sealed class LiveRenderContext : IDisposable
 
     internal Dictionary<ObjectKey, EditContext> SnapshotEditContexts() => _currentEditContexts;
 
+    // Extension-style entry points that handle a null receiver. Lets HtmlSerializer's
+    // `using (liveCtx?.PushScope(...))` pattern survive the rewrite from class-based
+    // pop disposables to a ref struct — `?.` can't return a ref struct (no Nullable<T>
+    // for ref structs), but a non-extension static taking `LiveRenderContext?` can.
+    internal static ContextScope PushScopeOrNone(LiveRenderContext? ctx, Component instance)
+        => ctx is null ? default : ctx.PushScope(instance);
+
+    internal static ContextScope EnterParentScopeOrNone(LiveRenderContext? ctx, Component parent)
+        => ctx is null ? default : ctx.EnterParentScope(parent);
+
+    internal static ContextScope PushBoundaryOrNone(LiveRenderContext? ctx, ErrorBoundary boundary)
+        => ctx is null ? default : ctx.PushBoundary(boundary);
+
     internal readonly struct ObjectKey : IEquatable<ObjectKey>
     {
         public ObjectKey(object value) => Value = value;
@@ -260,19 +273,6 @@ public sealed class LiveRenderContext : IDisposable
         Boundary = 3
     }
 
-    // Extension-style entry points that handle a null receiver. Lets HtmlSerializer's
-    // `using (liveCtx?.PushScope(...))` pattern survive the rewrite from class-based
-    // pop disposables to a ref struct — `?.` can't return a ref struct (no Nullable<T>
-    // for ref structs), but a non-extension static taking `LiveRenderContext?` can.
-    internal static ContextScope PushScopeOrNone(LiveRenderContext? ctx, Component instance)
-        => ctx is null ? default : ctx.PushScope(instance);
-
-    internal static ContextScope EnterParentScopeOrNone(LiveRenderContext? ctx, Component parent)
-        => ctx is null ? default : ctx.EnterParentScope(parent);
-
-    internal static ContextScope PushBoundaryOrNone(LiveRenderContext? ctx, ErrorBoundary boundary)
-        => ctx is null ? default : ctx.PushBoundary(boundary);
-
     internal readonly ref struct ContextScope
     {
         private readonly LiveRenderContext? _ctx;
@@ -294,13 +294,25 @@ public sealed class LiveRenderContext : IDisposable
             switch (_kind)
             {
                 case ContextScopeKind.Scope:
-                    if (ctx._scopeStack.Count > 0) ctx._scopeStack.Pop();
+                    if (ctx._scopeStack.Count > 0)
+                    {
+                        ctx._scopeStack.Pop();
+                    }
+
                     break;
                 case ContextScopeKind.Parent:
-                    if (ctx._parentStack.Count > 0) ctx._parentStack.Pop();
+                    if (ctx._parentStack.Count > 0)
+                    {
+                        ctx._parentStack.Pop();
+                    }
+
                     break;
                 case ContextScopeKind.Boundary:
-                    if (ctx._boundaryStack.Count > 0) ctx._boundaryStack.Pop();
+                    if (ctx._boundaryStack.Count > 0)
+                    {
+                        ctx._boundaryStack.Pop();
+                    }
+
                     break;
             }
         }

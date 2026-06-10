@@ -53,6 +53,7 @@ public sealed class HeadAssetGateBugReproductionTests
             // user-observable side of the same bug under Playwright.
             return;
         }
+
         var repoRoot = LocateRepoRoot();
         var fixtureScript = Path.Combine(repoRoot, "tests", "Rask.Wasm.Tests", "JSInterop", "HeadAssetGateFixture.mjs");
         var bundlePath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");

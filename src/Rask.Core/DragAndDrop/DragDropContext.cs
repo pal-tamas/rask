@@ -32,6 +32,8 @@ public sealed class DragDropContext
     public string? TargetZone => _owner.TargetZoneInternal;
     public int TargetIndex => _owner.TargetIndexInternal;
 
+    public Action DragEnd => _owner.EndDrag;
+
     // Convenience for the common "highlight the slot under the cursor" case.
     public bool IsDropTarget(string zone, int index) =>
         string.Equals(_owner.TargetZoneInternal, zone, StringComparison.Ordinal)
@@ -52,6 +54,4 @@ public sealed class DragDropContext
         _owner.HasAsyncDrop
             ? (Func<Task>)(() => _owner.CommitDropAsync(zone, index))
             : (Action)(() => _owner.CommitDrop(zone, index));
-
-    public Action DragEnd => _owner.EndDrag;
 }

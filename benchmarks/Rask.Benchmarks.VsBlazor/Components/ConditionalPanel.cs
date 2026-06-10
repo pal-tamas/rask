@@ -30,14 +30,12 @@ internal static class ConditionalPanel
             rows.Add(C.Li(Class: "panel-row")[$"Detail {i}"]);
         }
 
-        var body = new List<Child>(3)
-        {
-            C.Header()[C.H1()["Dashboard"]]
-        };
+        var body = new List<Child>(3) { C.Header()[C.H1()["Dashboard"]] };
         if (showPanel)
         {
             body.Add(C.Div(Class: "panel")[C.Ul()[rows]]);
         }
+
         body.Add(C.Footer()[C.Span()["© Rask"]]);
 
         return C.Div(Class: "shell")[body];
@@ -70,6 +68,7 @@ internal static class ConditionalPanel
                     b.AddContent(10, $"Detail {i}");
                     b.CloseElement();
                 }
+
                 b.CloseElement();
                 b.CloseElement();
             }

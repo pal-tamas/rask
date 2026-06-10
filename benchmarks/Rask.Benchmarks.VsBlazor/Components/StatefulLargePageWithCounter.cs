@@ -26,13 +26,12 @@ public sealed class StatefulLargePageWithCounter : Component
     public const int LargePageRowCount = 200;
 
     private List<Child>? _rows;
-    private int _counter;
 
-    public int Counter => _counter;
+    public int Counter { get; private set; }
 
     public void Tick()
     {
-        _counter++;
+        Counter++;
         StateHasChanged();
     }
 
@@ -52,7 +51,7 @@ public sealed class StatefulLargePageWithCounter : Component
 
         return C.Div(Class: "container", Id: "root")[
             C.Div(Class: "counter", Id: "counter")[
-                C.Span(Class: "value")[_counter.ToString()]
+                C.Span(Class: "value")[Counter.ToString()]
             ],
             C.Div(Class: "body")[_rows]
         ];
@@ -73,13 +72,12 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
 
     private Child[]? _rowsByIndex;
     private List<Child>? _scratch;
-    private int _counter;
 
-    public int Counter => _counter;
+    public int Counter { get; private set; }
 
     public void Tick()
     {
-        _counter++;
+        Counter++;
         StateHasChanged();
     }
 
@@ -90,7 +88,11 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
             _rowsByIndex = new Child[LargePageRowCount];
             for (var i = 0; i < LargePageRowCount; i++)
             {
-                if (i == MutatingIndex) continue; // built fresh each render
+                if (i == MutatingIndex)
+                {
+                    continue; // built fresh each render
+                }
+
                 _rowsByIndex[i] = C.Div(Class: "row", Id: $"r{i}")[
                     C.Span(Class: "label")[$"Item {i}"],
                     C.A($"/item/{i}", Class: "lnk")[$"open {i}"]
@@ -99,7 +101,7 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
         }
 
         _rowsByIndex[MutatingIndex] = C.Div(Class: "row", Id: $"r{MutatingIndex}")[
-            C.Span(Class: "label")[$"ticker {_counter}"],
+            C.Span(Class: "label")[$"ticker {Counter}"],
             C.A($"/item/{MutatingIndex}", Class: "lnk")[$"open {MutatingIndex}"]
         ];
 
@@ -109,6 +111,7 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
         {
             _scratch.Add(_rowsByIndex[i]);
         }
+
         return C.Div(Class: "body")[_scratch];
     }
 }

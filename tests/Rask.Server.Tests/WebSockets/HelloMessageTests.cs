@@ -1,7 +1,8 @@
 using System.Net.WebSockets;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
+using Generated = Rask.Core.Components.Generated;
 
 namespace Rask.Server.Tests.WebSockets;
 
@@ -85,7 +86,7 @@ public class HelloMessageTests
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromMilliseconds(200));
-        await ws1.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "bye",
+        await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye",
             CancellationToken.None);
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -114,7 +115,7 @@ public class HelloMessageTests
     // render completes — exercises the "drop happened before hello" branch of
     // FlushPendingRenderAsync.
 #pragma warning disable RASK019 // test-helper Components predate framework-managed <head>
-    private sealed class MountAsyncApp : Rask.Core.Component
+    private sealed class MountAsyncApp : Component
     {
         public static readonly TaskCompletionSource AwaitCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -129,14 +130,14 @@ public class HelloMessageTests
             AwaitCompleted.TrySetResult();
         }
 
-        protected override Rask.Core.RenderResult Render() =>
-            Rask.Core.Components.Generated.Fragment()[
-                Rask.Core.Components.Generated.Doctype(),
-                Rask.Core.Components.Generated.Html()[
-                    Rask.Core.Components.Generated.Head()[
-                        Rask.Core.Components.Generated.Title()["mount-async-app"]],
-                    Rask.Core.Components.Generated.Body()[
-                        Rask.Core.Components.Generated.P()[_loaded ? "loaded" : "loading"]]]];
+        protected override RenderResult Render() =>
+            Fragment()[
+                Doctype(),
+                Html()[
+                    Head()[
+                        Title()["mount-async-app"]],
+                    Body()[
+                        P()[_loaded ? "loaded" : "loading"]]]];
     }
 #pragma warning restore RASK019
 }

@@ -11,13 +11,13 @@ namespace Rask.Server.Tests.Authentication;
 public sealed class RouteGuardTestApp : Component
 {
     protected override RenderResult Render() =>
-        [
-            Doctype(),
-            Html("en")[
-                Head()[Title()["route-guard-e2e"]],
-                Body()[Router()]
-            ]
-        ];
+    [
+        Doctype(),
+        Html("en")[
+            Head()[Title()["route-guard-e2e"]],
+            Body()[Router()]
+        ]
+    ];
 }
 
 [Route("/e2e/public")]

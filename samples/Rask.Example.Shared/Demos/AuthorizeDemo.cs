@@ -26,7 +26,7 @@ public sealed class AuthorizeDemo : Component
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             Authorize(
-                Roles: ["admin"],
+                ["admin"],
                 Authorized: Div(Class: "alert alert-warning py-2 mb-0")["🔑 Admin-only content."],
                 NotAuthorized: Authorize(
                     Authorized: Div(Class: "alert alert-success py-2 mb-0")["✅ Signed in — standard access."],

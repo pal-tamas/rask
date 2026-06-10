@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
 
@@ -66,7 +65,7 @@ public sealed class SparklineTests
     }
 
     private static string Render(params double[] values) =>
-        new LiveHost(() => Sparkline(Values: values), LiveHost.Services()).RenderAsLiveRoot();
+        new LiveHost(() => Sparkline(values), LiveHost.Services()).RenderAsLiveRoot();
 
     private static (double X, double Y)[] PolylinePoints(string html)
     {

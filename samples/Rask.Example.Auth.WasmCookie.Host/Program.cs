@@ -53,6 +53,7 @@ app.UseRask(); // serve the published WASM AppBundle
 app.Run();
 
 public sealed record LoginRequest(string Username, string Password);
+
 public sealed record MeDto(string Name, string[] Roles);
 
 public interface ICredentialStore

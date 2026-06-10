@@ -1,5 +1,5 @@
+using System.Collections;
 using System.Reflection;
-using Rask.Core;
 using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Demos.Generated;
@@ -153,18 +153,18 @@ public sealed class BindingDemosTests
         var live = liveField?.GetValue(parent);
         if (live is null)
         {
-            return null;   // component never rendered children -> _live still null
+            return null; // component never rendered children -> _live still null
         }
 
         var childrenField = live.GetType().GetField("Children",
             BindingFlags.Instance | BindingFlags.Public);
-        var children = childrenField?.GetValue(live) as System.Collections.IDictionary;
+        var children = childrenField?.GetValue(live) as IDictionary;
         if (children is null)
         {
             return null;
         }
 
-        foreach (System.Collections.DictionaryEntry kv in children)
+        foreach (DictionaryEntry kv in children)
         {
             if (kv.Value is T match)
             {

@@ -3,8 +3,10 @@ using System.Text.Json.Serialization;
 namespace Rask.Example.Auth.WasmCookie;
 
 public sealed record LoginRequest(
-    [property: JsonPropertyName("username")] string Username,
-    [property: JsonPropertyName("password")] string Password);
+    [property: JsonPropertyName("username")]
+    string Username,
+    [property: JsonPropertyName("password")]
+    string Password);
 
 public sealed record MeDto(
     [property: JsonPropertyName("name")] string Name,

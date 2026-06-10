@@ -11,7 +11,7 @@ namespace Rask.Example.Shared.Pages;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class TodosPage(Navigator nav, RouteState route) : Component
 {
-    [RouteParam] public Guid? Id { get; set; }
+    private readonly TodoForm _form = new();
 
     private readonly List<TodoItem> _todos =
     [
@@ -19,7 +19,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
         new() { Title = "Wire up a feature toggle", Completed = true }
     ];
 
-    private readonly TodoForm _form = new();
+    [RouteParam] public Guid? Id { get; set; }
 
     protected override RenderResult Head => Title()["Todos — Rask"];
 
@@ -62,7 +62,8 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
     protected override RenderResult Render()
     {
         var done = _todos.Count(t => t.Completed);
-        return [
+        return
+        [
             PageHeader.Render(
                 "Todos",
                 "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
@@ -98,11 +99,11 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                     ])
                 ],
             TodoFormDialog(
-                Open: ShowDialog,
-                Model: _form,
-                IsAdding: IsAdding,
-                OnCancel: Cancel,
-                OnSave: Save)
+                ShowDialog,
+                _form,
+                IsAdding,
+                Cancel,
+                Save)
         ];
     }
 }
@@ -119,7 +120,7 @@ public sealed class TodoFormDialog : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        Dialog(Open: Open)[
+        Dialog(Open)[
             H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
             Form(Model, OnSave, Class: "vstack gap-3")[
                 DataAnnotationsValidator(),

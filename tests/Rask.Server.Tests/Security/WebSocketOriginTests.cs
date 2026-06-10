@@ -20,8 +20,8 @@ public class WebSocketOriginTests
         host.WebSockets.ConfigureRequest = req => req.Headers["Origin"] = "http://evil.example";
 
         // TestServer surfaces the non-101 handshake as a thrown exception; the socket never opens.
-        var ex = await Assert.ThrowsAnyAsync<Exception>(
-            () => host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
+            host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None));
         Assert.Contains("403", ex.Message);
     }
 

@@ -3,7 +3,9 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Components;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
+using Rask.Core;
 using Rask.Core.Live;
+using Generated = Rask.Core.Components.Generated;
 
 namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 
@@ -17,8 +19,8 @@ namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 
 public abstract class MemoryGcBase
 {
-    protected RaskHarness Rask = null!;
     protected BlazorRenderBatchCapture Blazor = null!;
+    protected RaskHarness Rask = null!;
 
     [GlobalCleanup]
     public void Cleanup()
@@ -35,9 +37,9 @@ public class MemoryGc_SustainedCounterChurnBenchmarks : MemoryGcBase
     // test: this is exactly the load pattern a production live page sees on a busy
     // dashboard (a once-per-frame ticker, a real-time counter, telemetry stream).
     public const int Cycles = 10_000;
+    private int _seedCounter;
 
     private StatefulLargePageWithCounter _stateful = null!;
-    private int _seedCounter;
 
     [GlobalSetup]
     public void Setup()
@@ -73,6 +75,7 @@ public class MemoryGc_SustainedCounterChurnBenchmarks : MemoryGcBase
             _stateful.Tick();
             total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
         }
+
         return total;
     }
 }
@@ -81,12 +84,11 @@ public class MemoryGc_SustainedCounterChurnBenchmarks : MemoryGcBase
 public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
 {
     public const int Cycles = 5_000;
-
-    [Params(500, 2000)]
-    public int N { get; set; }
+    private ulong _state;
 
     private KeyedList.StatefulKeyedList _stateful = null!;
-    private ulong _state;
+
+    [Params(500, 2000)] public int N { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -119,9 +121,10 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
                         [nameof(KeyedList.BlazorKeyedList.Order)] = beforeArr
                     });
                 }
-                localState = localState * 6364136223846793005UL + 1442695040888963407UL;
+
+                localState = (localState * 6364136223846793005UL) + 1442695040888963407UL;
                 var a = (int)((localState >> 33) % (uint)n);
-                localState = localState * 6364136223846793005UL + 1442695040888963407UL;
+                localState = (localState * 6364136223846793005UL) + 1442695040888963407UL;
                 var b = (int)((localState >> 33) % (uint)n);
                 (workingOrder[a], workingOrder[b]) = (workingOrder[b], workingOrder[a]);
                 return ParameterView.FromDictionary(new Dictionary<string, object?>
@@ -138,13 +141,14 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
         long total = 0;
         for (var i = 0; i < Cycles; i++)
         {
-            _state = _state * 6364136223846793005UL + 1442695040888963407UL;
+            _state = (_state * 6364136223846793005UL) + 1442695040888963407UL;
             var a = (int)((_state >> 33) % (uint)n);
-            _state = _state * 6364136223846793005UL + 1442695040888963407UL;
+            _state = (_state * 6364136223846793005UL) + 1442695040888963407UL;
             var b = (int)((_state >> 33) % (uint)n);
             _stateful.SwapAt(a, b);
             total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
         }
+
         return total;
     }
 }
@@ -153,13 +157,12 @@ public class MemoryGc_KeyedListShufflePressureBenchmarks : MemoryGcBase
 public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
 {
     public const int Cycles = 1_000;
-
-    [Params(100, 500)]
-    public int N { get; set; }
+    private int[] _baseOrder = null!;
 
     private AppendDeleteRowChurn.StatefulAppendDeleteList _stateful = null!;
-    private int[] _baseOrder = null!;
     private int[] _withInsert = null!;
+
+    [Params(100, 500)] public int N { get; set; }
 
     [GlobalSetup]
     public void Setup()
@@ -167,9 +170,17 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
         Rask = new RaskHarness();
         Blazor = new BlazorRenderBatchCapture();
         _baseOrder = new int[N];
-        for (var i = 0; i < N; i++) _baseOrder[i] = i;
+        for (var i = 0; i < N; i++)
+        {
+            _baseOrder[i] = i;
+        }
+
         _withInsert = new int[N + 1];
-        for (var i = 0; i < N; i++) _withInsert[i] = i;
+        for (var i = 0; i < N; i++)
+        {
+            _withInsert[i] = i;
+        }
+
         _withInsert[N] = N + 1000;
 #pragma warning disable RASK014
         _stateful = new AppendDeleteRowChurn.StatefulAppendDeleteList { Capacity = N + 1001 };
@@ -204,6 +215,7 @@ public class MemoryGc_AppendDeletePressureBenchmarks : MemoryGcBase
             _stateful.SetOrder(_baseOrder);
             total += Rask.RenderAndBuildDiffPayloadBytes(_stateful);
         }
+
         return total;
     }
 }
@@ -232,13 +244,15 @@ public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
     {
         var startCounter = _seedCounter;
         _seedCounter += Cycles;
-        return Blazor.MeasureSustainedIncrementalUpdates<Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree>(
-            Cycles,
-            i => ParameterView.FromDictionary(new Dictionary<string, object?>
-            {
-                [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] = startCounter + i,
-                [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = Depth
-            }));
+        return Blazor
+            .MeasureSustainedIncrementalUpdates<Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree>(
+                Cycles,
+                i => ParameterView.FromDictionary(new Dictionary<string, object?>
+                {
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Counter)] =
+                        startCounter + i,
+                    [nameof(Scale_DeepTreeMutationByDepthBenchmarks.ParameterizedBlazorDeepTree.Depth)] = Depth
+                }));
     }
 
     [Benchmark]
@@ -248,21 +262,24 @@ public class MemoryGc_DeepTreeMutationPressureBenchmarks : MemoryGcBase
         for (var i = 0; i < Cycles; i++)
         {
             _seedCounter++;
-            total += Rask.RenderAndBuildDiffPayloadBytes(Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(_seedCounter));
+            total += Rask.RenderAndBuildDiffPayloadBytes(
+                Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(_seedCounter));
         }
+
         return total;
     }
 
-    private static global::Rask.Core.Component Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(int counter)
+    private static Component Scale_DeepTreeMutationByDepthBenchmarks_BuildHelper(int counter)
     {
         // Mirror the Blazor side exactly: 100-deep div nest wrapping a leaf span,
         // no page shell. Blazor's BuildRenderTree emits no doctype/html/body either.
-        global::Rask.Core.Component leaf =
-            global::Rask.Core.Components.Generated.Span(Class: "counter")[counter.ToString()];
+        var leaf =
+            Generated.Span(Class: "counter")[counter.ToString()];
         for (var i = 0; i < Depth; i++)
         {
-            leaf = global::Rask.Core.Components.Generated.Div(Class: $"d{i}")[leaf];
+            leaf = Generated.Div(Class: $"d{i}")[leaf];
         }
+
         return leaf;
     }
 }
@@ -275,9 +292,9 @@ public class MemoryGc_PayloadEnvelopePressureBenchmarks
     // engage the symbol-table path at LivePayload.cs:279). Catches accumulating
     // dictionary allocations or temp buffer leaks in the encode preamble.
     public const int Cycles = 10_000;
+    private ArrayBufferWriter<byte> _buffer = null!;
 
     private List<EditOp> _ops = null!;
-    private ArrayBufferWriter<byte> _buffer = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -312,6 +329,7 @@ public class MemoryGc_PayloadEnvelopePressureBenchmarks
             LivePayload.BuildPayloadUtf8Diff(_buffer, _ops);
             total += _buffer.WrittenCount;
         }
+
         return total;
     }
 }

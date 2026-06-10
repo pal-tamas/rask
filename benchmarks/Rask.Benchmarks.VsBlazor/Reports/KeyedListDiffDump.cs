@@ -140,7 +140,7 @@ internal static class KeyedListDiffDump
         }
 
         var fullPayload = new ArrayBufferWriter<byte>(8 * 1024);
-        LivePayload.BuildPayloadUtf8Diff(fullPayload, ops, null, false);
+        LivePayload.BuildPayloadUtf8Diff(fullPayload, ops);
         var envelope = fullPayload.WrittenCount - totalBytes;
         Console.WriteLine();
         Console.WriteLine($"# Full diff payload: {fullPayload.WrittenCount} bytes");
@@ -154,7 +154,7 @@ internal static class KeyedListDiffDump
         // from `wholePayloadBytes` then attributes the JSON-envelope overhead
         // explicitly. Cheap and deterministic.
         var buf = new ArrayBufferWriter<byte>(256);
-        LivePayload.BuildPayloadUtf8Diff(buf, new[] { op }, null, false);
+        LivePayload.BuildPayloadUtf8Diff(buf, new[] { op });
         return buf.WrittenCount;
     }
 }

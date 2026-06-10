@@ -470,7 +470,9 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("CounterPage(string? Name = null, string? Greeting = null, string? Other = null, object? Key = null)", output);
+        Assert.Contains(
+            "CounterPage(string? Name = null, string? Greeting = null, string? Other = null, object? Key = null)",
+            output);
     }
 
     [Fact]
@@ -536,7 +538,8 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("Bound<TProp>(global::System.Linq.Expressions.Expression<global::System.Func<TProp>> Bind, object? Key = null)",
+        Assert.Contains(
+            "Bound<TProp>(global::System.Linq.Expressions.Expression<global::System.Func<TProp>> Bind, object? Key = null)",
             output);
     }
 

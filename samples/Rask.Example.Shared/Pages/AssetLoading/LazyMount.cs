@@ -8,6 +8,7 @@ namespace Rask.Example.Shared.Pages.AssetLoading;
 /// </summary>
 public sealed class LazyMount : Component
 {
+    private static readonly Component Empty = Div();
     private bool _shown;
 
     protected override RenderResult Render() =>
@@ -19,6 +20,4 @@ public sealed class LazyMount : Component
             ],
             _shown ? LazyChild() : Empty
         ];
-
-    private static readonly Component Empty = Div();
 }

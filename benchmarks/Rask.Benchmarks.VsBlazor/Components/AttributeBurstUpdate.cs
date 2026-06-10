@@ -23,7 +23,7 @@ internal static class AttributeBurstUpdate
         var rows = new List<Child>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
-            Component row = loaded
+            var row = loaded
                 ? C.Div(Class: "row", Data: new Dictionary<string, string?> { ["loaded"] = "true" })[
                     C.Span()[$"Row {i}"]
                 ]
@@ -59,6 +59,7 @@ internal static class AttributeBurstUpdate
 
                 b.CloseElement();
             }
+
             b.CloseElement();
         }
     }

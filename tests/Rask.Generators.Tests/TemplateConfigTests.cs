@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace Rask.Generators.Tests;
@@ -17,7 +15,7 @@ public class TemplateConfigTests
     [
         ["rask-server", "Company.RaskServer"],
         ["rask-wasm", "Company.RaskWasm"],
-        ["rask-wasm-hosted", "Company.RaskWasmHosted"],
+        ["rask-wasm-hosted", "Company.RaskWasmHosted"]
     ];
 
     [Theory]

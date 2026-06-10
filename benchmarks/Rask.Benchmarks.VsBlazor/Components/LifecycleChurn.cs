@@ -26,18 +26,6 @@ internal static class LifecycleChurn
 {
     public const int MaxActiveCount = 100;
 
-#pragma warning disable RASK014
-    public sealed class RaskChild : Component
-#pragma warning restore RASK014
-    {
-        public int Index { get; set; }
-
-        protected override RenderResult Render() =>
-            C.Div(Class: "child", Id: $"c{Index}")[
-                C.Span(Class: "label")[$"Child {Index}"]
-            ];
-    }
-
     public static Component BuildRask(int activeCount)
     {
         var children = new List<Child>(activeCount);
@@ -49,6 +37,18 @@ internal static class LifecycleChurn
         }
 
         return C.Div(Class: "host")[children];
+    }
+
+#pragma warning disable RASK014
+    public sealed class RaskChild : Component
+#pragma warning restore RASK014
+    {
+        public int Index { get; set; }
+
+        protected override RenderResult Render() =>
+            C.Div(Class: "child", Id: $"c{Index}")[
+                C.Span(Class: "label")[$"Child {Index}"]
+            ];
     }
 
     public sealed class BlazorChild : ComponentBase

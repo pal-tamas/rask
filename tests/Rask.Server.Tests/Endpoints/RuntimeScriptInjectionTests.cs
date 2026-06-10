@@ -64,7 +64,9 @@ public sealed class RuntimeScriptInjectionTests
     private sealed class LegacyShellApp(RouteState routeState) : Component
     {
         protected override RenderResult Render() =>
-            [Doctype(), new Html()[new Head(),
-                new Body()[new H1()[$"path={routeState.Path}"], RaskRuntimeScript()]]];
+        [
+            Doctype(), new Html()[new Head(),
+                new Body()[new H1()[$"path={routeState.Path}"], RaskRuntimeScript()]]
+        ];
     }
 }

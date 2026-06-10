@@ -16,9 +16,9 @@ public class HtmlSerializerBenchmarks
 {
     private Component _large = null!;
     private Component _medium = null!;
-    private Component _tiny = null!;
     private Component _scopedCss = null!;
     private Component _textHeavy = null!;
+    private Component _tiny = null!;
 
     [GlobalSetup]
     public void Setup()

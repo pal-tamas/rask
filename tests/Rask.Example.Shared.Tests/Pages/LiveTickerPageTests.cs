@@ -1,6 +1,4 @@
-using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -14,7 +12,7 @@ public sealed class LiveTickerPageTests
     public void RouteParam_Symbol_BindsFromUrl_AndRendersTitle(string path, string expectedSymbol)
     {
         var routeState = new RouteState { Path = path };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains($"{expectedSymbol} live ticker", html);
@@ -26,7 +24,7 @@ public sealed class LiveTickerPageTests
     public void Render_EmitsAllThreeSwitchButtons()
     {
         var routeState = new RouteState { Path = "/realtime/BTC" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("ticker-switch-BTC", html);
@@ -38,7 +36,7 @@ public sealed class LiveTickerPageTests
     public void Render_HookActivityCard_Present()
     {
         var routeState = new RouteState { Path = "/realtime/BTC" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         // The card may show the empty-hint OR an already-populated log depending on

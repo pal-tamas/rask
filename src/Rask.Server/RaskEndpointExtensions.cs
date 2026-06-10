@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
+using Microsoft.Net.Http.Headers;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
@@ -52,8 +53,34 @@ public static class RaskEndpointExtensions
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
+    // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
+    // (or a single hot-reload UpdateApplication burst that re-registers every component
+    // back-to-back) generates N events; without coalescing each fires its own
+    // RerenderAllAsync. The generation counter snapshot survives only if no newer event
+    // arrived during the quiet window — the trailing change wins and we re-render once.
+    private static long _assetChangeGen;
+
+    // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
+    // HEAD returns the same headers with no body (handled by Results.Bytes internally).
+    // POST/PUT/DELETE/PATCH not listed → ASP.NET returns 405 Method Not Allowed.
+    private static readonly string[] _assetMethods = ["GET", "HEAD"];
+
+    /// <summary>
+    ///     Registers the Rask server-side live-rendering services (session store, routing,
+    ///     authentication, file upload/download, <see cref="IJSRuntime" /> bridge, and the live
+    ///     runtime script). Call this in <c>ConfigureServices</c>, then
+    ///     <see cref="UseRask{TApp}(WebApplication, string, string)" />
+    ///     in the pipeline. Authentication itself is configured on ASP.NET's own
+    ///     <c>AddAuthentication</c>/<c>AddCookie</c>/<c>AddJwtBearer</c> — Rask has no auth options object.
+    /// </summary>
+    /// <param name="services">The service collection to add Rask services to.</param>
+    /// <param name="configure">
+    ///     Optional per-app live-runtime options (diff mode, path base, session cap). When omitted,
+    ///     framework defaults apply (<see cref="Rask.Core.Live.LiveDiffMode.Auto" />, no path base, uncapped).
+    /// </param>
+    /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
     public static IServiceCollection AddRask(this IServiceCollection services,
-        Action<Rask.Core.Live.RaskLiveOptions>? configure = null)
+        Action<RaskLiveOptions>? configure = null)
     {
         // Per-app live runtime options. The framework default for DiffMode is
         // LiveDiffMode.Auto (set on the static LiveOptions.DiffMode at class init),
@@ -68,14 +95,14 @@ public static class RaskEndpointExtensions
         var maxSessions = 0;
         if (configure is not null)
         {
-            var liveOptions = new Rask.Core.Live.RaskLiveOptions();
+            var liveOptions = new RaskLiveOptions();
             configure(liveOptions);
-            Rask.Core.Live.LiveOptions.DiffMode = liveOptions.DiffMode;
+            LiveOptions.DiffMode = liveOptions.DiffMode;
             // PathBase normalization happens on assignment to RaskLiveOptions,
             // and a second normalize on the static accessor is a cheap no-op.
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
-            Rask.Core.Live.LiveOptions.PathBase = liveOptions.PathBase;
+            LiveOptions.PathBase = liveOptions.PathBase;
             // Session cap is a per-store instance value (not a static) so concurrent
             // hosts/tests don't clobber each other through global state.
             maxSessions = liveOptions.MaxSessions;
@@ -83,10 +110,7 @@ public static class RaskEndpointExtensions
 
         services.AddSingleton(sp => new LiveSessionStore(
             sp.GetRequiredService<IServiceScopeFactory>(),
-            sp.GetService<IHostApplicationLifetime>())
-        {
-            MaxSessions = maxSessions,
-        });
+            sp.GetService<IHostApplicationLifetime>()) { MaxSessions = maxSessions });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -118,6 +142,20 @@ public static class RaskEndpointExtensions
         return services;
     }
 
+    /// <summary>
+    ///     Maps the Rask live endpoints (root document, WebSocket dispatcher, scoped-asset, auth,
+    ///     and upload/download routes) with <typeparamref name="TApp" /> as the root component, and
+    ///     enables WebSockets. The root must render a complete shell
+    ///     (<c>Doctype</c>/<c>Html</c>/<c>Head</c>/<c>Body</c>) — see RASK021.
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
+    /// <param name="app">The web application to map endpoints on.</param>
+    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
+    /// <param name="pathBase">
+    ///     Optional URL prefix so two Rask servers can share one origin behind a reverse proxy
+    ///     (e.g. <c>/app1</c>). Overrides any path base set via <see cref="AddRask" />.
+    /// </param>
+    /// <returns>The same <paramref name="app" /> instance, for chaining.</returns>
     public static WebApplication UseRask<TApp>(
         this WebApplication app,
         string pattern = "/{**path}",
@@ -129,6 +167,16 @@ public static class RaskEndpointExtensions
         return app;
     }
 
+    /// <summary>
+    ///     Endpoint-routing overload of <see cref="UseRask{TApp}(WebApplication, string, string)" />: maps the
+    ///     Rask live endpoints onto an existing <see cref="IEndpointRouteBuilder" /> without touching the
+    ///     middleware pipeline (the caller is responsible for <c>UseWebSockets()</c>).
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
+    /// <param name="endpoints">The endpoint route builder to map Rask routes on.</param>
+    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
+    /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
+    /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
     public static IEndpointRouteBuilder UseRask<TApp>(
         this IEndpointRouteBuilder endpoints,
         string pattern = "/{**path}",
@@ -357,13 +405,6 @@ public static class RaskEndpointExtensions
         SubscribeAssetChangedDebounced(sessionStore);
         TryEnableSourceWatcher(sessionStore);
     }
-
-    // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
-    // (or a single hot-reload UpdateApplication burst that re-registers every component
-    // back-to-back) generates N events; without coalescing each fires its own
-    // RerenderAllAsync. The generation counter snapshot survives only if no newer event
-    // arrived during the quiet window — the trailing change wins and we re-render once.
-    private static long _assetChangeGen;
 
     private static void SubscribeAssetChangedDebounced(LiveSessionStore sessionStore)
     {
@@ -809,9 +850,10 @@ public static class RaskEndpointExtensions
             }
             else
             {
-                w.WriteStringValue(root.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String
-                    ? errEl.GetString()
-                    : "JS invocation failed");
+                w.WriteStringValue(
+                    root.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String
+                        ? errEl.GetString()
+                        : "JS invocation failed");
             }
 
             w.WriteEndArray();
@@ -1135,11 +1177,6 @@ public static class RaskEndpointExtensions
     // Rask.Core's LocalUrl.Sanitize (single source of truth for the IsLocalUrl rule).
     internal static string SanitizeReturnUrl(string? returnUrl) => LocalUrl.Sanitize(returnUrl);
 
-    // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
-    // HEAD returns the same headers with no body (handled by Results.Bytes internally).
-    // POST/PUT/DELETE/PATCH not listed → ASP.NET returns 405 Method Not Allowed.
-    private static readonly string[] _assetMethods = ["GET", "HEAD"];
-
     /// <summary>
     ///     Serves a single per-component scoped asset by its content hash. The hash and
     ///     extension are validated by routing pattern + a hex/length check here; on miss,
@@ -1177,7 +1214,7 @@ public static class RaskEndpointExtensions
                 bytes.Value.Utf8.ToArray(),
                 contentType,
                 enableRangeProcessing: true,
-                entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue(bytes.Value.Etag))
+                entityTag: new EntityTagHeaderValue(bytes.Value.Etag))
             .ExecuteAsync(ctx);
     }
 
@@ -1273,7 +1310,7 @@ public static class RaskEndpointExtensions
                 lastModified = lm;
             }
 
-            var entry = uploads.Stage(
+            var entry = await uploads.StageAsync(
                 sessionId,
                 file.FileName,
                 string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,

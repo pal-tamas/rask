@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Example.Shared.Demos;
 

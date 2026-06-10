@@ -102,8 +102,8 @@ public class StateHasChangedAfterUnmountTests
 
     private sealed class RecordingHandle : IRenderHandle
     {
-        public int RequestRenderCount;
         public int RequestPublishRenderCount;
+        public int RequestRenderCount;
 
         public Task RequestRenderAsync()
         {

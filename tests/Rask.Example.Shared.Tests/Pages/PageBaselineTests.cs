@@ -1,6 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -39,7 +37,7 @@ public sealed class PageBaselineTests
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.NotNull(pageType);
@@ -84,16 +82,14 @@ public sealed class PageBaselineTests
     }
 
     [Fact]
-    public void NotFoundPage_HasNotFoundAttribute()
-    {
+    public void NotFoundPage_HasNotFoundAttribute() =>
         Assert.True(typeof(NotFoundPage).GetCustomAttributes<NotFoundAttribute>().Any());
-    }
 
     [Fact]
     public void UnmatchedRoute_RendersNotFoundPage()
     {
         var routeState = new RouteState { Path = "/__no_such_route" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
         Assert.Contains("Page not found", html);
     }

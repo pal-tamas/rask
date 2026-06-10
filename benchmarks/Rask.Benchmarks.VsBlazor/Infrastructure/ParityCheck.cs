@@ -37,10 +37,10 @@ internal static class ParityCheck
     public static HtmlRenderer SharedBlazorRenderer => SharedHtmlRenderer.Value;
 
     /// <summary>
-    ///     Render <paramref name="raskTree"/> via Rask and a <typeparamref name="TBlazor"/>
-    ///     instance with <paramref name="blazorParameters"/> via Blazor's
-    ///     <see cref="HtmlRenderer"/>, normalize both outputs, and throw
-    ///     <see cref="ParityException"/> if their structural fingerprints diverge.
+    ///     Render <paramref name="raskTree" /> via Rask and a <typeparamref name="TBlazor" />
+    ///     instance with <paramref name="blazorParameters" /> via Blazor's
+    ///     <see cref="HtmlRenderer" />, normalize both outputs, and throw
+    ///     <see cref="ParityException" /> if their structural fingerprints diverge.
     /// </summary>
     public static void Assert<TBlazor>(
         string scenarioName,
@@ -75,7 +75,7 @@ internal static class ParityCheck
     ///     Asserts two Rask trees produce structurally equivalent HTML. Used by the
     ///     stateful-counter scenario to confirm the cached-rows variant renders the
     ///     same output as the rebuild-each-time factory — without that check, a
-    ///     regression in <see cref="StatefulLargePageWithCounter"/> would silently
+    ///     regression in <see cref="StatefulLargePageWithCounter" /> would silently
     ///     ship better diff-codec numbers against a divergent tree.
     /// </summary>
     public static void AssertRaskTreesMatch(string scenarioName, Component left, Component right)
@@ -115,9 +115,18 @@ internal static class ParityCheck
         var inTag = false;
         foreach (var c in stripped)
         {
-            if (c == '<') inTag = true;
-            else if (c == '>') inTag = false;
-            else if (!inTag && !char.IsWhiteSpace(c)) textLen++;
+            if (c == '<')
+            {
+                inTag = true;
+            }
+            else if (c == '>')
+            {
+                inTag = false;
+            }
+            else if (!inTag && !char.IsWhiteSpace(c))
+            {
+                textLen++;
+            }
         }
 
         var summary = string.Join(",",
@@ -126,10 +135,8 @@ internal static class ParityCheck
         return new Fp(summary, textLen);
     }
 
-    private static bool FingerprintMatches(Fp a, Fp b)
-    {
-        return a.TagSummary == b.TagSummary && a.TotalTextLength == b.TotalTextLength;
-    }
+    private static bool FingerprintMatches(Fp a, Fp b) =>
+        a.TagSummary == b.TagSummary && a.TotalTextLength == b.TotalTextLength;
 
     private readonly record struct Fp(string TagSummary, int TotalTextLength);
 

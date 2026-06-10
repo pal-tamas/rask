@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
-using Rask.Core;
 
 namespace Rask.Example.Shared.Tests.Infrastructure;
 
@@ -37,7 +36,7 @@ internal sealed class LiveHost : Component
     internal new string RenderAsLiveRoot() => base.RenderAsLiveRoot(_services);
 
     protected override RenderResult Render() =>
-        Mounted ? _factory() : (Component)Fragment();
+        Mounted ? _factory() : Fragment();
 
     public static IServiceProvider Services(params (Type Service, object Instance)[] singletons)
     {

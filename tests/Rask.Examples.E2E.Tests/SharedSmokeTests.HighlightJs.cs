@@ -28,7 +28,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
 
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -55,12 +55,12 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
 
         await ClickSidebar("Routing");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Routing",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -72,7 +72,7 @@ public abstract partial class SharedSmokeTests
         await NavigateToAsync("/validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
 
         await ClickSidebar("Welcome");
         await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
@@ -81,7 +81,7 @@ public abstract partial class SharedSmokeTests
         await ClickSidebar("Validation");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
     });
 
     [Fact]
@@ -101,7 +101,7 @@ public abstract partial class SharedSmokeTests
 
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("HttpClient + DI",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await AssertAllCodeBlocksHighlightedAsync(timeoutMs: HighlightSettleTimeoutMs);
+        await AssertAllCodeBlocksHighlightedAsync(HighlightSettleTimeoutMs);
     });
 
     private async Task AssertAllCodeBlocksHighlightedAsync(int timeoutMs)

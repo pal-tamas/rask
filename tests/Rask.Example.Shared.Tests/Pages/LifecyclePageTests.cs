@@ -1,5 +1,4 @@
 using System.Reflection;
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -12,7 +11,7 @@ public sealed class LifecyclePageTests
     public void Render_AtRest_ShowsProbeNotMounted_AndEmptyLog()
     {
         var routeState = new RouteState { Path = "/lifecycle" };
-        var html = new Rask.Example.Shared.App()
+        var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         Assert.Contains("Probe not mounted.", html);

@@ -9,7 +9,7 @@ namespace Rask.Examples.E2E.Tests.Infrastructure;
 ///     so the bundled <c>index.html</c> already has <c>&lt;base href="/sub/"&gt;</c>.
 ///     The host process reads <c>RASK_BUNDLE_DIR</c> + <c>RASK_PATHBASE</c> at startup
 ///     (see <c>Rask.Example.Wasm.Host/Program.cs</c>) and threads them into
-///     <c>UseRask&lt;App&gt;(bundlePath, pathBase)</c>. Exposes <see cref="BaseUrl"/>
+///     <c>UseRask&lt;App&gt;(bundlePath, pathBase)</c>. Exposes <see cref="BaseUrl" />
 ///     pointing at the prefix root (<c>http://localhost:{port}/sub</c>) so tests can
 ///     navigate via Playwright without rewriting every path.
 /// </summary>
@@ -80,6 +80,7 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
             throw new InvalidOperationException(
                 "Failed to rewrite <base href=\"/\"> in copied index.html — bundle layout drift?");
         }
+
         await File.WriteAllTextAsync(indexHtmlPath, rewritten);
 
         var psi = new ProcessStartInfo("dotnet")
@@ -87,11 +88,15 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
             ArgumentList =
             {
                 "run",
-                "--project", Path.Combine(repoRoot, "samples", "Rask.Example.Wasm.Host"),
+                "--project",
+                Path.Combine(repoRoot, "samples", "Rask.Example.Wasm.Host"),
                 "--no-launch-profile",
                 "--no-build",
-                "-c", Configuration,
-                "--", "--urls", OriginUrl
+                "-c",
+                Configuration,
+                "--",
+                "--urls",
+                OriginUrl
             },
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -104,7 +109,8 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
         psi.Environment["RASK_PATHBASE"] = PathBase;
 
         _process = Process.Start(psi)
-                   ?? throw new InvalidOperationException("Failed to start Rask.Example.Wasm.Host with sub-path env vars");
+                   ?? throw new InvalidOperationException(
+                       "Failed to start Rask.Example.Wasm.Host with sub-path env vars");
 
         _ = Task.Run(() => DrainAsync(_process.StandardOutput, _stdout));
         _ = Task.Run(() => DrainAsync(_process.StandardError, _stderr));
@@ -119,21 +125,32 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
             if (!_process.HasExited)
             {
                 try { _process.Kill(true); }
-                catch { /* race: already exited */ }
+                catch
+                {
+                    /* race: already exited */
+                }
             }
+
             try
             {
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 await _process.WaitForExitAsync(cts.Token);
             }
-            catch { /* best effort */ }
+            catch
+            {
+                /* best effort */
+            }
+
             _process.Dispose();
         }
 
         if (_bundleDir is not null)
         {
-            try { Directory.Delete(_bundleDir, recursive: true); }
-            catch { /* best effort */ }
+            try { Directory.Delete(_bundleDir, true); }
+            catch
+            {
+                /* best effort */
+            }
         }
     }
 
@@ -144,9 +161,10 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
         {
             Directory.CreateDirectory(dir.Replace(source, destination));
         }
+
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
-            File.Copy(file, file.Replace(source, destination), overwrite: true);
+            File.Copy(file, file.Replace(source, destination), true);
         }
     }
 
@@ -161,15 +179,27 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
                 throw new InvalidOperationException(
                     $"Sub-path host exited before becoming ready (code {_process.ExitCode}).\n{ServerLog}");
             }
+
             try
             {
                 using var resp = await http.GetAsync($"{BaseUrl}/");
-                if ((int)resp.StatusCode < 500) return;
+                if ((int)resp.StatusCode < 500)
+                {
+                    return;
+                }
             }
-            catch (HttpRequestException) { /* not yet listening */ }
-            catch (TaskCanceledException) { /* per-request timeout */ }
+            catch (HttpRequestException)
+            {
+                /* not yet listening */
+            }
+            catch (TaskCanceledException)
+            {
+                /* per-request timeout */
+            }
+
             await Task.Delay(250);
         }
+
         throw new TimeoutException(
             $"Sub-path host did not respond on {BaseUrl} within {timeout}.\n{ServerLog}");
     }
@@ -190,9 +220,14 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx"))) return dir.FullName;
+            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
+            {
+                return dir.FullName;
+            }
+
             dir = dir.Parent;
         }
+
         throw new InvalidOperationException(
             $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
     }

@@ -1,5 +1,4 @@
 using System.Reflection;
-using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Pages;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -11,7 +10,7 @@ public sealed class BoomPageTests
     [Fact]
     public void Render_AtRest_EmitsAllThreeHostDivs()
     {
-        var html = new Rask.Example.Shared.App().RenderAsLiveRoot(
+        var html = new Shared.App().RenderAsLiveRoot(
             TestServices.Default(routeState: new RouteState { Path = "/boom" }));
 
         Assert.Contains("boom-handler-host", html);

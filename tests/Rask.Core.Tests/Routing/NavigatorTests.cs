@@ -56,7 +56,7 @@ public class NavigatorTests
 
         using (nav.EnterHandler())
         {
-            nav.Navigate("/a", replace: true);
+            nav.Navigate("/a", true);
         } // scope disposed WITHOUT TryConsumeHistory — simulates a faulted handler
 
         using (nav.EnterHandler())

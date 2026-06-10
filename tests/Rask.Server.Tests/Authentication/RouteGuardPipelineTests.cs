@@ -90,10 +90,10 @@ public class RouteGuardPipelineTests
         var cookie = await SignInAsync(host, "alice");
         Assert.Equal(HttpStatusCode.OK, (await GetWithCookieAsync(host, "/e2e/members", cookie)).StatusCode);
 
-        var cleared = await SignOutAsync(host);                 // ctx.SignOutAsync emits an emptied cookie
+        var cleared = await SignOutAsync(host); // ctx.SignOutAsync emits an emptied cookie
         var resp = await GetWithCookieAsync(host, "/e2e/members", cleared);
 
-        Assert.Equal(HttpStatusCode.Found, resp.StatusCode);    // back to the challenge
+        Assert.Equal(HttpStatusCode.Found, resp.StatusCode); // back to the challenge
     }
 
     private static async Task<string> SignInAsync(RaskTestHost host, string name, params string[] roles)

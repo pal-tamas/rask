@@ -1,13 +1,12 @@
 using System.Security.Claims;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Core.HeadAssets;
 using Rask.Core.Live;
-using Rask.Core.ScopedCss;
 
 namespace Rask.Core;
 
@@ -22,6 +21,22 @@ public abstract class Component
     // saves callers from null checks while keeping the per-instance allocation lazy.
     private static readonly Dictionary<(Type, int), Component> _emptyChildren = new();
 
+    // Page-shell tokens a root render must produce, paired with the factory that emits each.
+    // Doctype writes the literal "<!DOCTYPE html>"; the element tags are matched by their
+    // opening prefix so attributes (e.g. <html lang="en">) don't defeat the check.
+    private static readonly (string Token, string Factory)[] _requiredShell =
+    {
+        ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
+    };
+
+    // Set the first time this component reads a context value (Context.Get/Required/Has-via-Get).
+    // Such a component depends on ambient state the framework doesn't diff, so — like
+    // BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
+    // Latched on: once a consumer, always a consumer (its Render path can read different
+    // context types across renders).
+    private bool _consumesContext;
+    private CancellationTokenSource? _lifetimeCts;
+
     // All live-render-only state — handlers, child reconciliation, root alive sets,
     // edit-context pool, the dirty/lifecycle flags — is hoisted off the base Component
     // class into a lazy container. Plain Elements (Div, Span, …) never engage any of
@@ -30,32 +45,8 @@ public abstract class Component
     // User components and live-render roots pay one LiveState allocation on first use;
     // subsequent renders reuse it via the pooled dictionaries inside.
     private LiveState? _live;
-    private CancellationTokenSource? _lifetimeCts;
 
     private LiveState Live => _live ??= new LiveState();
-
-    // The hoisted state — class so it stays out-of-band from each Component instance.
-    // Field grouping mirrors the prior layout for readability of the diff.
-    private sealed class LiveState
-    {
-        public HashSet<Component>? AliveNow;
-        public HashSet<Component>? AlivePrev;
-        public Component? CachedRenderResult;
-        public int ChildPositions;
-        public Dictionary<(Type, int), Component>? Children;
-        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
-        public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
-        public ElementRef? ElementRef;
-        public bool HasInitialized;
-        public bool HasRenderedOnce;
-        public bool IsUnmounted;
-        public int NextHandlerId;
-        public Dictionary<Component, Component>? ParentMap;
-        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedEditContexts;
-        public Dictionary<(Type, int), Component>? PreviousChildren;
-        public bool PropsDirty;
-        public bool StateDirty;
-    }
 
     // Set by the children indexer below. Factories no longer expose Children as a
     // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
@@ -173,14 +164,6 @@ public abstract class Component
     // call StateHasChanged() instead — only opt in if you genuinely cannot.
     protected virtual bool BypassRenderCache => false;
 
-    // Set the first time this component reads a context value (Context.Get/Required/Has-via-Get).
-    // Such a component depends on ambient state the framework doesn't diff, so — like
-    // BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
-    // Latched on: once a consumer, always a consumer (its Render path can read different
-    // context types across renders).
-    private bool _consumesContext;
-    internal void MarkConsumesContextInternal() => _consumesContext = true;
-
     // Backing store for Element.Ref, hoisted into the lazy LiveState so a plain element (the
     // overwhelming majority — refs are opt-in) keeps `_live` null and pays nothing for the
     // feature. The setter only forces a LiveState allocation when an actual ref is assigned;
@@ -238,6 +221,7 @@ public abstract class Component
     protected virtual RenderResult Head => default;
 
     internal Component? HeadInternal => Head.ToComponentOrNull();
+    internal void MarkConsumesContextInternal() => _consumesContext = true;
 
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
@@ -601,6 +585,7 @@ public abstract class Component
             (_live.PreviousChildren, _live.Children) = (_live.Children, _live.PreviousChildren);
             _live.Children.Clear();
         }
+
         Live.ChildPositions = 0;
 
         // HtmlSerializer wraps every user-component serialization in an EnterParentScope so
@@ -656,7 +641,8 @@ public abstract class Component
     {
         var key = (type, Live.ChildPositions++);
         Component instance;
-        if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) && prev.GetType() == type)
+        if (Live.PreviousChildren is not null && Live.PreviousChildren.TryGetValue(key, out var prev) &&
+            prev.GetType() == type)
         {
             instance = prev;
             // See the generic overload: clear children on reuse so a childless element can't
@@ -884,7 +870,7 @@ public abstract class Component
                     {
                         Task t => t,
                         ValueTask vt => vt.AsTask(),
-                        _ => null,
+                        _ => null
                     };
                     if (pending is not null)
                     {
@@ -955,9 +941,9 @@ public abstract class Component
         }
     }
 
-    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null, publishOnly: false);
+    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null, false);
 
-    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services, publishOnly: false);
+    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services, false);
 
     internal string RenderAsLiveRoot(IServiceProvider services, bool publishOnly) =>
         RenderAsLiveRootCore(services, publishOnly);
@@ -972,7 +958,8 @@ public abstract class Component
         Live.NextHandlerId = 0;
         // Lazily init on first root render — non-root Component instances (the 99% case for
         // leaf Elements in a page) never touch this field and stay allocation-free.
-        var previousEditContexts = Live.PersistedEditContexts ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
+        var previousEditContexts =
+            Live.PersistedEditContexts ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
         // Recycle the previously-snapshotted dict as the next frame's `current`. First
         // render: pool is null, allocate once. Steady state: Clear and reuse.
         Live.EditContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
@@ -1015,13 +1002,13 @@ public abstract class Component
             // HTML, so when a frame stream is being captured (diff path) we must move the
             // offsets past the sentinel by the same delta — otherwise an InsertSubtree fragment
             // (sliced from this post-splice HTML via those offsets) reads the wrong bytes.
-            var sentinelIdx = html.IndexOf(Rask.Core.HeadAssets.HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
+            var sentinelIdx = html.IndexOf(HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
             var preLen = html.Length;
             html = liveCtx.HeadAssets.ApplyTo(html, liveCtx.Services);
             if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
             {
                 frameSink.AdjustOffsetsFrom(
-                    sentinelIdx + Rask.Core.HeadAssets.HeadAssetRegistry.Sentinel.Length,
+                    sentinelIdx + HeadAssetRegistry.Sentinel.Length,
                     html.Length - preLen);
             }
         }
@@ -1119,17 +1106,6 @@ public abstract class Component
         }
     }
 
-    // Page-shell tokens a root render must produce, paired with the factory that emits each.
-    // Doctype writes the literal "<!DOCTYPE html>"; the element tags are matched by their
-    // opening prefix so attributes (e.g. <html lang="en">) don't defeat the check.
-    private static readonly (string Token, string Factory)[] _requiredShell =
-    {
-        ("<!DOCTYPE html>", "Doctype()"),
-        ("<html", "Html(...)"),
-        ("<head", "Head()"),
-        ("<body", "Body()")
-    };
-
     private static void ValidateRootShell(string html)
     {
         List<string>? missing = null;
@@ -1164,7 +1140,11 @@ public abstract class Component
                 return;
             }
 
-            if (c._live?.Children is null) return;
+            if (c._live?.Children is null)
+            {
+                return;
+            }
+
             foreach (var child in c._live.Children.Values)
             {
                 Visit(child, seen);
@@ -1186,7 +1166,11 @@ public abstract class Component
                 return;
             }
 
-            if (c._live?.Children is null) return;
+            if (c._live?.Children is null)
+            {
+                return;
+            }
+
             foreach (var child in c._live.Children.Values)
             {
                 parents[child] = c;
@@ -1229,6 +1213,29 @@ public abstract class Component
         }
 
         FileListReader.ResolveBackend()?.Release(files);
+    }
+
+    // The hoisted state — class so it stays out-of-band from each Component instance.
+    // Field grouping mirrors the prior layout for readability of the diff.
+    private sealed class LiveState
+    {
+        public HashSet<Component>? AliveNow;
+        public HashSet<Component>? AlivePrev;
+        public Component? CachedRenderResult;
+        public int ChildPositions;
+        public Dictionary<(Type, int), Component>? Children;
+        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
+        public ElementRef? ElementRef;
+        public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
+        public bool HasInitialized;
+        public bool HasRenderedOnce;
+        public bool IsUnmounted;
+        public int NextHandlerId;
+        public Dictionary<Component, Component>? ParentMap;
+        public Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedEditContexts;
+        public Dictionary<(Type, int), Component>? PreviousChildren;
+        public bool PropsDirty;
+        public bool StateDirty;
     }
 }
 

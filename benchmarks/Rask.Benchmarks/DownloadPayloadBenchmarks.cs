@@ -60,7 +60,7 @@ public class DownloadPayloadBenchmarks
     {
         _writer.ResetWrittenCount();
         var dl = new PendingDownload("f.bin", "application/octet-stream", null, bytes);
-        LivePayload.BuildPayloadUtf8WithRoot(_writer, Html, "wasm", null, false, auth: null, download: dl);
+        LivePayload.BuildPayloadUtf8WithRoot(_writer, Html, "wasm", null, false, null, dl);
         return _writer.WrittenCount;
     }
 
@@ -71,7 +71,7 @@ public class DownloadPayloadBenchmarks
         // download sink keyed by this token until JS pulls them.
         var dl = new PendingDownload("f.bin", "application/octet-stream", null, null,
             "8c7eaa6c6c5d4d97a3b04ea5a3c2f1cd");
-        LivePayload.BuildPayloadUtf8WithRoot(_writer, Html, "wasm", null, false, auth: null, download: dl);
+        LivePayload.BuildPayloadUtf8WithRoot(_writer, Html, "wasm", null, false, null, dl);
         return _writer.WrittenCount;
     }
 }

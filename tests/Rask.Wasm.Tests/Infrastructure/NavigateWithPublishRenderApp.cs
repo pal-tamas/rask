@@ -14,8 +14,8 @@ namespace Rask.Wasm.Tests.Infrastructure;
 // path the bug fix is about.
 internal sealed class NavigateWithPublishRenderApp : Component
 {
-    private readonly RouteState _routeState;
     private readonly Navigator _nav;
+    private readonly RouteState _routeState;
 
     public NavigateWithPublishRenderApp(RouteState routeState, Navigator nav)
     {

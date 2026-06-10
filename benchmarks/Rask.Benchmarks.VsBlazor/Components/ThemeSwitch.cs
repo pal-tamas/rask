@@ -33,7 +33,7 @@ internal static class ThemeSwitch
                 C.H2()["Welcome"],
                 C.P()["Pick a theme to taste."]
             ],
-            C.Button(Type: "button")[$"Toggle ({(dark ? "dark" : "light")})"]
+            C.Button("button")[$"Toggle ({(dark ? "dark" : "light")})"]
         ];
     }
 

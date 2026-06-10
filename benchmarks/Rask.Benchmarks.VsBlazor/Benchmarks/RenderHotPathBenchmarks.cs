@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rask.Benchmarks.VsBlazor.Components;
-using Rask.Core;
 
 namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 
@@ -99,10 +98,8 @@ public class RenderHotPath_NestedTreeBenchmarks : RenderHotPathBase
 public class RenderHotPath_LargePageBenchmarks : RenderHotPathBase
 {
     [Benchmark(Baseline = true)]
-    public string Blazor_Render() => RenderBlazor<LargePageWithCounter.BlazorLargePageWithCounter>(new Dictionary<string, object?>
-    {
-        [nameof(LargePageWithCounter.BlazorLargePageWithCounter.Counter)] = 1
-    });
+    public string Blazor_Render() => RenderBlazor<LargePageWithCounter.BlazorLargePageWithCounter>(
+        new Dictionary<string, object?> { [nameof(LargePageWithCounter.BlazorLargePageWithCounter.Counter)] = 1 });
 
     [Benchmark]
     public string Rask_Render() => LargePageWithCounter.BuildRask(1).ToHtml();
@@ -118,10 +115,11 @@ public class RenderHotPath_AttributeHeavyBenchmarks : RenderHotPathBase
     [Params(20, 50)] public int AttrCount { get; set; }
 
     [Benchmark(Baseline = true)]
-    public string Blazor_Render() => RenderBlazor<AttributeHeavyElements.BlazorAttributeHeavy>(new Dictionary<string, object?>
-    {
-        [nameof(AttributeHeavyElements.BlazorAttributeHeavy.AttrCount)] = AttrCount
-    });
+    public string Blazor_Render() => RenderBlazor<AttributeHeavyElements.BlazorAttributeHeavy>(
+        new Dictionary<string, object?>
+        {
+            [nameof(AttributeHeavyElements.BlazorAttributeHeavy.AttrCount)] = AttrCount
+        });
 
     [Benchmark]
     public string Rask_Render() => AttributeHeavyElements.BuildRask(AttrCount).ToHtml();

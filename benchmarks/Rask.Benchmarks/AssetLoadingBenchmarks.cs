@@ -46,14 +46,15 @@ public class AssetLoadingBenchmarks
         typeof(AssetRow016), typeof(AssetRow017), typeof(AssetRow018), typeof(AssetRow019)
     ];
 
-    private string[] _cssHashes = null!;
-    private string[] _jsHashes = null!;
+    private readonly HashSet<Type> _mounted200 = new();
 
     // Pre-built mounted-type sets at two scales. EmitMountedAssets allocates a
     // StringBuilder each call — the bench captures both the alloc and the per-entry
     // append cost.
     private readonly HashSet<Type> _mounted50 = new();
-    private readonly HashSet<Type> _mounted200 = new();
+
+    private string[] _cssHashes = null!;
+    private string[] _jsHashes = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -76,8 +77,15 @@ public class AssetLoadingBenchmarks
         // mounted-type-set size capped at 20 (page reuses component types heavily).
         // EmitMountedAssets iterates the HashSet directly, so the cost is bounded by
         // distinct types, not source instances.
-        for (var i = 0; i < 50; i++) _mounted50.Add(_types[i % _types.Length]);
-        for (var i = 0; i < 200; i++) _mounted200.Add(_types[i % _types.Length]);
+        for (var i = 0; i < 50; i++)
+        {
+            _mounted50.Add(_types[i % _types.Length]);
+        }
+
+        for (var i = 0; i < 200; i++)
+        {
+            _mounted200.Add(_types[i % _types.Length]);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -91,7 +99,10 @@ public class AssetLoadingBenchmarks
         var hits = 0;
         for (var i = 0; i < 200; i++)
         {
-            if (ScopedAssetRegistry.TryGetCss(_types[i % _types.Length], out _)) hits++;
+            if (ScopedAssetRegistry.TryGetCss(_types[i % _types.Length], out _))
+            {
+                hits++;
+            }
         }
 
         return hits;
@@ -103,7 +114,10 @@ public class AssetLoadingBenchmarks
         var hits = 0;
         for (var i = 0; i < 200; i++)
         {
-            if (ScopedAssetRegistry.TryGetJs(_types[i % _types.Length], out _)) hits++;
+            if (ScopedAssetRegistry.TryGetJs(_types[i % _types.Length], out _))
+            {
+                hits++;
+            }
         }
 
         return hits;
@@ -115,7 +129,10 @@ public class AssetLoadingBenchmarks
         var hits = 0;
         for (var i = 0; i < 200; i++)
         {
-            if (ScopedAssetRegistry.TryGetScopeId(_types[i % _types.Length], out _)) hits++;
+            if (ScopedAssetRegistry.TryGetScopeId(_types[i % _types.Length], out _))
+            {
+                hits++;
+            }
         }
 
         return hits;
@@ -134,7 +151,10 @@ public class AssetLoadingBenchmarks
         var hits = 0;
         for (var i = 0; i < 200; i++)
         {
-            if (ScopedAssetRegistry.GetByHash(_cssHashes[i % _types.Length], AssetKind.Css) is not null) hits++;
+            if (ScopedAssetRegistry.GetByHash(_cssHashes[i % _types.Length], AssetKind.Css) is not null)
+            {
+                hits++;
+            }
         }
 
         return hits;
@@ -146,7 +166,10 @@ public class AssetLoadingBenchmarks
         var hits = 0;
         for (var i = 0; i < 200; i++)
         {
-            if (ScopedAssetRegistry.GetByHash(_jsHashes[i % _types.Length], AssetKind.Js) is not null) hits++;
+            if (ScopedAssetRegistry.GetByHash(_jsHashes[i % _types.Length], AssetKind.Js) is not null)
+            {
+                hits++;
+            }
         }
 
         return hits;
@@ -203,7 +226,11 @@ public class AssetLoadingBenchmarks
     public int EnumerateAll()
     {
         var n = 0;
-        foreach (var _ in ScopedAssetRegistry.EnumerateAll()) n++;
+        foreach (var _ in ScopedAssetRegistry.EnumerateAll())
+        {
+            n++;
+        }
+
         return n;
     }
 }
@@ -213,23 +240,102 @@ public class AssetLoadingBenchmarks
 // hits a different bucket — defeating any same-type cache that would mask real
 // per-key lookup cost.
 #pragma warning disable RASK014
-public sealed class AssetRow000 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow001 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow002 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow003 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow004 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow005 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow006 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow007 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow008 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow009 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow010 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow011 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow012 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow013 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow014 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow015 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow016 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow017 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow018 : Component { protected override RenderResult Render() => this; }
-public sealed class AssetRow019 : Component { protected override RenderResult Render() => this; }
+public sealed class AssetRow000 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow001 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow002 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow003 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow004 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow005 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow006 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow007 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow008 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow009 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow010 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow011 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow012 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow013 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow014 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow015 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow016 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow017 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow018 : Component
+{
+    protected override RenderResult Render() => this;
+}
+
+public sealed class AssetRow019 : Component
+{
+    protected override RenderResult Render() => this;
+}

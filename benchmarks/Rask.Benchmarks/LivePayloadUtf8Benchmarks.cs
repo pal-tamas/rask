@@ -16,8 +16,8 @@ public class LivePayloadUtf8Benchmarks
 {
     private string _html = null!;
     private string _largeHtml = null!;
-    private ArrayBufferWriter<byte> _pooledWriter = null!;
     private ArrayBufferWriter<byte> _largeWriter = null!;
+    private ArrayBufferWriter<byte> _pooledWriter = null!;
 
     [GlobalSetup]
     public void Setup()

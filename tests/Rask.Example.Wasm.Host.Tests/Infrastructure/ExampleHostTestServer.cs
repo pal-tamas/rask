@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Wasm.Hosting;
 
 namespace Rask.Example.Wasm.Host.Tests.Infrastructure;
