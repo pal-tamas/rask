@@ -20,6 +20,10 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     protected abstract int Port { get; }
     protected virtual TimeSpan ReadyTimeout => TimeSpan.FromSeconds(120);
 
+    // Extra environment variables for the spawned host process (e.g. config that production-mode
+    // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "Jwt__Key").
+    protected virtual IReadOnlyDictionary<string, string>? ExtraEnvironment => null;
+
     public string BaseUrl => $"http://localhost:{Port}";
 
     public string ServerLog
@@ -60,6 +64,14 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         };
         psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
         psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
+
+        if (ExtraEnvironment is { } extra)
+        {
+            foreach (var (key, value) in extra)
+            {
+                psi.Environment[key] = value;
+            }
+        }
 
         _process = Process.Start(psi)
                    ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
