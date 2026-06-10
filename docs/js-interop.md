@@ -1,0 +1,133 @@
+# JavaScript interop: element refs, scoped CSS & JS
+
+Reaching the DOM and shipping component-scoped styles and scripts. The same code runs on
+both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
+
+- [Scoped CSS](#scoped-css)
+- [Scoped JS](#scoped-js)
+- [Calling JS from C# (`IJSRuntime`)](#calling-js-from-c-ijsruntime)
+- [Element refs](#element-refs)
+- [Delivery & caching](#delivery--caching)
+
+---
+
+## Scoped CSS
+
+Drop a `{Component}.css` next to `{Component}.cs` and it is **auto-included** and scoped to
+that component — Blazor-parity isolation, no build step:
+
+```
+Pages/HomePage.cs
+Pages/HomePage.css      ← styles here only apply to HomePage's elements
+```
+
+Each component gets a stable `r-{8hex}` scope id. The serializer stamps `data-{scopeId}`
+on the component's elements and rewrites every selector to `selector[data-{scopeId}]`. To
+opt a whole selector out of scoping (e.g. to style a shell tag like `body`), wrap it in
+`:global(...)`:
+
+```css
+.card { padding: 1rem; }            /* scoped to this component */
+:global(body) { margin: 0; }        /* applies globally */
+```
+
+`@media` / `@supports` / `@container` / `@layer` recurse into their bodies; `@keyframes`,
+`@font-face`, and `@import` pass through unscoped. Opt a project out of auto-globbing with
+`<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>`.
+
+> An orphan `.css` with no matching component, or two that match ambiguously, raises
+> **RASK015 / RASK016**. See [diagnostics](diagnostics.md).
+
+---
+
+## Scoped JS
+
+A sibling `{Component}.js` is wrapped onto `window.Rask["{TypeName}"]`, with every
+`export function NAME` becoming a method:
+
+```js
+// ElementRefDemo.js
+export function width(el) {
+    return el ? el.getBoundingClientRect().width : 0;
+}
+```
+
+becomes callable as `Rask.ElementRefDemo.width`. Two scoped-JS components that share a
+simple type name collide at `window.Rask[Name]` — **RASK020** warns about this
+(RASK017 / RASK018 cover orphan / ambiguous `.js`).
+
+---
+
+## Calling JS from C# (`IJSRuntime`)
+
+Inject `IJSRuntime` through the **constructor** (not a property — a non-nullable settable
+property would become a required factory parameter) and dispatch from a lifecycle hook or
+event handler:
+
+```csharp
+public sealed class CodeSample : Component
+{
+    private readonly IJSRuntime _js;
+    public CodeSample(IJSRuntime js) => _js = js;
+
+    protected override async Task OnRenderedAsync(bool firstRender) =>
+        await _js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
+}
+```
+
+Nothing (no `el`) is passed automatically — pass what the function needs. For a return
+value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the trimmer
+(DAM annotation or a `JsonSerializerContext`).
+
+---
+
+## Element refs
+
+Every element exposes a `Ref:` parameter. Mint a ref with `ElementRef.New()` and store it
+in a **field** (so its id is stable across renders), then hand it to JS — it serializes as
+`{"__raskRef__":"id"}` and both clients revive it to the live DOM element before your
+function runs:
+
+```csharp
+public sealed class FocusDemo : Component
+{
+    private readonly IJSRuntime _js;
+    private readonly ElementRef _input = ElementRef.New();
+    private readonly ElementRef _box = ElementRef.New();
+
+    public FocusDemo(IJSRuntime js) => _js = js;
+
+    protected override RenderResult Render() =>
+        Div()[
+            Input(Type: "text", Ref: _input),
+            Div(Ref: _box)["measure me"],
+            Button(OnClickAsync: Focus)["Focus"],
+            Button(OnClickAsync: Measure)["Measure"]
+        ];
+
+    // Built-in helpers: ElementRefInterop.{FocusAsync, BlurAsync, ScrollIntoViewAsync}.
+    private async Task Focus() => await _input.FocusAsync(_js);
+
+    // Hand the ref to your own scoped JS — it resolves to the element before width() runs.
+    private async Task Measure() => await _js.InvokeAsync<double>("Rask.FocusDemo.width", _box);
+}
+```
+
+Runnable demo:
+[`samples/Rask.Example.Shared/Demos/ElementRefDemo.cs`](../samples/Rask.Example.Shared/Demos/ElementRefDemo.cs)
+(+ `ElementRefDemo.js`).
+
+---
+
+## Delivery & caching
+
+Both scoped CSS and JS are **content-addressed**. The generator registers each asset; it
+is served at `/_rask/a/{hash}.{ext}` with `Cache-Control: immutable`, an `ETag`,
+`nosniff`, and `.AllowAnonymous()`. The page `<head>` emits exactly one `<link>` /
+`<script defer>` per mounted component type that has a registered asset. Static-file and
+WASM hosts get the same files baked to disk by the `BakeScopedAssetsTask` MSBuild task.
+
+---
+
+See also: [Composition](composition.md) for component-to-component communication, and the
+[architecture notes](architecture/live-rendering.md) for how the live runtime ships these.

@@ -43,12 +43,30 @@
     color: rgba(255, 255, 255, 0.85);
 }
 
+/* Section dividers in the showcase index. A short accent rule sits to the left of the
+   uppercase label so the grouped grid reads as distinct bands. */
+.feature-section {
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.feature-section::before {
+    content: "";
+    width: 1.5rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--rask-accent);
+}
+
 .feature-card {
     transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .feature-card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 12px 24px -14px rgba(81, 43, 212, 0.55) !important;
 }
 
 .feature-icon {

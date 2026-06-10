@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using Rask.Core.Routing;
+using Rask.Example.Shared.Demos;
 using Rask.Example.Shared.Layout;
 
 namespace Rask.Example.Shared.Pages;
@@ -40,7 +41,9 @@ public sealed class JsRuntimePage(IJSRuntime js) : Component
 
     protected override RenderResult Render() =>
         [
-            H1(Class: "h3 mt-2 mb-3")["IJSRuntime — sessionStorage round-trip"],
+            PageHeader.Render(
+                "IJSRuntime — sessionStorage round-trip",
+                "Call into window APIs from C# and await the result, identically on Server and WASM."),
             P(Class: "text-secondary")[
                 "Type a value, click ", Strong()["Set"], " to write it to ",
                 Code()["sessionStorage"], " via ", Code()["IJSRuntime.InvokeVoidAsync"],

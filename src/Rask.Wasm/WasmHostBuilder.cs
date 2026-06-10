@@ -13,6 +13,12 @@ using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
 
+/// <summary>
+///     Entry point for a browser-WASM Rask app. Build with <see cref="CreateDefault()" />, register
+///     app services on <see cref="Services" />, then <c>await</c> <see cref="RunAsync{TApp}" /> with the
+///     root component. Mirrors <c>Rask.Server</c>'s <c>AddRask</c>/<c>UseRask</c> pair for the
+///     JSImport/JSExport transport.
+/// </summary>
 public sealed class WasmHostBuilder
 {
     private WasmHostBuilder()
@@ -32,6 +38,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<WasmJSRuntime>());
     }
 
+    /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>
     public IServiceCollection Services { get; }
 
     /// <summary>
@@ -41,6 +48,7 @@ public sealed class WasmHostBuilder
     /// </summary>
     public static string BaseAddress => JSInterop.GetBaseAddress();
 
+    /// <summary>Creates a builder with framework-default live options (<see cref="LiveDiffMode.Auto" />).</summary>
     public static WasmHostBuilder CreateDefault() => CreateDefault(null);
 
     /// <summary>
@@ -76,6 +84,12 @@ public sealed class WasmHostBuilder
         return new WasmHostBuilder();
     }
 
+    /// <summary>
+    ///     Boots the app: imports the JS bridge, auto-detects the path base from <c>&lt;base href&gt;</c>,
+    ///     builds the service provider, instantiates <typeparamref name="TApp" /> (wrapped in a root error
+    ///     boundary), and performs the first render. Returns once the initial render has been applied.
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> for the app. Must render a complete shell (RASK021).</typeparam>
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {

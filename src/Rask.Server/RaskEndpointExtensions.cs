@@ -52,6 +52,19 @@ public static class RaskEndpointExtensions
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
+    /// <summary>
+    ///     Registers the Rask server-side live-rendering services (session store, routing,
+    ///     authentication, file upload/download, <see cref="IJSRuntime" /> bridge, and the live
+    ///     runtime script). Call this in <c>ConfigureServices</c>, then <see cref="UseRask{TApp}(WebApplication, string, string)" />
+    ///     in the pipeline. Authentication itself is configured on ASP.NET's own
+    ///     <c>AddAuthentication</c>/<c>AddCookie</c>/<c>AddJwtBearer</c> — Rask has no auth options object.
+    /// </summary>
+    /// <param name="services">The service collection to add Rask services to.</param>
+    /// <param name="configure">
+    ///     Optional per-app live-runtime options (diff mode, path base, session cap). When omitted,
+    ///     framework defaults apply (<see cref="Rask.Core.Live.LiveDiffMode.Auto" />, no path base, uncapped).
+    /// </param>
+    /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
     public static IServiceCollection AddRask(this IServiceCollection services,
         Action<Rask.Core.Live.RaskLiveOptions>? configure = null)
     {
@@ -118,6 +131,20 @@ public static class RaskEndpointExtensions
         return services;
     }
 
+    /// <summary>
+    ///     Maps the Rask live endpoints (root document, WebSocket dispatcher, scoped-asset, auth,
+    ///     and upload/download routes) with <typeparamref name="TApp" /> as the root component, and
+    ///     enables WebSockets. The root must render a complete shell
+    ///     (<c>Doctype</c>/<c>Html</c>/<c>Head</c>/<c>Body</c>) — see RASK021.
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
+    /// <param name="app">The web application to map endpoints on.</param>
+    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
+    /// <param name="pathBase">
+    ///     Optional URL prefix so two Rask servers can share one origin behind a reverse proxy
+    ///     (e.g. <c>/app1</c>). Overrides any path base set via <see cref="AddRask" />.
+    /// </param>
+    /// <returns>The same <paramref name="app" /> instance, for chaining.</returns>
     public static WebApplication UseRask<TApp>(
         this WebApplication app,
         string pattern = "/{**path}",
@@ -129,6 +156,16 @@ public static class RaskEndpointExtensions
         return app;
     }
 
+    /// <summary>
+    ///     Endpoint-routing overload of <see cref="UseRask{TApp}(WebApplication, string, string)" />: maps the
+    ///     Rask live endpoints onto an existing <see cref="IEndpointRouteBuilder" /> without touching the
+    ///     middleware pipeline (the caller is responsible for <c>UseWebSockets()</c>).
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
+    /// <param name="endpoints">The endpoint route builder to map Rask routes on.</param>
+    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
+    /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
+    /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
     public static IEndpointRouteBuilder UseRask<TApp>(
         this IEndpointRouteBuilder endpoints,
         string pattern = "/{**path}",
@@ -1273,7 +1310,7 @@ public static class RaskEndpointExtensions
                 lastModified = lm;
             }
 
-            var entry = uploads.Stage(
+            var entry = await uploads.StageAsync(
                 sessionId,
                 file.FileName,
                 string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,

@@ -17,12 +17,12 @@ internal sealed class SessionUploadStore : IDisposable
         }
     }
 
-    public Entry Stage(string sessionId, string name, string contentType, long size, DateTimeOffset lastModified,
-        Func<string, Task> writeToPath)
+    public async Task<Entry> StageAsync(string sessionId, string name, string contentType, long size,
+        DateTimeOffset lastModified, Func<string, Task> writeToPath)
     {
         var token = Guid.NewGuid().ToString("N");
         var path = Path.Combine(Path.GetTempPath(), $"rask-upload-{token}.bin");
-        writeToPath(path).GetAwaiter().GetResult();
+        await writeToPath(path).ConfigureAwait(false);
         var info = new FileInfo(path);
         var entry = new Entry(sessionId, token, path, name, info.Exists ? info.Length : size, contentType,
             lastModified);
