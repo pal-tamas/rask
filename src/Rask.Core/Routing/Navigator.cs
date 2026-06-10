@@ -232,8 +232,10 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         if (!_inHandler)
         {
             throw new InvalidOperationException(
-                "Navigator can only be used from event handlers. " +
-                "Calling it during component Render() or initial GET is not supported.");
+                "Navigator can only be used from event handlers (e.g. Button(OnClick: ...)). " +
+                "It cannot run during component Render() or the initial GET. To navigate on load, " +
+                "express it as a route/redirect or drive it from a lifecycle hook; to redirect an " +
+                "unauthenticated user, use [Authorize]. See docs/routing.md.");
         }
     }
 
