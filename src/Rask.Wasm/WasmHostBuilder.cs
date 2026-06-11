@@ -92,6 +92,7 @@ public sealed class WasmHostBuilder
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
+        Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
         Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
         await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
         Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
