@@ -38,7 +38,7 @@ public sealed class Image : SvgElement
 
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendMediaUrlAttr(sb, "href", Href);
         }
 
         if (PreserveAspectRatio is not null)

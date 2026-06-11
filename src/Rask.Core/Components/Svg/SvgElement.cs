@@ -129,7 +129,7 @@ public abstract class SvgElement : Element
         }
 
         var click = (Delegate?)OnClick ?? OnClickAsync;
-        if (click is not null && LiveRenderContext.Current is { } ctx)
+        if (click is not null && LiveRenderContext.CurrentSync is { } ctx)
         {
             AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }

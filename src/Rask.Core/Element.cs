@@ -65,7 +65,7 @@ public abstract class Element : Component
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
         // among the leading attribute frames, same as a Data["rask-key"] entry.
         var forwarded = KeyForwardScope.Consume();
-        var key = Key?.ToString() ?? forwarded;
+        var key = KeyString ?? forwarded;
 
         if (Data is not null)
         {
@@ -102,7 +102,7 @@ public abstract class Element : Component
             AppendAttr(sb, "draggable", "true");
         }
 
-        if (LiveRenderContext.Current is { } ctx)
+        if (LiveRenderContext.CurrentSync is { } ctx)
         {
             if (OnDragStart is not null)
             {

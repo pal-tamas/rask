@@ -24,12 +24,12 @@ public sealed class Video : Element
         base.WriteAttributes(sb);
         if (Src is not null)
         {
-            AppendAttr(sb, "src", Src);
+            AppendMediaUrlAttr(sb, "src", Src);
         }
 
         if (Poster is not null)
         {
-            AppendAttr(sb, "poster", Poster);
+            AppendMediaUrlAttr(sb, "poster", Poster);
         }
 
         if (Width is not null)

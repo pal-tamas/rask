@@ -49,7 +49,7 @@ public sealed class Form : Element
         set
         {
             _model = value;
-            if (value is not null && LiveRenderContext.Current is { } live)
+            if (value is not null && LiveRenderContext.CurrentSync is { } live)
             {
                 var ctx = live.GetOrCreateEditContext(value);
                 RegisterSubGraph(live, ctx, value);
@@ -79,7 +79,7 @@ public sealed class Form : Element
             // LiveRenderContext.GetOrCreateEditContext(model). Walk the model graph so nested
             // bindings (acc.Target = a sub-object) also land on this context rather than
             // auto-creating a separate one keyed by the sub-object reference.
-            if (value is not null && LiveRenderContext.Current is { } live)
+            if (value is not null && LiveRenderContext.CurrentSync is { } live)
             {
                 live.RegisterEditContext(value);
                 RegisterSubGraph(live, value, value.Model);
@@ -123,7 +123,7 @@ public sealed class Form : Element
                 throw new InvalidOperationException("Form requires Model or Context.");
             }
 
-            ctx = LiveRenderContext.Current is { } live
+            ctx = LiveRenderContext.CurrentSync is { } live
                 ? live.GetOrCreateEditContext(Model)
                 : new EditContext(Model);
         }
@@ -206,7 +206,7 @@ public sealed class Form : Element
             submit = (Delegate?)OnSubmit ?? OnSubmitAsync;
         }
 
-        if (submit is not null && LiveRenderContext.Current is { } liveCtx)
+        if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)
         {
             AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
         }

@@ -63,7 +63,7 @@ public sealed class NavLink : Element
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href.Value.ToString());
+            AppendUrlAttr(sb, "href", Href.Value.ToString());
         }
 
         AppendAttr(sb, "data-rask-nav", null);

@@ -13,7 +13,7 @@ public sealed class Blockquote : Element
         base.WriteAttributes(sb);
         if (Cite is not null)
         {
-            AppendAttr(sb, "cite", Cite);
+            AppendUrlAttr(sb, "cite", Cite);
         }
     }
 }

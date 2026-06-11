@@ -18,7 +18,7 @@ public sealed class Embed : Element
         base.WriteAttributes(sb);
         if (Src is not null)
         {
-            AppendAttr(sb, "src", Src);
+            AppendUrlAttr(sb, "src", Src);
         }
 
         if (Type is not null)

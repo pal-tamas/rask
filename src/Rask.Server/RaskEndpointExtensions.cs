@@ -50,6 +50,21 @@ public static class RaskEndpointExtensions
 
     internal static TimeSpan SessionGracePeriod = TimeSpan.FromSeconds(30);
 
+    // Grace for a session that was minted by the GET shell but has not yet received a WS
+    // `hello`. The runtime script connects within a second of page load, so a much shorter
+    // window than the 30s reconnect grace is enough — and it stops a flood of GETs that never
+    // open a socket (scanners, prefetchers, an unauthenticated DoS) from pinning a full DI
+    // scope + component tree for 30s each. A real `hello` cancels this removal (LiveSessionStore
+    // .Get) and any later disconnect re-arms the full SessionGracePeriod via DetachSocket.
+    internal static TimeSpan UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(10);
+
+    // Maximum handler dispatches that may be queued (awaiting their turn in WS-arrival order)
+    // before the receive loop trips the backpressure circuit-breaker and closes the socket.
+    // Each queued dispatch holds a cloned JsonElement; without a bound, a client sending faster
+    // than handlers drain — or a single hung handler stalling the chain head — would grow the
+    // queue (and retained memory) without limit. 512 is far above any legitimate burst. 0 = off.
+    internal static int MaxPendingHandlers = 512;
+
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
@@ -224,19 +239,12 @@ public static class RaskEndpointExtensions
                 }
             }
 
-            // Session-cap backstop (RaskLiveOptions.MaxSessions). Reject before minting a new
-            // session so untrusted GET traffic can't exhaust memory; checked after the auth
-            // guard above so challenge/forbid redirects (which create no session) still work.
-            if (store.AtCapacity)
-            {
-                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                httpContext.Response.Headers.RetryAfter = "5";
-                await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            var session = store.Create(sp =>
+            // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot
+            // atomically and returns null when over cap, rejecting BEFORE the component tree is
+            // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
+            // race past the cap). Checked after the auth guard above so challenge/forbid
+            // redirects (which create no session) still work.
+            var session = store.TryCreate(sp =>
             {
                 // Wrap the App in an implicit RootErrorBoundary so an uncaught render /
                 // lifecycle / event-handler exception anywhere in the user's tree renders a
@@ -244,6 +252,14 @@ public static class RaskEndpointExtensions
                 var app = ActivatorUtilities.CreateInstance<TApp>(sp);
                 return new RootErrorBoundary(app);
             });
+            if (session is null)
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                httpContext.Response.Headers.RetryAfter = "5";
+                await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
+                    .ConfigureAwait(false);
+                return;
+            }
             session.Services.GetRequiredService<SessionUserProvider>().Set(user);
             var routeState = session.Services.GetRequiredService<RouteState>();
             routeState.Path = path;
@@ -267,9 +283,11 @@ public static class RaskEndpointExtensions
             // Browsers / probes can hit the catch-all for resources that don't
             // need a live session (favicon.ico, robots.txt, scanner traffic) —
             // without this guard those sessions stay in the store forever.
-            // When a legitimate WS hello arrives within the grace window,
-            // LiveSessionStore.Get cancels the pending removal automatically.
-            store.ScheduleRemoval(session.Id, SessionGracePeriod);
+            // Uses the SHORT unconnected grace: the runtime connects within ~1s, so a session
+            // that never sends `hello` is almost certainly a probe / abandoned load and should
+            // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
+            // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
+            store.ScheduleRemoval(session.Id, UnconnectedSessionGracePeriod);
         });
         return endpoints;
     }
@@ -660,6 +678,31 @@ public static class RaskEndpointExtensions
                 // buffer is disposed at the bottom of the iteration.
                 var capturedSession = session;
                 var capturedHandlerId = handlerId;
+
+                // Backpressure circuit-breaker: bound the number of dispatches queued on the
+                // chain. When handlers drain slower than the client sends (a flood) or the chain
+                // head is stuck (a hung handler), the queue — each entry holding a cloned
+                // JsonElement — would grow without limit. Trip before cloning so we don't even
+                // allocate the payload we'd have to drop; close the socket so the client
+                // reconnects (hello) against the intact session and resumes from current state.
+                var pending = capturedSession.IncrementPendingHandlers();
+                if (MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
+                {
+                    capturedSession.DecrementPendingHandlers();
+                    using var capCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    try
+                    {
+                        await ws.CloseAsync(
+                                WebSocketCloseStatus.PolicyViolation, "handler backlog", capCts.Token)
+                            .ConfigureAwait(false);
+                    }
+                    catch { }
+
+                    break;
+                }
+
+                // We clone the JSON element because the JsonDocument's backing buffer is disposed
+                // at the bottom of the iteration.
                 var capturedRoot = root.Clone();
                 capturedSession.LastHandlerTask = ChainHandlerDispatchAsync(
                     capturedSession.LastHandlerTask,
@@ -697,16 +740,25 @@ public static class RaskEndpointExtensions
     {
         try
         {
-            await previous.ConfigureAwait(false);
-        }
-        catch
-        {
-            // Previous handler's exceptions are already observed and logged inside
-            // DispatchHandlerAsync — swallow here so a faulted predecessor doesn't
-            // prevent this dispatch from running. The chain is for ordering only.
-        }
+            try
+            {
+                await previous.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Previous handler's exceptions are already observed and logged inside
+                // DispatchHandlerAsync — swallow here so a faulted predecessor doesn't
+                // prevent this dispatch from running. The chain is for ordering only.
+            }
 
-        await DispatchHandlerAsync(session, handlerId, root, ct).ConfigureAwait(false);
+            await DispatchHandlerAsync(session, handlerId, root, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Pairs with the IncrementPendingHandlers in the receive loop when this dispatch was
+            // queued, so the backpressure counter tracks the live chain depth.
+            session.DecrementPendingHandlers();
+        }
     }
 
     private static async Task DispatchHandlerAsync(

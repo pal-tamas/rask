@@ -21,7 +21,7 @@ public sealed class HtmlObject : Element
         base.WriteAttributes(sb);
         if (DataUrl is not null)
         {
-            AppendAttr(sb, "data", DataUrl);
+            AppendUrlAttr(sb, "data", DataUrl);
         }
 
         if (Type is not null)

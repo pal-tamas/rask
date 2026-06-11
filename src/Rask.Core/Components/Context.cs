@@ -99,5 +99,5 @@ public sealed class Context : Component
         return ContextStack.TryGet(typeof(T), name, out _);
     }
 
-    private static void MarkConsumer() => LiveRenderContext.Current?.MarkCurrentConsumesContext();
+    private static void MarkConsumer() => LiveRenderContext.CurrentSync?.MarkCurrentConsumesContext();
 }

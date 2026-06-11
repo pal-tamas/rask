@@ -23,7 +23,7 @@ public sealed class A : Element
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendUrlAttr(sb, "href", Href);
         }
 
         if (Target is not null)
@@ -62,7 +62,7 @@ public sealed class A : Element
         }
 
         var click = (Delegate?)OnClick ?? OnClickAsync;
-        if (click is not null && LiveRenderContext.Current is { } ctx)
+        if (click is not null && LiveRenderContext.CurrentSync is { } ctx)
         {
             AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }

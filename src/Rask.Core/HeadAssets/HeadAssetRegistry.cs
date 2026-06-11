@@ -39,6 +39,16 @@ internal sealed class HeadAssetRegistry
     // LATEST one wins — so a page's Title in Head supersedes the App's.
     private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
 
+    // Reset for reuse across renders. The registry instance is hoisted onto the root's
+    // LiveState (so head emission doesn't allocate fresh lists/sets every frame) and cleared
+    // at the start of each render before the walk re-populates it.
+    public void Clear()
+    {
+        _orderedHtml.Clear();
+        _orderedKeys.Clear();
+        _seen.Clear();
+    }
+
     public void Add(Component head)
     {
         if (head is Fragment fragment && fragment.Children is { } children)
@@ -161,10 +171,18 @@ internal sealed class HeadAssetRegistry
     ///     </para>
     /// </summary>
     public string ApplyTo(string html, IServiceProvider? services = null)
+        => ApplyTo(html, html.IndexOf(Sentinel, StringComparison.Ordinal), services);
+
+    /// <inheritdoc cref="ApplyTo(string, IServiceProvider?)" />
+    /// <param name="sentinelIdx">
+    ///     Pre-computed index of <see cref="Sentinel" /> in <paramref name="html" /> (the caller
+    ///     already locates it to adjust diff-frame offsets), so this method skips a second
+    ///     whole-body <c>IndexOf</c> scan. Negative when the sentinel is absent.
+    /// </param>
+    public string ApplyTo(string html, int sentinelIdx, IServiceProvider? services = null)
     {
         _ = services; // see XML comment: parameter retained for ABI; no host strategy needed.
-        var idx = html.IndexOf(Sentinel, StringComparison.Ordinal);
-        if (idx < 0)
+        if (sentinelIdx < 0)
         {
             return html;
         }
@@ -172,49 +190,43 @@ internal sealed class HeadAssetRegistry
         // Per-component asset emission. Reads LiveRenderContext.Current.MountedTypes —
         // populated unconditionally during the render walk by every user component entry —
         // and emits one keyed <link>/<script> per mounted type that has a registered
-        // asset. Empty string when the current call is outside a live render (unit tests
-        // calling ApplyTo directly) or when no mounted component has an asset.
-        var perComponentSb = new StringBuilder();
+        // asset. Null when the current call is outside a live render (unit tests calling
+        // ApplyTo directly) or when no mounted component has an asset. Built through a pooled
+        // StringBuilder so the steady-state diff path stays allocation-light.
+        string? perComponentHtml = null;
         var liveCtx = LiveRenderContext.Current;
         if (liveCtx is not null && liveCtx.MountedTypes.Count > 0)
         {
+            var perComponentSb = RaskStringBuilderPool.Shared.Get();
             EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
-        }
+            if (perComponentSb.Length > 0)
+            {
+                perComponentHtml = perComponentSb.ToString();
+            }
 
-        var perComponentHtml = perComponentSb.Length > 0 ? perComponentSb.ToString() : null;
+            RaskStringBuilderPool.Shared.Return(perComponentSb);
+        }
 
         if (_orderedHtml.Count == 0 && perComponentHtml is null)
         {
-            return html.Remove(idx, Sentinel.Length);
+            return html.Remove(sentinelIdx, Sentinel.Length);
         }
 
-        // Pre-key each user-declared entry. Singleton entries (title, base) use the
-        // singleton key so the morph matches them across renders even when their
-        // content/attrs change; other entries get a content-derived hash so an
-        // unchanged asset (Bootstrap link, viewport meta, …) keeps the same key
-        // across renders and is moved (not destroyed) when its sibling count shifts.
-        var keyedAssets = new string[_orderedHtml.Count];
-        var totalLen = html.Length - Sentinel.Length;
+        var sb = RaskStringBuilderPool.Shared.Get();
+        sb.Append(html, 0, sentinelIdx);
+
+        // Key each user-declared entry. Singleton entries (title, base) use the singleton key
+        // so the morph matches them across renders even when their content/attrs change; other
+        // entries get a content-derived hash so an unchanged asset (Bootstrap link, viewport
+        // meta, …) keeps the same key across renders and is moved (not destroyed) when its
+        // sibling count shifts. Appended directly — no per-asset string.Insert allocation.
         for (var i = 0; i < _orderedHtml.Count; i++)
         {
             var raw = _orderedHtml[i];
             var morphKey = _orderedKeys[i].StartsWith("tag:", StringComparison.Ordinal)
                 ? _orderedKeys[i]
                 : "h-" + ContentHash(raw);
-            keyedAssets[i] = WithRaskKey(raw, morphKey);
-            totalLen += keyedAssets[i].Length;
-        }
-
-        if (perComponentHtml is not null)
-        {
-            totalLen += perComponentHtml.Length;
-        }
-
-        var sb = new StringBuilder(totalLen);
-        sb.Append(html, 0, idx);
-        foreach (var asset in keyedAssets)
-        {
-            sb.Append(asset);
+            AppendWithRaskKey(sb, raw, morphKey);
         }
 
         // Per-component tags emit AFTER user Head contributions so scoped CSS overrides
@@ -224,26 +236,24 @@ internal sealed class HeadAssetRegistry
             sb.Append(perComponentHtml);
         }
 
-        sb.Append(html, idx + Sentinel.Length, html.Length - idx - Sentinel.Length);
-        return sb.ToString();
+        sb.Append(html, sentinelIdx + Sentinel.Length, html.Length - sentinelIdx - Sentinel.Length);
+        var result = sb.ToString();
+        RaskStringBuilderPool.Shared.Return(sb);
+        return result;
     }
 
-    // Inserts data-rask-key="..." right after the opening tag name. The client
-    // morph promotes <head>'s children to its keyed-reconciliation branch as soon
-    // as one child carries data-rask-key, so emitting it on every head asset lets
-    // the morph match by identity instead of by position. If the caller already
-    // placed a data-rask-key on the tag (very rare for head children, but legal
-    // for explicit morph identity), leave it alone.
-    private static string WithRaskKey(string html, string key)
+    // Appends html with data-rask-key="..." spliced in right after the opening tag name. The
+    // client morph promotes <head>'s children to its keyed-reconciliation branch as soon as one
+    // child carries data-rask-key, so emitting it on every head asset lets the morph match by
+    // identity instead of by position. If the tag already carries a data-rask-key (very rare for
+    // head children, but legal for explicit morph identity) or is malformed, append verbatim.
+    private static void AppendWithRaskKey(StringBuilder sb, string html, string key)
     {
-        if (html.Length < 2 || html[0] != '<')
+        if (html.Length < 2 || html[0] != '<'
+            || html.IndexOf("data-rask-key=", StringComparison.Ordinal) >= 0)
         {
-            return html;
-        }
-
-        if (html.IndexOf("data-rask-key=", StringComparison.Ordinal) >= 0)
-        {
-            return html;
+            sb.Append(html);
+            return;
         }
 
         var i = 1;
@@ -255,7 +265,11 @@ internal sealed class HeadAssetRegistry
             i++;
         }
 
-        return html.Insert(i, $" data-rask-key=\"{HtmlAttrEscape(key)}\"");
+        sb.Append(html, 0, i);
+        sb.Append(" data-rask-key=\"");
+        sb.Append(HtmlAttrEscape(key));
+        sb.Append('"');
+        sb.Append(html, i, html.Length - i);
     }
 
     private static string HtmlAttrEscape(string s)

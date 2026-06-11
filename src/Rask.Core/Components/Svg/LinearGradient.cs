@@ -55,7 +55,7 @@ public sealed class LinearGradient : SvgElement
 
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendUrlAttr(sb, "href", Href);
         }
     }
 }

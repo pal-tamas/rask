@@ -7,6 +7,32 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- URL-bearing attributes (`href`, `src`, `cite`, `formaction`, object `data`, `poster`,
+  SVG `href`) are now **scheme-sanitized by default**: `javascript:`/`vbscript:` and
+  `data:` outside media tags are neutralized to `about:blank`, closing a DOM-XSS hole that
+  HTML-encoding alone left open. Detection defeats whitespace/tab/NUL obfuscation. Opt out
+  per call with `RaskUrl.Trusted(...)` for URLs you control; media tags still allow inline
+  `data:image/*`, `data:video/*`, `data:audio/*`. See the [getting-started guide](docs/getting-started.md#url-attributes-are-scheme-sanitized).
+
+### Performance
+- Scoped-asset registry reads (run per component, per render) are now lock-free
+  (`ConcurrentDictionary`), so concurrent sessions no longer serialize on a process-wide lock.
+- Removed `AsyncLocal` reads from the per-element attribute path via a thread-local
+  render-context mirror, and cache `Component.Key` stringification (no per-render `ToString`
+  allocation on keyed lists).
+- `<head>` splice avoids a second whole-body scan, pools its builders, and appends keys
+  without per-asset string allocation.
+
+### Memory
+- The per-render head-asset collector and mounted-type set are hoisted onto the root and
+  reused (cleared per render) instead of allocating fresh collections every frame.
+- A session minted by the GET shell but never connected over WebSocket is now evicted on a
+  short grace (vs. the 30s reconnect grace), and `MaxSessions` is enforced as a hard atomic
+  reservation — a concurrent GET burst can no longer exceed the cap.
+- The WebSocket handler-dispatch chain is bounded: when handlers back up behind a hung or
+  flooding client, the socket is closed instead of retaining queued payloads without limit.
+
 ---
 
 ## [0.7.0] - 2026-06-10
