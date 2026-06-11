@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- `LiveRenderContext.CurrentSync` no longer returns a disposed context. The thread-static sync
+  mirror could linger on a pooled thread after an async render released it at an `await`; a later
+  synchronous render reusing that thread observed the stale context (wrong handler attribution).
+  Reading through the `IsActive` guard restores the documented "null outside an active render"
+  contract. Allocation-neutral (113.9 KB render unchanged). Fixes flaky
+  `*_OutsideLiveContext_OmitsHandlerAttribute` tests.
+
 ### Added
 - `RaskVersion.Current` exposes the running framework version (from the assembly's MinVer
   `InformationalVersion`). The server (`UseRask`) and WASM host log it on startup, and the
