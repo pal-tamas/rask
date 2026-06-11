@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   # Fast gate: every unit/integration test that does NOT need a browser.
   # Skips the expensive WASM AppBundle/trim step (-p:WasmGenerateAppBundle=false) since
