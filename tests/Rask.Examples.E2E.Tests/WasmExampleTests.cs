@@ -1,30 +1,24 @@
-using System.Text.RegularExpressions;
-using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
-using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
+// The Wasm.Host journey: the WASM bundle served by an ASP.NET host with a SPA fallback, so
+// deep-link + refresh and slow-3G apply. There is no server WebSocket to drop, so the
+// offline→reconnect step is off.
 [Collection(WasmExampleCollection.Name)]
-public sealed partial class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixture pw) : ExampleSmokeTests(pw)
+public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
+    : SharedSmokeTests(pw)
 {
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public async Task PageReload_AtShowcaseRoute_StillResolvesToRoute()
-    {
-        await Page.GotoAsync("/scoped-css");
-        await Expect(Page.Locator("main h1.h2"))
-            .ToHaveTextAsync("Scoped CSS",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        await Page.ReloadAsync();
-
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/scoped-css$"));
-        await Expect(Page.Locator("main h1.h2"))
-            .ToHaveTextAsync("Scoped CSS",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-    }
+    public Task Journey_WalksEveryPageAndUnusualActivity() => RunAsync(() =>
+        RunShowcaseJourneyAsync(new ShowcaseJourneyOptions
+        {
+            DeepLink = true,
+            OfflineReconnect = false,
+            Slow3g = true,
+        }));
 }

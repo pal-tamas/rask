@@ -1,0 +1,637 @@
+using System.Text.RegularExpressions;
+using Microsoft.Playwright;
+using static Microsoft.Playwright.Assertions;
+
+namespace Rask.Examples.E2E.Tests;
+
+// One comprehensive journey per hosting project (the user's directive: "1 e2e test per hosting
+// project that walks through every page and tests every feature, plus every unusual user activity").
+//
+// The fine-grained framework/component LOGIC the old per-feature facts asserted (every validation
+// attribute message, every nullable binding case, lifecycle hook ordering, diff codec, route-value
+// parsing, …) is covered in-process by the unit suites (Rask.Core.Tests/Forms, Rask.Server.Tests,
+// Rask.Validation.*.Tests, Rask.Example.Shared.Tests). What only a browser can prove — real DOM
+// rendering, the live morph, scoped-CSS computed styles, JS interop, focus, drag events, history,
+// reconnect, slow links — lives here, exercised once end-to-end against each host.
+public abstract partial class SharedSmokeTests
+{
+    // Per-host gating. The showcase app is identical across hosts; only the *transport* and the
+    // host's routing capabilities differ, so a flag toggles the steps a given host can run.
+    protected sealed class ShowcaseJourneyOptions
+    {
+        // Host installs a SPA fallback, so deep links / refresh on a non-root route resolve
+        // (Server, Wasm.Host). StandaloneWasm (WasmAppHost) 404s those — it walks via the sidebar.
+        public bool DeepLink { get; init; }
+
+        // Server holds session state over a WebSocket; dropping and restoring the socket must
+        // preserve it. WASM runs in-process, so there is no socket to drop.
+        public bool OfflineReconnect { get; init; }
+
+        // Emulate a slow link (Chromium CDP) and confirm loading/placeholder states still settle.
+        public bool Slow3g { get; init; }
+
+        // No-SPA-fallback hosts (StandaloneWasm) can't refresh a deep route, but reloading the
+        // /index.html shell must still boot the runtime cleanly.
+        public bool ReloadShellBoots { get; init; }
+    }
+
+    protected const int HighlightSettleTimeoutMs = 35_000;
+
+    // The heart of every host's single [Fact]. Sequential on purpose: it is a user session, not a
+    // set — earlier steps establish the SPA context later ones rely on.
+    protected async Task RunShowcaseJourneyAsync(ShowcaseJourneyOptions opts)
+    {
+        // Boot the shell once. NavigateToAsync("/") is a real GET on the SPA-fallback hosts and the
+        // /index.html shell load on StandaloneWasm; from here the walk stays in-SPA via the sidebar.
+        await NavigateToAsync("/");
+        await Expect(Page.Locator("h1.display-5"))
+            .ToContainTextAsync("The Rask framework",
+                new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+
+        // Plant a sentinel on window — every in-SPA nav below must preserve it (proves no full
+        // reload happened and the SPA context survived).
+        await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
+
+        await WalkDslAndComponentPagesAsync();
+        await WalkInteractiveComponentPagesAsync();
+        await WalkAuthAndContextPagesAsync();
+        await WalkFormsPagesAsync();
+        await WalkStylingDataAndAppPagesAsync();
+
+        await TestInSessionNotFoundAsync();
+
+        // The SPA sentinel must have survived the entire in-SPA walk.
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+
+        await RunUnusualActivityAsync(opts);
+    }
+
+    // ---- helpers -------------------------------------------------------------------------------
+
+    // In-SPA navigation via the sidebar + heading assertion. Works on every host once the shell is
+    // loaded; on StandaloneWasm the sidebar click is the only navigation path available.
+    private async Task SideAsync(string label, string heading, string headingSelector = "main h1.h2")
+    {
+        await ClickSidebar(label);
+        await Expect(Page.Locator(headingSelector).First).ToContainTextAsync(heading,
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        // Global error-handling guard: no navigation in the walk may trip the framework's
+        // top-level RootErrorBoundary ("Something went wrong"). A page that throws during render
+        // would surface it here instead of its heading.
+        await AssertNoGlobalCrashAsync();
+    }
+
+    // The framework's root error boundary renders a "Something went wrong" shell when an error
+    // escapes every user boundary. Outside the deliberate /boom demos it must never appear.
+    private async Task AssertNoGlobalCrashAsync() =>
+        Assert.Equal(0, await Page.Locator(
+            ".rask-error-boundary:has-text(\"Something went wrong\"), main:has-text(\"Something went wrong\")")
+            .CountAsync());
+
+    // ---- page walk -----------------------------------------------------------------------------
+
+    private async Task WalkDslAndComponentPagesAsync()
+    {
+        // DSL group: Tag factories (blockquote), Primitives (Raw verbatim HTML), Universal props
+        // (data-* expansion incl. bare null attribute).
+        await SideAsync("Tag factories", "Tag factories");
+        await Expect(Page.Locator(".sample-result-body blockquote").First)
+            .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await SideAsync("Primitives", "Primitives");
+        await Expect(Page.Locator(".sample-result-body p")
+                .Filter(new LocatorFilterOptions { HasText = "Already" }).First.Locator("strong"))
+            .ToHaveTextAsync("safe", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        await SideAsync("Universal props", "Universal props");
+        var dataDiv = Page.Locator(".sample-result-body div[data-role='card']").First;
+        await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
+        await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
+
+        // User components: generated factory greeting + [SkipFactory] counter that keeps its state.
+        await SideAsync("User components", "User components");
+        var greeting = Page.Locator(".sample-result-body p")
+            .Filter(new LocatorFilterOptions { HasText = "Hello," }).First;
+        await Expect(greeting).ToContainTextAsync("Dr.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(greeting.Locator("strong")).ToHaveTextAsync("Ada");
+        var skip = Page.Locator("#skipfactory-counter");
+        await Expect(skip).ToContainTextAsync("Clicks: 7",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await skip.ClickAsync();
+        await skip.ClickAsync();
+        await skip.ClickAsync();
+        await Expect(skip).ToContainTextAsync("Clicks: 10",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Routing: an in-handler Navigator.Navigate("/users/137") resolves through parent-route +
+        // outlet, same path as a sidebar click.
+        await SideAsync("Routing", "Routing");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "/users/137" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/users/137$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("User #137",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Route + query params: the sidebar entry binds /users/42; the page shows the bound Id.
+        await SideAsync("Route + query params", "User #42");
+        await Expect(Page.Locator("li:has-text('Id')").Locator("strong")).ToHaveTextAsync("42");
+        await Expect(Page).ToHaveTitleAsync("User #42 — Rask",
+            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
+
+        // Navigator: SetQuery mutates the URL and the in-SPA head-diff updates <title> across a
+        // route-param change.
+        await SideAsync("Navigator", "Navigator");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "SetQuery sort=asc" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*\\?sort=asc.*"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "ClearQuery" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/navigator$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+    }
+
+    private async Task WalkInteractiveComponentPagesAsync()
+    {
+        // Lifecycle: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
+        // the render counter.
+        await SideAsync("Lifecycle", "Lifecycle hooks");
+        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var badge = Page.Locator(".badge:has-text('Render #')").First;
+        await Page.WaitForTimeoutAsync(500);
+        var before = ExtractRenderCount(await badge.TextContentAsync());
+        await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
+        await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Element refs: ElementRef → data-rask-ref → JS interop (focus a built-in, measure via user
+        // scoped JS).
+        await SideAsync("Element refs", "Element refs");
+        var refInput = Page.Locator("main .sample-result-body input");
+        await Page.Locator("main .sample-result-body button:has-text('Focus the input')").ClickAsync();
+        await Expect(refInput).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+        await Page.Locator("main .sample-result-body button:has-text('Measure the box')").ClickAsync();
+        await Expect(Page.Locator("main .sample-result-body p"))
+            .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Scoped JS is loaded: the measure above invoked window.Rask["ElementRefDemo"].width, so the
+        // per-component JS namespace must be present on window.
+        Assert.True(
+            await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
+            "scoped JS namespace window.Rask is missing — component JS did not load");
+
+        // Live ticker: lifecycle hooks drive a zero-JS server-rendered SVG; switching symbol fires
+        // OnPropsChanged without remounting.
+        await SideAsync("Live ticker", "BTC live ticker");
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Standalone proved a real bug here (publish-render rebuild dropped the history entry): the
+        // sidebar nav above must have advanced the URL to /realtime/BTC.
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/realtime/BTC$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Page.Locator("#ticker-switch-ETH").ClickAsync();
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Cancellation: unmount a probe mid-delay → its CancellationToken fires and it logs cancelled.
+        await SideAsync("Cancellation", "Cancellation");
+        await Page.Locator("#cancel-mount").ClickAsync();
+        await Expect(Page.Locator(".cancel-probe-pill")).ToContainTextAsync("running",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#cancel-unmount").ClickAsync();
+        await Expect(Page.Locator(".cancel-log")).ToContainTextAsync("cancelled",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Disposal: sync IDisposable + async IAsyncDisposable both fire on unmount.
+        await SideAsync("Disposal", "Disposal");
+        await Page.Locator("#dispose-sync-mount").ClickAsync();
+        await Expect(Page.Locator(".dispose-probe-pill")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-sync-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-sync-log")).ToContainTextAsync("disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-async-mount").ClickAsync();
+        await Page.Locator("#dispose-async-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-async-log")).ToContainTextAsync("async-disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Events: click counter, streaming input echo, form submit echo.
+        await SideAsync("Events", "Events");
+        var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+        await clickButton.ClickAsync();
+        await clickButton.ClickAsync();
+        await Expect(clickButton).ToContainTextAsync("Clicks: 2",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".sample-result-body input[type=text]:not([name])").First.FillAsync("Hello Rask");
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "You typed:" }))
+            .ToContainTextAsync("Hello Rask", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("input[name=name]").FillAsync("Ada");
+        await Page.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
+            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Virtualize + Keyed lists: just confirm they render (windowing / keyed-diff logic is unit-tested).
+        await SideAsync("Virtualize", "Virtualize");
+        await SideAsync("Keyed lists", "Keyed lists");
+
+        // Data table: every interaction is a URL query-param mutation → rebind → re-render.
+        await SideAsync("Data table", "Data table");
+        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(10,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("th button:has-text('Name')").First.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        await Page.Locator("input[type='search']").FillAsync("Linus");
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        var filtered = await Page.Locator("tbody tr").CountAsync();
+        Assert.True(filtered is > 0 and < 10, $"filter should reduce rows; got {filtered}");
+        await Page.Locator("input[type='search']").FillAsync("");
+        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
+        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
+        await SideAsync("Drag & drop", "Headless drag & drop");
+        await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await HtmlDragDropAsync("[data-testid='fruit-0']", "[data-testid='fruit-2']");
+        await Expect(Page.Locator("#dd-fruit-list .dd-item").Nth(2)).ToContainTextAsync("Apple",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await HtmlDragDropAsync("[data-testid='card-2']", "[data-testid='card-5']");
+        await Expect(Page.Locator("[data-testid='col-done'] [data-testid='card-2']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Error boundary (the app's error handling): a handler-throw and a render-throw each trip
+        // the nearest boundary's fallback — the error is contained, the navbar (outside the user
+        // boundary) survives, and Recover restores the healthy subtree.
+        await SideAsync("Error boundary", "Error boundary");
+        await Page.Locator("#boom-throw").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".navbar .navbar-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Render-time throw: the HtmlSerializer rewinds the partial output and the boundary catches
+        // it exactly once; Recover (which also clears the throw flag) restores the trigger.
+        await Page.Locator("#boom-render-trigger").ClickAsync();
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#boom-recover").First.ClickAsync();
+        await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    private async Task WalkAuthAndContextPagesAsync()
+    {
+        // Context: toggling a provider updates a deep consumer straight through a render-cached
+        // intermediate (the diff-path change-detection bypass).
+        await SideAsync("Context", "Context");
+        var ctxBadge = Page.Locator("main .badge");
+        await Expect(ctxBadge).ToContainTextAsync("Light", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("button:has-text('Toggle theme')").ClickAsync();
+        await Expect(ctxBadge).ToContainTextAsync("Dark", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Callback: a child's click invokes the parent's plain delegate and the framework auto-wraps
+        // it to re-render the parent.
+        await SideAsync("Callback", "Callback");
+        var rating = Page.Locator("main .sample-result-body p");
+        await Page.Locator("main .sample-result-body button").Nth(3).ClickAsync();
+        await Expect(rating).ToContainTextAsync("You rated: 4/5",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
+        // live on IUserProvider.Changed with no reload.
+        await SideAsync("User & auth", "User & auth gating");
+        var gate = Page.Locator("#user-gate");
+        await Expect(gate).ToContainTextAsync("signed out", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await gate.Locator("button:has-text('Sign in as user')").ClickAsync();
+        await Expect(gate).ToContainTextAsync("Signed in as", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(gate).Not.ToContainTextAsync("Admin-only panel");
+        await gate.Locator("button:has-text('Sign out')").ClickAsync();
+
+        var demo = Page.Locator("#authorize-demo");
+        await Expect(demo).ToContainTextAsync("Sign in to see member content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await demo.Locator("button:has-text('Sign in as admin')").ClickAsync();
+        await Expect(demo).ToContainTextAsync("Admin-only content",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await demo.Locator("button:has-text('Sign out')").ClickAsync();
+    }
+
+    private async Task WalkFormsPagesAsync()
+    {
+        // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
+        // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text + a
+        // change-only checkbox).
+        await SideAsync("Two-way binding", "Two-way binding");
+        await Page.Locator("input[name=Name]").First.FillAsync("Ada");
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
+            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        var subscribeEcho = Page.Locator("pre code").Filter(new LocatorFilterOptions { HasText = "Subscribe =" });
+        var checkbox = Page.Locator("#bind-subscribe");
+        await checkbox.ClickAsync();
+        await Expect(subscribeEcho).ToContainTextAsync("Subscribe = true",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Highlighting is server-side: the code samples on this page must carry token spans after
+        // the in-SPA morph (the morph must not flatten the Raw spans).
+        await Expect(Page.Locator("pre code.language-csharp span").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
+        // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
+        // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
+        await SideAsync("Validation", "Validation");
+        await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
+        await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
+            .ToContainTextAsync("required",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+        var asyncForm = Page.Locator("form:has(#v3-username)");
+        await asyncForm.Locator("#v3-username").FillAsync("admin");
+        await asyncForm.Locator("#v3-username").BlurAsync();
+        await Expect(asyncForm.Locator(".validating-indicator"))
+            .ToContainTextAsync("Checking",
+                new LocatorAssertionsToContainTextOptions { Timeout = 5_000, IgnoreCase = true });
+        await Expect(asyncForm.Locator(".text-danger"))
+            .ToContainTextAsync("taken",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
+
+        // Complex models (nested forms): render smoke (nested binding/validation is unit-tested).
+        await SideAsync("Complex models", "Complex models");
+
+        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind.
+        await SideAsync("Radio & checkbox", "Radio & checkbox groups");
+        var groups = Page.Locator("#groups-summary");
+        await Page.Locator("input[type=radio][value='Pro']").CheckAsync();
+        await Expect(groups).ToContainTextAsync("Plan: Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
+        await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    }
+
+    private async Task WalkStylingDataAndAppPagesAsync()
+    {
+        // SVG: render smoke.
+        await SideAsync("SVG", "SVG", "main h1.h2");
+
+        // Scoped CSS: two components get distinct scope ids → distinct computed background colors.
+        await SideAsync("Scoped CSS", "Scoped CSS");
+        var boxes = Page.Locator(".sample-result-body .box");
+        await Expect(boxes).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        var bg0 = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        Assert.NotEqual(bg0, bg1);
+        // The scoped stylesheet actually loaded and applied: the rule painted a real colour rather
+        // than leaving the default transparent background.
+        Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
+
+        // Asset loading: per-component content-addressed <link>s, a JS-only <script>, and lazy
+        // mount adding/removing a link via the keyed head-morph.
+        await SideAsync("Asset loading", "Asset loading", "main h1.h3");
+        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
+        Assert.True(await Page.Locator(cssLinkSel).CountAsync() >= 3, "expected >=3 per-component CSS links");
+        Assert.True(await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync() >= 1,
+            "expected >=1 JS-only script");
+        var beforeLazy = await Page.Locator(cssLinkSel).CountAsync();
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+
+        // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.
+        await SideAsync("HttpClient + DI", "HttpClient + DI");
+        await Expect(Page.Locator(".sample-result-body article.card")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // File upload / download: render smoke (sinks are unit-tested).
+        await SideAsync("File upload", "File upload", "main h1.h2");
+        await SideAsync("File download", "File download", "main h1.h2");
+
+        // Todos: full CRUD + URL-driven dialog. Add, edit, toggle, delete.
+        await SideAsync("Todos", "Todos");
+        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(2,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        // Empty submit → [Required].
+        await Page.Locator("button:has-text('Add')").ClickAsync();
+        await Expect(Page.Locator(".text-danger.small")).ToContainTextAsync("Title is required",
+            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+        await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
+        await Page.Locator("button:has-text('Add')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Toggle the first item's checkbox → completed class.
+        var firstTitle = await Page.Locator(".list-group-item .todo-title").First.InnerTextAsync();
+        await Page.Locator(".list-group-item").First.Locator("input[type='checkbox']").CheckAsync();
+        await Expect(Page.Locator(".todo-title.completed", new PageLocatorOptions { HasTextString = firstTitle }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        // Delete one row.
+        var rowsBefore = await Page.Locator(".list-group .list-group-item").CountAsync();
+        await Page.Locator(".list-group-item button:has(i.bi-trash)").First.ClickAsync();
+        await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(rowsBefore - 1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
+        await ClearJsRuntimeStorageAsync();
+        await SideAsync("IJSRuntime", "IJSRuntime", "main h1.h2");
+        await Page.Locator("#demo-input").FillAsync("hello-rask");
+        await Page.Locator("#demo-set").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Set to: hello-rask",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-read").ClickAsync();
+        await Expect(Page.Locator("#demo-last-read")).ToHaveTextAsync("hello-rask",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-remove").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    }
+
+    // In-session navigation to an unknown route (client pushState + popstate — the same signal
+    // rask.js forwards to the live session). Works on every host (no deep-link needed): the
+    // [NotFound] page renders inside the layout shell and no sidebar entry stays active.
+    private async Task TestInSessionNotFoundAsync()
+    {
+        await Page.EvaluateAsync(@"() => {
+            history.pushState({ rask: true }, '', '/in-session-missing');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+        }");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn-active")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
+        // "Back to welcome" is an in-session nav to "/" — returns us to a known page so the journey
+        // can continue, and proves recovery from the not-found state.
+        await Page.Locator("main button:has-text(\"Back to welcome\")").ClickAsync();
+        await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    // ---- unusual user activity -----------------------------------------------------------------
+
+    private async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
+    {
+        // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
+        await SideAsync("Tag factories", "Tag factories");
+        await Page.GoBackAsync();
+        Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
+        await Page.GoForwardAsync();
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Tag factories",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        if (opts.DeepLink)
+        {
+            // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
+            // and re-emit server-highlighted spans.
+            await Page.GotoAsync("/validation");
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            await Page.ReloadAsync();
+            Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
+            var total = await Page.Locator("pre code[class*='language-']").CountAsync();
+            var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
+            Assert.True(total > 0 && total == highlighted,
+                $"/validation after refresh: {highlighted}/{total} highlighted.");
+
+            // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
+            await Page.GotoAsync("/this-route-definitely-does-not-exist");
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        }
+
+        if (opts.ReloadShellBoots)
+        {
+            // WasmAppHost serves only /index.html; a reload there must always boot the runtime.
+            await Page.GotoAsync("/index.html");
+            await Page.ReloadAsync();
+            await Expect(Page.Locator("h1.display-5"))
+                .ToContainTextAsync("The Rask framework",
+                    new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+        }
+
+        if (opts.Slow3g)
+        {
+            // Emulate a slow link via Chromium CDP and confirm the HTTP page still settles. Then
+            // restore full speed so later steps aren't penalized.
+            var cdp = await Page.Context.NewCDPSessionAsync(Page);
+            await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+            {
+                ["offline"] = false,
+                ["latency"] = 400,
+                ["downloadThroughput"] = 50 * 1024,
+                ["uploadThroughput"] = 50 * 1024,
+            });
+            await Page.GotoAsync("/http");
+            await Expect(Page.Locator(".sample-result-body article.card")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+            await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+            {
+                ["offline"] = false,
+                ["latency"] = 0,
+                ["downloadThroughput"] = -1,
+                ["uploadThroughput"] = -1,
+            });
+        }
+
+        if (opts.OfflineReconnect)
+        {
+            // Drop and restore the WebSocket; server-held state must survive the reconnect.
+            await Page.GotoAsync("/events");
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+            var clicks = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+            await clicks.ClickAsync();
+            await clicks.ClickAsync();
+            await Expect(clicks).ToContainTextAsync("Clicks: 2",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+            await Page.Context.SetOfflineAsync(true);
+            await Page.Context.SetOfflineAsync(false);
+            await clicks.ClickAsync();
+            await Expect(clicks).ToContainTextAsync("Clicks: 3",
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        }
+
+        // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
+        var baseline = await SampleJsHeapAsync();
+        var labels = new[] { "Events", "Two-way binding", "Scoped CSS", "Routing", "Welcome" };
+        for (var i = 0; i < 6; i++)
+        {
+            foreach (var label in labels)
+            {
+                await ClickSidebar(label);
+                await Page.WaitForTimeoutAsync(120);
+            }
+        }
+        await Page.EvaluateAsync("() => new Promise(r => { if (window.gc) { window.gc(); } setTimeout(r, 200); })");
+        var after = await SampleJsHeapAsync();
+        Assert.True(after > 0, $"no heap reading. baseline={baseline} after={after}");
+        Assert.True(after < (baseline * 3) + 25_000_000 && after < 250_000_000,
+            $"JS heap grew unexpectedly. baseline={baseline:N0} after={after:N0}.");
+    }
+
+    // ---- low-level helpers (shared by the journey) ---------------------------------------------
+
+    private static int ExtractRenderCount(string? text) =>
+        int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
+
+    private async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
+    {
+        var source = Page.Locator(sourceSelector);
+        var target = Page.Locator(targetSelector);
+        await source.ScrollIntoViewIfNeededAsync();
+        var dataTransfer = await Page.EvaluateHandleAsync("() => new DataTransfer()");
+        var init = new Dictionary<string, object>
+        {
+            ["dataTransfer"] = dataTransfer, ["bubbles"] = true, ["cancelable"] = true,
+        };
+        await source.DispatchEventAsync("dragstart", init);
+        await target.DispatchEventAsync("dragover", init);
+        await target.DispatchEventAsync("drop", init);
+        await source.DispatchEventAsync("dragend", init);
+    }
+
+    private async Task ClearJsRuntimeStorageAsync()
+    {
+        try
+        {
+            await Page.EvaluateAsync(
+                "() => { try { sessionStorage.removeItem('rask.jsruntime.demo'); } catch (_) {} }");
+        }
+        catch
+        {
+            // No page loaded yet — ignore.
+        }
+    }
+
+    private async Task WaitForHighlightedSpansAsync(int timeoutMs)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < deadline)
+        {
+            var settled = await Page.EvaluateAsync<bool>(
+                "() => { const all = Array.from(document.querySelectorAll('pre code[class*=\"language-\"]')); " +
+                "return all.length > 0 && all.every(c => c.querySelector('span[class]') !== null); }");
+            if (settled)
+            {
+                return;
+            }
+
+            await Task.Delay(150);
+        }
+    }
+
+    private Task<long> SampleJsHeapAsync() => Page.EvaluateAsync<long>(
+        "() => (performance.memory && performance.memory.usedJSHeapSize) || 0");
+}
