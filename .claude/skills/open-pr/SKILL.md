@@ -17,7 +17,7 @@ git switch -c <type>/<short-desc>          # e.g. feat/dialog-tag, fix/diff-rota
 
 ## 2. Commit — Conventional Commits (enforced by commitlint)
 Format `type(scope): subject`, imperative, lower-case subject, ≤100 chars. Allowed types:
-`feat, fix, perf, refactor, docs, test, build, ci, chore, revert` (`commitlint.config.js`,
+`feat, fix, perf, refactor, docs, test, build, ci, chore, revert` (`commitlint.config.mjs`,
 checked in CI by `.github/workflows/commitlint.yml`). Breaking change → `feat!:` / `fix!:` or a
 `BREAKING CHANGE:` footer. **No `Co-Authored-By`, no `Generated-with`/AI-attribution footers** — ever.
 ```bash

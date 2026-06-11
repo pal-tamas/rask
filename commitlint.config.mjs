@@ -1,6 +1,7 @@
 // Conventional Commits, enforced in CI by .github/workflows/commitlint.yml
-// (wagoid/commitlint-github-action). See https://www.conventionalcommits.org/.
-module.exports = {
+// (wagoid/commitlint-github-action requires an ESM .mjs config).
+// See https://www.conventionalcommits.org/.
+export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
     'type-enum': [

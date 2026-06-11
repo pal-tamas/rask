@@ -25,6 +25,6 @@ cat >&2 <<'EOF'
   type ∈ feat, fix, perf, refactor, docs, test, build, ci, chore, revert
   e.g. "feat(forms): add RadioGroup disabled state"
 
-See commitlint.config.js / https://www.conventionalcommits.org/
+See commitlint.config.mjs / https://www.conventionalcommits.org/
 EOF
 exit 1
