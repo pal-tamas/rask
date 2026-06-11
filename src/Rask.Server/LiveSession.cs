@@ -135,6 +135,18 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     /// </summary>
     internal Task LastHandlerTask { get; set; } = Task.CompletedTask;
 
+    // Number of handler dispatches queued on the LastHandlerTask chain but not yet completed.
+    // Each queued dispatch retains a cloned JsonElement, so an unbounded chain (a flood of input
+    // arriving faster than handlers drain, or a single hung handler stalling the head) is a
+    // memory-exhaustion vector. The receive loop reads this to apply backpressure. Interlocked
+    // because the increment (receive loop) and decrement (dispatch continuation) can run on
+    // different ThreadPool threads.
+    private int _pendingHandlers;
+
+    internal int IncrementPendingHandlers() => Interlocked.Increment(ref _pendingHandlers);
+
+    internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
+
     public async ValueTask DisposeAsync()
     {
         await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);

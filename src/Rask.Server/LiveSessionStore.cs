@@ -14,6 +14,11 @@ public sealed class LiveSessionStore : IAsyncDisposable
     private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
     private readonly CancellationToken _stopping;
 
+    // Atomic count of live + in-flight sessions, used by the hard capacity reservation in
+    // TryCreate. Incremented BEFORE the component tree is built and decremented on removal (or
+    // on a failed build), so a concurrent GET burst can never exceed MaxSessions.
+    private int _liveCount;
+
     public LiveSessionStore(IServiceScopeFactory scopeFactory, IHostApplicationLifetime? lifetime = null)
     {
         _scopeFactory = scopeFactory;
@@ -27,20 +32,19 @@ public sealed class LiveSessionStore : IAsyncDisposable
     public int Count => _sessions.Count;
 
     /// <summary>
-    ///     Soft cap on concurrent sessions (<c>0</c> = unlimited). Set from
-    ///     <see cref="Rask.Core.Live.RaskLiveOptions.MaxSessions" /> at registration. The
-    ///     capacity gate is intentionally check-then-create rather than a hard atomic
-    ///     reservation: a burst can admit a handful of sessions past the cap, which is fine
-    ///     for a DoS backstop and keeps the common (uncapped) <see cref="Create" /> path free
-    ///     of extra synchronisation. Tests set it directly on the resolved singleton.
+    ///     Hard cap on concurrent sessions (<c>0</c> = unlimited). Set from
+    ///     <see cref="Rask.Core.Live.RaskLiveOptions.MaxSessions" /> at registration. Enforced
+    ///     atomically by <see cref="TryCreate" /> (a reservation taken before the component tree
+    ///     is built), so a concurrent GET burst cannot exceed it. Tests set it directly on the
+    ///     resolved singleton.
     /// </summary>
     public int MaxSessions { get; set; }
 
     /// <summary>
-    ///     True when a new session would exceed <see cref="MaxSessions" />. The GET endpoint
-    ///     checks this before minting a session and returns 503 when it holds.
+    ///     True when a new session would exceed <see cref="MaxSessions" />. A fast advisory
+    ///     pre-check; the authoritative gate is <see cref="TryCreate" />'s atomic reservation.
     /// </summary>
-    public bool AtCapacity => MaxSessions > 0 && _sessions.Count >= MaxSessions;
+    public bool AtCapacity => MaxSessions > 0 && Volatile.Read(ref _liveCount) >= MaxSessions;
 
     public async ValueTask DisposeAsync()
     {
@@ -49,6 +53,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         {
             if (_sessions.TryRemove(key, out var session))
             {
+                Interlocked.Decrement(ref _liveCount);
                 await session.DisposeAsync().ConfigureAwait(false);
             }
         }
@@ -66,7 +71,51 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    ///     Creates a session unconditionally (no capacity check). Used internally and by tests.
+    ///     The GET endpoint uses <see cref="TryCreate" /> so the cap is enforced.
+    /// </summary>
     internal LiveSession Create(Func<IServiceProvider, Component> factory)
+    {
+        Interlocked.Increment(ref _liveCount);
+        try
+        {
+            return CreateCore(factory);
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _liveCount);
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///     Atomically reserves a capacity slot, then creates the session. Returns <c>null</c>
+    ///     (reserving nothing) when the session would exceed <see cref="MaxSessions" /> — the
+    ///     reservation is taken BEFORE the component tree is built, so a burst of concurrent GETs
+    ///     can never push past the cap (the old check-then-create gate could admit a handful).
+    /// </summary>
+    internal LiveSession? TryCreate(Func<IServiceProvider, Component> factory)
+    {
+        var reserved = Interlocked.Increment(ref _liveCount);
+        if (MaxSessions > 0 && reserved > MaxSessions)
+        {
+            Interlocked.Decrement(ref _liveCount);
+            return null;
+        }
+
+        try
+        {
+            return CreateCore(factory);
+        }
+        catch
+        {
+            Interlocked.Decrement(ref _liveCount);
+            throw;
+        }
+    }
+
+    private LiveSession CreateCore(Func<IServiceProvider, Component> factory)
     {
         var scope = _scopeFactory.CreateScope();
         // Cryptographically-random id: it is the bearer secret for the WS / upload / download
@@ -111,6 +160,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         CancelPendingRemoval(id);
         if (_sessions.TryRemove(id, out var session))
         {
+            Interlocked.Decrement(ref _liveCount);
             session.Dispose();
         }
     }
@@ -120,6 +170,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         CancelPendingRemoval(id);
         if (_sessions.TryRemove(id, out var session))
         {
+            Interlocked.Decrement(ref _liveCount);
             await session.DisposeAsync().ConfigureAwait(false);
         }
     }

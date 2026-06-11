@@ -14,7 +14,7 @@ public sealed class Del : Element
         base.WriteAttributes(sb);
         if (Cite is not null)
         {
-            AppendAttr(sb, "cite", Cite);
+            AppendUrlAttr(sb, "cite", Cite);
         }
 
         if (DateTime is not null)

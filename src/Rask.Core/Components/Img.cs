@@ -26,7 +26,7 @@ public sealed class Img : Element
         base.WriteAttributes(sb);
         if (Src is not null)
         {
-            AppendAttr(sb, "src", Src);
+            AppendMediaUrlAttr(sb, "src", Src);
         }
 
         if (Alt is not null)

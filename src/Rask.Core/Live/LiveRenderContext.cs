@@ -10,6 +10,17 @@ namespace Rask.Core.Live;
 public sealed class LiveRenderContext : IDisposable
 {
     private static readonly AsyncLocal<LiveRenderContext?> _current = new();
+
+    // Thread-local fast mirror of _current, valid only during the synchronous render walk.
+    // AsyncLocal.Value reads walk the execution context and are markedly slower than a field
+    // read; the per-element attribute path reads "the current context" several times per
+    // element. Serialize() and WriteAttributes() run synchronously on one thread between this
+    // context's construction and disposal, so a ThreadStatic mirror is exact there. The
+    // AsyncLocal _current stays authoritative for async continuations (which may resume on a
+    // different thread and must still observe Current / IsActive) — those keep reading _current.
+    [ThreadStatic] private static LiveRenderContext? _syncCurrent;
+
+    private readonly LiveRenderContext? _previousSync;
     private readonly Stack<ErrorBoundary> _boundaryStack = new();
     private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts;
     private readonly IRenderHandle? _handle;
@@ -32,20 +43,31 @@ public sealed class LiveRenderContext : IDisposable
         Component root,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
         Dictionary<ObjectKey, EditContext> currentEditContexts,
-        IServiceProvider? services)
+        IServiceProvider? services,
+        HeadAssetRegistry headAssets,
+        HashSet<Type> mountedTypes)
     {
         _root = root;
         _previousEditContexts = previousEditContexts;
         _currentEditContexts = currentEditContexts;
         Services = services;
+        HeadAssets = headAssets;
+        MountedTypes = mountedTypes;
         _handle = root.RenderHandle;
         _previous = _current.Value;
+        _previousSync = _syncCurrent;
         _current.Value = this;
+        _syncCurrent = this;
     }
 
     internal bool IsActive { get; private set; } = true;
 
     public static LiveRenderContext? Current => _current.Value;
+
+    // Fast, synchronous-walk-only accessor for the hot attribute path. Equals Current on the
+    // render thread; null outside an active render (restored on Dispose). Do NOT use from async
+    // continuations — read Current there.
+    internal static LiveRenderContext? CurrentSync => _syncCurrent;
 
     internal RouteRenderState? Route { get; set; }
 
@@ -58,7 +80,7 @@ public sealed class LiveRenderContext : IDisposable
     ///     <see cref="Generated.RaskHeadAssets" /> placeholder is replaced with this
     ///     registry's content during <see cref="Component.RenderAsLiveRoot()" />.
     /// </summary>
-    internal HeadAssetRegistry HeadAssets { get; } = new();
+    internal HeadAssetRegistry HeadAssets { get; }
 
     /// <summary>
     ///     Every user-component type observed during this render walk. Populated
@@ -74,7 +96,7 @@ public sealed class LiveRenderContext : IDisposable
     ///         not <see cref="ScopedAssetRegistry.TryGetScopeId" /> finds a scope id.
     ///     </para>
     /// </summary>
-    public HashSet<Type> MountedTypes { get; } = new();
+    public HashSet<Type> MountedTypes { get; }
 
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
@@ -84,6 +106,7 @@ public sealed class LiveRenderContext : IDisposable
     {
         IsActive = false;
         _current.Value = _previous;
+        _syncCurrent = _previousSync;
     }
 
     internal ContextScope PushScope(Component instance)
@@ -119,19 +142,25 @@ public sealed class LiveRenderContext : IDisposable
     }
 
     public static LiveRenderContext Begin(Component root) =>
-        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), null);
+        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), null,
+            new HeadAssetRegistry(), new HashSet<Type>());
 
     public static LiveRenderContext Begin(Component root, IServiceProvider? services) =>
-        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), services);
+        new(root, new Dictionary<ObjectKey, EditContext>(), new Dictionary<ObjectKey, EditContext>(), services,
+            new HeadAssetRegistry(), new HashSet<Type>());
 
     // RenderAsLiveRootCore swaps two dictionaries it owns and passes both in here, so neither
-    // the current nor the previous dict is allocated per render after warmup.
+    // the current nor the previous dict is allocated per render after warmup. It likewise
+    // supplies a reused HeadAssetRegistry + MountedTypes set (cleared per render) so head
+    // emission stops allocating ~5 collections every frame on the otherwise zero-alloc diff path.
     internal static LiveRenderContext Begin(
         Component root,
         Dictionary<ObjectKey, EditContext> previousEditContexts,
         Dictionary<ObjectKey, EditContext> currentEditContexts,
-        IServiceProvider? services) =>
-        new(root, previousEditContexts, currentEditContexts, services);
+        IServiceProvider? services,
+        HeadAssetRegistry headAssets,
+        HashSet<Type> mountedTypes) =>
+        new(root, previousEditContexts, currentEditContexts, services, headAssets, mountedTypes);
 
     public string RegisterHandler(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores

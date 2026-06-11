@@ -16,7 +16,7 @@ public sealed class TextPath : SvgElement
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendUrlAttr(sb, "href", Href);
         }
 
         if (StartOffset is not null)

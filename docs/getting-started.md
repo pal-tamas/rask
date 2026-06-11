@@ -91,6 +91,24 @@ P()["<b>encoded</b> — shows the angle brackets as text"],   // string → Text
 Div()[Raw("<b>bold</b>")]                                    // emitted verbatim
 ```
 
+### URL attributes are scheme-sanitized
+
+URL-bearing attributes — `href` (`A`, `Area`, `Link`, `Base`, SVG), `src`
+(`Iframe`, `Script`, `Embed`, media), `cite`, `formaction`, object `data`, `poster` —
+are **sanitized by default**: HTML-encoding alone does not stop `<a href="javascript:…">`
+from executing on click. A dangerous scheme (`javascript:`, `vbscript:`, and `data:`
+outside media tags) is neutralized to `about:blank`; relative/`http(s)`/`mailto`/`tel`/
+fragment URLs pass through unchanged, and media tags (`img`/`audio`/`video`/`source`/
+`poster`) still allow inline `data:image/*`, `data:video/*`, `data:audio/*`.
+
+```csharp
+A(Href: userSuppliedUrl)["profile"]            // javascript:… → about:blank
+A(Href: RaskUrl.Trusted("javascript:void(0)"))["noop"]   // opt out for URLs you control
+```
+
+`RaskUrl.Trusted(...)` is the per-call escape hatch — the value is still HTML-encoded,
+just not scheme-checked. Use it only for non-attacker-controlled URLs.
+
 ## 4. Add interactivity
 
 Keep local state in fields and wire event handlers as plain delegates. A click does

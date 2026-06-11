@@ -100,7 +100,7 @@ internal static class HtmlSerializer
             {
                 // A keyed Fragment forwards its Key onto the first element it renders (the
                 // first child's first element); Consume in WriteAttributes claims it once.
-                var fragKey = fragment.Key?.ToString();
+                var fragKey = fragment.KeyString;
                 if (fragKey is not null)
                 {
                     KeyForwardScope.Arm(fragKey);
@@ -144,7 +144,7 @@ internal static class HtmlSerializer
                 // the duration of the children walk, so any descendant's Render() (which runs
                 // inside this synchronous walk) resolves it via Context.Get<T>(). A keyed
                 // provider forwards its Key onto the first element its children render.
-                var ctxKey = context.Key?.ToString();
+                var ctxKey = context.KeyString;
                 if (ctxKey is not null)
                 {
                     KeyForwardScope.Arm(ctxKey);
@@ -182,7 +182,7 @@ internal static class HtmlSerializer
             }
 
             case { TagNameInternal: { } tagName } el:
-                var live = LiveRenderContext.Current;
+                var live = LiveRenderContext.CurrentSync;
                 var scopeId = live?.CurrentScopeId;
                 var isShell = _shellTags.Contains(tagName);
                 var elementStart = sb.Length;
@@ -268,7 +268,7 @@ internal static class HtmlSerializer
                 // component — including the walk of its rendered subtree. That way
                 // factories called from inside its Render AND handlers registered on
                 // elements deep in its rendered tree both attribute back to this component.
-                var liveCtx = LiveRenderContext.Current;
+                var liveCtx = LiveRenderContext.CurrentSync;
                 if (liveCtx is not null && component.Boundary is null)
                 {
                     // Stamp the nearest enclosing boundary on first traversal so async
@@ -299,7 +299,7 @@ internal static class HtmlSerializer
                     // body (the component's root element), which Consumes it in WriteAttributes.
                     // Only the first element claims it; Clear in finally stops it leaking to a
                     // following sibling when the body renders no element at all.
-                    var fwdKey = component.Key?.ToString();
+                    var fwdKey = component.KeyString;
                     if (fwdKey is not null)
                     {
                         KeyForwardScope.Arm(fwdKey);
@@ -324,7 +324,7 @@ internal static class HtmlSerializer
 
     private static void SerializeErrorBoundary(ErrorBoundary boundary, StringBuilder sb)
     {
-        var live = LiveRenderContext.Current;
+        var live = LiveRenderContext.CurrentSync;
         using (LiveRenderContext.PushScopeOrNone(live, boundary))
         using (LiveRenderContext.EnterParentScopeOrNone(live, boundary))
         using (LiveRenderContext.PushBoundaryOrNone(live, boundary))

@@ -79,6 +79,25 @@ public class HeadAssetRenderTests
         Assert.Contains(">User #42</title>", html);
     }
 
+    [Fact]
+    public void RepeatedRenders_ProduceIdenticalHead()
+    {
+        // The head-asset registry + mounted-type set are hoisted onto the root's LiveState and
+        // reused across renders (cleared each frame). Re-rendering the same root must yield the
+        // exact same head every time — a stale entry surviving Clear() (dup link, leftover
+        // title) would show up here. Also guards the singleton/dedup paths under reuse.
+        var view = new ShellWithTitle("App", new ContributesLink());
+
+        var first = view.RenderAsLiveRoot();
+        var second = view.RenderAsLiveRoot();
+        var third = view.RenderAsLiveRoot();
+
+        Assert.Equal(first, second);
+        Assert.Equal(second, third);
+        Assert.Equal(1, CountOccurrences(third, "<title "));
+        Assert.Equal(1, CountOccurrences(third, "/a.css"));
+    }
+
     // ----- helpers -----
 
     private static int CountOccurrences(string haystack, string needle)

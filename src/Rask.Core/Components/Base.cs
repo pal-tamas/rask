@@ -15,7 +15,7 @@ public sealed class Base : Element
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendUrlAttr(sb, "href", Href);
         }
 
         if (Target is not null)

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -28,9 +29,14 @@ public static class ScopedAssetRegistry
 
     private static readonly object _lock = new();
 
-    private static readonly Dictionary<Type, string> _cssHashByType = new();
-    private static readonly Dictionary<Type, string> _jsHashByType = new();
-    private static readonly Dictionary<Type, string> _scopeIdByType = new();
+    // by-Type lookups are read once per user component per render (TryGetScopeId via
+    // LiveRenderContext.PushScope) and per mounted type during head emission — the hottest
+    // registry path. ConcurrentDictionary makes those reads lock-free so concurrent sessions
+    // never serialize on a shared lock. Writes (register/unregister) still run inside _lock so
+    // each stays atomic with the refcounted by-hash buckets below.
+    private static readonly ConcurrentDictionary<Type, string> _cssHashByType = new();
+    private static readonly ConcurrentDictionary<Type, string> _jsHashByType = new();
+    private static readonly ConcurrentDictionary<Type, string> _scopeIdByType = new();
 
     private static readonly Dictionary<string, AssetEntry> _cssByHash =
         new(StringComparer.Ordinal);
@@ -193,8 +199,8 @@ public static class ScopedAssetRegistry
                 return;
             }
 
-            _cssHashByType.Remove(componentType);
-            _scopeIdByType.Remove(componentType);
+            _cssHashByType.TryRemove(componentType, out _);
+            _scopeIdByType.TryRemove(componentType, out _);
             DecrementRefLocked(_cssByHash, hash);
             changed = true;
         }
@@ -216,7 +222,7 @@ public static class ScopedAssetRegistry
                 return;
             }
 
-            _jsHashByType.Remove(componentType);
+            _jsHashByType.TryRemove(componentType, out _);
             DecrementRefLocked(_jsByHash, hash);
             changed = true;
         }
@@ -308,13 +314,10 @@ public static class ScopedAssetRegistry
     public static bool TryGetCss(Type componentType, out string hash)
     {
         ArgumentNullException.ThrowIfNull(componentType);
-        lock (_lock)
+        if (_cssHashByType.TryGetValue(componentType, out var v))
         {
-            if (_cssHashByType.TryGetValue(componentType, out var v))
-            {
-                hash = v;
-                return true;
-            }
+            hash = v;
+            return true;
         }
 
         hash = string.Empty;
@@ -327,13 +330,10 @@ public static class ScopedAssetRegistry
     public static bool TryGetJs(Type componentType, out string hash)
     {
         ArgumentNullException.ThrowIfNull(componentType);
-        lock (_lock)
+        if (_jsHashByType.TryGetValue(componentType, out var v))
         {
-            if (_jsHashByType.TryGetValue(componentType, out var v))
-            {
-                hash = v;
-                return true;
-            }
+            hash = v;
+            return true;
         }
 
         hash = string.Empty;
@@ -348,13 +348,10 @@ public static class ScopedAssetRegistry
     public static bool TryGetScopeId(Type componentType, out string scopeId)
     {
         ArgumentNullException.ThrowIfNull(componentType);
-        lock (_lock)
+        if (_scopeIdByType.TryGetValue(componentType, out var v))
         {
-            if (_scopeIdByType.TryGetValue(componentType, out var v))
-            {
-                scopeId = v;
-                return true;
-            }
+            scopeId = v;
+            return true;
         }
 
         scopeId = string.Empty;
