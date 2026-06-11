@@ -1,0 +1,27 @@
+# Rask
+
+> Rask is a C# component framework (Blazor-like) for .NET 10: a Roslyn factory generator,
+> scoped CSS/JS, routing, and a live diff runtime over WebSockets (Server) or JSImport/JSExport
+> (WASM). Components are plain C# classes; markup is written with generated factory methods and a
+> children indexer (`Div()[Span(), "hi"]`).
+
+This file helps AI coding assistants build apps with Rask. Start with AGENTS.md (in any
+`dotnet new rask-*` project) for app-authoring conventions, then the docs below.
+
+## Docs
+- [Getting started](docs/getting-started.md): install, first app, project layout.
+- [Routing](docs/routing.md): `[Route]`, params, `Router()`/`Outlet()`, navigation.
+- [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
+- [Composition](docs/composition.md): children, context (provide/consume), callbacks.
+- [Forms](docs/forms.md): binding, validation, RadioGroup/CheckboxGroup, EditContext.
+- [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.
+- [Authentication](docs/authentication.md): cookie/JWT, Authorize, route guards.
+- [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
+- [Diagnostics](docs/diagnostics.md): RASK001–022 compile-time diagnostics + fixes.
+- [Testing](docs/testing.md): unit + Playwright E2E patterns.
+
+## Contributing to Rask itself
+- [AGENTS.md](AGENTS.md): repo conventions for AI assistants + the `.claude/skills/` workflows.
+- [Development workflow](docs/development-workflow.md): the format → warnings-as-errors → tests →
+  benchmarks → docs → review → PR gate, CI, nightly, analyzers.
+- [Code analysis](docs/code-analysis.md): analyzers and adoption.

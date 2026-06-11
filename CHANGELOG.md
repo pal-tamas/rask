@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- `RaskVersion.Current` exposes the running framework version (from the assembly's MinVer
+  `InformationalVersion`). The server (`UseRask`) and WASM host log it on startup, and the
+  showcase samples display it as a version badge.
+- AI-assistant onboarding: an `AGENTS.md` ships in every `dotnet new rask-*` template (app-author
+  conventions), plus a root `AGENTS.md`, `llms.txt`, and `docs/ai-agents.md`.
+- Community health files: issue forms, PR template, `CODE_OF_CONDUCT.md`, `SECURITY.md`,
+  `CODEOWNERS`, and `docs/repo-administration.md` — contributions open, maintainer merges.
+
+### Changed
+- Build is now **warnings-as-errors** with .NET analyzers and code-style enforced in-build
+  (`Directory.Build.props`); see `docs/code-analysis.md`.
+- NuGet packages ship a concise, gallery-friendly `NUGET.md` README (absolute URLs) instead of
+  the full repo README.
+
+### CI
+- `nightly.yml` publishes a prerelease to nuget.org + GitHub Packages on every push to `main`.
+- `commitlint.yml` enforces Conventional Commits; `dependabot.yml` keeps NuGet/Actions current.
+
+### Documentation
+- New guides: `docs/development-workflow.md`, `docs/code-analysis.md`, `docs/ai-agents.md`,
+  `docs/repo-administration.md`. CLAUDE.md compacted to a map pointing at the new
+  `.claude/skills/` playbooks.
+
 ### Security
 - URL-bearing attributes (`href`, `src`, `cite`, `formaction`, object `data`, `poster`,
   SVG `href`) are now **scheme-sanitized by default**: `javascript:`/`vbscript:` and

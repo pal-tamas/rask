@@ -77,7 +77,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     })[
                     RaskLogo.Mark(24, "brandBolt"),
                     Span()["Rask"],
-                    Span(Class: "badge rounded-pill rask-badge")["showcase"]
+                    Span(Class: "badge rounded-pill rask-badge")["showcase"],
+                    Span(Class: "badge rounded-pill text-bg-secondary")[$"v{RaskVersion.Current}"]
                 ],
                 Div(Class: "d-flex align-items-center gap-2 ms-auto")[
                     PathDisplay(),

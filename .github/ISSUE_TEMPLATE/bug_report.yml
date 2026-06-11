@@ -1,0 +1,72 @@
+name: 🐛 Bug report
+description: Something doesn't work the way it should.
+title: "bug: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! A small, runnable repro is the single
+        biggest thing that gets a bug fixed quickly. 🙏
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I …, Rask renders … but I expected …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Steps, or a link to a minimal repo / gist. Include the component code if relevant.
+      placeholder: |
+        1. `dotnet new rask-server`
+        2. Add this component: …
+        3. Navigate to /…
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      description: Which hosting model?
+      options:
+        - Server (WebSockets)
+        - WASM (standalone)
+        - WASM (hosted)
+        - Not sure / both
+    validations:
+      required: true
+  - type: input
+    id: rask-version
+    attributes:
+      label: Rask version
+      description: The version badge in the sample, the console log line, or your package version.
+      placeholder: e.g. 0.7.0
+    validations:
+      required: true
+  - type: input
+    id: dotnet-version
+    attributes:
+      label: .NET SDK version
+      placeholder: output of `dotnet --version`
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / diagnostics
+      description: Console output, browser console errors, or any `RASKxxx` diagnostics.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I'm on a supported .NET 10 SDK.
+          required: true

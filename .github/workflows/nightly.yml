@@ -1,0 +1,96 @@
+name: nightly
+
+# Nightly prerelease on every change to main. MinVer derives a prerelease version
+# (e.g. 0.7.1-alpha.0.N) for untagged commits, so packs are naturally prerelease on nuget.org.
+# Stable releases (no -prerelease suffix) still come only from tagging via release.yml.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # update the rolling "nightly" prerelease
+  packages: write   # push prerelease packages to GitHub Packages
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+      - name: Restore
+        run: dotnet restore Rask.slnx
+      - name: Build (no WASM bundle)
+        # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll.
+        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -m:1
+      - name: Unit & integration tests
+        run: >-
+          dotnet test Rask.slnx -c Release --no-build
+          --filter "FullyQualifiedName!~Rask.Examples.E2E"
+
+  publish-nightly:
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # MinVer needs full history + tags
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore
+        run: dotnet restore Rask.slnx
+
+      - name: Pack (prerelease)
+        run: |
+          dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
+          dotnet pack src/Rask.Templates/Rask.Templates.csproj -c Release -o ./artifacts
+
+      - name: Push prerelease to nuget.org
+        run: >-
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --skip-duplicate
+
+      - name: Push prerelease to GitHub Packages (mirror)
+        run: >-
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key "${{ secrets.GITHUB_TOKEN }}"
+          --skip-duplicate
+
+      - name: Upload packages as workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: nightly-packages
+          path: ./artifacts/*.nupkg
+
+      - name: Update rolling "nightly" prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly ./artifacts/*.nupkg \
+            --prerelease \
+            --title "Nightly (${{ github.sha }})" \
+            --notes "Automated prerelease from main @ ${{ github.sha }}. Not published to nuget.org."
