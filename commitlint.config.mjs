@@ -11,6 +11,8 @@ export default {
     ],
     'subject-case': [2, 'never', ['upper-case', 'pascal-case', 'start-case']],
     'header-max-length': [2, 'always', 100],
-    'body-max-line-length': [0, 'always', Infinity], // allow long footers/links
+    // Allow long body/footer lines (URLs, issue refs, wrapped prose) — only the header is bounded.
+    'body-max-line-length': [0, 'always', Infinity],
+    'footer-max-line-length': [0, 'always', Infinity],
   },
 };
