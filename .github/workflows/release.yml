@@ -5,11 +5,72 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
-  publish:
+  # Fast gate: every unit/integration test that does NOT need a browser.
+  # Skips the expensive WASM AppBundle/trim step (-p:WasmGenerateAppBundle=false) since
+  # no unit test consumes the published browser bundle. Mirrors ci.yml `unit`.
+  unit:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Rask.slnx
+
+      - name: Build (no WASM bundle)
+        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false
+
+      - name: Unit & integration tests
+        run: >-
+          dotnet test Rask.slnx -c Release --no-build
+          --filter "FullyQualifiedName!~Rask.Examples.E2E"
+          --logger "trx;LogFileName=test-results.trx"
+          --logger "console;verbosity=normal"
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: unit-test-results
+          path: |
+            **/TestResults/**
+
+  # Browser journeys: exactly one comprehensive [Fact] journey per hosting project.
+  # Sharded one host per runner so all fixtures boot in parallel. Mirrors ci.yml `e2e`.
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each value is the concrete E2E test class — used verbatim as the test filter.
+        host:
+          - ServerExampleTests
+          - WasmExampleTests
+          - StandaloneWasmExampleTests
+          - WasmSubPathExampleTests
+          - AuthExampleTests
+          - JwtServerAuthExampleTests
+          - WasmCookieAuthExampleTests
+          - WasmJwtAuthExampleTests
     steps:
       - uses: actions/checkout@v5
         with:
@@ -42,8 +103,55 @@ jobs:
       - name: Build
         run: dotnet build Rask.slnx -c Release --no-restore
 
-      - name: Test
-        run: dotnet test Rask.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=normal"
+      - name: E2E journey (${{ matrix.host }})
+        # Namespace-anchored so the leading dot prevents substring collisions
+        # (e.g. ~WasmExampleTests would otherwise also match StandaloneWasmExampleTests).
+        run: >-
+          dotnet test tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj
+          -c Release --no-build
+          --filter "FullyQualifiedName~Rask.Examples.E2E.Tests.${{ matrix.host }}"
+          --logger "trx;LogFileName=${{ matrix.host }}.trx"
+          --logger "console;verbosity=normal"
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-test-results-${{ matrix.host }}
+          path: |
+            **/TestResults/**
+            **/bin/**/test-artifacts/**
+
+  # Pack & publish: gated on every test (unit + all e2e shards) being green.
+  publish:
+    needs: [unit, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Rask.slnx
+
+      - name: Build
+        run: dotnet build Rask.slnx -c Release --no-restore
 
       - name: Pack Rask.Server
         run: dotnet pack src/Rask.Server/Rask.Server.csproj -c Release --no-build -o ./artifacts
