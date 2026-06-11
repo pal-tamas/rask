@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
+    <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>
