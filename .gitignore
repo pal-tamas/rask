@@ -91,7 +91,8 @@ coverage*.xml
 coverage*.info
 
 # Claude Code
-CLAUDE.md
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Other
 *.swp

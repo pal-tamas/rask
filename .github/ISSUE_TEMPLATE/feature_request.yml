@@ -1,0 +1,52 @@
+name: ✨ Feature request
+description: Suggest a new capability or improvement.
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping shape Rask! Focus on the *problem* first — it makes the solution clearer.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: The use case or pain point. What can't you do today, or what's awkward?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like Rask to do. A sketch of the API/component shape helps.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you've tried, or other designs you weighed.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Components / rendering
+        - Routing
+        - Forms / validation
+        - Lifecycle
+        - Scoped CSS / JS
+        - Auth
+        - Live diff / runtime
+        - Generators / diagnostics
+        - Templates / tooling
+        - Docs
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions for a similar request.
+          required: true
+        - label: I'd be willing to help implement this (optional).
