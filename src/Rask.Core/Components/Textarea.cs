@@ -225,7 +225,7 @@ public sealed class Textarea : Element
             AppendAttr(sb, "dirname", Dirname);
         }
 
-        if (LiveRenderContext.Current is { } ctx)
+        if (LiveRenderContext.CurrentSync is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
             if (input is not null)

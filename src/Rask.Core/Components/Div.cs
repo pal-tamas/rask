@@ -19,7 +19,7 @@ public sealed class Div : Element
     {
         base.WriteAttributes(sb);
 
-        if (LiveRenderContext.Current is not { } ctx)
+        if (LiveRenderContext.CurrentSync is not { } ctx)
         {
             return;
         }

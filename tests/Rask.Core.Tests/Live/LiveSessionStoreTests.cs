@@ -168,6 +168,66 @@ public class LiveSessionStoreTests
         Assert.True(disposed.Task.IsCompletedSuccessfully);
     }
 
+    [Fact]
+    public void TryCreate_Uncapped_AlwaysSucceeds()
+    {
+        var store = NewStore(); // MaxSessions defaults to 0 (unlimited)
+
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+        }
+
+        Assert.Equal(5, store.Count);
+    }
+
+    [Fact]
+    public void TryCreate_OverCap_ReturnsNullAndMintsNoSession()
+    {
+        var store = NewStore();
+        store.MaxSessions = 2;
+
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+
+        // Third reservation exceeds the cap: rejected, and no session is built/stored.
+        Assert.Null(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.Equal(2, store.Count);
+    }
+
+    [Fact]
+    public void TryCreate_AfterRemoval_FreesACapSlot()
+    {
+        var store = NewStore();
+        store.MaxSessions = 1;
+
+        var first = store.TryCreate(_ => new StubComponent(Span()));
+        Assert.NotNull(first);
+        Assert.Null(store.TryCreate(_ => new StubComponent(Span()))); // at cap
+
+        store.Remove(first!.Id); // releases the reservation
+
+        Assert.NotNull(store.TryCreate(_ => new StubComponent(Span())));
+        Assert.Equal(1, store.Count);
+    }
+
+    [Fact]
+    public async Task TryCreate_ConcurrentBurst_NeverExceedsCap()
+    {
+        var store = NewStore();
+        store.MaxSessions = 10;
+
+        // 100 concurrent reservations against a cap of 10 — the atomic reservation must admit
+        // exactly 10 and reject the rest, with no torn count from the race.
+        var tasks = Enumerable.Range(0, 100)
+            .Select(_ => Task.Run(() => store.TryCreate(_ => new StubComponent(Span())) is not null))
+            .ToArray();
+        var admitted = await Task.WhenAll(tasks);
+
+        Assert.Equal(10, admitted.Count(ok => ok));
+        Assert.Equal(10, store.Count);
+    }
+
     private static async Task WaitForAsync(Func<bool> condition, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;

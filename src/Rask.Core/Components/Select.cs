@@ -250,7 +250,7 @@ public sealed class Select : Element
         }
 
         var change = (Delegate?)OnChange ?? OnChangeAsync;
-        if (change is not null && LiveRenderContext.Current is { } ctx)
+        if (change is not null && LiveRenderContext.CurrentSync is { } ctx)
         {
             AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }

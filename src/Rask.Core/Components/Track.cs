@@ -23,7 +23,7 @@ public sealed class Track : Element
 
         if (Src is not null)
         {
-            AppendAttr(sb, "src", Src);
+            AppendMediaUrlAttr(sb, "src", Src);
         }
 
         if (Srclang is not null)

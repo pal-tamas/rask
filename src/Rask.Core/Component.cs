@@ -64,6 +64,40 @@ public abstract class Component
     // content (a known framework bug); delete/move/in-place keyed edits are correct.
     public object? Key { get; set; }
 
+    private object? _cachedKeyValue;
+    private string? _cachedKeyString;
+
+    // Stringified Key for emit (data-rask-key) and key-forwarding, computed per render on every
+    // keyed node. A string key needs no allocation (ToString() returns itself); for boxed value
+    // keys (the common int/Guid keyed-list case) the factory re-boxes the same value each render,
+    // so we cache by value-equality and reuse the prior string instead of re-allocating it.
+    internal string? KeyString
+    {
+        get
+        {
+            var k = Key;
+            if (k is null)
+            {
+                return null;
+            }
+
+            if (k is string s)
+            {
+                return s;
+            }
+
+            if (_cachedKeyValue is not null && _cachedKeyValue.Equals(k))
+            {
+                return _cachedKeyString;
+            }
+
+            var str = k.ToString();
+            _cachedKeyValue = k;
+            _cachedKeyString = str;
+            return str;
+        }
+    }
+
     // Primary children indexer. `Div()[Span(...), "hi"]` is the call shape: literal lists of
     // Components/strings (each implicitly Child via Child's converters). Overload resolution
     // prefers this `params Child[]` form over the IEnumerable<…> variants below — the compiler
@@ -270,6 +304,22 @@ public abstract class Component
             // common no-frames path stays zero-allocation.
             fw.Attribute(namePrefix + nameSuffix, value);
         }
+    }
+
+    // URL-bearing attribute (href/cite/action and iframe/script/object sources). Scheme is
+    // sanitized by default — javascript:/vbscript:/data: are neutralized to about:blank — to
+    // close the DOM-XSS hole that plain HTML-encoding leaves open. Wrap a trusted value in
+    // RaskUrl.Trusted(...) to opt out. Otherwise identical to AppendAttr (incl. frame sink).
+    protected static void AppendUrlAttr(StringBuilder sb, string name, string? value)
+    {
+        AppendAttr(sb, name, UrlSanitizer.Sanitize(value));
+    }
+
+    // Media URL attribute (img/audio/video/source src, poster). As AppendUrlAttr but also
+    // allows data:image/*, data:video/*, data:audio/* (inline media is common and inert here).
+    protected static void AppendMediaUrlAttr(StringBuilder sb, string name, string? value)
+    {
+        AppendAttr(sb, name, UrlSanitizer.SanitizeMedia(value));
     }
 
     protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
@@ -964,7 +1014,14 @@ public abstract class Component
         // render: pool is null, allocate once. Steady state: Clear and reuse.
         Live.EditContextsPool ??= new Dictionary<LiveRenderContext.ObjectKey, EditContext>();
         Live.EditContextsPool.Clear();
-        using var ctx = LiveRenderContext.Begin(this, previousEditContexts, Live.EditContextsPool, services);
+        // Reuse the head-asset collector and mounted-type set across renders (cleared here),
+        // so head emission doesn't allocate fresh lists/sets every frame.
+        Live.HeadAssets ??= new HeadAssetRegistry();
+        Live.HeadAssets.Clear();
+        Live.MountedTypes ??= new HashSet<Type>();
+        Live.MountedTypes.Clear();
+        using var ctx = LiveRenderContext.Begin(
+            this, previousEditContexts, Live.EditContextsPool, services, Live.HeadAssets, Live.MountedTypes);
 
         // Pooled per-frame scratch buffers held on the root component. RenderAsLiveRootCore
         // runs single-threaded per session (the WS dispatcher serializes via the session
@@ -1004,7 +1061,7 @@ public abstract class Component
             // (sliced from this post-splice HTML via those offsets) reads the wrong bytes.
             var sentinelIdx = html.IndexOf(HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
             var preLen = html.Length;
-            html = liveCtx.HeadAssets.ApplyTo(html, liveCtx.Services);
+            html = liveCtx.HeadAssets.ApplyTo(html, sentinelIdx, liveCtx.Services);
             if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
             {
                 frameSink.AdjustOffsetsFrom(
@@ -1226,6 +1283,8 @@ public abstract class Component
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
         public ElementRef? ElementRef;
+        public HeadAssetRegistry? HeadAssets;
+        public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
         public bool HasInitialized;
         public bool HasRenderedOnce;

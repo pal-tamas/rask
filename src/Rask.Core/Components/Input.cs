@@ -332,7 +332,7 @@ public sealed class Input : Element
 
         if (FormAction is not null)
         {
-            AppendAttr(sb, "formaction", FormAction);
+            AppendUrlAttr(sb, "formaction", FormAction);
         }
 
         if (FormEnctype is not null)
@@ -362,7 +362,7 @@ public sealed class Input : Element
 
         if (Src is not null)
         {
-            AppendAttr(sb, "src", Src);
+            AppendMediaUrlAttr(sb, "src", Src);
         }
 
         if (Width is not null)
@@ -375,7 +375,7 @@ public sealed class Input : Element
             AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (LiveRenderContext.Current is { } ctx)
+        if (LiveRenderContext.CurrentSync is { } ctx)
         {
             var input = (Delegate?)OnInput ?? OnInputAsync;
             if (input is not null)

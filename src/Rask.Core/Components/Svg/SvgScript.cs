@@ -15,7 +15,7 @@ public sealed class SvgScript : SvgElement
         base.WriteAttributes(sb);
         if (Href is not null)
         {
-            AppendAttr(sb, "href", Href);
+            AppendUrlAttr(sb, "href", Href);
         }
 
         if (Type is not null)
