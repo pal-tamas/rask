@@ -65,9 +65,22 @@ public sealed class LiveRenderContext : IDisposable
     public static LiveRenderContext? Current => _current.Value;
 
     // Fast, synchronous-walk-only accessor for the hot attribute path. Equals Current on the
-    // render thread; null outside an active render (restored on Dispose). Do NOT use from async
-    // continuations — read Current there.
-    internal static LiveRenderContext? CurrentSync => _syncCurrent;
+    // render thread; null outside an active render. Do NOT use from async continuations — read
+    // Current there.
+    //
+    // The IsActive guard enforces the "null outside an active render" contract even when the
+    // ThreadStatic was not restored on this thread: an async render sets _syncCurrent in its ctor,
+    // runs the synchronous walk, then awaits — releasing this pool thread with _syncCurrent still
+    // pointing at the context (Dispose runs on whatever thread the continuation resumes on). A
+    // later synchronous render reusing this thread would otherwise observe that stale context.
+    // Reading through IsActive makes a disposed context read as "no context", which is correct.
+    internal static LiveRenderContext? CurrentSync => _syncCurrent is { IsActive: true } ? _syncCurrent : null;
+
+    // Test-only: clears this thread's sync mirror. xUnit reuses pool threads across tests; an
+    // async render can release a thread at an await with _syncCurrent still set, so a later
+    // synchronous test on that thread would otherwise observe a leftover context. Tests call
+    // this before each test (see ResetLiveSyncContextAttribute). Not used by product code.
+    internal static void ResetSyncForTests() => _syncCurrent = null;
 
     internal RouteRenderState? Route { get; set; }
 
