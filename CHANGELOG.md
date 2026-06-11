@@ -31,7 +31,9 @@ them until tagged releases begin.
   the full repo README.
 
 ### CI
-- `nightly.yml` publishes a prerelease to nuget.org + GitHub Packages on every push to `main`.
+- `nightly.yml` publishes a prerelease to nuget.org + GitHub Packages on every push to `main`,
+  now gated on the **full** test suite — the prerelease only publishes after both the `unit` job
+  and the complete sharded `e2e` matrix pass (previously `unit` only).
 - `commitlint.yml` enforces Conventional Commits; `dependabot.yml` keeps NuGet/Actions current.
 
 ### Documentation
