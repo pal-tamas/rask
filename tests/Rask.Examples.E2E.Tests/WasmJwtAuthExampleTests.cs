@@ -5,8 +5,10 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
-// JWT + WASM: the bearer token lives in localStorage and is sent as Authorization: Bearer on every API call;
-// /api/me validates it server-side. The Authorize component gates the members content.
+// The JWT + WASM host's single journey: the bearer token lives in localStorage and rides every API
+// call as Authorization: Bearer; /api/me validates it server-side and the Authorize component gates
+// the members content. Admin round trip (incl. the raw token at rest + cleared on logout) then a
+// non-admin who sees no admin note.
 [Collection(WasmJwtAuthExampleCollection.Name)]
 public sealed class WasmJwtAuthExampleTests : IAsyncLifetime
 {
@@ -30,12 +32,14 @@ public sealed class WasmJwtAuthExampleTests : IAsyncLifetime
     public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
     [Fact]
-    public async Task Login_RoundTrip_TokenInLocalStorage_AdminSeesAdminNote_ThenSignOut()
+    public async Task Journey_JwtWasmLogin_AdminRoundTrip_ThenNonAdmin()
     {
+        // 1. Anonymous → the gate shows the sign-in prompt (WASM cold boot can be slow).
         await _page.GotoAsync("/members");
         await Expect(_page.Locator("#members-anon"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 90_000 });
 
+        // 2. Sign in as admin.
         await _page.GotoAsync("/login");
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
@@ -50,28 +54,24 @@ public sealed class WasmJwtAuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#admin-note"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
-        // The bearer JWT is in localStorage (this sample's choice).
+        // 3. The bearer JWT is in localStorage (this sample's choice) as a raw token.
         var stored = await _page.EvaluateAsync<string?>("() => localStorage.getItem('rask.jwt')");
         Assert.False(string.IsNullOrEmpty(stored));
         Assert.StartsWith("eyJ", stored); // a raw JWT begins with the base64url "eyJ" header
 
+        // 4. Sign out → back to /login, and the token is cleared from localStorage.
         await _page.Locator("#logout").ClickAsync();
         await Expect(_page).ToHaveURLAsync(new Regex(@"/login"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
         var cleared = await _page.EvaluateAsync<string?>("() => localStorage.getItem('rask.jwt')");
         Assert.True(string.IsNullOrEmpty(cleared));
-    }
 
-    [Fact]
-    public async Task NonAdmin_DoesNotSeeAdminNote()
-    {
-        await _page.GotoAsync("/login");
+        // 5. Non-admin sign-in: authenticates but sees no admin note.
         await Expect(_page.Locator("#login-submit"))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 90_000 });
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
         await _page.Locator("#username").FillAsync("alice");
         await _page.Locator("#password").FillAsync("password");
         await _page.Locator("#login-submit").ClickAsync();
-
         await Expect(_page.Locator("#members-greeting"))
             .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);

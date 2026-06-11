@@ -6,54 +6,21 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-///     Smoke tests for the standalone <c>Rask.Example.Wasm</c> example, served by
-///     WasmAppHost (the dev launcher used by <c>dotnet run</c>). WasmAppHost has no
-///     SPA fallback for unknown paths, so the inherited <c>SharedSmokeTests</c>
-///     forms suite is reached by overriding <see cref="NavigateToAsync" /> to load
-///     <c>/index.html</c> once and click the sidebar entry for the requested route.
-///     Any test in this class itself (i.e. not inherited) targets behaviour that's
-///     specific to the WasmAppHost launcher.
+///     The standalone <c>Rask.Example.Wasm</c> example served by WasmAppHost (the dev launcher used
+///     by <c>dotnet run</c>). WasmAppHost has no SPA fallback for unknown paths, so the journey
+///     reaches every page by loading <c>/index.html</c> once and clicking the sidebar; deep-link,
+///     refresh-on-deep-route, slow-3G, and WebSocket reconnect steps are off. The shell-reload step
+///     stands in for the deep-route refresh, and the live-ticker sidebar nav inside the journey
+///     covers the publish-render history regression specific to WasmLiveSession's coalescing path.
 /// </summary>
 [Collection(StandaloneWasmExampleCollection.Name)]
-public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
+public sealed class StandaloneWasmExampleTests : SharedSmokeTests
 {
-    // path → sidebar button label table. The labels come straight from ShowcaseLayout.Links.
-    // A route not present here means the standalone collection cannot reach it — adding it
-    // to the sidebar is the right fix, not a NavigateToAsync workaround.
+    // path → sidebar button label table. Only "/" is consulted by the journey (every other page is
+    // reached by clicking the sidebar directly); the entry documents what the standalone host reaches.
     private static readonly Dictionary<string, string> SidebarLabels = new()
     {
         ["/"] = "Welcome",
-        ["/tags"] = "Tag factories",
-        ["/primitives"] = "Primitives",
-        ["/props"] = "Universal props",
-        ["/components"] = "User components",
-        ["/routing"] = "Routing",
-        ["/users/42"] = "Route + query params",
-        ["/navigator"] = "Navigator",
-        ["/lifecycle"] = "Lifecycle",
-        ["/context"] = "Context",
-        ["/callback"] = "Callback",
-        ["/element-ref"] = "Element refs",
-        ["/user"] = "User & auth",
-        ["/realtime/BTC"] = "Live ticker",
-        ["/cancellation"] = "Cancellation",
-        ["/disposal"] = "Disposal",
-        ["/events"] = "Events",
-        ["/virtualize"] = "Virtualize",
-        ["/drag-drop"] = "Drag & drop",
-        ["/boom"] = "Error boundary",
-        ["/binding"] = "Two-way binding",
-        ["/validation"] = "Validation",
-        ["/nested-forms"] = "Complex models",
-        ["/form-groups"] = "Radio & checkbox",
-        ["/scoped-css"] = "Scoped CSS",
-        ["/asset-loading"] = "Asset loading",
-        ["/http"] = "HttpClient + DI",
-        ["/upload"] = "File upload",
-        ["/download"] = "File download",
-        ["/table"] = "Data table",
-        ["/todos"] = "Todos",
-        ["/jsruntime"] = "IJSRuntime"
     };
 
     private readonly StandaloneWasmAppFixture _app;
@@ -65,16 +32,15 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
     protected override string FixtureName => "StandaloneWasm";
     protected override string ServerLog => _app.ServerLog;
 
-    // The first NavigateToAsync of a test loads /index.html and waits for the home hero
-    // (the only real GET WasmAppHost responds to). Subsequent navigations stay inside
-    // the SPA by clicking the sidebar entry — same in-page transitions a user would do.
+    // The first NavigateToAsync loads /index.html and waits for the home hero (the only real GET
+    // WasmAppHost responds to). The journey only ever navigates to "/" through here; all other
+    // page transitions go through ClickSidebar (in-page SPA navigation).
     protected override async Task NavigateToAsync(string path)
     {
         if (!SidebarLabels.TryGetValue(path, out var label))
         {
             throw new InvalidOperationException(
-                $"StandaloneWasmExampleTests cannot navigate to '{path}' — no sidebar entry. " +
-                "Add it to ShowcaseLayout.Links + this map, or limit the test to ExampleSmokeTests.");
+                $"StandaloneWasmExampleTests cannot navigate to '{path}' — no sidebar entry.");
         }
 
         if (!_shellLoaded)
@@ -87,8 +53,6 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
 
         if (path == "/")
         {
-            // Already on Welcome after the shell load — no extra click required, and the
-            // active sidebar button is harmless to re-click but adds latency on cold WASM.
             return;
         }
 
@@ -97,24 +61,13 @@ public sealed partial class StandaloneWasmExampleTests : SharedSmokeTests
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
     }
 
-    // ---------- Host-specific smokes (kept on top of the inherited shared suite) ----------
-
     [Fact]
-    public async Task PageReload_AtIndex_StillBoots()
-    {
-        // WasmAppHost serves index.html with no caching guarantees beyond what the SDK
-        // produces. A reload at the shell URL must always boot the runtime cleanly.
-        try
+    public Task Journey_WalksEveryPageAndUnusualActivity() => RunAsync(() =>
+        RunShowcaseJourneyAsync(new ShowcaseJourneyOptions
         {
-            await NavigateToAsync("/");
-            await Page.ReloadAsync();
-            await Expect(Page.Locator("h1.display-5"))
-                .ToContainTextAsync("The Rask framework",
-                    new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
-        }
-        finally
-        {
-            await TestArtifacts.DumpAsync(Page, FixtureName, nameof(PageReload_AtIndex_StillBoots), ServerLog);
-        }
-    }
+            DeepLink = false,
+            OfflineReconnect = false,
+            Slow3g = false,
+            ReloadShellBoots = true,
+        }));
 }

@@ -33,6 +33,21 @@ them until tagged releases begin.
 - The WebSocket handler-dispatch chain is bounded: when handlers back up behind a hung or
   flooding client, the socket is closed instead of retaining queued payloads without limit.
 
+### Changed
+- **CI is now parallel.** The single build-then-test job is split into a fast `unit` gate
+  (every non-browser test, built without the WASM AppBundle) and an `e2e` job that **shards
+  one browser host per runner** so all fixtures boot concurrently instead of in serial
+  batches. PR feedback no longer waits on the full E2E suite.
+- **E2E suite consolidated to one journey per hosting project** (8 facts, down from ~192). Each
+  host now runs a single comprehensive journey: the showcase trio (Server, Wasm.Host,
+  StandaloneWasm) walks every page and exercises every browser-observable feature plus unusual
+  activity (in-session + deep-link NotFound, back/forward, deep-link refresh, slow-3G throttling,
+  offline→WebSocket reconnect, bounded-heap memory loop, CSS-loaded / JS-loaded / global
+  error-handling checks); the sub-path host verifies the full `/sub` prefix contract; each auth
+  host (cookie/JWT × server/WASM) runs one admin round trip + non-admin check with the token
+  at-rest assertions intact. The fine-grained framework/component logic those per-feature facts
+  asserted is covered in-process by the unit suites (unit-first).
+
 ---
 
 ## [0.7.0] - 2026-06-10
