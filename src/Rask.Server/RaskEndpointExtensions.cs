@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
@@ -177,6 +178,12 @@ public static class RaskEndpointExtensions
         string pathBase = "")
         where TApp : Component
     {
+        var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask");
+        if (logger is not null)
+            logger.LogInformation("Rask {Version} (Server) starting", RaskVersion.Current);
+        else
+            Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
+
         app.UseWebSockets();
         ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
         return app;

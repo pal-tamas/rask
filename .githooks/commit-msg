@@ -1,0 +1,30 @@
+#!/bin/sh
+# Local Conventional Commits guard. Enable once with:
+#   git config core.hooksPath .githooks
+# CI also enforces this via .github/workflows/commitlint.yml.
+
+msg_file="$1"
+header=$(head -n1 "$msg_file")
+
+# Allow merge/revert/fixup commits through.
+case "$header" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+pattern='^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{1,}'
+
+if printf '%s' "$header" | grep -Eq "$pattern"; then
+  exit 0
+fi
+
+cat >&2 <<'EOF'
+✖ Commit message must follow Conventional Commits:
+
+    type(scope): subject
+
+  type ∈ feat, fix, perf, refactor, docs, test, build, ci, chore, revert
+  e.g. "feat(forms): add RadioGroup disabled state"
+
+See commitlint.config.mjs / https://www.conventionalcommits.org/
+EOF
+exit 1

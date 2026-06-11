@@ -1,0 +1,23 @@
+name: 📖 Documentation issue
+description: Something in the docs, README, or samples is wrong, unclear, or missing.
+title: "docs: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where?
+      description: Link or path to the page/section (e.g. docs/routing.md, README "Quick start").
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's wrong or missing?
+      description: Quote the confusing part and describe what would make it clearer.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording (optional)

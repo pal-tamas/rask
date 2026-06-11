@@ -4,6 +4,11 @@ Thanks for your interest in Rask — a C# component framework (Blazor-like) with
 factory generator, scoped CSS/JS, routing, and a live diff runtime over WebSockets
 (Server) or `JSImport`/`JSExport` (WASM).
 
+**Contributions are open.** Anyone can [open an issue](https://github.com/pal-tamas/rask/issues/new/choose)
+or send a pull request (fork → branch → PR). Review and merge are handled by the maintainer
+(@pal-tamas) — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and the
+[full development workflow](docs/development-workflow.md).
+
 ## Prerequisites
 
 - .NET 10 SDK (`net10.0`; `net10.0-browser` for the WASM projects).
@@ -65,7 +70,14 @@ Most `src/` projects have a sibling `+ Tests` project. Deeper rationale lives in
 
 ## Commits & pull requests
 
-- Keep PRs focused; include tests; ensure `dotnet build` and `dotnet test` are green.
-- **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR
-  descriptions.
+- Keep PRs focused; include tests; ensure `dotnet build` (warnings-as-errors) and
+  `dotnet test` are green. Run `dotnet format` before committing.
+- **[Conventional Commits](https://www.conventionalcommits.org/)** are required and enforced by
+  CI (`commitlint`): `type(scope): subject` with type ∈
+  `feat, fix, perf, refactor, docs, test, build, ci, chore, revert`. Enable the local guard:
+  `git config core.hooksPath .githooks`.
+- **Do not** append `Co-Authored-By` or `Generated-with` footers to commits or PR descriptions.
 - Add a note to [`CHANGELOG.md`](CHANGELOG.md) under `[Unreleased]` for user-visible changes.
+- User-facing changes must update a sample under `samples/` and the relevant docs
+  (`docs/`, `README.md`, `NUGET.md`). See the [development workflow](docs/development-workflow.md).
+- The maintainer merges (squash); the branch is deleted afterwards.

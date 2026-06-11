@@ -1,0 +1,4 @@
+# Every change requires review/approval from the repository owner.
+# Combined with branch protection ("Require review from Code Owners" on `main`),
+# this means PRs cannot be merged without @pal-tamas's approval.
+* @pal-tamas

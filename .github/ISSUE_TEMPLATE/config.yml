@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & ideas (Discussions)
+    url: https://github.com/pal-tamas/rask/discussions
+    about: Ask how-to questions, share ideas, or get help — please don't open an issue for these.
+  - name: 📖 Documentation
+    url: https://github.com/pal-tamas/rask/tree/main/docs
+    about: Guides for routing, lifecycle, forms, auth, JS interop, and more.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/pal-tamas/rask/security/advisories/new
+    about: Please report security issues privately — never in a public issue.

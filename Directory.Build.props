@@ -5,7 +5,9 @@
     <Company>Tamás Pál</Company>
     <Copyright>© Tamás Pál</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- A concise, nuget.org-friendly README (absolute image/link URLs); the 75KB root
+         README with relative links does not render well on the gallery. -->
+    <PackageReadmeFile>NUGET.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/pal-tamas/rask</PackageProjectUrl>
     <RepositoryUrl>https://github.com/pal-tamas/rask.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -19,8 +21,28 @@
     <MinVerTagPrefix>v</MinVerTagPrefix>
   </PropertyGroup>
 
+  <!--
+    Code-quality gate (enforced by the rask-ship skill, codified here so a plain `dotnet build`
+    enforces it too): .NET analyzers on, code-style run in-build, warnings are errors. The repo
+    builds clean today — keep it that way. Only Roslyn compiler/analyzer warnings escalate;
+    MSBuild-engine warnings (e.g. the transient MSB3026 copy-retry under parallel build) do not.
+    Code-style severities come from .editorconfig (suggestions stay suggestions, not errors).
+  -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+  <!--
+    AnalysisLevel stays at the SDK default mode: the repo builds clean there, so warnings-as-errors
+    locks in that clean state. Raising it (e.g. <AnalysisLevel>latest-recommended</AnalysisLevel>)
+    surfaces ~33 extra CA findings — some worth doing (CA1305/CA1865/CA1859), some that clash with
+    the documented hot-path design (CA1051 on RenderFrame's deliberately-public fields). Promote the
+    level in a focused PR that fixes/justifies each finding with benchmark evidence — not here.
+  -->
+
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="$(MSBuildThisFileDirectory)NUGET.md" Pack="true" PackagePath="" Visible="false"/>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false"/>
   </ItemGroup>
 
