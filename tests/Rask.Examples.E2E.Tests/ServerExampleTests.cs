@@ -1,36 +1,24 @@
-using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
-using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
+// The Server host's single browser journey. ASP.NET host with a SPA fallback and a live
+// WebSocket, so it runs every step: deep-link + refresh, slow-3G throttling, and the
+// offline→online WebSocket reconnect that preserves server-held session state.
 [Collection(ServerExampleCollection.Name)]
-public sealed partial class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFixture pw)
-    : ExampleSmokeTests(pw)
+public sealed class ServerExampleTests(ServerExampleAppFixture app, PlaywrightFixture pw)
+    : SharedSmokeTests(pw)
 {
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Server";
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public async Task WebSocket_AfterOfflineOnline_PreservesEventsClickState()
-    {
-        await Page.GotoAsync("/events");
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-
-        var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
-        await clickButton.ClickAsync();
-        await clickButton.ClickAsync();
-        await Expect(clickButton).ToContainTextAsync("Clicks: 2",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        await Page.Context.SetOfflineAsync(true);
-        await Page.Context.SetOfflineAsync(false);
-
-        // Click once after reconnect; the server-held state should still be 2 → 3.
-        await clickButton.ClickAsync();
-        await Expect(clickButton).ToContainTextAsync("Clicks: 3",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-    }
+    public Task Journey_WalksEveryPageAndUnusualActivity() => RunAsync(() =>
+        RunShowcaseJourneyAsync(new ShowcaseJourneyOptions
+        {
+            DeepLink = true,
+            OfflineReconnect = true,
+            Slow3g = true,
+        }));
 }
