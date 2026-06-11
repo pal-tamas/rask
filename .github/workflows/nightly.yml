@@ -31,7 +31,7 @@ jobs:
       - name: Restore
         run: dotnet restore Rask.slnx
       - name: Build (no WASM bundle)
-        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false
+        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -p:MSBuildWarningsAsMessages=MSB3026
       - name: Unit & integration tests
         run: >-
           dotnet test Rask.slnx -c Release --no-build
