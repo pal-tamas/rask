@@ -8,9 +8,9 @@ namespace Rask.Core;
 /// </summary>
 public static class RaskUrl
 {
-    // A control-char sentinel that cannot occur in a real URL and is stripped before output:
-    // UrlSanitizer unwraps it; if it ever leaked unstripped it would be HTML-encoded harmlessly.
-    internal const string TrustedPrefix = "rask-trusted:";
+    // A sentinel prefix that the sanitizer recognizes and strips before output; a real URL would
+    // never start with it. If it ever leaked unstripped it would be HTML-encoded harmlessly.
+    internal const string TrustedPrefix = "rask-trusted:";
 
     /// <summary>
     ///     Marks <paramref name="url" /> as trusted so the next URL-attribute emit skips scheme
@@ -58,53 +58,56 @@ internal static class UrlSanitizer
             return url[RaskUrl.TrustedPrefix.Length..];
         }
 
-        // Normalize only the leading portion needed to identify the scheme + data media-type.
-        // 32 chars comfortably covers "data:image/svg+xml" and every blocked scheme.
-        var head = NormalizeHead(url, 32);
-
-        if (head.StartsWith("javascript:", StringComparison.Ordinal) ||
-            head.StartsWith("vbscript:", StringComparison.Ordinal))
+        // Allocation-free scheme check: the common safe URL (relative, http(s), mailto, #frag)
+        // fails the first prefix at its first char and returns the input unchanged — no string
+        // is materialized on the render hot path.
+        if (MatchesScheme(url, "javascript:") || MatchesScheme(url, "vbscript:"))
         {
             return Neutralized;
         }
 
-        if (head.StartsWith("data:", StringComparison.Ordinal))
+        if (MatchesScheme(url, "data:"))
         {
             var safe = allowMediaData &&
-                       (head.StartsWith("data:image/", StringComparison.Ordinal) ||
-                        head.StartsWith("data:video/", StringComparison.Ordinal) ||
-                        head.StartsWith("data:audio/", StringComparison.Ordinal));
+                       (MatchesScheme(url, "data:image/") ||
+                        MatchesScheme(url, "data:video/") ||
+                        MatchesScheme(url, "data:audio/"));
             return safe ? url : Neutralized;
         }
 
         return url;
     }
 
-    // Strip leading C0 controls + space, drop every embedded control char (the WHATWG parser
-    // removes tab/newline; we drop all <0x20 and 0x7F to also defeat NUL-stuffing), lowercase
-    // the rest. Returns at most maxLen chars — enough to match a scheme/media-type prefix.
-    private static string NormalizeHead(string url, int maxLen)
+    // True when url, after stripping leading C0 controls/space and dropping embedded control
+    // chars (tab/newline/CR/NUL/DEL — what the WHATWG URL parser ignores, plus NUL-stuffing),
+    // begins case-insensitively with prefix (which must be lowercase). Embedded spaces are NOT
+    // dropped — a space inside a scheme invalidates it, so "java script:" is not treated as
+    // javascript (matching browser behaviour). Allocates nothing.
+    private static bool MatchesScheme(string url, ReadOnlySpan<char> prefix)
     {
-        Span<char> buf = stackalloc char[maxLen];
-        var n = 0;
         var i = 0;
-
         while (i < url.Length && url[i] <= ' ')
         {
             i++;
         }
 
-        for (; i < url.Length && n < maxLen; i++)
+        var p = 0;
+        while (i < url.Length && p < prefix.Length)
         {
-            var c = url[i];
-            if (c <= ' ' || c == (char)0x7F) // NUL/control/space|| c == '')
+            var c = url[i++];
+            if (c < ' ' || c == (char)0x7F)
             {
-                continue;
+                continue; // drop embedded control / NUL / DEL (but keep space)
             }
 
-            buf[n++] = char.ToLowerInvariant(c);
+            if (char.ToLowerInvariant(c) != prefix[p])
+            {
+                return false;
+            }
+
+            p++;
         }
 
-        return new string(buf[..n]);
+        return p == prefix.Length;
     }
 }
