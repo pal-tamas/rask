@@ -59,7 +59,7 @@ jobs:
       - name: Copy index.html to 404.html for SPA fallback
         run: cp "${{ steps.bundle.outputs.dir }}/index.html" "${{ steps.bundle.outputs.dir }}/404.html"
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v3
         with:
