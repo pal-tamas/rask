@@ -42,7 +42,9 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build (no WASM bundle)
-        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -p:MSBuildWarningsAsMessages=MSB3026
+        # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll
+        # (MSB3026 copy-retry / MSB3030 not-found) rather than masking the warning.
+        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -m:1
 
       - name: Unit & integration tests
         run: >-
@@ -109,12 +111,10 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build
-        # The WASM AppBundle's nested `dotnet publish` can race the outer build's
-        # Rask.Core.dll copy (transient MSB3026 copy-retry → MSB3030 not-found). Demote the
-        # copy-retry warning to a message (clean annotations) and retry once to absorb the race.
-        run: >-
-          dotnet build Rask.slnx -c Release --no-restore -p:MSBuildWarningsAsMessages=MSB3026
-          || dotnet build Rask.slnx -c Release --no-restore -p:MSBuildWarningsAsMessages=MSB3026
+        # -m:1 (serial) eliminates the parallel copy race: the WASM AppBundle's nested
+        # `dotnet publish` no longer overlaps another project copying Rask.Core.dll
+        # (MSB3026 copy-retry / MSB3030 not-found). Fixes the cause, not the annotation.
+        run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
       - name: E2E journey (${{ matrix.host }})
         # Namespace-anchored so the leading dot prevents substring collisions
