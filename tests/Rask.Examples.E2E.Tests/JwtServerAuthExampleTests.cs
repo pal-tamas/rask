@@ -5,8 +5,10 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
-// JWT + Server with the token in ProtectedSessionStorage (no URL token, no JS-readable token). Login sets
-// the principal in-session; the Authorize component gates the members content over the live connection.
+// The JWT-on-Server host's single journey. The token lives in ProtectedSessionStorage (no URL
+// token, no JS-readable token); login sets the principal in-session and the Authorize component
+// gates the members content over the live connection. Covers the admin round trip (incl. the
+// at-rest token being encrypted, not a raw JWT) then a non-admin who sees no admin note.
 [Collection(JwtServerAuthExampleCollection.Name)]
 public sealed class JwtServerAuthExampleTests : IAsyncLifetime
 {
@@ -30,14 +32,14 @@ public sealed class JwtServerAuthExampleTests : IAsyncLifetime
     public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
     [Fact]
-    public async Task Login_RoundTrip_AdminSeesAdminNote_ThenSignOut()
+    public async Task Journey_JwtLogin_AdminRoundTrip_ThenNonAdmin()
     {
-        // Anonymous members page → component gate shows the sign-in prompt.
+        // 1. Anonymous members page → the component gate shows the sign-in prompt.
         await _page.GotoAsync("/members");
         await Expect(_page.Locator("#members-anon"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
-        // Sign in as admin.
+        // 2. Sign in as admin.
         await _page.GotoAsync("/login");
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
@@ -45,7 +47,7 @@ public sealed class JwtServerAuthExampleTests : IAsyncLifetime
         await _page.Locator("#password").FillAsync("password");
         await _page.Locator("#login-submit").ClickAsync();
 
-        // Lands on /members, authenticated, with the admin note.
+        // 3. Lands on /members, authenticated, with the admin note.
         await Expect(_page).ToHaveURLAsync(new Regex(@"/members$"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#members-greeting"))
@@ -53,27 +55,22 @@ public sealed class JwtServerAuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#admin-note"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
-        // The raw JWT must NOT be readable in JS — sessionStorage holds only the encrypted blob.
+        // 4. The raw JWT must NOT be readable in JS — sessionStorage holds only the encrypted blob.
         var stored = await _page.EvaluateAsync<string?>("() => sessionStorage.getItem('rask.jwt')");
         Assert.False(string.IsNullOrEmpty(stored));
         Assert.DoesNotContain("eyJ", stored); // not a raw JWT (which starts with the base64 "eyJ" header)
 
-        // Sign out → back to /login.
+        // 5. Sign out → back to /login.
         await _page.Locator("#logout").ClickAsync();
         await Expect(_page).ToHaveURLAsync(new Regex(@"/login"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
-    }
 
-    [Fact]
-    public async Task NonAdmin_DoesNotSeeAdminNote()
-    {
-        await _page.GotoAsync("/login");
+        // 6. Non-admin sign-in: authenticates but sees no admin note.
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await _page.Locator("#username").FillAsync("alice");
         await _page.Locator("#password").FillAsync("password");
         await _page.Locator("#login-submit").ClickAsync();
-
         await Expect(_page.Locator("#members-greeting"))
             .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);
