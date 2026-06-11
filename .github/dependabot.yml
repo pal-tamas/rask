@@ -6,6 +6,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    # Conventional Commits so the commitlint check passes (e.g. "build(deps): bump X").
+    commit-message:
+      prefix: build
+      include: scope
     groups:
       microsoft-extensions:
         patterns:
@@ -24,3 +28,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    # Conventional Commits so the commitlint check passes (e.g. "ci(deps): bump X").
+    commit-message:
+      prefix: ci
+      include: scope
