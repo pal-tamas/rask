@@ -97,7 +97,7 @@ jobs:
 
       - name: Upload test results on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-e2e-test-results-${{ matrix.host }}
           path: |
@@ -146,7 +146,7 @@ jobs:
           --skip-duplicate
 
       - name: Upload packages as workflow artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-packages
           path: ./artifacts/*.nupkg
