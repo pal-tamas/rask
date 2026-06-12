@@ -42,14 +42,16 @@ public sealed class UserPage : Component
             """
             // Headless: renders exactly one of three slots, no markup of its own.
             // The component subscribes to IUserProvider.Changed itself, so it reacts to sign-in/out.
+            // The Authorized slot is a delegate handed the current principal (Blazor's @context.User),
+            // so a greeting reads the name with no injected IUserProvider and no manual subscription.
             Authorize(
                 Roles: ["admin"],                                  // ANY-of; omit for "any authenticated user"
-                Authorized:    Div(Class: "alert alert-warning")["🔑 Admin-only content."],
+                Authorized:    user => Div(Class: "alert alert-warning")[$"🔑 Welcome admin, {user.Identity!.Name}."],
                 NotAuthorized: Authorize(                        // nest for an authenticated-but-not-admin branch
-                    Authorized:    Div(Class: "alert alert-success")["✅ Signed in — standard access."],
+                    Authorized:    user => Div(Class: "alert alert-success")[$"✅ Signed in as {user.Identity!.Name}."],
                     NotAuthorized: Div(Class: "alert alert-secondary")["🔒 Sign in to see member content."]));
 
-            // Shorthand — children are the Authorized branch:
+            // Static authorized content (no principal needed) uses the children indexer:
             //   Authorize(Roles: ["admin"])[ AdminPanel() ]
             // Policy gating resolves via IAuthorizationService; the optional Authorizing slot shows
             // until it lands (and while a WASM provider's principal is still loading).

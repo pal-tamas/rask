@@ -15,8 +15,7 @@ public sealed class MembersPage : Component
     protected override RenderResult Render() =>
         Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
             Authorize(
-                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."],
-                Authorized: MemberContent())
+                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."])[MemberContent()]
         ];
 }
 
@@ -25,10 +24,8 @@ public sealed class MemberContent(WasmLoginService login, IUserProvider userProv
     protected override RenderResult Render() =>
         Fragment()[
             H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-            Authorize(
-                Roles: ["admin"],
-                Authorized: Div(Style: "color:#7a5c00")["🔑 You have admin access."],
-                NotAuthorized: (Child)Fragment()),
+            Authorize(Roles: ["admin"])[
+                Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
             Button(Id: "logout", OnClickAsync: login.LogoutAsync)["Sign out"]
         ];
 }

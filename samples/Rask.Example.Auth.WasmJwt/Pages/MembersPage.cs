@@ -14,8 +14,7 @@ public sealed class MembersPage : Component
                 Authorize(
                     Authorizing: P("members-authorizing", "text-secondary mb-0")["Loading…"],
                     NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink("/login")["sign in"], "."],
-                    Authorized: MemberContent())
+                        "Please ", NavLink("/login")["sign in"], "."])[MemberContent()]
             ]
         ];
 }
@@ -25,10 +24,8 @@ public sealed class MemberContent(JwtLoginService login, IUserProvider userProvi
     protected override RenderResult Render() =>
         Fragment()[
             H1("members-greeting", "h3 mb-3")[$"Welcome, {userProvider.Current.Identity?.Name}"],
-            Authorize(
-                ["admin"],
-                Authorized: Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."],
-                NotAuthorized: (Child)Fragment()),
+            Authorize(["admin"])[
+                Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],
             Button(Id: "logout", OnClickAsync: login.LogoutAsync, Class: "btn btn-outline-primary")["Sign out"]
         ];
 }

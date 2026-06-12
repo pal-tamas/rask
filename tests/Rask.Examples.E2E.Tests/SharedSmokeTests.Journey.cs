@@ -320,6 +320,10 @@ public abstract partial class SharedSmokeTests
         await demo.Locator("button:has-text('Sign in as admin')").ClickAsync();
         await Expect(demo).ToContainTextAsync("Admin-only content",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // The Authorized slot delegate re-runs with the fresh principal on Changed (no reload), so the
+        // greeting names the admin who just signed in.
+        await Expect(demo).ToContainTextAsync("welcome, rootadmin",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await demo.Locator("button:has-text('Sign out')").ClickAsync();
     }
 

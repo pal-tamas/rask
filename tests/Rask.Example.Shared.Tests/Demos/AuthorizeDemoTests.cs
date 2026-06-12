@@ -29,6 +29,8 @@ public sealed class AuthorizeDemoTests
         var html = Render(provider);
 
         Assert.Contains("standard access", html);
+        // The Authorized slot greets the user by name straight off the principal — no subscription.
+        Assert.Contains("Signed in as alice", html);
         Assert.DoesNotContain("Admin-only", html);
     }
 
@@ -41,6 +43,7 @@ public sealed class AuthorizeDemoTests
         var html = Render(provider);
 
         Assert.Contains("Admin-only", html);
+        Assert.Contains("welcome, rootadmin", html);
         Assert.DoesNotContain("Sign in to see member content", html);
     }
 

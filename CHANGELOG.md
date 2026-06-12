@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`Authorize`'s `Authorized` slot now receives the current user** — its type changed from `Child` to
+  `Func<ClaimsPrincipal, Child>`, so authorized markup can greet the signed-in user
+  (`Authorized: user => H1()[$"Hi {user.Identity!.Name}"]`, the headless analogue of Blazor's
+  `AuthorizeView` `@context.User`) without injecting `IUserProvider` or subscribing to
+  `IUserProvider.Changed` — the delegate re-runs with the fresh principal whenever the gate
+  re-renders. **Breaking:** static authorized content moves to the children-indexer shorthand —
+  `Authorize(Authorized: Panel())` becomes `Authorize()[ Panel() ]`. `NotAuthorized`/`Authorizing`
+  are unchanged.
 - **WASM build migrated to `Microsoft.NET.Sdk.WebAssembly`** so framework assets are
   content-fingerprinted (`dotnet.<hash>.js`, `App.<hash>.wasm`) and `index.html` carries an
   SDK-generated import map with integrity hashes. This fixes the GitHub Pages (and any static

@@ -16,8 +16,7 @@ public sealed class MembersPage : Component
     protected override RenderResult Render() =>
         Div(Class: "welcome-card")[
             Authorize(
-                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."],
-                Authorized: MemberContent())
+                NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."])[MemberContent()]
         ];
 }
 
@@ -26,10 +25,8 @@ public sealed class MemberContent(IAuthSignIn auth, IUserProvider userProvider) 
     protected override RenderResult Render() =>
         Fragment()[
             H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
-            Authorize(
-                Roles: ["admin"],
-                Authorized: Div(Style: "color:#7a5c00")["🔑 You have admin access."],
-                NotAuthorized: (Child)Fragment()),
+            Authorize(Roles: ["admin"])[
+                Div(Style: "color:#7a5c00")["🔑 You have admin access."]],
             Button(OnClickAsync: () => auth.SignOutAsync(returnUrl: "/login"))["Sign out"]
         ];
 }
