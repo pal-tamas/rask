@@ -45,6 +45,14 @@ jobs:
         # the corrected base href resolves them all under the GH-Pages sub-path.
         run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
 
+      # Expected, harmless: with DevTools open the Pages site logs a 404 for
+      # _framework/dotnet.runtime.js.map. The Release publish strips all .map files, but the
+      # fingerprinted dotnet.runtime.*.js keeps its trailing `//# sourceMappingURL=` comment, so
+      # the browser fetches a map that isn't shipped. It never loads on a normal page view and
+      # doesn't affect the app. We can't strip the comment post-publish: the runtime JS is
+      # SRI-pinned in the index.html import map (see #63), so changing its bytes breaks the
+      # integrity check and the runtime fails to load. Shipping the 270 KB map just to silence a
+      # DevTools-only 404 isn't worth it on a size-tuned bundle (we already drop ICU).
       - name: Resolve bundle directory
         id: bundle
         run: |
