@@ -26,6 +26,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/element-ref", "Element refs", "bi-bullseye", "Components", null),
         ("/user", "User & auth", "bi-person-lock", "Components", null),
         ("/realtime/BTC", "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
+        ("/background", "Background service", "bi-broadcast", "Components", null),
         ("/cancellation", "Cancellation", "bi-x-circle", "Components", null),
         ("/disposal", "Disposal", "bi-trash", "Components", null),
         ("/events", "Events", "bi-mouse", "Components", null),

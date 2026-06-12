@@ -610,6 +610,10 @@ public abstract partial class SharedSmokeTests
     private static int ExtractRenderCount(string? text) =>
         int.Parse(Regex.Match(text ?? "0", @"\d+").Value);
 
+    // The #metrics-tick badge reads "tick N" — N is the background feed's tick count.
+    private async Task<int> ReadMetricsTickAsync() =>
+        ExtractRenderCount(await Page.Locator("#metrics-tick").TextContentAsync());
+
     private async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
     {
         var source = Page.Locator(sourceSelector);

@@ -28,6 +28,10 @@ internal static class TestServices
         sc.AddSingleton<IJSRuntime>(js ?? new FakeJsRuntime());
         sc.AddSingleton(downloadSink ?? new CapturingDownloadSink());
         sc.AddSingleton(bannedWords ?? new BannedWordService());
+        // Inert feed — no background loop — so the /background page baseline renders
+        // deterministically without starting timers. Behavioural coverage of the real
+        // MetricsFeed loop lives in MetricsFeedTests.
+        sc.AddSingleton<IMetricsFeed>(new FakeMetricsFeed());
 
         return sc.BuildServiceProvider();
     }
