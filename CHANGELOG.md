@@ -8,6 +8,9 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- Showcase samples no longer 404 on `bootstrap.min.css.map`: the vendored `bootstrap.min.css`
+  carried a `sourceMappingURL` comment pointing at a map file that isn't shipped, so browsers
+  (and the GitHub Pages demo) logged a console 404. Dropped the dangling comment.
 - `LiveRenderContext.CurrentSync` no longer returns a disposed context. The thread-static sync
   mirror could linger on a pooled thread after an async render released it at an `await`; a later
   synchronous render reusing that thread observed the stale context (wrong handler attribution).
