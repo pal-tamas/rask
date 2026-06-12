@@ -31,12 +31,13 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
         _loaded = true;
     }
 
+    // No explicit StateHasChanged() needed: an awaited event handler re-renders on completion, so
+    // the reloaded list paints automatically (same as the async OnMountAsync above).
     private async Task DeleteAsync(int id)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
         await db.Products.Where(p => p.Id == id).ExecuteDeleteAsync(CancellationToken);
         await LoadAsync();
-        StateHasChanged();
     }
 
     protected override RenderResult Render() =>
