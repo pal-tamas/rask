@@ -232,9 +232,29 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Virtualize + Keyed lists: just confirm they render (windowing / keyed-diff logic is unit-tested).
+        // Virtualize: just confirm it renders (windowing logic is unit-tested).
         await SideAsync("Virtualize", "Virtualize");
+
+        // Keyed lists: the page's contract is that a keyed reorder preserves the survivors'
+        // DOM state — focus, caret, and uncommitted input text. Type into the first row,
+        // place a caret mid-string, then reverse. We dispatch the reverse via a synthetic
+        // (non-focus-stealing) click so the assertion isolates the reorder's effect on focus
+        // from the focus the pointer would otherwise hand to the button itself. A keyed move
+        // must relocate the live <li> node (Atomic Move), not detach + re-insert it.
         await SideAsync("Keyed lists", "Keyed lists");
+        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").ClickAsync();
+        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").FillAsync("travels");
+        await Page.EvaluateAsync("() => document.activeElement.setSelectionRange(3, 3)");
+        await Page.EvaluateAsync(
+            "() => document.getElementById('kl-reverse').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
+        var keyedState = await Page.EvaluateAsync<string>(@"() => {
+            const a = document.activeElement;
+            if (!a || !a.classList || !a.classList.contains('kl-note')) return 'focus-lost';
+            const li = a.closest('li');
+            const name = li ? li.querySelector('span.fw-semibold').textContent.trim() : '?';
+            return `${name}|${a.value}|${a.selectionStart}`;
+        }");
+        Assert.Equal("Apple|travels|3", keyedState);
 
         // Data table: every interaction is a URL query-param mutation → rebind → re-render.
         await SideAsync("Data table", "Data table");
@@ -598,7 +618,9 @@ public abstract partial class SharedSmokeTests
         var dataTransfer = await Page.EvaluateHandleAsync("() => new DataTransfer()");
         var init = new Dictionary<string, object>
         {
-            ["dataTransfer"] = dataTransfer, ["bubbles"] = true, ["cancelable"] = true,
+            ["dataTransfer"] = dataTransfer,
+            ["bubbles"] = true,
+            ["cancelable"] = true,
         };
         await source.DispatchEventAsync("dragstart", init);
         await target.DispatchEventAsync("dragover", init);

@@ -456,6 +456,22 @@ function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
 }
 
+// Relocate an already-attached child before `anchor`. Prefer the Atomic Move API
+// (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
+// focused descendant keeps focus, selection, and caret across a keyed reorder. A
+// plain insertBefore of a connected node still disconnects it briefly and blurs it.
+function _raskMoveBefore(parent, node, anchor) {
+    if (parent.moveBefore) {
+        try {
+            parent.moveBefore(node, anchor);
+            return;
+        } catch (e) {
+            // Not connected / cross-document — fall through to insertBefore.
+        }
+    }
+    parent.insertBefore(node, anchor);
+}
+
 function _raskAppendChild(parent, dst) {
     parent.appendChild(dst);
 }
@@ -596,7 +612,7 @@ function morph(from, to) {
                 _raskInsertBefore(from, reviveScript(dst), anchor);
                 _raskRemoveChild(from, src);
             } else {
-                if (src !== anchor) from.insertBefore(src, anchor);
+                if (src !== anchor) _raskMoveBefore(from, src, anchor);
                 else anchor = anchor.nextSibling;
                 morph(src, dst);
             }
@@ -652,6 +668,41 @@ function relevantChild(parent, index) {
         }
     }
     return null;
+}
+
+// Like relevantChild but counts as if `skip` were already gone — the post-detach
+// coordinate the keyed differ uses for move targets. Lets us resolve the anchor
+// WITHOUT detaching the moving node, so the move can run as a single relocation.
+function relevantChildSkipping(parent, index, skip) {
+    if (!parent || !parent.childNodes) return null;
+    let seen = 0;
+    for (let i = 0; i < parent.childNodes.length; i++) {
+        const n = parent.childNodes[i];
+        if (n === skip) continue;
+        if (_RELEVANT_NODE_TYPES.has(n.nodeType)) {
+            if (seen === index) return n;
+            seen++;
+        }
+    }
+    return null;
+}
+
+// Relocate `node` before `ref` under `parent`. Prefer the Atomic Move API
+// (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
+// focused descendant keeps its focus, selection, and caret across a keyed reorder.
+// removeChild+insertBefore — and even a bare insertBefore — disconnect the node
+// and blur it, which silently broke the "survivors keep their DOM state" contract.
+// Fall back to insertBefore where moveBefore is unavailable or rejects the move.
+function moveChildBefore(parent, node, ref) {
+    if (parent.moveBefore) {
+        try {
+            parent.moveBefore(node, ref);
+            return;
+        } catch {
+            // Not connected / cross-document — fall through to insertBefore.
+        }
+    }
+    parent.insertBefore(node, ref);
 }
 
 function resolvePath(path) {
@@ -780,9 +831,10 @@ function applyDiff(ops, names) {
             }
             case 6: { // MoveSubtree [k, path, sourceSlot]
                 // Path encodes parent + destination slot; op[2] is the source slot.
-                // Detach the source FIRST, then resolve the destination refNode against
-                // the post-detach sibling list — same coordinate model the server's
-                // keyed differ uses when computing move targets.
+                // The destination slot is in the server's post-detach coordinate (the live
+                // DOM with the moved node removed), so resolve the anchor by SKIPPING the
+                // moving node rather than detaching it — then relocate with moveChildBefore
+                // so a focused descendant keeps focus/selection across the reorder.
                 const mvParentPath = path.slice(0, path.length - 1);
                 const mvDst = path[path.length - 1];
                 const mvParent = resolvePath(mvParentPath);
@@ -791,16 +843,16 @@ function applyDiff(ops, names) {
                 const mvSrc = mvSrcRaw == null ? 0 : mvSrcRaw;
                 const mvNode = relevantChild(mvParent, mvSrc);
                 if (!mvNode) break;
-                mvParent.removeChild(mvNode);
-                const mvRef = relevantChild(mvParent, mvDst);
-                mvParent.insertBefore(mvNode, mvRef);
+                const mvRef = relevantChildSkipping(mvParent, mvDst, mvNode);
+                moveChildBefore(mvParent, mvNode, mvRef);
                 break;
             }
             case 7: { // PermutationBatch [k, parentPath, moves] — moves = [dst0,src0,dst1,src1,…]
                 // path IS the parent (no trailing slot to split off). Replay each (dst,src)
-                // pair in array order with the same detach-source-first semantics as a single
-                // MoveSubtree: the server computed every pair against the live DOM as mutated
-                // by the preceding pairs, so order is load-bearing — never reorder.
+                // pair in array order: the server computed every pair against the live DOM
+                // as mutated by the preceding pairs, so order is load-bearing — never reorder.
+                // Each dst is a post-detach slot, so resolve the anchor by skipping the moving
+                // node and relocate with moveChildBefore (preserves focus across the reorder).
                 const pbParent = resolvePath(path);
                 if (!pbParent) break;
                 const pbMoves = op[2] || [];
@@ -809,9 +861,8 @@ function applyDiff(ops, names) {
                     const pbSrc = pbMoves[m + 1];
                     const pbNode = relevantChild(pbParent, pbSrc);
                     if (!pbNode) continue;
-                    pbParent.removeChild(pbNode);
-                    const pbRef = relevantChild(pbParent, pbDst);
-                    pbParent.insertBefore(pbNode, pbRef);
+                    const pbRef = relevantChildSkipping(pbParent, pbDst, pbNode);
+                    moveChildBefore(pbParent, pbNode, pbRef);
                 }
                 break;
             }
