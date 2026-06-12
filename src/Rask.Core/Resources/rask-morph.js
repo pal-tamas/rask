@@ -44,6 +44,22 @@ function _raskInsertBefore(parent, dst, anchor) {
     parent.insertBefore(dst, anchor);
 }
 
+// Relocate an already-attached child before `anchor`. Prefer the Atomic Move API
+// (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
+// focused descendant keeps focus, selection, and caret across a keyed reorder. A
+// plain insertBefore of a connected node still disconnects it briefly and blurs it.
+function _raskMoveBefore(parent, node, anchor) {
+    if (parent.moveBefore) {
+        try {
+            parent.moveBefore(node, anchor);
+            return;
+        } catch (e) {
+            // Not connected / cross-document — fall through to insertBefore.
+        }
+    }
+    parent.insertBefore(node, anchor);
+}
+
 function _raskAppendChild(parent, dst) {
     parent.appendChild(dst);
 }
@@ -184,7 +200,7 @@ function morph(from, to) {
                 _raskInsertBefore(from, reviveScript(dst), anchor);
                 _raskRemoveChild(from, src);
             } else {
-                if (src !== anchor) from.insertBefore(src, anchor);
+                if (src !== anchor) _raskMoveBefore(from, src, anchor);
                 else anchor = anchor.nextSibling;
                 morph(src, dst);
             }
