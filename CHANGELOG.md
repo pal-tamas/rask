@@ -21,6 +21,14 @@ them until tagged releases begin.
   already-disposed source. The install now swaps atomically (`TryUpdate`/`TryAdd`) and retires the
   prior source only after the CAS has made it unreachable, so exactly one thread owns its disposal.
   Fixes flaky `Reconnect_WhileExistingSocketAttached_NewSocketBecomesAuthoritative`.
+- `LiveSession` disposal no longer throws `InvalidOperationException: Collection was modified`
+  while tearing down the component tree. `Dispose`/`DisposeAsync` walked the tree (enumerating
+  each component's persisted children) without holding `_renderLock`, so a render still draining on
+  a thread-pool thread at host shutdown could rebuild those same child dictionaries (the swap+clear
+  in `BuildRenderTree`) mid-enumeration. Teardown now takes `_renderLock` around the walk — the
+  same gate renders already use to keep concurrent tree mutations mutually exclusive — and a
+  `_disposed` guard stops a `StateHasChanged` from an unmount/dispose callback re-entering the
+  render path. Fixes flaky `HandlerOrderingTests.TwoHandlers_AcrossMultipleRounds_NeverReorder`.
 - Showcase samples no longer 404 on `bootstrap.min.css.map`: the vendored `bootstrap.min.css`
   carried a `sourceMappingURL` comment pointing at a map file that isn't shipped, so browsers
   (and the GitHub Pages demo) logged a console 404. Dropped the dangling comment.

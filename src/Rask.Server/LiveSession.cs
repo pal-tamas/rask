@@ -87,6 +87,13 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     private WebSocket? _socket;
     private CancellationToken _socketCt;
 
+    // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
+    // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
+    // the _renderLock that DisposeAsync/Dispose hold while tearing the tree down. Volatile because
+    // disposal (store/host thread) and the render request (async lifecycle continuation on a
+    // thread-pool worker) run on different threads. Mirrors the detached-socket early-return.
+    private volatile bool _disposed;
+
     // Two-buffer swap: `_writeBuffer` receives the next frame, `_lastSentBuffer` holds the
     // previous send (dedup compare target). After SendAsync the references swap so the just-
     // sent buffer becomes the dedup baseline without any byte[] copy. Both writers persist
@@ -149,7 +156,26 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
     public async ValueTask DisposeAsync()
     {
-        await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
+        _disposed = true;
+        // Serialise teardown against any in-flight render. RenderAndSendAsync mutates the
+        // component tree's child dictionaries under _renderLock (the swap+Clear in
+        // Component.BuildRenderTree, then GetOrCreateChild inserts), and
+        // DisposeComponentTreeAsync walks those same dictionaries. Without the lock a render
+        // draining on a thread-pool thread at host shutdown races the walk and throws
+        // "Collection was modified; enumeration operation may not execute" out of the dispose
+        // enumeration — the very class of concurrent-tree-mutation bug _renderLock exists to
+        // prevent (see its field comment). Hold it across the whole walk, then release before
+        // disposing the semaphore itself.
+        await _renderLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
+        }
+        finally
+        {
+            _renderLock.Release();
+        }
+
         ReleaseFileStores();
         Lock.Dispose();
         _renderLock.Dispose();
@@ -158,7 +184,19 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
     public void Dispose()
     {
-        ComponentLifecycle.DisposeComponentTree(View);
+        _disposed = true;
+        // See DisposeAsync: take the render lock so the synchronous tree walk can't race an
+        // in-flight render mutating the same child dictionaries.
+        _renderLock.Wait();
+        try
+        {
+            ComponentLifecycle.DisposeComponentTree(View);
+        }
+        finally
+        {
+            _renderLock.Release();
+        }
+
         ReleaseFileStores();
         Lock.Dispose();
         _renderLock.Dispose();
@@ -173,7 +211,10 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
 
     private async Task RequestRenderInternalAsync(bool publishOnly)
     {
-        if (_socket is null || _socket.State != WebSocketState.Open)
+        // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
+        // teardown: the tree walk runs under _renderLock, so re-entering RenderAndSendAsync (which
+        // also waits on _renderLock) would deadlock disposal against itself.
+        if (_disposed || _socket is null || _socket.State != WebSocketState.Open)
         {
             _renderRequestedWhileDetached = true;
             return;
