@@ -27,7 +27,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
 | `<EditForm>` + `InputText`/`InputNumber` | `Form<TModel>(model, OnValidSubmit:)` + `Input(Bind: () => model.X)` |
 | `<DataAnnotationsValidator>` | drop `DataAnnotationsValidator()` inside the `Form<T>` |
-| `<AuthorizeView>` / `AuthenticationStateProvider` | `Component.User` + headless `Authorize(...)` component |
+| `<AuthorizeView>` / `AuthenticationStateProvider` | inject `IUserProvider` (read `.Current`) + headless `Authorize(...)` component |
 | `[Inject] T Svc { get; set; }` | constructor injection — `class Page(T svc) : Component` |
 | `Component.razor.css` | sibling `{Component}.css` next to `{Component}.cs` |
 | `IJSRuntime` | `IJSRuntime` (injected via the constructor) |
