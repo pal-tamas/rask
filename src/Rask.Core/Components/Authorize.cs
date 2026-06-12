@@ -13,8 +13,11 @@ namespace Rask.Core.Components;
 ///     <see cref="Fragment" />):
 ///     <list type="bullet">
 ///         <item>
-///             <see cref="Authorized" /> — the user passes the gate. Falls back to the children
-///             indexer when the slot is null, so <c>Authorize(Roles: "admin")[ adminPanel ]</c> works.
+///             <see cref="Authorized" /> — the user passes the gate; the delegate receives the
+///             current <see cref="ClaimsPrincipal" /> (Blazor's <c>@context.User</c>), so a greeting
+///             can read <c>user.Identity!.Name</c> with no manual subscription. Falls back to the
+///             children indexer when null, so <c>Authorize(Roles: "admin")[ adminPanel ]</c> renders
+///             static content.
 ///         </item>
 ///         <item><see cref="NotAuthorized" /> — the user is denied (default: renders nothing).</item>
 ///         <item>
@@ -68,8 +71,14 @@ public sealed class Authorize : Component
     /// </summary>
     public string? Policy { get; set; }
 
-    /// <summary>Rendered when the gate passes. When null, the children indexer is used instead.</summary>
-    public Child? Authorized { get; set; }
+    /// <summary>
+    ///     Rendered when the gate passes; the delegate receives the current <see cref="ClaimsPrincipal" />
+    ///     so authorized markup can read the signed-in user (e.g. a name) with no manual
+    ///     <see cref="IUserProvider.Changed" /> subscription — it re-runs whenever the gate re-renders.
+    ///     When null, the children indexer supplies static authorized content instead:
+    ///     <c>Authorize(Roles: "admin")[ adminPanel ]</c>.
+    /// </summary>
+    public Func<ClaimsPrincipal, Child>? Authorized { get; set; }
 
     /// <summary>Rendered when the gate denies. Defaults to nothing.</summary>
     public Child? NotAuthorized { get; set; }
@@ -115,8 +124,11 @@ public sealed class Authorize : Component
 
         if (IsAllowed())
         {
-            return Authorized is { Component: { } authorized }
-                ? authorized
+            // The delegate runs fresh with the current principal on every re-render (the component
+            // re-renders on IUserProvider.Changed), so user-dependent markup stays in sync without a
+            // manual subscription. Null delegate → static authorized content via the children indexer.
+            return Authorized is { } authorized
+                ? authorized(CurrentUser).Component
                 : new Fragment { Children = Children ?? [] };
         }
 
