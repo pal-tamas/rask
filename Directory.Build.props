@@ -66,10 +66,11 @@
       The validation packages inject their own global usings (Rask.Validation.* below). Downstream
       consumers only get them by referencing the validation NuGet package; in-repo we'd otherwise force
       every Rask.Example.* project to reference the validation libs just to satisfy the generated usings.
-      The auth samples (Rask.Example.Auth*) don't use validation, so skip those usings for them.
+      The auth samples (Rask.Example.Auth*) don't use validation, and the EF Core sample
+      (Rask.Example.EfCore) uses Rask.Core's inline Validate: lambdas only — so skip those usings for them.
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
-    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) ">false</_RaskExampleValidationUsings>
+    <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) ">false</_RaskExampleValidationUsings>
   </PropertyGroup>
 
   <!--

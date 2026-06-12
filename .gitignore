@@ -83,6 +83,11 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
+# EF Core SQLite sample database (created at runtime by samples/Rask.Example.EfCore)
+raskExampleCatalog.db
+raskExampleCatalog.db-shm
+raskExampleCatalog.db-wal
+
 # Coverage
 *.coverage
 *.coveragexml
