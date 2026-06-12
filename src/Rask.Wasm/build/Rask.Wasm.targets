@@ -3,177 +3,177 @@
   <!--
     Rask.Wasm build integration.
 
-    A consuming WASM project (any Microsoft.NET.Sdk project that sets
-    <WasmGenerateAppBundle>true</WasmGenerateAppBundle> and references
-    Rask.Wasm) gets two things wired in here:
-      1. <WasmMainJSPath> set to the framework's main.js (unless the
-         consumer has explicitly overridden it).
-      2. <WasmExtraFilesToDeploy> appended with the framework's
-         rask.wasm.js so it lands in the AppBundle alongside main.js.
+    A consuming WASM project (a Microsoft.NET.Sdk.WebAssembly project that sets
+    <RaskWasm>true</RaskWasm> and references Rask.Wasm) gets wired in here:
+      1. The framework boot files (index.html shell, main.js, rask.wasm.js) are
+         staged into the project's wwwroot so the WebAssembly SDK discovers them as
+         static web assets — removing the per-app wwwroot boilerplate.
+      2. Scoped CSS/JS are baked to /_rask/a/{hash}.{ext} in the build- and
+         publish-output wwwroot so a plain static host serves them.
 
-    This removes the per-app wwwroot/ + CopyRaskWasmJs boilerplate that
-    earlier consumers had to maintain by hand.
+    Fingerprinting + the import map come from the SDK itself (the consumer sets
+    <OverrideHtmlAssetPlaceholders>true), not from this file. Sub-path deploys use
+    the SDK's <StaticWebAssetBasePath>.
 
     Auto-imported in this repo via Directory.Build.targets at the repo root.
-    Downstream NuGet consumers get the same auto-import via the build/ folder
-    packed into the .nupkg. Both paths import unconditionally; the items are
-    gated by <WasmGenerateAppBundle> so non-WASM consumers pay nothing.
+    Downstream NuGet consumers get the same auto-import via the build/ folder packed
+    into the .nupkg. Both paths import unconditionally; everything is gated by
+    <RaskWasm> so non-WASM consumers pay nothing.
   -->
 
-  <PropertyGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' AND '$(WasmMainJSPath)' == '' ">
-    <WasmMainJSPath>$(MSBuildThisFileDirectory)..\Browser\main.js</WasmMainJSPath>
-  </PropertyGroup>
+  <!--
+    Contribute the framework boot JS (main.js, rask.wasm.js) as computed static web assets
+    at the app root, so every consuming WASM project gets them served at /main.js and
+    /rask.wasm.js without copying framework files into its own tree (no drift). main.js
+    imports './_framework/dotnet.js' (resolved through the SDK import map) and dynamically
+    imports './rask.wasm.js' — both resolve from the root. The page shell wwwroot/index.html
+    is NOT contributed here: it must be a real file in the consumer's wwwroot (committed in
+    the samples/templates) so the wwwroot/** glob sees it at evaluation and the SDK's
+    <OverrideHtmlAssetPlaceholders> pass fills its import map / preload placeholders.
+  -->
+  <Target Name="_RaskAddFrameworkBootAssets"
+          BeforeTargets="GenerateComputedBuildStaticWebAssets"
+          Condition=" '$(RaskWasm)' == 'true' ">
+    <ItemGroup>
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\main.js"/>
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask.wasm.js"/>
+    </ItemGroup>
+    <DefineStaticWebAssets CandidateAssets="@(_RaskBootAsset)"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="$(MSBuildThisFileDirectory)..\Browser\"
+                           BasePath="$(StaticWebAssetBasePath)"
+                           RelativePathPattern="**"
+                           FingerprintCandidates="false">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset"/>
+      <Output TaskParameter="Assets" ItemName="_RaskBootStaticWebAsset"/>
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints Condition=" '@(_RaskBootStaticWebAsset)' != '' "
+                                   CandidateAssets="@(_RaskBootStaticWebAsset)"
+                                   ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint"/>
+    </DefineStaticWebAssetEndpoints>
+  </Target>
 
-  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
-    <WasmExtraFilesToDeploy Include="$(MSBuildThisFileDirectory)..\Browser\rask.wasm.js"/>
-    <!-- Default page shell for standalone `dotnet run` on a Rask WASM project (WasmAppHost
-         opens index.html). When served via Rask.Wasm.Hosting, this file is never used
-         because UseRask<TApp>() prerenders the App component for every GET via MapFallback. -->
-    <WasmExtraFilesToDeploy Include="$(MSBuildThisFileDirectory)..\Browser\index.html"/>
-
+  <ItemGroup Condition=" '$(RaskWasm)' == 'true' ">
     <!--
       Roots EnumerateAll + the kindred bake-only public surface so the trimmer doesn't
       drop them in release-mode WASM publishes. Without this the bake task at publish
       time loads a trimmed Rask.Core.dll, fails to find EnumerateAll, logs the API-
-      mismatch warning, and the AppBundle ships without /_rask/a/ files.
+      mismatch warning, and the published wwwroot ships without /_rask/a/ files.
     -->
     <TrimmerRootDescriptor Include="$(MSBuildThisFileDirectory)Rask.Wasm.Trim.xml"/>
   </ItemGroup>
 
   <!--
-    Publish-time scoped-asset bake. After the WASM SDK has assembled the AppBundle
-    directory (which contains the trimmed assemblies in _framework/), walk every .dll,
-    force the generator-emitted __RaskScopedCss/JsRegistration classes to populate the
-    in-MSBuild ScopedAssetRegistry, then write each registered entry to
-    {AppBundleDir}/_rask/a/{hash}.{ext}. The static-file mechanism in WasmAppHost (or
-    any plain-static host) then serves what the in-process Rask.Wasm.Hosting endpoint
-    would otherwise serve — closing the gap that caused the standalone-WASM E2E
-    failures (per-component scripts 404'd, window.Rask.{TypeName} never populated,
-    Rask.* invokes timed out via the 5s namespace poll).
+    Scoped-asset bake task registration. The task forces the generator-emitted
+    __RaskScopedCss/JsRegistration classes to populate the in-MSBuild ScopedAssetRegistry,
+    then writes each registered entry to {BundleDir}/_rask/a/{hash}.{ext}. It's loaded from a
+    sibling DLL produced by Rask.Wasm.Tasks (Rask.Wasm's build copies it here).
 
-    The task is loaded from a sibling DLL produced by Rask.Wasm.Tasks (the project's
-    Build target copies it here). Runs on any build that produced an AppBundle —
-    plain `dotnet build` for standalone-WASM dev, `dotnet publish` for release.
-  -->
-  <!--
-    Do NOT gate this Condition on Exists(...Rask.Wasm.Tasks.dll). A UsingTask Condition is
-    evaluated at project-evaluation time, which precedes the build-order edge (Rask.Wasm's
-    ReferenceOutputAssembly="false" reference to Rask.Wasm.Tasks) that produces and copies the
-    DLL here. The DLL is a generated artifact (gitignored), so on a clean checkout it is absent
-    at evaluation — an Exists guard here would skip registration, then the invocation targets'
-    own Exists guards (now true) would fire BakeScopedAssetsTask against an unregistered task →
-    MSB4036. AssemblyFile-based UsingTasks load lazily (only when the task is invoked), and the
-    two invocation targets below keep their Exists guards, so registering unconditionally is safe.
+    Do NOT gate this UsingTask Condition on Exists(...Rask.Wasm.Tasks.dll). A UsingTask
+    Condition is evaluated at project-evaluation time, which precedes the build-order edge
+    (Rask.Wasm's ReferenceOutputAssembly="false" reference to Rask.Wasm.Tasks) that produces
+    and copies the DLL here. The DLL is a generated artifact (gitignored), so on a clean
+    checkout it is absent at evaluation — an Exists guard here would skip registration, then
+    the bake target's own Exists guard (now true) would fire BakeScopedAssetsTask against an
+    unregistered task → MSB4036. AssemblyFile-based UsingTasks load lazily (only when the task
+    is invoked), and the bake target keeps its Exists guard, so registering unconditionally is safe.
   -->
   <UsingTask TaskName="Rask.Wasm.Tasks.BakeScopedAssetsTask"
              AssemblyFile="$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll"
-             Condition=" '$(WasmGenerateAppBundle)' == 'true' "/>
+             Condition=" '$(RaskWasm)' == 'true' "/>
 
   <!--
-    Hook after _WasmGenerateAppBundle (the actual SDK target that produces the bundle
-    contents). WasmGenerateAppBundle is the boolean enable-property, not a target name —
-    binding AfterTargets to it would resolve to nothing. $(WasmAppDir) is the public
-    property set by the SDK to the AppBundle output directory; both build and publish
-    paths populate it.
-  -->
-  <!--
-    Load assemblies from $(OutDir) — the build-output folder under bin/, not the
-    publish/ subfolder. During Release `dotnet publish` the publish-context
-    @(_WasmAssembliesInternal) points at IL-trimmed copies whose module
-    initializers throw when invoked outside the WASM runtime (trimmed types they
-    reference may be absent). The build-output copies are the same .NET metadata
-    pre-trim, with all type references intact, and their [ModuleInitializer]s
-    re-fire cleanly inside the MSBuild host. The .dll metadata we need is identical
-    across configurations because the source generator is deterministic.
-  -->
-  <ItemGroup Condition=" '$(WasmGenerateAppBundle)' == 'true' ">
-    <_RaskBakeInputAssemblies Include="$(OutDir)*.dll" Exclude="$(OutDir)publish/**;$(OutDir)AppBundle/**"/>
-  </ItemGroup>
+    Scoped-asset bake → static web assets. The generator emits per-component scoped CSS/JS
+    that the runtime references at /_rask/a/{hash}.{ext}. We materialise those bytes into an
+    intermediate staging dir and register them as *computed* static web assets, so the SDK
+    pipeline serves them in dev (`dotnet run` via the manifest) and copies them into the
+    published wwwroot — under the same /_rask/a/{hash}.{ext} URL, fingerprinting disabled
+    (the {hash} is already a content hash; SDK fingerprinting would break the runtime's URL).
 
-  <!--
-    Build-time bake. Hooks BOTH _WasmGenerateAppBundle (the SDK target that fills the
-    bundle) and the generic Build target. The second hook matters because a solution
-    build can satisfy _WasmGenerateAppBundle for Rask.Example.Wasm via a concurrent
-    nested `dotnet publish` (fired by Rask.Wasm.Hosting's _RaskPublishWasmBundle from
-    every host/test project that references the WASM app). When that happens the direct
-    build's _WasmGenerateAppBundle is incrementally skipped — so an AfterTargets hook on
-    it alone never fires against the served bin/.../AppBundle, and a late concurrent
-    clean+regen can strip the _rask/a files written by another worker. AfterTargets=Build
-    guarantees one bake after this project's own build settles. The task overwrites and
-    is idempotent, so a double-bake is a cheap no-op. Guarded on Exists($(WasmAppDir)) so
-    it's a no-op when no bundle was produced.
-    NOTE: the standalone-WASM E2E fixture serves the bundle via `dotnet run` with the
-    no-build flag, which can re-stage the bundle after this build — see
-    _RaskBakeScopedAssetsBeforeRun.
+    The bake reads the app's own compiled assembly (@(IntermediateAssembly)) plus the
+    referenced, pre-trim copy-local dlls (Rask.Core et al via @(ReferenceCopyLocalPaths)) —
+    NOT the IL-trimmed publish copies, whose [ModuleInitializer]s throw outside the WASM
+    runtime. DependsOnTargets="ResolveReferences;Compile" guarantees both are available, and
+    the target is wired into GenerateComputed{Build,Publish}StaticWebAssets (below) so it
+    runs while the SDK is assembling the asset set, for both build and publish.
   -->
-  <Target Name="_RaskBakeScopedAssets"
-          AfterTargets="_WasmGenerateAppBundle;Build"
-          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') AND '$(WasmAppDir)' != '' AND Exists('$(WasmAppDir)') ">
-    <BakeScopedAssetsTask BundleDir="$(WasmAppDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
-  </Target>
-
-  <!--
-    Run-time bake. `dotnet run` on a Rask WASM project launches WasmAppHost over the
-    served AppBundle. It computes the launch via the SDK's ComputeRunArguments target
-    (which the Run target depends on) even when the Build is skipped, so hooking
-    AfterTargets="ComputeRunArguments" fires in both `dotnet run` and `dotnet run` with
-    the no-build flag — unlike a hook on Run itself, which the no-build path does not
-    execute. This re-bakes the _rask/a files into the exact directory about to be served,
-    making the served bundle immune to whatever concurrent-build race left it in.
-
-    $(WasmAppDir) is empty at this point (the SDK only sets it inside a build), so we
-    compute the served bundle dir the same way the SDK's RunWorkingDirectory resolves:
-    $(OutDir)AppBundle (absolute, via the project dir). The build-output assemblies the
-    bake reads ($(OutDir)*.dll) are present from the prior build.
-
-    FailOnEmpty=true: if the registry resolves but nothing bakes, fail fast with a clear
-    error instead of serving a bundle that 404s on every scoped-asset URL.
-  -->
-  <Target Name="_RaskBakeScopedAssetsBeforeRun"
-          AfterTargets="ComputeRunArguments"
-          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') ">
+  <Target Name="_RaskBakeScopedStaticWebAssets"
+          DependsOnTargets="ResolveReferences;Compile"
+          Condition=" '$(RaskWasm)' == 'true' AND Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Tasks.dll') ">
     <PropertyGroup>
-      <_RaskRunBundleDir Condition=" '$(WasmAppDir)' != '' ">$(WasmAppDir)</_RaskRunBundleDir>
-      <_RaskRunBundleDir Condition=" '$(_RaskRunBundleDir)' == '' ">$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(OutDir)', 'AppBundle'))</_RaskRunBundleDir>
+      <_RaskScopedStageDir>$(IntermediateOutputPath)rask-scoped\</_RaskScopedStageDir>
     </PropertyGroup>
-    <BakeScopedAssetsTask BundleDir="$(_RaskRunBundleDir)"
-                          Assemblies="@(_RaskBakeInputAssemblies)"
-                          FailOnEmpty="true"
-                          Condition=" Exists('$(_RaskRunBundleDir)') "/>
+    <RemoveDir Directories="$(_RaskScopedStageDir)"/>
+    <MakeDir Directories="$(_RaskScopedStageDir)"/>
+    <ItemGroup>
+      <_RaskBakeInputAssemblies Include="@(IntermediateAssembly)"/>
+      <_RaskBakeInputAssemblies Include="@(ReferenceCopyLocalPaths)" Condition=" '%(Extension)' == '.dll' "/>
+    </ItemGroup>
+    <BakeScopedAssetsTask BundleDir="$(_RaskScopedStageDir)" Assemblies="@(_RaskBakeInputAssemblies)"/>
+    <ItemGroup>
+      <_RaskScopedBaked Include="$(_RaskScopedStageDir)**\*"/>
+    </ItemGroup>
+    <DefineStaticWebAssets Condition=" '@(_RaskScopedBaked)' != '' "
+                           CandidateAssets="@(_RaskScopedBaked)"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="$(_RaskScopedStageDir)"
+                           BasePath="$(StaticWebAssetBasePath)"
+                           RelativePathPattern="**"
+                           FingerprintCandidates="false">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset"/>
+      <Output TaskParameter="Assets" ItemName="_RaskScopedStaticWebAsset"/>
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints Condition=" '@(_RaskScopedStaticWebAsset)' != '' "
+                                   CandidateAssets="@(_RaskScopedStaticWebAsset)"
+                                   ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint"/>
+    </DefineStaticWebAssetEndpoints>
   </Target>
 
-  <!--
-    Optional sub-path bake. Set <RaskPathBase> in the consuming csproj (or pass
-    /p:RaskPathBase=/myapp on the command line) to scope the AppBundle under a
-    sub-path. We rewrite the framework's default <base href="/"> in the bundled
-    index.html so:
-      - main.js / _framework/* resolve correctly under the sub-path; and
-      - WasmHostBuilder.CreateDefault's auto-detect (which reads document.baseURI
-        via the rask.wasm.js getBasePath export and writes it to
-        LiveOptions.PathBase) picks up the prefix on first paint, so every head-
-        emitted /_rask/a/{hash}.{ext} URL ends up as /myapp/_rask/a/{hash}.{ext}.
-    No-op when RaskPathBase is empty (the default), so root-served deploys keep
-    today's <base href="/"> intact.
+  <!-- Contribute in the build computed pass only; the assets are AssetKind=All so they flow
+       into the publish manifest too. Adding them in both passes double-registers the same
+       ItemSpec and trips the SDK's duplicate-key guard. -->
+  <PropertyGroup Condition=" '$(RaskWasm)' == 'true' ">
+    <GenerateComputedBuildStaticWebAssetsDependsOn>$(GenerateComputedBuildStaticWebAssetsDependsOn);_RaskBakeScopedStaticWebAssets</GenerateComputedBuildStaticWebAssetsDependsOn>
+  </PropertyGroup>
 
-    Normalization: "myapp" / "/myapp" / "/myapp/" all become <base href="/myapp/">.
-    "/" / "" stay as "/" (no rewrite). Matches RaskPath.Normalize in Rask.Core
-    plus a trailing slash (HTML <base> requires it for relative-URL resolution).
+  <!--
+    Sub-path deploys (e.g. GitHub Pages under /<repo>/). Set <RaskPathBase> in the csproj or
+    pass /p:RaskPathBase=/<repo> at publish: we rewrite the published index.html's
+    <base href="/"> to <base href="/<repo>/">. Everything else the SDK emits — the import
+    map, the preload <link>, the <script src="main.js"> and the runtime's own /_rask/a/{hash}
+    URLs — is document-relative (no leading slash), so a corrected <base href> is all that's
+    needed to resolve every asset under the sub-path. The runtime's getBasePath() (reads
+    document.baseURI in rask.wasm.js) likewise picks up the prefix on first paint.
+
+    Unlike the SDK's <StaticWebAssetBasePath> (which relocates assets into a wwwroot/<repo>/
+    subtree but leaves <base href="/"> untouched, breaking deep-link reloads), this keeps the
+    root-relative layout and only fixes the base href. It runs on the published output, so
+    dev (`dotnet run` at the origin root) keeps <base href="/">.
+
+    Normalization: "myapp" / "/myapp" / "/myapp/" all become <base href="/myapp/">; "/" / ""
+    stay "/" (no rewrite) — matches RaskPath.Normalize plus the trailing slash <base> needs.
   -->
   <Target Name="_RaskRewriteBaseHref"
-          AfterTargets="_RaskBakeScopedAssets"
-          Condition=" '$(WasmGenerateAppBundle)' == 'true' AND '$(RaskPathBase)' != '' AND '$(RaskPathBase)' != '/' AND Exists('$(WasmAppDir)index.html') ">
+          AfterTargets="Publish"
+          Condition=" '$(RaskWasm)' == 'true' AND '$(RaskPathBase)' != '' AND '$(RaskPathBase)' != '/' AND Exists('$(PublishDir)wwwroot\index.html') ">
     <PropertyGroup>
       <_RaskNormalizedBase>$(RaskPathBase.TrimEnd('/'))</_RaskNormalizedBase>
       <_RaskNormalizedBase Condition=" !$(_RaskNormalizedBase.StartsWith('/')) ">/$(_RaskNormalizedBase)</_RaskNormalizedBase>
-      <_RaskIndexHtml>$([System.IO.File]::ReadAllText('$(WasmAppDir)index.html'))</_RaskIndexHtml>
+      <_RaskIndexHtml>$([System.IO.File]::ReadAllText('$(PublishDir)wwwroot\index.html'))</_RaskIndexHtml>
       <_RaskIndexHtml>$(_RaskIndexHtml.Replace('&lt;base href=&quot;/&quot;/&gt;', '&lt;base href=&quot;$(_RaskNormalizedBase)/&quot;/&gt;'))</_RaskIndexHtml>
     </PropertyGroup>
-    <WriteLinesToFile File="$(WasmAppDir)index.html"
+    <WriteLinesToFile File="$(PublishDir)wwwroot\index.html"
                       Lines="$(_RaskIndexHtml)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true"/>
     <Message Importance="High"
-             Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in $(WasmAppDir)index.html"/>
+             Text="Rask: rewrote &lt;base href&gt; to &quot;$(_RaskNormalizedBase)/&quot; in $(PublishDir)wwwroot/index.html"/>
   </Target>
 
 </Project>

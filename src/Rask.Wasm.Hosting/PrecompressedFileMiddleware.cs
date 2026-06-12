@@ -38,6 +38,19 @@ internal sealed class PrecompressedFileMiddleware
             return _next(context);
         }
 
+        // If routing already matched an endpoint, that endpoint — not UseStaticFiles — produces
+        // the body. The in-process scoped-asset endpoint (/_rask/a/{hash}.{ext}, mapped by
+        // UseRask) serves those bytes uncompressed straight from ScopedAssetRegistry, yet the SDK
+        // now also bakes .br/.gz siblings for them on disk. Rewriting to a sibling here would only
+        // attach a Content-Encoding header without changing the bytes the endpoint emits — the
+        // browser then fails to decode plaintext as brotli (ERR_CONTENT_DECODING_FAILED). Leave
+        // endpoint-served responses to the endpoint + UseResponseCompression; the precompressed-
+        // sibling shortcut is for static-file assets (e.g. _framework/*.wasm) only.
+        if (context.GetEndpoint() is not null)
+        {
+            return _next(context);
+        }
+
         var path = context.Request.Path.Value;
         if (string.IsNullOrEmpty(path) || path == "/")
         {

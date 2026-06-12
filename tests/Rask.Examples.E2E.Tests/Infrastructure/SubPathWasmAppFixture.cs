@@ -51,20 +51,21 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
     {
         var repoRoot = LocateRepoRoot();
 
-        // Copy the already-built Rask.Example.Wasm AppBundle to a temp dir and
-        // rewrite its <base href> locally. Publishing with /p:RaskPathBase=/sub
-        // would re-trigger the framework's _RaskRewriteBaseHref MSBuild target
-        // against the shared bin/.../AppBundle/index.html — corrupting the same
-        // file the parallel WasmExample fixture reads (it serves
-        // bin/.../AppBundle/index.html in-place via Rask.Example.Wasm.Host).
-        // Copy-and-sed leaves bin untouched.
+        // Copy the already-published Rask.Example.Wasm wwwroot to a temp dir and rewrite its
+        // <base href> locally. Republishing with /p:RaskPathBase=/sub would re-trigger the
+        // framework's _RaskRewriteBaseHref target against the shared publish/wwwroot/index.html
+        // — corrupting the same file the parallel WasmExample fixture serves in-place via
+        // Rask.Example.Wasm.Host. Copy-and-sed leaves the published output untouched. Every
+        // asset URL + the SDK import map is document-relative, so the rewritten <base href> is
+        // all that's needed to resolve them under /sub.
         var srcBundle = Path.Combine(repoRoot, "samples", "Rask.Example.Wasm", "bin",
-            Configuration, "net10.0-browser", "browser-wasm", "AppBundle");
+            Configuration, "net10.0-browser", "publish", "wwwroot");
         if (!Directory.Exists(srcBundle))
         {
             throw new InvalidOperationException(
-                $"Pre-built Rask.Example.Wasm AppBundle not found at {srcBundle}. " +
-                "The fixture relies on the main test-suite build having produced it.");
+                $"Published Rask.Example.Wasm wwwroot not found at {srcBundle}. " +
+                "The fixture relies on the main test-suite build having published it " +
+                "(via Rask.Example.Wasm.Host's nested publish).");
         }
 
         _bundleDir = Path.Combine(Path.GetTempPath(),

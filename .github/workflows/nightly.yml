@@ -32,7 +32,7 @@ jobs:
         run: dotnet restore Rask.slnx
       - name: Build (no WASM bundle)
         # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll.
-        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -m:1
+        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -m:1
       - name: Unit & integration tests
         run: >-
           dotnet test Rask.slnx -c Release --no-build
