@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Auth.WasmCookie.Pages;
@@ -22,11 +23,11 @@ public sealed class MembersPage : Component
         ];
 }
 
-public sealed class MemberContent(WasmLoginService login) : Component
+public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
 {
     protected override RenderResult Render() =>
         Fragment()[
-            H1("members-greeting", "h3 mb-3")[$"Welcome, {User.Identity?.Name}"],
+            H1("members-greeting", "h3 mb-3")[$"Welcome, {userProvider.Current.Identity?.Name}"],
             Authorize(
                 ["admin"],
                 Authorized: Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."],

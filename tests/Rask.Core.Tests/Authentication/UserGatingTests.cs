@@ -6,7 +6,7 @@ using Rask.Core.Authentication;
 
 namespace Rask.Core.Tests.Authentication;
 
-// The built-in Component.User (resolved from IUserProvider in the active render scope) is the
+// Injecting IUserProvider and reading .Current (resolved from the active render scope) is the
 // imperative way to gate content (the declarative counterpart is the Authorize component — see
 // AuthorizeTests). These pin that gating in Render() reflects the provider's principal, incl. roles.
 public class UserGatingTests
@@ -48,10 +48,11 @@ public class UserGatingTests
 
     private static string Render(ClaimsPrincipal principal)
     {
+        var provider = new FixedUser(principal);
         var sp = new ServiceCollection()
-            .AddSingleton<IUserProvider>(new FixedUser(principal))
+            .AddSingleton<IUserProvider>(provider)
             .BuildServiceProvider();
-        return new StubComponent(() => new Gate()).RenderAsLiveRoot(sp);
+        return new StubComponent(() => new Gate(provider)).RenderAsLiveRoot(sp);
     }
 
     private static ClaimsPrincipal Principal(string name, params string[] roles)
@@ -65,8 +66,10 @@ public class UserGatingTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
-    private sealed class Gate : Component
+    private sealed class Gate(IUserProvider provider) : Component
     {
+        private ClaimsPrincipal User => provider.Current;
+
         protected override RenderResult Render() =>
             User.Identity?.IsAuthenticated == true
                 ? new Fragment(

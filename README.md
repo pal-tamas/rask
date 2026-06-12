@@ -82,7 +82,7 @@ published WASM bundle. The **same component code runs under any host** — only 
 |  ✅  | **Forms with async validation**    | `Form<TModel>(model, OnValidSubmit: …)` routes submit through validators you opt into by dropping `DataAnnotationsValidator()` or `FluentValidationValidator(...)` inside the form. Implement `IAsyncFieldValidator` for ad-hoc server-side rules — the submit bridge awaits async checks before routing, and rapid keystrokes cancel any prior in-flight validation (latest-wins).                                                                                               |
 |  ⚡  | **Live diff codec**                | After first paint, a small state change ships a minimal edit-op payload instead of re-serializing the page — a counter tick on a 50 KB page goes from ~50 KB to ~57 bytes on the wire. On by default.                                                                                                                                                                                                                                                                             |
 | 🔑  | **Keyed lists**                    | Add a `Key:` to list items (Blazor `@key` parity) and inserts/removes/reorders reconcile by identity — shipping trusted structural diffs that preserve focus and input state on the survivors. A `RASK022` analyzer flags a list item that's missing a key.                                                                                                                                                                                                                       |
-| 🔐  | **Authentication, ASP.NET-native** | `Component.User` (a never-null `ClaimsPrincipal`) plus a headless `Authorize(Roles:, Policy:, Authorized:, NotAuthorized:, Authorizing:)` component for declarative gating, and `[Authorize]` on a page for route gating. No bespoke options — wire cookies/JWT/OIDC on ASP.NET's own `AddCookie`/`AddJwtBearer`/`AddAuthorization`. Runnable samples + `dotnet new --auth` cover cookie & JWT on both Server and WASM. See **[docs/authentication.md](docs/authentication.md)**. |
+| 🔐  | **Authentication, ASP.NET-native** | Inject `IUserProvider` and read `.Current` (a never-null `ClaimsPrincipal`) plus a headless `Authorize(Roles:, Policy:, Authorized:, NotAuthorized:, Authorizing:)` component for declarative gating, and `[Authorize]` on a page for route gating. No bespoke options — wire cookies/JWT/OIDC on ASP.NET's own `AddCookie`/`AddJwtBearer`/`AddAuthorization`. Runnable samples + `dotnet new --auth` cover cookie & JWT on both Server and WASM. See **[docs/authentication.md](docs/authentication.md)**. |
 
 ## ⚖️ Compared to Blazor
 
@@ -96,7 +96,7 @@ If you've worked in Blazor, here's how the day-to-day differs in Rask:
 | `RenderFragment` / `EventCallback`                | Children are `IEnumerable<Child>`; event handlers are plain delegates (`OnClick: () => _count++`). Child→parent callbacks are plain delegate props too (`Action<T>?` / `Func<T,Task>?`) — invoking one auto-re-renders the parent that owns it, no `EventCallback` wrapper. No specialised types, no `@bind-Value:event`. |
 | `.razor.css` association ceremony                 | Scoped CSS via a sibling `{Component}.css` (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded under `dotnet watch`. Same idea for JS: a sibling `{Component}.js` is bundled and dispatched by the framework.                                                                               |
 | Separate render modes to wire up                  | **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when switching render mode. Server-only (multipart upload) and WASM-only (chunked file reads, inline downloads) behaviours live in the hosts, not in your tree.                                                |
-| `<AuthorizeView>` + `AuthenticationStateProvider` | `Component.User` everywhere (a never-null `ClaimsPrincipal`) and a headless `Authorize(...)` component with `Authorized`/`NotAuthorized`/`Authorizing` slots. Auth itself is configured on ASP.NET's **own** `AddCookie`/`AddJwtBearer`/`AddAuthorization` — Rask adds no parallel options surface.                       |
+| `<AuthorizeView>` + `AuthenticationStateProvider` | Inject `IUserProvider` and read `.Current` (a never-null `ClaimsPrincipal`) and a headless `Authorize(...)` component with `Authorized`/`NotAuthorized`/`Authorizing` slots. Auth itself is configured on ASP.NET's **own** `AddCookie`/`AddJwtBearer`/`AddAuthorization` — Rask adds no parallel options surface.                       |
 
 Rask isn't a Blazor replacement so much as a different take on the same problem space. If those trade-offs appeal, the
 rest of this README walks through what they look like in practice.
@@ -358,7 +358,7 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
 - **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation,
   nested-form
   binding, routing, JS interop, virtualization (a 10K-row table), file upload/download, and **auth gating** (the `/user`
-  page shows both imperative `Component.User` and the declarative `Authorize` component). These are the canonical
+  page shows both imperative `IUserProvider.Current` and the declarative `Authorize` component). These are the canonical
   references cited throughout *Core concepts* below. For production auth flows see *
   *[docs/authentication.md](docs/authentication.md)**.
 - **Runnable auth samples — one per cell of the `{Cookie, JWT} × {Server, WASM}` matrix**, each a minimal app
@@ -605,12 +605,12 @@ built-in page if no app-defined one exists.
 </details>
 
 <details>
-<summary><b>🔐 Auth gating (built-in <code>User</code>)</b></summary>
+<summary><b>🔐 Auth gating (inject <code>IUserProvider</code>)</b></summary>
 <br>
 
-Every component exposes `Component.User` — a never-null `ClaimsPrincipal` resolved from the scoped `IUserProvider`
-(back it with a cookie/JWT on Server, or `/api/me` on WASM). Gate **imperatively** in `Render()` with plain C#, and
-subscribe to the provider's `Changed` event so a sign-in originating anywhere re-renders the gate:
+Inject `IUserProvider` via the constructor and read `.Current` — a never-null `ClaimsPrincipal` resolved from the
+scoped provider (back it with a cookie/JWT on Server, or `/api/me` on WASM). Gate **imperatively** in `Render()` with
+plain C#, and subscribe to the provider's `Changed` event so a sign-in originating anywhere re-renders the gate:
 
 ```csharp
 public sealed class AccountPanel : Component
@@ -622,10 +622,10 @@ public sealed class AccountPanel : Component
     protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        User.Identity?.IsAuthenticated == true
+        _auth.Current.Identity?.IsAuthenticated == true
             ? Fragment()[
-                P()["Signed in as ", Strong()[User.Identity!.Name ?? "?"]],
-                User.IsInRole("admin")                      // role-gated branch
+                P()["Signed in as ", Strong()[_auth.Current.Identity!.Name ?? "?"]],
+                _auth.Current.IsInRole("admin")             // role-gated branch
                     ? Div()["🔑 Admin-only panel"]
                     : (Child)Fragment()]
             : P()["You are signed out."];

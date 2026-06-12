@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
@@ -19,11 +20,11 @@ public sealed class MembersPage : Component
         ];
 }
 
-public sealed class MemberContent(WasmLoginService login) : Component
+public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
 {
     protected override RenderResult Render() =>
         Fragment()[
-            H1()[$"Welcome, {User.Identity?.Name}"],
+            H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
             Authorize(
                 Roles: ["admin"],
                 Authorized: Div(Style: "color:#7a5c00")["🔑 You have admin access."],

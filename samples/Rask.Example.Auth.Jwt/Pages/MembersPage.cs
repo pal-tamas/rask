@@ -27,7 +27,7 @@ public sealed class MemberContent(ProtectedSessionStorage store, SessionUserProv
 {
     protected override RenderResult Render() =>
         Fragment()[
-            H1("members-greeting", "h3 mb-3")[$"Welcome, {User.Identity?.Name}"],
+            H1("members-greeting", "h3 mb-3")[$"Welcome, {users.Current.Identity?.Name}"],
             P(Class: "text-secondary")["Signed in with a JWT held in ", Code()["ProtectedSessionStorage"],
                 " — encrypted at rest, decrypted only server-side."],
             Authorize(

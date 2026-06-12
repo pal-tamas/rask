@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Rask.Core;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>
@@ -29,10 +30,10 @@ public sealed class E2EPublicPage : Component
 
 [Route("/e2e/members")]
 [Authorize]
-public sealed class E2EMembersPage : Component
+public sealed class E2EMembersPage(IUserProvider userProvider) : Component
 {
     protected override RenderResult Render() =>
-        Div(Id: "members")["members-content for ", Span()[User.Identity?.Name ?? "?"]];
+        Div(Id: "members")["members-content for ", Span()[userProvider.Current.Identity?.Name ?? "?"]];
 }
 
 [Route("/e2e/admin")]

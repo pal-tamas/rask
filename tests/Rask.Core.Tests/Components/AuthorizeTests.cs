@@ -9,7 +9,7 @@ using Rask.Core.Authentication;
 namespace Rask.Core.Tests.Components;
 
 // The headless Authorize component selects exactly one of three slots (Authorized / NotAuthorized /
-// Authorizing) off Component.User, plus optional role/policy gating. These pin that selection. The
+// Authorizing) off the current user (IUserProvider), plus optional role/policy gating. These pin that selection. The
 // gate is built INSIDE a render delegate so its generated factory runs under a live render context
 // (which fires OnMount/OnPropsChangedAsync) — building it eagerly would skip the lifecycle.
 public class AuthorizeTests

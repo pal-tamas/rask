@@ -26,7 +26,7 @@ Keycloak/OIDC, …). This guide shows the complete, copy-pasteable flow for each
 | Piece | What it is |
 |---|---|
 | `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, optional `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: you supply one (or the anonymous default). |
-| `Component.User` | The never-null `ClaimsPrincipal` resolved from `IUserProvider` in the active render scope. Gate in `Render()` on `User.Identity?.IsAuthenticated` / `User.IsInRole(...)`. |
+| Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
 | `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
@@ -71,7 +71,7 @@ builder.Services.AddRask();              // no auth config here — it's all on 
 ## Declarative gating
 
 The headless `Authorize` component renders exactly one of three slots — no markup of its own — off
-`Component.User`:
+the current user (`IUserProvider`):
 
 ```csharp
 // Shorthand: children are the "authorized" branch.
@@ -91,8 +91,8 @@ Authorize(
 - **`Authorizing`** also covers the WASM bootstrap window: while a provider's `EnsureLoadedAsync`/`RefreshAsync`
   is in flight (`IUserProvider.IsLoading == true`), the slot bridges the anonymous→authenticated flash.
 
-Use `Authorize` for *content* gating; use `[Authorize]` on a page for *route* gating; use `Component.User`
-directly when you need imperative logic.
+Use `Authorize` for *content* gating; use `[Authorize]` on a page for *route* gating; inject `IUserProvider`
+and read `.Current` directly when you need imperative logic.
 
 ---
 
@@ -181,11 +181,11 @@ public sealed class SecurePage : Component
             Authorized:    SecureContent());     // child component → renders fresh when the gate opens
 }
 
-public sealed class SecureContent : Component
+public sealed class SecureContent(IUserProvider users) : Component
 {
     protected override RenderResult Render() =>
         Div()[
-            H1()[$"Hello, {User.Identity!.Name}"],
+            H1()[$"Hello, {users.Current.Identity!.Name}"],
             Authorize(Roles: ["admin"],
                 Authorized:    Div(Class: "alert alert-warning")["🔑 Admin tools"],
                 NotAuthorized: P()["You have standard access."])
@@ -195,8 +195,8 @@ public sealed class SecureContent : Component
 
 > **Reactivity.** Sign-in on the Server completes over a WS reconnect that re-seeds the principal and fires
 > `IUserProvider.Changed`. The `Authorize` component subscribes to that event and re-renders — but a page
-> that reads `User` *directly in its own `Render`* won't re-execute (it didn't subscribe), so a greeting
-> built there can go stale after a mid-session sign-in. Two fixes: put `User`-dependent markup inside a
+> that reads `users.Current` *directly in its own `Render`* won't re-execute (it didn't subscribe), so a greeting
+> built there can go stale after a mid-session sign-in. Two fixes: put principal-dependent markup inside a
 > **child component** in the `Authorized` slot (it first renders only once the gate opens, as above), or
 > subscribe the page itself: `OnMount() => users.Changed += StateHasChanged;`. The child-component form
 > needs no manual subscription.
@@ -683,7 +683,7 @@ host.Services.AddSingleton<LoginService>();
 await host.RunAsync<App>();
 ```
 
-`Component.User`, the `Authorize` component, and `[Authorize]` route gating all work against the decoded
+The injected `IUserProvider`, the `Authorize` component, and `[Authorize]` route gating all work against the decoded
 principal exactly as everywhere else — they just resolve from `JwtUserProvider` instead of a server-backed
 one. (Route-level `[Authorize]` redirects work client-side too, since the guard runs in the WASM session.)
 
@@ -799,7 +799,7 @@ public sealed class LoginPage(
 }
 ```
 
-Everything else (`Component.User`, `Authorize`, `[Authorize(Roles = "...")]`) works against the Identity
+Everything else (the injected `IUserProvider`, `Authorize`, `[Authorize(Roles = "...")]`) works against the Identity
 principal unchanged. Registration/2FA/lockout are standard Identity APIs called from your pages.
 
 ---
