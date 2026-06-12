@@ -66,10 +66,25 @@ public sealed class Counter : Component
 
 ## ✨ Why Rask
 
-*Rask* is the Norwegian/Danish/Swedish word for **fast**. It's a component framework for .NET: you write components as
-plain C# classes, return a tree of HTML from `Render()`, and host the result one of three ways — server-rendered with
-live updates over a WebSocket, fully client-side in the browser via WebAssembly, or an ASP.NET app that serves a
-published WASM bundle. The **same component code runs under any host** — only the hosting glue changes.
+I've spent 15+ years building full-stack apps on .NET — WebForms, MVC, and a long stretch of SPA work in Angular and
+React over a C# API. That split is productive, but it never stopped being two worlds: two languages, two type systems,
+two build chains, and a serialization seam in the middle I maintained by hand. I wanted the front end back in C#.
+
+Blazor answers part of that, but `.razor` puts markup and code back in one file with its own templating dialect — the
+very thing I'd been trying to get away from. So I built Rask around a single conviction: a component is just a C# class
+that returns a tree. No `.razor`, no JSX, no template language — `Div(...)[Span(...), "hi"]` is plain, refactor-safe,
+IDE-native C#, and the *same* component runs server-rendered over a WebSocket or fully client-side on WebAssembly. One
+codebase; pick the host per project.
+
+The other thing I couldn't unsee from years of SPA work was how much we ship over the wire. So Rask treats the network
+as the real bottleneck: after first paint, a state change sends a minimal diff — a counter tick on a 50 KB page goes out
+as ~57 bytes, not 50 KB. And, honestly, Rask is also where I went deep on Roslyn source generators, rendering, and tree
+diffing — it's a craft project as much as a framework, built in the open.
+
+*Rask* is the Norwegian/Danish/Swedish word for **fast**. Concretely, it's a component framework for .NET: return a
+tree of HTML from `Render()` and host the result one of three ways — server-rendered with live updates over a
+WebSocket, fully client-side in the browser via WebAssembly, or an ASP.NET app that serves a published WASM bundle.
+Only the hosting glue changes.
 
 |     | Feature                            | What it means                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 |:---:|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
