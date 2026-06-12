@@ -205,8 +205,13 @@ the path coordinates line up with the server's DOM-relevant frame counting.
 Give list items a stable `Key:` (Blazor `@key` parity — last optional factory param)
 and the diff reconciles them by *identity* instead of position. This unlocks
 **trusted** Insert/Remove/Move ops that preserve focus, selection, scroll, IDL
-property state, and event listeners on surviving nodes (moving a node via
-`insertBefore` doesn't materialise a new element).
+property state, and event listeners on surviving nodes. The client relocates a moved
+node with the Atomic Move API (`Node.moveBefore`, Chromium 133+), which repositions it
+**without disconnecting it from the document** — the distinction matters: `removeChild`
++ `insertBefore`, or even a bare `insertBefore` of a connected node, briefly detaches it
+and so *blurs* a focused descendant and drops its selection/caret (the element survives,
+but its interaction state does not). Where `moveBefore` is unavailable the runtime falls
+back to `insertBefore`, preserving the node and its value but not its focus.
 
 `EditOp.Trusted` marks an op produced by `FrameDiffer`'s keyed-matching branch. The
 gate `LiveDiffGate.DiffOpsAreClientSupported` (`Live/LiveDiffGate.cs`) routes any

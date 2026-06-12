@@ -38,6 +38,17 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **Keyed reorders now preserve the survivors' focus, text selection, and caret position**, not
+  just their uncommitted input *value*. Applying a trusted structural diff (`MoveSubtree` /
+  `PermutationBatch`) — and the keyed branch of the untrusted morph — relocated each surviving
+  node with `removeChild` + `insertBefore`. Detaching a node blurs any focused descendant, so the
+  typed text travelled with its row (the same DOM node is reused) but focus, selection, and caret
+  silently did not — contradicting the "survivors keep their DOM state" contract the Keyed lists
+  demo advertises. The runtime now relocates with the Atomic Move API (`Node.moveBefore`,
+  Chromium 133+), which moves a node without disconnecting it, and falls back to `insertBefore`
+  where it is unavailable. Affects `Rask.Server` (`rask.js`), `Rask.Wasm` (`rask.wasm.js`), and
+  the shared morph runtime (`rask-morph.js`); covered by the Keyed lists step of every host's E2E
+  journey, which now reverses a list with a focused, mid-string caret and asserts it survives.
 - GitHub Pages demo showed `v1.0.0` instead of the released version in the navbar badge. The
   `pages` workflow checked out a shallow clone, so MinVer couldn't read the git tags and the
   assembly kept the .NET default informational version. The workflow now fetches full history
