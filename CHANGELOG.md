@@ -7,7 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **WASM build migrated to `Microsoft.NET.Sdk.WebAssembly`** so framework assets are
+  content-fingerprinted (`dotnet.<hash>.js`, `App.<hash>.wasm`) and `index.html` carries an
+  SDK-generated import map with integrity hashes. This fixes the GitHub Pages (and any static
+  host) failure where a redeploy paired a stale, browser-cached integrity manifest with freshly
+  served assemblies and tripped a subresource-integrity error on every `_framework/*.wasm` until
+  the cache expired — fingerprinted URLs change per release, so a stale asset can never collide
+  with a new manifest. **Breaking for downstream WASM consumers:** set
+  `<Project Sdk="Microsoft.NET.Sdk.WebAssembly">`, replace `<WasmGenerateAppBundle>true` with
+  `<RaskWasm>true</RaskWasm>` + `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>`,
+  and add a `wwwroot/index.html` shell (the `dotnet new rask-wasm*` templates already include
+  one). Published output moves from `bin/<cfg>/net10.0-browser/browser-wasm/AppBundle/` to
+  `bin/<cfg>/net10.0-browser/publish/wwwroot/`; `Rask.Wasm.Hosting`'s `UseRask()` follows it
+  automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
+  rewrite; every other asset URL is document-relative).
+
 ### Fixed
+- `LiveSessionStore` no longer throws `ObjectDisposedException` while retiring pending session
+  removals under contention. `ScheduleRemoval` disposed the prior `CancellationTokenSource` from
+  inside an `AddOrUpdate` factory — i.e. while it was still reachable through `_pendingRemovals` —
+  so a concurrent `CancelPendingRemoval` / `CancelAllPending` (e.g. two sockets detaching at host
+  shutdown) could `TryRemove` the same instance in that window and call `Cancel()` on an
+  already-disposed source. The install now swaps atomically (`TryUpdate`/`TryAdd`) and retires the
+  prior source only after the CAS has made it unreachable, so exactly one thread owns its disposal.
+  Fixes flaky `Reconnect_WhileExistingSocketAttached_NewSocketBecomesAuthoritative`.
 - Showcase samples no longer 404 on `bootstrap.min.css.map`: the vendored `bootstrap.min.css`
   carried a `sourceMappingURL` comment pointing at a map file that isn't shipped, so browsers
   (and the GitHub Pages demo) logged a console 404. Dropped the dangling comment.
