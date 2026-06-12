@@ -55,6 +55,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 - **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
+- **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
 
 ## Links
 

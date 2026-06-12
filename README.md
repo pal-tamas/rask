@@ -1306,6 +1306,11 @@ The other modes are `LiveDiffMode.DisabledFull` (always full HTML — bit-for-bi
 `LiveDiffMode.Forced` (always diff when one is computable; for tests/benchmarks). The codec is transparent to your
 components and is exercised end-to-end on both hosts by the Playwright E2E suite.
 
+**Slow links get honest feedback, automatically.** On WASM the boot splash shows a determinate download-progress bar
+instead of an indefinite spinner. On Server, a handler whose round-trip outlives ~300ms surfaces a subtle
+top-of-viewport pending bar that clears when the reply lands — so a high-latency click still feels responsive. Both stay
+invisible on a fast link; neither needs any code from you.
+
 </details>
 
 <details>
