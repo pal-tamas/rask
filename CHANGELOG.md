@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- GitHub Pages demo showed `v1.0.0` instead of the released version in the navbar badge. The
+  `pages` workflow checked out a shallow clone, so MinVer couldn't read the git tags and the
+  assembly kept the .NET default informational version. The workflow now fetches full history
+  (`fetch-depth: 0`), matching the CI/release/nightly workflows, so `RaskVersion.Current`
+  reflects the real tag.
 - `LiveSessionStore` no longer throws `ObjectDisposedException` while retiring pending session
   removals under contention. `ScheduleRemoval` disposed the prior `CancellationTokenSource` from
   inside an `AddOrUpdate` factory — i.e. while it was still reachable through `_pendingRemovals` —
@@ -27,6 +32,13 @@ them until tagged releases begin.
   `*_OutsideLiveContext_OmitsHandlerAttribute` tests.
 
 ### Added
+- New `samples/Rask.Example.EfCore` sample: an EF Core + SQLite CRUD app (Server host) showing data
+  persistence in Rask. It uses `IDbContextFactory` (right for long-lived live sessions), organises
+  code as vertical slices (List/Create/Edit), models the catalogue with a DDD aggregate + value
+  objects whose validation rules are reused by the inline form validators, and stores money as
+  integer minor units to sidestep SQLite's lack of a decimal type. Covered by unit + EF/SQLite
+  integration tests (`Rask.Example.EfCore.Tests`) and a Playwright CRUD smoke test, and documented in
+  `docs/data-access.md`.
 - `RaskVersion.Current` exposes the running framework version (from the assembly's MinVer
   `InformationalVersion`). The server (`UseRask`) and WASM host log it on startup, and the
   showcase samples display it as a version badge.
