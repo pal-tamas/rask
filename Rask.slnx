@@ -10,6 +10,7 @@
         <Project Path="samples/Rask.Example.Auth.WasmCookie.Host/Rask.Example.Auth.WasmCookie.Host.csproj"/>
         <Project Path="samples/Rask.Example.Auth.WasmJwt/Rask.Example.Auth.WasmJwt.csproj"/>
         <Project Path="samples/Rask.Example.Auth.WasmJwt.Host/Rask.Example.Auth.WasmJwt.Host.csproj"/>
+        <Project Path="samples/Rask.Example.EfCore/Rask.Example.EfCore.csproj"/>
         <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>
@@ -28,6 +29,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
+        <Project Path="tests/Rask.Example.EfCore.Tests/Rask.Example.EfCore.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Shared.Tests/Rask.Example.Shared.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Wasm.Host.Tests/Rask.Example.Wasm.Host.Tests.csproj"/>

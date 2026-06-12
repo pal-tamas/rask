@@ -361,6 +361,11 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
   page shows both imperative `IUserProvider.Current` and the declarative `Authorize` component). These are the canonical
   references cited throughout *Core concepts* below. For production auth flows see *
   *[docs/authentication.md](docs/authentication.md)**.
+- **`samples/Rask.Example.EfCore`** — data persistence with **EF Core + SQLite** (Server host): a
+  CRUD catalogue organised as vertical slices, with a DDD aggregate + value objects, `IDbContextFactory`,
+  and money stored as integer minor units (SQLite has no decimal type). Run it with
+  `dotnet run --project samples/Rask.Example.EfCore` and open `/products`. Guide:
+  **[docs/data-access.md](docs/data-access.md)**.
 - **Runnable auth samples — one per cell of the `{Cookie, JWT} × {Server, WASM}` matrix**, each a minimal app
   (`/login`, a protected `/members`, role-gated admin content, sign-out) backed by a browser E2E:
     - **`Rask.Example.Auth`** — cookie + Server (the redeem handshake).
