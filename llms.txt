@@ -14,6 +14,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
 - [Composition](docs/composition.md): children, context (provide/consume), callbacks.
 - [Forms](docs/forms.md): binding, validation, RadioGroup/CheckboxGroup, EditContext.
+- [Data access](docs/data-access.md): EF Core + SQLite, IDbContextFactory, loading in the lifecycle, vertical slices, DDD value objects, SQLite decimal gotcha.
 - [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.
 - [Authentication](docs/authentication.md): cookie/JWT, Authorize, route guards.
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.

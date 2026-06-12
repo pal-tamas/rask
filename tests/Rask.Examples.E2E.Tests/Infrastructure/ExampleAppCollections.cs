@@ -8,6 +8,13 @@ public sealed class ServerExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class EfCoreExampleCollection
+    : ICollectionFixture<EfCoreExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "EfCoreExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class WasmExampleCollection
     : ICollectionFixture<WasmExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {

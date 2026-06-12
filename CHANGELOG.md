@@ -19,6 +19,13 @@ them until tagged releases begin.
   `*_OutsideLiveContext_OmitsHandlerAttribute` tests.
 
 ### Added
+- New `samples/Rask.Example.EfCore` sample: an EF Core + SQLite CRUD app (Server host) showing data
+  persistence in Rask. It uses `IDbContextFactory` (right for long-lived live sessions), organises
+  code as vertical slices (List/Create/Edit), models the catalogue with a DDD aggregate + value
+  objects whose validation rules are reused by the inline form validators, and stores money as
+  integer minor units to sidestep SQLite's lack of a decimal type. Covered by unit + EF/SQLite
+  integration tests (`Rask.Example.EfCore.Tests`) and a Playwright CRUD smoke test, and documented in
+  `docs/data-access.md`.
 - `RaskVersion.Current` exposes the running framework version (from the assembly's MinVer
   `InformationalVersion`). The server (`UseRask`) and WASM host log it on startup, and the
   showcase samples display it as a version badge.
