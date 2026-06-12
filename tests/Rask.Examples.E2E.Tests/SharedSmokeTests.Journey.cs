@@ -423,6 +423,14 @@ public abstract partial class SharedSmokeTests
         // than leaving the default transparent background.
         Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
 
+        // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
+        // scoped {Component}.css (there is no :global() opt-out). Assert the link is present and that
+        // the brand palette actually overrides Bootstrap's :root defaults (global.css loads after it).
+        Assert.Equal(1, await Page.Locator("head link[rel='stylesheet'][href$='/global.css']").CountAsync());
+        var brandPrimary = await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim()");
+        Assert.Equal("#7C3AED", brandPrimary);
+
         // Asset loading: per-component content-addressed <link>s, a JS-only <script>, and lazy
         // mount adding/removing a link via the keyed head-morph.
         await SideAsync("Asset loading", "Asset loading", "main h1.h3");

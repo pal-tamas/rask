@@ -166,8 +166,10 @@ text, `bool` → checkbox, `int` → number, `DateOnly` → date). `ValidationMe
 
 Identical idea, no association ceremony. Drop a sibling `{Component}.css` next to
 `{Component}.cs` and it's auto-globbed, scoped to that type, and hot-reloaded under
-`dotnet watch` — Blazor-parity descendant scoping, with `:global(...)` to opt a
-selector out (use it for shell tags like `body`/`html`).
+`dotnet watch` — Blazor-parity descendant scoping. There is no per-selector opt-out
+(no `:global(...)`, no `::deep`): global styles for shell tags like `body`/`html`, brand
+palettes, or framework classes go in a plain `wwwroot` stylesheet linked from your App's
+`<Head>`.
 
 ## Behavioural gotchas
 

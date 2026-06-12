@@ -1097,20 +1097,18 @@ share one cached file. Standalone/static-file WASM hosts (no in-process endpoint
 `wwwroot/_rask/a/{hash}.css` (as static web assets) at publish, so a plain static server serves exactly what the
 endpoint would.
 
-**Targeting shell tags** — selectors like `body`, `html`, `button` don't carry `data-{scopeId}` (those tags are
-intentionally excluded from stamping), so a sibling rule like `body { ... }` would never match. Wrap the selector in
-`:global(...)` to opt out of scoping:
+**Global styles** — a scoped `{Component}.css` can only style that component's own elements; there is no opt-out
+selector. Brand palettes, `:root` variables, shell tags (`body`/`html`), and framework classes (Bootstrap) belong in a
+plain stylesheet under `wwwroot`, linked from your App component's `<Head>` like any other static stylesheet:
 
-```css
-:global(body) {
-    overscroll-behavior-y: none;
-    padding-left: env(safe-area-inset-left);
-}
-:global(button), :global(a) { touch-action: manipulation; }
+```csharp
+// wwwroot/global.css — a normal, unscoped stylesheet.
+Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
 ```
 
-The wrapper is stripped at compile time and the rule emits exactly the inner selector. `:global()` also works inside
-`@media` / `@supports` / `@container` / `@layer` blocks.
+`LiveOptions.PathBase` keeps the URL correct under a reverse-proxy prefix or a sub-path deploy. User `<Head>`
+contributions splice in before the auto-injected scoped links, so `global.css` sits earlier in the cascade than scoped
+component CSS.
 
 </details>
 

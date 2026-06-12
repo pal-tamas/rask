@@ -53,6 +53,17 @@ them until tagged releases begin.
   automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
   rewrite; every other asset URL is document-relative).
 
+### Removed
+- **`:global(...)` scoped-CSS escape hatch removed.** A scoped `{Component}.css` no longer has a
+  per-selector opt-out. Global styles — brand palettes, `:root` variables, shell tags (`body`/`html`),
+  and framework classes like Bootstrap's — now belong in a plain `wwwroot/global.css` linked from your
+  App component's `<Head>` (`Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")`),
+  exactly like any other static stylesheet; user `<Head>` contributions already load before the
+  framework's scoped links. This drops the special-case selector rewriting and removes a source of
+  confusion about scoping semantics. **Breaking:** move `:global(...)` rules out of `{Component}.css`
+  files into a `wwwroot` stylesheet — all sample apps have been migrated as the worked example. See
+  [scoped CSS](docs/js-interop.md).
+
 ### Documentation
 - EF Core data-access guide: clarified that an awaited event handler re-renders automatically on
   completion (like an async lifecycle hook), and removed the misleading explicit `StateHasChanged()`

@@ -2,7 +2,7 @@ namespace Rask.Example.Auth.Jwt;
 
 // App shell. JwtBootstrap (headless) re-establishes the principal from ProtectedSessionStorage on a
 // fresh session/refresh; the navbar + Router render the matched page. Bootstrap rides a CDN link and
-// App.css layers the Rask purple palette on top.
+// wwwroot/global.css layers the Rask purple palette on top.
 public sealed class App : Component
 {
     protected override RenderResult Head =>
@@ -13,7 +13,10 @@ public sealed class App : Component
         Link(Rel: "stylesheet",
             Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"),
         Link(Rel: "stylesheet",
-            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
+            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"),
+        // Rask purple palette over Bootstrap — plain wwwroot stylesheet, linked after Bootstrap
+        // so it wins the cascade and before the scoped-css links the framework appends.
+        Link(Rel: "stylesheet", Href: "/global.css")
     ];
 
     protected override RenderResult Render() =>

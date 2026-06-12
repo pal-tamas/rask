@@ -22,18 +22,30 @@ Pages/HomePage.css      ← styles here only apply to HomePage's elements
 ```
 
 Each component gets a stable `r-{8hex}` scope id. The serializer stamps `data-{scopeId}`
-on the component's elements and rewrites every selector to `selector[data-{scopeId}]`. To
-opt a whole selector out of scoping (e.g. to style a shell tag like `body`), wrap it in
-`:global(...)`:
+on the component's elements and rewrites every selector to `selector[data-{scopeId}]`.
 
 ```css
 .card { padding: 1rem; }            /* scoped to this component */
-:global(body) { margin: 0; }        /* applies globally */
 ```
 
 `@media` / `@supports` / `@container` / `@layer` recurse into their bodies; `@keyframes`,
 `@font-face`, and `@import` pass through unscoped. Opt a project out of auto-globbing with
 `<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>`.
+
+**Global styles** (a brand palette, `:root` variables, shell tags like `body`, or framework
+classes like Bootstrap's) don't belong in a scoped `{Component}.css` — there is no opt-out
+selector. Put them in a plain stylesheet under `wwwroot` and link it from your App
+component's `<Head>`, exactly as you would any other static stylesheet:
+
+```csharp
+// wwwroot/global.css is a normal, unscoped stylesheet.
+Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")
+```
+
+`LiveOptions.PathBase` keeps the URL correct under a reverse-proxy prefix (Server) or a
+sub-path deploy like GitHub Pages (WASM). User `<Head>` contributions are spliced in before
+the auto-injected scoped links, so `global.css` sits earlier in the cascade than any scoped
+component CSS.
 
 > An orphan `.css` with no matching component, or two that match ambiguously, raises
 > **RASK015 / RASK016**. See [diagnostics](diagnostics.md).
