@@ -13,14 +13,19 @@
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
          publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- Explicit no-AOT, gated off the fast no-native build: the SDK's runtime-pack default for
+         this property is empty, so even 'false' is a relink trigger conflicting with
+         -p:WasmBuildNative=false (AOT is off by default regardless). -->
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
     <!-- Trimming is trim-safe: page types reach the runtime via the route registry's generated
          module initialiser, which emits a [DynamicDependency] per registered page. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
     <!-- Drops the ~2.6 MB of ICU data under _framework/icudt*.dat. Remove this if your app
-         formats culture-sensitive values (dates, numbers, currency). -->
-    <InvariantGlobalization>true</InvariantGlobalization>
+         formats culture-sensitive values (dates, numbers, currency). Gated off the fast
+         no-native build (-p:WasmBuildNative=false): the SDK forces a native relink when
+         InvariantGlobalization=true, so the two conflict, and it's irrelevant with no runtime. -->
+    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
     <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
          that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
          [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->

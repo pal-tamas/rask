@@ -10,10 +10,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RaskWasm>true</RaskWasm>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- Explicit no-AOT, gated off the fast no-native build: the SDK's runtime-pack default for
+         this property is empty, so even 'false' is a relink trigger conflicting with
+         -p:WasmBuildNative=false (AOT is off by default regardless). -->
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Gated off the fast no-native build (-p:WasmBuildNative=false): the SDK forces a native
+         relink when InvariantGlobalization=true, so the two conflict, and it's irrelevant when
+         no WASM runtime is produced. -->
+    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
     <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 
