@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Globalization;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
@@ -126,7 +127,8 @@ public static class RaskEndpointExtensions
 
         services.AddSingleton(sp => new LiveSessionStore(
             sp.GetRequiredService<IServiceScopeFactory>(),
-            sp.GetService<IHostApplicationLifetime>()) { MaxSessions = maxSessions });
+            sp.GetService<IHostApplicationLifetime>())
+        { MaxSessions = maxSessions });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -759,12 +761,45 @@ public static class RaskEndpointExtensions
             }
 
             await DispatchHandlerAsync(session, handlerId, root, ct).ConfigureAwait(false);
+
+            // Acknowledge the handler so the client's slow-link pending indicator can
+            // resolve — crucially even when the render deduped and no frame was sent
+            // (RenderAndSendAsync's HTML/byte dedup returns silently). Opt-in: only a
+            // client that stamped a `seq` gets an ack, so seq-less clients keep the exact
+            // prior frame contract. The ack rides SendOutOfBandAsync, which serialises on
+            // the render lock, so it always lands after this handler's render frame and
+            // before the next handler's (the chain awaits this whole task in order).
+            if (root.TryGetProperty("seq", out var seqEl)
+                && seqEl.ValueKind == JsonValueKind.Number
+                && seqEl.TryGetInt64(out var seq))
+            {
+                await SendHandlerAckAsync(session, seq).ConfigureAwait(false);
+            }
         }
         finally
         {
             // Pairs with the IncrementPendingHandlers in the receive loop when this dispatch was
             // queued, so the backpressure counter tracks the live chain depth.
             session.DecrementPendingHandlers();
+        }
+    }
+
+    // Tiny out-of-band frame that closes the round-trip for a handler the client tagged
+    // with a `seq`. Lets the browser's pending-action bar (rask.js) clear without the
+    // server having to emit a render — the dedup path produces no frame, so the ack is
+    // the client's only signal that a no-op click was processed. Best-effort: a missed
+    // ack (socket closing, cancellation) is covered by the client's hard-timeout backstop.
+    private static async Task SendHandlerAckAsync(LiveSession session, long seq)
+    {
+        try
+        {
+            var payload = Encoding.UTF8.GetBytes(
+                "{\"type\":\"ack\",\"seq\":" + seq.ToString(CultureInfo.InvariantCulture) + "}");
+            await session.SendOutOfBandAsync(payload).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Swallow: the client re-syncs on the next ack or its hard-timeout backstop.
         }
     }
 

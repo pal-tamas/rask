@@ -144,6 +144,13 @@
                 location.reload();
                 return;
             }
+            // Handler ack: resolve the slow-link pending bar. Handled synchronously here
+            // (not inside _renderQueue) so a CSS-gated deferred body swap can't keep the
+            // bar up after the round-trip has actually completed.
+            if (data.type === "ack") {
+                satisfySeq(data.seq);
+                return;
+            }
             // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
             // Both render paths chain through _renderQueue so a diff that defers its body
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
@@ -172,6 +179,7 @@
     function scheduleReconnect() {
         if (reconnectTimer !== null) return;
         open = false;
+        resetPending();
         showOverlay();
         var delays = [500, 1000, 2000, 4000, 5000];
         var delay = delays[Math.min(attempt, delays.length - 1)];
@@ -227,6 +235,109 @@
         overlay.removeAttribute("data-show");
         overlay.setAttribute("aria-hidden", "true");
         if ("inert" in document.body) document.body.inert = false;
+    }
+
+    // Slow-link pending-action indicator. A handler event (click/input/change/submit)
+    // is tagged with a monotonic seq; the server replies {type:"ack",seq} once it has
+    // processed the dispatch — crucially even when the render dedupes and ships no frame.
+    // If no ack lands within PENDING_LATENCY_MS we surface a thin top-of-viewport bar so
+    // a high-latency user sees that their action registered; it clears when the matching
+    // (or any later) ack arrives. A hard timeout backstops a genuinely lost frame. This
+    // is distinct from — and sits one z-index below — the full reconnect overlay above.
+    var PENDING_LATENCY_MS = 300;
+    var PENDING_HARD_TIMEOUT_MS = 10000;
+    var seqCounter = 0;
+    var outstandingSeq = 0;
+    var ackedSeq = 0;
+    var pendingTimer = null;
+    var pendingHardTimer = null;
+    var pendingVisible = false;
+    var pendingBar = installPendingBar();
+
+    function stampSeq(payload) {
+        // Only genuine handler events get a seq: they carry an `id` and dispatch through
+        // the server's handler chain, which acks the seq. jsResult also carries an id but
+        // is an interop reply (not a handler) — exclude it; navigate/dotNetInvoke/hello
+        // carry no id and so are excluded too.
+        if (!payload || payload.id == null || payload.type === "jsResult") return;
+        payload.seq = ++seqCounter;
+        outstandingSeq = payload.seq;
+        if (pendingTimer === null && !pendingVisible) {
+            pendingTimer = setTimeout(showPendingBar, PENDING_LATENCY_MS);
+        }
+        if (pendingHardTimer !== null) clearTimeout(pendingHardTimer);
+        pendingHardTimer = setTimeout(forcePendingTimeout, PENDING_HARD_TIMEOUT_MS);
+    }
+
+    function satisfySeq(s) {
+        if (typeof s !== "number") return;
+        if (s > ackedSeq) ackedSeq = s;
+        if (ackedSeq >= outstandingSeq) clearPending();
+    }
+
+    function clearPending() {
+        if (pendingTimer !== null) {
+            clearTimeout(pendingTimer);
+            pendingTimer = null;
+        }
+        if (pendingHardTimer !== null) {
+            clearTimeout(pendingHardTimer);
+            pendingHardTimer = null;
+        }
+        hidePendingBar();
+    }
+
+    function resetPending() {
+        // On disconnect the reconnect overlay takes over; drop the bar and treat every
+        // outstanding handler as settled so a pre-drop seq can't wedge the next session.
+        ackedSeq = outstandingSeq = seqCounter;
+        clearPending();
+    }
+
+    function forcePendingTimeout() {
+        // Backstop: no ack came back for an outstanding handler (lost frame or a hung
+        // handler). Settle and hide rather than leave the bar wedged.
+        ackedSeq = outstandingSeq = seqCounter;
+        clearPending();
+    }
+
+    function showPendingBar() {
+        pendingTimer = null;
+        pendingVisible = true;
+        if (pendingBar) pendingBar.setAttribute("data-show", "");
+    }
+
+    function hidePendingBar() {
+        pendingVisible = false;
+        if (pendingBar) pendingBar.removeAttribute("data-show");
+    }
+
+    function installPendingBar() {
+        // Managed siblings of the server-rendered tree (data-rask-managed), so the morph
+        // diff treats them as invisible and never trims them — same convention as the
+        // reconnect overlay.
+        var style = document.createElement("style");
+        style.setAttribute("data-rask-pending", "");
+        style.setAttribute("data-rask-managed", "");
+        style.textContent =
+            ".rask-pending{position:fixed;top:0;left:0;right:0;height:2px;" +
+            "z-index:2147483646;pointer-events:none;overflow:hidden;display:none;}" +
+            ".rask-pending[data-show]{display:block;}" +
+            ".rask-pending__bar{position:absolute;top:0;left:0;height:100%;width:40%;" +
+            "background:linear-gradient(90deg,rgba(124,58,237,0),#7C3AED,rgba(124,58,237,0));" +
+            "animation:rask-pending-slide 1s ease-in-out infinite;}" +
+            "@keyframes rask-pending-slide{0%{transform:translateX(-100%);}" +
+            "100%{transform:translateX(350%);}}";
+        document.head.appendChild(style);
+
+        var el = document.createElement("div");
+        el.className = "rask-pending";
+        el.setAttribute("data-rask-managed", "");
+        el.setAttribute("data-rask-pending", "");
+        el.setAttribute("aria-hidden", "true");
+        el.innerHTML = '<div class="rask-pending__bar"></div>';
+        document.documentElement.appendChild(el);
+        return el;
     }
 
     // scopedJsReady starts true: per-component scripts ship as
@@ -512,6 +623,7 @@
 
     function send(payload) {
         if (suppressEvents) return;
+        stampSeq(payload);
         var msg = JSON.stringify(payload);
         if (open && ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
         else queue.push(msg);

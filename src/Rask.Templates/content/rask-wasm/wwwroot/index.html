@@ -71,6 +71,38 @@
             animation: rask-spin 0.8s linear infinite;
         }
 
+        /* Determinate download progress, revealed by main.js once the boot config
+           reports a resource count. Stays hidden (spinner-only fallback) when the
+           total is unknown. */
+        .rask-boot__progress {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rask-boot__bar {
+            width: 180px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.18);
+            overflow: hidden;
+        }
+
+        .rask-boot__fill {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: #7C3AED;
+            transition: width 0.2s ease;
+        }
+
+        .rask-boot__label {
+            font-size: 0.8125rem;
+            opacity: 0.72;
+            font-variant-numeric: tabular-nums;
+        }
+
         @keyframes rask-spin {
             to {
                 transform: rotate(360deg);
@@ -97,6 +129,12 @@
         <path d="M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z" fill="url(#rask-boot-bolt)"/>
     </svg>
     <div class="rask-spin"></div>
+    <div class="rask-boot__progress" hidden>
+        <div class="rask-boot__bar">
+            <div class="rask-boot__fill"></div>
+        </div>
+        <div class="rask-boot__label">Loading…</div>
+    </div>
 </div>
 <script src="main.js" type="module"></script>
 </body>
