@@ -34,7 +34,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
   invokes `OnRate?.Invoke(n)`; parent passes `OnRate: n => _x = n`. Invoking re-renders the parent.
 - **Scoped CSS/JS:** put `MyComponent.css` / `MyComponent.js` next to `MyComponent.cs`; auto-scoped.
 - **Forms:** two-way bind with `Input.Bound(() => model.Name)`; `RadioGroup`/`CheckboxGroup` for choices.
-- **Auth:** gate by injecting `IUserProvider` and reading `.Current` (a never-null `ClaimsPrincipal`), or the `Authorize(...)` component;
+- **Auth:** gate by injecting `IUserProvider` and reading `.Current` (a never-null `ClaimsPrincipal`), or the `Authorize(...)` component (its `Authorized: user => …` slot is handed the principal; static content uses the `[ … ]` indexer);
   `[Authorize]`/`[AllowAnonymous]` on a page. Configure on ASP.NET's own `AddCookie`/`AddJwtBearer`.
 
 ## Build & run

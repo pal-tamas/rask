@@ -16,8 +16,7 @@ public sealed class MembersPage : Component
             Div(Class: "card-body")[
                 Authorize(
                     NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink("/login")["sign in"], "."],
-                    Authorized: MemberContent())
+                        "Please ", NavLink("/login")["sign in"], "."])[MemberContent()]
             ]
         ];
 }
@@ -30,10 +29,8 @@ public sealed class MemberContent(ProtectedSessionStorage store, SessionUserProv
             H1("members-greeting", "h3 mb-3")[$"Welcome, {users.Current.Identity?.Name}"],
             P(Class: "text-secondary")["Signed in with a JWT held in ", Code()["ProtectedSessionStorage"],
                 " — encrypted at rest, decrypted only server-side."],
-            Authorize(
-                ["admin"],
-                Authorized: Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."],
-                NotAuthorized: (Child)Fragment()),
+            Authorize(["admin"])[
+                Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],
             Button(Id: "logout", OnClickAsync: SignOutAsync, Class: "btn btn-outline-primary")["Sign out"]
         ];
 

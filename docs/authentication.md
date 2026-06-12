@@ -74,17 +74,22 @@ The headless `Authorize` component renders exactly one of three slots — no mar
 the current user (`IUserProvider`):
 
 ```csharp
-// Shorthand: children are the "authorized" branch.
+// Shorthand: children are the "authorized" branch (static content, no principal needed).
 Authorize(Roles: ["admin"])[ AdminPanel() ]
 
-// Full three-slot form.
+// Full three-slot form. `Authorized` is a delegate handed the current principal (Blazor's
+// @context.User), so a greeting reads the name with no injected IUserProvider and no subscription.
 Authorize(
     Roles: ["admin", "editor"],                       // ANY-of; omit for "any authenticated user"
-    Authorized:    Div(Class: "card")[ "Members-only content" ],
+    Authorized:    user => Div(Class: "card")[ $"Welcome, {user.Identity!.Name}" ],
     NotAuthorized: A(Href: "/login")[ "Please sign in" ],
     Authorizing:   Spinner())                     // shown while the principal/policy resolves
 ```
 
+- **`Authorized`** is `Func<ClaimsPrincipal, Child>` — it receives the signed-in principal and re-runs
+  whenever the gate re-renders (i.e. on `IUserProvider.Changed`), so user-dependent markup stays fresh
+  on its own. For static authorized content that ignores the user, use the children-indexer shorthand
+  `Authorize(...)[ content ]`.
 - **`Roles`** and the authenticated check are synchronous → no flicker.
 - **`Policy`** (e.g. `Authorize(Policy: "over-18")`) resolves via `IAuthorizationService` in the background;
   the `Authorizing` slot shows until it lands.
@@ -166,8 +171,9 @@ public sealed class LoginModel
 ```
 
 **A protected page** redirects to `/login?returnUrl=/secure` for anonymous users (handled by the route
-guard). Gate the *content* with the `Authorize` component and keep the user-dependent view in a child
-component in the `Authorized` slot — see the reactivity note below for why:
+guard). Gate the *content* with the `Authorize` component; the `Authorized` slot is a delegate handed
+the freshly-authenticated principal, so the greeting reads the name inline — no child component, no
+subscription:
 
 ```csharp
 [Route("secure")]
@@ -178,28 +184,23 @@ public sealed class SecurePage : Component
         Authorize(
             Authorizing:   P()["Signing you in…"],
             NotAuthorized: P()["Please sign in."],
-            Authorized:    SecureContent());     // child component → renders fresh when the gate opens
-}
-
-public sealed class SecureContent(IUserProvider users) : Component
-{
-    protected override RenderResult Render() =>
-        Div()[
-            H1()[$"Hello, {users.Current.Identity!.Name}"],
-            Authorize(Roles: ["admin"],
-                Authorized:    Div(Class: "alert alert-warning")["🔑 Admin tools"],
-                NotAuthorized: P()["You have standard access."])
-        ];
+            Authorized: user => Div()[      // ← receives the current principal, re-runs on sign-in/out
+                H1()[$"Hello, {user.Identity!.Name}"],
+                Authorize(Roles: ["admin"],
+                    NotAuthorized: P()["You have standard access."])[
+                    Div(Class: "alert alert-warning")["🔑 Admin tools"]]
+            ]);
 }
 ```
 
 > **Reactivity.** Sign-in on the Server completes over a WS reconnect that re-seeds the principal and fires
-> `IUserProvider.Changed`. The `Authorize` component subscribes to that event and re-renders — but a page
-> that reads `users.Current` *directly in its own `Render`* won't re-execute (it didn't subscribe), so a greeting
-> built there can go stale after a mid-session sign-in. Two fixes: put principal-dependent markup inside a
-> **child component** in the `Authorized` slot (it first renders only once the gate opens, as above), or
-> subscribe the page itself: `OnMount() => users.Changed += StateHasChanged;`. The child-component form
-> needs no manual subscription.
+> `IUserProvider.Changed`. The `Authorize` component subscribes to that event and re-renders, re-running its
+> `Authorized` delegate with the fresh principal — so reading `user.Identity!.Name` **inside the slot** always
+> reflects the current user with no extra work. By contrast, a page that reads `users.Current` *directly in its
+> own `Render`* won't re-execute (it didn't subscribe), so a greeting built there can go stale after a
+> mid-session sign-in. If you must read the principal outside the slot, either move that markup into a **child
+> component** placed in the `Authorized` slot (it first renders once the gate opens), or subscribe the page
+> itself: `OnMount() => users.Changed += StateHasChanged;`.
 
 **`Program.cs` — wire cookie auth *before* `UseRask`:**
 
