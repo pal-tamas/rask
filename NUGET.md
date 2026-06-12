@@ -45,6 +45,11 @@ dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.
 
 ## Why Rask
 
+After 15+ years building full-stack .NET apps — WebForms, MVC, Angular and React over a C# API — I wanted the front end
+back in C# without `.razor` mixing markup and code. So Rask makes a component a plain C# class that returns a tree, runs
+the *same* code on Server or WASM, and treats the network as the bottleneck (a state change ships a minimal diff, not
+the page). It's a craft project built in the open, deep on Roslyn source generators and tree diffing.
+
 - **One component model, two runtimes** — the same C# component runs Server (live diff over WS) or WASM.
 - **Compile-time factories** — a Roslyn generator emits `Div(...)`, `Counter(...)`, type-safe routes.
 - **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
