@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- `LiveSessionStore` no longer throws `ObjectDisposedException` while retiring pending session
+  removals under contention. `ScheduleRemoval` disposed the prior `CancellationTokenSource` from
+  inside an `AddOrUpdate` factory — i.e. while it was still reachable through `_pendingRemovals` —
+  so a concurrent `CancelPendingRemoval` / `CancelAllPending` (e.g. two sockets detaching at host
+  shutdown) could `TryRemove` the same instance in that window and call `Cancel()` on an
+  already-disposed source. The install now swaps atomically (`TryUpdate`/`TryAdd`) and retires the
+  prior source only after the CAS has made it unreachable, so exactly one thread owns its disposal.
+  Fixes flaky `Reconnect_WhileExistingSocketAttached_NewSocketBecomesAuthoritative`.
 - Showcase samples no longer 404 on `bootstrap.min.css.map`: the vendored `bootstrap.min.css`
   carried a `sourceMappingURL` comment pointing at a map file that isn't shipped, so browsers
   (and the GitHub Pages demo) logged a console 404. Dropped the dangling comment.
