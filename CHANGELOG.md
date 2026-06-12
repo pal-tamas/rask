@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- GitHub Pages demo showed `v1.0.0` instead of the released version in the navbar badge. The
+  `pages` workflow checked out a shallow clone, so MinVer couldn't read the git tags and the
+  assembly kept the .NET default informational version. The workflow now fetches full history
+  (`fetch-depth: 0`), matching the CI/release/nightly workflows, so `RaskVersion.Current`
+  reflects the real tag.
 - Showcase samples no longer 404 on `bootstrap.min.css.map`: the vendored `bootstrap.min.css`
   carried a `sourceMappingURL` comment pointing at a map file that isn't shipped, so browsers
   (and the GitHub Pages demo) logged a console 404. Dropped the dangling comment.
