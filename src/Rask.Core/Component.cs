@@ -1,8 +1,5 @@
-using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
@@ -213,14 +210,6 @@ public abstract class Component
             }
         }
     }
-
-    /// <summary>
-    ///     The current user, resolved from <see cref="IUserProvider" /> in the active render scope.
-    ///     Returns an unauthenticated <see cref="ClaimsPrincipal" /> when no provider is registered.
-    /// </summary>
-    protected ClaimsPrincipal User =>
-        LiveRenderContext.Current?.Services?.GetService<IUserProvider>()?.Current
-        ?? new ClaimsPrincipal(new ClaimsIdentity());
 
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.

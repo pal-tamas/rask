@@ -8,14 +8,14 @@ using Rask.Core.Routing;
 
 namespace Rask.Server.Tests.Authentication;
 
-public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState) : Component
+public sealed class SignInTestApp(AuthSignIn auth, RouteState routeState, IUserProvider userProvider) : Component
 {
     protected override RenderResult Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["auth-test"]],
             new Body()[new H1()[$"path={routeState.Path}"],
-                new P()[$"user={(User.Identity?.IsAuthenticated == true ? User.Identity.Name : "anon")}"],
+                new P()[$"user={(userProvider.Current.Identity?.IsAuthenticated == true ? userProvider.Current.Identity.Name : "anon")}"],
                 Button(OnClickAsync: SignInAsync)["sign-in"],
                 Button(OnClickAsync: SignOutAsync)["sign-out"]]]
     ];

@@ -8,7 +8,7 @@ namespace Rask.Core.Components;
 
 /// <summary>
 ///     Declarative auth gating — the headless analogue of Blazor's <c>AuthorizeView</c>. Renders
-///     exactly one of three slots based on the current <see cref="Component.User" /> (and, optionally,
+///     exactly one of three slots based on the current <see cref="IUserProvider" /> (and, optionally,
 ///     a named authorization policy), with <b>no markup of its own</b> (transparent like
 ///     <see cref="Fragment" />):
 ///     <list type="bullet">
@@ -44,6 +44,12 @@ public sealed class Authorize : Component
     private int _policyGen;
     private IUserProvider? _provider;
     private IServiceProvider? _services;
+
+    // The current principal from the resolved provider; never null. _provider is wired in OnMount,
+    // which the lifecycle guarantees runs before OnPropsChangedAsync/Render, so this is safe at
+    // every read site.
+    private ClaimsPrincipal CurrentUser =>
+        _provider?.Current ?? new ClaimsPrincipal(new ClaimsIdentity());
 
     // Transparent — Authorize itself emits nothing, it only selects one slot. (Same as the base
     // default; stated explicitly to document the headless contract.)
@@ -97,7 +103,7 @@ public sealed class Authorize : Component
             return;
         }
 
-        await EvaluatePolicyAsync(User).ConfigureAwait(false);
+        await EvaluatePolicyAsync(CurrentUser).ConfigureAwait(false);
     }
 
     protected override RenderResult Render()
@@ -122,7 +128,7 @@ public sealed class Authorize : Component
 
     private bool IsAllowed()
     {
-        if (User.Identity?.IsAuthenticated != true)
+        if (CurrentUser.Identity?.IsAuthenticated != true)
         {
             return false;
         }
@@ -144,7 +150,7 @@ public sealed class Authorize : Component
     {
         foreach (var role in Roles!)
         {
-            if (!string.IsNullOrEmpty(role) && User.IsInRole(role))
+            if (!string.IsNullOrEmpty(role) && CurrentUser.IsInRole(role))
             {
                 return true;
             }
@@ -170,8 +176,7 @@ public sealed class Authorize : Component
     private async Task RefreshPolicyThenRenderAsync()
     {
         StateHasChanged(); // paint the Authorizing slot immediately
-        await EvaluatePolicyAsync(_provider?.Current ?? new ClaimsPrincipal(new ClaimsIdentity()))
-            .ConfigureAwait(false);
+        await EvaluatePolicyAsync(CurrentUser).ConfigureAwait(false);
         StateHasChanged(); // paint the resolved verdict
     }
 

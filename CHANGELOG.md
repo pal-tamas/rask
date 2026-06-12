@@ -27,6 +27,13 @@ them until tagged releases begin.
 - Community health files: issue forms, PR template, `CODE_OF_CONDUCT.md`, `SECURITY.md`,
   `CODEOWNERS`, and `docs/repo-administration.md` — contributions open, maintainer merges.
 
+### Removed
+- **Breaking:** removed the `Component.User` convenience property. Components that need the current
+  principal now inject `IUserProvider` via the constructor and read `.Current` (a never-null
+  `ClaimsPrincipal`) — explicit, testable dependencies instead of a base-class service locator. The
+  built-in `Authorize` component, `[Authorize]` route gating, and the auth samples/templates are
+  unchanged in behaviour.
+
 ### Changed
 - Build is now **warnings-as-errors** with .NET analyzers and code-style enforced in-build
   (`Directory.Build.props`); see `docs/code-analysis.md`.

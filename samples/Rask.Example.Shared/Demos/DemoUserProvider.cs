@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Demos;
 // A toggleable IUserProvider for the User-gating showcase. Real apps back IUserProvider with a
 // cookie/JWT (Server) or /api/me (WASM); this one just flips an in-memory principal so the demo
 // can show authenticated/role-gated rendering without real auth infrastructure. Registered as
-// both itself (so the demo can sign in/out) and IUserProvider (so Component.User resolves it).
+// both itself (so the demo can sign in/out) and IUserProvider (so injected consumers resolve it).
 public sealed class DemoUserProvider : IUserProvider
 {
     public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());

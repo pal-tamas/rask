@@ -23,7 +23,7 @@ public static class ExampleServiceCollectionExtensions
         services.AddSingleton<IBannedWordService, BannedWordService>();
 
         // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
-        // type (so the demo can sign in/out) and as IUserProvider (so Component.User resolves it).
+        // type (so the demo can sign in/out) and as IUserProvider (so injected consumers resolve it).
         // Defaults to anonymous, so other pages are unaffected. Scoped — NOT singleton — so each
         // live session gets its own principal (matching the framework's own SessionUserProvider,
         // RaskEndpointExtensions.AddScoped). A singleton would share one signed-in user across every
