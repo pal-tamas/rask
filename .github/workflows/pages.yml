@@ -37,20 +37,20 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Publish Rask.Example.Wasm
-        # /p:RaskPathBase=/<repo> bakes the GH-Pages sub-path into the AppBundle's
-        # index.html (<base href="/<repo>/">) at publish time. The framework's
-        # build/Rask.Wasm.targets _RaskRewriteBaseHref target performs the rewrite
-        # so the runtime's WasmHostBuilder.CreateDefault auto-detect picks up the
-        # prefix from document.baseURI on first paint and emits every scoped-asset
-        # <link>/<script> under /<repo>/_rask/a/{hash}.{ext}.
-        run: dotnet publish samples/Rask.Example.Wasm -c Release -o publish /p:RaskPathBase=/${{ github.event.repository.name }}
+        # Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills the
+        # index.html import map (with integrity) at publish — so GitHub Pages redeploys stay
+        # subresource-integrity-safe. /p:RaskPathBase=/<repo> drives the framework's
+        # _RaskRewriteBaseHref target to rewrite <base href> to /<repo>/ in the published
+        # wwwroot/index.html; every other asset URL + the import map is document-relative, so
+        # the corrected base href resolves them all under the GH-Pages sub-path.
+        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
 
       - name: Resolve bundle directory
         id: bundle
         run: |
-          BUNDLE=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/browser-wasm/AppBundle
+          BUNDLE=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
           if [ ! -d "$BUNDLE" ]; then
-            echo "Could not locate the WASM AppBundle at $BUNDLE" >&2
+            echo "Could not locate the published wwwroot at $BUNDLE" >&2
             find samples/Rask.Example.Wasm/bin -maxdepth 5 -type d
             exit 1
           fi

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net10.0-browser</TargetFramework>
@@ -8,7 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
+    <RaskWasm>true</RaskWasm>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <RunAOTCompilation>false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>

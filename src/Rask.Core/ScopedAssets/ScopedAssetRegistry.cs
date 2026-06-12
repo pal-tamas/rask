@@ -281,9 +281,9 @@ public static class ScopedAssetRegistry
     /// <summary>
     ///     Yields every registered asset entry as <c>(hash, kind, utf8Bytes)</c>. Used by
     ///     the publish-time bake task (<c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c>) to
-    ///     materialise <c>/_rask/a/{hash}.{ext}</c> files into the published WASM
-    ///     AppBundle so a static-file-only host like <c>WasmAppHost</c> serves the same
-    ///     bytes the in-process endpoint would. Returns a snapshot copy so iteration is
+    ///     materialise <c>/_rask/a/{hash}.{ext}</c> files (registered as static web assets)
+    ///     into the published WASM <c>wwwroot</c> so a static-file-only host like
+    ///     <c>WasmAppHost</c> serves the same bytes the in-process endpoint would. Returns a snapshot copy so iteration is
     ///     safe under concurrent registration; the byte spans alias the registry's
     ///     pooled storage so consumers must not retain or mutate them beyond write-out.
     /// </summary>

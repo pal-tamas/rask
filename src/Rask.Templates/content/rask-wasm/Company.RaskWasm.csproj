@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net10.0-browser</TargetFramework>
@@ -8,7 +8,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
+    <!-- Rask WASM marker (gates the framework's wwwroot staging + scoped-asset bake). -->
+    <RaskWasm>true</RaskWasm>
+    <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
+         publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <RunAOTCompilation>false</RunAOTCompilation>
     <!-- Trimming is trim-safe: page types reach the runtime via the route registry's generated
          module initialiser, which emits a [DynamicDependency] per registered page. -->

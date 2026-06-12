@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **WASM build migrated to `Microsoft.NET.Sdk.WebAssembly`** so framework assets are
+  content-fingerprinted (`dotnet.<hash>.js`, `App.<hash>.wasm`) and `index.html` carries an
+  SDK-generated import map with integrity hashes. This fixes the GitHub Pages (and any static
+  host) failure where a redeploy paired a stale, browser-cached integrity manifest with freshly
+  served assemblies and tripped a subresource-integrity error on every `_framework/*.wasm` until
+  the cache expired — fingerprinted URLs change per release, so a stale asset can never collide
+  with a new manifest. **Breaking for downstream WASM consumers:** set
+  `<Project Sdk="Microsoft.NET.Sdk.WebAssembly">`, replace `<WasmGenerateAppBundle>true` with
+  `<RaskWasm>true</RaskWasm>` + `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>`,
+  and add a `wwwroot/index.html` shell (the `dotnet new rask-wasm*` templates already include
+  one). Published output moves from `bin/<cfg>/net10.0-browser/browser-wasm/AppBundle/` to
+  `bin/<cfg>/net10.0-browser/publish/wwwroot/`; `Rask.Wasm.Hosting`'s `UseRask()` follows it
+  automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
+  rewrite; every other asset URL is document-relative).
+
 ### Fixed
 - GitHub Pages demo showed `v1.0.0` instead of the released version in the navbar badge. The
   `pages` workflow checked out a shallow clone, so MinVer couldn't read the git tags and the

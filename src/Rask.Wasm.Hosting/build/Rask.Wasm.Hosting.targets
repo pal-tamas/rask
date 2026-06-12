@@ -3,8 +3,8 @@
   <!--
     Rask.Wasm.Hosting build integration.
 
-    A consuming host adds a ProjectReference to a Rask WASM project (any
-    browser-wasm SDK project that sets <WasmGenerateAppBundle>true</...>),
+    A consuming host adds a ProjectReference to a Rask WASM project (a
+    Microsoft.NET.Sdk.WebAssembly project that sets <RaskWasm>true</...>),
     along with the two cross-TFM metadata flags NuGet/MSBuild require for
     referencing a browser-wasm project from a net10.0 host without linking
     its output:
@@ -14,9 +14,10 @@
                           SkipGetTargetFrameworkProperties="true"/>
 
     This file then, at build time:
-      1. Finds the WASM ProjectReference by reading WasmGenerateAppBundle
-         out of each referenced csproj via XmlPeek.
-      2. Runs `dotnet publish` on it before BeforeBuild.
+      1. Finds the WASM ProjectReference by reading RaskWasm out of each
+         referenced csproj via XmlPeek.
+      2. Runs `dotnet publish` on it before BeforeBuild (produces the
+         fingerprinted publish/wwwroot the host serves).
       3. Bakes [assembly: AssemblyMetadata("Rask.WasmAppBundleDir", "...")]
          into the host so `app.UseRask()` resolves no-args at runtime.
 
@@ -28,13 +29,13 @@
     Condition is evaluated before its DependsOnTargets run (so we can't gate
     on the probe result either). Instead the probe runs in every project
     (cheap: one XmlPeek per ProjectReference); the publish/metadata work
-    only fires when the probe actually finds a WasmGenerateAppBundle ref.
+    only fires when the probe actually finds a RaskWasm ref.
   -->
 
   <Target Name="_RaskProbeWasmProjectRef"
           Outputs="%(ProjectReference.Identity)">
     <XmlPeek XmlInputPath="%(ProjectReference.FullPath)"
-             Query="/Project/PropertyGroup/WasmGenerateAppBundle/text()"
+             Query="/Project/PropertyGroup/RaskWasm/text()"
              Condition=" '%(ProjectReference.FullPath)' != '' ">
       <Output TaskParameter="Result" PropertyName="_RaskWasmBundleProbe"/>
     </XmlPeek>
@@ -54,7 +55,7 @@
       Text="Rask.Wasm.Hosting: only one Rask WASM ProjectReference is supported per host (found @(_RaskWasmRef->Count()): @(_RaskWasmRef))."/>
     <PropertyGroup>
       <_RaskWasmProjectDir Condition=" '@(_RaskWasmRef->Count())' == '1' ">$([System.IO.Path]::GetDirectoryName('%(_RaskWasmRef.FullPath)'))</_RaskWasmProjectDir>
-      <_RaskWasmAppBundleDir Condition=" '$(_RaskWasmProjectDir)' != '' ">$(_RaskWasmProjectDir)$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)net10.0-browser$([System.IO.Path]::DirectorySeparatorChar)browser-wasm$([System.IO.Path]::DirectorySeparatorChar)AppBundle</_RaskWasmAppBundleDir>
+      <_RaskWasmAppBundleDir Condition=" '$(_RaskWasmProjectDir)' != '' ">$(_RaskWasmProjectDir)$([System.IO.Path]::DirectorySeparatorChar)bin$([System.IO.Path]::DirectorySeparatorChar)$(Configuration)$([System.IO.Path]::DirectorySeparatorChar)net10.0-browser$([System.IO.Path]::DirectorySeparatorChar)publish$([System.IO.Path]::DirectorySeparatorChar)wwwroot</_RaskWasmAppBundleDir>
     </PropertyGroup>
   </Target>
 

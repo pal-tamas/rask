@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Opt into brotli + gzip response compression for the AppBundle (.wasm / .dll / .js / .json).
+// Opt into brotli + gzip response compression for the published wwwroot (.wasm / .js / .json).
 builder.Services.AddRask();
 //#if (auth)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
