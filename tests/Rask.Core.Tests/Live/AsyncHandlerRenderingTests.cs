@@ -88,6 +88,40 @@ public class AsyncHandlerRenderingTests
     }
 
     [Fact]
+    public async Task AsyncHandler_StateMutatedAfterAwait_RepaintsWithoutStateHasChanged()
+    {
+        // The contract behind docs/data-access.md: an awaited DOM event handler needs no explicit
+        // StateHasChanged() — after the handler returns the framework re-marks the owner dirty, so the
+        // dispatcher's unconditional post-handler render repaints mutations made past the mid-await
+        // window. The render handle here consumes the dirty flag on every render exactly like the real
+        // RenderForLive does, so this proves the POST-await re-mark, not just the mark-before-run:
+        // without it, the final render below would be a stale cache hit (RenderCount unchanged).
+        var component = new CountingComponent();
+        var handle = new RecordingRenderHandle(() => component.LastRendered, onRender: () => component.RenderForLive());
+        component.RenderHandle = handle;
+
+        component.RenderForLive(); // first paint: populate the render cache and clear the dirty flag
+        var rendersAfterFirstPaint = component.RenderCount;
+
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            await Task.Yield(); // mid-await render fires here and consumes the dirty flag
+            component.State = "reloaded"; // the post-await mutation (e.g. _products = await Load())
+        }));
+
+        await component.TryInvokeHandlerAsync("h0", EmptyPayload);
+        var rendersAfterHandler = component.RenderCount;
+
+        // Simulate the dispatcher's post-handler render. A clean component would cache-hit here.
+        component.RenderForLive();
+
+        Assert.True(component.RenderCount > rendersAfterFirstPaint, "the handler should have driven renders");
+        Assert.True(component.RenderCount > rendersAfterHandler,
+            "dispatcher render must re-execute — the handler left the component dirty, no StateHasChanged() needed");
+        Assert.Equal("reloaded", component.LastRendered);
+    }
+
+    [Fact]
     public async Task AsyncHandler_NoRenderHandle_DoesNotThrow()
     {
         var component = new StubComponent(Span());
@@ -111,11 +145,31 @@ public class AsyncHandlerRenderingTests
         Assert.IsNotType<HandlerSyncContext>(SynchronizationContext.Current);
     }
 
+    private sealed class CountingComponent : Component
+    {
+        public int RenderCount { get; private set; }
+        public string State { get; set; } = "init";
+        public string LastRendered { get; private set; } = "";
+
+        protected override RenderResult Render()
+        {
+            RenderCount++;
+            LastRendered = State;
+            return Span()[State];
+        }
+    }
+
     private sealed class RecordingRenderHandle : IRenderHandle
     {
         private readonly Func<string> _snapshot;
+        private readonly Action? _onRender;
 
-        public RecordingRenderHandle(Func<string> snapshot) => _snapshot = snapshot;
+        public RecordingRenderHandle(Func<string> snapshot, Action? onRender = null)
+        {
+            _snapshot = snapshot;
+            _onRender = onRender;
+        }
+
         public List<string> Snapshots { get; } = new();
 
         public Task RequestRenderAsync() => Task.CompletedTask;
@@ -127,6 +181,7 @@ public class AsyncHandlerRenderingTests
                 Snapshots.Add(_snapshot());
             }
 
+            _onRender?.Invoke();
             return Task.CompletedTask;
         }
     }
