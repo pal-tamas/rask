@@ -71,6 +71,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
+  request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
+  sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to
+  `application/octet-stream` — which browsers refuse to apply as a stylesheet (or execute as a
+  module), so a linked `global.css` silently had no effect on a hosted WASM app. The host now
+  re-derives the type from the underlying asset name for any known extension (`.css`/`.json`/`.svg`/…),
+  alongside the existing `.wasm`/`.js` handling; genuinely unknown extensions still serve as
+  `application/octet-stream`.
 - **Keyed reorders now preserve the survivors' focus, text selection, and caret position**, not
   just their uncommitted input *value*. Applying a trusted structural diff (`MoveSubtree` /
   `PermutationBatch`) — and the keyed branch of the untrusted morph — relocated each surviving

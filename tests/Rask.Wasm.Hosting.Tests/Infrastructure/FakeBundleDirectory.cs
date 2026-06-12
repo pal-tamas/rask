@@ -38,6 +38,15 @@ internal sealed class FakeBundleDirectory : IDisposable
             "console.log('hi');");
         File.WriteAllText(System.IO.Path.Combine(Path, "unknown.bin"),
             "opaque");
+        // A user-authored global stylesheet at the bundle root, plus the precompressed siblings the
+        // WASM publish emits for it. Used to prove a precompressed .css is still served as text/css
+        // (not application/octet-stream), so the browser applies it.
+        File.WriteAllText(System.IO.Path.Combine(Path, "global.css"),
+            ":root { --brand: #7C3AED; }");
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "global.css.br"),
+            new byte[] { 0x42, 0x52, 0x03, 0x04 });
+        File.WriteAllBytes(System.IO.Path.Combine(Path, "global.css.gz"),
+            new byte[] { 0x1F, 0x8B, 0x08, 0x01, 0x00 });
     }
 
     public string Path { get; }
