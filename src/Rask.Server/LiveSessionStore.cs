@@ -189,16 +189,29 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(_stopping);
-        var prior = _pendingRemovals.AddOrUpdate(id, cts, (_, existing) =>
+        // Install the new CTS, retiring any prior pending removal for this id. A CTS must
+        // never be cancelled/disposed while it is still reachable through _pendingRemovals:
+        // a concurrent CancelPendingRemoval / CancelAllPending could TryRemove the same
+        // instance and race us into a double-dispose (ObjectDisposedException out of Cancel).
+        // So swap atomically and retire the prior CTS only after our CAS has made it
+        // unreachable — never from inside an AddOrUpdate factory, whose side effects mutate a
+        // value other threads can still observe in the dictionary. The thread whose
+        // TryUpdate/TryRemove wins is the single owner responsible for disposing that value.
+        while (true)
         {
-            existing.Cancel();
-            existing.Dispose();
-            return cts;
-        });
-        if (!ReferenceEquals(prior, cts))
-        {
-            cts.Dispose();
-            return;
+            if (_pendingRemovals.TryGetValue(id, out var existing))
+            {
+                if (_pendingRemovals.TryUpdate(id, cts, existing))
+                {
+                    existing.Cancel();
+                    existing.Dispose();
+                    break;
+                }
+            }
+            else if (_pendingRemovals.TryAdd(id, cts))
+            {
+                break;
+            }
         }
 
         _ = Task.Run(async () =>
