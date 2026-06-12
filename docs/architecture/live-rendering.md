@@ -355,6 +355,51 @@ across the awaited handler (`WasmLiveSession.cs`). The render walk is single-thr
 per session; `InHandlerScope` is a plain instance bool (deliberately *not* `AsyncLocal`)
 because the lock is owned by the session as a whole.
 
+## Slow-connection affordances
+
+Both transports give honest feedback on a slow link without changing the fast-path
+behaviour — each indicator stays invisible until a latency threshold is crossed.
+
+### WASM: boot progress
+
+The page shell (`src/Rask.Wasm/Browser/index.html`) carries a hidden
+`.rask-boot__progress` bar under the splash spinner. `main.js` wires the runtime's
+`onDownloadResourceProgress(resourcesLoaded, totalResources)` callback (via
+`dotnet.withModuleConfig(...)`) and reveals the bar with a determinate
+`loaded / total` percentage, so a slow link shows movement instead of an indefinite
+spinner. Progress is **resource-count, not bytes**: framework assets are commonly
+served Brotli/gzip precompressed, so a byte bar would have to reconcile encoded vs.
+decoded sizes — counts sidestep that. When the runtime reports no usable total the
+bar stays hidden and the spinner stands in. The App's first render morphs over the
+whole shell, so there's no teardown.
+
+### Server: the pending-action bar and the handler ack
+
+`rask.js` installs a managed (`data-rask-managed`) 2px top-of-viewport bar that
+appears when a handler round-trip outlives `PENDING_LATENCY_MS` (~300ms) and clears
+when the reply lands — distinct from, and one z-index below, the full reconnect
+overlay. It is driven by an **opt-in ack protocol**:
+
+- The client stamps a monotonic `seq` on handler events only (click/input/change/
+  submit/drag* — anything carrying an `id` that the server dispatches through its
+  handler chain; `jsResult`/`navigate`/`dotNetInvoke`/`hello` are excluded). It tracks
+  the highest outstanding seq, arms the latency timer, and a hard-timeout backstop.
+- After each handler dispatch completes, the server replies `{"type":"ack","seq":N}`
+  (`ChainHandlerDispatchAsync` → `SendHandlerAckAsync`, riding `SendOutOfBandAsync` so
+  it serialises on the render lock and lands *after* that handler's render frame and
+  *before* the next handler's). The ack fires **even when the render dedupes and ships
+  no frame** (`RenderAndSendAsync`'s HTML/byte dedup returns silently) — without it a
+  no-op click would wedge the bar.
+- The client clears the bar on the matching (or any later) ack, synchronously on
+  receipt (not inside the `_renderQueue`, so a CSS-gated deferred body swap can't keep
+  it up). Reconnect resets the outstanding/acked counters and the reconnect overlay
+  takes over.
+
+**Opt-in:** the server only acks when the inbound handler carried a `seq`, so a
+seq-less client gets byte-for-byte the prior frame contract (the render envelope is
+unchanged — the ack is a separate tiny frame, not a payload field). See
+`tests/Rask.Server.Tests/WebSockets/PendingAckTests.cs`.
+
 ## See also
 
 - [`../diagnostics.md`](../diagnostics.md) — **RASK022** (warning) flags a keyless list

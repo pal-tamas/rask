@@ -17,6 +17,17 @@ them until tagged releases begin.
   published as a single immutable snapshot swapped by reference so cross-thread reads are consistent.
   Runs in both the Server and WASM sample apps. `Sparkline` gains an optional `ValueFormat` so its
   axis labels can render as percentages (default unchanged).
+- **Slow-connection affordances on both transports.** WASM boot now renders a determinate
+  download-progress bar on the splash (driven by the runtime's `onDownloadResourceProgress`
+  resource count, not bytes — so Brotli/gzip-precompressed assets don't skew it), replacing the
+  indefinite spinner so a slow link shows movement instead of an apparent hang; it falls back to
+  the spinner when the total is unknown. Server mode adds a subtle top-of-viewport **pending-action
+  bar** that appears when a handler round-trip outlives a ~300ms latency threshold and clears when
+  the reply lands — so a high-latency user sees their click registered. It is backed by an opt-in
+  WebSocket ack: a client tags handler events with a monotonic `seq` and the server replies
+  `{type:"ack",seq}` once the dispatch completes, **even when the render dedupes and ships no
+  frame** (otherwise a no-op click would wedge the bar). Seq-less clients are unaffected — the prior
+  frame contract is byte-for-byte unchanged.
 
 ### Changed
 - **`Authorize`'s `Authorized` slot now receives the current user** — its type changed from `Child` to

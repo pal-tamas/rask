@@ -195,6 +195,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Background service: an app-wide singleton's loop pushes updates to two decoupled
+        // subscribers. The tick badge must climb with NO user interaction — proof the
+        // background producer (not a click handler) is driving the render.
+        await SideAsync("Background service", "Background service");
+        await Expect(Page.Locator("#metrics-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        var firstTick = await ReadMetricsTickAsync();
+        await Expect(Page.Locator("#metrics-tick")).Not.ToContainTextAsync($"tick {firstTick}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await ReadMetricsTickAsync() > firstTick, "the background feed did not advance on its own");
+
         // Cancellation: unmount a probe mid-delay → its CancellationToken fires and it logs cancelled.
         await SideAsync("Cancellation", "Cancellation");
         await Page.Locator("#cancel-mount").ClickAsync();
@@ -560,6 +571,39 @@ public abstract partial class SharedSmokeTests
             await Page.GotoAsync("/http");
             await Expect(Page.Locator(".sample-result-body article.card")).ToBeVisibleAsync(
                 new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+
+            if (opts.OfflineReconnect)
+            {
+                // Server only: on a high-latency link a handler round-trip should surface the
+                // slow-link pending bar (it appears past the ~300ms threshold) and then clear
+                // when the ack/render lands. 1.5s latency keeps the bar up long enough to assert
+                // without racing the reply.
+                await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
+                {
+                    ["offline"] = false,
+                    ["latency"] = 1500,
+                    ["downloadThroughput"] = 50 * 1024,
+                    ["uploadThroughput"] = 50 * 1024,
+                });
+                await Page.GotoAsync("/events");
+                var bump = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+                await Expect(bump).ToBeVisibleAsync(
+                    new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+                await bump.ClickAsync();
+                await Expect(Page.Locator(".rask-pending[data-show]")).ToBeVisibleAsync(
+                    new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+                await Expect(Page.Locator(".rask-pending[data-show]")).ToBeHiddenAsync(
+                    new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
+            }
+            else
+            {
+                // WASM only: the boot shell must carry the download-progress markup that main.js
+                // drives via onDownloadResourceProgress. A full throttled re-boot is impractical
+                // (multi-MB at 50 KB/s), so assert the shipped shell rather than the live fill.
+                var shell = await Page.APIRequest.GetAsync("/index.html");
+                Assert.Contains("rask-boot__progress", await shell.TextAsync());
+            }
+
             await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
             {
                 ["offline"] = false,
