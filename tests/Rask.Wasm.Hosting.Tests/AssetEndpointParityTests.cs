@@ -166,6 +166,39 @@ public class AssetEndpointParityTests
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
     }
 
+    [Fact]
+    public async Task PrecompressedSiblingNextToScopedAsset_DoesNotMislabelEndpointBytes()
+    {
+        // Regression: the SDK bakes .br/.gz siblings next to the baked /_rask/a/{hash} files,
+        // but in an ASP.NET host those URLs are served by the in-process scoped-asset endpoint
+        // (uncompressed), not UseStaticFiles. PrecompressedFileMiddleware used to spot the .br
+        // sibling on disk and attach Content-Encoding: br to the endpoint's plain bytes — the
+        // browser then failed to brotli-decode plaintext (ERR_CONTENT_DECODING_FAILED). The
+        // middleware must skip when routing already matched an endpoint.
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".y { color: blue; }");
+        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
+        using var bundle = new FakeBundleDirectory();
+        var scopedDir = Path.Combine(bundle.Path, "_rask", "a");
+        Directory.CreateDirectory(scopedDir);
+        // A bogus .br sibling: if the middleware (wrongly) engaged, the response would carry
+        // Content-Encoding: br over the endpoint's real (uncompressed) CSS bytes.
+        File.WriteAllBytes(Path.Combine(scopedDir, $"{hash}.css.br"), new byte[] { 0x42, 0x52, 0x09, 0x09 });
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // No response-compression registered here, so the endpoint ships plain — and crucially
+        // with NO Content-Encoding (pre-fix this contained "br").
+        Assert.Empty(response.Content.Headers.ContentEncoding);
+        // The body is the real registry asset, not the bogus .br sibling.
+        var body = await response.Content.ReadAsByteArrayAsync();
+        var expected = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
+        Assert.Equal(expected, body);
+    }
+
     private sealed class WidgetA : Component
     {
         protected override RenderResult Render() => this;

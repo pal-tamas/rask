@@ -89,19 +89,20 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 
     /// <summary>
     ///     Fail fast (and descriptively) if the served bundle is missing its baked
-    ///     per-component scoped assets. WasmAppHost is a static-file server: the
-    ///     <c>/_rask/a/{hash}.{ext}</c> files must exist on disk (baked by
-    ///     <c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c>) or every CodeSample page 404s on
-    ///     <c>window.Rask.CodeSample</c> and highlighting never runs. Without this probe
-    ///     that surfaces as five separate ~5s Playwright "locator never visible" timeouts
-    ///     with no hint at the cause; with it, the whole collection fails once, here, with
-    ///     the missing URL and the bundle directory named.
+    ///     per-component scoped assets. WasmAppHost serves the project's static web assets
+    ///     (<c>--use-staticwebassets</c>): the <c>/_rask/a/{hash}.{ext}</c> files are baked by
+    ///     <c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c> into the intermediate staging dir and
+    ///     registered as computed static web assets (see <c>_RaskBakeScopedStaticWebAssets</c>
+    ///     in <c>Rask.Wasm/build/Rask.Wasm.targets</c>). If absent, every CodeSample page 404s
+    ///     on <c>window.Rask.CodeSample</c> and highlighting never runs — which would otherwise
+    ///     surface as five separate ~5s Playwright "locator never visible" timeouts with no
+    ///     hint at the cause; with this probe the whole collection fails once, here, with the
+    ///     missing URL and the staging directory named.
     /// </summary>
     private static async Task VerifyScopedAssetsServedAsync(string repoRoot, string url, CancellationToken ct)
     {
-        var bundleDir = Path.Combine(repoRoot, ProjectRelativePath, "bin",
-            Configuration, "net10.0-browser", "browser-wasm", "AppBundle");
-        var scopedDir = Path.Combine(bundleDir, "_rask", "a");
+        var scopedDir = Path.Combine(repoRoot, ProjectRelativePath, "obj",
+            Configuration, "net10.0-browser", "rask-scoped", "_rask", "a");
 
         var jsFile = Directory.Exists(scopedDir)
             ? Directory.EnumerateFiles(scopedDir, "*.js").FirstOrDefault()
@@ -109,10 +110,10 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
         if (jsFile is null)
         {
             throw new InvalidOperationException(
-                $"{ProjectRelativePath} served bundle is missing baked scoped-JS assets under '{scopedDir}'. " +
+                $"{ProjectRelativePath} is missing baked scoped-JS assets under '{scopedDir}'. " +
                 "The BakeScopedAssetsTask bake did not produce /_rask/a/*.js — standalone WASM would 404 on " +
                 "every scoped-asset URL and highlight/JS-interop tests would all time out. " +
-                "See Rask.Wasm/build/Rask.Wasm.targets (_RaskBakeScopedAssets / _RaskBakeScopedAssetsBeforeRun).");
+                "See Rask.Wasm/build/Rask.Wasm.targets (_RaskBakeScopedStaticWebAssets).");
         }
 
         var assetUrl = $"{url}/_rask/a/{Path.GetFileName(jsFile)}";

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   # Fast gate: every unit/integration test that does NOT need a browser.
-  # Skips the expensive WASM AppBundle/trim step (-p:WasmGenerateAppBundle=false) since
+  # Skips the expensive WASM work (-p:RaskWasm=false + -p:WasmBuildNative=false) since
   # no unit test consumes the published browser bundle. Mirrors ci.yml `unit`.
   unit:
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build (no WASM bundle)
-        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false
+        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false
 
       - name: Unit & integration tests
         run: >-

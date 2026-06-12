@@ -274,7 +274,7 @@ await host.RunAsync<App>();
 using Rask.Wasm.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddRask();              // opt-in: brotli/gzip response compression of the AppBundle
+builder.Services.AddRask();              // opt-in: brotli/gzip response compression of the WASM payload
 
 var app = builder.Build();
 app.UseRask();
@@ -286,8 +286,9 @@ precompressed `.br` / `.gz` siblings emitted by the WASM publish step go out wit
 no runtime compression cost on the framework payload. Skip it and the host still works; you just lose the compression
 layer.
 
-`app.UseRask()` mounts the published WASM AppBundle as static files with sensible MIME types, no-cache revalidation,
-and a SPA fallback so client-side routes resolve. Add your `/api/...` endpoints alongside it.
+`app.UseRask()` mounts the published WASM `wwwroot` as static files with sensible MIME types, immutable caching for
+fingerprinted framework assets (no-cache revalidation for the rest), and a SPA fallback so client-side routes resolve.
+Add your `/api/...` endpoints alongside it.
 
 ## 🧰 Troubleshooting
 
@@ -319,17 +320,18 @@ Use cases:
 
 - **Reverse-proxy sub-path** — run two `Rask.Server` apps behind one origin: `app.UseRask<AppA>(pathBase: "/appA")`
   and `app.UseRask<AppB>(pathBase: "/appB")` (typically separate processes).
-- **Two WASM AppBundles in one host** — `app.UseRask<AppA>(pathBase: "/appA")` and
+- **Two WASM apps in one host** — `app.UseRask<AppA>(pathBase: "/appA")` and
   `app.UseRask<AppB>(pathBase: "/appB")` on a single `Rask.Wasm.Hosting` instance.
-- **GitHub Pages sub-path** — publish with `/p:RaskPathBase=/<repo>`. The framework rewrites the AppBundle's
-  `<base href>` at publish time; the WASM runtime auto-detects the prefix from `document.baseURI` on first paint and
-  every scoped-asset URL resolves under `/<repo>/_rask/a/{hash}.{ext}`.
+- **GitHub Pages sub-path** — publish with `/p:RaskPathBase=/<repo>`. The framework rewrites the published
+  `index.html`'s `<base href>` to `/<repo>/` at publish time; every asset URL and the SDK import map are
+  document-relative, so the WASM runtime auto-detects the prefix from `document.baseURI` on first paint and every
+  scoped-asset URL resolves under `/<repo>/_rask/a/{hash}.{ext}`.
 
 ```csharp
 // Server
 app.UseRask<App>(pathBase: "/myapp");
 
-// Wasm hosting (ASP.NET host serving a published AppBundle)
+// Wasm hosting (ASP.NET host serving a published wwwroot)
 app.UseRask<App>(pathBase: "/myapp");
 // or the non-generic form: app.UseRask(pathBase: "/myapp")
 
@@ -1076,8 +1078,9 @@ Delivery is **per-component and content-addressed**, identical on Server and WAS
 a registered stylesheet, spliced into the framework-managed `<head>` (see *Page head contributions* above) — no call
 site or placement required. Each URL is a 12-hex SHA-256 of the rewritten CSS, served with
 `Cache-Control: public, max-age=31536000, immutable` + an `ETag`, so two components whose rewritten CSS is byte-equal
-share one cached file. Standalone/static-file WASM hosts (no in-process endpoint) get the same files baked to
-`{AppBundle}/_rask/a/{hash}.css` at publish, so a plain static server serves exactly what the endpoint would.
+share one cached file. Standalone/static-file WASM hosts (no in-process endpoint) get the same files baked into the published
+`wwwroot/_rask/a/{hash}.css` (as static web assets) at publish, so a plain static server serves exactly what the
+endpoint would.
 
 **Targeting shell tags** — selectors like `body`, `html`, `button` don't carry `data-{scopeId}` (those tags are
 intentionally excluded from stamping), so a sibling rule like `body { ... }` would never match. Wrap the selector in

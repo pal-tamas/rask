@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   # Fast PR gate: every unit/integration test that does NOT need a browser.
-  # Skips the expensive WASM AppBundle/trim step (-p:WasmGenerateAppBundle=false) since
+  # Skips the expensive WASM work (-p:RaskWasm=false disables the scoped-asset bake /
+  # static-web-asset injection; -p:WasmBuildNative=false skips the emscripten relink) since
   # no unit test consumes the published browser bundle. Runs in parallel with `e2e`.
   unit:
     runs-on: ubuntu-latest
@@ -44,7 +45,7 @@ jobs:
       - name: Build (no WASM bundle)
         # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll
         # (MSB3026 copy-retry / MSB3030 not-found) rather than masking the warning.
-        run: dotnet build Rask.slnx -c Release --no-restore -p:WasmGenerateAppBundle=false -m:1
+        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -m:1
 
       - name: Unit & integration tests
         run: >-

@@ -9,43 +9,42 @@ using Microsoft.Build.Utilities;
 namespace Rask.Wasm.Tasks;
 
 /// <summary>
-///     Walks every .dll under an AppBundle's framework folder, forces the generator-
-///     emitted <c>__RaskScopedCssRegistration</c> / <c>__RaskScopedJsRegistration</c>
-///     classes to fire their <c>RefreshAll</c> on the in-MSBuild copy of
-///     <c>ScopedAssetRegistry</c>, then materialises every registered entry as a
-///     <c>{BundleDir}/_rask/a/{hash}.{ext}</c> file.
+///     Walks the provided .NET assemblies, forces the generator-emitted
+///     <c>__RaskScopedCssRegistration</c> / <c>__RaskScopedJsRegistration</c> classes to fire
+///     their <c>RefreshAll</c> on the in-MSBuild copy of <c>ScopedAssetRegistry</c>, then
+///     materialises every registered entry as a <c>{BundleDir}/_rask/a/{hash}.{ext}</c> file.
 ///     <para>
 ///         Why this exists: the in-WASM-browser runtime computes per-component asset
 ///         hashes from <c>Rask.Example.Shared.dll</c> loaded into the .NET-in-Wasm
 ///         runtime. Without baking, the only thing that can serve those URLs is a
 ///         <c>Rask.Wasm.Hosting</c> host whose process also loaded the same assembly
 ///         (the <c>UseRask&lt;TApp&gt;()</c> generic forces that load). Standalone WASM
-///         runs under WasmAppHost — a static-file dev launcher — and 404s on every
-///         <c>/_rask/a/{hash}.{ext}</c> until the files exist on disk. This task writes
-///         them at publish time so any static-file server works.
+///         runs under WasmAppHost — a static-asset dev server — and 404s on every
+///         <c>/_rask/a/{hash}.{ext}</c> unless the files are registered/served. This task
+///         writes them into a staging dir that the targets register as static web assets,
+///         so any static-file server works.
 ///     </para>
 ///     <para>
 ///         The task is invoked from <c>Rask.Wasm/build/Rask.Wasm.targets</c>'s
-///         <c>_RaskBakeScopedAssets</c> target after <c>_GenerateAppBundle</c>. It is a
-///         no-op when the bundle directory doesn't exist or has no <c>_framework</c>
-///         subfolder.
+///         <c>_RaskBakeScopedStaticWebAssets</c> target, which registers the staged files as
+///         computed static web assets. It is a no-op when the bundle directory doesn't exist.
 ///     </para>
 /// </summary>
 public sealed class BakeScopedAssetsTask : Task
 {
     /// <summary>
-    ///     Path to the AppBundle root where the <c>_rask/a/{hash}.{ext}</c> files will
-    ///     be materialised (typically <c>$(WasmAppDir)</c>).
+    ///     Path to the directory under which the <c>_rask/a/{hash}.{ext}</c> files will
+    ///     be materialised (the framework passes an intermediate staging dir).
     /// </summary>
     [Required]
     public string BundleDir { get; set; } = string.Empty;
 
     /// <summary>
     ///     The .NET assemblies to scan. Each item's <c>Identity</c> is the path to a
-    ///     pre-AOT <c>.dll</c> file. Wired from <c>@(_WasmAssembliesInternal)</c> in
-    ///     the targets file — that's the MSBuild item the WASM SDK builds up while
-    ///     preparing the bundle, before native AOT compilation rewrites them to
-    ///     <c>.wasm</c> inside <c>AppBundle/_framework/</c>.
+    ///     pre-trim <c>.dll</c> file. Wired from <c>@(IntermediateAssembly)</c> (the app's own
+    ///     compiled assembly) plus <c>@(ReferenceCopyLocalPaths)</c> (the referenced Rask
+    ///     assemblies) in the targets file — the pre-trim build outputs, whose
+    ///     <c>[ModuleInitializer]</c>s re-fire cleanly inside the MSBuild host.
     /// </summary>
     [Required]
     public ITaskItem[] Assemblies { get; set; } = Array.Empty<ITaskItem>();

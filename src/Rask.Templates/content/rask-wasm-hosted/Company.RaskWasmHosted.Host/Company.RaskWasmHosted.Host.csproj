@@ -12,8 +12,8 @@
       Cross-TFM reference: a net10.0 host pointing at a net10.0-browser WASM project.
       ReferenceOutputAssembly=false + SkipGetTargetFrameworkProperties=true are both
       required (NU1201 otherwise). The Rask.Wasm.Hosting MSBuild targets that ship in
-      the NuGet auto-discover this ProjectReference, publish the WASM AppBundle, and
-      bake the bundle directory into the host assembly so `app.UseRask()` resolves it.
+      the NuGet auto-discover this ProjectReference, publish the WASM wwwroot, and
+      bake the published directory into the host assembly so `app.UseRask()` resolves it.
     -->
     <ProjectReference Include="..\Company.RaskWasmHosted.Wasm\Company.RaskWasmHosted.Wasm.csproj"
                       ReferenceOutputAssembly="false"
