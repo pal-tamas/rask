@@ -31,6 +31,12 @@ them until tagged releases begin.
   automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
   rewrite; every other asset URL is document-relative).
 
+### Documentation
+- EF Core data-access guide: clarified that an awaited event handler re-renders automatically on
+  completion (like an async lifecycle hook), and removed the misleading explicit `StateHasChanged()`
+  from the delete example — it's only needed for out-of-band changes (timers, fire-and-forget,
+  external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
+
 ### Fixed
 - GitHub Pages demo showed `v1.0.0` instead of the released version in the navbar badge. The
   `pages` workflow checked out a shallow clone, so MinVer couldn't read the git tags and the
