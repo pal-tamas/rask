@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Background-service showcase (`/background`).** A new example page demonstrating an app-wide
+  background process driving the UI: a DI **singleton** `IMetricsFeed` runs its own loop and raises
+  an event each tick, and two independent components (`MetricsGauge`, `MetricsChart`) subscribe via
+  `feed.Updated += StateHasChanged` in `OnMount` / `-=` in `OnUnmount`. Unlike the existing Live
+  ticker — whose poll loop lives inside one component — this producer is decoupled from the
+  component tree (it keeps ticking across navigations and, on the Server, across sessions). State is
+  published as a single immutable snapshot swapped by reference so cross-thread reads are consistent.
+  Runs in both the Server and WASM sample apps. `Sparkline` gains an optional `ValueFormat` so its
+  axis labels can render as percentages (default unchanged).
+
 ### Changed
 - **`Authorize`'s `Authorized` slot now receives the current user** — its type changed from `Child` to
   `Func<ClaimsPrincipal, Child>`, so authorized markup can greet the signed-in user

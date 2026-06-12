@@ -11,6 +11,7 @@ public sealed class PageBaselineTests
 {
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
+    [InlineData(typeof(BackgroundServicePage), "/background", "Background service")]
     [InlineData(typeof(BindingPage), "/binding", "Two-way binding")]
     [InlineData(typeof(BoomPage), "/boom", "Error boundary")]
     [InlineData(typeof(CancellationPage), "/cancellation", "Cancellation")]
@@ -49,6 +50,7 @@ public sealed class PageBaselineTests
 
     [Theory]
     [InlineData(typeof(HomePage))]
+    [InlineData(typeof(BackgroundServicePage))]
     [InlineData(typeof(BindingPage))]
     [InlineData(typeof(BoomPage))]
     [InlineData(typeof(CancellationPage))]

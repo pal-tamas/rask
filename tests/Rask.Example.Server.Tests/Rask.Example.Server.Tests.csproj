@@ -50,6 +50,8 @@
              Link="Infrastructure\LiveHost.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestServices.cs"
              Link="Infrastructure\TestServices.cs"/>
+    <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\FakeMetricsFeed.cs"
+             Link="Infrastructure\FakeMetricsFeed.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\CapturingDownloadSink.cs"
              Link="Infrastructure\CapturingDownloadSink.cs"/>
     <Compile Include="..\Rask.Example.Shared.Tests\Infrastructure\TestNavigator.cs"

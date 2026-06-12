@@ -22,6 +22,14 @@ public static class ExampleServiceCollectionExtensions
         services.AddSingleton(sp => new HttpClient { BaseAddress = httpBaseAddress(sp) });
         services.AddSingleton<IBannedWordService, BannedWordService>();
 
+        // App-wide background process for the /background showcase. Singleton — one producer
+        // for the whole app whose loop ticks independently of any component and is shared
+        // across sessions on the Server transport. That's safe here because it's a public
+        // synthetic metric stream; contrast DemoUserProvider below, which is deliberately
+        // *scoped* (a per-user principal must never be shared). The loop self-starts on first
+        // resolution and the host disposes it on shutdown (IAsyncDisposable).
+        services.AddSingleton<IMetricsFeed, MetricsFeed>();
+
         // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
         // type (so the demo can sign in/out) and as IUserProvider (so injected consumers resolve it).
         // Defaults to anonymous, so other pages are unaffected. Scoped — NOT singleton — so each

@@ -38,8 +38,13 @@ public sealed class Sparkline : Component
     // Component, not an Element, so it doesn't inherit Element.Class).
     public string? Class { get; set; }
 
+    // Numeric format for the min/max/last axis labels (e.g. "0.0'%'" for percentages). The
+    // default reproduces the original money formatting, so existing callers are unaffected.
+    public string? ValueFormat { get; set; }
+
     private string StrokeColor => Stroke ?? "#0d6efd";
     private string AreaColor => AreaFill ?? "rgba(13, 110, 253, 0.15)";
+    private string LabelFormat => ValueFormat ?? "$#,##0.00";
 
     protected override RenderResult Render()
     {
@@ -120,13 +125,13 @@ public sealed class Sparkline : Component
 
         // Min / max value labels on the y-axis.
         children.Add(SvgText(Num(PadX + 2), Num(PadTop + 10), FontFamily: "sans-serif",
-            FontSize: "11", Fill: "#6c757d")[Money(max)]);
+            FontSize: "11", Fill: "#6c757d")[Label(max)]);
         children.Add(SvgText(Num(PadX + 2), Num(baseY - 3), FontFamily: "sans-serif",
-            FontSize: "11", Fill: "#6c757d")[Money(min)]);
+            FontSize: "11", Fill: "#6c757d")[Label(min)]);
 
         // Last-point marker carrying a native SVG <title> tooltip (no JS).
         children.Add(Circle(Num(lastX), Num(lastY), "3.5", Fill: StrokeColor)[
-            SvgTitle()[Money(values[n - 1])]
+            SvgTitle()[Label(values[n - 1])]
         ]);
 
         return Frame()[children];
@@ -138,5 +143,5 @@ public sealed class Sparkline : Component
 
     private static string Num(double v) => v.ToString("0.##", Inv);
 
-    private static string Money(double v) => "$" + v.ToString("N2", Inv);
+    private string Label(double v) => v.ToString(LabelFormat, Inv);
 }
