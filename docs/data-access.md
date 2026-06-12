@@ -54,8 +54,9 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
 }
 ```
 
-For an event-handler mutation (e.g. a delete button), do the work, reload, then call
-`StateHasChanged()` explicitly:
+For an event-handler mutation (e.g. a delete button), just do the work and reload — no
+`StateHasChanged()` needed. An awaited handler re-renders on completion exactly like the async
+lifecycle hook above, so the reloaded list paints automatically:
 
 ```csharp
 private async Task DeleteAsync(int id)
@@ -63,9 +64,13 @@ private async Task DeleteAsync(int id)
     await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
     await db.Products.Where(p => p.Id == id).ExecuteDeleteAsync(CancellationToken);
     await LoadAsync();
-    StateHasChanged();
 }
 ```
+
+You only call `StateHasChanged()` by hand for state that changes **outside** the handler-dispatch
+window — a timer tick, a fire-and-forget continuation, or an external event/observable
+subscription (e.g. `OnMount() => store.Changed += StateHasChanged`). See
+[lifecycle.md](lifecycle.md) for the auto-re-render rule.
 
 ## How the sample is organised
 
