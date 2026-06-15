@@ -217,6 +217,15 @@ nav.Navigate("/login", replace: true);   // redirect without a back-stack entry
 `Navigator` also exposes `Download(...)` for pushing files to the browser (same event-handler-only rule); that lives in
 the Files section of the README.
 
+### Scroll position on navigation
+
+Forward navigation — a `NavLink` click or `Navigate(...)` that **pushes** a history entry — scrolls the window back to
+the top of the new page, matching how a server-rendered page load behaves. `replace: true` navigations and the browser's
+Back/Forward buttons do **not** force a scroll reset: the browser's native scroll restoration owns those, so returning to
+a page restores where you were. If a `NavLink`'s `Href` includes a `#fragment` that matches an element on the destination
+page, the runtime scrolls to that element (and keeps the fragment in the address bar) instead of jumping to the top. This
+is handled entirely in the client runtime and applies to both transports.
+
 ## Reading the current URL — `RouteState`
 
 `RouteState` is the scoped, per-session source of truth for the current location. Inject it to read the live URL:
