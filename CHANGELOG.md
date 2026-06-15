@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-15
+
 ### Added
 - **Background-service showcase (`/background`).** A new example page demonstrating an app-wide
   background process driving the UI: a DI **singleton** `IMetricsFeed` runs its own loop and raises
