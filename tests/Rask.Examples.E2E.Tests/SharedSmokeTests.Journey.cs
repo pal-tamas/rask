@@ -423,6 +423,18 @@ public abstract partial class SharedSmokeTests
         // than leaving the default transparent background.
         Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
 
+        // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
+        // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
+        // injected client-side after boot, so both the link and its computed effect may lag the first
+        // read — poll for each rather than asserting once.
+        await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // The brand palette actually overrides Bootstrap's :root defaults (global.css loads after it).
+        await Page.WaitForFunctionAsync(
+            "() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim() === '#7C3AED'",
+            null,
+            new PageWaitForFunctionOptions { Timeout = 10_000 });
+
         // Asset loading: per-component content-addressed <link>s, a JS-only <script>, and lazy
         // mount adding/removing a link via the keyed head-morph.
         await SideAsync("Asset loading", "Asset loading", "main h1.h3");

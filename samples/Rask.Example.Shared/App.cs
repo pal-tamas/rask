@@ -10,7 +10,7 @@ public sealed class App : Component
     // every demo component), dedupes by rendered HTML, resolves singleton tags
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
-    // the scoped-css link so App.css's brand palette overrides Bootstrap.
+    // the scoped-css link so global.css's brand palette overrides Bootstrap.
     protected override RenderResult Head =>
     [
         Title()["Rask — feature showcase"],
@@ -26,10 +26,14 @@ public sealed class App : Component
         Link(Rel: "stylesheet",
             Href: LiveOptions.PathBase + "/lib/bootstrap/bootstrap.min.css"),
         Link(Rel: "stylesheet",
-            Href: LiveOptions.PathBase + "/lib/bootstrap-icons/bootstrap-icons.min.css")
+            Href: LiveOptions.PathBase + "/lib/bootstrap-icons/bootstrap-icons.min.css"),
+        // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
+        // because every rule targets :root, Bootstrap classes, or shell tags — things this
+        // component never stamps a scope id on. Linked here so it loads before the scoped links.
+        Link(Rel: "stylesheet",
+            Href: LiveOptions.PathBase + "/global.css")
     ];
 
-    // Brand palette and global cascade live in App.css (sibling scoped-CSS file).
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override RenderResult Render() =>
     [

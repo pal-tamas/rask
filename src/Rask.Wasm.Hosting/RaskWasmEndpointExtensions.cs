@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Rask.Core.Live;
@@ -22,6 +23,13 @@ public static class RaskWasmEndpointExtensions
     private static readonly Regex _fingerprintRegex = new(
         @"\.[0-9a-z]{10,}\.[^.]+$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // Resolves the real MIME of an asset by extension. Needed because PrecompressedFileMiddleware
+    // rewrites a request for foo.css to its on-disk foo.css.br sibling, and UseStaticFiles then
+    // keys the content type off the .br extension — unknown, so it lands on DefaultContentType
+    // (application/octet-stream). Browsers reject a stylesheet/script served as octet-stream, so we
+    // re-derive the type from the underlying name (suffix stripped) in OnPrepareResponse below.
+    private static readonly FileExtensionContentTypeProvider _contentTypes = new();
 
     /// <summary>
     ///     Serves a published Rask WASM AppBundle as a SPA: <c>UseDefaultFiles</c> +
@@ -181,6 +189,14 @@ public static class RaskWasmEndpointExtensions
                 else if (ext.Equals(".js", StringComparison.OrdinalIgnoreCase))
                 {
                     ctx.Context.Response.ContentType = "application/javascript";
+                }
+                else if (_contentTypes.TryGetContentType(name, out var mime))
+                {
+                    // Any other known type (.css/.json/.svg/...). For a directly served file
+                    // UseStaticFiles already set this; for a precompressed .br/.gz sibling it had
+                    // fallen back to octet-stream — this restores it. Unknown extensions (.bin etc.)
+                    // aren't in the provider, so they stay application/octet-stream as before.
+                    ctx.Context.Response.ContentType = mime;
                 }
 
                 // Cache classification:

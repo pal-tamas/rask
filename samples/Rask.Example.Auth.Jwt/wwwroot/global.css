@@ -1,7 +1,7 @@
 /* Rask brand palette layered over Bootstrap. Every rule targets :root, a global Bootstrap
-   class, or a shell tag, so each is wrapped in :global() to opt out of the component
-   scope-suffix rewrite (mirrors samples/Rask.Example.Shared/App.css). */
-:global(:root) {
+   class, or a shell tag, so this is a plain global stylesheet served from wwwroot and linked
+   from App.cs's <Head> (not a scoped {Component}.css). */
+:root {
     --bs-primary: #7C3AED;
     --bs-primary-rgb: 124, 58, 237;
     --bs-link-color: #6D28D9;
@@ -12,7 +12,7 @@
     --rask-accent-soft: #f1ebfd;
 }
 
-:global(.btn-primary) {
+.btn-primary {
     --bs-btn-bg: #7C3AED;
     --bs-btn-border-color: #7C3AED;
     --bs-btn-hover-bg: #6D28D9;
@@ -23,15 +23,15 @@
     --bs-btn-disabled-border-color: #7C3AED;
 }
 
-:global(a) {
+a {
     color: var(--rask-accent);
 }
 
-:global(a:hover) {
+a:hover {
     color: var(--rask-accent-strong);
 }
 
-:global(:not(pre) > code) {
+:not(pre) > code {
     background: var(--rask-accent-soft);
     color: var(--rask-accent);
     padding: 0.08rem 0.32rem;
