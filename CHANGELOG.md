@@ -52,6 +52,14 @@ them until tagged releases begin.
   `bin/<cfg>/net10.0-browser/publish/wwwroot/`; `Rask.Wasm.Hosting`'s `UseRask()` follows it
   automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
   rewrite; every other asset URL is document-relative).
+- **Showcase code samples are now copy-pasteable and multi-language.** Every `CodeSample` card in
+  the example apps gains a copy-to-clipboard button (scoped JS, with an `execCommand` fallback for
+  non-secure/headless contexts), and samples that have a JavaScript or CSS side render a **C# / JS /
+  CSS tab strip** — tab state is component state switched through the live diff, and each pane is
+  highlighted server-side by ColorCode. The Element-refs and Scoped-CSS pages now show the **real,
+  verbatim source** of their demo components (`ElementRefDemo.cs` + `.js`, `ScopedRed/Blue.cs` +
+  `.css`), embedded from the actual files via a new `EmbeddedSource` reader so the snippet always
+  compiles and matches the live result. Samples-only — no framework API change.
 
 ### Removed
 - **`:global(...)` scoped-CSS escape hatch removed.** A scoped `{Component}.css` no longer has a
@@ -71,6 +79,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **Scoped JS now supports `export async function`.** The module wrapper that exposes a sibling
+  `{Component}.js` on `window.Rask["{Type}"]` only recognised `export function` / `export const`,
+  so an `export async function name(...)` kept its `export` keyword inside the (non-module) IIFE —
+  a `SyntaxError` that silently prevented the *entire* file from loading, leaving `Rask.{Type}`
+  undefined and every invoke into it failing with "Could not find … on target". The export-strip
+  and export-collection now accept the optional `async` modifier (sync and async exports may be
+  mixed in one file). Affects both the Server runtime and the WASM publish bake (both go through
+  the same `ScopedAssetRegistry` wrapping).
 - **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
   request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
   sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to

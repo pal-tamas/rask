@@ -44,6 +44,60 @@
     color: rgba(255, 255, 255, 0.45);
 }
 
+/* Language tabs (C# / JS / CSS) — only rendered when a sample carries more than one
+   language. The active tab is driven by component state through Rask's live diff. */
+.sample-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.sample-tab {
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: color 0.12s ease, background 0.12s ease;
+}
+
+.sample-tab:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sample-tab.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Copy-to-clipboard button, pushed to the right edge of the header. */
+.sample-copy {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    transition: color 0.12s ease, background 0.12s ease;
+}
+
+.sample-copy:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sample-copy.copied {
+    color: #28c840;
+}
+
 .sample-code {
     padding: 1rem 1.2rem;
     font-size: 0.82rem;

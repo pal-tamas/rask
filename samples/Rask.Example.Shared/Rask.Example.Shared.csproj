@@ -23,4 +23,14 @@
     <PackageReference Include="ColorCode.HTML"/>
   </ItemGroup>
 
+  <!-- Embed the demo sources verbatim so CodeSample can show the *real* file text beside
+       the live Result (EmbeddedSource reads them as raksrc/{file}). A .cs stays compiled
+       too — this only adds its text as a manifest resource; the .js/.css remain scoped
+       assets. Guarantees the shown snippet always compiles and matches what runs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Demos/**/*.cs;Demos/**/*.js;Demos/**/*.css">
+      <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
