@@ -44,12 +44,19 @@ public static class ScopedAssetRegistry
     private static readonly Dictionary<string, AssetEntry> _jsByHash =
         new(StringComparer.Ordinal);
 
+    // Strips the leading `export ` (and an optional `default `) from a declaration so the
+    // module body can run inside the IIFE. The lookahead lists `async function` alongside
+    // the bare forms — without it an `export async function` keeps its `export` keyword and
+    // throws a SyntaxError inside the (non-module) wrapper.
     private static readonly Regex _exportStrip =
-        new(@"(^|\n)\s*export\s+(default\s+)?(?=(function|const|let|var)\b)",
+        new(@"(^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|const|let|var)\b)",
             RegexOptions.Compiled);
 
+    // Collects the names of exported function declarations (sync or async) so they can be
+    // re-exposed on the returned object. The `async` modifier is optional and non-capturing,
+    // so the name stays in group 2.
     private static readonly Regex _exportedFunctionNames =
-        new(@"(^|\n)\s*export\s+(?:default\s+)?function\s+(\w+)\s*\(",
+        new(@"(^|\n)\s*export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*\(",
             RegexOptions.Compiled);
 
     internal static int CssEntryCount

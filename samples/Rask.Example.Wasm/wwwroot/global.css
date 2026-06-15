@@ -143,3 +143,17 @@ button, a, [role="button"] {
 .sample-code .plainText {
     color: #e7e3ff;
 }
+
+/* CSS-language tokens (ColorCode's CSS lexer): selectors, property names and values. The
+   JS lexer reuses the shared keyword/string/comment/number classes above. */
+.sample-code .cssSelector {
+    color: #82aaff;
+}
+
+.sample-code .cssPropertyName {
+    color: #89ddff;
+}
+
+.sample-code .cssPropertyValue {
+    color: #c3e88d;
+}

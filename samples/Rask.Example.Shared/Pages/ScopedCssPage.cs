@@ -17,26 +17,11 @@ public sealed class ScopedCssPage : Component
             "Drop a sibling {Component}.css file next to {Component}.cs and Rask pairs them at compile time. The framework hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component — no class-name discipline, no BEM, no leaks."),
         H2(Class: "h4 mt-4 mb-3")["Two components, same selector, no conflict"],
         CodeSample(
-            """""
-            // ScopedRed.cs
-            public sealed class ScopedRed : Component
-            {
-                protected override RenderResult Render() =>
-                    Div(Class: "box")[Span(Class: "dot"), "I think .box should be red."];
-            }
-
-            /* ScopedRed.css (sibling file) */
-            .box { background: #fdecec; color: #8a1f1f; ... }
-            .dot { width: 0.6rem; height: 0.6rem; background: #d23030; border-radius: 50%; }
-
-
-            // ScopedBlue.cs — same .box selector, different sibling .css
-            public sealed class ScopedBlue : Component
-            {
-                protected override RenderResult Render() =>
-                    Div(Class: "box")[Span(Class: "dot"), "I think .box should be blue."];
-            }
-            """"",
+            // The two real components and their sibling stylesheets, embedded verbatim. Both
+            // declare the same .box / .dot selectors; the CSS tab shows the unmodified source
+            // that Rask rewrites per-scope to produce the isolated red/blue results.
+            EmbeddedSource.Read("ScopedRed.cs", "ScopedBlue.cs"),
+            Css: EmbeddedSource.Read("ScopedRed.css", "ScopedBlue.css"),
             Notes:
             "Both classes use the same .box selector. The framework stamps every rendered body element with data-{scopeId}, then rewrites .box to .box[data-{scopeId}] — same source CSS, isolated outputs.",
             Result: Div(Class: "d-flex flex-column gap-2")[

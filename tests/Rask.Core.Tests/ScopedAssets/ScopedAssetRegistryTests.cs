@@ -63,6 +63,30 @@ public class ScopedAssetRegistryTests
     }
 
     [Fact]
+    public void RegisterJs_AsyncFunctionExport_StripsExportAndExposesIt()
+    {
+        // An `export async function` must have its `export` stripped (the wrapper IIFE is
+        // not an ES module, so a leftover `export` is a SyntaxError) and still be re-exposed
+        // on window.Rask. A mixed sync export verifies both forms collect together.
+        ScopedAssetRegistry.RegisterJs(
+            typeof(WidgetA),
+            "export async function copy(t) { await navigator.clipboard.writeText(t); }\n" +
+            "export function size() { return 1; }");
+
+        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash));
+        var bytes = ScopedAssetRegistry.GetByHash(hash, AssetKind.Js);
+        Assert.NotNull(bytes);
+        var content = Encoding.UTF8.GetString(bytes.Value.Utf8.Span);
+
+        // The `export` keyword is gone; the bare `async function` declaration remains.
+        Assert.DoesNotContain("export ", content);
+        Assert.Contains("async function copy(", content);
+        // Both functions are re-exposed on the returned namespace object.
+        Assert.Contains("copy: typeof copy === 'function'", content);
+        Assert.Contains("size: typeof size === 'function'", content);
+    }
+
+    [Fact]
     public void RegisterBoth_TypeHasIndependentCssAndJsHashes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
