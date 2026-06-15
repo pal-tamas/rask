@@ -15,10 +15,9 @@ public sealed class ElementRefPage : Component
             "Hand a rendered DOM element to JavaScript — for third-party widgets (charts, datepickers, editors) that need the raw node, or for focus and measurement. Rask's analogue of Blazor's ElementReference."),
         H2(Class: "h4 mt-4 mb-3")["Attach a ref, pass it to JS"],
         CodeSample(
-            // The real component source and its sibling scoped JS, embedded verbatim — the
-            // C#/JS tabs show exactly what produces the live result on the right.
-            EmbeddedSource.Read("ElementRefDemo.cs"),
-            Js: EmbeddedSource.Read("ElementRefDemo.js"),
+            // The real component source and its sibling scoped JS, embedded verbatim — one tab
+            // per file shows exactly what produces the live result on the right.
+            ["ElementRefDemo.cs", "ElementRefDemo.js"],
             Notes:
             "An ElementRef stamps data-rask-ref on the element. When you pass it to IJSRuntime, the client's JSON reviver swaps it for document.querySelector('[data-rask-ref=…]'), so your JS function receives the live element — no marker-class convention needed. FocusAsync/BlurAsync/ScrollIntoViewAsync are built in.",
             Result: ElementRefDemo()),

@@ -49,7 +49,7 @@ public sealed class DisposalPage : Component
             ]
         ],
         CodeSample(
-            EmbeddedSource.Read("DisposableTimerProbe.cs"),
+            ["DisposableTimerProbe.cs"],
             Notes:
             "Dispose runs once when the component leaves the render tree — either because its parent stopped including it, the route changed, or the live session is being torn down. The framework walks children depth-first, so nested IDisposables dispose bottom-up."),
         H2(Class: "h4 mt-5 mb-3")["IAsyncDisposable"],
@@ -118,7 +118,7 @@ public sealed class DisposalPage : Component
             ]
         ],
         CodeSample(
-            EmbeddedSource.Read("UnmountTimerProbe.cs"),
+            ["UnmountTimerProbe.cs"],
             Notes:
             "No IDisposable on the component. The timer is owned by a render hook, so its cleanup belongs in OnUnmount — symmetric with OnMount. The lifetime CancellationToken is still live here, so you could also pass it to any pending awaits if you wanted to fan out cancellation.")
     ];

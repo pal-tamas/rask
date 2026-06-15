@@ -14,7 +14,7 @@ public sealed class CodeSampleTests
         var js = new FakeJsRuntime();
         var host = new LiveHost(
             () => CodeSample(
-                "var x = 1;",
+                ["ElementRefDemo.cs"],
                 "Sample title",
                 Notes: "A note",
                 Result: Div()["the result"]),
@@ -24,9 +24,8 @@ public sealed class CodeSampleTests
 
         Assert.Contains("Sample title", html);
         Assert.Contains("A note", html);
-        // The C# source is tokenized server-side by ColorCode, so `var` is wrapped in a
-        // <span class="keyword"> rather than appearing as the literal contiguous string.
-        Assert.Contains(">var</span>", html);
+        // The C# source is tokenized server-side by ColorCode, so keywords (class/public/…) are
+        // wrapped in <span class="keyword"> rather than appearing as literal contiguous text.
         Assert.Contains("class=\"keyword\"", html);
         Assert.Contains("the result", html);
         Assert.Contains("sample-card", html);
@@ -37,27 +36,29 @@ public sealed class CodeSampleTests
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
-            () => CodeSample("code"),
+            () => CodeSample(["ElementRefDemo.js"]),
             TestServices.Default(js: js));
 
         var html = host.RenderAsLiveRoot();
 
         // Header card-header is only emitted when at least one of Title/Notes is set.
         Assert.DoesNotContain("card-header", html);
-        Assert.Contains("code", html);
+        // The real embedded JS source is shown.
+        Assert.Contains("getBoundingClientRect", html);
     }
 
     [Fact]
-    public void Render_SingleLanguage_KeepsCSharpLabel_NoTabStrip_HasCopyButton()
+    public void Render_SingleFile_ShowsFilenameLabel_NoTabStrip_HasCopyButton()
     {
         var host = new LiveHost(
-            () => CodeSample("var x = 1;"),
+            () => CodeSample(["ElementRefDemo.cs"]),
             TestServices.Default(js: new FakeJsRuntime()));
 
         var html = host.RenderAsLiveRoot();
 
-        // A C#-only sample keeps the plain label and shows no tab strip (back-compat).
+        // A single-file sample shows the file name as a plain label, no clickable tab strip.
         Assert.Contains("sample-code-label", html);
+        Assert.Contains("ElementRefDemo.cs", html);
         Assert.DoesNotContain("sample-tabs", html);
         // The copy button is present on every card.
         Assert.Contains("sample-copy", html);
@@ -65,40 +66,30 @@ public sealed class CodeSampleTests
     }
 
     [Fact]
-    public void Render_MultiLanguage_ShowsTabsWithCSharpActive_AndOnlyActivePane()
+    public void Render_MultiFile_ShowsFilenameTabs_FirstActive_OnlyActivePane()
     {
         var host = new LiveHost(
-            () => CodeSample(
-                "var x = 1;",
-                Js: "export function f() { return 1; }",
-                Css: ".a { color: red; }"),
+            () => CodeSample(["ElementRefDemo.cs", "ElementRefDemo.js"]),
             TestServices.Default(js: new FakeJsRuntime()));
 
         var html = host.RenderAsLiveRoot();
 
-        // A tab strip with one button per supplied language, C# active by default.
+        // A tab strip with one button per file, labelled by file name, first file active.
         Assert.Contains("sample-tabs", html);
         Assert.Contains("sample-tab active", html);
-        Assert.Contains(">C#</button>", html);
-        Assert.Contains(">JS</button>", html);
-        Assert.Contains(">CSS</button>", html);
-        // Only the active (C#) pane is rendered — the JS/CSS panes appear after a tab switch.
+        Assert.Contains(">ElementRefDemo.cs</button>", html);
+        Assert.Contains(">ElementRefDemo.js</button>", html);
+        // Only the active (first, C#) pane is rendered — the JS pane appears after a tab switch.
         Assert.Contains("language-csharp", html);
         Assert.DoesNotContain("language-javascript", html);
-        Assert.DoesNotContain("language-css", html);
     }
 
     [Fact]
-    public void EmbeddedSource_ReadsRealFileText_AndJoinsMultiple()
+    public void EmbeddedSource_ReadsRealFileText()
     {
         // The real scoped JS the ElementRef sample shows must be readable from the manifest.
         var js = EmbeddedSource.Read("ElementRefDemo.js");
         Assert.Contains("getBoundingClientRect", js);
-
-        // Multiple files join into one pane (the scoped-CSS sample shows both stylesheets).
-        var css = EmbeddedSource.Read("ScopedRed.css", "ScopedBlue.css");
-        Assert.Contains("#d23030", css); // red dot
-        Assert.Contains("#0066B3", css); // blue dot
     }
 
     [Fact]

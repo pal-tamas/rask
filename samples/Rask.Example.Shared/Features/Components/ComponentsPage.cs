@@ -15,18 +15,18 @@ public sealed class ComponentsPage : Component
             "Subclass Component, override Render. The Rask source generator emits a Namespace.Generated.TypeName(...) factory for every concrete user component, with parameters derived from your public settable properties."),
         H2(Class: "h4 mt-4 mb-3")["A component and its generated factory"],
         CodeSample(
-            EmbeddedSource.Read("ComponentsGreetingDemo.cs"),
+            ["ComponentsGreetingDemo.cs"],
             Notes:
             "Non-nullable property without an initializer → required factory parameter. Nullable property → optional with default null. Property with an initializer → excluded from the factory.",
             Result: ComponentsGreetingDemo()),
         H2(Class: "h4 mt-5 mb-3")["DI via constructor"],
         CodeSample(
-            EmbeddedSource.Read("ComponentsDiDemo.cs"),
+            ["ComponentsDiDemo.cs"],
             Notes:
             "ActivatorUtilities.CreateInstance constructs the component each time; constructor parameters resolve from DI, properties are then re-applied so cached private state survives across renders while props stay fresh."),
         H2(Class: "h4 mt-5 mb-3")["[SkipFactory] hides a property"],
         CodeSample(
-            EmbeddedSource.Read("ComponentsSkipFactoryDemo.cs"),
+            ["ComponentsSkipFactoryDemo.cs"],
             Notes:
             "[SkipFactory] keeps a property settable in code while removing it from the generated factory signature. The counter below started at 7 — click it and the state persists across re-renders.",
             Result: ComponentsSkipFactoryDemo()),

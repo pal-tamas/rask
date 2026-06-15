@@ -15,11 +15,10 @@ public sealed class ScopedCssPage : Component
             "Drop a sibling {Component}.css file next to {Component}.cs and Rask pairs them at compile time. The framework hashes the type's full name into a stable scope id and rewrites every selector to apply only inside that component — no class-name discipline, no BEM, no leaks."),
         H2(Class: "h4 mt-4 mb-3")["Two components, same selector, no conflict"],
         CodeSample(
-            // The two real components and their sibling stylesheets, embedded verbatim. Both
-            // declare the same .box / .dot selectors; the CSS tab shows the unmodified source
-            // that Rask rewrites per-scope to produce the isolated red/blue results.
-            EmbeddedSource.Read("ScopedRed.cs", "ScopedBlue.cs"),
-            Css: EmbeddedSource.Read("ScopedRed.css", "ScopedBlue.css"),
+            // The two real components and their sibling stylesheets, embedded verbatim — one tab
+            // per file. Both components declare the same .box / .dot selectors; the .css tabs show
+            // the unmodified source that Rask rewrites per-scope into the isolated red/blue results.
+            ["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"],
             Notes:
             "Both classes use the same .box selector. The framework stamps every rendered body element with data-{scopeId}, then rewrites .box to .box[data-{scopeId}] — same source CSS, isolated outputs.",
             Result: Div(Class: "d-flex flex-column gap-2")[

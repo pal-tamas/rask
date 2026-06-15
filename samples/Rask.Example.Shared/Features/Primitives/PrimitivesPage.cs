@@ -15,13 +15,13 @@ public sealed class PrimitivesPage : Component
             "Four primitives sit beneath every Rask page: Text, Raw, Fragment, and Doctype. Everything else is built out of them."),
         H2(Class: "h4 mt-4 mb-3")["Text — auto-escaped strings"],
         CodeSample(
-            EmbeddedSource.Read("PrimitivesTextDemo.cs"),
+            ["PrimitivesTextDemo.cs"],
             Notes:
             "Text HTML-encodes its value. The < and & above render as literal characters, not parsed as markup.",
             Result: PrimitivesTextDemo()),
         H2(Class: "h4 mt-5 mb-3")["Raw — verbatim HTML"],
         CodeSample(
-            EmbeddedSource.Read("PrimitivesRawDemo.cs"),
+            ["PrimitivesRawDemo.cs"],
             Notes:
             "Raw is the escape hatch. Use when you control the source (markdown output, sanitized snippets); never on user input.",
             Result: PrimitivesRawDemo()),
@@ -36,19 +36,19 @@ public sealed class PrimitivesPage : Component
         ],
         H2(Class: "h4 mt-5 mb-3")["Fragment — siblings without a wrapper"],
         CodeSample(
-            EmbeddedSource.Read("PrimitivesFragmentDemo.cs"),
+            ["PrimitivesFragmentDemo.cs"],
             Notes:
             "Fragment renders its children with no surrounding tag — handy for siblings at the root, especially Fragment(Doctype(), Html(...)) as the page entry.",
             Result: PrimitivesFragmentDemo()),
         H2(Class: "h4 mt-5 mb-3")["Doctype"],
         CodeSample(
-            EmbeddedSource.Read("PrimitivesDoctypeDemo.cs"),
+            ["PrimitivesDoctypeDemo.cs"],
             Notes:
             "Doctype() emits exactly <!DOCTYPE html>. Special-cased — no attributes, no children, no wrapping tag.",
             Result: PrimitivesDoctypeDemo()),
         H2(Class: "h4 mt-5 mb-3")["Children from strings"],
         CodeSample(
-            EmbeddedSource.Read("PrimitivesChildrenDemo.cs"),
+            ["PrimitivesChildrenDemo.cs"],
             Result: PrimitivesChildrenDemo())
     ];
 }

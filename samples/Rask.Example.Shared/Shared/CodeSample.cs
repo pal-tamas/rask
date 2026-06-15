@@ -22,63 +22,44 @@ public sealed class CodeSample : Component
     private readonly ElementRef _copyButton = ElementRef.New();
 
     // Non-nullable + no initializer + no `required` keyword: the factory generator emits
-    // Source as the first required positional parameter (no default), preserving the
+    // Files as the first required positional parameter (no default), preserving the
     // existing call-site shapes. The CS8618 warnings (here and on the ctor) are intentional —
-    // Rask's post-render property assignment satisfies Source at runtime. `required` is
-    // deliberately omitted to keep `CodeSample(Source: ...)` a plain positional/named argument.
+    // Rask's post-render property assignment satisfies Files at runtime. `required` is
+    // deliberately omitted to keep `CodeSample(Files: ...)` a plain positional/named argument.
 #pragma warning disable CS8618
     public CodeSample(IJSRuntime js) => _js = js;
 
     public string? Title { get; set; }
 
-    public string Source { get; set; }
+    // The demo source files to show, in tab order, as bare embedded-resource leaf names
+    // (e.g. ["ElementRefDemo.cs", "ElementRefDemo.js"]). Each file gets its own tab labelled
+    // with the file name; the syntax-highlight language is inferred from the extension. The
+    // first file is the active tab. The verbatim text is read on demand via EmbeddedSource so
+    // the snippet always compiles and never drifts from what actually runs.
+    public IReadOnlyList<string> Files { get; set; }
 #pragma warning restore CS8618
-
-    // Optional sibling-language sources. When either is set the header shows a C#/JS/CSS
-    // tab strip; otherwise the card keeps its single "C#" label. Both are nullable, so the
-    // generator emits them as optional named factory parameters (default null).
-    public string? Js { get; set; }
-    public string? Css { get; set; }
 
     public Component? Result { get; set; }
     public string? Notes { get; set; }
 
-    // Which language pane is visible. A plain component field (not a reactive prop): the tab
-    // buttons set it and re-render through Rask's live diff — the framework way, no client JS.
-    private enum Lang { Cs, Js, Css }
+    // Index of the visible tab into Files. A plain component field (not a reactive prop): the
+    // tab buttons set it and re-render through Rask's live diff — the framework way, no client JS.
+    private int _active;
 
-    private Lang _active = Lang.Cs;
-
-    // The (raw source, ColorCode language, <code> class) triple for a pane.
-    private (string Source, ILanguage Language, string CodeClass) Pane(Lang lang) => lang switch
+    // The (file name, raw source, ColorCode language, <code> class) tuple for a tab. The
+    // highlight language is inferred from the file extension; an unknown extension falls back
+    // to plain (un-tokenized) text rendered through the Text-encoding code path.
+    private (string File, string Source, ILanguage? Language, string CodeClass) Pane(int index)
     {
-        Lang.Js => (Js!, Languages.JavaScript, "language-javascript"),
-        Lang.Css => (Css!, Languages.Css, "language-css"),
-        _ => (Source, Languages.CSharp, "language-csharp"),
-    };
-
-    private static string Label(Lang lang) => lang switch
-    {
-        Lang.Js => "JS",
-        Lang.Css => "CSS",
-        _ => "C#",
-    };
-
-    // C# is always first; JS/CSS only appear when their source was supplied.
-    private List<Lang> PresentLanguages()
-    {
-        var langs = new List<Lang> { Lang.Cs };
-        if (Js is not null)
+        var file = Files[index];
+        var source = EmbeddedSource.Read(file);
+        return Path.GetExtension(file).ToLowerInvariant() switch
         {
-            langs.Add(Lang.Js);
-        }
-
-        if (Css is not null)
-        {
-            langs.Add(Lang.Css);
-        }
-
-        return langs;
+            ".js" => (file, source, Languages.JavaScript, "language-javascript"),
+            ".css" => (file, source, Languages.Css, "language-css"),
+            ".cs" => (file, source, Languages.CSharp, "language-csharp"),
+            _ => (file, source, null, "language-plaintext"),
+        };
     }
 
     // Syntax highlighting is produced server-side by ColorCode: GetHtmlString tokenizes the
@@ -121,28 +102,27 @@ public sealed class CodeSample : Component
     // so JS needs no DOM read; the button ref lets the scoped JS flash a "Copied!" affordance.
     private async Task CopyAsync()
     {
-        var (source, _, _) = Pane(_active);
+        var (_, source, _, _) = Pane(_active);
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
     private Child Header()
     {
-        var present = PresentLanguages();
-        Child languages = present.Count == 1
-            ? Span(Class: "sample-code-label ms-2")["C#"]
+        Child files = Files.Count == 1
+            ? Span(Class: "sample-code-label ms-2")[Files[0]]
             : Span(Class: "sample-tabs ms-2")[
-                present.Select(lang => Button(
+                Files.Select((file, index) => Button(
                     Type: "button",
-                    Class: $"sample-tab{(lang == _active ? " active" : "")}",
-                    Key: Label(lang),
-                    OnClick: () => _active = lang)[Label(lang)])
+                    Class: $"sample-tab{(index == _active ? " active" : "")}",
+                    Key: file,
+                    OnClick: () => _active = index)[file])
             ];
 
         return Div(Class: "sample-code-header")[
             Span(Class: "sample-dot dot-r"),
             Span(Class: "sample-dot dot-y"),
             Span(Class: "sample-dot dot-g"),
-            languages,
+            files,
             Button(
                 Type: "button",
                 Class: "sample-copy",
@@ -158,7 +138,7 @@ public sealed class CodeSample : Component
 
     protected override RenderResult Render()
     {
-        var (activeSource, activeLanguage, codeClass) = Pane(_active);
+        var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
         return Div(Class: "card shadow-sm border-0 mb-4 sample-card")[
             Title is null && Notes is null
                 ? Fragment()
@@ -172,7 +152,13 @@ public sealed class CodeSample : Component
                 Div(Class: "col-md-7 sample-code-col")[
                     Header(),
                     Pre(Class: "sample-code m-0")[
-                        Code(Class: codeClass)[Raw(HighlightedHtml(activeSource, activeLanguage))]
+                        Code(Class: codeClass)[
+                            // A known language is tokenized server-side and injected verbatim;
+                            // an unknown extension falls back to plain, HTML-encoded text.
+                            activeLanguage is null
+                                ? Text(activeSource.TrimEnd())
+                                : Raw(HighlightedHtml(activeSource, activeLanguage))
+                        ]
                     ]
                 ],
                 Div(Class: "col-md-5 sample-result-col p-4")[
