@@ -52,7 +52,7 @@ public sealed class CancellationPage : Component
         ],
         H2(Class: "h4 mt-4 mb-3")["Source"],
         CodeSample(
-            EmbeddedSource.Read("CancellationProbe.cs"),
+            ["CancellationProbe.cs"],
             Notes:
             "Component.CancellationToken is allocated lazily — components that don't read it never pay the CTS cost. The framework cancels the token before disposing the subtree, so awaits unwind via OperationCanceledException before Dispose runs."),
         Div(Class: "alert alert-info d-flex align-items-start mt-3")[

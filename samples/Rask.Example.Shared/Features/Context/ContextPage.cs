@@ -15,7 +15,7 @@ public sealed class ContextPage : Component
             "Supply a value to a whole subtree and read it deep down — no prop drilling. Rask's analogue of React Context / Blazor CascadingValue, with the provider and readers on one Context type."),
         H2(Class: "h4 mt-4 mb-3")["Provide once, consume anywhere below"],
         CodeSample(
-            EmbeddedSource.Read("ContextThemeDemo.cs", "ThemeCard.cs", "ThemeBadge.cs"),
+            ["ContextThemeDemo.cs", "ThemeCard.cs", "ThemeBadge.cs"],
             Notes:
             "The badge sits inside ThemeCard, which receives no theme parameter and is render-cached after first paint. Reading the value with Context.Required opts the badge out of the render cache, so each toggle re-renders only the badge — straight through the cached intermediate, with nothing threaded between them.",
             Result: ContextThemeDemo()),

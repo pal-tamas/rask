@@ -83,7 +83,7 @@ public sealed class HomePage(Navigator nav) : Component
             ]
         ],
         CodeSample(
-            EmbeddedSource.Read("HomeWelcomeDemo.cs"),
+            ["HomeWelcomeDemo.cs"],
             "The minimal page",
             Notes:
             "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",

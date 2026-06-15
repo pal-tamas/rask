@@ -16,19 +16,19 @@ public sealed class EventsPage : Component
             "Event handlers are plain delegates on the factory call site — OnClick, OnInput, OnChange, OnSubmit. Each handler triggers a re-render after it runs."),
         H2(Class: "h4 mt-4 mb-3")["Click"],
         CodeSample(
-            EmbeddedSource.Read("EventsClickDemo.cs"),
+            ["EventsClickDemo.cs"],
             Result: EventsClickDemo()),
         H2(Class: "h4 mt-5 mb-3")["Input — onInput"],
         CodeSample(
-            EmbeddedSource.Read("EventsInputDemo.cs"),
+            ["EventsInputDemo.cs"],
             Result: EventsInputDemo()),
         H2(Class: "h4 mt-5 mb-3")["Select — onChange"],
         CodeSample(
-            EmbeddedSource.Read("EventsSelectDemo.cs"),
+            ["EventsSelectDemo.cs"],
             Result: EventsSelectDemo()),
         H2(Class: "h4 mt-5 mb-3")["Form — onSubmit"],
         CodeSample(
-            EmbeddedSource.Read("EventsFormDemo.cs"),
+            ["EventsFormDemo.cs"],
             Notes: "OnSubmit receives a FormData object collected from all named form fields.",
             Result: EventsFormDemo())
     ];

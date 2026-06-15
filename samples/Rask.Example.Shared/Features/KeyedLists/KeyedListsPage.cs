@@ -72,7 +72,7 @@ public sealed class KeyedListsPage : Component
         ],
 
         CodeSample(
-            EmbeddedSource.Read("KeyedListsReorderDemo.cs"),
+            ["KeyedListsReorderDemo.cs"],
             Notes:
             "Key is an identity, not a reactive prop: a Key change mounts a fresh instance and never fires OnPropsChanged. On an element Key emits data-rask-key; on a transparent component or Fragment it auto-forwards onto the first rendered element. RASK022 warns when a projected/looped list item is missing a Key."),
 

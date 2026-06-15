@@ -15,13 +15,13 @@ public sealed class UserPage : Component
             "Gate content on the signed-in user — imperatively by injecting IUserProvider and reading .Current (branch in Render() on _auth.Current.Identity?.IsAuthenticated and _auth.Current.IsInRole(...)), or declaratively with the headless Authorize component."),
         H2(Class: "h4 mt-4 mb-3")["Conditional rendering on the current user"],
         CodeSample(
-            EmbeddedSource.Read("UserGateDemo.cs"),
+            ["UserGateDemo.cs"],
             Notes:
             "The principal resolves from the IUserProvider in scope (real apps back it with a cookie/JWT on Server or /api/me on WASM). A component that gates on the user subscribes to the provider's Changed event — the same pattern sidebars use for RouteState — so it re-renders when the principal changes.",
             Result: UserGateDemo()),
         H2(Class: "h4 mt-5 mb-3")["Declarative gating — the Authorize component"],
         CodeSample(
-            EmbeddedSource.Read("AuthorizeDemo.cs"),
+            ["AuthorizeDemo.cs"],
             Notes:
             "Authorize is the declarative counterpart to gating in Render() on the current user: it picks the Authorized, NotAuthorized, or Authorizing slot off the same IUserProvider. Roles and the authenticated check are synchronous (no flicker); Policy resolves in the background. For whole-page gating use [Authorize] on the page instead. See docs/authentication.md for production flows (cookie/JWT, Identity, Keycloak, Auth0, Cognito, Duende).",
             Result: AuthorizeDemo()),

@@ -15,7 +15,7 @@ public sealed class FormGroupsPage : Component
             "Bind a set of radios to one value, or a set of checkboxes to a collection — one call each, wired into the same EditContext as Input(Bind: …)."),
         H2(Class: "h4 mt-4 mb-3")["RadioGroup + CheckboxGroup"],
         CodeSample(
-            EmbeddedSource.Read("FormGroupsDemo.cs"),
+            ["FormGroupsDemo.cs"],
             Notes:
             "Both parse the bind expression, resolve the ambient EditContext, and wire each input's change handler to set the value (radios) or add/remove the item (checkboxes), then re-validate. They render a transparent Fragment of <label><input>…</label>, so you control layout with OptionLabel and ItemClass.",
             Result: FormGroupsDemo()),

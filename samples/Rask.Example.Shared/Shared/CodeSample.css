@@ -38,16 +38,17 @@
 }
 
 .sample-code-label {
+    font-family: var(--bs-font-monospace);
     font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     color: rgba(255, 255, 255, 0.45);
 }
 
-/* Language tabs (C# / JS / CSS) — only rendered when a sample carries more than one
-   language. The active tab is driven by component state through Rask's live diff. */
+/* One tab per source file, labelled with the file name — only rendered when a sample carries
+   more than one file. The active tab is driven by component state through Rask's live diff.
+   The strip wraps so demos that span several files don't overflow the header. */
 .sample-tabs {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
 }
 
@@ -55,9 +56,8 @@
     border: 0;
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
+    font-family: var(--bs-font-monospace);
     font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     padding: 0.15rem 0.55rem;
     border-radius: 0.35rem;
     cursor: pointer;
