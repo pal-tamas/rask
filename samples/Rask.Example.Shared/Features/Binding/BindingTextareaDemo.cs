@@ -1,0 +1,27 @@
+namespace Rask.Example.Shared.Features;
+
+public sealed class BindingTextareaDemo : Component
+{
+    private readonly Holder _model = new();
+
+    protected override RenderResult Render() =>
+    [
+        Textarea(
+            () => _model.Notes,
+            Id: "bind-textarea",
+            Class: "form-control mb-2",
+            Rows: 3,
+            Placeholder: "Jot something down…"),
+        Pre(Class: "small mb-0 p-3 bg-light border rounded")[
+            Code()[
+                $"Notes  = \"{_model.Notes}\"\n" +
+                $"Length = {_model.Notes.Length}"
+            ]
+        ]
+    ];
+
+    private sealed class Holder
+    {
+        public string Notes { get; set; } = "";
+    }
+}

@@ -1,0 +1,47 @@
+namespace Rask.Example.Shared.Features;
+
+public sealed class SvgClickableDemo : Component
+{
+    private static readonly (string Name, string Hex)[] Swatches =
+    [
+        ("Violet", "#7C3AED"),
+        ("Indigo", "#512BD4"),
+        ("Teal", "#0D9488"),
+        ("Amber", "#D97706")
+    ];
+
+    private int _selected;
+
+    protected override RenderResult Render() =>
+        Fragment()[
+            Svg("240", "48", "0 0 240 48")[BuildSwatches()],
+            P(Class: "mt-2 mb-0 small text-secondary")[
+                "Selected colour: ",
+                Strong()[Swatches[_selected].Name]
+            ]
+        ];
+
+    // Keyed so the diff codec reconciles the swatches by identity rather than by position.
+    private List<Child> BuildSwatches()
+    {
+        var children = new List<Child>();
+        for (var i = 0; i < Swatches.Length; i++)
+        {
+            var index = i;
+            var (_, hex) = Swatches[i];
+            children.Add(Circle(
+                (24 + (i * 56)).ToString(),
+                "24",
+                "18",
+                Fill: i == _selected ? hex : "#e5e7eb",
+                Stroke: "#1f2937",
+                StrokeWidth: "2",
+                PointerEvents: "all",
+                Style: "cursor: pointer;",
+                OnClick: () => _selected = index,
+                Key: hex));
+        }
+
+        return children;
+    }
+}

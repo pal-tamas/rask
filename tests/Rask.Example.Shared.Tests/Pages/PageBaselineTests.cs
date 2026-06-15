@@ -1,6 +1,6 @@
 using System.Reflection;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;

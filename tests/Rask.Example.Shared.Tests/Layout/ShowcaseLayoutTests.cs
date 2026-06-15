@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Layout;
+using Rask.Example.Shared;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Layout;

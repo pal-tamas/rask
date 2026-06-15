@@ -20,7 +20,8 @@ public sealed class NavigatorPageTests
     {
         var query = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
-            ["page"] = "2", ["sort"] = "asc"
+            ["page"] = "2",
+            ["sort"] = "asc"
         });
         var routeState = new RouteState { Path = "/navigator", Query = query };
         var html = new Shared.App()
@@ -56,7 +57,8 @@ public sealed class NavigatorPageTests
     {
         var initial = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
-            ["a"] = "1", ["b"] = "2"
+            ["a"] = "1",
+            ["b"] = "2"
         });
         var routeState = new RouteState { Path = "/navigator", Query = initial };
         var nav = new Navigator(routeState);

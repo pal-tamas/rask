@@ -372,7 +372,7 @@ Beyond the quick starts, the repo ships runnable showcase apps that exercise eve
   host model. Run one with `dotnet run --project samples/Rask.Example.Server` (or `samples/Rask.Example.Wasm.Host`) and
   open the printed
   URL.
-- **`samples/Rask.Example.Shared/Pages/`** — the feature-by-feature pages those hosts share: forms & validation,
+- **`samples/Rask.Example.Shared/Features/`** — the feature-by-feature pages those hosts share: forms & validation,
   nested-form
   binding, routing, JS interop, virtualization (a 10K-row table), file upload/download, and **auth gating** (the `/user`
   page shows both imperative `IUserProvider.Current` and the declarative `Authorize` component). These are the canonical
@@ -987,7 +987,7 @@ public sealed class ReportPage(Navigator nav) : Component
 `RaskFile` exposes `Name`, `Size`, `ContentType`, `LastModified`, plus `OpenReadStream(maxAllowedSize, ct)`. The
 stream is only valid while the handler is on the stack — read whatever you need before returning. Inside a `Form`,
 files also surface through `FormData.Files(name)` and participate in submit. `Navigator.Download` must be called from
-an event handler. See `samples/Rask.Example.Shared/Pages/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
+an event handler. See `samples/Rask.Example.Shared/Features/Upload/UploadPage.cs` and `DownloadPage.cs` for the canonical demos.
 
 </details>
 
@@ -1023,7 +1023,7 @@ Virtualize<Row>(
 Provide exactly one of `Items` (in-memory) or `ItemsProvider` (async paging:
 `Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>`). With a provider, `Virtualize` caches loaded items by
 global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true` until
-a fetch completes. See `samples/Rask.Example.Shared/Pages/VirtualizePage.cs` for a 10K-row table demo.
+a fetch completes. See `samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs` for a 10K-row table demo.
 
 </details>
 
@@ -1054,7 +1054,7 @@ DragDrop(
 Drag handlers are **parameterless** (like `OnClick`): the dragged item's identity rides the handler closure, not the
 event payload, so no custom wire type is needed. `Draggable` / `OnDragStart` / `OnDragOver` / `OnDrop` / `OnDragEnd` are
 universal attributes on every element. A multi-column Kanban board is the same primitive with one zone per column — a
-single `OnDrop` handler moves the card across lists. See `samples/Rask.Example.Shared/Pages/DragDropPage.cs` for both a
+single `OnDrop` handler moves the card across lists. See `samples/Rask.Example.Shared/Features/DragDrop/DragDropPage.cs` for both a
 sortable list and a Kanban board.
 
 </details>
@@ -1268,7 +1268,7 @@ projection whose body becomes a `Child`, or an element `.Add(...)`-ed to a `List
 (or a `Data` `rask-key`) to clear it. Suppress per-site with `#pragma warning disable RASK022`, or promote it to an
 error with `<WarningsAsErrors>RASK022</WarningsAsErrors>` in the `.csproj`.
 
-See `samples/Rask.Example.Shared/Pages/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with
+See `samples/Rask.Example.Shared/Features/KeyedLists/KeyedListsPage.cs` for an interactive demo — type into a row, then reorder with
 keys
 on vs off to watch DOM state follow (or not follow) its row.
 

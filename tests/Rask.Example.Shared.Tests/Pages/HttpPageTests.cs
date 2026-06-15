@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
 using Rask.Core.Routing;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
+using static Rask.Example.Shared.Features.Generated;
 
 namespace Rask.Example.Shared.Tests.Pages;
 
@@ -66,16 +68,17 @@ public sealed class HttpPageTests
                 })
         };
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
-        var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http, routeState: routeState);
 
-        // Re-render the SAME app instance: the retried fetch resolves on a continuation after
-        // the first render returns, and only the same HttpPage instance retains the result.
-        var app = new Shared.App();
-        app.RenderAsLiveRoot(services);
+        // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
+        // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
+        // page's source-code pane (which now contains "alert-danger"/"spinner-border" as literal
+        // text). Re-rendering the SAME host preserves the demo instance, so the retried fetch's
+        // continuation result is observed.
+        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        host.RenderAsLiveRoot();
         await WaitFor.True(() => handler.RequestCount >= 2, TimeSpan.FromSeconds(2));
         await Task.Delay(50);
-        var html = app.RenderAsLiveRoot(services);
+        var html = host.RenderAsLiveRoot();
 
         Assert.DoesNotContain("alert-danger", html);
         Assert.Contains("the body text", html);
@@ -88,21 +91,20 @@ public sealed class HttpPageTests
         // HttpRequestException) must surface the error banner once retries are exhausted —
         // never leave the page spinning forever.
         var (http, handler) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
-        var routeState = new RouteState { Path = "/http" };
-        var services = TestServices.Default(http, routeState: routeState);
 
-        // Re-render the SAME app instance so the retry loop's terminal error (set on a
-        // continuation) is observed; the loop makes MaxTransientRetries + 1 attempts then stops.
-        var app = new Shared.App();
-        app.RenderAsLiveRoot(services);
+        // Drive HttpFetchDemo directly (it owns the retry loop); the page only embeds its source.
+        // Re-rendering the SAME host preserves the demo instance so the retry loop's terminal
+        // error (set on a continuation) is observed; the loop makes MaxTransientRetries + 1
+        // attempts then stops.
+        var host = new LiveHost(() => HttpFetchDemo(), LiveHost.Services((typeof(HttpClient), (object)http)));
+        host.RenderAsLiveRoot();
         await WaitFor.True(() => handler.RequestCount > 3, TimeSpan.FromSeconds(3));
         await Task.Delay(50);
-        var html = app.RenderAsLiveRoot(services);
+        var html = host.RenderAsLiveRoot();
 
         Assert.Contains("alert-danger", html);
-        // The spinner is gone — the page no longer hangs on the loading state.
-        // ("Loading…" still appears verbatim inside the page's code sample, so assert on the
-        // spinner-border indicator class instead.)
+        // The spinner is gone — the demo no longer hangs on the loading state. Asserting on the
+        // demo's rendered result (not the page) keeps the spinner-border check meaningful.
         Assert.DoesNotContain("spinner-border", html);
     }
 

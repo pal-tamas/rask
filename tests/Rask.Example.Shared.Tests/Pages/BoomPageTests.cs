@@ -1,6 +1,6 @@
 using System.Reflection;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -21,7 +21,7 @@ public sealed class BoomPageTests
     [Fact]
     public void ThrowFromHandler_ThrowsInvalidOperation_WithBoundaryDemoMessage()
     {
-        var mi = typeof(BoomPage).GetMethod("ThrowFromHandler",
+        var mi = typeof(BoomHandlerDemo).GetMethod("ThrowFromHandler",
             BindingFlags.Static | BindingFlags.NonPublic)!;
         var ex = Assert.Throws<TargetInvocationException>(() => mi.Invoke(null, null));
         Assert.IsType<InvalidOperationException>(ex.InnerException);
@@ -31,7 +31,7 @@ public sealed class BoomPageTests
     [Fact]
     public void ThrowFromInnerHandler_ThrowsInvalidOperation_WithInnerBoundaryDemoMessage()
     {
-        var mi = typeof(BoomPage).GetMethod("ThrowFromInnerHandler",
+        var mi = typeof(BoomNestedDemo).GetMethod("ThrowFromInnerHandler",
             BindingFlags.Static | BindingFlags.NonPublic)!;
         var ex = Assert.Throws<TargetInvocationException>(() => mi.Invoke(null, null));
         Assert.IsType<InvalidOperationException>(ex.InnerException);
@@ -41,10 +41,10 @@ public sealed class BoomPageTests
     [Fact]
     public void RenderThrower_NestedType_RendersByThrowing()
     {
-        // The page's private RenderThrower deliberately throws from Render(); ensure
+        // BoomRenderDemo's private RenderThrower deliberately throws from Render(); ensure
         // the type still exists with that contract so the ErrorBoundary demo keeps
         // demonstrating the render-throw path.
-        var nested = typeof(BoomPage).GetNestedType("RenderThrower",
+        var nested = typeof(BoomRenderDemo).GetNestedType("RenderThrower",
             BindingFlags.NonPublic);
         Assert.NotNull(nested);
         Assert.True(typeof(Component).IsAssignableFrom(nested!));
