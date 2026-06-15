@@ -971,6 +971,10 @@ function applyFullReply(reply) {
             scanHeadAssets();
         }
         applyHistory(reply.history);
+        // Cross-route navigation in WASM commits via this full-HTML morph (not the
+        // diff path), so the scroll reset / fragment scroll must run here too — the
+        // new body has just committed, so the anchor target exists.
+        applyNavScroll(reply.history);
         // Scoped CSS/JS arrives in the morphed HTML as
         // <link href="/_rask/a/{hash}.css"> / <script src="/_rask/a/{hash}.js" defer>
         // tags — no payload-side cssText/jsText injection. Browser handles load
@@ -1025,6 +1029,9 @@ document.addEventListener("click", (e) => {
     }
     if (url.origin !== location.origin) return;
     e.preventDefault();
+    // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
+    // the new page commits (the fragment is not sent to the server).
+    _pendingScrollHash = url.hash || "";
     flushInputsNow();
     send({type: "navigate", path: stripBase(url.pathname), query: url.search});
 });
