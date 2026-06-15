@@ -27,7 +27,8 @@ public sealed class CodeSample : Component
 
     // Syntax highlighting is produced server-side by ColorCode: GetHtmlString tokenizes
     // the C# source into <span class="..."> markup whose classes (keyword/string/comment/…)
-    // are coloured by the :global() rules in CodeSample.css. The result is injected via the
+    // are coloured by the .sample-code rules in the app's global stylesheet (wwwroot/global.css);
+    // they can't be scoped because Raw() markup carries no scope id. The result is injected via the
     // Raw() factory (verbatim, un-encoded — ColorCode already HTML-encodes token text), so
     // no client JS runs and the highlight is present in the very first render.
     private string HighlightedHtml() =>

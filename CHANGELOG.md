@@ -53,6 +53,17 @@ them until tagged releases begin.
   automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
   rewrite; every other asset URL is document-relative).
 
+### Removed
+- **`:global(...)` scoped-CSS escape hatch removed.** A scoped `{Component}.css` no longer has a
+  per-selector opt-out. Global styles — brand palettes, `:root` variables, shell tags (`body`/`html`),
+  and framework classes like Bootstrap's — now belong in a plain `wwwroot/global.css` linked from your
+  App component's `<Head>` (`Link(Rel: "stylesheet", Href: LiveOptions.PathBase + "/global.css")`),
+  exactly like any other static stylesheet; user `<Head>` contributions already load before the
+  framework's scoped links. This drops the special-case selector rewriting and removes a source of
+  confusion about scoping semantics. **Breaking:** move `:global(...)` rules out of `{Component}.css`
+  files into a `wwwroot` stylesheet — all sample apps have been migrated as the worked example. See
+  [scoped CSS](docs/js-interop.md).
+
 ### Documentation
 - EF Core data-access guide: clarified that an awaited event handler re-renders automatically on
   completion (like an async lifecycle hook), and removed the misleading explicit `StateHasChanged()`
@@ -60,6 +71,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
+  request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
+  sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to
+  `application/octet-stream` — which browsers refuse to apply as a stylesheet (or execute as a
+  module), so a linked `global.css` silently had no effect on a hosted WASM app. The host now
+  re-derives the type from the underlying asset name for any known extension (`.css`/`.json`/`.svg`/…),
+  alongside the existing `.wasm`/`.js` handling; genuinely unknown extensions still serve as
+  `application/octet-stream`.
 - **Keyed reorders now preserve the survivors' focus, text selection, and caret position**, not
   just their uncommitted input *value*. Applying a trusted structural diff (`MoveSubtree` /
   `PermutationBatch`) — and the keyed branch of the untrusted morph — relocated each surviving

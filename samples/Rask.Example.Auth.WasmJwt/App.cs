@@ -3,7 +3,7 @@ namespace Rask.Example.Auth.WasmJwt;
 public sealed class App : Component
 {
     // Bootstrap + Bootstrap Icons via CDN keep the showcase look without vendoring wwwroot/lib
-    // per sample. App.css (scoped sibling) layers the Rask purple palette on top.
+    // per sample. wwwroot/global.css layers the Rask purple palette on top.
     protected override RenderResult Head =>
     [
         Title()["Rask — JWT + WASM auth"],
@@ -12,7 +12,10 @@ public sealed class App : Component
         Link(Rel: "stylesheet",
             Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"),
         Link(Rel: "stylesheet",
-            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
+            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"),
+        // Rask purple palette over Bootstrap — plain wwwroot stylesheet, linked after Bootstrap
+        // so it wins the cascade and before the scoped-css links the framework appends.
+        Link(Rel: "stylesheet", Href: "/global.css")
     ];
 
     protected override RenderResult Render() =>

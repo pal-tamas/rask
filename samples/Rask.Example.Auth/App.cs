@@ -1,7 +1,7 @@
 namespace Rask.Example.Auth;
 
-// App shell: the framework-managed <head> (Bootstrap via CDN + the Rask purple palette in App.css),
-// a sticky navbar, and a Router that renders the matched page.
+// App shell: the framework-managed <head> (Bootstrap via CDN + the Rask purple palette in
+// wwwroot/global.css), a sticky navbar, and a Router that renders the matched page.
 public sealed class App : Component
 {
     protected override RenderResult Head =>
@@ -12,7 +12,10 @@ public sealed class App : Component
         Link(Rel: "stylesheet",
             Href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"),
         Link(Rel: "stylesheet",
-            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
+            Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"),
+        // Rask purple palette over Bootstrap — plain wwwroot stylesheet, linked after Bootstrap
+        // so it wins the cascade and before the scoped-css links the framework appends.
+        Link(Rel: "stylesheet", Href: "/global.css")
     ];
 
     protected override RenderResult Render() =>

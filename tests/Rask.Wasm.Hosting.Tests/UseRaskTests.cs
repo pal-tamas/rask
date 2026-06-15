@@ -46,6 +46,40 @@ public class UseRaskTests
     }
 
     [Fact]
+    public async Task CssFile_ServedAsTextCss()
+    {
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var response = await host.Http.GetAsync("/global.css");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task PrecompressedCssSibling_KeepsTextCssContentType()
+    {
+        // Regression: PrecompressedFileMiddleware rewrites /global.css to its on-disk
+        // global.css.br sibling, after which UseStaticFiles keys the MIME off ".br" and would
+        // fall back to application/octet-stream — which browsers refuse to apply as a stylesheet.
+        // The content type must follow the underlying .css, exactly like the .wasm sibling case.
+        using var bundle = new FakeBundleDirectory();
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var req = new HttpRequestMessage(HttpMethod.Get, "/global.css");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("br", response.Content.Headers.ContentEncoding);
+        Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
+        // The precompressed sibling bytes were served, not the plaintext .css.
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal(new byte[] { 0x42, 0x52, 0x03, 0x04 }, bytes);
+    }
+
+    [Fact]
     public async Task UnknownExtension_ServedAsOctetStream_NotFallback()
     {
         using var bundle = new FakeBundleDirectory();

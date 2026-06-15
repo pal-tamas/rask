@@ -1,0 +1,144 @@
+/* Brand palette + global cascade for the Rask showcase. These rules target :root,
+   global Bootstrap classes, shell tags (html/body), and markup rendered by other
+   components (Raw-injected syntax-highlight spans), so they are deliberately NOT scoped.
+   Plain global stylesheet served from wwwroot and linked from App.cs's <Head>. */
+
+:root {
+    --bs-primary: #7C3AED;
+    --bs-primary-rgb: 124, 58, 237;
+    --bs-link-color: #6D28D9;
+    --bs-link-color-rgb: 109, 40, 217;
+    --bs-link-hover-color: #512BD4;
+    --bs-link-hover-color-rgb: 81, 43, 212;
+    --rask-accent: #7C3AED;
+    --rask-accent-strong: #512BD4;
+    --rask-accent-soft: #f1ebfd;
+    --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
+}
+
+.btn-primary {
+    --bs-btn-bg: #7C3AED;
+    --bs-btn-border-color: #7C3AED;
+    --bs-btn-hover-bg: #6D28D9;
+    --bs-btn-hover-border-color: #6D28D9;
+    --bs-btn-active-bg: #512BD4;
+    --bs-btn-active-border-color: #512BD4;
+    --bs-btn-disabled-bg: #7C3AED;
+    --bs-btn-disabled-border-color: #7C3AED;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #6D28D9;
+    --bs-btn-border-color: #7C3AED;
+    --bs-btn-hover-bg: #7C3AED;
+    --bs-btn-hover-border-color: #7C3AED;
+    --bs-btn-active-bg: #6D28D9;
+    --bs-btn-active-border-color: #6D28D9;
+}
+
+body {
+    font-feature-settings: "ss01", "cv11";
+}
+
+a {
+    color: var(--rask-accent);
+}
+
+a:hover {
+    color: var(--rask-accent-strong);
+}
+
+code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:not(pre) > code {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    padding: 0.08rem 0.32rem;
+    border-radius: 4px;
+    font-size: 0.86em;
+}
+
+pre {
+    margin: 0;
+}
+
+.rask-badge {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+}
+
+.text-accent {
+    color: var(--rask-accent) !important;
+}
+
+/* Shell-tag global rules. */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+button, a, [role="button"] {
+    touch-action: manipulation;
+}
+
+/* From ShowcaseLayout: lock body scroll while the mobile nav drawer is open.
+   :has() reaches up from the drawer-open descendant; body is a shell tag so this
+   rule belongs in the global stylesheet (it could never be component-scoped). */
+@media (max-width: 767.98px) {
+    body:has(.drawer-open) {
+        overflow: hidden;
+        height: 100vh;
+    }
+}
+
+/* From CodeSample: ColorCode emits <span class="keyword|string|comment|…"> token markup
+   injected through Raw(), so those spans carry no scope attribute. Anchored under
+   .sample-code so the generic class names don't leak page-wide. Dark palette tuned to
+   the #1f1d2b background / #e7e3ff base text. */
+.sample-code .keyword,
+.sample-code .preprocessorKeyword {
+    color: #c792ea;
+}
+
+.sample-code .string,
+.sample-code .stringCSharpVerbatim {
+    color: #c3e88d;
+}
+
+.sample-code .stringEscape {
+    color: #89ddff;
+}
+
+.sample-code .comment {
+    color: #6b6786;
+    font-style: italic;
+}
+
+.sample-code .xmlDocComment {
+    color: #6b6786;
+    font-style: italic;
+}
+
+.sample-code .xmlDocTag {
+    color: #8b87a8;
+}
+
+.sample-code .number {
+    color: #f78c6c;
+}
+
+.sample-code .className {
+    color: #82aaff;
+}
+
+.sample-code .plainText {
+    color: #e7e3ff;
+}
