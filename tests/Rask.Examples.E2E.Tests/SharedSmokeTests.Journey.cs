@@ -447,6 +447,26 @@ public abstract partial class SharedSmokeTests
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
+        // The navbar height is centralised in a single --nav-h custom property (no hard-coded 56px),
+        // and on desktop the sidebar uses it to become an independent, viewport-bounded scroll region
+        // so its long link list scrolls inside itself rather than stretching the page — the
+        // "navbar too tall" fix. At the default 1280×720 viewport the 35-link list overflows the box.
+        Assert.Equal("56px", (await Page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim()")));
+        var navScroll = await Page.Locator("aside.side-nav .position-sticky").First.EvaluateAsync<string>(
+            @"el => {
+                const cs = getComputedStyle(el);
+                const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
+                return JSON.stringify({
+                    overflowY: cs.overflowY,
+                    bounded: el.clientHeight <= window.innerHeight - navH + 1,
+                    scrollable: el.scrollHeight > el.clientHeight,
+                });
+            }");
+        Assert.Contains("\"overflowY\":\"auto\"", navScroll);
+        Assert.Contains("\"bounded\":true", navScroll);
+        Assert.Contains("\"scrollable\":true", navScroll);
+
         // Asset loading: per-component content-addressed <link>s, a JS-only <script>, and lazy
         // mount adding/removing a link via the keyed head-morph.
         await SideAsync("Asset loading", "Asset loading", "main h1.h3");

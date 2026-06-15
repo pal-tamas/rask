@@ -98,7 +98,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                 Aside(Class: _drawerOpen
                     ? "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav drawer-open"
                     : "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav")[
-                    Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: 56px;")[BuildGroups()]
+                    Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: var(--nav-h);")[BuildGroups()]
                 ],
                 Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
                     Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]

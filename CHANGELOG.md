@@ -87,6 +87,12 @@ them until tagged releases begin.
   and export-collection now accept the optional `async` modifier (sync and async exports may be
   mixed in one file). Affects both the Server runtime and the WASM publish bake (both go through
   the same `ScopedAssetRegistry` wrapping).
+- **Showcase side navigation no longer overflows the page.** On desktop the long sidebar link list
+  was an unconstrained `position-sticky` block, so when it exceeded the viewport its bottom entries
+  fell below the fold and were only reachable by scrolling the whole page. The sidebar is now pinned
+  under the navbar, capped at the available viewport height, and scrolls on its own. The navbar
+  height — previously a `56px` literal duplicated across the sidebar `min-height`, the mobile-drawer
+  offset, and the sticky `top` — is centralised in a single `--nav-h` custom property (samples only).
 - **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
   request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
   sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to

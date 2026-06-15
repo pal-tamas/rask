@@ -14,6 +14,7 @@
     --rask-accent-strong: #512BD4;
     --rask-accent-soft: #f1ebfd;
     --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
+    --nav-h: 56px;
 }
 
 .btn-primary {
