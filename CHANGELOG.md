@@ -79,6 +79,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **Scoped JS now supports `export async function`.** The module wrapper that exposes a sibling
+  `{Component}.js` on `window.Rask["{Type}"]` only recognised `export function` / `export const`,
+  so an `export async function name(...)` kept its `export` keyword inside the (non-module) IIFE —
+  a `SyntaxError` that silently prevented the *entire* file from loading, leaving `Rask.{Type}`
+  undefined and every invoke into it failing with "Could not find … on target". The export-strip
+  and export-collection now accept the optional `async` modifier (sync and async exports may be
+  mixed in one file). Affects both the Server runtime and the WASM publish bake (both go through
+  the same `ScopedAssetRegistry` wrapping).
 - **Navigation now scrolls to the top of the new page.** Forward client-side navigation (a `NavLink`
   click or `Navigator.Navigate`) previously left the window at the previous page's scroll position, so
   users could land mid-page on a new route. It now resets the scroll to the top on a history *push*,

@@ -55,12 +55,17 @@ component CSS.
 ## Scoped JS
 
 A sibling `{Component}.js` is wrapped onto `window.Rask["{TypeName}"]`, with every
-`export function NAME` becoming a method:
+`export function NAME` (or `export async function NAME`) becoming a method:
 
 ```js
 // ElementRefDemo.js
 export function width(el) {
     return el ? el.getBoundingClientRect().width : 0;
+}
+
+// async exports work too — e.g. CodeSample.js
+export async function copy(text) {
+    await navigator.clipboard.writeText(text);
 }
 ```
 
