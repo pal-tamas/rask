@@ -1,7 +1,7 @@
 using System.Reflection;
 using Rask.Core.Forms;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -22,8 +22,8 @@ public sealed class UploadPageTests
     [Fact]
     public void OnFiles_HydratesMetadataFromFirstFile()
     {
-        var page = new UploadPage();
-        var onFiles = typeof(UploadPage).GetMethod("OnFiles",
+        var page = new UploadDemo();
+        var onFiles = typeof(UploadDemo).GetMethod("OnFiles",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         var file = new FakeFile("doc.txt", 12345, "text/plain",
@@ -39,8 +39,8 @@ public sealed class UploadPageTests
     [Fact]
     public void OnFiles_EmptyList_ClearsName()
     {
-        var page = new UploadPage();
-        var onFiles = typeof(UploadPage).GetMethod("OnFiles",
+        var page = new UploadDemo();
+        var onFiles = typeof(UploadDemo).GetMethod("OnFiles",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         // Pre-set _name as if a previous file had been chosen.
@@ -50,17 +50,17 @@ public sealed class UploadPageTests
         Assert.Null(GetField<string?>(page, "_name"));
     }
 
-    private static T GetField<T>(UploadPage page, string name)
+    private static T GetField<T>(UploadDemo page, string name)
     {
-        var f = typeof(UploadPage).GetField(name,
+        var f = typeof(UploadDemo).GetField(name,
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         var v = f.GetValue(page);
         return v is null ? default! : (T)v;
     }
 
-    private static void SetField(UploadPage page, string name, object? value)
+    private static void SetField(UploadDemo page, string name, object? value)
     {
-        var f = typeof(UploadPage).GetField(name,
+        var f = typeof(UploadDemo).GetField(name,
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         f.SetValue(page, value);
     }

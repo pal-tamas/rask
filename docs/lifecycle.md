@@ -153,5 +153,5 @@ The framework cancels the token **before** disposing the subtree, so awaits unwi
 before `Dispose` runs and the unmount hooks fire. Cooperation is required: the framework only *signals* the token — it
 doesn't abort blocking calls. Thread the token through anything you want cancelled.
 
-(See `samples/Rask.Example.Shared/Pages/CancellationPage.cs` and `LifecyclePage.cs` for runnable probes that log every
+(See `samples/Rask.Example.Shared/Features/Cancellation/CancellationPage.cs` and `LifecyclePage.cs` for runnable probes that log every
 hook invocation, and `PropsPage.cs` for the props-binding demo.)

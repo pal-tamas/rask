@@ -2,9 +2,11 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Reflection;
 using Rask.Core.Forms;
-using Rask.Example.Shared.Demos;
+using Rask.Example.Shared;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
-using static Rask.Example.Shared.Demos.Generated;
+using static Rask.Example.Shared.Features.Generated;
+using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
@@ -188,7 +190,9 @@ public sealed class ValidationDemosTests
     {
         var m = new BookingModel
         {
-            Name = "X", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2020, 1, 5)
+            Name = "X",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2020, 1, 5)
         };
         var ctx = new ValidationContext(m);
         var results = m.Validate(ctx).ToList();
@@ -201,7 +205,9 @@ public sealed class ValidationDemosTests
     {
         var m = new BookingModel
         {
-            Name = "X", Departure = new DateOnly(2026, 8, 1), Arrival = new DateOnly(2026, 8, 1)
+            Name = "X",
+            Departure = new DateOnly(2026, 8, 1),
+            Arrival = new DateOnly(2026, 8, 1)
         };
         var ctx = new ValidationContext(m);
         var results = m.Validate(ctx).ToList();
@@ -214,7 +220,9 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat", Password = "short", ConfirmPassword = "short"
+            Username = "pat",
+            Password = "short",
+            ConfirmPassword = "short"
         });
         Assert.Contains(errors, e => e.MemberNames.Contains("Password"));
     }
@@ -224,7 +232,9 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat", Password = "Pass1word", ConfirmPassword = "DIFFERENT"
+            Username = "pat",
+            Password = "Pass1word",
+            ConfirmPassword = "DIFFERENT"
         });
         Assert.Contains(errors, e => e.MemberNames.Contains("ConfirmPassword"));
     }
@@ -234,7 +244,9 @@ public sealed class ValidationDemosTests
     {
         var errors = Validate(new CustomAttributeModel
         {
-            Username = "pat", Password = "Pass1word", ConfirmPassword = "Pass1word"
+            Username = "pat",
+            Password = "Pass1word",
+            ConfirmPassword = "Pass1word"
         });
         Assert.Empty(errors);
     }

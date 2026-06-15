@@ -1,0 +1,16 @@
+namespace Rask.Example.Shared.Features;
+
+public sealed class CallbackRatingDemo : Component
+{
+    private int _rating;
+
+    protected override RenderResult Render() =>
+        Div()[
+            // The lambda captures `this`, so it owns this demo — the framework wraps it so clicking
+            // a star in the child re-renders the line below, with no extra ceremony.
+            RatingStars(_rating, n => _rating = n),
+            P(Class: "mt-2 mb-0 small text-secondary")[
+                _rating == 0 ? "Click a star to rate." : $"You rated: {_rating}/5"
+            ]
+        ];
+}

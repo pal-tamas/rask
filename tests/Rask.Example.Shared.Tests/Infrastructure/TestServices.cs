@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Demos;
+using Rask.Example.Shared;
+using Rask.Example.Shared.Features;
 
 namespace Rask.Example.Shared.Tests.Infrastructure;
 
