@@ -131,7 +131,7 @@ public sealed class FocusDemo : Component
 ```
 
 Runnable demo:
-[`samples/Rask.Example.Shared/Demos/ElementRefDemo.cs`](../samples/Rask.Example.Shared/Demos/ElementRefDemo.cs)
+[`samples/Rask.Example.Shared/Features/ElementRef/ElementRefDemo.cs`](../samples/Rask.Example.Shared/Features/ElementRef/ElementRefDemo.cs)
 (+ `ElementRefDemo.js`).
 
 ---

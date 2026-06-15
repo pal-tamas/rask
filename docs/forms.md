@@ -358,7 +358,7 @@ sub-instance so `ValidationMessage(For: () => _model.Address.Street, …)` reads
 > preserves the root model's public properties (`[DynamicallyAccessedMembers]`, a routed page, or a
 > trimmer descriptor) must extend to every nested type.
 
-See `samples/Rask.Example.Shared/Pages/NestedFormPage.cs` for all four patterns side by side.
+See `samples/Rask.Example.Shared/Features/NestedForms/NestedFormPage.cs` for all four patterns side by side.
 
 ---
 
@@ -411,4 +411,4 @@ Form(_prefs)[
   immediately. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` + `ValidateFieldAsync`,
   so DataAnnotations / FluentValidation rules on the bound property apply.
 
-See `samples/Rask.Example.Shared/Pages/FormGroupsPage.cs`.
+See `samples/Rask.Example.Shared/Features/FormGroups/FormGroupsPage.cs`.

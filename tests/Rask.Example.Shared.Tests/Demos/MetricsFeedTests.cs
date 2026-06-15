@@ -1,4 +1,5 @@
-using Rask.Example.Shared.Demos;
+using Rask.Example.Shared;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Demos;

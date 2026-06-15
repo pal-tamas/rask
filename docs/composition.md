@@ -128,7 +128,7 @@ it re-reads when the provider re-renders — *even through a render-cached inter
 that never re-renders itself. That is the whole point: `ThemeCard` above is cached after
 first paint, yet the `ThemeBadge` it nests still updates on every toggle.
 
-Runnable demo: [`samples/Rask.Example.Shared/Demos/ContextDemos.cs`](../samples/Rask.Example.Shared/Demos/ContextDemos.cs).
+Runnable demo: [`samples/Rask.Example.Shared/Features/Context/ContextThemeDemo.cs`](../samples/Rask.Example.Shared/Features/Context/ContextThemeDemo.cs).
 
 ---
 
@@ -171,7 +171,7 @@ ItemsProvider: async req =>
 Provider mode caches by index, marks rows `IsPlaceholder` while a page is in flight, and
 cancels + disposes superseded requests (and on unmount).
 
-Runnable demo: [`samples/Rask.Example.Shared/Pages/VirtualizePage.cs`](../samples/Rask.Example.Shared/Pages/VirtualizePage.cs).
+Runnable demo: [`samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs`](../samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs).
 
 ---
 
@@ -180,7 +180,7 @@ Runnable demo: [`samples/Rask.Example.Shared/Pages/VirtualizePage.cs`](../sample
 A headless drag-and-drop primitive lives in `Rask.Core/DragAndDrop`. It tracks the
 dragged item and the drop target and raises a callback when an item is dropped; you own
 the visuals. See the runnable demo:
-[`samples/Rask.Example.Shared/Pages/DragDropPage.cs`](../samples/Rask.Example.Shared/Pages/DragDropPage.cs)
+[`samples/Rask.Example.Shared/Features/DragDrop/DragDropPage.cs`](../samples/Rask.Example.Shared/Features/DragDrop/DragDropPage.cs)
 (+ `DragDropPage.css`).
 
 ---

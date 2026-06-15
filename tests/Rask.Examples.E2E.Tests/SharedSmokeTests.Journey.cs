@@ -379,7 +379,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("input[name=Name]").First.FillAsync("Ada");
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        var subscribeEcho = Page.Locator("pre code").Filter(new LocatorFilterOptions { HasText = "Subscribe =" });
+        // Scope to the live result pane — the embedded sample source (.sample-code) now shows the
+        // demo's full class, which also contains "Subscribe =" in its echo template.
+        var subscribeEcho = Page.Locator(".sample-result-body pre code").Filter(new LocatorFilterOptions { HasText = "Subscribe =" });
         var checkbox = Page.Locator("#bind-subscribe");
         await checkbox.ClickAsync();
         await Expect(subscribeEcho).ToContainTextAsync("Subscribe = true",

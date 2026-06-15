@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
-using Rask.Example.Shared.Demos;
+using Rask.Example.Shared;
+using Rask.Example.Shared.Features;
 
 #pragma warning disable RASK014 // test renders the demo component directly as a root
 

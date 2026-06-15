@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text;
 using Rask.Core.Routing;
-using Rask.Example.Shared.Pages;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
@@ -25,9 +25,9 @@ public sealed class DownloadPageTests
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
-        var page = new DownloadPage(nav);
+        var page = new DownloadDemo(nav);
 
-        var mi = typeof(DownloadPage).GetMethod("DownloadReport",
+        var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));
 
@@ -46,9 +46,9 @@ public sealed class DownloadPageTests
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
-        var page = new DownloadPage(nav);
+        var page = new DownloadDemo(nav);
 
-        var mi = typeof(DownloadPage).GetMethod("DownloadReport",
+        var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));

@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **Showcase & auth samples reorganized into feature folders.** `samples/Rask.Example.Shared`
+  moved from flat `Pages/` + `Demos/` + `Layout/` to per-feature folders under `Features/` with
+  cross-cutting infrastructure (`CodeSample`, `EmbeddedSource`, `PageHeader`, `ShowcaseLayout`, …)
+  in `Shared/`; the four `Rask.Example.Auth*` apps likewise moved to `Features/` + `Shared/`,
+  matching `Rask.Example.EfCore`. No public framework API changed and all routes are unchanged.
+- **Every showcase code sample now displays its real, full component class verbatim.** Each
+  `CodeSample` reads its source through `EmbeddedSource.Read(...)` instead of a hand-written string
+  literal, so the shown code is the actual compiled class and can never drift from the live result.
+  Inline demos were promoted to dedicated, self-contained component classes co-located with their
+  feature. A build-time check now fails if two embedded source files share a leaf name.
+
 ## [0.8.0] - 2026-06-15
 
 ### Added
