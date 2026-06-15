@@ -28,6 +28,12 @@ window.__raskEl = window.__raskEl || {
 // computed against the render this one produces, so they must not be applied first.
 let _renderQueue = Promise.resolve();
 
+// The "#fragment" of an intercepted nav-link click. The fragment never leaves the
+// browser (the navigate message carries only path+query, and the history url has no
+// hash), so we stash it here on click and consume it when the matching push reply
+// commits — scroll to that anchor, else to the top. Cleared on consume.
+let _pendingScrollHash = "";
+
 // scopedJsReady starts true: per-component scripts ship as
 // <script src="/_rask/a/{hash}.js" defer> tags in the initial HTML's <head> (and
 // are morphed in/out as components mount/unmount). The browser's defer semantics
@@ -414,11 +420,41 @@ function inRoot(el) {
 
 function applyHistory(history) {
     if (!history || typeof history.url !== "string") return;
-    const target = prependBase(history.url);
-    if (history.action === "replace")
+    let target = prependBase(history.url);
+    if (history.action === "replace") {
         window.history.replaceState({rask: true}, "", target);
-    else
+    } else {
+        if (_pendingScrollHash) target += _pendingScrollHash;
         window.history.pushState({rask: true}, "", target);
+    }
+}
+
+// Reset scroll on forward navigation only (history.action "push" — a nav-link click
+// or Navigator.Navigate). "replace" (Back/Forward popstate, SetQuery, auth redirect)
+// is left to the browser's native scroll restoration. When the intercepted link
+// carried a "#fragment" matching an element, scroll there instead of the top.
+// Call this only after the new body has committed so the anchor target exists.
+function applyNavScroll(history) {
+    if (!history || history.action === "replace") {
+        _pendingScrollHash = "";
+        return;
+    }
+    const hash = _pendingScrollHash;
+    _pendingScrollHash = "";
+    if (hash && hash.length > 1) {
+        let el = null;
+        try {
+            el = document.querySelector(hash) ||
+                document.getElementById(decodeURIComponent(hash.slice(1)));
+        } catch (e) {
+            el = null;
+        }
+        if (el) {
+            el.scrollIntoView();
+            return;
+        }
+    }
+    window.scrollTo(0, 0);
 }
 
 // Comment nodes (nodeType 8) appear in document.childNodes for any HTML page
@@ -668,6 +704,7 @@ function applyDiffReply(reply) {
     const applyBody = () => {
         applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
         applyHistory(reply.history);
+        applyNavScroll(reply.history);
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
         // (keyed InsertSubtree). Track them so their load events feed the Rask.* invoke
         // gate, then drain anything now unblocked — the full-HTML morph path does the same.
@@ -706,6 +743,10 @@ function applyFullReply(reply) {
             scanHeadAssets();
         }
         applyHistory(reply.history);
+        // Cross-route navigation in WASM commits via this full-HTML morph (not the
+        // diff path), so the scroll reset / fragment scroll must run here too — the
+        // new body has just committed, so the anchor target exists.
+        applyNavScroll(reply.history);
         // Scoped CSS/JS arrives in the morphed HTML as
         // <link href="/_rask/a/{hash}.css"> / <script src="/_rask/a/{hash}.js" defer>
         // tags — no payload-side cssText/jsText injection. Browser handles load
@@ -760,6 +801,9 @@ document.addEventListener("click", (e) => {
     }
     if (url.origin !== location.origin) return;
     e.preventDefault();
+    // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
+    // the new page commits (the fragment is not sent to the server).
+    _pendingScrollHash = url.hash || "";
     flushInputsNow();
     send({type: "navigate", path: stripBase(url.pathname), query: url.search});
 });
