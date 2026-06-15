@@ -79,6 +79,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **Navigation now scrolls to the top of the new page.** Forward client-side navigation (a `NavLink`
+  click or `Navigator.Navigate`) previously left the window at the previous page's scroll position, so
+  users could land mid-page on a new route. It now resets the scroll to the top on a history *push*,
+  matching a server-rendered page load. Back/Forward and in-place URL changes (`SetQuery`, auth
+  redirects — history *replace*) are left to the browser's native scroll restoration. When a
+  `NavLink`'s `Href` carries a `#fragment` that matches an element on the destination page, the runtime
+  scrolls to that element (and preserves the fragment in the address bar) instead of jumping to the
+  top. Fixed in the shared client runtime, so both the Server (WebSocket) and WASM transports get it.
 - **Showcase side navigation no longer overflows the page.** On desktop the long sidebar link list
   was an unconstrained `position-sticky` block, so when it exceeded the viewport its bottom entries
   fell below the fold and were only reachable by scrolling the whole page. The sidebar is now pinned

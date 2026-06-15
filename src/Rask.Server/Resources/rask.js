@@ -25,6 +25,11 @@
     // always commits before the following message's ops — paths in a later diff are
     // computed against the render this one produces, so they must not be applied first.
     var _renderQueue = Promise.resolve();
+    // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
+    // browser (the navigate message carries only path+query, and the server's history
+    // url has no hash), so we stash it here on click and consume it when the matching
+    // push reply commits — scroll to that anchor, else to the top. Cleared on consume.
+    var _pendingScrollHash = "";
     // Hard cap on how long a navigation diff defers the body swap waiting for a newly
     // mounted page's scoped stylesheet to load. A warm content-addressed
     // /_rask/a/{hash}.css load resolves in a few ms; the cap only ever applies to a
@@ -466,6 +471,34 @@
         return pending.length ? Promise.all(pending) : null;
     }
 
+    // Reset scroll on forward navigation only (history.action "push" — a nav-link click
+    // or Navigator.Navigate). "replace" (Back/Forward popstate, SetQuery, auth redirect)
+    // is left to the browser's native scroll restoration. When the intercepted link
+    // carried a "#fragment" matching an element, scroll there instead of the top.
+    // Call this only after the new body has committed so the anchor target exists.
+    function applyNavScroll(history) {
+        if (!history || history.action === "replace") {
+            _pendingScrollHash = "";
+            return;
+        }
+        var hash = _pendingScrollHash;
+        _pendingScrollHash = "";
+        if (hash && hash.length > 1) {
+            var el = null;
+            try {
+                el = document.querySelector(hash) ||
+                    document.getElementById(decodeURIComponent(hash.slice(1)));
+            } catch (e) {
+                el = null;
+            }
+            if (el) {
+                el.scrollIntoView();
+                return;
+            }
+        }
+        window.scrollTo(0, 0);
+    }
+
     // Diff-mode render application (wire format matches LivePayload.BuildPayloadUtf8Diff).
     // The head rides the payload as a <head> fragment (user Head contributions are
     // collected + spliced server-side, so they're not in the frame stream). Morph the
@@ -483,9 +516,11 @@
                 if (data.history.action === "replace") {
                     history.replaceState({rask: true}, "", diffTarget);
                 } else {
+                    if (_pendingScrollHash) diffTarget += _pendingScrollHash;
                     history.pushState({rask: true}, "", diffTarget);
                 }
             }
+            applyNavScroll(data.history);
             // Re-scan so newly-added scoped <script>/<link> feed the Rask.* invoke gate.
             scanHeadAssets();
             // Fire-and-forget IJSRuntime invokes ride the diff payload too (e.g. a
@@ -527,9 +562,11 @@
             if (data.history.action === "replace") {
                 history.replaceState({rask: true}, "", fullTarget);
             } else {
+                if (_pendingScrollHash) fullTarget += _pendingScrollHash;
                 history.pushState({rask: true}, "", fullTarget);
             }
         }
+        applyNavScroll(data.history);
         if (Array.isArray(data.jsInvokes)) {
             for (var ji = 0; ji < data.jsInvokes.length; ji++) {
                 dispatchJsInvoke(data.jsInvokes[ji]);
@@ -676,6 +713,9 @@
         }
         if (url.origin !== location.origin) return;
         e.preventDefault();
+        // Stash the link's "#fragment" so applyNavScroll can scroll to the anchor once
+        // the new page commits (the fragment is not sent to the server).
+        _pendingScrollHash = url.hash || "";
         flushInputsNow();
         send({type: "navigate", path: stripBase(url.pathname), query: url.search});
     });

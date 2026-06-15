@@ -679,6 +679,60 @@ public abstract partial class SharedSmokeTests
         Assert.True(after > 0, $"no heap reading. baseline={baseline} after={after}");
         Assert.True(after < (baseline * 3) + 25_000_000 && after < 250_000_000,
             $"JS heap grew unexpectedly. baseline={baseline:N0} after={after:N0}.");
+
+        await AssertNavigationScrollAsync();
+    }
+
+    // Scroll behaviour on forward navigation. The runtime resets window scroll to the top on a
+    // "push" (a sidebar Navigator.Navigate or a data-rask-nav link click), and when the link
+    // carried a "#fragment" it scrolls to that element instead. Both transports share the JS
+    // runtime path (rask.js / rask.wasm.js applyNavScroll), so every host exercises it here.
+    private async Task AssertNavigationScrollAsync()
+    {
+        // --- a forward nav resets scroll to the top ---------------------------------------------
+        // The data table at 25 rows is reliably taller than the viewport; scroll to the bottom and
+        // confirm the document actually moved before navigating away.
+        await SideAsync("Data table", "Data table");
+        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
+        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.EvaluateAsync("() => window.scrollTo(0, document.documentElement.scrollHeight)");
+        await Page.WaitForFunctionAsync("() => window.scrollY > 0",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+        await SideAsync("Two-way binding", "Two-way binding");
+        // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
+        await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+
+        // --- a data-rask-nav link with a #fragment scrolls to that element ----------------------
+        // The showcase navigates via sidebar buttons, so inject a real NavLink-style anchor to drive
+        // the click-interceptor + fragment path. /validation is a long page and #v7-product sits well
+        // below the fold, so reaching it must move the scroll.
+        await SideAsync("Welcome", "The Rask framework", "h1.display-5");
+        await Page.EvaluateAsync(@"() => {
+            const a = document.createElement('a');
+            a.id = '__rask_anchor_probe';
+            a.setAttribute('data-rask-nav', '');
+            a.setAttribute('href', '/validation#v7-product');
+            a.textContent = 'probe';
+            document.querySelector('main').appendChild(a);
+        }");
+        await Page.Locator("#__rask_anchor_probe").ClickAsync();
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        // The fragment is preserved in the pushed URL (it never reaches the server, so the client
+        // re-appends it) …
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/validation#v7-product$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        // … and the target is scrolled into view (top within the viewport) with the page actually
+        // moved to get there (proving it was below the fold, not a no-op).
+        await Page.WaitForFunctionAsync(@"() => {
+            const el = document.getElementById('v7-product');
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            return window.scrollY > 0 && r.top >= -2 && r.top < window.innerHeight;
+        }", null, new PageWaitForFunctionOptions { Timeout = 10_000 });
     }
 
     // ---- low-level helpers (shared by the journey) ---------------------------------------------
