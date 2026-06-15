@@ -71,6 +71,14 @@ them until tagged releases begin.
   external event subscriptions). The `Rask.Example.EfCore` sample's `DeleteAsync` drops the call.
 
 ### Fixed
+- **Navigation now scrolls to the top of the new page.** Forward client-side navigation (a `NavLink`
+  click or `Navigator.Navigate`) previously left the window at the previous page's scroll position, so
+  users could land mid-page on a new route. It now resets the scroll to the top on a history *push*,
+  matching a server-rendered page load. Back/Forward and in-place URL changes (`SetQuery`, auth
+  redirects — history *replace*) are left to the browser's native scroll restoration. When a
+  `NavLink`'s `Href` carries a `#fragment` that matches an element on the destination page, the runtime
+  scrolls to that element (and preserves the fragment in the address bar) instead of jumping to the
+  top. Fixed in the shared client runtime, so both the Server (WebSocket) and WASM transports get it.
 - **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
   request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
   sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to
