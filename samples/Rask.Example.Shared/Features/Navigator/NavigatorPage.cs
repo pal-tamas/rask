@@ -67,7 +67,7 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
             ]
         ],
         CodeSample(
-            EmbeddedSource.Read("NavigatorDemo.cs"))
+            ["NavigatorDemo.cs"])
     ];
 
     private static string BuildQuery(RouteState route)

@@ -28,28 +28,28 @@ public sealed class SvgPage : Component
 
         H2(Class: "h4 mt-4 mb-3")["Shapes inside an <svg>"],
         CodeSample(
-            EmbeddedSource.Read("SvgShapesDemo.cs"),
+            ["SvgShapesDemo.cs"],
             Notes:
             "Presentation attributes (Fill, Stroke, StrokeWidth, StrokeLinecap, …) live on the shared SvgElement base, so every shape exposes them as optional factory parameters.",
             Result: SvgShapesDemo()),
 
         H2(Class: "h4 mt-5 mb-3")["Gradients via <defs> and <linearGradient>"],
         CodeSample(
-            EmbeddedSource.Read("SvgGradientDemo.cs"),
+            ["SvgGradientDemo.cs"],
             Notes:
             "The Rask brand mark itself is built this way — see Demos/RaskLogo.cs. A nested SvgTitle gives the graphic its accessible name.",
             Result: SvgGradientDemo()),
 
         H2(Class: "h4 mt-5 mb-3")["Clickable shapes — OnClick on any element"],
         CodeSample(
-            EmbeddedSource.Read("SvgClickableDemo.cs"),
+            ["SvgClickableDemo.cs"],
             Notes:
             $"Click a swatch — the selection re-renders live over the same transport as the rest of the page. Selected: {Swatches[_selected].Name}.",
             Result: SvgClickableDemo()),
 
         H2(Class: "h4 mt-5 mb-3")["Text with <text> and <tspan>"],
         CodeSample(
-            EmbeddedSource.Read("SvgTextDemo.cs"),
+            ["SvgTextDemo.cs"],
             Notes:
             "SvgText is the <text> tag (renamed to avoid colliding with the Text primitive); Tspan styles a run inside it.",
             Result: SvgTextDemo())

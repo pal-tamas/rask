@@ -15,7 +15,7 @@ public sealed class CallbackPage : Component
             "Child→parent events are plain delegate props — no special type. Invoking one re-renders the parent that owns it, automatically."),
         H2(Class: "h4 mt-4 mb-3")["Child emits, parent re-renders"],
         CodeSample(
-            EmbeddedSource.Read("RatingStars.cs", "CallbackRatingDemo.cs"),
+            ["RatingStars.cs", "CallbackRatingDemo.cs"],
             Notes:
             "The star button's handler belongs to RatingStars, so the DOM dispatch only dirties the child — and the child invokes OnRate off that path. The parent still re-renders because the framework wraps the delegate to re-render its owner (the parent, captured from the lambda's `this`). RatingStars never knows the parent exists, and the parent never wires StateHasChanged by hand.",
             Result: CallbackRatingDemo()),

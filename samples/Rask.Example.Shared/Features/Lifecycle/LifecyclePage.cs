@@ -58,7 +58,7 @@ public sealed class LifecyclePage : Component
         ],
         H2(Class: "h4 mt-5 mb-3")["Source"],
         CodeSample(
-            EmbeddedSource.Read("LifecycleProbe.cs"),
+            ["LifecycleProbe.cs"],
             Notes:
             "OnMount* fires once on first creation; OnPropsChanged* on first render and whenever a bound prop or route/query param actually changes — a bare event-handler re-render (like the Trigger button above) does NOT refire it; OnRendered* after every render commits; OnUnmount* once on disposal (children before parents). StateHasChanged() inside OnUnmount* is a no-op — the component is already leaving the tree."),
         Div(Class: "alert alert-danger d-flex align-items-start mt-3")[

@@ -15,12 +15,12 @@ public sealed class RoutingPage(Navigator nav) : Component
             "Annotate a component with [Route(\"/path\")]. A module initializer registers it; Router() in your App tree matches the current URL and renders the page."),
         H2(Class: "h4 mt-4 mb-3")["A page is a routed component"],
         CodeSample(
-            EmbeddedSource.Read("RoutingAboutPage.cs"),
+            ["RoutingAboutPage.cs"],
             Notes:
             "Routes use Blazor-style {param} placeholders. Optional, catch-all (**rest), and type-constrained variants are all supported."),
         H2(Class: "h4 mt-5 mb-3")["Nested layouts with [ParentRoute] + Outlet"],
         CodeSample(
-            EmbeddedSource.Read("RoutingLayoutDemo.cs"),
+            ["RoutingLayoutDemo.cs"],
             Notes:
             "Child templates are joined to the parent's. An empty child template (\"\") means \"default child for this layout\". This very showcase is built that way — every page declares [ParentRoute(typeof(ShowcaseLayout))]."),
         H2(Class: "h4 mt-5 mb-3")["Try the live param demo"],
@@ -57,7 +57,7 @@ public sealed class RoutingPage(Navigator nav) : Component
             " (sidebars, breadcrumbs, the path display in the showcase header) that need to refresh on every nav, including browser back/forward."
         ],
         CodeSample(
-            EmbeddedSource.Read("PathDisplay.cs"),
+            ["PathDisplay.cs"],
             Notes:
             "The handler is just StateHasChanged — the framework already knows how to coalesce the resulting render with whatever else the dispatcher is processing. Always pair the subscribe with the unsubscribe in OnUnmount; otherwise the RouteState keeps a strong reference to the (already-unmounted) component.")
     ];

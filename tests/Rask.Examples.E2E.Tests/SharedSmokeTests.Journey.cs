@@ -178,12 +178,13 @@ public abstract partial class SharedSmokeTests
             await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
             "scoped JS namespace window.Rask is missing — component JS did not load");
 
-        // Code sample tabs + copy: the Element refs sample shows the real component (C# tab) and
-        // its sibling scoped JS (JS tab). Switching tabs is a Rask state round-trip that swaps the
-        // highlighted pane; clicking copy runs the scoped Rask.CodeSample.copy, which flashes
-        // "Copied!" (resilient to headless clipboard restrictions via its execCommand fallback).
+        // Code sample tabs + copy: the Element refs sample shows the real component
+        // (ElementRefDemo.cs tab) and its sibling scoped JS (ElementRefDemo.js tab). Switching
+        // tabs is a Rask state round-trip that swaps the highlighted pane; clicking copy runs the
+        // scoped Rask.CodeSample.copy, which flashes "Copied!" (resilient to headless clipboard
+        // restrictions via its execCommand fallback).
         var codeCard = Page.Locator("main .sample-code-col").First;
-        await codeCard.Locator(".sample-tab:has-text('JS')").ClickAsync();
+        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.js')").ClickAsync();
         await Expect(codeCard.Locator(".sample-code"))
             .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await codeCard.Locator(".sample-copy").ClickAsync();

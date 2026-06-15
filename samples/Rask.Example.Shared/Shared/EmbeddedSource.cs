@@ -15,20 +15,9 @@ public static class EmbeddedSource
     // memoise per file name (mirrors CodeSample's HighlightCache rationale).
     private static readonly ConcurrentDictionary<string, string> Cache = new(StringComparer.Ordinal);
 
-    // Reads one or more embedded files and joins them with a blank line, so a single tab
-    // can show a pair of sibling files (e.g. ScopedRed.cs + ScopedBlue.cs). File names are
-    // the bare leaf names, e.g. "ElementRefDemo.cs".
-    public static string Read(params string[] fileNames)
-    {
-        if (fileNames.Length == 1)
-        {
-            return ReadOne(fileNames[0]);
-        }
-
-        return string.Join("\n\n", fileNames.Select(ReadOne));
-    }
-
-    private static string ReadOne(string fileName) =>
+    // Reads one embedded file's verbatim text. The file name is the bare leaf name, e.g.
+    // "ElementRefDemo.cs" (CodeSample shows one file per tab, so there is no joining).
+    public static string Read(string fileName) =>
         Cache.GetOrAdd(fileName, static name =>
         {
             using var stream = Asm.GetManifestResourceStream($"raksrc/{name}")

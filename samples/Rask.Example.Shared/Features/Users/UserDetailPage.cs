@@ -32,7 +32,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
             ]
         ],
         CodeSample(
-            EmbeddedSource.Read("UserDetailPage.cs"),
+            ["UserDetailPage.cs"],
             Notes:
             "Route templates use {name} for segments. Add a type constraint with {name:int}, optional with {name?}, or a catch-all with {**rest}. [RouteParam] without an argument matches by property name; pass a string to alias."),
         H2(Class: "h4 mt-5 mb-3")["Switch user"],

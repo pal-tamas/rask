@@ -18,6 +18,11 @@ them until tagged releases begin.
   literal, so the shown code is the actual compiled class and can never drift from the live result.
   Inline demos were promoted to dedicated, self-contained component classes co-located with their
   feature. A build-time check now fails if two embedded source files share a leaf name.
+- **Showcase code samples now show one tab per source file, labelled with its file name.**
+  `CodeSample` takes an ordered list of embedded file names and renders a tab per file (the
+  highlight language is inferred from the extension), replacing the previous generic `C#` / `JS` /
+  `CSS` strip that concatenated sibling files of the same language into a single pane. Multi-file
+  demos (e.g. Scoped CSS, Context, Background service) now expose each file on its own tab.
 
 ## [0.8.0] - 2026-06-15
 
