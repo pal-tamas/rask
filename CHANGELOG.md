@@ -52,6 +52,14 @@ them until tagged releases begin.
   `bin/<cfg>/net10.0-browser/publish/wwwroot/`; `Rask.Wasm.Hosting`'s `UseRask()` follows it
   automatically. Sub-path deploys keep `/p:RaskPathBase=/<repo>` (now a post-publish `<base href>`
   rewrite; every other asset URL is document-relative).
+- **Showcase code samples are now copy-pasteable and multi-language.** Every `CodeSample` card in
+  the example apps gains a copy-to-clipboard button (scoped JS, with an `execCommand` fallback for
+  non-secure/headless contexts), and samples that have a JavaScript or CSS side render a **C# / JS /
+  CSS tab strip** — tab state is component state switched through the live diff, and each pane is
+  highlighted server-side by ColorCode. The Element-refs and Scoped-CSS pages now show the **real,
+  verbatim source** of their demo components (`ElementRefDemo.cs` + `.js`, `ScopedRed/Blue.cs` +
+  `.css`), embedded from the actual files via a new `EmbeddedSource` reader so the snippet always
+  compiles and matches the live result. Samples-only — no framework API change.
 
 ### Removed
 - **`:global(...)` scoped-CSS escape hatch removed.** A scoped `{Component}.css` no longer has a
@@ -79,6 +87,12 @@ them until tagged releases begin.
   `NavLink`'s `Href` carries a `#fragment` that matches an element on the destination page, the runtime
   scrolls to that element (and preserves the fragment in the address bar) instead of jumping to the
   top. Fixed in the shared client runtime, so both the Server (WebSocket) and WASM transports get it.
+- **Showcase side navigation no longer overflows the page.** On desktop the long sidebar link list
+  was an unconstrained `position-sticky` block, so when it exceeded the viewport its bottom entries
+  fell below the fold and were only reachable by scrolling the whole page. The sidebar is now pinned
+  under the navbar, capped at the available viewport height, and scrolls on its own. The navbar
+  height — previously a `56px` literal duplicated across the sidebar `min-height`, the mobile-drawer
+  offset, and the sticky `top` — is centralised in a single `--nav-h` custom property (samples only).
 - **`Rask.Wasm.Hosting` now serves precompressed static assets with their real MIME type.** When a
   request for a `wwwroot` file (e.g. `global.css`) was satisfied from its publish-time `.br`/`.gz`
   sibling, `UseStaticFiles` keyed the content type off the `.br`/`.gz` extension and fell back to
