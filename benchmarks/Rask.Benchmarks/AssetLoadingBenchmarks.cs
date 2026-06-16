@@ -199,6 +199,35 @@ public class AssetLoadingBenchmarks
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // EmitScopedPreloads: the eager-prefetch pass ApplyTo runs after
+    // EmitMountedAssets. The <link rel="prefetch"> block is render-independent
+    // and cached (rebuilt only when the registry mutates), so the steady-state
+    // per-render cost is a single Append of the cached string — no rebuild, no
+    // per-render registry snapshot. This warm-cache bench captures that cost.
+    // ──────────────────────────────────────────────────────────────────────
+    [Benchmark]
+    public int EmitScopedPreloads_Warm()
+    {
+        var sb = new StringBuilder(8192);
+        HeadAssetRegistry.EmitScopedPreloads(sb);
+        return sb.Length;
+    }
+
+    // Mirrors what ApplyTo emits per render with the feature on: mounted,
+    // render-blocking assets followed by the cached preload block. Compare its
+    // Allocated against EmitMountedAssets_200 — the delta is the feature's
+    // marginal per-render cost (a single cached-string append; the cache build
+    // is amortised to zero after the first render).
+    [Benchmark]
+    public int EmitMountedAssetsWithPreloads_200()
+    {
+        var sb = new StringBuilder(8192);
+        HeadAssetRegistry.EmitMountedAssets(sb, _mounted200);
+        HeadAssetRegistry.EmitScopedPreloads(sb);
+        return sb.Length;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Cold path: RegisterCss on a fresh type. Drives hot-reload latency —
     // generator-emitted RefreshAll calls this once per (component, CSS source).
     // Includes the SHA-256 hash + CssScoper.Rewrite cost.
