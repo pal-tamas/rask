@@ -292,12 +292,21 @@ public static class FrameDiffer
                 }
 
                 case RenderFrameKind.Text:
-                case RenderFrameKind.Raw:
                     if (!string.Equals(oldFrame.Name, newFrame.Name, StringComparison.Ordinal))
                     {
                         output.Add(new EditOp(EditOpKind.UpdateText, PathPlus(path, domSlot), null, newFrame.Name));
                     }
 
+                    oi++;
+                    ni++;
+                    domSlot++;
+                    break;
+
+                case RenderFrameKind.Raw:
+                    // Only equal-valued Raw frames reach here — a changed Raw is a SiblingMatches
+                    // non-match (see SiblingMatches) and already shipped as Remove+Insert above, so
+                    // there is nothing to patch in place. Advance past the (single) Raw frame and
+                    // its DOM slot to keep the positional walk aligned.
                     oi++;
                     ni++;
                     domSlot++;
@@ -432,6 +441,14 @@ public static class FrameDiffer
         return a.Kind switch
         {
             RenderFrameKind.Element => string.Equals(a.Name, b.Name, StringComparison.Ordinal),
+            // A Raw frame's verbatim markup parses into a *variable-length* run of sibling DOM
+            // nodes with no boundary the client can address by path, so a changed Raw cannot be
+            // patched in place: UpdateText would both HTML-escape the markup (showing literal
+            // <span> tags) and only touch the run's first node. Treat differing Raw values as a
+            // non-match so the value change ships as an untrusted Remove+Insert, which routes to
+            // the full-HTML morph (LiveDiffGate.DiffOpsAreClientSupported) — the morph reparses
+            // the new markup correctly. Equal Raw values match and produce no op.
+            RenderFrameKind.Raw => string.Equals(a.Name, b.Name, StringComparison.Ordinal),
             _ => true
         };
     }

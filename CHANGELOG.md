@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Switching a syntax-highlighted code-sample tab no longer renders the new pane's markup as
+  literal text.** A live re-render that replaced one `Raw` value with another (e.g. switching a
+  `CodeSample` tab from highlighted C# to highlighted CSS) shipped an in-place `UpdateText` diff op,
+  which the client applied via `textContent` — escaping the token `<span>` markup into visible
+  `<span class="cssSelector">…` text and only touching the first of the `Raw`'s several DOM nodes.
+  A `Raw` value change is now treated as a structural replace that routes through the full-HTML
+  morph, so the browser reparses the new markup into real token spans. Unchanged `Raw` values still
+  diff to zero ops; `Text` nodes are unaffected.
+
 ### Changed
 - **Showcase & auth samples reorganized into feature folders.** `samples/Rask.Example.Shared`
   moved from flat `Pages/` + `Demos/` + `Layout/` to per-feature folders under `Features/` with
