@@ -504,32 +504,26 @@ public abstract partial class SharedSmokeTests
         // component link count returns to its pre-mount value — guards clone accumulation.
         await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // Measured mount (warm cache): the runtime holds the body paint until the real
-        // <link rel="stylesheet">'s .sheet has applied — otherwise the node paints unstyled
-        // (transparent) for a frame. Sample the background the browser is about to paint (see
-        // the rAF capture below); with the fix it's the styled colour, never the default
-        // transparent.
+        // Measured mount (warm cache): assert the fix's deterministic contract — the scoped
+        // stylesheet's rule is APPLIED in the CSSOM at the instant .lazy-child is inserted into
+        // the DOM. The runtime preloads the <link> and awaits its `.sheet` before the body morph,
+        // so the rule is live before the styled node exists and the browser paints it styled.
+        // (getComputedStyle is NOT used: a freshly recalc'd element can read its pre-application
+        // value for a frame even when the sheet is applied and no flash actually paints — that
+        // measurement artifact is unrelated to FOUC.) Without the fix the <link> would parse on a
+        // later task, so the rule would be absent at insertion (sheetAppliedAtInsert === false).
         await Page.EvaluateAsync(@"() => {
-            window.__raskLazyPaintBg = null;
-            // Capture the background the browser is about to PAINT for .lazy-child the first
-            // time it appears. A MutationObserver detects the insertion (whether the morph
-            // builds a fresh subtree or reveals it by mutating a reused node's attributes),
-            // then a requestAnimationFrame samples getComputedStyle just before paint — after
-            // style recalc, so it reflects pixels, not a stale mid-microtask read. With the
-            // fix the scoped stylesheet is applied before the body morph, so the painted
-            // background is the styled colour; a body swap ahead of CSS would paint the
-            // default transparent and the rule would only apply on a later frame (FOUC).
+            window.__raskLazyApplied = null;
             const obs = new MutationObserver(() => {
-                if (window.__raskLazyPaintBg !== null) return;
-                const el = document.querySelector('.lazy-child');
-                if (el) {
-                    window.__raskLazyPaintBg = 'pending';
-                    requestAnimationFrame(() => {
-                        const e2 = document.querySelector('.lazy-child');
-                        window.__raskLazyPaintBg = e2 ? getComputedStyle(e2).backgroundColor : 'gone';
-                    });
-                    obs.disconnect();
-                }
+                if (window.__raskLazyApplied !== null) return;
+                if (!document.querySelector('.lazy-child')) return;
+                let applied = false;
+                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
+                    if (!l.sheet) return;
+                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
+                });
+                window.__raskLazyApplied = applied;
+                obs.disconnect();
             });
             obs.observe(document.documentElement, {
                 childList: true, subtree: true, attributes: true, attributeFilter: ['class']
@@ -539,15 +533,11 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
-        // Poll until the rAF sample lands (it resolves a frame after the node appears).
-        await Page.WaitForFunctionAsync(
-            "() => window.__raskLazyPaintBg !== null && window.__raskLazyPaintBg !== 'pending'",
+        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
-        var lazyPaintBg = await Page.EvaluateAsync<string?>("() => window.__raskLazyPaintBg");
-        // The scoped stylesheet was applied before the first paint of the node — no flash of
-        // unstyled content. A transparent first paint would mean the body swapped ahead of CSS.
-        Assert.NotEqual("rgba(0, 0, 0, 0)", lazyPaintBg);
-        Assert.NotEqual("gone", lazyPaintBg);
+        var lazySheetApplied = await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true");
+        Assert.True(lazySheetApplied,
+            "scoped stylesheet must be applied before .lazy-child is inserted (no FOUC)");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
         // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph
