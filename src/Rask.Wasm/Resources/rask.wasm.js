@@ -20,9 +20,10 @@ window.__raskEl = window.__raskEl || {
     }
 };
 
-// Serializes render application across payloads. A navigation diff may defer its
-// body swap until the new page's scoped CSS loads (applyHeadThenWaitForCss), which
-// opens a microtask/timer gap during which .NET could deliver the next render. Both
+// Serializes render application across payloads. A navigation diff/full reply may defer
+// its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
+// preloadNewHeadStylesheets), opening a microtask/timer gap during which .NET could
+// deliver the next render. Both
 // the diff and full-HTML paths chain through this tail promise so a deferred body
 // always commits before the following payload's ops — paths in a later diff are
 // computed against the render this one produces, so they must not be applied first.
@@ -78,8 +79,8 @@ const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 // (404) still surfaces fast: its <script> fires an 'error' event that drains the gate
 // immediately, so the long window only ever applies to a slow-but-loading asset.
 const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
-// Hard cap on how long a navigation diff defers the body swap waiting for a newly
-// mounted page's scoped stylesheet to load (see applyHeadThenWaitForCss). A warm,
+// Hard cap on how long a render defers the body swap waiting for a newly mounted page's
+// scoped stylesheet to apply (see waitForUnappliedHeadCss / preloadNewHeadStylesheets). A warm,
 // content-addressed /_rask/a/{hash}.css load resolves in a few ms; the cap only ever
 // applies to a genuinely slow/failed sheet, where we'd rather show the (briefly
 // unstyled) page than stall navigation.
@@ -119,7 +120,14 @@ function trackHeadAsset(el) {
     const sameOrigin = typeof url === "string" && url.indexOf(location.origin) === 0;
     const useLongBackstop = isScoped || sameOrigin;
     trackedHeadAssets.add(el);
-    if (isAssetAlreadyLoaded(url)) return;
+    // A scoped (rsk-) script must wait for its real load event before draining Rask.*
+    // invokes: the eager <link rel="prefetch" as="script"> warms the HTTP cache and creates
+    // a Resource Timing entry, but downloaded != executed — window.Rask.{Type} is only
+    // defined once the script actually runs. Trusting timing here would let a first-render
+    // invoke dispatch before execution and fault with "Could not find Rask.{Type}". For a
+    // genuine warm non-scoped user-Head asset, "downloaded" stays an acceptable proxy (the
+    // user's defensive code is the contract), so it keeps the fast path.
+    if (!isScoped && isAssetAlreadyLoaded(url)) return;
     pendingHeadAssets.add(el);
     const finish = (outcome) => {
         if (!pendingHeadAssets.delete(el)) return;
@@ -157,27 +165,57 @@ function headAssetsReady() {
     return pendingHeadAssets.size === 0;
 }
 
-// Morph the incoming <head> into the live one, then return a Promise that resolves
-// once every *newly added* stylesheet has reached a terminal state (load / error /
-// CSS_FOUC_GUARD_MS timeout). On a navigation diff the body ops must not be applied
-// until the new page's scoped CSS (<link href="/_rask/a/{hash}.css">) is in place,
-// or the freshly-swapped body paints unstyled for a beat (FOUC). Stylesheets already
-// present + loaded before the morph — the warm-cache case — are skipped via
-// isAssetAlreadyLoaded, so a return of null means "nothing to wait for, apply the
-// body synchronously" and warm navigations keep today's instant timing.
-function applyHeadThenWaitForCss(freshHead) {
-    const before = new Set();
-    document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
-        if (l.href && isAssetAlreadyLoaded(l.href)) before.add(l.href);
-    });
-    morph(document.head, freshHead);
+// Return a Promise that resolves once every <head> stylesheet still being applied has
+// reached a terminal state (load / error / CSS_FOUC_GUARD_MS timeout), or null when
+// there's nothing to wait for. The readiness signal is the <link>'s .sheet property —
+// non-null only once the CSSOM stylesheet has been parsed and APPLIED. We deliberately
+// do NOT use isAssetAlreadyLoaded (Resource Timing responseEnd): the eager
+// <link rel="prefetch"> warms the HTTP cache and creates a timing entry, but bytes
+// downloaded is not the same as a stylesheet applied — trusting it would skip the wait
+// and reintroduce the very flash prefetch is meant to remove. A link already applied
+// (kept across renders, or just resolved) has a non-null .sheet and is skipped; a freshly
+// inserted one has .sheet === null and is awaited (its load fires within ~1 frame warm).
+function waitForUnappliedHeadCss() {
     const pending = [];
     document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
-        if (!l.href || before.has(l.href) || isAssetAlreadyLoaded(l.href)) return;
+        if (!l.href || l.sheet) return;
         pending.push(new Promise((resolve) => {
             const done = () => resolve();
             l.addEventListener("load", done, {once: true});
             l.addEventListener("error", done, {once: true});
+            setTimeout(done, CSS_FOUC_GUARD_MS);
+        }));
+    });
+    return pending.length ? Promise.all(pending) : null;
+}
+
+// FOUC guard for the full-document path. A full reply morphs <head> and the styled <body>
+// in one pass, so a newly mounted component's scoped <link> would be inserted alongside
+// the body it styles — and the body paints before the just-inserted sheet parses + applies.
+// Pre-empt it: for every NEW scoped stylesheet the incoming document adds to <head> (keyed
+// by data-rask-key, so not already live), append a clone NOW and return a Promise that
+// resolves once each has applied (.sheet) — load / error / CSS_FOUC_GUARD_MS timeout. The
+// subsequent morph matches each clone to the incoming <link> by key (keyed reconciliation),
+// so it's kept rather than duplicated, and the body it morphs in paints already-styled.
+// Only keyed scoped links are preloaded — render-blocking globals (no data-rask-key) are
+// already applied. Returns null when the document adds no new scoped stylesheet (the common
+// case), so a navigation that mounts nothing new keeps today's single-pass, no-wait timing.
+function preloadNewHeadStylesheets(freshHtml) {
+    const freshHead = freshHtml.querySelector("head");
+    if (!freshHead) return null;
+    const liveKeys = {};
+    document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
+        liveKeys[l.getAttribute("data-rask-key")] = true;
+    });
+    const pending = [];
+    freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
+        if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
+        const clone = fl.cloneNode(true);
+        document.head.appendChild(clone);
+        pending.push(new Promise((resolve) => {
+            const done = () => resolve();
+            clone.addEventListener("load", done, {once: true});
+            clone.addEventListener("error", done, {once: true});
             setTimeout(done, CSS_FOUC_GUARD_MS);
         }));
     });
@@ -714,8 +752,11 @@ function applyDiffReply(reply) {
     };
     if (typeof reply.head === "string") {
         const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
-        const wait = freshHead ? applyHeadThenWaitForCss(freshHead) : null;
-        if (wait) return wait.then(applyBody);
+        if (freshHead) {
+            morph(document.head, freshHead);
+            const wait = waitForUnappliedHeadCss();
+            if (wait) return wait.then(applyBody);
+        }
     }
     applyBody();
 }
@@ -752,9 +793,17 @@ function applyFullReply(reply) {
         // tags — no payload-side cssText/jsText injection. Browser handles load
         // semantics via standard <link>/<script> lifecycle.
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+        if (reply.download) triggerDownload(reply.download);
     };
+    // FOUC guard: preload any new scoped stylesheet the incoming document adds so the morph
+    // paints the styled body only once its sheet has applied (see preloadNewHeadStylesheets).
+    // Returns null — and we commit synchronously, at today's timing — when the render mounts
+    // no new scoped CSS.
+    if (freshHtml) {
+        const wait = preloadNewHeadStylesheets(freshHtml);
+        if (wait) return wait.then(applyDom);
+    }
     applyDom();
-    if (reply.download) triggerDownload(reply.download);
 }
 
 // Cached at module scope: TextEncoder construction is cheap but not free, and a

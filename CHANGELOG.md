@@ -11,9 +11,10 @@ them until tagged releases begin.
 - **Eager prefetch of scoped CSS/JS eliminates navigation FOUC.** The page `<head>` now also
   emits a low-priority `<link rel="prefetch">` for *every* registered scoped asset — not just the
   components on the current route — so when a component first mounts later (client-side navigation,
-  a conditionally rendered section) its stylesheet/script is already in the browser cache: the body
-  swaps with no flash of unstyled content and the scoped-JS namespace is ready on first
-  interaction. `prefetch` (rather than `preload`) keeps these hints at the lowest priority and
+  a conditionally rendered section) its stylesheet/script is already in the browser cache and the
+  scoped-JS namespace is ready on first interaction. (Cache-warming alone does not remove the
+  flash — the live runtime also holds the body paint until the sheet has *applied*; see the
+  matching **Fixed** entry below.) `prefetch` (rather than `preload`) keeps these hints at the lowest priority and
   avoids a *"resource preloaded but not used"* console warning for off-route assets. The markup is
   render-independent and cached (rebuilt only when the asset set changes), so it costs a single
   append per render. On by default; opt out with `AddRask(o => o.PreloadScopedAssets = false)` (or
@@ -21,6 +22,19 @@ them until tagged releases begin.
   mounts.
 
 ### Fixed
+- **Scoped-asset flicker on client-side navigation and lazy mount is gone — the live runtime now
+  holds the body paint until a newly mounted component's scoped stylesheet has *applied*.** The
+  eager `<link rel="prefetch">` warms the HTTP cache, but cached bytes are not an applied
+  stylesheet: the client previously swapped in the styled body in the same morph that inserted the
+  `<link>`, so it painted unstyled for a frame while the (cached) CSS parsed. The render-application
+  path now gates on the `<link>`'s `.sheet` property — non-null only once the CSSOM stylesheet is
+  parsed and applied — rather than on Resource Timing `responseEnd` (which a prefetch satisfies the
+  moment the bytes land, before the rule applies). A full reply preloads each new scoped stylesheet
+  and awaits its `.sheet` before the morph paints the body; a diff that morphs a `<head>` fragment
+  waits the same way. Both bound the wait by a 500 ms cap, so a genuinely slow/failed sheet shows a
+  briefly unstyled page rather than stalling navigation. The scoped-JS invoke gate is hardened the
+  same way on WASM: a prefetched scoped `<script>` now waits for its real `load` event before a
+  first-render `Rask.*` invoke dispatches, so the call can't race ahead of the script's execution.
 - **Switching a syntax-highlighted code-sample tab no longer renders the new pane's markup as
   literal text.** A live re-render that replaced one `Raw` value with another (e.g. switching a
   `CodeSample` tab from highlighted C# to highlighted CSS) shipped an in-place `UpdateText` diff op,

@@ -19,7 +19,7 @@
     if (!root) return;
 
     // Serializes render application across messages. A navigation diff may defer its
-    // body swap until the new page's scoped CSS loads (applyHeadThenWaitForCss), which
+    // body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss), which
     // opens a microtask/timer gap during which the next WS message could arrive. Both
     // the diff and full-HTML paths chain through this tail promise so a deferred body
     // always commits before the following message's ops — paths in a later diff are
@@ -442,29 +442,63 @@
         return pendingHeadAssets.size === 0;
     }
 
-    // Morph the incoming <head> into the live one, then return a Promise that resolves
-    // once every *newly added* stylesheet has reached a terminal state (load / error /
-    // CSS_FOUC_GUARD_MS timeout). On a navigation diff the body ops must not be applied
-    // until the new page's scoped CSS (<link href="/_rask/a/{hash}.css">) is in place,
-    // or the freshly-swapped body paints unstyled for a beat (FOUC). Stylesheets already
-    // present + loaded before the morph — the warm-cache case — are skipped via
-    // isAssetAlreadyLoaded, so a return of null means "nothing to wait for, apply the
-    // body synchronously" and warm navigations keep today's instant timing.
-    function applyHeadThenWaitForCss(freshHead) {
-        var before = new Set();
-        document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
-            if (l.href && isAssetAlreadyLoaded(l.href)) before.add(l.href);
-        });
-        morph(document.head, freshHead);
+    // Return a Promise that resolves once every <head> stylesheet still being applied has
+    // reached a terminal state (load / error / CSS_FOUC_GUARD_MS timeout), or null when
+    // there's nothing to wait for. The readiness signal is the <link>'s .sheet property —
+    // non-null only once the CSSOM stylesheet has been parsed and APPLIED. We deliberately
+    // do NOT use isAssetAlreadyLoaded (Resource Timing responseEnd): the eager
+    // <link rel="prefetch"> warms the HTTP cache and creates a timing entry, but bytes
+    // downloaded is not the same as a stylesheet applied — trusting it would skip the wait
+    // and reintroduce the very flash prefetch is meant to remove. A link already applied
+    // (kept across renders, or just resolved) has a non-null .sheet and is skipped; a
+    // freshly inserted one has .sheet === null and is awaited (its load fires within ~1
+    // frame on warm cache).
+    function waitForUnappliedHeadCss() {
         var pending = [];
         document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
-            if (!l.href || before.has(l.href) || isAssetAlreadyLoaded(l.href)) return;
+            if (!l.href || l.sheet) return;
             pending.push(new Promise(function (resolve) {
                 var done = function () {
                     resolve();
                 };
                 l.addEventListener("load", done, {once: true});
                 l.addEventListener("error", done, {once: true});
+                setTimeout(done, CSS_FOUC_GUARD_MS);
+            }));
+        });
+        return pending.length ? Promise.all(pending) : null;
+    }
+
+    // FOUC guard for the full-document path. A full reply morphs <head> and the styled
+    // <body> in one pass, so a newly mounted component's scoped <link> would be inserted
+    // alongside the body it styles — and the body paints before the just-inserted sheet
+    // parses + applies. Pre-empt it: for every NEW scoped stylesheet the incoming document
+    // adds to <head> (keyed by data-rask-key, so not already live), append a clone NOW and
+    // return a Promise that resolves once each has applied (.sheet) — load / error /
+    // CSS_FOUC_GUARD_MS timeout. The subsequent morph matches each clone to the incoming
+    // <link> by key (keyed reconciliation), so it's kept rather than duplicated, and the
+    // body it morphs in paints already-styled. Only keyed scoped links are preloaded —
+    // render-blocking globals (no data-rask-key) are already applied from the initial load.
+    // Returns null when the document adds no new scoped stylesheet (the common case), so a
+    // navigation that mounts nothing new keeps today's single-pass, no-wait timing.
+    function preloadNewHeadStylesheets(freshHtml) {
+        var freshHead = freshHtml.querySelector("head");
+        if (!freshHead) return null;
+        var liveKeys = {};
+        document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach(function (l) {
+            liveKeys[l.getAttribute("data-rask-key")] = true;
+        });
+        var pending = [];
+        freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach(function (fl) {
+            if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
+            var clone = fl.cloneNode(true);
+            document.head.appendChild(clone);
+            pending.push(new Promise(function (resolve) {
+                var done = function () {
+                    resolve();
+                };
+                clone.addEventListener("load", done, {once: true});
+                clone.addEventListener("error", done, {once: true});
                 setTimeout(done, CSS_FOUC_GUARD_MS);
             }));
         });
@@ -500,12 +534,12 @@
     }
 
     // Diff-mode render application (wire format matches LivePayload.BuildPayloadUtf8Diff).
-    // The head rides the payload as a <head> fragment (user Head contributions are
-    // collected + spliced server-side, so they're not in the frame stream). Morph the
-    // head FIRST — keyed reconciliation (data-rask-key) keeps unchanged scoped-CSS links —
-    // and when the new page adds a not-yet-cached scoped stylesheet, defer the body ops
-    // until it loads so the swapped body never paints unstyled (FOUC). Returns the wait
-    // Promise so _renderQueue holds the next message until the body has committed.
+    // The head rides the payload as a <head> fragment (user Head contributions are collected
+    // + spliced server-side, so they're not in the frame stream). Morph the head FIRST —
+    // keyed reconciliation (data-rask-key) keeps unchanged scoped-CSS links — and when it
+    // adds a not-yet-applied scoped stylesheet, defer the body ops until it applies so the
+    // swapped body never paints unstyled (FOUC). Returns the wait Promise so _renderQueue
+    // holds the next message until the body has committed.
     function applyDiffReply(data) {
         var applyBody = function () {
             // Each op carries a Path (childNodes indices from the document root) and an
@@ -535,62 +569,83 @@
         };
         if (typeof data.head === "string") {
             var freshHead = new DOMParser().parseFromString(data.head, "text/html").head;
-            var wait = freshHead ? applyHeadThenWaitForCss(freshHead) : null;
-            if (wait) return wait.then(applyBody);
+            if (freshHead) {
+                morph(document.head, freshHead);
+                var wait = waitForUnappliedHeadCss();
+                if (wait) return wait.then(applyBody);
+            }
         }
         applyBody();
     }
 
     // Full-document render application: morph the whole <html> element so head changes
-    // (title, per-page Head asset contributions, scoped-css/scoped-js hash bumps)
-    // propagate atomically with the body — no FOUC, so no CSS wait needed here.
+    // (title, per-page Head asset contributions, scoped-css/scoped-js hash bumps) propagate
+    // with the body. A newly mounted component's scoped <link> rides this path too — and the
+    // single morph would insert it alongside the styled body it applies to, painting unstyled
+    // for a beat (FOUC). So preloadNewHeadStylesheets first appends + awaits a clone of each
+    // new scoped stylesheet; the morph then matches the clone by data-rask-key (kept, not
+    // duplicated) and the body it paints is already styled. Returns the wait Promise so
+    // _renderQueue holds the next message until the body has committed.
     function applyFullReply(data) {
         var freshHtml = null;
         if (typeof data.html === "string") {
             var doc = new DOMParser().parseFromString(data.html, "text/html");
             freshHtml = doc.documentElement;
         }
+
+        var commit = function () {
+            if (freshHtml) {
+                morph(document.documentElement, freshHtml);
+                root = document.querySelector("[data-rask-root]") || root;
+                // Pick up any newly-inserted Head-declared external assets (e.g., a
+                // page-specific Script in Component.Head) so their load events feed the gate.
+                scanHeadAssets();
+            }
+            if (data.history && typeof data.history.url === "string") {
+                var fullTarget = prependBase(data.history.url);
+                if (data.history.action === "replace") {
+                    history.replaceState({rask: true}, "", fullTarget);
+                } else {
+                    if (_pendingScrollHash) fullTarget += _pendingScrollHash;
+                    history.pushState({rask: true}, "", fullTarget);
+                }
+            }
+            applyNavScroll(data.history);
+            if (Array.isArray(data.jsInvokes)) {
+                for (var ji = 0; ji < data.jsInvokes.length; ji++) {
+                    dispatchJsInvoke(data.jsInvokes[ji]);
+                }
+            }
+            // dotNetResult: reply to a JS-initiated DotNet.invokeMethodAsync call, routed by
+            // the DotNet shim's pending-call table to resolve/reject the matching JS Promise.
+            if (data.type === "dotNetResult" && typeof data.callId === "string") {
+                window.DotNet._endInvokeDotNet(data);
+            }
+            if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+            // Out-of-band frames carry no html — process supplemental fields and bail.
+            if (data.type === "dotNetResult" && typeof data.callId === "string"
+                && typeof data.html !== "string") {
+                window.DotNet._endInvokeDotNet(data);
+                return;
+            }
+            if (data.auth && typeof data.auth.ticket === "string") {
+                redeemAuthTicket(data.auth);
+            }
+            if (data.download && typeof data.download.url === "string"
+                && typeof data.download.filename === "string") {
+                triggerDownload(data.download.url, data.download.filename);
+            }
+        };
+
+        // FOUC guard: preload any new scoped stylesheet the incoming document adds so the
+        // morph below paints the styled body only once its sheet has applied (see
+        // preloadNewHeadStylesheets). Returns null — and we commit synchronously, at today's
+        // timing — when the render mounts no new scoped CSS.
         if (freshHtml) {
-            morph(document.documentElement, freshHtml);
-            root = document.querySelector("[data-rask-root]") || root;
-            // Pick up any newly-inserted Head-declared external assets (e.g., a
-            // page-specific Script in Component.Head) so their load events feed the gate.
-            scanHeadAssets();
+            var wait = preloadNewHeadStylesheets(freshHtml);
+            if (wait) return wait.then(commit);
         }
-        if (data.history && typeof data.history.url === "string") {
-            var fullTarget = prependBase(data.history.url);
-            if (data.history.action === "replace") {
-                history.replaceState({rask: true}, "", fullTarget);
-            } else {
-                if (_pendingScrollHash) fullTarget += _pendingScrollHash;
-                history.pushState({rask: true}, "", fullTarget);
-            }
-        }
-        applyNavScroll(data.history);
-        if (Array.isArray(data.jsInvokes)) {
-            for (var ji = 0; ji < data.jsInvokes.length; ji++) {
-                dispatchJsInvoke(data.jsInvokes[ji]);
-            }
-        }
-        // dotNetResult: reply to a JS-initiated DotNet.invokeMethodAsync call, routed by
-        // the DotNet shim's pending-call table to resolve/reject the matching JS Promise.
-        if (data.type === "dotNetResult" && typeof data.callId === "string") {
-            window.DotNet._endInvokeDotNet(data);
-        }
-        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
-        // Out-of-band frames carry no html — process supplemental fields and bail.
-        if (data.type === "dotNetResult" && typeof data.callId === "string"
-            && typeof data.html !== "string") {
-            window.DotNet._endInvokeDotNet(data);
-            return;
-        }
-        if (data.auth && typeof data.auth.ticket === "string") {
-            redeemAuthTicket(data.auth);
-        }
-        if (data.download && typeof data.download.url === "string"
-            && typeof data.download.filename === "string") {
-            triggerDownload(data.download.url, data.download.filename);
-        }
+        commit();
     }
 
     function maybeDrainPendingInvokes() {

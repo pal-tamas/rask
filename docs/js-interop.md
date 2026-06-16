@@ -149,9 +149,14 @@ WASM hosts get the same files baked to disk by the `BakeScopedAssetsTask` MSBuil
 By default the `<head>` *also* emits a low-priority `<link rel="prefetch">` for **every**
 registered scoped asset — not just the components on the current route. This warms the
 browser's HTTP cache up front, so when a component first mounts later (client-side
-navigation, a conditionally rendered section) its stylesheet/script is already loaded: the
-body swaps with **no flash of unstyled content** and the scoped-JS namespace is ready on
-first interaction. `prefetch` (rather than `preload`) is the future-navigation hint — it
+navigation, a conditionally rendered section) its stylesheet/script is already downloaded.
+Cache-warming alone is not enough to avoid a flash, though — cached *bytes* are not an
+*applied* stylesheet. So the live runtime also gates the swap: when a render adds a new
+scoped stylesheet it inserts the `<link>` first and holds the body paint until that
+`<link>`'s `.sheet` is non-null (the CSSOM stylesheet has parsed and applied), bounded by a
+500 ms cap. Together — prefetch (the sheet is warm, so it applies almost instantly) plus the
+apply-gate (the body never paints ahead of it) — the body swaps with **no flash of unstyled
+content** and the scoped-JS namespace is ready on first interaction. `prefetch` (rather than `preload`) is the future-navigation hint — it
 sits at the lowest priority so it never competes with the current route's critical
 resources, and it raises no *"resource preloaded but not used"* console warning for the
 off-route assets a visitor may never reach. The links are inert (`rel="prefetch"`, neither
