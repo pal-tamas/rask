@@ -199,6 +199,10 @@ internal sealed class HeadAssetRegistry
         {
             var perComponentSb = RaskStringBuilderPool.Shared.Get();
             EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
+            // Eager prefetch of every registered scoped asset (not just the mounted ones) so a
+            // later mount finds its stylesheet/script already cached — no navigation FOUC.
+            // Appended after the mounted, render-blocking assets so those keep discovery priority.
+            EmitScopedPreloads(perComponentSb);
             if (perComponentSb.Length > 0)
             {
                 perComponentHtml = perComponentSb.ToString();
@@ -299,6 +303,10 @@ internal sealed class HeadAssetRegistry
     ///         iteration order), then JS. This matches the cascade contract — CSS is
     ///         render-blocking; JS uses <c>defer</c> and waits for parse.
     ///     </para>
+    ///     <para>
+    ///         Eager preload of <em>every</em> registered scoped asset (not just the mounted
+    ///         ones) is emitted separately by <see cref="EmitScopedPreloads" />.
+    ///     </para>
     /// </summary>
     internal static void EmitMountedAssets(StringBuilder sb, IEnumerable<Type> mountedTypes)
     {
@@ -360,6 +368,97 @@ internal sealed class HeadAssetRegistry
             sb.Append(hash);
             sb.Append("\"></script>");
         }
+    }
+
+    /// <summary>
+    ///     Appends a block of low-priority <c>&lt;link rel="prefetch"&gt;</c> hints for
+    ///     <em>every</em> registered scoped asset — not just the mounted ones — so a later mount
+    ///     (client-side navigation, a conditionally rendered section) finds its stylesheet/script
+    ///     already in the HTTP cache: the body swaps with no flash of unstyled content and the
+    ///     scoped-JS namespace is ready on first interaction. <c>prefetch</c> (rather than
+    ///     <c>preload</c>) is the future-navigation hint — it never competes with the current
+    ///     route's critical resources and raises no "resource preloaded but not used" console
+    ///     warning for assets the visitor never navigates to. No-op when
+    ///     <see cref="LiveOptions.PreloadScopedAssets" /> is <c>false</c>. The markup is
+    ///     render-independent and cached (rebuilt only when the asset set changes via hot
+    ///     reload), so the steady-state cost is a single <see cref="StringBuilder.Append(string)" />.
+    ///     Emitted after <see cref="EmitMountedAssets" />; the prefetch links are inert to the
+    ///     client invoke gate and FOUC guard (they are <c>rel="prefetch"</c>, neither a
+    ///     <c>&lt;script&gt;</c> nor a <c>rel="stylesheet"</c> link).
+    /// </summary>
+    internal static void EmitScopedPreloads(StringBuilder sb)
+    {
+        ArgumentNullException.ThrowIfNull(sb);
+        if (!LiveOptions.PreloadScopedAssets)
+        {
+            return;
+        }
+
+        sb.Append(GetScopedPreloadBlock());
+    }
+
+    // Cached <link rel="prefetch"> markup for every registered scoped asset. Built lazily and
+    // reused across renders; rebuilt only when the registry mutates (tracked by
+    // ScopedAssetRegistry.Version) or the URL prefix changes (PathBase). The record is published
+    // atomically (single volatile reference), so readers never see a torn field tuple.
+    private sealed record PreloadCacheEntry(string PathBase, long Version, string Block);
+
+    private static volatile PreloadCacheEntry? _preloadCache;
+
+    private static string GetScopedPreloadBlock()
+    {
+        var pathBase = LiveOptions.PathBase;
+        var version = ScopedAssetRegistry.Version;
+
+        var cache = _preloadCache;
+        if (cache is not null && cache.Version == version
+            && string.Equals(cache.PathBase, pathBase, StringComparison.Ordinal))
+        {
+            return cache.Block;
+        }
+
+        // Build lock-free (EnumerateAll takes the registry lock internally; we hold none). A
+        // benign race may build the string twice — both yield identical bytes. The entry is
+        // tagged with the version read BEFORE the build: if the registry mutated mid-build the
+        // tag is stale, and the next call simply rebuilds — never serves stale markup.
+        var block = BuildScopedPreloadBlock(pathBase);
+        _preloadCache = new PreloadCacheEntry(pathBase, version, block);
+        return block;
+    }
+
+    private static string BuildScopedPreloadBlock(string pathBase)
+    {
+        var sb = new StringBuilder();
+        foreach (var entry in ScopedAssetRegistry.EnumerateAll())
+        {
+            var isCss = entry.Kind == AssetKind.Css;
+
+            // rel="prefetch" (not "preload"): this block covers every registered asset, most of
+            // which are off-route and may not be used at all this session. "prefetch" is the
+            // future-navigation hint — lowest priority (never competes with the current route's
+            // critical resources) and, unlike "preload", it raises no "resource preloaded but not
+            // used within a few seconds" console warning for assets the visitor never navigates to.
+            // `as` is kept so the browser sets the right Accept header and cache partition. The
+            // current route's mounted assets already ship as a render-blocking <link>/<script>
+            // (EmitMountedAssets); a coincident low-priority prefetch for the same href coalesces.
+            //
+            // <link rel="prefetch" as="style|script" href="{PathBase}/_rask/a/{hash}.{ext}"
+            //       data-rask-key="rsk-prefetch-{css|js}-{hash}">
+            sb.Append("<link rel=\"prefetch\" as=\"");
+            sb.Append(isCss ? "style" : "script");
+            sb.Append("\" href=\"");
+            sb.Append(pathBase);
+            sb.Append("/_rask/a/");
+            sb.Append(entry.Hash);
+            sb.Append(isCss ? ".css" : ".js");
+            sb.Append("\" data-rask-key=\"");
+            sb.Append(FrameworkAssetKeyPrefix);
+            sb.Append(isCss ? "prefetch-css-" : "prefetch-js-");
+            sb.Append(entry.Hash);
+            sb.Append("\">");
+        }
+
+        return sb.ToString();
     }
 
     // FNV-1a 32-bit content hash. Stable for a given string within the process so
