@@ -213,8 +213,8 @@ public sealed class App : Component
 Both `<head>` and `<body>` are framework-managed. `<head>` collects every component's `Head`
 override during render, dedupes contributions, resolves singleton tags (`<title>`, `<base>` — last
 contributor wins), and splices the result plus the scoped-CSS link and scoped-JS bundle script in
-automatically — passing children to `Head()` is a `RASK019` compile error. It also preloads every
-registered scoped asset up front (non-blocking `<link rel="preload">`) so client-side navigation to
+automatically — passing children to `Head()` is a `RASK019` compile error. It also prefetches every
+registered scoped asset up front (low-priority `<link rel="prefetch">`) so client-side navigation to
 a not-yet-mounted component is flash-free; opt out with `AddRask(o => o.PreloadScopedAssets = false)`. `<body>` gets the live
 runtime `<script>` injected as its last child automatically, so you no longer write
 `RaskRuntimeScript()`. The root must render the full shell (`Doctype`, `Html`, `Head`, `Body`); a

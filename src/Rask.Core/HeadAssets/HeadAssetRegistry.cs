@@ -199,7 +199,7 @@ internal sealed class HeadAssetRegistry
         {
             var perComponentSb = RaskStringBuilderPool.Shared.Get();
             EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
-            // Eager preload of every registered scoped asset (not just the mounted ones) so a
+            // Eager prefetch of every registered scoped asset (not just the mounted ones) so a
             // later mount finds its stylesheet/script already cached — no navigation FOUC.
             // Appended after the mounted, render-blocking assets so those keep discovery priority.
             EmitScopedPreloads(perComponentSb);
@@ -371,18 +371,20 @@ internal sealed class HeadAssetRegistry
     }
 
     /// <summary>
-    ///     Appends a block of non-blocking <c>&lt;link rel="preload" fetchpriority="low"&gt;</c>
-    ///     hints for <em>every</em> registered scoped asset — not just the mounted ones — so a
-    ///     later mount (client-side navigation, a conditionally rendered section) finds its
-    ///     stylesheet/script already in the HTTP cache: the body swaps with no flash of unstyled
-    ///     content and the scoped-JS namespace is ready on first interaction. No-op when
+    ///     Appends a block of low-priority <c>&lt;link rel="prefetch"&gt;</c> hints for
+    ///     <em>every</em> registered scoped asset — not just the mounted ones — so a later mount
+    ///     (client-side navigation, a conditionally rendered section) finds its stylesheet/script
+    ///     already in the HTTP cache: the body swaps with no flash of unstyled content and the
+    ///     scoped-JS namespace is ready on first interaction. <c>prefetch</c> (rather than
+    ///     <c>preload</c>) is the future-navigation hint — it never competes with the current
+    ///     route's critical resources and raises no "resource preloaded but not used" console
+    ///     warning for assets the visitor never navigates to. No-op when
     ///     <see cref="LiveOptions.PreloadScopedAssets" /> is <c>false</c>. The markup is
     ///     render-independent and cached (rebuilt only when the asset set changes via hot
     ///     reload), so the steady-state cost is a single <see cref="StringBuilder.Append(string)" />.
-    ///     Emitted after <see cref="EmitMountedAssets" /> so the mounted route's render-blocking
-    ///     assets keep discovery priority; the preload links are inert to the client invoke gate
-    ///     and FOUC guard (they are <c>rel="preload"</c>, neither a <c>&lt;script&gt;</c> nor a
-    ///     <c>rel="stylesheet"</c> link).
+    ///     Emitted after <see cref="EmitMountedAssets" />; the prefetch links are inert to the
+    ///     client invoke gate and FOUC guard (they are <c>rel="prefetch"</c>, neither a
+    ///     <c>&lt;script&gt;</c> nor a <c>rel="stylesheet"</c> link).
     /// </summary>
     internal static void EmitScopedPreloads(StringBuilder sb)
     {
@@ -395,7 +397,7 @@ internal sealed class HeadAssetRegistry
         sb.Append(GetScopedPreloadBlock());
     }
 
-    // Cached <link rel="preload"> markup for every registered scoped asset. Built lazily and
+    // Cached <link rel="prefetch"> markup for every registered scoped asset. Built lazily and
     // reused across renders; rebuilt only when the registry mutates (tracked by
     // ScopedAssetRegistry.Version) or the URL prefix changes (PathBase). The record is published
     // atomically (single volatile reference), so readers never see a torn field tuple.
@@ -431,18 +433,27 @@ internal sealed class HeadAssetRegistry
         {
             var isCss = entry.Kind == AssetKind.Css;
 
-            // <link rel="preload" as="style|script" href="{PathBase}/_rask/a/{hash}.{ext}"
-            //       fetchpriority="low" data-rask-key="rsk-preload-{css|js}-{hash}">
-            sb.Append("<link rel=\"preload\" as=\"");
+            // rel="prefetch" (not "preload"): this block covers every registered asset, most of
+            // which are off-route and may not be used at all this session. "prefetch" is the
+            // future-navigation hint — lowest priority (never competes with the current route's
+            // critical resources) and, unlike "preload", it raises no "resource preloaded but not
+            // used within a few seconds" console warning for assets the visitor never navigates to.
+            // `as` is kept so the browser sets the right Accept header and cache partition. The
+            // current route's mounted assets already ship as a render-blocking <link>/<script>
+            // (EmitMountedAssets); a coincident low-priority prefetch for the same href coalesces.
+            //
+            // <link rel="prefetch" as="style|script" href="{PathBase}/_rask/a/{hash}.{ext}"
+            //       data-rask-key="rsk-prefetch-{css|js}-{hash}">
+            sb.Append("<link rel=\"prefetch\" as=\"");
             sb.Append(isCss ? "style" : "script");
             sb.Append("\" href=\"");
             sb.Append(pathBase);
             sb.Append("/_rask/a/");
             sb.Append(entry.Hash);
             sb.Append(isCss ? ".css" : ".js");
-            sb.Append("\" fetchpriority=\"low\" data-rask-key=\"");
+            sb.Append("\" data-rask-key=\"");
             sb.Append(FrameworkAssetKeyPrefix);
-            sb.Append(isCss ? "preload-css-" : "preload-js-");
+            sb.Append(isCss ? "prefetch-css-" : "prefetch-js-");
             sb.Append(entry.Hash);
             sb.Append("\">");
         }

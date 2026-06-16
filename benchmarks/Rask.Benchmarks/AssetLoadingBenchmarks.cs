@@ -199,8 +199,8 @@ public class AssetLoadingBenchmarks
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // EmitScopedPreloads: the eager-preload pass ApplyTo runs after
-    // EmitMountedAssets. The <link rel="preload"> block is render-independent
+    // EmitScopedPreloads: the eager-prefetch pass ApplyTo runs after
+    // EmitMountedAssets. The <link rel="prefetch"> block is render-independent
     // and cached (rebuilt only when the registry mutates), so the steady-state
     // per-render cost is a single Append of the cached string — no rebuild, no
     // per-render registry snapshot. This warm-cache bench captures that cost.
