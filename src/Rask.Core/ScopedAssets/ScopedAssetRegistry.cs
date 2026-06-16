@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Rask.Core.ScopedCss;
 
 namespace Rask.Core.ScopedAssets;
@@ -83,6 +84,19 @@ public static class ScopedAssetRegistry
 
     public static event Action<Type, AssetKind>? AssetChanged;
 
+    private static long _version;
+
+    /// <summary>
+    ///     Monotonic mutation counter — bumped under the registry lock on every change to the
+    ///     registered asset set (register, unregister, and the bulk <see cref="InvalidateAll" />
+    ///     / <see cref="InvalidateAllCss" /> / <see cref="InvalidateAllJs" /> paths). Consumers
+    ///     that cache derived output (the head <c>&lt;link rel="preload"&gt;</c> block) compare
+    ///     against this to detect staleness cheaply, without subscribing to
+    ///     <see cref="AssetChanged" /> — which intentionally does not fire on the bulk-clear
+    ///     paths, so it cannot be relied on to invalidate a whole-registry projection.
+    /// </summary>
+    internal static long Version => Interlocked.Read(ref _version);
+
     /// <summary>
     ///     Registers (or replaces) the scoped CSS source for a component type. Called by
     ///     generator-emitted module initializers and by the hot-reload handler. Whitespace-only
@@ -136,6 +150,7 @@ public static class ScopedAssetRegistry
             _cssHashByType[componentType] = hash;
             _scopeIdByType[componentType] = scopeId;
             IncrementOrInsertLocked(_cssByHash, hash, bytes);
+            Interlocked.Increment(ref _version);
             changed = true;
         }
 
@@ -186,6 +201,7 @@ public static class ScopedAssetRegistry
 
             _jsHashByType[componentType] = hash;
             IncrementOrInsertLocked(_jsByHash, hash, bytes);
+            Interlocked.Increment(ref _version);
             changed = true;
         }
 
@@ -209,6 +225,7 @@ public static class ScopedAssetRegistry
             _cssHashByType.TryRemove(componentType, out _);
             _scopeIdByType.TryRemove(componentType, out _);
             DecrementRefLocked(_cssByHash, hash);
+            Interlocked.Increment(ref _version);
             changed = true;
         }
 
@@ -231,6 +248,7 @@ public static class ScopedAssetRegistry
 
             _jsHashByType.TryRemove(componentType, out _);
             DecrementRefLocked(_jsByHash, hash);
+            Interlocked.Increment(ref _version);
             changed = true;
         }
 
@@ -256,6 +274,7 @@ public static class ScopedAssetRegistry
             _scopeIdByType.Clear();
             _cssByHash.Clear();
             _jsByHash.Clear();
+            Interlocked.Increment(ref _version);
         }
     }
 
@@ -272,6 +291,7 @@ public static class ScopedAssetRegistry
             _cssHashByType.Clear();
             _scopeIdByType.Clear();
             _cssByHash.Clear();
+            Interlocked.Increment(ref _version);
         }
     }
 
@@ -282,6 +302,7 @@ public static class ScopedAssetRegistry
         {
             _jsHashByType.Clear();
             _jsByHash.Clear();
+            Interlocked.Increment(ref _version);
         }
     }
 

@@ -199,6 +199,10 @@ internal sealed class HeadAssetRegistry
         {
             var perComponentSb = RaskStringBuilderPool.Shared.Get();
             EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
+            // Eager preload of every registered scoped asset (not just the mounted ones) so a
+            // later mount finds its stylesheet/script already cached — no navigation FOUC.
+            // Appended after the mounted, render-blocking assets so those keep discovery priority.
+            EmitScopedPreloads(perComponentSb);
             if (perComponentSb.Length > 0)
             {
                 perComponentHtml = perComponentSb.ToString();
@@ -299,6 +303,10 @@ internal sealed class HeadAssetRegistry
     ///         iteration order), then JS. This matches the cascade contract — CSS is
     ///         render-blocking; JS uses <c>defer</c> and waits for parse.
     ///     </para>
+    ///     <para>
+    ///         Eager preload of <em>every</em> registered scoped asset (not just the mounted
+    ///         ones) is emitted separately by <see cref="EmitScopedPreloads" />.
+    ///     </para>
     /// </summary>
     internal static void EmitMountedAssets(StringBuilder sb, IEnumerable<Type> mountedTypes)
     {
@@ -360,6 +368,86 @@ internal sealed class HeadAssetRegistry
             sb.Append(hash);
             sb.Append("\"></script>");
         }
+    }
+
+    /// <summary>
+    ///     Appends a block of non-blocking <c>&lt;link rel="preload" fetchpriority="low"&gt;</c>
+    ///     hints for <em>every</em> registered scoped asset — not just the mounted ones — so a
+    ///     later mount (client-side navigation, a conditionally rendered section) finds its
+    ///     stylesheet/script already in the HTTP cache: the body swaps with no flash of unstyled
+    ///     content and the scoped-JS namespace is ready on first interaction. No-op when
+    ///     <see cref="LiveOptions.PreloadScopedAssets" /> is <c>false</c>. The markup is
+    ///     render-independent and cached (rebuilt only when the asset set changes via hot
+    ///     reload), so the steady-state cost is a single <see cref="StringBuilder.Append(string)" />.
+    ///     Emitted after <see cref="EmitMountedAssets" /> so the mounted route's render-blocking
+    ///     assets keep discovery priority; the preload links are inert to the client invoke gate
+    ///     and FOUC guard (they are <c>rel="preload"</c>, neither a <c>&lt;script&gt;</c> nor a
+    ///     <c>rel="stylesheet"</c> link).
+    /// </summary>
+    internal static void EmitScopedPreloads(StringBuilder sb)
+    {
+        ArgumentNullException.ThrowIfNull(sb);
+        if (!LiveOptions.PreloadScopedAssets)
+        {
+            return;
+        }
+
+        sb.Append(GetScopedPreloadBlock());
+    }
+
+    // Cached <link rel="preload"> markup for every registered scoped asset. Built lazily and
+    // reused across renders; rebuilt only when the registry mutates (tracked by
+    // ScopedAssetRegistry.Version) or the URL prefix changes (PathBase). The record is published
+    // atomically (single volatile reference), so readers never see a torn field tuple.
+    private sealed record PreloadCacheEntry(string PathBase, long Version, string Block);
+
+    private static volatile PreloadCacheEntry? _preloadCache;
+
+    private static string GetScopedPreloadBlock()
+    {
+        var pathBase = LiveOptions.PathBase;
+        var version = ScopedAssetRegistry.Version;
+
+        var cache = _preloadCache;
+        if (cache is not null && cache.Version == version
+            && string.Equals(cache.PathBase, pathBase, StringComparison.Ordinal))
+        {
+            return cache.Block;
+        }
+
+        // Build lock-free (EnumerateAll takes the registry lock internally; we hold none). A
+        // benign race may build the string twice — both yield identical bytes. The entry is
+        // tagged with the version read BEFORE the build: if the registry mutated mid-build the
+        // tag is stale, and the next call simply rebuilds — never serves stale markup.
+        var block = BuildScopedPreloadBlock(pathBase);
+        _preloadCache = new PreloadCacheEntry(pathBase, version, block);
+        return block;
+    }
+
+    private static string BuildScopedPreloadBlock(string pathBase)
+    {
+        var sb = new StringBuilder();
+        foreach (var entry in ScopedAssetRegistry.EnumerateAll())
+        {
+            var isCss = entry.Kind == AssetKind.Css;
+
+            // <link rel="preload" as="style|script" href="{PathBase}/_rask/a/{hash}.{ext}"
+            //       fetchpriority="low" data-rask-key="rsk-preload-{css|js}-{hash}">
+            sb.Append("<link rel=\"preload\" as=\"");
+            sb.Append(isCss ? "style" : "script");
+            sb.Append("\" href=\"");
+            sb.Append(pathBase);
+            sb.Append("/_rask/a/");
+            sb.Append(entry.Hash);
+            sb.Append(isCss ? ".css" : ".js");
+            sb.Append("\" fetchpriority=\"low\" data-rask-key=\"");
+            sb.Append(FrameworkAssetKeyPrefix);
+            sb.Append(isCss ? "preload-css-" : "preload-js-");
+            sb.Append(entry.Hash);
+            sb.Append("\">");
+        }
+
+        return sb.ToString();
     }
 
     // FNV-1a 32-bit content hash. Stable for a given string within the process so

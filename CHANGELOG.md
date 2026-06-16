@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Eager preload of scoped CSS/JS eliminates navigation FOUC.** The page `<head>` now also
+  emits a non-blocking `<link rel="preload" fetchpriority="low">` for *every* registered scoped
+  asset — not just the components on the current route — so when a component first mounts later
+  (client-side navigation, a conditionally rendered section) its stylesheet/script is already in
+  the browser cache: the body swaps with no flash of unstyled content and the scoped-JS namespace
+  is ready on first interaction. The preload markup is render-independent and cached (rebuilt only
+  when the asset set changes), so it costs a single append per render. On by default; opt out with
+  `AddRask(o => o.PreloadScopedAssets = false)` (or the equivalent WASM host-builder option) to
+  fetch each scoped asset only when its component first mounts.
+
 ### Fixed
 - **Switching a syntax-highlighted code-sample tab no longer renders the new pane's markup as
   literal text.** A live re-render that replaced one `Raw` value with another (e.g. switching a

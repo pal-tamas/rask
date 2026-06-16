@@ -144,6 +144,30 @@ is served at `/_rask/a/{hash}.{ext}` with `Cache-Control: immutable`, an `ETag`,
 `<script defer>` per mounted component type that has a registered asset. Static-file and
 WASM hosts get the same files baked to disk by the `BakeScopedAssetsTask` MSBuild task.
 
+### Eager preload
+
+By default the `<head>` *also* emits a non-blocking
+`<link rel="preload" fetchpriority="low">` for **every** registered scoped asset — not
+just the components on the current route. This warms the browser's HTTP cache up front, so
+when a component first mounts later (client-side navigation, a conditionally rendered
+section) its stylesheet/script is already loaded: the body swaps with **no flash of
+unstyled content** and the scoped-JS namespace is ready on first interaction. The preload
+links are inert (`rel="preload"`, neither a render-blocking stylesheet nor an executable
+script), `fetchpriority="low"` so they never compete with first paint, and the markup is
+cached so it costs a single append per render. Scoped CSS is selector-rewritten to
+`[data-r-xxxx]`, so preloading an unmounted component's styles has no visual effect until
+its elements exist.
+
+Opt out — to fetch each scoped asset only when its component first mounts (smaller
+first-load payload, at the cost of a brief navigation FOUC the first time each new
+component type appears) — via `AddRask` / the WASM host builder:
+
+```csharp
+builder.Services.AddRask(o => o.PreloadScopedAssets = false); // Server
+// or
+WasmHostBuilder.CreateDefault(o => o.PreloadScopedAssets = false); // WASM
+```
+
 ---
 
 See also: [Composition](composition.md) for component-to-component communication, and the
