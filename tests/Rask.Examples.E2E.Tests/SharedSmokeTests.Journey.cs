@@ -486,12 +486,65 @@ public abstract partial class SharedSmokeTests
         Assert.True(await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync() >= 1,
             "expected >=1 JS-only script");
         var beforeLazy = await Page.Locator(cssLinkSel).CountAsync();
+        // Warm-up toggle: LazyChild is never instantiated until shown, so its scoped stylesheet
+        // (.lazy-child → #fff4d6) is not among the page-load prefetches. Mount it once and unmount
+        // it to load + cache LazyChild.css, so the *measured* mount below hits a warm cache. The
+        // no-FOUC guard's contract is "no flash once the sheet is available" (it preloads the
+        // <link> and holds the body paint until .sheet applies, bounded by a 500ms cap so a
+        // pathologically slow sheet shows a brief flash rather than stalling navigation); warming
+        // first asserts the guard deterministically instead of racing that cap on a slow runner.
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph must
+        // keep that one element (not duplicate it) and remove it on unmount. Assert the per-
+        // component link count returns to its pre-mount value — guards clone accumulation.
+        await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Measured mount (warm cache): assert the fix's deterministic contract — the scoped
+        // stylesheet's rule is APPLIED in the CSSOM at the instant .lazy-child is inserted into
+        // the DOM. The runtime preloads the <link> and awaits its `.sheet` before the body morph,
+        // so the rule is live before the styled node exists and the browser paints it styled.
+        // (getComputedStyle is NOT used: a freshly recalc'd element can read its pre-application
+        // value for a frame even when the sheet is applied and no flash actually paints — that
+        // measurement artifact is unrelated to FOUC.) Without the fix the <link> would parse on a
+        // later task, so the rule would be absent at insertion (sheetAppliedAtInsert === false).
+        await Page.EvaluateAsync(@"() => {
+            window.__raskLazyApplied = null;
+            const obs = new MutationObserver(() => {
+                if (window.__raskLazyApplied !== null) return;
+                if (!document.querySelector('.lazy-child')) return;
+                let applied = false;
+                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
+                    if (!l.sheet) return;
+                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
+                });
+                window.__raskLazyApplied = applied;
+                obs.disconnect();
+            });
+            obs.observe(document.documentElement, {
+                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
+            });
+        }");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
+        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+        var lazySheetApplied = await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true");
+        Assert.True(lazySheetApplied,
+            "scoped stylesheet must be applied before .lazy-child is inserted (no FOUC)");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph
+        // must keep that one element (not duplicate it) and remove it on unmount. Assert the
+        // per-component link count returns to its pre-mount value — guards clone accumulation.
+        await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.
         await SideAsync("HttpClient + DI", "HttpClient + DI");
