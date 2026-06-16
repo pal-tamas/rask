@@ -1263,14 +1263,12 @@
                 case 3: { // UpdateText [k, path, value]
                     var textNode = resolvePath(path);
                     if (textNode) {
-                        // Works for Text nodes (nodeType 3) and elements alike. We assign
-                        // .textContent (rather than .nodeValue) so the path resolving to
-                        // a Raw-rendered element still gets cleared and refilled — Raw
-                        // frames in the C# stream serialize verbatim markup into a
-                        // single string, which corresponds to a sequence of DOM nodes
-                        // the browser parsed. The current diff codec only emits
-                        // UpdateText when both sides are the SAME kind (Text vs Text or
-                        // Raw vs Raw), so textContent is the right knob.
+                        // UpdateText only ever targets a Text node now: the diff codec emits it
+                        // exclusively for changed Text frames (HTML-encoded content), so
+                        // .textContent is the correct knob. A changed Raw frame is NOT an
+                        // UpdateText — its verbatim markup parses into a variable run of DOM
+                        // nodes that textContent would escape and could not fully replace, so the
+                        // codec ships it as a Remove+Insert that routes to the full-HTML morph.
                         var txtVal = op[2];
                         textNode.textContent = txtVal == null ? "" : txtVal;
                     }

@@ -187,6 +187,14 @@ public abstract partial class SharedSmokeTests
         await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.js')").ClickAsync();
         await Expect(codeCard.Locator(".sample-code"))
             .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Regression: switching tabs swaps the highlighted pane by replacing one Raw value
+        // (highlighted C#) with another (highlighted JS) over the live diff. The new markup must
+        // be reparsed into REAL token <span> elements — not escaped into literal "<span …>" text
+        // (which is what a textContent-based Raw update produced, ToContainText above can't catch
+        // it because the escaped text still "contains" the substring). Require a real token span
+        // element in the freshly-switched pane.
+        await Expect(codeCard.Locator(".sample-code code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await codeCard.Locator(".sample-copy").ClickAsync();
         await Expect(codeCard.Locator(".sample-copy"))
             .ToContainTextAsync("Copied!", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });

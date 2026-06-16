@@ -42,6 +42,45 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Diff_RawValueUnchanged_ProducesZeroOps()
+    {
+        // An identical Raw value must produce no ops — the verbatim markup is the same
+        // string, so there is nothing to patch (and certainly no spurious UpdateText).
+        var before = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
+        var after = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        Assert.Empty(ops);
+    }
+
+    [Fact]
+    public void Diff_RawValueChanged_ProducesRemoveAndInsert_NotUpdateText()
+    {
+        // Regression: switching a syntax-highlight code tab swaps one Raw value
+        // (highlighted C#) for another (highlighted CSS). A Raw's markup parses into a
+        // variable run of sibling DOM nodes, so it must NOT ship as an in-place UpdateText
+        // (which sets textContent — escaping the markup into literal <span> text and only
+        // touching the first node). It must ship as a Remove + Insert that routes to the
+        // full-HTML morph so the browser reparses the new markup.
+        var before = Frames(Code()[Raw("<span class=\"keyword\">class</span> Foo")]);
+        var (after, afterHtml) = FramesAndHtml(Code()[Raw("<span class=\"cssSelector\">.box </span>{ }")]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops, afterHtml);
+
+        Assert.DoesNotContain(ops, o => o.Kind == EditOpKind.UpdateText);
+        Assert.Contains(ops, o => o.Kind == EditOpKind.RemoveSubtree);
+        Assert.Contains(ops, o => o.Kind == EditOpKind.InsertSubtree);
+
+        // The replace ops are untrusted positional structural ops, so the live session
+        // routes the whole render to the full-HTML morph rather than applying them directly
+        // — the morph reparses the new markup instead of escaping it.
+        Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops));
+    }
+
+    [Fact]
     public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
     {
         var before = Frames(Input("text", "f", "old", "edit"));
