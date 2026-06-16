@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-16
+
 ### Added
 - **Eager prefetch of scoped CSS/JS eliminates navigation FOUC.** The page `<head>` now also
   emits a low-priority `<link rel="prefetch">` for *every* registered scoped asset — not just the
