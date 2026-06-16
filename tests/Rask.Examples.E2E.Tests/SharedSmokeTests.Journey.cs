@@ -486,25 +486,25 @@ public abstract partial class SharedSmokeTests
         Assert.True(await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync() >= 1,
             "expected >=1 JS-only script");
         var beforeLazy = await Page.Locator(cssLinkSel).CountAsync();
-        // The no-FOUC guard's contract is "no flash once the sheet is available" — it preloads the
-        // scoped <link> and holds the body paint until .sheet applies, bounded by a 500ms cap so a
-        // pathologically slow sheet shows a brief flash rather than stalling navigation. To assert
-        // the guard deterministically (not race that cap on a slow runner), first wait until every
-        // eager scoped-CSS prefetch has actually landed in the HTTP cache (Resource Timing
-        // responseEnd > 0) — the realistic warm-cache state the prefetch exists to create. The
-        // clone's load is then a cache hit and applies well within the cap on any runner.
-        await Page.WaitForFunctionAsync(
-            @"() => {
-                const links = Array.from(document.querySelectorAll('link[rel=""prefetch""][as=""style""]'));
-                return links.length > 0 && links.every(l => {
-                    const e = performance.getEntriesByName(l.href);
-                    return e.length > 0 && e.some(x => x.responseEnd > 0);
-                });
-            }",
-            null, new PageWaitForFunctionOptions { Timeout = 30_000 });
-        // No-FOUC guard: LazyChild brings a not-yet-mounted scoped stylesheet (.lazy-child →
-        // background #fff4d6). The eager <link rel="prefetch"> has warmed that sheet into the HTTP
-        // cache (awaited above), and the runtime still holds the body paint until the real
+        // Warm-up toggle: LazyChild is never instantiated until shown, so its scoped stylesheet
+        // (.lazy-child → #fff4d6) is not among the page-load prefetches. Mount it once and unmount
+        // it to load + cache LazyChild.css, so the *measured* mount below hits a warm cache. The
+        // no-FOUC guard's contract is "no flash once the sheet is available" (it preloads the
+        // <link> and holds the body paint until .sheet applies, bounded by a 500ms cap so a
+        // pathologically slow sheet shows a brief flash rather than stalling navigation); warming
+        // first asserts the guard deterministically instead of racing that cap on a slow runner.
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
+        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph must
+        // keep that one element (not duplicate it) and remove it on unmount. Assert the per-
+        // component link count returns to its pre-mount value — guards clone accumulation.
+        await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Measured mount (warm cache): the runtime holds the body paint until the real
         // <link rel="stylesheet">'s .sheet has applied — otherwise the node paints unstyled
         // (transparent) for a frame. Sample the background the browser is about to paint (see
         // the rAF capture below); with the fix it's the styled colour, never the default
