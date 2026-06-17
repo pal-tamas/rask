@@ -3,7 +3,7 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Virtualization;
 
-// Typed projection of the type-erased VirtualizationState. Built by the Virtualize<T>
+// Typed projection of the type-erased VirtualizationState. Built by the VirtualizeModel<T>
 // factory's closure before handing off to the user's render fragment. Lets users iterate
 // VisibleItems with strong typing and wire OnScroll into a scrollable element.
 public sealed class VirtualizationContext<T>

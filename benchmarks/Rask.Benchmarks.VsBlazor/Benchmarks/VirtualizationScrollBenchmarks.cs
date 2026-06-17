@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
 using Rask.Core;
-using RaskVirtualize = Rask.Core.Components.Virtualize;
+using RaskVirtualize = Rask.Core.Components.VirtualizeModel;
 
 namespace Rask.Benchmarks.VsBlazor.Benchmarks;
 

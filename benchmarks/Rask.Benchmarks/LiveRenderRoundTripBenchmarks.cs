@@ -19,7 +19,7 @@ namespace Rask.Benchmarks;
 [MemoryDiagnoser]
 public class LiveRenderRoundTripBenchmarks
 {
-    // 100-row list with data-rask-key emission per row. Mirrors the Virtualize / sortable
+    // 100-row list with data-rask-key emission per row. Mirrors the VirtualizeModel / sortable
     // table pattern: every render shuffles the row order so the keyed-morph branch (in
     // rask-morph.js) would do an O(k) reorder client-side instead of replacing every node.
     // The C# side measures the server-render allocation cost of producing the keyed HTML;

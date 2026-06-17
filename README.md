@@ -998,11 +998,11 @@ an event handler. See `samples/Rask.Example.Shared/Features/Upload/UploadPage.cs
 <summary><b>📜 Virtualization</b></summary>
 <br>
 
-`Virtualize<T>` is a headless windowed-list primitive — it emits no DOM of its own and instead invokes the `Render`
+`VirtualizeModel<T>` is a headless windowed-list primitive — it emits no DOM of its own and instead invokes the `Render`
 delegate with the visible window of items plus the spacer offsets you wire into your own scroll container.
 
 ```csharp
-Virtualize<Row>(
+VirtualizeModel<Row>(
     Items: _rows,                                  // or ItemsProvider for async paging
     ItemSize: 32,                                  // pixel height of one row
     OverscanCount: 4,
@@ -1024,9 +1024,44 @@ Virtualize<Row>(
 ```
 
 Provide exactly one of `Items` (in-memory) or `ItemsProvider` (async paging:
-`Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>`). With a provider, `Virtualize` caches loaded items by
-global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true` until
-a fetch completes. See `samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs` for a 10K-row table demo.
+`Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>`). With a provider, `VirtualizeModel` caches loaded items
+by global index, requests missing windows in the background, and emits placeholder rows with `IsPlaceholder = true`
+until a fetch completes. See `samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs` for a 10K-row table
+demo.
+
+</details>
+
+<details>
+<summary><b>🧮 Headless tables</b></summary>
+<br>
+
+`TableModel<T>` is a fully **controlled, headless** table primitive (à la TanStack Table). It owns no state and
+transforms no data — *you* sort, filter, and page your own data and pass it the final `Rows` plus the current view
+state (`Sort`, `PageIndex`, `SelectedKeys`). It projects sort-aware `Headers` and selection-aware `Rows` into the
+`Render` delegate and raises `OnSort` / `OnPage` / `OnSelect` **intents**; you apply them to your own state and
+re-render.
+
+```csharp
+TableModel<Person>(
+    Columns: columns,                  // ColumnDef<Person> { Id, Header, Sortable }
+    Rows: pageRows,                    // the final page YOU sorted + sliced
+    KeySelector: p => p.Id,
+    Sort: sort, PageIndex: page, PageCount: pages, SelectedKeys: selected,
+    MultiSort: true,
+    OnSort:   s => { sort = s; },       // YOU apply + re-render; new props flow back in
+    OnPage:   p => { page = p; },
+    OnSelect: k => { selected = k; },
+    Render: ctx => Table()[
+        Thead()[Tr()[ ctx.Headers.Select(h => Th(Key: h.ColumnId)[
+            Button(OnClick: h.ToggleSort)[h.Header]]) ]],
+        Tbody()[ ctx.Rows.Select(row => Tr(Key: row.Key)[
+            Td()[Input("checkbox", Checked: row.IsSelected, OnChange: _ => row.ToggleSelected())],
+            Td()[row.Value.Name] ]) ]
+    ])
+```
+
+`OnSort` / `OnPage` / `OnSelect` are auto-wrapped callbacks, so firing an intent re-renders the owning host. See
+`samples/Rask.Example.Shared/Features/Table/TablePage.cs` for a URL-driven, sortable + paged demo.
 
 </details>
 

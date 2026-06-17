@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 using Rask.Core;
 using C = Rask.Core.Components.Generated;
-using RaskVirtualize = Rask.Core.Components.Virtualize;
+using RaskVirtualize = Rask.Core.Components.VirtualizeModel;
 
 namespace Rask.Benchmarks.VsBlazor.Components;
 
 /// <summary>
 ///     1000-row list, item height 24px, viewport ~240px (10 rows visible). The Rask
-///     side wires <c>Rask.Core.Components.Virtualize&lt;int&gt;</c>; the Blazor side
+///     side wires <c>Rask.Core.Components.VirtualizeModel&lt;int&gt;</c>; the Blazor side
 ///     renders every row with an explicit <c>@for</c> loop. We deliberately do NOT
 ///     compare against Blazor's own <c>Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize&lt;T&gt;</c>
 ///     because that component reads viewport size via JS interop — without a live
@@ -32,7 +32,7 @@ internal static class VirtualizationScroll
                                                            .GetField("_scrollTop",
                                                                BindingFlags.Instance | BindingFlags.NonPublic)
                                                        ?? throw new InvalidOperationException(
-                                                           "Rask.Core.Components.Virtualize._scrollTop field not found");
+                                                           "Rask.Core.Components.VirtualizeModel._scrollTop field not found");
 
     /// <summary>
     ///     Construct the Rask tree once. The returned root holds a reference to the
@@ -47,7 +47,7 @@ internal static class VirtualizationScroll
             items[i] = i;
         }
 
-        var virt = C.Virtualize(
+        var virt = C.VirtualizeModel(
             ctx =>
             {
                 var rows = new List<Child>(ctx.VisibleItems.Count);
