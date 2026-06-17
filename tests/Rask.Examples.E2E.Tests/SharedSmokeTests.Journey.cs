@@ -264,8 +264,16 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Virtualize: just confirm it renders (windowing logic is unit-tested).
+        // Virtualize: confirm it renders its source (the page now shows the demos via CodeSample)
+        // and that the sticky header is pinned on the <th> cells — the fix for the old <thead>
+        // sticky that flickered. Both are static checks (no scroll interaction) so this stays out
+        // of the shared session's render-timing and can't destabilise later stateful steps.
         await SideAsync("Virtualize", "Virtualize");
+        await Expect(Page.Locator("main .sample-code-col").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
+            .EvaluateAsync<string>("el => getComputedStyle(el).position");
+        Assert.Equal("sticky", thPosition);
 
         // Keyed lists: the page's contract is that a keyed reorder preserves the survivors'
         // DOM state — focus, caret, and uncommitted input text. Type into the first row,
