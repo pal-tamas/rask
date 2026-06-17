@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`TableModel<T>` — a headless, fully *controlled* table primitive** (in the spirit of TanStack
+  Table). It renders no markup of its own and owns no state: the host sorts, filters, and pages its
+  own data and hands the model the final `Rows` plus the current view state (`Sort`, `PageIndex`,
+  `SelectedKeys`, …). The model projects sort-aware `Headers` and selection-aware `Rows` into the
+  `Render` delegate and raises `OnSort` / `OnPage` / `OnSelect` **intents**; the host applies them to
+  its own state and re-renders. Supporting types live in the new `Rask.Core.Tables` namespace
+  (`ColumnDef<T>`, `ColumnSort`, `SortDirection`, `HeaderCell`, `TableRow<T>`, `TableModelContext<T>`).
+  The `/table` showcase page now drives its sorting and paging through `TableModel<T>` from the URL
+  query string.
+
+### Changed
+- **Renamed the headless `Virtualize<T>` primitive to `VirtualizeModel<T>`** (component + factory) so
+  the headless "view-model" primitives read as one family with `TableModel<T>`. **Breaking:** update
+  call sites from `Virtualize<T>(…)` to `VirtualizeModel<T>(…)`; behaviour is unchanged. The
+  `Rask.Core.Virtualization` support types keep their names.
+
 ## [0.9.0] - 2026-06-16
 
 ### Added

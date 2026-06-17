@@ -48,7 +48,7 @@ public sealed class VirtualizePage : Component
             ") keep the scrollbar consistent with the full row count while ",
             Code()["VisibleItems"], " only emits the rows currently on screen."
         ],
-        Virtualize<Row>(
+        VirtualizeModel<Row>(
             ctx => Div(
                 Class: "border rounded bg-white",
                 Style: "height:400px; overflow:auto;",
@@ -104,7 +104,7 @@ public sealed class VirtualizePage : Component
             "Honour ", Code()["req.CancellationToken"],
             " in your own providers so the cancellation actually propagates."
         ],
-        Virtualize(
+        VirtualizeModel(
             ctx => Div(
                 Class: "border rounded bg-white",
                 Style: "height:400px; overflow:auto;",

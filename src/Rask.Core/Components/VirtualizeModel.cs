@@ -16,8 +16,8 @@ namespace Rask.Core.Components;
 // into place instead of replacing them — focus and scroll state survive the
 // re-render. See /virtualize in the showcase for the pattern.
 //
-// Always invoked through the hand-written generic factory `Components.Virtualize<T>(...)`
-// (see Virtualize.Generics.cs). The non-generic factory remains as the forwarding target.
+// Always invoked through the hand-written generic factory `Components.VirtualizeModel<T>(...)`
+// (see VirtualizeModel.Generics.cs). The non-generic factory remains as the forwarding target.
 //
 // Items vs ItemsProvider — exactly one must be set:
 //   • Items: IEnumerable in memory; window is sliced directly.
@@ -25,7 +25,7 @@ namespace Rask.Core.Components;
 //     async paging. Component caches loaded items by global index, requests missing windows
 //     in the background, and re-renders on completion. The first render before the count
 //     is known emits an all-placeholder window so the user can render a Loading view.
-public sealed class Virtualize : Component
+public sealed class VirtualizeModel : Component
 {
     private CancellationTokenSource? _activeFetch;
     private Dictionary<int, object?>? _cache;
@@ -40,7 +40,7 @@ public sealed class Virtualize : Component
     public IEnumerable? Items { get; set; }
 
     // Stored as a Delegate? so the non-generic factory's signature stays simple. The typed
-    // Virtualize<T>(...) factory wraps the user's
+    // VirtualizeModel<T>(...) factory wraps the user's
     //   Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>
     // into the erased
     //   Func<ItemsProviderRequest, ValueTask<ItemsProviderResultErased>>
@@ -58,10 +58,10 @@ public sealed class Virtualize : Component
     // The render fragment. Called with the type-erased VirtualizationState every render;
     // returns the user's chosen root Component for the virtualized region. Stored under the
     // name "Body" rather than "Render" to avoid colliding with Component.Render(). The
-    // user-facing typed factory Virtualize<T>(...) exposes this parameter as "Render".
+    // user-facing typed factory VirtualizeModel<T>(...) exposes this parameter as "Render".
     public Func<VirtualizationState, Component>? Body { get; set; }
 
-    // Virtualize reads mutable internal state (scroll position, item cache, total count
+    // VirtualizeModel reads mutable internal state (scroll position, item cache, total count
     // from the async provider) that the framework can't observe through props alone, so
     // every render must re-execute. Without this, the cached Div from the last render
     // would be returned even after a scroll event changed _scrollTop. Same reasoning as
@@ -91,7 +91,7 @@ public sealed class Virtualize : Component
     {
         // Cancel any in-flight fetch when the component leaves the tree so the
         // provider's await unwinds promptly and the CTS doesn't leak through GC.
-        // Without this, a Virtualize whose ItemsProvider is mid-`await` keeps the
+        // Without this, a VirtualizeModel whose ItemsProvider is mid-`await` keeps the
         // CTS rooted via the captured request.CancellationToken and the
         // FetchAsync continuation still tries to update _cache + call
         // StateHasChanged after disposal — wasted work and a small unmanaged
@@ -118,18 +118,18 @@ public sealed class Virtualize : Component
     {
         if (Body is null)
         {
-            throw new InvalidOperationException("Virtualize: Render delegate is required.");
+            throw new InvalidOperationException("VirtualizeModel: Render delegate is required.");
         }
 
         if (Items is null == ItemsProvider is null)
         {
             throw new InvalidOperationException(
-                "Virtualize: provide exactly one of Items or ItemsProvider.");
+                "VirtualizeModel: provide exactly one of Items or ItemsProvider.");
         }
 
         if (ItemSize <= 0)
         {
-            throw new InvalidOperationException("Virtualize: ItemSize must be greater than zero.");
+            throw new InvalidOperationException("VirtualizeModel: ItemSize must be greater than zero.");
         }
 
         var itemSize = ItemSize;
@@ -332,7 +332,7 @@ public sealed class Virtualize : Component
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026",
-        Justification = "ItemsProvider is set by Virtualize<T>(...) which wraps the typed provider " +
+        Justification = "ItemsProvider is set by VirtualizeModel<T>(...) which wraps the typed provider " +
                         "into the exact erased delegate shape we cast to here. No reflection.")]
     private async Task FetchAsync(int startIndex, int count)
     {
@@ -368,7 +368,7 @@ public sealed class Virtualize : Component
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Rask Virtualize: ItemsProvider threw: {ex}");
+            Console.Error.WriteLine($"Rask VirtualizeModel: ItemsProvider threw: {ex}");
             return;
         }
 
@@ -393,7 +393,7 @@ public sealed class Virtualize : Component
     }
 }
 
-// Type-erased ItemsProvider result. The typed Virtualize<T>(...) factory boxes the user's
+// Type-erased ItemsProvider result. The typed VirtualizeModel<T>(...) factory boxes the user's
 // IReadOnlyList<T> into IReadOnlyList<object?> before handing the closure off to the
 // non-generic component. Kept internal — users only see the typed ItemsProviderResult<T>.
 internal sealed record ItemsProviderResultErased(IReadOnlyList<object?> Items, int TotalItemCount);

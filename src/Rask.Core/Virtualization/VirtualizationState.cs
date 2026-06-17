@@ -2,12 +2,12 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Virtualization;
 
-// Type-erased state the Virtualize component passes to a non-generic Render delegate.
-// The typed Virtualize<T> factory wraps the user's Func<VirtualizationContext<T>, Component>
+// Type-erased state the VirtualizeModel component passes to a non-generic Render delegate.
+// The typed VirtualizeModel<T> factory wraps the user's Func<VirtualizationContext<T>, Component>
 // in a closure that re-projects this payload into a typed VirtualizationContext<T> before
 // invoking the user code. Public so the Render property's signature stays accessible from
 // outside the assembly, but downstream callers should never assemble one of these by hand —
-// always go through Virtualize<T>(...).
+// always go through VirtualizeModel<T>(...).
 public sealed class VirtualizationState
 {
     public VirtualizationState(

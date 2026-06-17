@@ -404,7 +404,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     // An event-callback delegate prop whose invocation should re-render its owner: an
     // Action/Action<T>/Func<Task>/Func<T,Task> shape (void- or Task-returning, arity <= 1). The
     // return-type rule excludes template/data delegates — Func<…,Component>, Func<…,ValueTask<…>>
-    // (Virtualize.ItemsProvider), Func<…,Child> (ErrorBoundary.Fallback), Func<…,IEnumerable<…>>
+    // (VirtualizeModel.ItemsProvider), Func<…,Child> (ErrorBoundary.Fallback), Func<…,IEnumerable<…>>
     // (validators) — so only true parent→child callbacks are wrapped.
     private static bool IsAutoRerenderDelegate(ITypeSymbol type)
     {

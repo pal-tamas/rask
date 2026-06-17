@@ -800,7 +800,7 @@ public abstract class Component
 
     // Overflow path for renders with > _smallHandlerIds.Length handlers in one root.
     // The prebake covers 1024 handlers per render — orders of magnitude past anything
-    // realistic. When a Virtualize / huge keyed list pushes past that, stackalloc + a
+    // realistic. When a VirtualizeModel / huge keyed list pushes past that, stackalloc + a
     // direct TryFormat skips the int.ToString allocation that `"h" + n` would force.
     private static string CreateLargeHandlerId(int n)
     {
