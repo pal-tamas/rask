@@ -14,18 +14,14 @@ public sealed class HttpRegisterDemo : Component
     private static HttpClient CreateClient(Func<string> baseAddress) =>
         new() { BaseAddress = new Uri(baseAddress()) };
 
-    protected override RenderResult Render()
-    {
-        var client = CreateClient(() => "https://localhost/");
-
-        return Div(Class: "card border-0 bg-light")[
+    protected override RenderResult Render() =>
+        Div(Class: "card border-0 bg-light")[
             Div(Class: "card-body")[
                 Div(Class: "small text-secondary text-uppercase mb-1")["Configured HttpClient"],
                 P(Class: "mb-0 small")[
-                    "BaseAddress: ", Code()[client.BaseAddress!.ToString()],
+                    "BaseAddress: ", Code()[CreateClient(() => "https://localhost/").BaseAddress!.ToString()],
                     " — relative fetches resolve against the app's own origin."
                 ]
             ]
         ];
-    }
 }

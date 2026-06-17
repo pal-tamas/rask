@@ -57,17 +57,14 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     private void Delete(TodoItem item) => _todos.Remove(item);
 
-    protected override RenderResult Render()
-    {
-        var done = _todos.Count(t => t.Completed);
-        return
+    protected override RenderResult Render() =>
         [
             PageHeader.Render(
                 "Todos",
                 "A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
             Div(Class: "d-flex justify-content-between align-items-center mb-3")[
                 Span(Class: "text-muted small")[
-                    $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {done} done"
+                    $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
                 Button("button", Class: "btn btn-primary", OnClick: OpenAdd)[
                     I(Class: "bi bi-plus-lg me-1"), "New todo"
@@ -113,7 +110,6 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                 Cancel,
                 Save)
         ];
-    }
 }
 
 public sealed class TodoFormDialog : Component
