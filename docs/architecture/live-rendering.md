@@ -200,6 +200,13 @@ The client (`rask.js` / `rask.wasm.js`) applies these via `applyDiff(ops)`. Its
 `resolvePath` walks `parent.childNodes` **filtered to Element/Text/Doctype only**, so
 the path coordinates line up with the server's DOM-relevant frame counting.
 
+`applyDiff` and its helpers live in **one shared source**,
+`src/Rask.Core/Resources/rask-dom.js`, spliced into both clients at build time at the
+`RASK_DOM` marker — the same mechanism the full-HTML morph (`rask-morph.js`, `RASK_MORPH`
+marker) already uses (see `_RaskBuildClientJs` in `Rask.Server.csproj` and
+`_RaskSpliceClientJs` in `Rask.Wasm.csproj`). Keeping the codec in a single ES5 source
+means both runtimes decode the C# `FrameDiffer` opcodes identically — they cannot drift.
+
 ## Keyed reconciliation: trusted structural ops
 
 Give list items a stable `Key:` (Blazor `@key` parity — last optional factory param)

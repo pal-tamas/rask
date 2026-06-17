@@ -32,11 +32,11 @@
   </ItemGroup>
 
   <!--
-    The embedded rask.js is generated at build time by splicing the shared
-    Rask.Core/Resources/rask-morph.js into Resources/rask.js at the
-    @@RASK_MORPH@@ marker. The generated artifact lives in $(IntermediateOutputPath)
-    so the source file in Resources/ stays free of duplicated morph code and
-    git status doesn't churn on build.
+    The embedded rask.js is generated at build time by splicing two shared
+    Rask.Core/Resources files into Resources/rask.js: rask-dom.js (the diff codec,
+    at @@RASK_DOM@@) and rask-morph.js (the full-HTML morph, at @@RASK_MORPH@@).
+    The generated artifact lives in $(IntermediateOutputPath) so the source file in
+    Resources/ stays free of duplicated client code and git status doesn't churn on build.
   -->
   <ItemGroup>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
@@ -45,12 +45,13 @@
   <Import Project="..\..\build\Rask.MinifyJs.targets"/>
 
   <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-morph.js"
+          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js"
           Outputs="$(IntermediateOutputPath)rask.js">
     <PropertyGroup>
       <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
+      <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
-      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskClientJs>
+      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskClientJs>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>

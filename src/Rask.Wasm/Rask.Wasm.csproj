@@ -52,10 +52,11 @@
     so the auto-import in the consumer's project sees them under the package's top-level
     folders, matching the in-repo layout that Directory.Build.targets imports from.
 
-    rask.wasm.js itself is generated at build time by _RaskBuildClientJs (below), which
-    splices the shared morph algorithm (Rask.Core/Resources/rask-morph.js) into the
-    template Resources/rask.wasm.js at the @@RASK_MORPH@@ marker. The generated artifact
-    lands directly in Browser/ so the existing Browser/** Pack glob picks it up.
+    rask.wasm.js itself is generated at build time by _RaskSpliceClientJs (below), which
+    splices two shared Rask.Core/Resources files into the template Resources/rask.wasm.js:
+    rask-dom.js (the diff codec, at @@RASK_DOM@@) and rask-morph.js (the full-HTML morph,
+    at @@RASK_MORPH@@). The generated artifact lands directly in Browser/ so the existing
+    Browser/** Pack glob picks it up.
   -->
   <!--
     Browser/ assets shipped in every NuGet package: main.js (the dotnet boot hook) and
@@ -84,12 +85,13 @@
     contributors look at). NuGet consumers see whichever version is packed (above).
   -->
   <Target Name="_RaskSpliceClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;_RaskMinifyClientJs"
-          Inputs="Resources\rask.wasm.js;..\Rask.Core\Resources\rask-morph.js"
+          Inputs="Resources\rask.wasm.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js"
           Outputs="Browser\rask.wasm.js">
     <PropertyGroup>
       <_RaskWasmTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.wasm.js'))</_RaskWasmTemplate>
+      <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
-      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskWasmJs>
+      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)'))</_RaskWasmJs>
     </PropertyGroup>
     <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
