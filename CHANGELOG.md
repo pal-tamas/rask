@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Accessibility primitives on every element.** A new `Aria` parameter — a `string → string?`
+  dictionary modelled on the existing `Data` (`data-*`) bag — renders each entry as
+  `aria-{key}="{value}"`, so the full WAI-ARIA vocabulary is reachable without a typed property per
+  attribute (`Button(Aria: new() { ["label"] = "Close" })` → `aria-label="Close"`). `Role` (`string?`)
+  and `TabIndex` (`int?`) are typed parameters for the two non-`aria-*` affordances. The universal
+  attribute order is now **id, class, style, data-\*, role, tabindex, aria-\*, then tag-specific**. A
+  new **RASK023** analyzer warns when an `Img` is created without `Alt` (pass `Alt: ""` for decorative
+  images). See the new [accessibility guide](docs/accessibility.md).
 - **`TableModel<T>` — a headless, fully *controlled* table primitive** (in the spirit of TanStack
   Table). It renders no markup of its own and owns no state: the host sorts, filters, and pages its
   own data and hands the model the final `Rows` plus the current view state (`Sort`, `PageIndex`,

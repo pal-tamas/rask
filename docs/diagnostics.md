@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK022)
+# Rask diagnostics (RASK001–RASK023)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -31,6 +31,7 @@ build once.
 | [RASK020](#rask020) | Warning | Scoped-JS simple-name collision |
 | [RASK021](#rask021) | Warning | Root component must render a complete page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
+| [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 
 ---
 
@@ -235,3 +236,18 @@ input state and emits untrusted structural diffs on insert/remove/move.
 **Fix:** pass a stable `Key:` (an entity id, not the loop index). See
 [keyed lists](getting-started.md) and the [live-rendering architecture](architecture/live-rendering.md)
 for why identity beats position.
+
+## RASK023
+**`Img` is missing `Alt` text** · Warning
+
+An `Img(...)` factory call supplies no `Alt`. Without a text alternative, screen readers fall back to
+announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/WAI/WCAG21/Understanding/non-text-content).
+
+```csharp
+// ✗ Img(Src: "/logo.png")
+// ✓ Img(Src: "/logo.png", Alt: "Rask logo")
+// ✓ Img(Src: "/divider.png", Alt: "")   // decorative: empty alt hides it from assistive tech
+```
+
+**Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
+assistive technology skips it. See [accessibility](accessibility.md).

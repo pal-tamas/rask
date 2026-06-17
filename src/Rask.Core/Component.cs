@@ -211,6 +211,46 @@ public abstract class Component
         }
     }
 
+    // Backing store for Element.Role/TabIndex/Aria, hoisted into the lazy LiveState for the same
+    // reason as Ref: accessibility attributes are opt-in and rare, so a plain element keeps `_live`
+    // null and adds zero footprint. The setters only force a LiveState allocation when an actual
+    // value is assigned; setting null on an element that never used the feature is a no-op.
+    internal string? RoleInternal
+    {
+        get => _live?.Role;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Role = value;
+            }
+        }
+    }
+
+    internal int? TabIndexInternal
+    {
+        get => _live?.TabIndex;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.TabIndex = value;
+            }
+        }
+    }
+
+    internal IReadOnlyDictionary<string, string?>? AriaInternal
+    {
+        get => _live?.Aria;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.Aria = value;
+            }
+        }
+    }
+
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
     ///     Cancelled exactly once when the component is unmounted (navigation away, parent
@@ -1272,6 +1312,9 @@ public abstract class Component
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
         public ElementRef? ElementRef;
+        public string? Role;
+        public int? TabIndex;
+        public IReadOnlyDictionary<string, string?>? Aria;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;

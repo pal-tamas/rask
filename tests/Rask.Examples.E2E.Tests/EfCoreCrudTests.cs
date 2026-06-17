@@ -38,6 +38,15 @@ public sealed class EfCoreCrudTests(EfCoreExampleAppFixture app, PlaywrightFixtu
         await Assertions.Expect(createdRow).ToBeVisibleAsync();
         await Assertions.Expect(createdRow).ToContainTextAsync("7");
 
+        // Accessibility: the icon-only row controls expose an aria-label (set via the Aria
+        // dictionary) naming the row they act on, while the glyph itself is aria-hidden.
+        await Assertions.Expect(createdRow.Locator("a.btn-outline-secondary"))
+            .ToHaveAttributeAsync("aria-label", "Edit E2E gadget");
+        await Assertions.Expect(createdRow.Locator("button.btn-outline-danger"))
+            .ToHaveAttributeAsync("aria-label", "Delete E2E gadget");
+        await Assertions.Expect(createdRow.Locator("button.btn-outline-danger i"))
+            .ToHaveAttributeAsync("aria-hidden", "true");
+
         // EDIT — follow the row's edit link, rename, save.
         await createdRow.Locator("a.btn-outline-secondary").ClickAsync();
         await _page.FillAsync("#p-name", "E2E gizmo");
