@@ -23,6 +23,13 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Fixed
+- **The `/virtualize` showcase table header no longer flickers while scrolling.** The sticky header
+  had `position:sticky` on the `<thead>` element, which is unevenly supported across engines and
+  visibly flickered as the windowed rows re-rendered under it on every scroll event. The header is
+  now pinned on the `<th>` cells (each painting an opaque background, with the divider drawn by an
+  inset `box-shadow` and the table opting into `border-collapse:separate`), which holds steady. The
+  page also now presents both demos through the `CodeSample` component so the runnable source is
+  shown beside the live result.
 - **Clean parallel builds of WASM-hosted apps no longer race the static-web-assets pipeline.** A full
   rebuild (`dotnet build --no-incremental`, or Rider's *Rebuild Solution*) could fail with `MSB4018`
   from `UpdateExternallyDefinedStaticWebAssets` — the ASP.NET host project resolved the WASM
