@@ -15,7 +15,7 @@ them until tagged releases begin.
   and `TabIndex` (`int?`) are typed parameters for the two non-`aria-*` affordances. The universal
   attribute order is now **id, class, style, data-\*, role, tabindex, aria-\*, then tag-specific**. A
   new **RASK023** analyzer warns when an `Img` is created without `Alt` (pass `Alt: ""` for decorative
-  images). See the new [accessibility guide](docs/accessibility.md).
+  images). Demonstrated on the `/props` showcase page. See the new [accessibility guide](docs/accessibility.md).
 - **`TableModel<T>` — a headless, fully *controlled* table primitive** (in the spirit of TanStack
   Table). It renders no markup of its own and owns no state: the host sorts, filters, and pages its
   own data and hands the model the final `Rows` plus the current view state (`Sort`, `PageIndex`,

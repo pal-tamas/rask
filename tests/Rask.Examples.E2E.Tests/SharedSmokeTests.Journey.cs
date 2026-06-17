@@ -107,6 +107,13 @@ public abstract partial class SharedSmokeTests
         var dataDiv = Page.Locator(".sample-result-body div[data-role='card']").First;
         await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
         await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
+        // Accessibility props: Role/TabIndex render as native attrs, Aria expands to aria-* (the
+        // dictionary keys verbatim) and a null value renders as a bare attribute on the icon.
+        var ariaBtn = Page.Locator(".sample-result-body button[role='switch']").First;
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
+        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
+        await Expect(ariaBtn.Locator("i")).ToHaveAttributeAsync("aria-hidden", "true");
 
         // User components: generated factory greeting + [SkipFactory] counter that keeps its state.
         await SideAsync("User components", "User components");
