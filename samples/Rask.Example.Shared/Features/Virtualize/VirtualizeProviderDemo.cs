@@ -9,7 +9,8 @@ namespace Rask.Example.Shared.Features;
 // so honour req.CancellationToken in your own providers to let the cancellation propagate.
 public sealed class VirtualizeProviderDemo : Component
 {
-    // Sticky header on the <th> cells — see VirtualizeItemsDemo for why this beats a sticky <thead>.
+    // Sticky header on the <th> cells, kept rock-steady by the constant-height single table —
+    // see VirtualizeItemsDemo for the full why (spacer rows inside tbody, not divs outside it).
     private const string StickyHead =
         "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
 
@@ -20,7 +21,6 @@ public sealed class VirtualizeProviderDemo : Component
                 Style: "height:360px; overflow:auto;",
                 Data: new Dictionary<string, string?> { ["testid"] = "virtualize-async-scroller" },
                 OnScroll: ctx.OnScroll)[
-                Div(Style: $"height:{ctx.OffsetBefore}px"),
                 Table(
                     Class: "table table-sm mb-0",
                     Style: "table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
@@ -32,30 +32,46 @@ public sealed class VirtualizeProviderDemo : Component
                             Th(Style: StickyHead + "width:110px; text-align:right;")["Balance"]
                         ]
                     ],
-                    Tbody()[
-                        ctx.VisibleItems.Select(item =>
-                            Tr(
-                                Style: $"height:{ctx.ItemSize}px;",
-                                Data: new Dictionary<string, string?>
-                                {
-                                    ["row-index"] = item.Index.ToString(),
-                                    ["rask-key"] = item.Index.ToString(),
-                                    ["placeholder"] = item.IsPlaceholder ? "true" : null
-                                })[
-                                Td()[item.IsPlaceholder ? "—" : item.Value!.Index],
-                                Td()[item.IsPlaceholder ? "—" : item.Value!.Name],
-                                Td()[item.IsPlaceholder ? "—" : item.Value!.City],
-                                Td(Style: "text-align:right;")[
-                                    item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]
-                            ])
-                    ]
-                ],
-                Div(Style: $"height:{ctx.OffsetAfter}px")
+                    Tbody()[BodyRows(ctx)]
+                ]
             ],
             ItemsProvider: FetchRowsAsync,
             ItemSize: 32,
             OverscanCount: 4,
             InitialClientHeight: 360);
+
+    // tbody = top spacer + visible window + bottom spacer, every child keyed so the whole tbody
+    // stays on the trusted keyed-diff path (spacers patch only their height; rows move by index).
+    private static IEnumerable<Child> BodyRows(VirtualizationContext<VirtualizeRow> ctx)
+    {
+        yield return Spacer(ctx.OffsetBefore, "spacer-before");
+
+        foreach (var item in ctx.VisibleItems)
+        {
+            yield return Tr(
+                Style: $"height:{ctx.ItemSize}px;",
+                Data: new Dictionary<string, string?>
+                {
+                    ["row-index"] = item.Index.ToString(),
+                    ["rask-key"] = item.Index.ToString(),
+                    ["placeholder"] = item.IsPlaceholder ? "true" : null
+                })[
+                Td()[item.IsPlaceholder ? "—" : item.Value!.Index.ToString()],
+                Td()[item.IsPlaceholder ? "—" : item.Value!.Name],
+                Td()[item.IsPlaceholder ? "—" : item.Value!.City],
+                Td(Style: "text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]
+            ];
+        }
+
+        yield return Spacer(ctx.OffsetAfter, "spacer-after");
+    }
+
+    private static Child Spacer(int height, string key) =>
+        Tr(
+            Style: $"height:{height}px;",
+            Data: new Dictionary<string, string?> { ["rask-key"] = key })[
+            Td(Colspan: 4)
+        ];
 
     private static async ValueTask<ItemsProviderResult<VirtualizeRow>> FetchRowsAsync(ItemsProviderRequest req)
     {

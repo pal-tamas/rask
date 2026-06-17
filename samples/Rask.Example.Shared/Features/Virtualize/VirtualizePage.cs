@@ -15,11 +15,12 @@ public sealed class VirtualizePage : Component
             $"Headless list virtualization. Each list below holds {VirtualizeData.Rows.Length:N0} rows, but the DOM only ever keeps the visible window plus a small overscan."),
 
         P(Class: "small text-secondary mb-4")[
-            "Scroll a box below. The two spacer divs (",
+            "Scroll a box below. Two keyed spacer rows (",
             Code()["OffsetBefore"], " and ", Code()["OffsetAfter"],
-            ") keep the scrollbar proportional to the full row count while ",
-            Code()["VisibleItems"], " only emits the rows currently on screen. The sticky header sits ",
-            "on the ", Code()["<th>"], " cells so it never flickers as the windowed rows re-render under it."
+            ") inside the ", Code()["tbody"], " reserve the scroll height of the off-screen rows while ",
+            Code()["VisibleItems"], " only emits the rows currently on screen. Keeping them in the table — ",
+            "so its outer height stays constant — lets the sticky header stay pinned instead of unsticking ",
+            "as the windowed rows re-render under it."
         ],
 
         H2(Class: "h4 mt-4 mb-3")["In-memory rows via Items"],

@@ -23,11 +23,14 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Fixed
-- **The `/virtualize` showcase table header no longer flickers while scrolling.** The sticky header
-  had `position:sticky` on the `<thead>` element, which is unevenly supported across engines and
-  visibly flickered as the windowed rows re-rendered under it on every scroll event. The header is
-  now pinned on the `<th>` cells (each painting an opaque background, with the divider drawn by an
-  inset `box-shadow` and the table opting into `border-collapse:separate`), which holds steady. The
+- **The `/virtualize` showcase table header no longer disappears while scrolling.** The off-screen
+  rows were reserved by two spacer `<div>`s *outside* the table, so the table's own box was relaid
+  out on every scroll frame and the sticky `<thead>` unstuck — the header vanished mid-scroll and
+  snapped back when scrolling stopped. The spacers are now two keyed spacer **rows inside the
+  `<tbody>`**, making the single table the scroller's only child with a constant outer height, so
+  the header's containing block never resizes. Stickiness also moved onto the `<th>` cells (opaque
+  background + inset `box-shadow` divider, `border-collapse:separate`). Verified in a headless
+  browser: the header stays pinned to the scroller top across a 40-step rapid scroll burst. The
   page also now presents both demos through the `CodeSample` component so the runnable source is
   shown beside the live result.
 - **Clean parallel builds of WASM-hosted apps no longer race the static-web-assets pipeline.** A full
