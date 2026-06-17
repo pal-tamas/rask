@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Components;
 
-// Hand-written generic factory (same shape as Virtualize<T> / Context.Provide<T>): binds a single
+// Hand-written generic factory (same shape as VirtualizeModel<T> / Context.Provide<T>): binds a single
 // TValue model property to a set of mutually-exclusive radio inputs. Mirrors Input.Bound — parses
 // the expression, resolves the ambient EditContext, and wires each radio's change handler to set
 // the property and re-validate. Returns a transparent Fragment of <label><input radio>…</label>

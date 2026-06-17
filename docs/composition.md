@@ -6,7 +6,8 @@ sending events up, nesting children, and rendering windowed or reorderable lists
 - [Children & fragments](#children--fragments)
 - [Callbacks: child → parent](#callbacks-child--parent)
 - [Context: provide / consume](#context-provide--consume)
-- [Virtualize: windowed lists](#virtualize-windowed-lists)
+- [Virtualize: windowed lists](#virtualize--windowed-lists)
+- [TableModel: headless tables](#tablemodel--headless-tables)
 - [Drag and drop](#drag-and-drop)
 
 ---
@@ -134,13 +135,13 @@ Runnable demo: [`samples/Rask.Example.Shared/Features/Context/ContextThemeDemo.c
 
 ## Virtualize — windowed lists
 
-`Virtualize<T>` is **headless**: *you* render the scroll container and rows from a
+`VirtualizeModel<T>` is **headless**: *you* render the scroll container and rows from a
 `VirtualizationState ctx`, and it tells you which slice is visible. The first argument is
 the body builder; pass **exactly one** of `Items` (positional or named) or `ItemsProvider`,
 plus `ItemSize` (row height in px, required) and optional `OverscanCount`.
 
 ```csharp
-Virtualize<Row>(
+VirtualizeModel<Row>(
     ctx => Div(Style: "height:400px; overflow:auto;", OnScroll: ctx.OnScroll)[
         Div(Style: $"height:{ctx.OffsetBefore}px"),          // top spacer
         Table()[Tbody()[
@@ -172,6 +173,47 @@ Provider mode caches by index, marks rows `IsPlaceholder` while a page is in fli
 cancels + disposes superseded requests (and on unmount).
 
 Runnable demo: [`samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs`](../samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.cs).
+
+---
+
+## TableModel — headless tables
+
+`TableModel<T>` is a **fully controlled, headless** table primitive (à la TanStack Table). It owns
+**no state** and **transforms no data** — *you* sort, filter, and page your own data and pass it the
+final `Rows` plus the current view state. The model projects sort-aware headers and selection-aware
+rows into a `TableModelContext<T>` and raises **intent** events; you apply them to your own state and
+re-render, and the new props flow back down.
+
+```csharp
+TableModel<Person>(
+    ctx => Table()[
+        Thead()[Tr()[
+            // each HeaderCell carries the current sort Direction + a ToggleSort intent
+            ctx.Headers.Select(h => Th(Key: h.ColumnId)[
+                Button(OnClick: h.ToggleSort)[h.Header, h.Direction switch {
+                    SortDirection.Ascending => " ▲", SortDirection.Descending => " ▼", _ => "" }]])
+        ]],
+        Tbody()[
+            ctx.Rows.Select(row => Tr(Key: row.Key)[                 // already sorted + paged by you
+                Td()[Input("checkbox", Checked: row.IsSelected, OnChange: _ => row.ToggleSelected())],
+                Td()[row.Value.Name]])
+        ]
+    ],
+    Columns: columns,            // IReadOnlyList<ColumnDef<Person>> (Id / Header / Sortable)
+    Rows: pageRows,              // the final page YOU produced
+    KeySelector: p => p.Id,      // selection / row identity (defaults to the row reference)
+    Sort: sort,                  // current sort state (controlled in)
+    PageIndex: page, PageCount: pages, SelectedKeys: selected,
+    OnSort:   s => { sort = s; },        // YOU apply + re-render
+    OnPage:   p => { page = p; },
+    OnSelect: k => { selected = k; })
+```
+
+`OnSort` / `OnPage` / `OnSelect` are auto-wrapped callbacks, so invoking an intent re-renders the
+owning host. `MultiSort: true` makes `ToggleSort` additive (asc → desc → removed per column, others
+preserved). Runnable demo:
+[`samples/Rask.Example.Shared/Features/Table/TablePage.cs`](../samples/Rask.Example.Shared/Features/Table/TablePage.cs)
+drives it entirely from the URL query string.
 
 ---
 

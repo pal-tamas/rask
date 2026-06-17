@@ -12,7 +12,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Getting started](docs/getting-started.md): install, first app, project layout.
 - [Routing](docs/routing.md): `[Route]`, params, `Router()`/`Outlet()`, navigation.
 - [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
-- [Composition](docs/composition.md): children, context (provide/consume), callbacks.
+- [Composition](docs/composition.md): children, context (provide/consume), callbacks, headless primitives (`VirtualizeModel<T>`, `TableModel<T>`), drag-and-drop.
 - [Forms](docs/forms.md): binding, validation, RadioGroup/CheckboxGroup, EditContext.
 - [Data access](docs/data-access.md): EF Core + SQLite, IDbContextFactory, loading in the lifecycle, vertical slices, DDD value objects, SQLite decimal gotcha.
 - [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.

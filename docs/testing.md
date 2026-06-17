@@ -213,7 +213,7 @@ up a real host and a browser — so reserve it for paths a unit test genuinely c
 - `rask.js` / `rask.wasm.js` client behaviour (DOM diff application, focus/IDL preservation on keyed
   reorders, scoped-asset delivery),
 - real auth handshakes (cookie redeem, WS reconnect after sign-in),
-- anything depending on real browser layout (e.g. `Virtualize` scroll windowing).
+- anything depending on real browser layout (e.g. `VirtualizeModel` scroll windowing).
 
 Everything else — rendering, attribute order, binding, validation, lifecycle ordering, event-handler
 dispatch — is faster and more reliable as a unit test.

@@ -103,7 +103,7 @@ public sealed class LiveTicker : Component
                 // result, then the already-cancelled wake makes the inter-tick delay
                 // return immediately and the loop re-polls the new asset. Linked to ct
                 // so unmount tears the loop down. Exchange-before-Dispose mirrors
-                // Virtualize's superseded-CTS handling so a racing Cancel() is benign.
+                // VirtualizeModel's superseded-CTS handling so a racing Cancel() is benign.
                 var wake = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 Interlocked.Exchange(ref _wake, wake)?.Dispose();
 

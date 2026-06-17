@@ -13,7 +13,7 @@ namespace Rask.Core.Components;
 // per column. See /drag-drop in the showcase for both patterns.
 //
 // Invoked through the generated factory `Components.DragDrop(...)`; the render delegate is the
-// `Body` parameter (named so to avoid colliding with Component.Render(), same as Virtualize).
+// `Body` parameter (named so to avoid colliding with Component.Render(), same as VirtualizeModel).
 public sealed class DragDrop : Component
 {
     // The render fragment. Called with a fresh DragDropContext every render; returns the user's
@@ -26,7 +26,7 @@ public sealed class DragDrop : Component
     public Func<DragDropMove, Task>? OnDropAsync { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
-    // observe through props, so every render must re-execute — same reasoning as Virtualize.
+    // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.
     protected override bool BypassRenderCache => true;
 
     internal string? SourceZoneInternal { get; private set; }

@@ -5,12 +5,12 @@ using Rask.Core.Virtualization;
 
 namespace Rask.Core.Tests.Components;
 
-public class VirtualizeTests
+public class VirtualizeModelTests
 {
     [Fact]
     public void Render_HeadlessNoOwnDom_OnlyEmitsUserMarkup()
     {
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx => Div()["x"],
             new List<int> { 1, 2, 3 },
             ItemSize: 20,
@@ -24,7 +24,7 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx =>
             {
                 captured = ctx;
@@ -55,7 +55,7 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx =>
             {
                 captured = ctx;
@@ -95,7 +95,7 @@ public class VirtualizeTests
         // flow where StateHasChanged would trigger the second render through the WS.
         var requests = new List<ItemsProviderRequest>();
         VirtualizationContext<string>? captured = null;
-        var view = new StubComponent(() => Virtualize<string>(
+        var view = new StubComponent(() => VirtualizeModel<string>(
             ctx =>
             {
                 captured = ctx;
@@ -134,7 +134,7 @@ public class VirtualizeTests
     [Fact]
     public void Render_NoItemsAndNoProvider_Throws()
     {
-        var view = new StubComponent(() => Virtualize<int>(
+        var view = new StubComponent(() => VirtualizeModel<int>(
             ctx => Div(),
             ItemSize: 20));
 
@@ -144,7 +144,7 @@ public class VirtualizeTests
     [Fact]
     public void Render_BothItemsAndProvider_Throws()
     {
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx => Div(),
             new List<int> { 1 },
             req => ValueTask.FromResult(new ItemsProviderResult<int>(Array.Empty<int>(), 0)),
@@ -156,7 +156,7 @@ public class VirtualizeTests
     [Fact]
     public void Render_ItemSizeZero_Throws()
     {
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx => Div(),
             new List<int> { 1 },
             ItemSize: 0));
@@ -169,7 +169,7 @@ public class VirtualizeTests
     {
         VirtualizationContext<int>? captured = null;
         var items = new List<int> { 1, 2, 3 };
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx =>
             {
                 captured = ctx;
@@ -189,12 +189,12 @@ public class VirtualizeTests
     [Fact]
     public void Render_UserSetsRaskKeyOnRow_AttributeFlowsToHtml()
     {
-        // Documents the recommended keying pattern for Virtualize rows: setting
+        // Documents the recommended keying pattern for VirtualizeModel rows: setting
         // Data["rask-key"] makes the client-side morph engage its keyed reconciliation
         // path so reordered / scrolled rows keep their DOM identity (focus, scroll
         // state) across re-renders.
         var items = Enumerable.Range(0, 50).ToList();
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx => Div()[
                 ctx.VisibleItems.Select(item =>
                     Div(Data: new Dictionary<string, string?> { ["rask-key"] = item.Index.ToString() })[
@@ -213,7 +213,7 @@ public class VirtualizeTests
     [Fact]
     public async Task ItemsProvider_Unmount_CancelsInFlightFetch()
     {
-        // Regression: Virtualize's in-flight ItemsProvider fetch must be
+        // Regression: VirtualizeModel's in-flight ItemsProvider fetch must be
         // cancelled when the component leaves the parent's tree. Pre-fix the
         // _activeFetch CTS was orphaned on unmount — the provider's await kept
         // running until it produced its own result, then tried to update _cache
@@ -233,7 +233,7 @@ public class VirtualizeTests
 
         var show = true;
         var view = new StubComponent(() => show
-            ? Virtualize<string>(
+            ? VirtualizeModel<string>(
                 ctx => Div(),
                 ItemsProvider: provider,
                 ItemSize: 20,
@@ -244,8 +244,8 @@ public class VirtualizeTests
         await providerStarted.Task;
         Assert.False(fetchObservedCt.IsCancellationRequested);
 
-        // Stop rendering Virtualize — the framework's diff fires OnUnmount on
-        // the Virtualize subtree, which should cancel the in-flight fetch.
+        // Stop rendering VirtualizeModel — the framework's diff fires OnUnmount on
+        // the VirtualizeModel subtree, which should cancel the in-flight fetch.
         show = false;
         view.RenderAsLiveRoot();
 
@@ -279,7 +279,7 @@ public class VirtualizeTests
 
         var show = true;
         var view = new StubComponent(() => show
-            ? Virtualize<string>(
+            ? VirtualizeModel<string>(
                 ctx => Div(),
                 ItemsProvider: provider,
                 ItemSize: 20,
@@ -304,7 +304,7 @@ public class VirtualizeTests
 
         Assert.True(completedAfterRelease, "provider should run to completion even after unmount");
         // The continuation ran to the guard and returned; re-rendering the host stays clean
-        // (no stale data leaked back through a disposed Virtualize).
+        // (no stale data leaked back through a disposed VirtualizeModel).
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("loaded", html);
     }
@@ -315,7 +315,7 @@ public class VirtualizeTests
         // FetchAsync wraps the provider call in try/catch(Exception): a throwing provider must be
         // logged and dropped, never surfaced out of render. The window stays empty (count unknown).
         VirtualizationContext<int>? captured = null;
-        var view = new StubComponent(() => Virtualize<int>(
+        var view = new StubComponent(() => VirtualizeModel<int>(
             ctx =>
             {
                 captured = ctx;
@@ -346,7 +346,7 @@ public class VirtualizeTests
         }
 
         VirtualizationContext<int>? captured = null;
-        var view = new StubComponent(() => Virtualize(
+        var view = new StubComponent(() => VirtualizeModel(
             ctx =>
             {
                 captured = ctx;
