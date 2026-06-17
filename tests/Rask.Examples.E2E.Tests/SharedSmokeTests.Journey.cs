@@ -608,6 +608,20 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        // Dialog opens centered over a dim backdrop; clicking the backdrop cancels (back to /todos).
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        await Expect(Page.Locator(".todo-backdrop")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        // Click a corner — the backdrop's centre is covered by the centered dialog.
+        await Page.Locator(".todo-backdrop").ClickAsync(
+            new LocatorClickOptions { Position = new Position { X = 8, Y = 8 } });
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        // Reopen for the rest of the flow.
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         // Empty submit → [Required].
         await Page.Locator("button:has-text('Add')").ClickAsync();
         await Expect(Page.Locator(".text-danger.small")).ToContainTextAsync("Title is required",
