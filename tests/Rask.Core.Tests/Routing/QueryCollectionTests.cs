@@ -66,7 +66,8 @@ public class QueryCollectionTests
     {
         var qc = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
-            ["a"] = "1", ["b"] = "2"
+            ["a"] = "1",
+            ["b"] = "2"
         });
 
         var keys = qc.Select(kv => kv.Key).OrderBy(k => k).ToArray();

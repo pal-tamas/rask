@@ -165,7 +165,10 @@ public sealed class FrameWriter
         var idx = Reserve();
         _buffer[idx] = new RenderFrame
         {
-            Kind = RenderFrameKind.Component, ComponentRef = instance, SubtreeLength = 1, HtmlStart = htmlStart
+            Kind = RenderFrameKind.Component,
+            ComponentRef = instance,
+            SubtreeLength = 1,
+            HtmlStart = htmlStart
         };
         return idx;
     }
@@ -181,7 +184,10 @@ public sealed class FrameWriter
         var idx = Reserve();
         _buffer[idx] = new RenderFrame
         {
-            Kind = RenderFrameKind.Attribute, Name = name, Value = value, SubtreeLength = 1
+            Kind = RenderFrameKind.Attribute,
+            Name = name,
+            Value = value,
+            SubtreeLength = 1
         };
     }
 
@@ -216,7 +222,10 @@ public sealed class FrameWriter
         var idx = Reserve();
         _buffer[idx] = new RenderFrame
         {
-            Kind = RenderFrameKind.Doctype, SubtreeLength = 1, HtmlStart = htmlStart, HtmlEnd = htmlEnd
+            Kind = RenderFrameKind.Doctype,
+            SubtreeLength = 1,
+            HtmlStart = htmlStart,
+            HtmlEnd = htmlEnd
         };
     }
 

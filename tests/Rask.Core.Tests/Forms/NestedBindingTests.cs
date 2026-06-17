@@ -100,7 +100,8 @@ public class NestedBindingTests
     {
         var settings = new Dictionary<string, ServerConfig>
         {
-            ["smtp"] = new() { Host = "smtp.example.com" }, ["http"] = new() { Host = "api.example.com" }
+            ["smtp"] = new() { Host = "smtp.example.com" },
+            ["http"] = new() { Host = "api.example.com" }
         };
 
         var acc = ExpressionAccessor.Parse(

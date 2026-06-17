@@ -99,7 +99,9 @@ public class DataAnnotationsValidatorTests
         // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
         var m = new BookingModel
         {
-            Departure = new DateOnly(2026, 6, 1), Arrival = new DateOnly(2026, 6, 5), RaiseFormLevel = true
+            Departure = new DateOnly(2026, 6, 1),
+            Arrival = new DateOnly(2026, 6, 5),
+            RaiseFormLevel = true
         };
         var ctx = RegisterValidator(m);
 
@@ -116,7 +118,9 @@ public class DataAnnotationsValidatorTests
         // land on that field's messages.
         var m = new BookingModel
         {
-            Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
+            Name = "Ada",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2026, 6, 5)
         };
         var ctx = RegisterValidator(m);
 
@@ -156,7 +160,9 @@ public class DataAnnotationsValidatorTests
         // whose MemberNames include Departure.
         var m = new BookingModel
         {
-            Name = "Ada", Departure = new DateOnly(2020, 1, 1), Arrival = new DateOnly(2026, 6, 5)
+            Name = "Ada",
+            Departure = new DateOnly(2020, 1, 1),
+            Arrival = new DateOnly(2026, 6, 5)
         };
         var ctx = RegisterValidator(m);
 

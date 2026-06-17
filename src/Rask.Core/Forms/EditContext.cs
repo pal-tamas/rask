@@ -217,20 +217,20 @@ public sealed class EditContext : IDisposable
     public IEnumerable<string> GetValidationMessages()
     {
         foreach (var s in _states.Values)
-        foreach (var m in s.Messages)
-        {
-            yield return m;
-        }
+            foreach (var m in s.Messages)
+            {
+                yield return m;
+            }
     }
 
     public IReadOnlyList<ValidationEntry> GetValidationEntries()
     {
         var entries = new List<ValidationEntry>();
         foreach (var pair in _states)
-        foreach (var m in pair.Value.Messages)
-        {
-            entries.Add(new ValidationEntry(pair.Key.FieldName, m));
-        }
+            foreach (var m in pair.Value.Messages)
+            {
+                entries.Add(new ValidationEntry(pair.Key.FieldName, m));
+            }
 
         return entries;
     }

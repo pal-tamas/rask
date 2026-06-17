@@ -183,9 +183,9 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         };
 
         return lambda?.Parent is ArgumentSyntax
-               {
-                   Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv }
-               }
+        {
+            Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv }
+        }
                && IsLinqProjection(inv);
     }
 
