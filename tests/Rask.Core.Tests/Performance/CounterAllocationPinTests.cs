@@ -30,9 +30,12 @@ public class CounterAllocationPinTests
         // at ~1.15 KB on 2026-05-27 after the LiveState hoist + the lazy-alloc series, drifting
         // to ~1.39 KB by 2026-06-08. The universal `Ref:` element-ref parameter (a nullable
         // ElementRef reference — class, not struct, precisely so it stays a cheap reference-type
-        // optional param) adds ~24 B, to ~1.42 KB. Pin at <= 1.5 KB to catch regression while
-        // leaving slack for runtime jitter.
-        Assert.InRange(perIterationBytes, 0, 1500);
+        // optional param) adds ~24 B, to ~1.42 KB (~1496 B). The universal accessibility params
+        // (`Role`/`TabIndex`/`Aria`) add ~72 B more, to ~1568 B: their storage is hoisted into the
+        // lazy LiveState (like Ref) so an a11y-free element grows no Element instance, but these
+        // elements allocate a LiveState during render regardless, so the three extra LiveState
+        // fields ride along. Pin at <= 1.65 KB to catch regression while leaving slack for jitter.
+        Assert.InRange(perIterationBytes, 0, 1650);
     }
 
     [Fact(Skip = "diagnostic — run manually to gather allocation deltas")]

@@ -1,3 +1,5 @@
+#pragma warning disable RASK023 // null-props test deliberately omits Alt to assert bare rendering
+
 namespace Rask.Core.Tests.Components;
 
 public class ImgTests

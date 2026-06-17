@@ -48,7 +48,8 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
                 P(Class: "text-secondary mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
             ],
             NavLink("/products/new", Class: "btn btn-primary")[
-                I(Class: "bi bi-plus-lg me-1"), "New product"
+                I(Class: "bi bi-plus-lg me-1", Aria: new Dictionary<string, string?> { ["hidden"] = "true" }),
+                "New product"
             ]
         ],
         !_loaded
@@ -74,12 +75,16 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
                             Td(Class: "text-end")[p.Price.ToString()],
                             Td(Class: "text-end")[p.Stock.Value.ToString(CultureInfo.InvariantCulture)],
                             Td(Class: "text-end text-nowrap")[
-                                NavLink($"/products/{p.Id}/edit", Class: "btn btn-outline-secondary btn-sm me-1")[
-                                    I(Class: "bi bi-pencil")
+                                // Icon-only controls: the visible glyph is decorative (aria-hidden),
+                                // so each control carries an aria-label naming the row it acts on.
+                                NavLink($"/products/{p.Id}/edit", Class: "btn btn-outline-secondary btn-sm me-1",
+                                    Aria: new Dictionary<string, string?> { ["label"] = $"Edit {p.Name.Value}" })[
+                                    I(Class: "bi bi-pencil", Aria: new Dictionary<string, string?> { ["hidden"] = "true" })
                                 ],
                                 Button("button", Class: "btn btn-outline-danger btn-sm",
-                                    OnClickAsync: () => DeleteAsync(p.Id))[
-                                    I(Class: "bi bi-trash")
+                                    OnClickAsync: () => DeleteAsync(p.Id),
+                                    Aria: new Dictionary<string, string?> { ["label"] = $"Delete {p.Name.Value}" })[
+                                    I(Class: "bi bi-trash", Aria: new Dictionary<string, string?> { ["hidden"] = "true" })
                                 ]
                             ]
                         ])

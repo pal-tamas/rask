@@ -411,8 +411,8 @@ see **[`docs/`](docs/)**:
 - **[Getting started](docs/getting-started.md)** — scaffold, first component, interactivity, routing.
 - **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · *
   *[Authentication](docs/authentication.md)**
-- **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
-- **[Diagnostics (RASK001–022)](docs/diagnostics.md)** — every build error/warning and its fix.
+- **[Accessibility](docs/accessibility.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
+- **[Diagnostics (RASK001–023)](docs/diagnostics.md)** — every build error/warning and its fix.
 - **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.
 
 ## 🧩 Core concepts

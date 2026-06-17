@@ -60,7 +60,8 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 ## Links
 
 - 📖 **[Documentation](https://github.com/pal-tamas/rask/tree/main/docs)** ·
-  [Getting started](https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md)
+  [Getting started](https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md) ·
+  [Accessibility](https://github.com/pal-tamas/rask/blob/main/docs/accessibility.md)
 - 🚀 **[Live demo](https://pal-tamas.github.io/rask/)**
 - 💻 **[Source & README](https://github.com/pal-tamas/rask)**
 - 🤖 **[AI assistant guide](https://github.com/pal-tamas/rask/blob/main/llms.txt)**

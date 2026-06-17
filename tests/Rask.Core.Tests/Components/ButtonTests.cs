@@ -50,6 +50,16 @@ public class ButtonTests
     }
 
     [Fact]
+    public void Render_AccessibilityProps_PrecedeTagSpecificAttributes()
+    {
+        Assert.Equal(
+            "<button data-test-id=\"x\" role=\"button\" tabindex=\"0\" aria-pressed=\"true\" type=\"submit\" disabled></button>",
+            Button("submit", true, Data: new Dictionary<string, string?> { ["test-id"] = "x" },
+                Role: "button", TabIndex: 0,
+                Aria: new Dictionary<string, string?> { ["pressed"] = "true" }).ToHtml());
+    }
+
+    [Fact]
     public void Render_StringChild_EncodesText()
     {
         Assert.Equal(

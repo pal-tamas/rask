@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 
@@ -13,6 +14,32 @@ public abstract class Element : Component
     public string? Class { get; set; }
     public string? Style { get; set; }
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
+
+    // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
+    // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so `Aria: new() {
+    // ["label"] = "Close" }` renders aria-label="Close", and the full ARIA vocabulary is reachable
+    // without a typed property per attribute. `Role` and `TabIndex` are plain attributes (not aria-*,
+    // so not expressible through the dictionary) but are core a11y affordances for custom widgets and
+    // keyboard focus. All three are nullable → optional factory parameters, like the other HTML attrs.
+    // Like Ref, their storage is hoisted into the lazy LiveState (a11y attrs are opt-in and rare), so
+    // an element that sets none keeps `_live` null and pays no per-instance footprint for the feature.
+    public string? Role
+    {
+        get => RoleInternal;
+        set => RoleInternal = value;
+    }
+
+    public int? TabIndex
+    {
+        get => TabIndexInternal;
+        set => TabIndexInternal = value;
+    }
+
+    public IReadOnlyDictionary<string, string?>? Aria
+    {
+        get => AriaInternal;
+        set => AriaInternal = value;
+    }
 
     // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
     // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].
@@ -122,6 +149,27 @@ public abstract class Element : Component
             if (OnDragEnd is not null)
             {
                 AppendAttr(sb, "data-rask-on-dragend", ctx.RegisterHandler(OnDragEnd));
+            }
+        }
+
+        // Accessibility group, last in the universal block so it lands after data-* yet before any
+        // subclass tag-specific attrs (those run after base.WriteAttributes). Documented order:
+        // id, class, style, data-*, role, tabindex, aria-*, then tag-specific.
+        if (Role is not null)
+        {
+            AppendAttr(sb, "role", Role);
+        }
+
+        if (TabIndex is not null)
+        {
+            AppendAttr(sb, "tabindex", TabIndex.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (Aria is not null)
+        {
+            foreach (var kv in Aria)
+            {
+                AppendAttr(sb, "aria-", kv.Key, kv.Value);
             }
         }
     }

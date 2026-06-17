@@ -20,6 +20,9 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **A page/root component must render the full shell**: `Fragment()[Doctype(), Html(...)[Head(...), Body(...)]]`
   (RASK021). The framework injects its runtime `<script>` automatically — don't add one.
 - **Text vs raw:** `Text("..")` / a bare string HTML-encodes; `Raw("..")` is verbatim (XSS risk — avoid for user input).
+- **Accessibility:** set ARIA via the `Aria` dictionary on any element — `Button(Aria: new() { ["label"] = "Close" })`
+  renders `aria-label="Close"`. `Role:` / `TabIndex:` are typed params. `Img` needs `Alt:` (or `Alt: ""`
+  for decorative images) or RASK023 warns. See `docs/accessibility.md`.
 
 ## Routing & lifecycle
 - Route with an attribute: `[Route("/users/{id:int}")]` + `[RouteParam] public int Id { get; set; }`
