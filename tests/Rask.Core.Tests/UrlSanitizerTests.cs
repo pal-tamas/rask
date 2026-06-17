@@ -1,4 +1,5 @@
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
+#pragma warning disable RASK023 // these tests exercise src/URL sanitization, not alt text
 
 namespace Rask.Core.Tests;
 

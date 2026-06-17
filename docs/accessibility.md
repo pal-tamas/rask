@@ -1,0 +1,84 @@
+# Accessibility: ARIA, roles & focus
+
+How to make Rask components accessible — setting ARIA attributes, roles, and keyboard focus on any
+element, plus the analyzer that catches missing image alt text.
+
+- [The `Aria` dictionary](#the-aria-dictionary)
+- [`Role` and `TabIndex`](#role-and-tabindex)
+- [Attribute order](#attribute-order)
+- [Images and alt text (RASK023)](#images-and-alt-text-rask023)
+- [What's not covered yet](#whats-not-covered-yet)
+
+---
+
+## The `Aria` dictionary
+
+Every element exposes an `Aria` parameter — a `string → string?` dictionary modelled exactly on the
+[`Data` (data-*) bag](js-interop.md). Each entry renders as `aria-{key}="{value}"`: the key is used
+verbatim (so you write `"label"`, not `"aria-label"`) and the value is HTML-encoded. A `null` value
+emits a bare attribute.
+
+```csharp
+Button(Aria: new() { ["label"] = "Close", ["expanded"] = "false" })["✕"]
+// <button aria-label="Close" aria-expanded="false">✕</button>
+
+I(Class: "bi bi-trash", Aria: new() { ["hidden"] = "true" })
+// <i class="bi bi-trash" aria-hidden="true"></i>  — decorative icon, skipped by screen readers
+```
+
+Because it's a dictionary, the full [WAI-ARIA](https://www.w3.org/TR/wai-aria-1.2/) vocabulary is
+reachable without a typed property per attribute — `aria-live`, `aria-labelledby`, `aria-describedby`,
+`aria-current`, `aria-modal`, and the rest are all just keys.
+
+A common live-region pattern:
+
+```csharp
+Div(Role: "status", Aria: new() { ["live"] = "polite" })[_statusMessage]
+```
+
+## `Role` and `TabIndex`
+
+`role` and `tabindex` are not `aria-*` attributes, so they have their own typed parameters on every
+element:
+
+```csharp
+Div(Role: "dialog", TabIndex: -1, Aria: new() { ["modal"] = "true", ["labelledby"] = "title" })[
+    H2(Id: "title")["Edit product"],
+    // ...
+]
+```
+
+`Role` is a `string?`; `TabIndex` is an `int?` (`0` to make a non-interactive element focusable, `-1`
+to take it out of the tab order but keep it programmatically focusable).
+
+## Attribute order
+
+Accessibility attributes render in the universal attribute block, after `data-*` and before any
+tag-specific attributes. The full documented order is:
+
+```
+id, class, style, data-*, role, tabindex, aria-*, then tag-specific
+```
+
+Tests assert this order; it is stable across releases.
+
+## Images and alt text (RASK023)
+
+`Img` requires an `Alt` for accessibility. The [RASK023](diagnostics.md#rask023) analyzer warns when
+an `Img(...)` factory call omits it:
+
+```csharp
+Img(Src: "/logo.png", Alt: "Rask logo")   // informative image
+Img(Src: "/divider.png", Alt: "")          // decorative: empty alt hides it from assistive tech
+```
+
+Pass `Alt: ""` for purely decorative images so screen readers skip them; pass a meaningful string
+for everything else.
+
+## What's not covered yet
+
+This is the framework primitive layer. Higher-level affordances — a focus-trapping modal dialog
+primitive, skip links, ARIA `tablist`/`tab` widgets, and automated axe-core scans in the sample E2E
+suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
+primitives above plus standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
+`Th(Scope:)`, …).
