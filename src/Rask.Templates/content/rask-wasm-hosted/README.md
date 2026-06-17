@@ -7,7 +7,10 @@ projects in one solution:
 - `Company.RaskWasmHosted.Host` (`net10.0`) — serves the published WASM client and any
   server APIs. It references the Wasm project across target frameworks
   (`SkipGetTargetFrameworkProperties`) and uses a generic `UseRask<TApp>()` so the client
-  assembly's `[ModuleInitializer]` (route registration) loads.
+  assembly's `[ModuleInitializer]` (route registration) loads. Because it serves the published
+  bundle from disk at runtime (not via the static-web-assets manifest) it sets
+  `StaticWebAssetsEnabled=false`, which also keeps clean parallel builds from racing the
+  cross-project static-web-assets resolution. Remove that if you add static web assets to the host.
 
 ## Run
 
