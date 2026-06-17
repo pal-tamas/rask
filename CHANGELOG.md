@@ -31,6 +31,13 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **The live-diff codec is now a single shared client source.** `applyDiff` and its helpers
+  (`resolvePath`, `relevantChild`/`relevantChildSkipping`, `moveChildBefore`, `syncFormProperty`)
+  were duplicated between the Server (`rask.js`) and WASM (`rask.wasm.js`) clients; they now live
+  once in `src/Rask.Core/Resources/rask-dom.js`, spliced into both at build time at a new `RASK_DOM`
+  marker — the same mechanism the full-HTML morph (`rask-morph.js`) already used. Internal only: no
+  API or behaviour change beyond the fix noted below. Both runtimes now decode the C# `FrameDiffer`
+  opcodes from one source and cannot drift.
 - **Every showcase example page now shows its own source via `CodeSample`.** The five remaining
   pages without a runnable-source panel were brought into the convention: `/asset-loading` (each
   scoped-asset section is now a `CodeSample` with its component source + live result), `/jsruntime`
@@ -40,6 +47,12 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **Server mode now executes scripts inserted through a keyed diff.** A scoped
+  `<script src="/_rask/a/{hash}.js">` (or a user `Head` `<script>`) delivered via a keyed
+  `InsertSubtree` diff was parsed by the Server client but never ran — `innerHTML`-parsed scripts
+  carry the "already started" flag — so its `window.Rask.{Type}` global never appeared. The shared
+  codec now revives inserted scripts via `reviveScript`, matching the full-HTML morph path (the WASM
+  client already did this). Only the Server diff path is affected.
 - **The `/virtualize` showcase table header no longer disappears while scrolling.** The off-screen
   rows were reserved by two spacer `<div>`s *outside* the table, so the table's own box was relaid
   out on every scroll frame and the sticky `<thead>` unstuck — the header vanished mid-scroll and
