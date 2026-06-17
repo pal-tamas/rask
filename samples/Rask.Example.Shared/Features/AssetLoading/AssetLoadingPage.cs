@@ -28,21 +28,35 @@ public sealed class AssetLoadingPage : Component
                 Code()["Cache-Control: public, max-age=31536000, immutable"],
                 ". Open DevTools → Network and observe each section below."
             ],
-            Section("Basic scoped CSS",
-                "One component with a sibling .css file. Exactly one <link> request.",
-                BasicScopedCss()),
-            Section("JS-only component",
+            H2(Class: "h5 fw-semibold mb-2 mt-5")["Basic scoped CSS"],
+            CodeSample(
+                ["BasicScopedCss.cs", "BasicScopedCss.css"],
+                Notes:
+                "One component with a sibling .css file. Exactly one <link> request — the framework " +
+                "hashes the rewritten CSS and emits a single content-addressed tag into <head>.",
+                Result: BasicScopedCss()),
+            H2(Class: "h5 fw-semibold mb-2 mt-5")["JS-only component"],
+            CodeSample(
+                ["JsOnlyDemo.cs", "JsOnlyDemo.js"],
+                Notes:
                 "Sibling .js, no .css. Used to regress when the mounted-set only tracked CSS components. " +
                 "Click the button — it dispatches via IJSRuntime to the scoped JS module.",
-                JsOnlyDemo()),
-            Section("Two components, two URLs",
+                Result: JsOnlyDemo()),
+            H2(Class: "h5 fw-semibold mb-2 mt-5")["Two components, two URLs"],
+            CodeSample(
+                ["TwinA.cs", "TwinA.css"],
+                Notes:
                 "Different rewritten content → different content hash → two independent <link>s. " +
-                "Either component edited in isolation only re-fetches its own bytes.",
-                Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
-            Section("Lazy mount / unmount",
+                "Either component edited in isolation only re-fetches its own bytes. TwinB is the same " +
+                "shape with its own .css, so it gets a distinct hash.",
+                Result: Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
+            H2(Class: "h5 fw-semibold mb-2 mt-5")["Lazy mount / unmount"],
+            CodeSample(
+                ["LazyMount.cs", "LazyChild.cs", "LazyChild.css"],
+                Notes:
                 "Toggle the button. On mount, the framework adds the child's <link> via the head morph; " +
                 "on unmount, the tag is removed. The browser keeps the CSS bytes cached, so re-mounting is instant.",
-                LazyMount()),
+                Result: LazyMount()),
             Div(Class: "alert alert-info d-flex align-items-start mt-5")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[
@@ -61,12 +75,5 @@ public sealed class AssetLoadingPage : Component
                     ]
                 ]
             ]
-        ];
-
-    private static Component Section(string title, string blurb, Component demo) =>
-        Div(Class: "mb-5")[
-            H2(Class: "h5 fw-semibold mb-2")[title],
-            P(Class: "text-secondary mb-3")[blurb],
-            Div(Class: "p-3 border rounded bg-body-tertiary")[demo]
         ];
 }

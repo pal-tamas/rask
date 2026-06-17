@@ -313,6 +313,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
         await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Every showcase page shows its own source: the page-source CodeSample card is present.
+        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Master-detail: expand state is local; toggling inserts a keyed detail <tr> hosting a nested,
         // independently sortable TableModel. Collapse removes it via the same keyed diff.
@@ -334,6 +337,9 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("[data-testid='expander-1']").ClickAsync();
         await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Page-source CodeSample card is present.
+        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
         await SideAsync("Drag & drop", "Headless drag & drop");
@@ -514,6 +520,10 @@ public abstract partial class SharedSmokeTests
         Assert.True(await Page.Locator(cssLinkSel).CountAsync() >= 3, "expected >=3 per-component CSS links");
         Assert.True(await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync() >= 1,
             "expected >=1 JS-only script");
+        // Each section is now a CodeSample: source beside the live result. Assert all four cards mount
+        // (the scoped-asset live results above are the CodeSample Result panes).
+        Assert.True(await Page.Locator("main .sample-card").CountAsync() >= 4,
+            "expected >=4 CodeSample cards on the asset-loading page");
         var beforeLazy = await Page.Locator(cssLinkSel).CountAsync();
         // Warm-up toggle: LazyChild is never instantiated until shown, so its scoped stylesheet
         // (.lazy-child → #fff4d6) is not among the page-load prefetches. Mount it once and unmount
@@ -611,10 +621,16 @@ public abstract partial class SharedSmokeTests
         await Page.Locator(".list-group-item button:has(i.bi-trash)").First.ClickAsync();
         await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(rowsBefore - 1,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Page-source CodeSample card is present.
+        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
+        // The interactive demo now lives in the CodeSample Result pane beside its own source.
         await ClearJsRuntimeStorageAsync();
         await SideAsync("IJSRuntime", "IJSRuntime", "main h1.h2");
+        await Expect(Page.Locator("main .sample-card .sample-result-body #demo-input")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Page.Locator("#demo-input").FillAsync("hello-rask");
         await Page.Locator("#demo-set").ClickAsync();
         await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Set to: hello-rask",

@@ -87,7 +87,15 @@ public sealed class OrdersPage : Component
                 "open rows keep their own inner sort. The detail panel hosts a second controlled ",
                 Code()["TableModel<LineItem>"],
                 " — headless grids all the way down."
-            ]
+            ],
+            CodeSample(
+                ["OrdersPage.cs"],
+                Title: "Source",
+                Notes:
+                "The whole page above, verbatim. Expand state is a HashSet<int>, the outer sort and " +
+                "each order's inner sort are plain fields — a click mutates one and the auto-wrapped " +
+                "callback re-renders. Open rows insert a keyed detail <tr>, so the live diff reconciles " +
+                "them as in-place insert/remove and sibling open rows keep their own inner sort.")
         ];
     }
 
