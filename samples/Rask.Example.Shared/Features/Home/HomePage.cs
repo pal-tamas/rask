@@ -31,6 +31,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-mouse", "Events", "DOM event handlers.", "/events"),
         ("Components", "bi-list-ol", "Virtualize", "Headless windowed lists.", "/virtualize"),
         ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
+        ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
         ("Components", "bi-key", "Keyed lists", "Stable identity for trusted diffs.", "/keyed-lists"),
         ("Components", "bi-arrows-move", "Drag & drop", "Headless reordering primitive.", "/drag-drop"),
         ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
