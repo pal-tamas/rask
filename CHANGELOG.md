@@ -47,6 +47,12 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **The `/todos` showcase dialog now opens centered over a dim backdrop.** A declaratively-open
+  `<dialog open>` is non-modal, so the browser left it `position:absolute` at its in-flow spot (low
+  on the page, partly off-screen) with no `::backdrop`. The `TodoFormDialog` scoped CSS now pins the
+  open dialog to the viewport centre (`position:fixed; inset:0; margin:auto`) above a clickable
+  `.todo-backdrop` overlay — clicking the backdrop cancels, mirroring the nav-drawer pattern. No JS;
+  the URL-driven open/close (New todo, Cancel, browser Back, deep links) is unchanged.
 - **Server mode now executes scripts inserted through a keyed diff.** A scoped
   `<script src="/_rask/a/{hash}.js">` (or a user `Head` `<script>`) delivered via a keyed
   `InsertSubtree` diff was parsed by the Server client but never ran — `innerHTML`-parsed scripts

@@ -101,8 +101,9 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                 "Three [Route] attributes drive the dialog: /todos lists, /todos/new opens add, " +
                 "/todos/{id:guid}/edit opens edit. OnPropsChanged seeds the form from the route so browser " +
                 "Back closes the dialog and deep links open it, without clobbering in-progress typing."),
-            // The open <dialog> is position:absolute (out of flow), so it must stay last in the DOM to
-            // paint above the source CodeSample — otherwise the sample would overlay its buttons.
+            // The open <dialog> is a viewport-centered overlay (position:fixed + high z-index, with a
+            // dim backdrop) — see TodoFormDialog.css. Kept last in the DOM as a tidy belt-and-braces
+            // so source order matches paint order even before the z-index applies.
             TodoFormDialog(
                 ShowDialog,
                 _form,
@@ -124,20 +125,25 @@ public sealed class TodoFormDialog : Component
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     protected override RenderResult Render() =>
-        Dialog(Open)[
-            H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
-            Form(Model, OnSave, Class: "vstack gap-3")[
-                DataAnnotationsValidator(),
-                Div()[
-                    Label("todo-title", Class: "form-label small mb-1")["Title"],
-                    Input(() => Model.Title, Id: "todo-title", Class: "form-control"),
-                    ValidationMessage(() => Model.Title, FieldError)
-                ],
-                Div(Class: "d-flex justify-content-end gap-2")[
-                    Button("button", Class: "btn btn-outline-secondary", OnClick: OnCancel)["Cancel"],
-                    Button("submit", Class: "btn btn-primary")[
-                        I(Class: "bi bi-check2-circle me-1"),
-                        IsAdding ? "Add" : "Save"
+        Fragment()[
+            // Dim, clickable backdrop behind the centered dialog. A non-modal <dialog open> gets no
+            // ::backdrop, so we render our own — clicking it cancels, like the nav drawer's backdrop.
+            Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : Fragment(),
+            Dialog(Open)[
+                H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
+                Form(Model, OnSave, Class: "vstack gap-3")[
+                    DataAnnotationsValidator(),
+                    Div()[
+                        Label("todo-title", Class: "form-label small mb-1")["Title"],
+                        Input(() => Model.Title, Id: "todo-title", Class: "form-control"),
+                        ValidationMessage(() => Model.Title, FieldError)
+                    ],
+                    Div(Class: "d-flex justify-content-end gap-2")[
+                        Button("button", Class: "btn btn-outline-secondary", OnClick: OnCancel)["Cancel"],
+                        Button("submit", Class: "btn btn-primary")[
+                            I(Class: "bi bi-check2-circle me-1"),
+                            IsAdding ? "Add" : "Save"
+                        ]
                     ]
                 ]
             ]
