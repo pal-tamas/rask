@@ -215,7 +215,15 @@ public sealed class TablePage(Navigator nav) : Component
                 Code()["Navigator.SetQuery"],
                 ". The page is then re-resolved against the new query, so browser back / forward replay the state for " +
                 "free. Try sorting + paging, then copy the URL — it's shareable."
-            ]
+            ],
+            CodeSample(
+                ["TablePage.cs"],
+                Title: "Source",
+                Notes:
+                "The whole page above, verbatim. The [QueryParam] properties bind sort, filter, page and " +
+                "size from the URL; the host does the filtering, sorting and slicing, then hands the " +
+                "headless TableModel<Person> the visible page plus the current sort/page and writes its " +
+                "OnSort / OnPage intents back through Navigator.SetQuery.")
         ];
     }
 

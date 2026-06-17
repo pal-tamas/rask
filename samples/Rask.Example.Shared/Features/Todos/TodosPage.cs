@@ -96,6 +96,16 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                         ]
                     ])
                 ],
+            CodeSample(
+                ["TodosPage.cs"],
+                Title: "Source",
+                Notes:
+                "The whole CRUD screen above, verbatim — page, dialog component, and model in one file. " +
+                "Three [Route] attributes drive the dialog: /todos lists, /todos/new opens add, " +
+                "/todos/{id:guid}/edit opens edit. OnPropsChanged seeds the form from the route so browser " +
+                "Back closes the dialog and deep links open it, without clobbering in-progress typing."),
+            // The open <dialog> is position:absolute (out of flow), so it must stay last in the DOM to
+            // paint above the source CodeSample — otherwise the sample would overlay its buttons.
             TodoFormDialog(
                 ShowDialog,
                 _form,
