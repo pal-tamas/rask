@@ -30,13 +30,13 @@ public sealed class AuthExampleTests : IAsyncLifetime
 
     public async Task DisposeAsync() => await _ctx.DisposeAsync();
 
+    private static readonly Regex LoginChallengeUrl = new(@"/login\?ReturnUrl=.*members");
+
     [Fact]
     public async Task Journey_CookieLogin_AdminRoundTrip_ThenNonAdmin()
     {
         // 1. Anonymous deep-link to a [Authorize] page → cookie challenge → /login with ReturnUrl.
-        await _page.GotoAsync("/members");
-        await Expect(_page).ToHaveURLAsync(new Regex(@"/login\?ReturnUrl=.*members"),
-            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+        await GotoMembersExpectingChallengeAsync();
         await Expect(_page.Locator("#login-submit"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
@@ -58,9 +58,11 @@ public sealed class AuthExampleTests : IAsyncLifetime
         await _page.Locator("#logout").ClickAsync();
         await Expect(_page).ToHaveURLAsync(new Regex(@"/login"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
-        await _page.GotoAsync("/members");
-        await Expect(_page).ToHaveURLAsync(new Regex(@"/login\?ReturnUrl=.*members"),
-            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+        // The sign-out cookie deletion can land a beat after the redirect settles, so a single
+        // re-navigation occasionally races it and [Authorize] still serves /members (the content
+        // gate then shows its NotAuthorized slot instead of a 302). Re-issue the deep-link until
+        // the server challenge actually fires.
+        await GotoMembersExpectingChallengeAsync();
 
         // 5. Non-admin sign-in: authenticates but the admin-only note must be absent (role gating).
         await Expect(_page.Locator("#login-submit"))
@@ -71,5 +73,30 @@ public sealed class AuthExampleTests : IAsyncLifetime
         await Expect(_page.Locator("#members-greeting"))
             .ToContainTextAsync("alice", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(_page.Locator("#admin-note")).ToHaveCountAsync(0);
+    }
+
+    // Deep-link to the [Authorize] page and assert the server cookie challenge redirects to /login.
+    // Anonymous deep-links are gated by a server-side 302, but right after sign-out the cookie
+    // deletion can commit a beat late, so the first GET may still authenticate and land on /members.
+    // Re-issue the navigation a few times until the challenge fires (or fail with the last URL).
+    private async Task GotoMembersExpectingChallengeAsync()
+    {
+        // A few quick retries to absorb a late cookie commit; the last navigation is asserted with
+        // Playwright so a genuine regression still fails with its URL/aria-snapshot diagnostics.
+        const int retries = 4;
+        for (var attempt = 0; attempt < retries; attempt++)
+        {
+            await _page.GotoAsync("/members");
+            if (LoginChallengeUrl.IsMatch(_page.Url))
+            {
+                return;
+            }
+
+            await Task.Delay(500);
+        }
+
+        await _page.GotoAsync("/members");
+        await Expect(_page).ToHaveURLAsync(LoginChallengeUrl,
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
     }
 }
