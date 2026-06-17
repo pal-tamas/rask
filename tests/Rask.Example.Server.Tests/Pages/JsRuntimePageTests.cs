@@ -5,9 +5,11 @@ using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Server.Tests.Pages;
 
-// Originally test for Server-only JsRuntimePage; the page has been unified into
-// Rask.Example.Shared.Pages so it now runs on Server + WASM. The unit tests
-// stay on the Server-Tests project since they don't depend on host transport.
+// The JsRuntime feature is split into a host page (JsRuntimePage: route + Head + CodeSample)
+// and the interactive demo (JsRuntimeDemo: the IJSRuntime sessionStorage round-trip). The page
+// is a parameterless host; the demo takes IJSRuntime through its ctor. Page-level tests target
+// JsRuntimePage; the behavioral tests target JsRuntimeDemo. Both run on Server + WASM, so the
+// unit tests stay on the Server-Tests project since they don't depend on host transport.
 
 public sealed class JsRuntimePageTests
 {
@@ -16,8 +18,7 @@ public sealed class JsRuntimePageTests
     {
         var head = typeof(JsRuntimePage).GetProperty("Head",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var js = new FakeJsRuntime();
-        var page = new JsRuntimePage(js);
+        var page = new JsRuntimePage();
         // Head now returns a RenderResult struct; unwrap to the contributed Component.
         var headComponent = ((RenderResult)head.GetValue(page)!).ToComponentOrNull();
         Assert.NotNull(headComponent);
@@ -29,12 +30,12 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("sessionStorage.getItem", "stored-value");
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokeOnRenderedAsync(page, true);
+        await InvokeOnRenderedAsync(demo, true);
 
-        Assert.Equal("stored-value", GetField<string?>(page, "_lastRead"));
-        Assert.Equal("Read on mount: stored-value", GetField<string?>(page, "_status"));
+        Assert.Equal("stored-value", GetField<string?>(demo, "_lastRead"));
+        Assert.Equal("Read on mount: stored-value", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
@@ -42,25 +43,25 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         // No SetResponse → returns default (null for string?).
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokeOnRenderedAsync(page, true);
+        await InvokeOnRenderedAsync(demo, true);
 
-        Assert.Null(GetField<string?>(page, "_lastRead"));
-        Assert.Equal("(no value yet — try Set)", GetField<string?>(page, "_status"));
+        Assert.Null(GetField<string?>(demo, "_lastRead"));
+        Assert.Equal("(no value yet — try Set)", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
     public async Task OnRenderedAsync_NonFirstRender_NoOp()
     {
         var js = new FakeJsRuntime();
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokeOnRenderedAsync(page, false);
+        await InvokeOnRenderedAsync(demo, false);
 
         // No call should have been made to sessionStorage.getItem.
         Assert.Equal(0, js.CallCount("sessionStorage.getItem"));
-        Assert.Null(GetField<string?>(page, "_status"));
+        Assert.Null(GetField<string?>(demo, "_status"));
     }
 
     [Fact]
@@ -68,11 +69,11 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetException("sessionStorage.getItem", new InvalidOperationException("boom"));
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokeOnRenderedAsync(page, true);
+        await InvokeOnRenderedAsync(demo, true);
 
-        var status = GetField<string?>(page, "_status");
+        var status = GetField<string?>(demo, "_status");
         Assert.NotNull(status);
         Assert.StartsWith("Read failed:", status);
         Assert.Contains("boom", status);
@@ -82,13 +83,13 @@ public sealed class JsRuntimePageTests
     public async Task SetAsync_InvokesSetItem_UpdatesStatus()
     {
         var js = new FakeJsRuntime();
-        var page = new JsRuntimePage(js);
-        SetField(page, "_input", "hello");
+        var demo = new JsRuntimeDemo(js);
+        SetField(demo, "_input", "hello");
 
-        await InvokePrivate(page, "SetAsync");
+        await InvokePrivate(demo, "SetAsync");
 
         Assert.Equal(1, js.CallCount("sessionStorage.setItem"));
-        Assert.Equal("Set to: hello", GetField<string?>(page, "_status"));
+        Assert.Equal("Set to: hello", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
@@ -96,12 +97,12 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetException("sessionStorage.setItem", new InvalidOperationException("nope"));
-        var page = new JsRuntimePage(js);
-        SetField(page, "_input", "x");
+        var demo = new JsRuntimeDemo(js);
+        SetField(demo, "_input", "x");
 
-        await InvokePrivate(page, "SetAsync");
+        await InvokePrivate(demo, "SetAsync");
 
-        var status = GetField<string?>(page, "_status");
+        var status = GetField<string?>(demo, "_status");
         Assert.StartsWith("Set failed:", status);
     }
 
@@ -110,23 +111,23 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetResponse("sessionStorage.getItem", "read-back");
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokePrivate(page, "ReadAsync");
+        await InvokePrivate(demo, "ReadAsync");
 
-        Assert.Equal("read-back", GetField<string?>(page, "_lastRead"));
-        Assert.Equal("Read: read-back", GetField<string?>(page, "_status"));
+        Assert.Equal("read-back", GetField<string?>(demo, "_lastRead"));
+        Assert.Equal("Read: read-back", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
     public async Task ReadAsync_NullStored_SetsStatusReadNull()
     {
         var js = new FakeJsRuntime();
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokePrivate(page, "ReadAsync");
+        await InvokePrivate(demo, "ReadAsync");
 
-        Assert.Equal("Read: (null)", GetField<string?>(page, "_status"));
+        Assert.Equal("Read: (null)", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
@@ -134,11 +135,11 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetException("sessionStorage.getItem", new InvalidOperationException("boom"));
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokePrivate(page, "ReadAsync");
+        await InvokePrivate(demo, "ReadAsync");
 
-        var status = GetField<string?>(page, "_status");
+        var status = GetField<string?>(demo, "_status");
         Assert.StartsWith("Read failed:", status);
     }
 
@@ -146,14 +147,14 @@ public sealed class JsRuntimePageTests
     public async Task RemoveAsync_InvokesRemoveItem_ClearsLastRead()
     {
         var js = new FakeJsRuntime();
-        var page = new JsRuntimePage(js);
-        SetField(page, "_lastRead", "previous");
+        var demo = new JsRuntimeDemo(js);
+        SetField(demo, "_lastRead", "previous");
 
-        await InvokePrivate(page, "RemoveAsync");
+        await InvokePrivate(demo, "RemoveAsync");
 
         Assert.Equal(1, js.CallCount("sessionStorage.removeItem"));
-        Assert.Null(GetField<string?>(page, "_lastRead"));
-        Assert.Equal("Removed", GetField<string?>(page, "_status"));
+        Assert.Null(GetField<string?>(demo, "_lastRead"));
+        Assert.Equal("Removed", GetField<string?>(demo, "_status"));
     }
 
     [Fact]
@@ -161,11 +162,11 @@ public sealed class JsRuntimePageTests
     {
         var js = new FakeJsRuntime();
         js.SetException("sessionStorage.removeItem", new InvalidOperationException("nope"));
-        var page = new JsRuntimePage(js);
+        var demo = new JsRuntimeDemo(js);
 
-        await InvokePrivate(page, "RemoveAsync");
+        await InvokePrivate(demo, "RemoveAsync");
 
-        var status = GetField<string?>(page, "_status");
+        var status = GetField<string?>(demo, "_status");
         Assert.StartsWith("Remove failed:", status);
     }
 
@@ -178,32 +179,32 @@ public sealed class JsRuntimePageTests
         Assert.Equal("jsruntime", attr!.Template);
     }
 
-    private static async Task InvokeOnRenderedAsync(JsRuntimePage page, bool firstRender)
+    private static async Task InvokeOnRenderedAsync(JsRuntimeDemo demo, bool firstRender)
     {
-        var mi = typeof(JsRuntimePage).GetMethod("OnRenderedAsync",
+        var mi = typeof(JsRuntimeDemo).GetMethod("OnRenderedAsync",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-        await (Task)mi.Invoke(page, [firstRender])!;
+        await (Task)mi.Invoke(demo, [firstRender])!;
     }
 
-    private static async Task InvokePrivate(JsRuntimePage page, string name)
+    private static async Task InvokePrivate(JsRuntimeDemo demo, string name)
     {
-        var mi = typeof(JsRuntimePage).GetMethod(name,
+        var mi = typeof(JsRuntimeDemo).GetMethod(name,
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-        await (Task)mi.Invoke(page, null)!;
+        await (Task)mi.Invoke(demo, null)!;
     }
 
-    private static T GetField<T>(JsRuntimePage page, string name)
+    private static T GetField<T>(JsRuntimeDemo demo, string name)
     {
-        var f = typeof(JsRuntimePage).GetField(name,
+        var f = typeof(JsRuntimeDemo).GetField(name,
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var v = f.GetValue(page);
+        var v = f.GetValue(demo);
         return v is null ? default! : (T)v;
     }
 
-    private static void SetField(JsRuntimePage page, string name, object? value)
+    private static void SetField(JsRuntimeDemo demo, string name, object? value)
     {
-        var f = typeof(JsRuntimePage).GetField(name,
+        var f = typeof(JsRuntimeDemo).GetField(name,
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-        f.SetValue(page, value);
+        f.SetValue(demo, value);
     }
 }

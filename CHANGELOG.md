@@ -22,6 +22,15 @@ them until tagged releases begin.
   plain component fields; each open row inserts a keyed detail `<tr>`, so the live diff reconciles
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
+### Changed
+- **Every showcase example page now shows its own source via `CodeSample`.** The five remaining
+  pages without a runnable-source panel were brought into the convention: `/asset-loading` (each
+  scoped-asset section is now a `CodeSample` with its component source + live result), `/jsruntime`
+  (the `sessionStorage` round-trip was extracted into a `JsRuntimeDemo` shown beside its source),
+  and `/master-detail`, `/table`, `/todos` (which append a `CodeSample` of the page's own source
+  beneath the live demo). The `[NotFound]` page and the routing-demo sub-page are intentionally
+  excluded.
+
 ### Fixed
 - **The `/virtualize` showcase table header no longer disappears while scrolling.** The off-screen
   rows were reserved by two spacer `<div>`s *outside* the table, so the table's own box was relaid
