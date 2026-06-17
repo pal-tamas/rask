@@ -17,6 +17,10 @@ them until tagged releases begin.
   (`ColumnDef<T>`, `ColumnSort`, `SortDirection`, `HeaderCell`, `TableRow<T>`, `TableModelContext<T>`).
   The `/table` showcase page now drives its sorting and paging through `TableModel<T>` from the URL
   query string.
+- **Master-detail showcase page (`/master-detail`)** — a datagrid with collapsible rows whose expanded
+  panel hosts a second, independently sortable `TableModel<T>`. Expand and both grids' sort are held in
+  plain component fields; each open row inserts a keyed detail `<tr>`, so the live diff reconciles
+  expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Fixed
 - **Clean parallel builds of WASM-hosted apps no longer race the static-web-assets pipeline.** A full
