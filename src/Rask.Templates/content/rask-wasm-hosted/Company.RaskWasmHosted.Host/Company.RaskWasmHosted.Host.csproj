@@ -4,6 +4,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!--
+      This host serves the published WASM bundle from the publish directory at runtime
+      (app.UseRask()), not via the SDK's static-web-assets manifest, so it owns no static web
+      assets. Disabling the SWA pipeline skips the cross-project static-web-asset resolution that
+      otherwise races on a clean parallel build, when the host tries to resolve the WASM project's
+      fingerprinted dotnet.native.* assets before that project has emitted them (MSB4018). Build
+      ordering is unaffected. Remove this if you add static web assets (e.g. an RCL) to the host.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
