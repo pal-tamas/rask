@@ -213,7 +213,12 @@ TableModel<Person>(
 owning host. `MultiSort: true` makes `ToggleSort` additive (asc → desc → removed per column, others
 preserved). Runnable demo:
 [`samples/Rask.Example.Shared/Features/Table/TablePage.cs`](../samples/Rask.Example.Shared/Features/Table/TablePage.cs)
-drives it entirely from the URL query string.
+drives it entirely from the URL query string. For a master-detail variant —
+collapsible rows whose expanded panel hosts a second, independently sortable `TableModel<T>`, with
+expand/sort state held in plain component fields — see
+[`samples/Rask.Example.Shared/Features/Orders/OrdersPage.cs`](../samples/Rask.Example.Shared/Features/Orders/OrdersPage.cs).
+Each open row inserts a keyed detail `<tr>`, so the live diff reconciles expand/collapse as an
+in-place insert/remove and sibling open rows keep their own inner sort.
 
 ---
 

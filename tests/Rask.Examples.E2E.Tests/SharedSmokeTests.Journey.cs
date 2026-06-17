@@ -306,6 +306,27 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
+        // Master-detail: expand state is local; toggling inserts a keyed detail <tr> hosting a nested,
+        // independently sortable TableModel. Collapse removes it via the same keyed diff.
+        await SideAsync("Master-detail", "Master-detail");
+        await Expect(Page.Locator("#md-orders tbody tr.md-row")).ToHaveCountAsync(14,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var innerRows = await Page.Locator("[data-testid='inner-1'] tbody tr").CountAsync();
+        Assert.True(innerRows > 0, $"expanded order should reveal line items; got {innerRows}");
+        // Sort the nested grid by Qty — the inner grid reacts on its own controlled state.
+        await Page.Locator("[data-testid='inner-1'] th button:has-text('Qty')").First.ClickAsync();
+        await Page.WaitForTimeoutAsync(200);
+        var firstQtyAfter = await Page.Locator("[data-testid='inner-1'] tbody tr").First
+            .Locator("td").Nth(2).InnerTextAsync();
+        Assert.False(string.IsNullOrWhiteSpace(firstQtyAfter), "inner grid should still render after sort");
+        // Collapse: the keyed detail row is removed.
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+
         // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
         await SideAsync("Drag & drop", "Headless drag & drop");
         await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
