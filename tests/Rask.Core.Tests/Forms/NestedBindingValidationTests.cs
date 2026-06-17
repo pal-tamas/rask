@@ -417,7 +417,8 @@ public class NestedBindingValidationTests
         // The walker is BFS over public properties — confirm a two-hop chain still resolves.
         var p = new Person
         {
-            Name = "Ada", Address = new Address { Street = "x", Postal = new PostalInfo { Code = "" } }
+            Name = "Ada",
+            Address = new Address { Street = "x", Postal = new PostalInfo { Code = "" } }
         };
         EditContext? captured = null;
 

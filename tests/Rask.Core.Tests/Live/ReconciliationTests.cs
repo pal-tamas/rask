@@ -69,7 +69,8 @@ public class ReconciliationTests
         var p1 = new CounterStub { Value = 2 };
         var previousChildren = new Dictionary<(Type, int), Component>
         {
-            [(typeof(CounterStub), 0)] = p0, [(typeof(CounterStub), 1)] = p1
+            [(typeof(CounterStub), 0)] = p0,
+            [(typeof(CounterStub), 1)] = p1
         };
 
         using var ctx = LiveRenderContextFactoryAccess.Begin(root, previousChildren);

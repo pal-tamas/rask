@@ -82,11 +82,11 @@ public static class RouteAuthorizationGuard
     }
 
     private static string? PickFirstScheme(IReadOnlyList<IAuthorizeData> data) => (from t in data
-        select t.AuthenticationSchemes
+                                                                                   select t.AuthenticationSchemes
         into schemes
-        where !string.IsNullOrEmpty(schemes)
-        select schemes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                                                                   where !string.IsNullOrEmpty(schemes)
+                                                                                   select schemes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         into first
-        where first.Length > 0
-        select first[0]).FirstOrDefault();
+                                                                                   where first.Length > 0
+                                                                                   select first[0]).FirstOrDefault();
 }

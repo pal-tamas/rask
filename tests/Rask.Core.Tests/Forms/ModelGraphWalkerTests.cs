@@ -41,7 +41,8 @@ public class ModelGraphWalkerTests
         {
             Address = new Address
             {
-                Street = "Elm", Postal = new PostalInfo { Country = new Country { Code = "NL" } }
+                Street = "Elm",
+                Postal = new PostalInfo { Country = new Country { Code = "NL" } }
             }
         };
 
@@ -80,7 +81,8 @@ public class ModelGraphWalkerTests
         {
             Settings = new Dictionary<string, ServerConfig>
             {
-                ["smtp"] = new() { Host = "smtp.example.com" }, ["http"] = new() { Host = "api.example.com" }
+                ["smtp"] = new() { Host = "smtp.example.com" },
+                ["http"] = new() { Host = "api.example.com" }
             }
         };
 
