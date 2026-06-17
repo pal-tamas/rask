@@ -25,13 +25,10 @@ public sealed class LifecycleProbe : Component
     protected override void OnRendered(bool firstRender) =>
         _log.Add($"OnRendered(firstRender: {firstRender})");
 
-    protected override RenderResult Render()
-    {
-        _renderCount++;
-        return
+    protected override RenderResult Render() =>
         [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
-                Span(Class: "badge text-bg-primary fs-6")[$"Render #{_renderCount}"],
+                Span(Class: "badge text-bg-primary fs-6")[$"Render #{++_renderCount}"],
                 Button(
                     Class: "btn btn-primary btn-sm",
                     OnClick: () => StateHasChanged())[I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"]
@@ -41,5 +38,4 @@ public sealed class LifecycleProbe : Component
                 _log.Select((l, i) => Li(Key: i, Class: "list-group-item ps-2 small")[Code(Class: "small")[l]])
                     .ToArray()]
         ];
-    }
 }
