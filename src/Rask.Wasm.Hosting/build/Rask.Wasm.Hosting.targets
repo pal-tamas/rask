@@ -13,6 +13,16 @@
                           ReferenceOutputAssembly="false"
                           SkipGetTargetFrameworkProperties="true"/>
 
+    A host that serves only the WASM bundle (the common case) should also set
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>. The host serves the
+    published bundle from the publish directory at runtime (app.UseRask()), not
+    via the SDK's static-web-assets manifest, so it owns no static web assets.
+    Disabling the pipeline avoids a clean-parallel-build race where the host
+    resolves the WASM project's fingerprinted dotnet.native.* assets before that
+    project has emitted them (MSB4018 from UpdateExternallyDefinedStaticWebAssets).
+    Build ordering is unaffected. Omit it only if the host adds its own static web
+    assets (e.g. references a Razor Class Library).
+
     This file then, at build time:
       1. Finds the WASM ProjectReference by reading RaskWasm out of each
          referenced csproj via XmlPeek.

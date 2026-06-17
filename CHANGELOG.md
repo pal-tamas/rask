@@ -18,6 +18,16 @@ them until tagged releases begin.
   The `/table` showcase page now drives its sorting and paging through `TableModel<T>` from the URL
   query string.
 
+### Fixed
+- **Clean parallel builds of WASM-hosted apps no longer race the static-web-assets pipeline.** A full
+  rebuild (`dotnet build --no-incremental`, or Rider's *Rebuild Solution*) could fail with `MSB4018`
+  from `UpdateExternallyDefinedStaticWebAssets` — the ASP.NET host project resolved the WASM
+  project's fingerprinted `dotnet.native.*` assets before that project had emitted them. A Rask WASM
+  host serves the published bundle from the publish directory at runtime (`app.UseRask()`) and owns no
+  static web assets of its own, so the hosts (and the `rask-wasm-hosted` template) now set
+  `StaticWebAssetsEnabled=false`, which skips the racy cross-project resolution while preserving build
+  ordering. Downstream hosts that serve only a Rask WASM bundle should do the same.
+
 ### Changed
 - **Renamed the headless `Virtualize<T>` primitive to `VirtualizeModel<T>`** (component + factory) so
   the headless "view-model" primitives read as one family with `TableModel<T>`. **Breaking:** update

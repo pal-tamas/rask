@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Example.Auth.WasmCookie.Host</RootNamespace>
+    <!--
+      No static web assets of its own: Rask.Wasm.Hosting serves the published WASM bundle at runtime
+      (app.UseRask()), not via the SDK's static-web-assets manifest. Disabling the SWA pipeline skips
+      the cross-project ResolveReferencedProjectsStaticWebAssets step, which otherwise races on a clean
+      parallel build (MSB4018 resolving the WASM project's fingerprinted dotnet.native.* assets before
+      they exist). BuildReference stays true, so build ordering is preserved.
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
