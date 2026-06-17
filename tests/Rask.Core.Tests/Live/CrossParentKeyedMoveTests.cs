@@ -25,7 +25,9 @@ public class CrossParentKeyedMoveTests
 
         public readonly Dictionary<string, List<int>> Cols = new()
         {
-            ["todo"] = new List<int> { 1, 2, 3 }, ["doing"] = new List<int> { 4 }, ["done"] = new List<int> { 5 }
+            ["todo"] = new List<int> { 1, 2, 3 },
+            ["doing"] = new List<int> { 4 },
+            ["done"] = new List<int> { 5 }
         };
 
         private Child Column(string zone)

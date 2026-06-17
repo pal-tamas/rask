@@ -22,7 +22,8 @@ internal static class TestArtifacts
         {
             await page.ScreenshotAsync(new PageScreenshotOptions
             {
-                Path = Path.Combine(dir, "page.png"), FullPage = true
+                Path = Path.Combine(dir, "page.png"),
+                FullPage = true
             });
         }
         catch

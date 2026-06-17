@@ -81,7 +81,8 @@ public class NestedValidationTests
         {
             Settings = new Dictionary<string, ServerConfig>
             {
-                ["smtp"] = new() { Host = "" }, ["http"] = new() { Host = "api.example.com" }
+                ["smtp"] = new() { Host = "" },
+                ["http"] = new() { Host = "api.example.com" }
             }
         };
         var ctx = RegisterValidator(p);
