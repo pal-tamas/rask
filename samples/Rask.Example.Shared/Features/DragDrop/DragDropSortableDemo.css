@@ -1,0 +1,18 @@
+.dd-item {
+    cursor: grab;
+    user-select: none;
+}
+
+.dd-item:active {
+    cursor: grabbing;
+}
+
+.dd-dragging {
+    opacity: 0.4;
+}
+
+.dd-drop-target {
+    outline: 2px dashed var(--rask-accent, #6610f2);
+    outline-offset: -2px;
+    background-color: var(--rask-accent-soft, #f1ebfd);
+}

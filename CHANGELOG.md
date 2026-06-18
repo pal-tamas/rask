@@ -40,6 +40,11 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **The `/drag-drop` showcase now splits its two demos into separate `CodeSample` cards.** The
+  sortable list and the Kanban board were extracted from a single 178-line `DragDropDemo` into
+  `DragDropSortableDemo` and `DragDropKanbanDemo` (each with its own scoped CSS), so the page shows
+  one focused source panel per use case — matching the multi-demo layout already used by
+  `/virtualize` and `/binding`. Same route, same behaviour.
 - **The live-session render pipeline is now shared from `Rask.Core`.** A new `LiveSessionBase` owns
   the render→diff-vs-full→payload build both hosts ran near-identically (`RenderTreeToHtml`,
   `ConsumeDownload`, `WritePayload`) plus the common state (render cache, diff ops, write buffer,
