@@ -65,6 +65,26 @@ public abstract class Element : Component
     public Delegate? OnDrop { get; set; }
     public Delegate? OnDragEnd { get; set; }
 
+    // Keyboard events, available on every element (a key event needs the element — or a descendant
+    // — focused, the same focus-scoped model as click). Bound by the client runtime via
+    // data-rask-on-keydown / data-rask-on-keyup. Each accepts a parameterless delegate (Action /
+    // Func<Task>) or a typed one (Action<KeyboardEventArgs> / Func<KeyboardEventArgs, Task>); the
+    // dispatcher unpacks the {key, code, modifiers, repeat} payload into a KeyboardEventArgs. The
+    // client never preventDefaults a key event, so handlers compose with normal typing. Storage is
+    // hoisted into the lazy LiveState (like Ref/Role/Aria) so an element with no key handler keeps
+    // `_live` null and pays no per-instance footprint — see OnKeyDownInternal/OnKeyUpInternal.
+    public Delegate? OnKeyDown
+    {
+        get => OnKeyDownInternal;
+        set => OnKeyDownInternal = value;
+    }
+
+    public Delegate? OnKeyUp
+    {
+        get => OnKeyUpInternal;
+        set => OnKeyUpInternal = value;
+    }
+
     // Subclasses transform the `class` attribute value without re-implementing the universal
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
     protected virtual string? ResolveClass() => Class;
@@ -149,6 +169,16 @@ public abstract class Element : Component
             if (OnDragEnd is not null)
             {
                 AppendAttr(sb, "data-rask-on-dragend", ctx.RegisterHandler(OnDragEnd));
+            }
+
+            if (OnKeyDown is not null)
+            {
+                AppendAttr(sb, "data-rask-on-keydown", ctx.RegisterHandler(OnKeyDown));
+            }
+
+            if (OnKeyUp is not null)
+            {
+                AppendAttr(sb, "data-rask-on-keyup", ctx.RegisterHandler(OnKeyUp));
             }
         }
 

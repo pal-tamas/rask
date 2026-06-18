@@ -839,6 +839,24 @@ document.addEventListener("dragend", (e) => {
     send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
 });
 
+// Keyboard: keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped, like
+// click). Never preventDefault — a key handler composes with normal typing; the C# side decides
+// what a key means. flushInputsNow first so an Enter-to-submit handler reads the value the user
+// just typed, not the pre-flush one. Modifier flags + repeat ride along for shortcuts.
+function sendKey(e, attr, type) {
+    const t = e.target.closest ? e.target.closest("[" + attr + "]") : null;
+    if (!t || !inRoot(t)) return;
+    flushInputsNow();
+    send({
+        id: t.getAttribute(attr), type: type,
+        key: e.key, code: e.code, repeat: e.repeat,
+        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+    });
+}
+
+document.addEventListener("keydown", (e) => sendKey(e, "data-rask-on-keydown", "keydown"));
+document.addEventListener("keyup", (e) => sendKey(e, "data-rask-on-keyup", "keyup"));
+
 // ----- IJSRuntime bridge -----------------------------------------------------
 // Called by Rask.Wasm.JSInterop.BeginInvokeJSImport (a [JSImport]). Walks the
 // dotted identifier on `window`, invokes it with the JSON-decoded args, then

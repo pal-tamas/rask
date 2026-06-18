@@ -1042,6 +1042,29 @@
         send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
     });
 
+    // Keyboard: keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped,
+    // like click). Never preventDefault — a key handler composes with normal typing; the C# side
+    // decides what a key means. flushInputsNow first so an Enter-to-submit handler reads the value
+    // the user just typed, not the pre-flush one. Modifier flags + repeat ride along for shortcuts.
+    function sendKey(e, attr, type) {
+        var t = e.target.closest ? e.target.closest("[" + attr + "]") : null;
+        if (!t || !inRoot(t)) return;
+        flushInputsNow();
+        send({
+            id: t.getAttribute(attr), type: type,
+            key: e.key, code: e.code, repeat: e.repeat,
+            shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+        });
+    }
+
+    document.addEventListener("keydown", function (e) {
+        sendKey(e, "data-rask-on-keydown", "keydown");
+    });
+
+    document.addEventListener("keyup", function (e) {
+        sendKey(e, "data-rask-on-keyup", "keyup");
+    });
+
     // ----- IJSRuntime global-JS dispatcher -----------------------------------
     // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
     // "sessionStorage.getItem", we resolve it on window, invoke it with args, then
