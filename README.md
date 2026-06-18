@@ -1083,17 +1083,18 @@ DragDrop(
             Class: ctx.IsDropTarget("list", i) ? "drop-target" : null,
             OnDragStart: ctx.DragStart("list", i),
             OnDragOver: ctx.DragOver("list", i),              // optional: live drop-target highlight
-            OnDrop: ctx.Drop("list", i),
+            OnDropAsync: ctx.Drop("list", i),                 // ctx.Drop is async-shaped (routes to OnDrop/OnDropAsync)
             OnDragEnd: ctx.DragEnd)[fruit])
     ],
     OnDrop: m => Reorder(m.FromIndex, m.ToIndex))             // m: (FromZone,FromIndex) -> (ToZone,ToIndex)
 ```
 
 Drag handlers are **parameterless** (like `OnClick`): the dragged item's identity rides the handler closure, not the
-event payload, so no custom wire type is needed. `Draggable` / `OnDragStart` / `OnDragOver` / `OnDrop` / `OnDragEnd` are
-universal attributes on every element. A multi-column Kanban board is the same primitive with one zone per column — a
-single `OnDrop` handler moves the card across lists. See `samples/Rask.Example.Shared/Features/DragDrop/DragDropPage.cs` for both a
-sortable list and a Kanban board.
+event payload, so no custom wire type is needed. Each is a typed sync + async pair —
+`OnDragStart` (`Action`) and `OnDragStartAsync` (`Func<Task>`), and likewise for `OnDragOver` / `OnDrop` / `OnDragEnd`
+— universal on every element (as is `Draggable`). A multi-column Kanban board is the same primitive with one zone per
+column — a single drop handler moves the card across lists. See
+`samples/Rask.Example.Shared/Features/DragDrop/DragDropPage.cs` for both a sortable list and a Kanban board.
 
 </details>
 

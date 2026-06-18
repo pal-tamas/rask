@@ -37,8 +37,6 @@ public sealed class DragDrop : Component
 
     internal int TargetIndexInternal { get; private set; } = -1;
 
-    internal bool HasAsyncDrop => OnDropAsync is not null;
-
     internal void BeginDrag(string zone, int index)
     {
         SourceZoneInternal = zone;
@@ -67,20 +65,23 @@ public sealed class DragDrop : Component
         TargetIndexInternal = -1;
     }
 
-    internal void CommitDrop(string zone, int index)
+    // Routes a drop to whichever handler the consumer set — async if OnDropAsync is present,
+    // otherwise the sync OnDrop (which completes synchronously inside the returned Task). The
+    // DragDropContext always wires this to Element.OnDropAsync, so both consumer styles work.
+    internal Task CommitDropAsync(string zone, int index)
     {
-        if (TryTakeMove(zone, index) is { } move)
+        if (TryTakeMove(zone, index) is not { } move)
         {
-            OnDrop?.Invoke(move);
+            return Task.CompletedTask;
         }
-    }
 
-    internal async Task CommitDropAsync(string zone, int index)
-    {
-        if (TryTakeMove(zone, index) is { } move && OnDropAsync is { } handler)
+        if (OnDropAsync is { } handler)
         {
-            await handler(move).ConfigureAwait(false);
+            return handler(move);
         }
+
+        OnDrop?.Invoke(move);
+        return Task.CompletedTask;
     }
 
     // Snapshots the source, clears all drag state, and returns the move — or null if no drag was

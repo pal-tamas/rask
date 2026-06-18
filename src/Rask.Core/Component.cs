@@ -254,6 +254,9 @@ public abstract class Component
     // Backing store for Element.OnKeyDown/OnKeyUp, hoisted into the lazy LiveState for the same
     // reason as Ref/Role/Aria: keyboard handlers are opt-in and rare, so a plain element keeps
     // `_live` null and adds zero per-instance footprint (the allocation-pin tests enforce this).
+    // One slot per event holds either the sync (Action<KeyboardEventArgs>) or async
+    // (Func<KeyboardEventArgs, Task>) delegate — Element's typed OnKeyDown/OnKeyDownAsync property
+    // pair coalesces over it by delegate type, so no extra slot is needed for the async sibling.
     internal Delegate? OnKeyDownInternal
     {
         get => _live?.OnKeyDown;
@@ -972,9 +975,9 @@ public abstract class Component
                 }
                 default:
                 {
-                    // Delegate signatures outside the fast-path list above can still arrive through
-                    // the untyped `Delegate?` slots (Element.OnDragStart/OnDragOver/OnDrop/OnDragEnd),
-                    // e.g. a method group typed Func<Task<T>> or Func<ValueTask>. Invoke reflectively;
+                    // Parameterless delegate shapes outside the fast-path list above can still arrive
+                    // through a typed handler slot (e.g. a method group typed Func<Task<T>> or
+                    // Func<ValueTask> wired to a drag handler). Invoke reflectively;
                     // if the result is an awaitable, pump it through the render path so exceptions reach
                     // the ErrorBoundary and post-await state changes re-render — matching the explicit
                     // Func<…, Task> cases. Without this, a returned Task is fire-and-forget: a fault is

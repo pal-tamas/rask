@@ -36,7 +36,7 @@ public sealed class DragDropSortableDemo : Component
                 Draggable: true,
                 OnDragStart: ctx.DragStart("list", index),
                 OnDragOver: ctx.DragOver("list", index),
-                OnDrop: ctx.Drop("list", index),
+                OnDropAsync: ctx.Drop("list", index),
                 OnDragEnd: ctx.DragEnd,
                 Data: new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
                 I(Class: "bi bi-grip-vertical text-secondary"),

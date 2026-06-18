@@ -34,8 +34,15 @@ public class CounterAllocationPinTests
         // (`Role`/`TabIndex`/`Aria`) add ~72 B more, to ~1568 B: their storage is hoisted into the
         // lazy LiveState (like Ref) so an a11y-free element grows no Element instance, but these
         // elements allocate a LiveState during render regardless, so the three extra LiveState
-        // fields ride along. Pin at <= 1.65 KB to catch regression while leaving slack for jitter.
-        Assert.InRange(perIterationBytes, 0, 1650);
+        // fields ride along. Splitting every element's drag/keyboard handlers — and Div's scroll
+        // handler — into typed sync `OnXxx` + async `OnXxxAsync` pairs (replacing the single
+        // untyped `Delegate?` slots) added 7-8 extra typed delegate parameters to each element
+        // factory; the generated factory's per-parameter change-detection bookkeeping (the `__old`
+        // snapshot + EqualityComparer compare it emits for every public delegate prop) scales with
+        // that count, adding ~150 B to ~1768 B. No element instance grew — the pairs coalesce over
+        // a single backing slot per event by delegate type. Pin at <= 1.85 KB to catch regression
+        // while leaving slack for jitter.
+        Assert.InRange(perIterationBytes, 0, 1850);
     }
 
     [Fact(Skip = "diagnostic — run manually to gather allocation deltas")]
