@@ -10,7 +10,11 @@ using Rask.Core.Routing;
 
 namespace Rask.Wasm;
 
-internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
+// Render/diff/payload pipeline + the IJSRuntime queue live in LiveSessionBase (Core), shared with
+// the Server host. WasmLiveSession adds the in-process transport: the JSImport ApplyRender push,
+// the single dispatch lock, the route-auth guard, the navigate/dispatch handlers, and the byte[]-
+// per-frame model the JSExport boundary needs.
+internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
@@ -21,64 +25,20 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
     // multi-session / re-init path.
     private readonly IUserProvider? _userProvider;
 
-    // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented
-    // backing array hot. Eliminates the per-render ArrayBufferWriter allocation that
-    // BuildPayloadUtf8WithRoot's byte[]-returning overload would otherwise make.
-    private readonly ArrayBufferWriter<byte> _writeBuffer = new(4096);
-
-    private List<EditOp>? _diffOps;
-
-    // Last rendered HTML string, used to suppress noop publish-renders that
-    // would otherwise re-morph identical HTML and strip JS-applied DOM state
-    // (e.g. the `.hljs` class hljs added in a prior frame's OnRenderedAsync).
-    // Set after a successful ApplyRender.
-    private string? _lastAppliedHtml;
+    // The last payload bytes ApplyRender pushed — WASM's dedup baseline (it ToArrays each frame for
+    // the JSExport boundary, where the Server double-buffers instead).
     private byte[]? _lastAppliedPayload;
-
-    // Set by RequestRenderAsync when called while InHandlerScope=true. The dispatch helpers
-    // (BuildPayloadCoalescingRerendersAsync) read and clear it to rebuild the payload before
-    // releasing the lock — catches state mutated by dispose callbacks that fire AFTER ToHtml
-    // serialised the first payload but BEFORE the dispatch returns.
-    private bool _pendingRenderInScope;
 
     // Set by BuildPayloadAsync when the frame it built carries queued IJSRuntime calls. The
     // publish-render noop guard must NOT drop such a frame even when the HTML is unchanged — the
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
-    // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
-    // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
-    // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
-    // making background StateHasChanged calls (e.g. from a Timer in a user component) silently no-op.
-    //
-    // Note: the historical _lastCssHashSent / _lastJsHashSent fields were removed when WASM
-    // moved off inline cssText/jsText payloads to the per-component asset endpoint.
-    // Scoped CSS/JS is now fetched by the browser via <link>/<script src> tags emitted into
-    // <head> by HeadAssetRegistry.EmitMountedAssets and served by Rask.Wasm.Hosting's
-    // /_rask/a/{hash}.{ext} endpoint with Cache-Control: immutable.
-
-    // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in.
-    // Default path (DisabledFull) pays nothing for these.
-    private SessionRenderCache? _renderCache;
-
-    // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
-    // applyDiff (same post-commit ordering as the Server). Shared queue type across both hosts.
-    public LiveJsInvokeQueue JsInvokes { get; } = new();
-
     public WasmLiveSession(Component view, IServiceProvider services)
+        : base(view, services)
     {
-        View = view;
-        Services = services;
-        view.RenderHandle = this;
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         (services.GetService<WasmJSRuntime>())?.AttachHost(this);
-        // Forward the handle to the inner App when wrapped in a RootErrorBoundary so its
-        // StateHasChanged() reaches the session even before the first GetOrCreate would
-        // otherwise lazily attach it.
-        if (view is RootErrorBoundary root)
-        {
-            root.Inner.RenderHandle = this;
-        }
 
         if (services.GetService<IUserProvider>() is { } userProvider)
         {
@@ -86,11 +46,6 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
             userProvider.Changed += OnUserChanged;
         }
     }
-
-    public Component View { get; }
-    public IServiceProvider Services { get; }
-
-    public bool InHandlerScope { get; set; }
 
     public void Dispose()
     {
@@ -104,11 +59,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
         _lock.Dispose();
     }
 
-    public Task RequestRenderAsync() => RequestRenderInternalAsync(false);
-
-    public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
-
-    async Task IRenderHandle.RenderInScopeAsync()
+    protected override async Task RenderInScopeCoreAsync()
     {
         // Mirror Rask.Server LiveSession.RenderAndSendAsync: when the framework asks for a
         // mid-await render (Component.InvokeWithRenderingAsync), build and push an intermediate
@@ -142,7 +93,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
         }
     }
 
-    private async Task RequestRenderInternalAsync(bool publishOnly)
+    protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
         if (InHandlerScope)
         {
@@ -443,129 +394,23 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
             }
         }
 
-        // Diff-codec path: capture the parallel RenderFrame[] stream during render so
-        // we can ship a minimal edit-op payload instead of the whole document. Default
-        // (LiveDiffMode.DisabledFull) bypasses entirely — null FrameSinkScope on entry,
-        // single null check per HtmlSerializer branch, zero overhead.
-        var diffMode = LiveOptions.DiffMode;
-        FrameWriter? frameWriter = null;
-        FrameSinkScope.Popper framePopper = default;
-        if (diffMode != LiveDiffMode.DisabledFull)
-        {
-            _renderCache ??= new SessionRenderCache();
-            frameWriter = _renderCache.PrepareCurrentBuffer();
-            framePopper = FrameSinkScope.Push(frameWriter);
-        }
-
-        // The App component owns the full page (Doctype + Html + Head + Body). Send the whole
-        // document so the JS runtime can morph <head> too — title, stylesheet <link>s, and the
-        // scoped-css <link> would otherwise stay frozen at whatever the static index.html shipped.
-        string html;
-        try
-        {
-            html = View.RenderAsLiveRoot(Services, publishOnly);
-        }
-        finally
-        {
-            if (frameWriter is not null)
-            {
-                framePopper.Dispose();
-            }
-        }
-
-        // CSS/JS no longer ship inline — scoped assets are content-addressed and fetched
-        // via /_rask/a/{hash}.{ext} from Rask.Wasm.Hosting. The diff-codec gate below
-        // tracks only side effects that still flow out of band (download payloads,
-        // navigation history) since the diff wire format doesn't carry them yet.
-        PendingDownload? download = null;
-        if (Services.GetService<IDownloadSink>() is { } sink && sink.TryConsume(out var pd))
-        {
-            download = pd;
-        }
+        // Render + decide diff-vs-full + write the frame — shared with the Server host
+        // (LiveSessionBase). WASM has no AuthInstruction in the diff codec (the route-auth guard
+        // above already redirected), so auth is null; the data-rask-root id is the constant "wasm".
+        var html = RenderTreeToHtml(publishOnly, out var frameWriter);
+        var download = ConsumeDownload();
 
         // Drain IJSRuntime calls queued during the render walk (e.g. an OnRenderedAsync focus). They
         // ride this frame's jsInvokes and the client runs them AFTER applyDiff, so they act on the
-        // committed DOM — the same post-commit ordering the Server has. _lastBuildHadJsInvokes lets
-        // the caller's noop guards know this frame must ship even if the HTML is unchanged.
+        // committed DOM. _lastBuildHadJsInvokes lets the caller's noop guard ship this frame even
+        // when the HTML is unchanged.
         var jsInvokes = JsInvokes.Drain();
         _lastBuildHadJsInvokes = jsInvokes is not null;
 
-        _writeBuffer.ResetWrittenCount();
+        WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
+            commitCache, auth: null, sessionId: "wasm");
 
-        // Decide payload shape. The diff path fires only when the flag is opted in,
-        // we have a prior render to diff against, the diff is supported client-side
-        // (no InsertSubtree/RemoveSubtree until HTML fragments wire in), and none of
-        // the out-of-band side effects (download, navigation history) need to flow —
-        // those aren't carried by the diff wire format yet.
-        var usedDiff = false;
-        // Conservative gate (mirrors server LiveSession): the diff path covers
-        // in-place state changes only. Side effects (download) and structural ops
-        // (InsertSubtree/RemoveSubtree) route to the full-HTML morph path — see the
-        // server-side DiffOpsAreClientSupported note for the rationale (e2e showed 83/430
-        // failures when structural ops bypass morph). Head changes (a per-route <title>, a
-        // scoped-asset <link> for a newly-mounted page, a reactive title) ride the diff too:
-        // the diff frame stream never carries <head> content (collected + spliced post-
-        // render), so a head change produces zero ops; when the head region changed vs the
-        // last applied document we attach the new <head> element (ExtractHead) and the client
-        // morphs it into document.head. Genuine page swaps that restructure the body still
-        // fall back to full HTML via DiffOpsAreClientSupported. `diffPathEntered` tracks
-        // whether we called TryComputeDiff (which internally rotates buffers regardless of
-        // return value) so the fallback Snapshot doesn't double-rotate and strand _previous.
-        var diffPathEntered = false;
-        if (frameWriter is not null && _renderCache is not null
-                                    && download is null)
-        {
-            _diffOps ??= new List<EditOp>();
-            diffPathEntered = true;
-            var headChanged = _lastAppliedHtml is not null && !LiveDiffGate.HeadUnchanged(html, _lastAppliedHtml);
-            // Ship the diff when it carries DOM ops, OR when it carries no ops but a
-            // navigation or a head change needs to flow — a query-only nav produces zero ops
-            // yet must still pushState the URL; a head-only change must still ship the head
-            // fragment. Zero ops + no history + unchanged head means nothing to send.
-            if (_renderCache.TryComputeDiff(_diffOps, commitCache, html)
-                && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
-                && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
-            {
-                var headHtml = headChanged ? LiveDiffGate.ExtractHead(html) : null;
-                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace,
-                    jsInvokes: jsInvokes, headHtml: headHtml);
-                var diffBytes = _writeBuffer.WrittenCount;
-
-                // Same rule as the server: ship the diff whenever it isn't larger than
-                // re-sending the body, or unconditionally under Forced. We only drop the
-                // diff bytes and fall through to full HTML in the pathological case where
-                // nearly every node changed (tiny page) and the op-list framing exceeds
-                // the body itself — then the diff would cost more bytes than the baseline.
-                if (diffMode == LiveDiffMode.Forced || diffBytes < html.Length)
-                {
-                    usedDiff = true;
-                }
-                else
-                {
-                    _writeBuffer.ResetWrittenCount();
-                }
-            }
-        }
-
-        if (!usedDiff)
-        {
-            // BuildPayloadUtf8WithRoot fuses InjectRootAttr + payload write on UTF-8 bytes,
-            // emitting the whole document (head + body) so the JS-side morph against
-            // document.documentElement can update head children. Writes into the pooled
-            // _writeBuffer so the per-render ArrayBufferWriter allocation is gone; the
-            // ToArray at the end is still needed today because the JS interop boundary
-            // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace,
-                null, download, jsInvokes);
-            // Only Snapshot when TryComputeDiff was NOT called (it would have rotated) AND we
-            // own the commit (commitCache). When commitCache is false the coalescing loop
-            // commits once after it settles, so rotating here would strand the baseline.
-            if (!diffPathEntered && commitCache)
-            {
-                _renderCache?.Snapshot();
-            }
-        }
-
+        // ToArray for the JSExport byte[] boundary (PR6 will swap that for ReadOnlyMemory<byte>).
         return (_writeBuffer.WrittenSpan.ToArray(), html);
     }
 }
