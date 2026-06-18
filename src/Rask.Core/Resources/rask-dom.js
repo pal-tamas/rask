@@ -270,3 +270,18 @@ function applyDiff(ops, names) {
         }
     }
 }
+
+// ----- Frame jsInvokes dispatch ------------------------------------------
+// The IJSRuntime calls a render frame carried (reply.jsInvokes) run HERE — after applyDiff/morph
+// has patched the DOM — so each acts on the committed DOM (e.g. focus a <dialog> that just gained
+// its `open` attribute). Both clients call this right after applying the body; only the per-invoke
+// executor differs per host (Server posts the result over the WS; WASM returns it through the
+// endInvokeJSResult JSExport), so the caller passes dispatchOne. Shared so the loop isn't copied.
+function applyFrameInvokes(reply, dispatchOne) {
+    var invokes = reply && reply.jsInvokes;
+    if (!invokes || typeof invokes.length !== "number") return;
+    for (var i = 0; i < invokes.length; i++) {
+        var inv = invokes[i];
+        if (inv && typeof inv.identifier === "string") dispatchOne(inv);
+    }
+}

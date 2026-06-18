@@ -13,13 +13,12 @@ using Rask.Server.JSInterop;
 
 namespace Rask.Server;
 
-internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
+internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle, ILiveJsHost
 {
-    // IJSRuntime queue. Calls land here via RaskJSRuntime.BeginInvokeJS and get drained
-    // into the next outbound payload by RenderAndSendAsync. A plain List under lock —
-    // contention is bounded by the session's outer Lock semaphore (one handler at a time),
-    // so writes only race with the drain at flush time.
-    private readonly List<PendingJsInvoke> _pendingJsInvokes = new();
+    // IJSRuntime queue. Calls land here via RaskJSRuntimeBase.BeginInvokeJS and get drained into
+    // the next outbound payload by RenderAndSendAsync. The shared LiveJsInvokeQueue type (Core) is
+    // used by both hosts so interop is ordered identically (dispatched client-side after applyDiff).
+    public LiveJsInvokeQueue JsInvokes { get; } = new();
 
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
@@ -342,11 +341,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
         // the GET render walk (the invoke sits in _pendingJsInvokes until the next outbound
         // frame). When neither is true, the browser's GET HTML still matches and there's
         // nothing for the WS to ship — skip the redundant render.
-        bool jsPending;
-        lock (_pendingJsInvokes)
-        {
-            jsPending = _pendingJsInvokes.Count > 0;
-        }
+        var jsPending = JsInvokes.HasPending;
 
         if (!_renderRequestedWhileDetached && !jsPending)
         {
@@ -370,19 +365,6 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     {
         _socket = null;
         _socketCt = default;
-    }
-
-    /// <summary>
-    ///     Queue a global-JS interop call (from <see cref="JSInterop.RaskJSRuntime" />) to be
-    ///     emitted on the next outbound frame. Thread-safe — calls can arrive from awaited
-    ///     continuations on thread-pool workers.
-    /// </summary>
-    internal void EnqueueJsInvoke(PendingJsInvoke invoke)
-    {
-        lock (_pendingJsInvokes)
-        {
-            _pendingJsInvokes.Add(invoke);
-        }
     }
 
     /// <summary>
@@ -480,15 +462,7 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
             // the initial HTTP GET produced, so a per-page Title declared via
             // Component.Head never made it to the browser tab on SPA-style navigation.
             // The added head bytes (~2-3 KB) compress away under permessage-deflate.
-            PendingJsInvoke[]? jsInvokes = null;
-            lock (_pendingJsInvokes)
-            {
-                if (_pendingJsInvokes.Count > 0)
-                {
-                    jsInvokes = _pendingJsInvokes.ToArray();
-                    _pendingJsInvokes.Clear();
-                }
-            }
+            var jsInvokes = JsInvokes.Drain();
 
             // HTML-level dedup: when the rendered HTML matches the last sent (or the
             // HTTP-GET-time seeded baseline) and there's nothing out-of-band to flow,
@@ -685,39 +659,12 @@ internal sealed class LiveSession : IDisposable, IAsyncDisposable, IRenderHandle
     // log and move on; the original send exception is the meaningful one for the caller.
     private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)
     {
-        var runtime = Services.GetService<RaskJSRuntime>();
-        if (runtime is null)
+        if (Services.GetService<RaskJSRuntime>() is { } runtime)
         {
-            return;
-        }
-
-        var message = cause.Message;
-        if (string.IsNullOrEmpty(message))
-        {
-            message = "Rask: WebSocket send failed before JS invoke could be dispatched";
-        }
-
-        foreach (var invoke in invokes)
-        {
-            try
-            {
-                using var stream = new MemoryStream(128);
-                using (var w = new Utf8JsonWriter(stream))
-                {
-                    w.WriteStartArray();
-                    w.WriteNumberValue(invoke.TaskId);
-                    w.WriteBooleanValue(false);
-                    w.WriteStringValue(message);
-                    w.WriteEndArray();
-                }
-
-                DotNetDispatcher.EndInvokeJS(runtime, Encoding.UTF8.GetString(stream.ToArray()));
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(
-                    $"Rask: failed to surface JS invoke fault for taskId={invoke.TaskId}: {ex}");
-            }
+            LiveJsInvokeQueue.Fail(runtime, invokes,
+                string.IsNullOrEmpty(cause.Message)
+                    ? "Rask: WebSocket send failed before JS invoke could be dispatched"
+                    : cause.Message);
         }
     }
 }

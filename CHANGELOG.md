@@ -40,6 +40,13 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **The host JS-interop plumbing is now shared from `Rask.Core`.** The pending IJSRuntime-invoke
+  queue (`LiveJsInvokeQueue`), the `BeginInvokeJS` deferral + `[JSInvokable]` result envelope
+  (`RaskJSRuntimeBase`), and the after-`applyDiff` dispatch loop (`applyFrameInvokes`, in the shared
+  `rask-dom.js`) were duplicated between Server (`RaskJSRuntime` / `LiveSession` / `rask.js`) and WASM
+  (`WasmJSRuntime` / `WasmLiveSession` / `rask.wasm.js`); both hosts now compose the Core pieces
+  through a shared `ILiveJsHost` seam. Internal only — no API change beyond the WASM ordering fix
+  noted below.
 - **The live-diff codec is now a single shared client source.** `applyDiff` and its helpers
   (`resolvePath`, `relevantChild`/`relevantChildSkipping`, `moveChildBefore`, `syncFormProperty`)
   were duplicated between the Server (`rask.js`) and WASM (`rask.wasm.js`) clients; they now live
@@ -56,6 +63,15 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **WASM now runs `IJSRuntime` calls issued *during* a render after the DOM is patched, matching
+  Server.** Interop from a lifecycle hook — e.g. `OnRenderedAsync` focusing a dialog as it opens —
+  used to dispatch immediately on WASM, *before* that render's DOM patch, so a `focus()` could hit a
+  still-`display:none` element (a `<dialog>` whose `open` attribute the diff hadn't added yet) and
+  silently no-op. Such mid-render calls now ride the render frame's `jsInvokes` and the client
+  dispatches them after `applyDiff`, against the committed DOM — the post-commit ordering the Server
+  already had. Interop from event handlers is unchanged (WASM still dispatches it immediately, the
+  path awaited handler interop relies on). The `/todos` dialog now auto-focuses on open on every
+  host, so Escape-to-close works without a prior click.
 - **The `/todos` showcase dialog now opens centered over a dim backdrop.** A declaratively-open
   `<dialog open>` is non-modal, so the browser left it `position:absolute` at its in-flow spot (low
   on the page, partly off-screen) with no `::backdrop`. The `TodoFormDialog` scoped CSS now pins the
