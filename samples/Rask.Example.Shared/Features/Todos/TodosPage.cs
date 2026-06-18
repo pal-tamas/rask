@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.JSInterop;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Shared.Features;
@@ -115,21 +117,61 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
 public sealed class TodoFormDialog : Component
 {
+    // A stable ref to the <dialog> so we can move focus into it when it opens — the dialog is
+    // inserted by the live diff, where the HTML `autofocus` attribute never fires. Focusing it also
+    // makes Escape work immediately: OnKeyDown is focus-scoped, so a key only reaches the dialog
+    // while it (or a child, e.g. the title input) holds focus.
+    private readonly ElementRef _dialog = ElementRef.New();
+    private bool _wasOpen;
+
+    // Focus interop injected via the ctor (the DI seam) so Model/OnCancel/OnSave stay plain factory
+    // parameters. They are non-nullable + no initializer + no `required` keyword: the generator emits
+    // them as required positional parameters, and Rask's post-render assignment satisfies them — so
+    // CS8618 here is intentional. `required` would clash with the DI ctor (RASK002). Mirrors CodeSample.
+#pragma warning disable CS8618
+    private readonly IJSRuntime _js;
+
+    public TodoFormDialog(IJSRuntime js) => _js = js;
+
     public bool Open { get; set; }
-    public required TodoForm Model { get; set; }
+    public TodoForm Model { get; set; }
     public bool IsAdding { get; set; }
-    public required Action OnCancel { get; set; }
-    public required Action<TodoForm> OnSave { get; set; }
+    public Action OnCancel { get; set; }
+    public Action<TodoForm> OnSave { get; set; }
+#pragma warning restore CS8618
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+
+    // Move focus into the dialog the moment it opens (false → true), so Escape closes it without a
+    // prior click and a keyboard user lands inside the form. OnRenderedAsync runs after the DOM is
+    // patched, so the ref resolves to the live element.
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (Open && !_wasOpen)
+        {
+            await _dialog.FocusAsync(_js);
+        }
+
+        _wasOpen = Open;
+    }
+
+    // Escape cancels — the same path as the Cancel button and the backdrop click.
+    private void OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            OnCancel();
+        }
+    }
 
     protected override RenderResult Render() =>
         Fragment()[
             // Dim, clickable backdrop behind the centered dialog. A non-modal <dialog open> gets no
             // ::backdrop, so we render our own — clicking it cancels, like the nav drawer's backdrop.
             Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : Fragment(),
-            Dialog(Open)[
+            // tabindex makes the <dialog> programmatically focusable; OnKeyDown gives it Escape-to-close.
+            Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: new Action<KeyboardEventArgs>(OnKey))[
                 H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
                 Form(Model, OnSave, Class: "vstack gap-3")[
                     DataAnnotationsValidator(),
