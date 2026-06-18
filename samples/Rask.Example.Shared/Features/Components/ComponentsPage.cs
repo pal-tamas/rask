@@ -46,9 +46,10 @@ public sealed class ComponentsPage : Component
                 Div()[
                     Strong()["Warning."],
                     " ", Code()["required"],
-                    " on a property combined with DI-injected constructor parameters: ",
+                    " on a property when the component's only constructor takes DI-injected parameters (no parameterless ctor): ",
                     Code()["ActivatorUtilities"],
-                    " cannot satisfy ", Code()["required"], " members. Drop one or the other."
+                    " cannot satisfy ", Code()["required"], " members. Add a parameterless ctor, or drop ",
+                    Code()["required"], " or the DI parameters."
                 ]
             ]
         ]

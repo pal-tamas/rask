@@ -49,6 +49,14 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **RASK002 no longer fires when a parameterless constructor is available.** The "`required`
+  property is incompatible with a DI constructor" warning now only triggers when the component's
+  *only* constructor takes dependency-injected parameters (no parameterless ctor). With a
+  parameterless ctor present, the generated factory uses the object-initializer path — which *does*
+  honour `required` — so the previous warning was a false positive in that case. The diagnostic
+  message and `docs/diagnostics.md` now spell out the parameterless-ctor escape hatch, and the
+  `Sparkline`/`LiveTicker` samples mark their non-nullable factory parameters `required` (dropping a
+  `CS8618` suppression each) to demonstrate it.
 - **The `/drag-drop` showcase now splits its two demos into separate `CodeSample` cards.** The
   sortable list and the Kanban board were extracted from a single 178-line `DragDropDemo` into
   `DragDropSortableDemo` and `DragDropKanbanDemo` (each with its own scoped CSS), so the page shows

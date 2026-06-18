@@ -127,7 +127,7 @@ public sealed class TodoFormDialog : Component
     // Focus interop injected via the ctor (the DI seam) so Model/OnCancel/OnSave stay plain factory
     // parameters. They are non-nullable + no initializer + no `required` keyword: the generator emits
     // them as required positional parameters, and Rask's post-render assignment satisfies them — so
-    // CS8618 here is intentional. `required` would clash with the DI ctor (RASK002). Mirrors CodeSample.
+    // CS8618 here is intentional. `required` would clash with the DI-only ctor (no parameterless ctor → RASK002). Mirrors CodeSample.
 #pragma warning disable CS8618
     private readonly IJSRuntime _js;
 

@@ -6,7 +6,8 @@ namespace Rask.Example.Shared.Features;
 // Inject services like HttpClient/Navigator/RouteState through the primary
 // constructor — never as a public settable property. A non-nullable settable
 // property would become a *required* factory parameter the caller has to pass,
-// and required-on-a-property + a DI constructor is the RASK002 warning.
+// and the `required` keyword on a property + a DI-only constructor (no
+// parameterless ctor) is the RASK002 warning.
 public sealed class WeatherCard(HttpClient http) : Component
 {
     private Forecast? _forecast;
@@ -16,8 +17,9 @@ public sealed class WeatherCard(HttpClient http) : Component
     // from DI via ActivatorUtilities, invisible to the caller. City is a
     // non-nullable, no-initializer property, so the generator emits it as a
     // *required* factory parameter (RASK001) — note there's no `required`
-    // keyword: that keyword plus a DI constructor would be RASK002, since
-    // ActivatorUtilities can't satisfy `required` members. Rask assigns City
+    // keyword: that keyword plus a DI-only constructor (no parameterless ctor)
+    // would be RASK002, since ActivatorUtilities can't satisfy `required`
+    // members. Rask assigns City
     // after construction, which the CS8618 suppression acknowledges.
 #pragma warning disable CS8618
     public string City { get; set; }
