@@ -40,6 +40,14 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **The live-session render pipeline is now shared from `Rask.Core`.** A new `LiveSessionBase` owns
+  the render→diff-vs-full→payload build both hosts ran near-identically (`RenderTreeToHtml`,
+  `ConsumeDownload`, `WritePayload`) plus the common state (render cache, diff ops, write buffer,
+  dedup baseline, the IJSRuntime queue) and the `IRenderHandle`/`ILiveJsHost` plumbing. Server's
+  `LiveSession` and WASM's `WasmLiveSession` now extend it, keeping only what genuinely differs —
+  their transport (WebSocket push vs in-process `ApplyRender`), locking, reconnect/dispatch
+  lifecycle, and send-dedup strategy. Internal only — no API or behaviour change (both hosts'
+  full E2E journeys pass unchanged); ~340 lines of duplicate pipeline collapse into one base.
 - **The host JS-interop plumbing is now shared from `Rask.Core`.** The pending IJSRuntime-invoke
   queue (`LiveJsInvokeQueue`), the `BeginInvokeJS` deferral + `[JSInvokable]` result envelope
   (`RaskJSRuntimeBase`), and the after-`applyDiff` dispatch loop (`applyFrameInvokes`, in the shared
