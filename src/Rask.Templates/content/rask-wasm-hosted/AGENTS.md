@@ -26,7 +26,9 @@ https://github.com/pal-tamas/rask/tree/main/docs
 
 ## Routing & lifecycle
 - Route with an attribute: `[Route("/users/{id:int}")]` + `[RouteParam] public int Id { get; set; }`
-  (or `[QueryParam]`). Nested routes: `[ParentRoute(typeof(Parent))]` + `Outlet()`.
+  (or `[QueryParam]`). Nested routes: `[ParentRoute(typeof(Parent))]` + `Outlet()`. `Outlet()` wraps the
+  matched page in an error boundary by default (a page crash stays contained to the outlet; the layout stays
+  live and it clears on navigation) — opt out with `Outlet(DisableErrorBoundary: true)`.
 - Lifecycle hooks: `OnMount`/`OnMountAsync` (once), `OnPropsChanged*` (on bound-prop/route change),
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
 - **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, your own) through the constructor**,

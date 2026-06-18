@@ -378,6 +378,18 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Default outlet boundary: a page that throws during render is contained to the outlet
+        // region — the DefaultErrorPage shows in <main> while the navbar/sidebar stay live — and
+        // the boundary clears automatically on navigation.
+        await SideAsync("Outlet boundary", "Default outlet boundary");
+        await Page.Locator("#outlet-crash-trigger").ClickAsync();
+        await Expect(Page.Locator("main:has-text(\"Something went wrong\")").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".navbar .navbar-brand")).ToContainTextAsync("Rask"); // shell survived
+        // Navigate away → the outlet boundary recovers and the crash content is gone.
+        await SideAsync("Error boundary", "Error boundary");
+        await AssertNoGlobalCrashAsync();
     }
 
     private async Task WalkAuthAndContextPagesAsync()

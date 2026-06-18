@@ -67,10 +67,95 @@ public class OutletTests
         Assert.Equal("<div>first:<span>leaf</span>second:</div>", html);
     }
 
+    [Fact]
+    public void Outlet_ChildRenderThrows_ErrorContainedToOutlet_LayoutStaysLive()
+    {
+        // A child page faults during render. The default per-outlet boundary contains it to
+        // the outlet region: the layout shell (nav) stays live and the DefaultErrorPage
+        // renders in place, instead of the fault bubbling out and replacing everything.
+        var routes = new[]
+        {
+            Route<LayoutWithNav>("/app", new[] { Route<ThrowingLeaf>("boom") })
+        };
+        var (view, state, sp) = BuildView(routes);
+        state.Path = "/app/boom";
+
+        var html = view.RenderAsLiveRoot(sp);
+
+        Assert.Contains("nav:", html, StringComparison.Ordinal);
+        Assert.Contains("rask-error-boundary", html, StringComparison.Ordinal);
+        Assert.Contains("Something went wrong", html, StringComparison.Ordinal);
+        Assert.Contains("boom!", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Outlet_DisableErrorBoundaryTrue_ChildThrowPropagates()
+    {
+        // Opting out lets the fault bubble past the outlet (here, out of the render entirely
+        // since the test root has no RootErrorBoundary) — proving the boundary is off.
+        var routes = new[]
+        {
+            Route<LayoutNoBoundary>("/app", new[] { Route<ThrowingLeaf>("boom") })
+        };
+        var (view, state, sp) = BuildView(routes);
+        state.Path = "/app/boom";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot(sp));
+        Assert.Equal("boom!", ex.Message);
+    }
+
+    [Fact]
+    public void Outlet_BoundaryRecoversOnNavigation_AfterChildCrash()
+    {
+        // The boundary is reused positionally across renders. Without recover-on-nav it would
+        // stay tripped and keep showing the crash over the next (healthy) page. Navigating away
+        // must clear it.
+        var routes = new[]
+        {
+            Route<LayoutWithNav>("/app",
+                new[] { Route<ThrowingLeaf>("boom"), Route<HealthyLeaf>("ok") })
+        };
+        var (view, state, sp) = BuildView(routes);
+
+        state.Path = "/app/boom";
+        var crashed = view.RenderAsLiveRoot(sp);
+        Assert.Contains("rask-error-boundary", crashed, StringComparison.Ordinal);
+
+        state.Path = "/app/ok";
+        var recovered = view.RenderAsLiveRoot(sp);
+
+        Assert.DoesNotContain("rask-error-boundary", recovered, StringComparison.Ordinal);
+        Assert.Contains("ok!", recovered, StringComparison.Ordinal);
+    }
+
     [SkipFactory]
     public sealed class Layout : Component
     {
         protected override RenderResult Render() => Div()["layout:", Outlet()];
+    }
+
+    [SkipFactory]
+    public sealed class HealthyLeaf : Component
+    {
+        protected override RenderResult Render() => Span()["ok!"];
+    }
+
+    [SkipFactory]
+    public sealed class LayoutWithNav : Component
+    {
+        protected override RenderResult Render() => Div()["nav:", Outlet()];
+    }
+
+    [SkipFactory]
+    public sealed class LayoutNoBoundary : Component
+    {
+        protected override RenderResult Render() => Div()["nav:", Outlet(DisableErrorBoundary: true)];
+    }
+
+    [SkipFactory]
+    public sealed class ThrowingLeaf : Component
+    {
+        protected override RenderResult Render() => throw new InvalidOperationException("boom!");
     }
 
     [SkipFactory]

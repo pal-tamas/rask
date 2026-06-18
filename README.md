@@ -731,6 +731,10 @@ ErrorBoundary(
 Without a `Fallback`, the boundary renders a built-in default error page. The `recover` callback passed to the
 fallback is the only reset path.
 
+`Outlet()` wraps every matched page in one of these boundaries **by default**, so a nested page crash is contained
+to the outlet region (the layout stays live) and clears automatically on navigation. Opt out per outlet with
+`Outlet(DisableErrorBoundary: true)`.
+
 </details>
 
 <details>

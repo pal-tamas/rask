@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Per-outlet error boundary by default.** `Outlet()` now wraps the matched child page in an
+  `ErrorBoundary`, so a render-time fault in a nested page is contained to the outlet region — the
+  surrounding layout (nav/sidebar) stays live and the framework `DefaultErrorPage` renders in place,
+  instead of the fault bubbling to the `RootErrorBoundary` and replacing the whole page shell. The
+  boundary recovers automatically on navigation, so a crash on one page never sticks over the next.
+  Opt out per outlet with `Outlet(DisableErrorBoundary: true)`. For in-place retry, keep wrapping the
+  fallible part in an explicit `ErrorBoundary(...)` with a `recover` button. See the
+  [routing guide](docs/routing.md).
 - **Keyboard events on every element.** `Element` now exposes `OnKeyDown` and `OnKeyUp`, the
   focus-scoped counterpart to `OnClick`, wired by both client runtimes (Server WS + WASM) via
   `data-rask-on-keydown` / `data-rask-on-keyup`. A handler takes a parameterless delegate or a typed

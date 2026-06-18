@@ -35,6 +35,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/keyed-lists", "Keyed lists", "bi-key", "Components", null),
         ("/drag-drop", "Drag & drop", "bi-arrows-move", "Components", null),
         ("/boom", "Error boundary", "bi-shield-exclamation", "Components", null),
+        ("/outlet-boundary", "Outlet boundary", "bi-shield-shaded", "Components", null),
         ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms", null),
         ("/validation", "Validation", "bi-shield-check", "Forms", null),
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms", null),

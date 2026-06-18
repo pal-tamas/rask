@@ -155,6 +155,24 @@ every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts
 `Outlet()` must be called inside a `Router()` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
+### Per-outlet error boundary
+
+By default, `Outlet()` wraps the matched child page in an [`ErrorBoundary`](composition.md). If a nested page
+throws during render, the fault is **contained to the outlet region**: the surrounding layout (nav, sidebar) stays
+live and the framework `DefaultErrorPage` renders in the content area — instead of the fault bubbling up to the
+root boundary and replacing the whole page shell. The boundary recovers automatically on navigation, so a crash on
+one page never sticks over the next page rendered into the same outlet.
+
+```csharp
+Main()[Outlet()]                              // default: child faults are contained here
+Main()[Outlet(DisableErrorBoundary: true)]    // opt out: let faults bubble to an outer boundary
+```
+
+The default boundary is a *navigate-away* safety net — it has no in-place retry. When you want the user to retry
+without leaving the page, wrap the fallible part of the page in an explicit `ErrorBoundary(...)` with a `recover`
+callback (see [composition](composition.md)); that inner boundary catches first, so the outlet's boundary only
+sees faults the page didn't handle itself.
+
 ## Programmatic navigation — `Navigator`
 
 `Navigator` is the scoped service for imperative navigation and query mutation. Inject it through the **constructor**
