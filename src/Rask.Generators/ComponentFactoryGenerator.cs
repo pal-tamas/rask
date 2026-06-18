@@ -34,7 +34,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
         "'required' property is incompatible with DI constructor",
-        "Property '{0}.{1}' is marked 'required', but '{0}' has dependency-injected constructor parameters; the generated factory cannot honor 'required' through ActivatorUtilities.CreateInstance. Remove 'required' or remove DI parameters.",
+        "Property '{0}.{1}' is marked 'required', but '{0}'s only constructor takes dependency-injected parameters; with no parameterless constructor the generated factory cannot honor 'required' through ActivatorUtilities.CreateInstance. Remove 'required', add a parameterless constructor, or remove the DI parameters.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
@@ -666,7 +666,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             foreach (var p in c.Properties)
             {
                 var location = MakeLocation(p);
-                if (p.UserMarkedRequired && c.HasDIConstructor)
+                if (p.UserMarkedRequired && c.HasDIConstructor && !c.HasParameterlessCtor)
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(Rask002, location, c.FullyQualifiedName, p.Name));
                 }

@@ -315,6 +315,28 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
+    public void UserMarkedRequiredWithDIAndParameterlessCtor_NoRask002()
+    {
+        // A parameterless ctor lets the factory use the object-initializer path, which
+        // honors `required` — so RASK002 must not fire even though a DI ctor also exists.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public interface IClock { }
+                  public sealed class Widget : Component
+                  {
+                      public Widget() { }
+                      public Widget(IClock clock) { }
+                      public required string Name { get; set; }
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK002");
+    }
+
+    [Fact]
     public void NonNullableNoDefault_RaisesRask001()
     {
         var src = """

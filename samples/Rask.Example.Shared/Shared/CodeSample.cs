@@ -15,7 +15,8 @@ public sealed class CodeSample : Component
 
     // Clipboard interop is injected via the ctor (the framework's DI seam) so Source stays
     // a plain factory parameter — a settable non-nullable service prop would become a
-    // required param and clash with DI (RASK002). Mirrors ElementRefDemo's IJSRuntime ctor.
+    // required param and clash with the DI-only ctor (no parameterless ctor → RASK002).
+    // Mirrors ElementRefDemo's IJSRuntime ctor.
     private readonly IJSRuntime _js;
 
     // A stable ref to the copy button so its scoped JS can flash "Copied!" on the element.

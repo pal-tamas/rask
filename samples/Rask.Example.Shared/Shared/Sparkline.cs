@@ -24,10 +24,10 @@ public sealed class Sparkline : Component
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     // The data series, in chronological order. Non-nullable reference + no initializer ⇒ the
-    // generator emits this as the first required positional factory parameter.
-#pragma warning disable CS8618
-    public IReadOnlyList<double> Values { get; set; }
-#pragma warning restore CS8618
+    // generator emits this as the first required positional factory parameter. Sparkline has no
+    // DI constructor, so we also mark it `required` for language-level enforcement (RASK001's
+    // suggestion) — no CS8618 suppression needed, and no RASK002 since there's a parameterless ctor.
+    public required IReadOnlyList<double> Values { get; set; }
 
     // Optional overrides; the defaults live at the read sites below so they stay out of the
     // generated factory (an initializer would exclude the property entirely).
