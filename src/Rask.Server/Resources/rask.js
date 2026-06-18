@@ -558,13 +558,9 @@
             // Re-scan so newly-added scoped <script>/<link> feed the Rask.* invoke gate.
             scanHeadAssets();
             // Fire-and-forget IJSRuntime invokes ride the diff payload too (e.g. a
-            // scoped-JS OnRenderedAsync hook); drain them via the same dispatchJsInvoke
-            // path the full-HTML branch uses so the per-namespace deferral keeps working.
-            if (Array.isArray(data.jsInvokes)) {
-                for (var ji = 0; ji < data.jsInvokes.length; ji++) {
-                    dispatchJsInvoke(data.jsInvokes[ji]);
-                }
-            }
+            // scoped-JS OnRenderedAsync hook); dispatch them via the shared loop so the
+            // per-namespace deferral inside dispatchJsInvoke keeps working.
+            applyFrameInvokes(data, dispatchJsInvoke);
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         };
         if (typeof data.head === "string") {
@@ -611,11 +607,7 @@
                 }
             }
             applyNavScroll(data.history);
-            if (Array.isArray(data.jsInvokes)) {
-                for (var ji = 0; ji < data.jsInvokes.length; ji++) {
-                    dispatchJsInvoke(data.jsInvokes[ji]);
-                }
-            }
+            applyFrameInvokes(data, dispatchJsInvoke);
             // dotNetResult: reply to a JS-initiated DotNet.invokeMethodAsync call, routed by
             // the DotNet shim's pending-call table to resolve/reject the matching JS Promise.
             if (data.type === "dotNetResult" && typeof data.callId === "string") {

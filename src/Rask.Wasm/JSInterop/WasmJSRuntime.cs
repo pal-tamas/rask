@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
+using Rask.Core.Live;
 
 namespace Rask.Wasm;
 
@@ -25,8 +25,12 @@ namespace Rask.Wasm;
 [UnconditionalSuppressMessage("Trimming", "IL2026",
     Justification = "Forwards TValue's trim annotations from IJSRuntime.InvokeAsync<TValue>. " +
                     "Users must keep their TValue types rooted on WASM.")]
-internal sealed class WasmJSRuntime : JSRuntime
+internal sealed class WasmJSRuntime : RaskJSRuntimeBase
 {
+    // Set once the session exists (it's built after this DI singleton — see WasmLiveSession ctor).
+    // BeginInvokeJS (in the base) queues onto it; WasmLiveSession drains the queue into each frame.
+    private ILiveJsHost? _host;
+
     public WasmJSRuntime()
     {
         // The base JSRuntime's JsonSerializerOptions ships with no TypeInfoResolver,
@@ -41,31 +45,36 @@ internal sealed class WasmJSRuntime : JSRuntime
         JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
     }
 
-    protected override void BeginInvokeJS(
-        long taskId,
-        string identifier,
-        string? argsJson,
-        JSCallResultType resultType,
-        long targetInstanceId)
-    {
-        // Pass through to the JS-side dispatcher. taskId / targetInstanceId travel as
-        // strings to avoid BigInt marshalling on the JS boundary — they're rebuilt as
-        // numbers inside the dispatcher (safe for the values we mint).
+    /// <summary>Bind the session this runtime queues calls onto (called from the session ctor).</summary>
+    public void AttachHost(ILiveJsHost host) => _host = host;
+
+    // The shared base queues calls made DURING a render (e.g. an OnRenderedAsync focus) onto this
+    // host so they ship in the frame and run after applyDiff — the post-commit ordering that makes
+    // WASM focus land like Server. Calls OUTSIDE a render go through DispatchOutsideRender below.
+    protected override ILiveJsHost CurrentHost =>
+        _host ?? throw new InvalidOperationException(
+            "IJSRuntime can only be used within a Rask session scope. " +
+            "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
+            "(OnMountAsync, OnRenderedAsync) or event handler.");
+
+    // Outside a render (a handler awaiting js.InvokeAsync), dispatch immediately through the JSImport
+    // bridge — WASM's long-standing handler-interop path. The result returns via the EndInvokeJSResult
+    // JSExport, completing the awaiting ValueTask without needing a render frame to flush it. taskId /
+    // targetInstanceId travel as strings to dodge BigInt marshalling; the dispatcher rebuilds them.
+    protected override void DispatchOutsideRender(PendingJsInvoke invoke) =>
         JSInterop.BeginInvokeJSImport(
-            taskId.ToString(),
-            identifier,
-            argsJson,
-            (int)resultType,
-            targetInstanceId.ToString());
-    }
+            invoke.TaskId.ToString(),
+            invoke.Identifier,
+            invoke.ArgsJson,
+            invoke.ResultType,
+            invoke.TargetInstanceId.ToString());
 
     protected override void EndInvokeDotNet(
         DotNetInvocationInfo invocationInfo,
         in DotNetInvocationResult invocationResult)
     {
-        // Ship a [JSInvokable] call's result back to the JS-side `DotNet` shim. Mirrors
-        // RaskJSRuntime's wire shape (`type: "dotNetResult"`), encoded as JSON so the
-        // single JSImport signature stays type-stable.
+        // Ship a [JSInvokable] call's result back to the JS-side `DotNet` shim via the dedicated
+        // endDotNetInvoke JSImport — no `type` discriminator needed (unlike the Server's multiplexed WS).
         var payload = BuildDotNetResultJson(
             invocationInfo.CallId,
             invocationResult.Success,
@@ -73,36 +82,6 @@ internal sealed class WasmJSRuntime : JSRuntime
             invocationResult.Success
                 ? null
                 : invocationResult.Exception?.Message ?? "DotNet invocation failed");
-        JSInterop.EndDotNetInvokeImport(payload);
-    }
-
-    private static string BuildDotNetResultJson(string? callId, bool success, string? resultJson, string? error)
-    {
-        using var stream = new MemoryStream(128);
-        using (var writer = new Utf8JsonWriter(stream))
-        {
-            writer.WriteStartObject();
-            if (callId is not null)
-            {
-                writer.WriteString("callId", callId);
-            }
-
-            writer.WriteBoolean("success", success);
-            if (resultJson is not null)
-            {
-                writer.WritePropertyName("result");
-                using var doc = JsonDocument.Parse(resultJson);
-                doc.RootElement.WriteTo(writer);
-            }
-
-            if (error is not null)
-            {
-                writer.WriteString("error", error);
-            }
-
-            writer.WriteEndObject();
-        }
-
-        return Encoding.UTF8.GetString(stream.ToArray());
+        JSInterop.EndDotNetInvokeImport(Encoding.UTF8.GetString(payload));
     }
 }

@@ -509,6 +509,19 @@ function handle(reply) {
     _renderQueue = _renderQueue.then(() => applyFullReply(reply), () => applyFullReply(reply));
 }
 
+// Per-invoke executor for the shared applyFrameInvokes loop (rask-dom.js). A frame's jsInvokes run
+// AFTER applyDiff/morph patched the DOM — so a queued OnRenderedAsync focus acts on the committed
+// DOM (e.g. a <dialog> that just gained its `open` attribute), the same post-commit ordering the
+// Server has. beginInvokeJS runs the call and returns its result via the endInvokeJSResult JSExport.
+function dispatchWasmInvoke(inv) {
+    beginInvokeJS(
+        String(inv.id),
+        inv.identifier,
+        typeof inv.argsJson === "string" ? inv.argsJson : null,
+        typeof inv.resultType === "number" ? inv.resultType : 0,
+        typeof inv.targetInstanceId === "number" ? String(inv.targetInstanceId) : "0");
+}
+
 function applyDiffReply(reply) {
     // The head isn't in the diff frame stream (user Head contributions are collected +
     // spliced render-side), so a head change rides the payload as a <head> fragment.
@@ -525,6 +538,7 @@ function applyDiffReply(reply) {
         // gate, then drain anything now unblocked — the full-HTML morph path does the same.
         scanHeadAssets();
         maybeDrainPendingInvokes();
+        applyFrameInvokes(reply, dispatchWasmInvoke);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
     if (typeof reply.head === "string") {
@@ -569,6 +583,7 @@ function applyFullReply(reply) {
         // <link href="/_rask/a/{hash}.css"> / <script src="/_rask/a/{hash}.js" defer>
         // tags — no payload-side cssText/jsText injection. Browser handles load
         // semantics via standard <link>/<script> lifecycle.
+        applyFrameInvokes(reply, dispatchWasmInvoke);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         if (reply.download) triggerDownload(reply.download);
     };

@@ -10,7 +10,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Wasm;
 
-internal sealed class WasmLiveSession : IRenderHandle, IDisposable
+internal sealed class WasmLiveSession : IRenderHandle, IDisposable, ILiveJsHost
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
@@ -41,6 +41,11 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // serialised the first payload but BEFORE the dispatch returns.
     private bool _pendingRenderInScope;
 
+    // Set by BuildPayloadAsync when the frame it built carries queued IJSRuntime calls. The
+    // publish-render noop guard must NOT drop such a frame even when the HTML is unchanged — the
+    // invokes still need to reach the client (where they run after applyDiff).
+    private bool _lastBuildHadJsInvokes;
+
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by this session as a whole,
     // not by any one async chain. AsyncLocal would flow into Timer/Task captures created during a
     // render — those captured ExecutionContexts would later report InHandlerScope=true forever,
@@ -56,11 +61,17 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
     // Default path (DisabledFull) pays nothing for these.
     private SessionRenderCache? _renderCache;
 
+    // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
+    // applyDiff (same post-commit ordering as the Server). Shared queue type across both hosts.
+    public LiveJsInvokeQueue JsInvokes { get; } = new();
+
     public WasmLiveSession(Component view, IServiceProvider services)
     {
         View = view;
         Services = services;
         view.RenderHandle = this;
+        // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
+        (services.GetService<WasmJSRuntime>())?.AttachHost(this);
         // Forward the handle to the inner App when wrapped in a RootErrorBoundary so its
         // StateHasChanged() reaches the session even before the first GetOrCreate would
         // otherwise lazily attach it.
@@ -157,6 +168,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // and now — most visibly the `.hljs` class hljs added during the
             // previous frame's dispatch. Skip such frames entirely.
             if (publishOnly
+                && !_lastBuildHadJsInvokes
                 && _lastAppliedHtml is not null
                 && string.Equals(html, _lastAppliedHtml, StringComparison.Ordinal))
             {
@@ -471,6 +483,13 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             download = pd;
         }
 
+        // Drain IJSRuntime calls queued during the render walk (e.g. an OnRenderedAsync focus). They
+        // ride this frame's jsInvokes and the client runs them AFTER applyDiff, so they act on the
+        // committed DOM — the same post-commit ordering the Server has. _lastBuildHadJsInvokes lets
+        // the caller's noop guards know this frame must ship even if the HTML is unchanged.
+        var jsInvokes = JsInvokes.Drain();
+        _lastBuildHadJsInvokes = jsInvokes is not null;
+
         _writeBuffer.ResetWrittenCount();
 
         // Decide payload shape. The diff path fires only when the flag is opted in,
@@ -508,7 +527,8 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
                 && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
             {
                 var headHtml = headChanged ? LiveDiffGate.ExtractHead(html) : null;
-                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, headHtml: headHtml);
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace,
+                    jsInvokes: jsInvokes, headHtml: headHtml);
                 var diffBytes = _writeBuffer.WrittenCount;
 
                 // Same rule as the server: ship the diff whenever it isn't larger than
@@ -536,7 +556,7 @@ internal sealed class WasmLiveSession : IRenderHandle, IDisposable
             // ToArray at the end is still needed today because the JS interop boundary
             // marshals byte[] (PR6 will swap that for ReadOnlyMemory<byte>).
             LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, "wasm", historyUrl, replace,
-                null, download);
+                null, download, jsInvokes);
             // Only Snapshot when TryComputeDiff was NOT called (it would have rotated) AND we
             // own the commit (commitCache). When commitCache is false the coalescing loop
             // commits once after it settles, so rotating here would strand the baseline.
