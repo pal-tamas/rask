@@ -89,11 +89,15 @@ Auto-wrapped delegates are excluded from the `propsChanged` diff — changing on
 lambda identity between renders does not refire `OnPropsChanged`.
 
 **DOM events on elements.** `Element` exposes handler props the client runtime binds to real
-DOM events: `OnClick` (on `Button`/`Div`/…), `OnScroll` (`Action<ScrollEvent>`), the drag hooks
-(`OnDragStart`/`OnDragOver`/`OnDrop`/`OnDragEnd`), and the keyboard pair **`OnKeyDown` / `OnKeyUp`**.
-A key handler takes a parameterless delegate (`Action` / `Func<Task>`) or a typed
-`Action<KeyboardEventArgs>` / `Func<KeyboardEventArgs, Task>`; `KeyboardEventArgs` carries `Key`
-(`"Escape"`), `Code` (`"KeyA"`), the `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, and `Repeat`. Like
+DOM events. Every one ships a **typed sync + async pair** — a synchronous `OnXxx` and an
+asynchronous `OnXxxAsync` (`Func<…, Task>`) — the same convention as `OnClick` / `OnClickAsync`;
+set at most one per event. The set: `OnClick` (on `Button`/`Div`/…), `OnScroll` /
+`OnScrollAsync` (`Action<ScrollEvent>` / `Func<ScrollEvent, Task>`), the drag hooks
+(`OnDragStart`/`OnDragOver`/`OnDrop`/`OnDragEnd`, each `Action` + `…Async` `Func<Task>`), and the
+keyboard pairs **`OnKeyDown` / `OnKeyDownAsync`** and **`OnKeyUp` / `OnKeyUpAsync`**.
+A key handler takes `Action<KeyboardEventArgs>` (or `Func<KeyboardEventArgs, Task>` for the async
+sibling); `KeyboardEventArgs` carries `Key` (`"Escape"`), `Code` (`"KeyA"`), the
+`Shift`/`Ctrl`/`Alt`/`Meta` modifiers, and `Repeat`. Like
 click, a key event is **focus-scoped** — it fires only while the element (or a descendant) holds
 focus — and the runtime never `preventDefault`s it, so handlers compose with normal typing. The
 Todos sample uses it to close its dialog on Escape (it focuses the `<dialog>` on open via an

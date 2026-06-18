@@ -6,10 +6,10 @@ namespace Rask.Core.DragAndDrop;
 // current-drag state (SourceZone/IsDropTarget/...) to style its own markup, and wires the
 // returned delegates onto the elements it draws:
 //
-//   DragStart(zone, index) -> Element.OnDragStart   (begins a drag from that item)
-//   DragOver(zone, index)  -> Element.OnDragOver     (optional: live drop-target highlight)
-//   Drop(zone, index)      -> Element.OnDrop         (commits the move, fires OnDrop callback)
-//   DragEnd                -> Element.OnDragEnd       (clears the drag if it ended without a drop)
+//   DragStart(zone, index) -> Element.OnDragStart    (begins a drag from that item)
+//   DragOver(zone, index)  -> Element.OnDragOver      (optional: live drop-target highlight)
+//   Drop(zone, index)      -> Element.OnDropAsync     (commits the move, fires OnDrop callback)
+//   DragEnd                -> Element.OnDragEnd        (clears the drag if it ended without a drop)
 //
 // The delegates close over the DragDrop instance (stable across renders — it's cached by
 // position), so a handler created in one render still mutates the live primitive when it fires
@@ -48,10 +48,9 @@ public sealed class DragDropContext
 
     public Action DragOver(string zone, int index) => () => _owner.HoverTarget(zone, index);
 
-    // Returns an Action when only the sync OnDrop is set, or a Func<Task> when OnDropAsync is
-    // set — the Element.OnDrop slot is typed as Delegate? and the dispatcher routes either.
-    public Delegate Drop(string zone, int index) =>
-        _owner.HasAsyncDrop
-            ? (Func<Task>)(() => _owner.CommitDropAsync(zone, index))
-            : (Action)(() => _owner.CommitDrop(zone, index));
+    // Always async: wire to Element.OnDropAsync. CommitDropAsync routes to whichever drop handler
+    // (sync OnDrop or async OnDropAsync) the DragDrop primitive holds, so a sync consumer still
+    // works — the context can't know the consumer's choice at the call site, so it always returns
+    // a Func<Task> and the (rare) sync commit completes synchronously inside it.
+    public Func<Task> Drop(string zone, int index) => () => _owner.CommitDropAsync(zone, index);
 }
