@@ -56,33 +56,173 @@ public abstract class Element : Component
     // Native HTML5 drag-and-drop, available on every element. `Draggable` emits draggable="true"
     // (nullable so it stays an optional factory param — Blazor-parity with the other HTML attrs);
     // the four handlers bind the dragstart/dragover/drop/dragend DOM events to parameterless C#
-    // delegates (Action or Func<Task>), wired by the client runtime via data-rask-on-drag*. The
-    // dragged item's identity is carried by the handler's closure, not the event payload — see
-    // the headless DragDrop primitive (DragDrop.cs) and the DragDropContext it hands consumers.
+    // delegates, wired by the client runtime via data-rask-on-drag*. Each event ships a sync
+    // `OnXxx` (Action) and an async `OnXxxAsync` (Func<Task>) sibling — the typed-pair convention
+    // shared with OnClick/OnClickAsync; set at most one per event (sync wins if both are set). The
+    // dragged item's identity is carried by the handler's closure, not the event payload — see the
+    // headless DragDrop primitive (DragDrop.cs) and the DragDropContext it hands consumers. Storage
+    // is hoisted into the lazy LiveState (like Ref/Role/Aria) so an element that wires no drag
+    // handler keeps `_live` null and pays no per-instance footprint.
     public bool? Draggable { get; set; }
-    public Delegate? OnDragStart { get; set; }
-    public Delegate? OnDragOver { get; set; }
-    public Delegate? OnDrop { get; set; }
-    public Delegate? OnDragEnd { get; set; }
+
+    // Each drag event has a single backing slot (kept as a direct Element field — drag is rare but
+    // pre-existing, and a direct field avoids growing the per-render LiveState that the
+    // allocation-pin tests guard). The sync `OnXxx` (Action) and async `OnXxxAsync` (Func<Task>)
+    // properties are two typed views over that slot, distinguished by delegate type: a setter only
+    // clears the slot when it currently holds *its own* kind, so the generated factory re-applying
+    // both (one null) every render can't clobber the handler the caller actually set. Set at most
+    // one per event.
+    private Delegate? _onDragStart;
+    private Delegate? _onDragOver;
+    private Delegate? _onDrop;
+    private Delegate? _onDragEnd;
+
+    public Action? OnDragStart
+    {
+        get => _onDragStart as Action;
+        set => SetSync(ref _onDragStart, value);
+    }
+
+    public Func<Task>? OnDragStartAsync
+    {
+        get => _onDragStart as Func<Task>;
+        set => SetAsync(ref _onDragStart, value);
+    }
+
+    public Action? OnDragOver
+    {
+        get => _onDragOver as Action;
+        set => SetSync(ref _onDragOver, value);
+    }
+
+    public Func<Task>? OnDragOverAsync
+    {
+        get => _onDragOver as Func<Task>;
+        set => SetAsync(ref _onDragOver, value);
+    }
+
+    public Action? OnDrop
+    {
+        get => _onDrop as Action;
+        set => SetSync(ref _onDrop, value);
+    }
+
+    public Func<Task>? OnDropAsync
+    {
+        get => _onDrop as Func<Task>;
+        set => SetAsync(ref _onDrop, value);
+    }
+
+    public Action? OnDragEnd
+    {
+        get => _onDragEnd as Action;
+        set => SetSync(ref _onDragEnd, value);
+    }
+
+    public Func<Task>? OnDragEndAsync
+    {
+        get => _onDragEnd as Func<Task>;
+        set => SetAsync(ref _onDragEnd, value);
+    }
 
     // Keyboard events, available on every element (a key event needs the element — or a descendant
     // — focused, the same focus-scoped model as click). Bound by the client runtime via
-    // data-rask-on-keydown / data-rask-on-keyup. Each accepts a parameterless delegate (Action /
-    // Func<Task>) or a typed one (Action<KeyboardEventArgs> / Func<KeyboardEventArgs, Task>); the
+    // data-rask-on-keydown / data-rask-on-keyup. Each ships a sync `OnXxx`
+    // (Action<KeyboardEventArgs>) and an async `OnXxxAsync` (Func<KeyboardEventArgs, Task>) sibling
+    // coalesced over a single LiveState slot by delegate type (like the drag pairs above); the
     // dispatcher unpacks the {key, code, modifiers, repeat} payload into a KeyboardEventArgs. The
     // client never preventDefaults a key event, so handlers compose with normal typing. Storage is
     // hoisted into the lazy LiveState (like Ref/Role/Aria) so an element with no key handler keeps
     // `_live` null and pays no per-instance footprint — see OnKeyDownInternal/OnKeyUpInternal.
-    public Delegate? OnKeyDown
+    public Action<KeyboardEventArgs>? OnKeyDown
     {
-        get => OnKeyDownInternal;
-        set => OnKeyDownInternal = value;
+        get => OnKeyDownInternal as Action<KeyboardEventArgs>;
+        set
+        {
+            if (value is not null)
+            {
+                OnKeyDownInternal = value;
+            }
+            else if (OnKeyDownInternal is Action<KeyboardEventArgs>)
+            {
+                OnKeyDownInternal = null;
+            }
+        }
     }
 
-    public Delegate? OnKeyUp
+    public Func<KeyboardEventArgs, Task>? OnKeyDownAsync
     {
-        get => OnKeyUpInternal;
-        set => OnKeyUpInternal = value;
+        get => OnKeyDownInternal as Func<KeyboardEventArgs, Task>;
+        set
+        {
+            if (value is not null)
+            {
+                OnKeyDownInternal = value;
+            }
+            else if (OnKeyDownInternal is Func<KeyboardEventArgs, Task>)
+            {
+                OnKeyDownInternal = null;
+            }
+        }
+    }
+
+    public Action<KeyboardEventArgs>? OnKeyUp
+    {
+        get => OnKeyUpInternal as Action<KeyboardEventArgs>;
+        set
+        {
+            if (value is not null)
+            {
+                OnKeyUpInternal = value;
+            }
+            else if (OnKeyUpInternal is Action<KeyboardEventArgs>)
+            {
+                OnKeyUpInternal = null;
+            }
+        }
+    }
+
+    public Func<KeyboardEventArgs, Task>? OnKeyUpAsync
+    {
+        get => OnKeyUpInternal as Func<KeyboardEventArgs, Task>;
+        set
+        {
+            if (value is not null)
+            {
+                OnKeyUpInternal = value;
+            }
+            else if (OnKeyUpInternal is Func<KeyboardEventArgs, Task>)
+            {
+                OnKeyUpInternal = null;
+            }
+        }
+    }
+
+    // Shared coalescing helpers for the drag handler pairs: a non-null value always wins; a null
+    // only clears the slot when it currently holds the same kind (sync Action vs async Func<Task>),
+    // so re-applying the unset sibling never wipes the handler the caller set.
+    private static void SetSync(ref Delegate? slot, Action? value)
+    {
+        if (value is not null)
+        {
+            slot = value;
+        }
+        else if (slot is Action)
+        {
+            slot = null;
+        }
+    }
+
+    private static void SetAsync(ref Delegate? slot, Func<Task>? value)
+    {
+        if (value is not null)
+        {
+            slot = value;
+        }
+        else if (slot is Func<Task>)
+        {
+            slot = null;
+        }
     }
 
     // Subclasses transform the `class` attribute value without re-implementing the universal
@@ -151,34 +291,36 @@ public abstract class Element : Component
 
         if (LiveRenderContext.CurrentSync is { } ctx)
         {
-            if (OnDragStart is not null)
+            // Each event reads its single backing slot (holding the sync or async delegate the
+            // caller set); the dispatcher routes Action vs Func<Task> by the delegate's runtime type.
+            if (_onDragStart is not null)
             {
-                AppendAttr(sb, "data-rask-on-dragstart", ctx.RegisterHandler(OnDragStart));
+                AppendAttr(sb, "data-rask-on-dragstart", ctx.RegisterHandler(_onDragStart));
             }
 
-            if (OnDragOver is not null)
+            if (_onDragOver is not null)
             {
-                AppendAttr(sb, "data-rask-on-dragover", ctx.RegisterHandler(OnDragOver));
+                AppendAttr(sb, "data-rask-on-dragover", ctx.RegisterHandler(_onDragOver));
             }
 
-            if (OnDrop is not null)
+            if (_onDrop is not null)
             {
-                AppendAttr(sb, "data-rask-on-drop", ctx.RegisterHandler(OnDrop));
+                AppendAttr(sb, "data-rask-on-drop", ctx.RegisterHandler(_onDrop));
             }
 
-            if (OnDragEnd is not null)
+            if (_onDragEnd is not null)
             {
-                AppendAttr(sb, "data-rask-on-dragend", ctx.RegisterHandler(OnDragEnd));
+                AppendAttr(sb, "data-rask-on-dragend", ctx.RegisterHandler(_onDragEnd));
             }
 
-            if (OnKeyDown is not null)
+            if (OnKeyDownInternal is { } keyDown)
             {
-                AppendAttr(sb, "data-rask-on-keydown", ctx.RegisterHandler(OnKeyDown));
+                AppendAttr(sb, "data-rask-on-keydown", ctx.RegisterHandler(keyDown));
             }
 
-            if (OnKeyUp is not null)
+            if (OnKeyUpInternal is { } keyUp)
             {
-                AppendAttr(sb, "data-rask-on-keyup", ctx.RegisterHandler(OnKeyUp));
+                AppendAttr(sb, "data-rask-on-keyup", ctx.RegisterHandler(keyUp));
             }
         }
 
