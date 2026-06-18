@@ -613,11 +613,13 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         await Expect(Page.Locator(".todo-backdrop")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
-        // Escape closes the dialog: OnKeyDown on the <dialog> routes Escape to cancel. Focus the
-        // title field first (a real interaction) so the keydown has a target inside the dialog —
-        // this exercises the framework keyboard primitive without depending on the sample's
-        // focus-on-open timing, which is instant on Server but races the runtime boot on WASM.
-        await Page.Locator("#todo-title").ClickAsync();
+        // The dialog auto-focuses on open (OnRenderedAsync → ElementRef.FocusAsync), so the
+        // keyboard primitive works with no prior click. This is deterministic on both hosts: the
+        // focus helper retries on the next frame, so a focus issued during a render (before the
+        // DOM patch on WASM) still lands once the <dialog> gains its `open` attribute.
+        await Expect(Page.Locator("dialog[open]")).ToBeFocusedAsync(
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+        // Escape closes the focused dialog: OnKeyDown on the <dialog> routes Escape to cancel.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });

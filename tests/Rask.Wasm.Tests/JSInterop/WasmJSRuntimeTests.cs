@@ -3,13 +3,13 @@ using Microsoft.JSInterop;
 
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
-// Exercises the WASM IJSRuntime round-trip via the non-browser test seam in
-// Rask.Wasm.JSInterop: BeginInvokeJS calls are recorded as LastBeginInvokeJsCall,
-// and EndInvokeJSResult routes a synthesized [taskId, success, result|error]
-// triple back through DotNetDispatcher.EndInvokeJS — the same code path the
-// real JSExport calls in a browser. Tests in this class share the JSInterop
-// static singleton (_runtime), so the class runs sequentially under xunit's
-// default per-class collection.
+// Exercises the WASM IJSRuntime round-trip via the non-browser test seam. A call made OUTSIDE a
+// render (this test's scenario) dispatches immediately through the JSImport bridge — recorded as
+// LastBeginInvokeJsCall — and EndInvokeJSResult routes a synthesized [taskId, success, result|error]
+// triple back through DotNetDispatcher.EndInvokeJS, the same path the real JSExport calls in a
+// browser. (Calls made DURING a render queue onto the session frame instead — see the shared
+// RaskJSRuntimeBase; that post-commit path is covered end-to-end by the WASM E2E journey.) Tests
+// share the JSInterop static singleton (_runtime), so the class runs sequentially.
 public sealed class WasmJSRuntimeTests
 {
     [Fact]
