@@ -613,6 +613,20 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         await Expect(Page.Locator(".todo-backdrop")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+        // Escape closes the dialog: OnKeyDown on the <dialog> routes Escape to cancel. Focus the
+        // title field first (a real interaction) so the keydown has a target inside the dialog —
+        // this exercises the framework keyboard primitive without depending on the sample's
+        // focus-on-open timing, which is instant on Server but races the runtime boot on WASM.
+        await Page.Locator("#todo-title").ClickAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        // Reopen, then dismiss via a backdrop click.
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
         // Click a corner — the backdrop's centre is covered by the centered dialog.
         await Page.Locator(".todo-backdrop").ClickAsync(
             new LocatorClickOptions { Position = new Position { X = 8, Y = 8 } });

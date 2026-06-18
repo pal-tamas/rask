@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Keyboard events on every element.** `Element` now exposes `OnKeyDown` and `OnKeyUp`, the
+  focus-scoped counterpart to `OnClick`, wired by both client runtimes (Server WS + WASM) via
+  `data-rask-on-keydown` / `data-rask-on-keyup`. A handler takes a parameterless delegate or a typed
+  `Action<KeyboardEventArgs>` / `Func<KeyboardEventArgs, Task>`; the new `KeyboardEventArgs` record
+  carries `Key`, `Code`, the `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, and `Repeat`. The runtime never
+  `preventDefault`s a key event, so handlers compose with normal typing, and the handler storage is
+  hoisted into the lazy `LiveState` so an element with no key handler keeps its zero per-instance
+  footprint. The `/todos` sample now closes its dialog on **Escape** (focusing the `<dialog>` on
+  open via an `ElementRef`). See the [composition guide](docs/composition.md).
 - **Accessibility primitives on every element.** A new `Aria` parameter — a `string → string?`
   dictionary modelled on the existing `Data` (`data-*`) bag — renders each entry as
   `aria-{key}="{value}"`, so the full WAI-ARIA vocabulary is reachable without a typed property per

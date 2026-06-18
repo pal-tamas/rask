@@ -251,6 +251,33 @@ public abstract class Component
         }
     }
 
+    // Backing store for Element.OnKeyDown/OnKeyUp, hoisted into the lazy LiveState for the same
+    // reason as Ref/Role/Aria: keyboard handlers are opt-in and rare, so a plain element keeps
+    // `_live` null and adds zero per-instance footprint (the allocation-pin tests enforce this).
+    internal Delegate? OnKeyDownInternal
+    {
+        get => _live?.OnKeyDown;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.OnKeyDown = value;
+            }
+        }
+    }
+
+    internal Delegate? OnKeyUpInternal
+    {
+        get => _live?.OnKeyUp;
+        set
+        {
+            if (value is not null || _live is not null)
+            {
+                Live.OnKeyUp = value;
+            }
+        }
+    }
+
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
     ///     Cancelled exactly once when the component is unmounted (navigation away, parent
@@ -915,6 +942,14 @@ public abstract class Component
                     await InvokeWithRenderingAsync(() => f(scroll)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
+                case Action<KeyboardEventArgs> a:
+                    a(KeyboardEventArgs.FromJson(payload));
+                    return true;
+                case Func<KeyboardEventArgs, Task> f:
+                    var key = KeyboardEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => f(key)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
                 case Action<IReadOnlyList<RaskFile>> a:
                 {
                     var files = FileListReader.Read(payload);
@@ -1315,6 +1350,8 @@ public abstract class Component
         public string? Role;
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
+        public Delegate? OnKeyDown;
+        public Delegate? OnKeyUp;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;

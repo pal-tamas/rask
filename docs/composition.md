@@ -88,6 +88,17 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnPropsChanged`.
 
+**DOM events on elements.** `Element` exposes handler props the client runtime binds to real
+DOM events: `OnClick` (on `Button`/`Div`/…), `OnScroll` (`Action<ScrollEvent>`), the drag hooks
+(`OnDragStart`/`OnDragOver`/`OnDrop`/`OnDragEnd`), and the keyboard pair **`OnKeyDown` / `OnKeyUp`**.
+A key handler takes a parameterless delegate (`Action` / `Func<Task>`) or a typed
+`Action<KeyboardEventArgs>` / `Func<KeyboardEventArgs, Task>`; `KeyboardEventArgs` carries `Key`
+(`"Escape"`), `Code` (`"KeyA"`), the `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, and `Repeat`. Like
+click, a key event is **focus-scoped** — it fires only while the element (or a descendant) holds
+focus — and the runtime never `preventDefault`s it, so handlers compose with normal typing. The
+Todos sample uses it to close its dialog on Escape (it focuses the `<dialog>` on open via an
+`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
+
 ---
 
 ## Context: provide / consume
