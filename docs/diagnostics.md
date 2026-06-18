@@ -56,13 +56,16 @@ to stay ergonomic. See [factory generation rules](getting-started.md).
 ## RASK002
 **`required` property is incompatible with a DI constructor** · Warning
 
-A property is marked `required`, but the component has dependency-injected constructor parameters.
-The factory builds the component with `ActivatorUtilities.CreateInstance`, which can't satisfy a
-`required` member, so the requirement can't be honoured.
+A property is marked `required`, but the component's only constructor takes dependency-injected
+parameters. With no parameterless constructor available, the factory builds the component with
+`ActivatorUtilities.CreateInstance`, which can't satisfy a `required` member, so the requirement
+can't be honoured. (Adding a parameterless constructor lets the factory use the object-initializer
+path, which does honour `required` — so this warning does not fire in that case.)
 
-**Fix:** remove `required`, **or** move the value to a constructor parameter, **or** drop the DI
-constructor. Framework services (`RouteState`, `Navigator`, `HttpClient`, `IJSRuntime`) should come
-through the constructor, never as settable properties.
+**Fix:** remove `required`, **or** move the value to a constructor parameter, **or** add a
+parameterless constructor, **or** drop the DI constructor. Framework services (`RouteState`,
+`Navigator`, `HttpClient`, `IJSRuntime`) should come through the constructor, never as settable
+properties.
 
 ## RASK003
 **Malformed route template** · Error

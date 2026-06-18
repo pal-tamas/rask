@@ -59,11 +59,10 @@ public sealed class LiveTicker : Component
     private CancellationTokenSource? _wake;
 
     // Required factory parameter — properties with an initializer are excluded
-    // by the generator, but we want callers to pass Symbol explicitly. Same
-    // pattern as CodeSample.Source (CodeSample.cs:17).
-#pragma warning disable CS8618
-    public string Symbol { get; set; }
-#pragma warning restore CS8618
+    // by the generator, but we want callers to pass Symbol explicitly. LiveTicker
+    // has no DI constructor (unlike CodeSample), so we mark it `required` for
+    // language-level enforcement — no CS8618 suppression and no RASK002.
+    public required string Symbol { get; set; }
 
     // Nullable so the generator emits Interval as an optional factory parameter
     // (default null). Callers — production pages and unit tests alike — pass an
