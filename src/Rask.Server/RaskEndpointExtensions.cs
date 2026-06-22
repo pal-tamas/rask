@@ -67,6 +67,16 @@ public static class RaskEndpointExtensions
     // queue (and retained memory) without limit. 512 is far above any legitimate burst. 0 = off.
     internal static int MaxPendingHandlers = 512;
 
+    // Maximum inbound WS messages per second on a single connection before the receive loop trips
+    // and closes the socket. MaxInboundFrameBytes bounds one frame's SIZE and MaxPendingHandlers
+    // bounds queued HANDLER dispatches, but neither bounds the rate of small NON-handler frames
+    // (jsResult / navigate / dotNetInvoke / malformed), each of which still costs a JSON parse — so
+    // a flood of them is a CPU DoS those caps miss. Counted over a sliding one-second window. A
+    // realistic interaction peak (rapid typing with per-keystroke handlers, a 60 Hz scroll handler)
+    // is well under 100/s, so 1000 is far above any legitimate burst. Mutable static so a test can
+    // lower it; not a public knob — operators tune ingress with a reverse-proxy rate limiter. 0 = off.
+    internal static int MaxInboundFramesPerSecond = 1000;
+
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
@@ -540,6 +550,10 @@ public static class RaskEndpointExtensions
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
 
+        // Sliding one-second window for the inbound frame-rate cap (MaxInboundFramesPerSecond).
+        var rateWindowStartTick = Environment.TickCount64;
+        var framesInWindow = 0;
+
         try
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
@@ -592,6 +606,35 @@ public static class RaskEndpointExtensions
                     } while (!result.EndOfMessage);
 
                     payload = message.WrittenMemory;
+                }
+
+                // Inbound frame-rate cap: count every completed receive over a sliding one-second
+                // window and close the socket on a flood, before the per-frame parse below. Bounds
+                // a small-frame CPU DoS that the size cap and handler backpressure don't cover. The
+                // client reconnects (hello) against the intact session and resumes from current
+                // state, same as the handler-backlog breaker.
+                if (MaxInboundFramesPerSecond > 0)
+                {
+                    var nowTick = Environment.TickCount64;
+                    if (nowTick - rateWindowStartTick >= 1000)
+                    {
+                        rateWindowStartTick = nowTick;
+                        framesInWindow = 0;
+                    }
+
+                    if (++framesInWindow > MaxInboundFramesPerSecond)
+                    {
+                        using var rateCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                        try
+                        {
+                            await ws.CloseAsync(
+                                    WebSocketCloseStatus.PolicyViolation, "frame rate", rateCts.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch { }
+
+                        break;
+                    }
                 }
 
                 if (payload.Length == 0)
