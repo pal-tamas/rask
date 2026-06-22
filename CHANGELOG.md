@@ -105,6 +105,19 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **Reconnect catch-up frame could be dropped on weak memory models.** The Server `LiveSession`
+  socket handoff sets two flags (`_forceResend`, `_renderRequestedWhileDetached`) before publishing
+  the new socket, relying on "publish the socket last" so a concurrent background render sees the
+  flags before the socket. Only `_forceResend` was `volatile`; `_socket` and
+  `_renderRequestedWhileDetached` were plain fields, so the intended store ordering held on x86 (TSO)
+  but not on weaker models such as ARM64, where a render could observe the fresh socket yet miss the
+  resend flags and skip the reconnect recovery frame. Both are now `volatile`, giving the publish its
+  release/acquire semantics across all architectures.
+- **A fault while failing pending JS invokes no longer masks the real send error.** When a WebSocket
+  send throws with queued `IJSRuntime` invokes in flight, `LiveSession` faults those awaiting tasks
+  locally before rethrowing. That cleanup is now wrapped so a throw inside it (e.g. an unavailable
+  runtime) is logged rather than propagated in place of the meaningful send exception — matching the
+  method's documented best-effort contract and ensuring the original error reaches the caller.
 - **RASK002 now catches the two cases where a parameterless ctor does *not* rescue a `required`
   property.** The previous narrowing (only warn when no parameterless ctor exists) had two gaps.
   First, a `required` property that *also* carries a member initializer is excluded from the factory
