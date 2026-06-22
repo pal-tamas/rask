@@ -63,6 +63,10 @@ public class UploadDownloadEndpointTests
         Assert.Equal(bytes, content);
         Assert.Equal("text/plain", first.Content.Headers.ContentType?.MediaType);
         Assert.Contains("attachment", first.Content.Headers.ContentDisposition?.ToString() ?? "");
+        // The staged content-type is attacker-influenceable (echoed from the upload), so the
+        // download must forbid MIME sniffing alongside forcing an attachment download.
+        Assert.True(first.Headers.TryGetValues("X-Content-Type-Options", out var nosniff));
+        Assert.Equal("nosniff", nosniff.Single());
 
         // One-shot: a second fetch returns 404.
         var second = await host.Http.GetAsync(url);

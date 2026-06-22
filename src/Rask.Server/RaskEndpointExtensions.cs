@@ -1546,6 +1546,10 @@ public static class RaskEndpointExtensions
         {
             ctx.Response.ContentType = entry.ContentType;
             ctx.Response.Headers.CacheControl = "no-store";
+            // The content-type is supplied by whoever staged the download (often echoed from a
+            // client upload), so forbid MIME sniffing: paired with the attachment disposition below
+            // it keeps a mislabelled file from being sniffed into an inline-rendered HTML/script.
+            ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
             var disposition = $"attachment; filename=\"{Uri.EscapeDataString(entry.Filename)}\"";
             ctx.Response.Headers["Content-Disposition"] = disposition;
 

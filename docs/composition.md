@@ -24,6 +24,13 @@ Div(Class: "card")[
 ]
 ```
 
+> **Keys must be unique among siblings.** `Key:` is the reconciliation identity the live diff
+> uses to move a row instead of rebuilding it. If two siblings share a key, keyed
+> reconciliation can't tell them apart, so the diff falls back to a positional walk that may
+> attach a row's DOM state (focus, input value, scroll) to the wrong sibling on reorder. The
+> diff codec writes a one-time `data-rask-key="…"` warning to standard error when it detects a
+> duplicate — treat it as a bug to fix, not noise.
+
 `Fragment()` renders its children with **no wrapping element** — use it for a list of
 siblings, or as the conditional "render nothing" branch:
 
