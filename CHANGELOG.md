@@ -220,6 +220,13 @@ them until tagged releases begin.
   components whatever the host OS, strips control/NUL characters, caps the length at 255, and falls back
   to `file` for empty / path-dot inputs) as defence in depth. The returned `name` is still
   attacker-controlled and must be HTML-encoded by hosts before display — never bound into `Raw`.
+- **Content Security Policy guidance.** The [authentication guide](docs/authentication.md#content-security-policy)
+  now documents how to run Rask under a strict CSP. Rask's runtime is built for it — the runtime script
+  and scoped assets are external (`<script src>` / `<link>`, no inline JS), and events bind via
+  `data-rask-on-*` + `addEventListener` — so `script-src 'self'` suffices (add `'wasm-unsafe-eval'` on
+  the WASM host); only `style-src` needs `'unsafe-inline'` for the inline `style=""` the `Style:`
+  parameter emits, and the same-origin live WebSocket is covered by `connect-src 'self'`. Includes a
+  copy-paste middleware baseline and a new security-checklist item.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
