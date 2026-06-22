@@ -58,8 +58,10 @@ public abstract class Component
     // ops (Insert/Remove/Move) instead of a positional full-HTML morph. `object?` so callers
     // pass a Guid/int/string directly; stringified on emit. Nullable + no initializer ⇒ the
     // factory generator exposes it as an optional `Key:` parameter on every factory.
-    // NOTE: keyed insert/append during a navigation currently renders the new row with wrong
-    // content (a known framework bug); delete/move/in-place keyed edits are correct.
+    // Keyed insert/append/delete/move/in-place edits are all correct, including when the
+    // structural change rides a navigation diff (the inserted row's HTML fragment is sliced from
+    // post-head-splice HTML via offsets that RenderAsLiveRootCore keeps in lockstep — see
+    // FrameWriter.AdjustOffsetsFrom and KeyedInsertNavTests).
     public object? Key { get; set; }
 
     private object? _cachedKeyValue;
