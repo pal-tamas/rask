@@ -220,6 +220,12 @@ them until tagged releases begin.
   components whatever the host OS, strips control/NUL characters, caps the length at 255, and falls back
   to `file` for empty / path-dot inputs) as defence in depth. The returned `name` is still
   attacker-controlled and must be HTML-encoded by hosts before display — never bound into `Raw`.
+- **WASM sign-out now guards against open redirects.** `WasmAuthSignIn.SignOutAsync` SPA-navigated to
+  its `returnUrl` argument verbatim — commonly a `?returnUrl=` query value an attacker can shape — so a
+  crafted value (`//evil.com`, `https://evil.com`, a `\`-prefixed variant) could redirect the user
+  off-origin after logout. It now passes `returnUrl` through the shared `LocalUrl.Sanitize` rule (the
+  same open-redirect guard the server sign-in path already applies at dispatch), collapsing anything
+  non-local to `/` before navigating.
 - **Content Security Policy guidance.** The [authentication guide](docs/authentication.md#content-security-policy)
   now documents how to run Rask under a strict CSP. Rask's runtime is built for it — the runtime script
   and scoped assets are external (`<script src>` / `<link>`, no inline JS), and events bind via
