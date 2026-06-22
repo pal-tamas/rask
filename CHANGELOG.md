@@ -139,6 +139,15 @@ them until tagged releases begin.
   call sites from `Virtualize<T>(…)` to `VirtualizeModel<T>(…)`; behaviour is unchanged. The
   `Rask.Core.Virtualization` support types keep their names.
 
+### Security
+- **Suppressed the unactionable `SQLitePCLRaw.lib.e_sqlite3` audit advisory (`GHSA-2m69-gcr7-jv3q`).**
+  The native SQLite package arrives transitively through the latest `Microsoft.EntityFrameworkCore.Sqlite`
+  (used only by the `Rask.Example.EfCore` sample); the whole SQLitePCLRaw family tops out at `2.1.11`
+  and the advisory reports no patched version, so the solution-wide NuGet audit (run as
+  warnings-as-errors) failed `restore` for every job. A scoped `NuGetAuditSuppress` for this single
+  advisory unblocks the build while leaving audit active for everything else; it is annotated to be
+  removed once a patched SQLitePCLRaw family ships.
+
 ## [0.9.0] - 2026-06-16
 
 ### Added
