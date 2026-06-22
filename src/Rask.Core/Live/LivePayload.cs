@@ -22,6 +22,14 @@ public static class LivePayload
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
+    // Per-thread scratch for the attribute-name symbol table (see BuildPayloadUtf8Diff). The diff
+    // build is synchronous and non-reentrant, so a single attribute-heavy session reuses these
+    // across renders instead of reallocating the count map every frame; concurrent sessions on
+    // other threads get their own copies. Bounded by the largest attribute-name set a thread sees.
+    [ThreadStatic] private static Dictionary<string, int>? _nameCountScratch;
+    [ThreadStatic] private static Dictionary<string, int>? _nameIndexScratch;
+    [ThreadStatic] private static List<string>? _internedNamesScratch;
+
     public static string InjectRootAttr(string html, string sessionId)
     {
         // Linear scan for the first "<body" (case-insensitive). Faster than a compiled regex
@@ -263,28 +271,30 @@ public static class LivePayload
         // the duplicate name to a single integer per op (~1.2 KB saved); small diffs
         // pay no extra envelope.
         Dictionary<string, int>? nameIndex = null;
-        Dictionary<string, int>? nameCount = null;
-        for (var i = 0; i < ops.Count; i++)
-        {
-            var op = ops[i];
-            if (op.Name is null)
-            {
-                continue;
-            }
-
-            if (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute)
-            {
-                continue;
-            }
-
-            nameCount ??= new Dictionary<string, int>(StringComparer.Ordinal);
-            nameCount.TryGetValue(op.Name, out var c);
-            nameCount[op.Name] = c + 1;
-        }
-
         List<string>? internedNames = null;
-        if (nameCount is not null)
+
+        // A name can only reach the 3+ interning break-even across at least 3 attribute ops, so a
+        // diff with fewer than 3 ops can never intern — skip the whole symbol-table pass (its
+        // allocation and two loops) for the common small update. Larger diffs reuse per-thread
+        // scratch collections so an attribute-heavy steady-state render doesn't reallocate the
+        // count map (and, in a burst, the index map + names list) every frame.
+        if (ops.Count >= 3)
         {
+            var nameCount = _nameCountScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
+            nameCount.Clear();
+            for (var i = 0; i < ops.Count; i++)
+            {
+                var op = ops[i];
+                if (op.Name is null
+                    || (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute))
+                {
+                    continue;
+                }
+
+                nameCount.TryGetValue(op.Name, out var c);
+                nameCount[op.Name] = c + 1;
+            }
+
             foreach (var kv in nameCount)
             {
                 if (kv.Value < 3)
@@ -292,9 +302,15 @@ public static class LivePayload
                     continue;
                 }
 
-                nameIndex ??= new Dictionary<string, int>(StringComparer.Ordinal);
-                internedNames ??= new List<string>();
-                nameIndex[kv.Key] = internedNames.Count;
+                if (nameIndex is null)
+                {
+                    nameIndex = _nameIndexScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
+                    internedNames = _internedNamesScratch ??= new List<string>();
+                    nameIndex.Clear();
+                    internedNames.Clear();
+                }
+
+                nameIndex[kv.Key] = internedNames!.Count;
                 internedNames.Add(kv.Key);
             }
         }
