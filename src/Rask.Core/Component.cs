@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Components;
@@ -365,6 +366,25 @@ public abstract class Component
         }
     }
 
+    // Integer-valued attribute (e.g. tabindex). Formats the value straight into the builder via
+    // a stack buffer, so the no-frames render path allocates nothing — int.ToString() would
+    // allocate a string per element on every render. An int's text is always HTML-safe (digits
+    // plus an optional leading minus), so it skips the encode pass.
+    protected static void AppendAttr(StringBuilder sb, string name, int value)
+    {
+        sb.Append(' ').Append(name).Append("=\"");
+        Span<char> buffer = stackalloc char[12]; // int.MinValue is 11 chars; 12 always fits.
+        _ = value.TryFormat(buffer, out var written, provider: CultureInfo.InvariantCulture);
+        sb.Append(buffer[..written]);
+        sb.Append('"');
+
+        if (FrameSinkScope.Current is { } fw)
+        {
+            // Allocate the value string only when a frame writer is active.
+            fw.Attribute(name, value.ToString(CultureInfo.InvariantCulture));
+        }
+    }
+
     // URL-bearing attribute (href/cite/action and iframe/script/object sources). Scheme is
     // sanitized by default — javascript:/vbscript:/data: are neutralized to about:blank — to
     // close the DOM-XSS hole that plain HTML-encoding leaves open. Wrap a trusted value in
@@ -519,6 +539,24 @@ public abstract class Component
             comp.Live.StateDirty = true;
             _ = handle.RequestPublishRenderAsync();
         }, this, TaskContinuationOptions.ExecuteSynchronously);
+    }
+
+    // One-shot guard for the unmount → cancel → dispose teardown. A tree mutation inside an
+    // OnUnmount hook (e.g. clearing PersistedChildren, or re-parenting) can leave a node
+    // reachable from more than one dispose pass; without this guard that node would fire
+    // OnUnmount and the user's Dispose twice. Returns true exactly once. The lifetime CTS is
+    // already idempotent (DisposeLifetimeToken nulls it via Interlocked, Cancel swallows ODE);
+    // this protects the user-visible lifecycle hooks. Disposal runs under the session render
+    // lock, so a plain flag is sufficient — same threading contract as IsUnmounted.
+    internal bool TryBeginDispose()
+    {
+        if (Live.IsDisposed)
+        {
+            return false;
+        }
+
+        Live.IsDisposed = true;
+        return true;
     }
 
     internal void CancelLifetimeToken()
@@ -1360,6 +1398,7 @@ public abstract class Component
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
         public bool HasInitialized;
         public bool HasRenderedOnce;
+        public bool IsDisposed;
         public bool IsUnmounted;
         public int NextHandlerId;
         public Dictionary<Component, Component>? ParentMap;

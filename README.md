@@ -621,7 +621,7 @@ public sealed class UserPage : Component
 NavLink(UserPage(id: 42))["View user"];
 ```
 
-Inside event handlers, navigate via the scoped `Navigator` service: `nav.Navigate(HomePage())`,
+Inside event handlers, navigate via the scoped `Navigator` service: `nav.NavigateTo(HomePage())`,
 `nav.SetQuery("tab", "settings")`, etc. Inject it through the constructor like any other service.
 
 Mark a component `[NotFound]` to register it as the catch-all 404 page; the framework falls back to a minimal

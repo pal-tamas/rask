@@ -34,6 +34,59 @@ public class UnmountTests
     }
 
     [Fact]
+    public void DisposeComponentTree_CalledTwice_TearsDownOnlyOnce()
+    {
+        // A tree mutation inside an OnUnmount hook could route the same node through a second
+        // dispose pass. The one-shot guard (Component.TryBeginDispose) must keep OnUnmount and
+        // the user's Dispose firing exactly once even when DisposeComponentTree is re-entered.
+        var disposeCount = 0;
+        var c = new CountingDisposable(() => disposeCount++);
+        c.RaiseLifecycleBeforeRender(true);
+
+        ComponentLifecycle.DisposeComponentTree(c);
+        ComponentLifecycle.DisposeComponentTree(c);
+
+        Assert.Equal(1, c.UnmountCount);
+        Assert.Equal(1, disposeCount);
+    }
+
+    [Fact]
+    public async Task DisposeComponentTreeAsync_CalledTwice_TearsDownOnlyOnce()
+    {
+        var disposeCount = 0;
+        var c = new CountingDisposable(() => disposeCount++);
+        c.RaiseLifecycleBeforeRender(true);
+
+        await ComponentLifecycle.DisposeComponentTreeAsync(c);
+        await ComponentLifecycle.DisposeComponentTreeAsync(c);
+
+        Assert.Equal(1, c.UnmountCount);
+        Assert.Equal(1, disposeCount);
+    }
+
+    [Fact]
+    public void DisposeComponentTree_ChildClearedDuringParentUnmount_NotDisposedTwice()
+    {
+        // The parent's OnUnmount mutates its own persisted children (a realistic teardown
+        // pattern). The child was already disposed bottom-up before the parent's hook ran, so
+        // re-touching it must not re-run its OnUnmount / Dispose — the guard absorbs it.
+        var sp = RenderHarness.EmptyServices();
+        var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        var childDisposeCount = 0;
+        var child = new CountingDisposable(() => childDisposeCount++);
+        var host = new ClearChildrenOnUnmountHost(child);
+        var session = new LiveSession("test", host, scope);
+
+        host.IncludeChild = true;
+        session.View.RenderAsLiveRoot(scope.ServiceProvider);
+
+        session.Dispose();
+
+        Assert.Equal(1, child.UnmountCount);
+        Assert.Equal(1, childDisposeCount);
+    }
+
+    [Fact]
     public void OnUnmount_DoesNotFire_IfNeverMounted()
     {
         // A component created but never reaching RaiseLifecycleBeforeRender must not receive
@@ -243,6 +296,40 @@ public class UnmountTests
         ComponentLifecycle.DisposeComponentTree(c);
 
         Assert.Equal(new[] { "unmount", "cancel-callback" }, order);
+    }
+
+    private sealed class CountingDisposable : Component, IDisposable
+    {
+        private readonly Action _onDispose;
+        public int UnmountCount;
+        public CountingDisposable(Action onDispose) => _onDispose = onDispose;
+        public void Dispose() => _onDispose();
+        protected override void OnUnmount() => UnmountCount++;
+        protected override RenderResult Render() => Span();
+    }
+
+    // Re-disposes its already-disposed child from its own OnUnmount, mimicking a teardown that
+    // mutates the tree mid-unmount. The one-shot guard must absorb the second pass.
+    private sealed class ClearChildrenOnUnmountHost : Component
+    {
+        private readonly Component _child;
+        public bool IncludeChild;
+        public ClearChildrenOnUnmountHost(Component child) => _child = child;
+
+        protected override void OnUnmount() => ComponentLifecycle.DisposeComponentTree(_child);
+
+        protected override RenderResult Render()
+        {
+            if (!IncludeChild)
+            {
+                return Span();
+            }
+
+            var ctx = LiveRenderContext.Current!;
+            var c = ctx.GetOrCreate(_ => _child);
+            ctx.NotifyParameters(c, true);
+            return c;
+        }
     }
 
     private sealed class TokenObservingUnmount : Component

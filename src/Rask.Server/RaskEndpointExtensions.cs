@@ -513,6 +513,21 @@ public static class RaskEndpointExtensions
         }
     }
 
+    // Parse an inbound WS frame, returning null on malformed JSON instead of throwing.
+    // Keeps the receive loop alive across a single bad frame (see call site).
+    private static JsonDocument? SafeParse(ReadOnlyMemory<byte> payload)
+    {
+        try
+        {
+            return JsonDocument.Parse(payload);
+        }
+        catch (JsonException ex)
+        {
+            Console.Error.WriteLine($"Rask Live: dropped malformed WS frame ({ex.Message})");
+            return null;
+        }
+    }
+
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, ClaimsPrincipal wsUser,
         CancellationToken ct, CancellationToken stopping)
     {
@@ -584,8 +599,26 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                using var doc = JsonDocument.Parse(payload);
+                // A malformed frame must not tear down the session. The receive loop's only
+                // catches are OperationCanceledException / WebSocketException, so an unguarded
+                // JsonException here would propagate to the finally and detach the socket —
+                // letting one bad (buggy or adversarial) frame drop the whole live session.
+                // Skip it and keep serving; the size cap above still bounds memory.
+                using var doc = SafeParse(payload);
+                if (doc is null)
+                {
+                    continue;
+                }
+
                 var root = doc.RootElement;
+
+                // A valid-JSON but non-object root (a bare array / number / string) would make the
+                // TryGetProperty calls below throw InvalidOperationException — another way one bad
+                // frame could tear the session down. Skip it like a malformed frame.
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
                 var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
                     ? t.GetString()
                     : null;

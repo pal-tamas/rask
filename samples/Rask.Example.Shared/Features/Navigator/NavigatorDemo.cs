@@ -9,7 +9,7 @@ public sealed class NavigatorDemo(Navigator nav) : Component
     protected override RenderResult Render() =>
         Div(Class: "d-flex flex-column gap-2")[
             Button(
-                OnClick: () => nav.Navigate("/dashboard"))["Open dashboard"],
+                OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
             Select(

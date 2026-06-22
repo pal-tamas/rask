@@ -49,6 +49,11 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
+  (`RouteUrl`, `string` path, and `string` path + query) now read as `nav.NavigateTo(...)` at the
+  call site, matching the `NavigateTo` convention. This is a breaking API change with no compatibility
+  shim — update call sites accordingly. The `SetQuery`/`RemoveQuery`/`ClearQuery`/`Download` members
+  are unchanged.
 - **RASK002 no longer fires when a parameterless constructor is available.** The "`required`
   property is incompatible with a DI constructor" warning now only triggers when the component's
   *only* constructor takes dependency-injected parameters (no parameterless ctor). With a
@@ -93,6 +98,34 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **RASK002 now catches the two cases where a parameterless ctor does *not* rescue a `required`
+  property.** The previous narrowing (only warn when no parameterless ctor exists) had two gaps.
+  First, a `required` property that *also* carries a member initializer is excluded from the factory
+  parameters, so the object-initializer path never assigns it — the consumer build failed with a
+  cryptic `CS9035` inside generated code and no diagnostic; RASK002 now fires for this combination.
+  Second, the diagnostic message, `docs/diagnostics.md`, and the `/components` showcase all
+  recommended "add a parameterless constructor" as a fix — but doing so while keeping the DI
+  constructor makes the factory build the component with `new C()` and silently skip the DI ctor,
+  leaving injected services `null` at render time (a runtime `NullReferenceException` in place of the
+  former compile-time nudge). The guidance now warns against that trap and points to dropping the DI
+  constructor or moving the value to a constructor parameter instead.
+- **A single malformed WebSocket frame no longer tears down the live session.** The Server receive
+  loop parsed each inbound frame with an unguarded `JsonDocument.Parse`, and a valid-JSON-but-non-object
+  root (a bare array/number/string) reached `TryGetProperty`, which throws on non-objects — either way
+  the exception escaped the loop's `OperationCanceledException` / `WebSocketException` catches, detached
+  the socket and scheduled the session for removal. One buggy or adversarial frame could drop a whole
+  session. Such frames are now dropped (logged once) and the loop keeps serving; the existing 8 MB
+  inbound-frame cap still bounds memory.
+- **Component teardown is now strictly one-shot.** A tree mutation inside an `OnUnmount` hook (clearing
+  persisted children, re-parenting) could route a node through a second dispose pass, firing `OnUnmount`
+  and the user's `Dispose()` twice. `DisposeComponentTree`/`DisposeComponentTreeAsync` now guard on a
+  per-component flag so the unmount → cancel → dispose sequence runs exactly once. (The lifetime
+  `CancellationTokenSource` was already idempotent.)
+- **The deferred-session-removal task can no longer surface an unobserved `ObjectDisposedException`.**
+  A reconnect or a reschedule that disposed the pending-removal `CancellationTokenSource` while the
+  delayed task was about to read `cts.Token` produced an exception the `OperationCanceledException`
+  catch missed. The token is now captured before the task starts and `ObjectDisposedException` is
+  handled, so an obsolete removal exits cleanly without orphaning the session.
 - **WASM now runs `IJSRuntime` calls issued *during* a render after the DOM is patched, matching
   Server.** Interop from a lifecycle hook — e.g. `OnRenderedAsync` focusing a dialog as it opens —
   used to dispatch immediately on WASM, *before* that render's DOM patch, so a `focus()` could hit a
@@ -166,6 +199,19 @@ them until tagged releases begin.
   risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
   host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
   legitimate same-origin WebSocket handshakes are rejected with `403`.
+
+### Performance
+- **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
+  `Element.WriteAttributes` iterated the `Data` and `Aria` bags through the
+  `IReadOnlyDictionary<,>` interface, boxing an enumerator on every render of an attribute-bearing
+  element, and formatted `TabIndex` with `int.ToString()`, allocating a string per element. The bags
+  now take a `Dictionary<,>` struct-enumerator fast path (the common `new() { … }` literal), and
+  `TabIndex` formats straight into the pooled `StringBuilder` via a new integer `AppendAttr` overload
+  (zero allocation on the no-frame-sink path). Measured on the render benchmarks (M-class, ShortRun):
+  a 1,000-row data-rich tree dropped **661 KB → 552 KB** allocated (−16.5%), and a 1,000-row
+  a11y-rich tree (`Aria` + `Role` + `TabIndex`) **808 KB → 677 KB** (−16%); small/medium trees −25–30%.
+  No change to rendered output or the documented attribute order. New `AccessibilityAttributesBenchmarks`
+  locks in the a11y path.
 
 ## [0.9.0] - 2026-06-16
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 
@@ -256,17 +255,9 @@ public abstract class Element : Component
 
         if (Data is not null)
         {
-            foreach (var kv in Data)
-            {
-                // A literal Data["rask-key"] is superseded by an effective Key to avoid a
-                // duplicate attribute — Key is the canonical API; Data stays for back-compat.
-                if (key is not null && string.Equals(kv.Key, "rask-key", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                AppendAttr(sb, "data-", kv.Key, kv.Value);
-            }
+            // A literal Data["rask-key"] is superseded by an effective Key to avoid a duplicate
+            // attribute — Key is the canonical API; Data stays for back-compat.
+            AppendPrefixedAttrs(sb, "data-", Data, key is not null ? "rask-key" : null);
         }
 
         if (key is not null)
@@ -332,16 +323,43 @@ public abstract class Element : Component
             AppendAttr(sb, "role", Role);
         }
 
-        if (TabIndex is not null)
+        if (TabIndex is { } tabIndex)
         {
-            AppendAttr(sb, "tabindex", TabIndex.Value.ToString(CultureInfo.InvariantCulture));
+            AppendAttr(sb, "tabindex", tabIndex);
         }
 
         if (Aria is not null)
         {
-            foreach (var kv in Aria)
+            AppendPrefixedAttrs(sb, "aria-", Aria, skipKey: null);
+        }
+    }
+
+    // Emit each entry of a data-*/aria-* bag as "{prefix}{key}=\"{value}\"". Iterating a concrete
+    // Dictionary<,> uses its struct enumerator (no allocation); foreach over the
+    // IReadOnlyDictionary interface instead boxes an enumerator on every render of an element that
+    // carries a Data or Aria bag — the common literal (`new() { ... }`) is a Dictionary, so it
+    // takes the fast path. `skipKey`, when set, drops one entry (Data["rask-key"] superseded by Key).
+    private static void AppendPrefixedAttrs(StringBuilder sb, string prefix,
+        IReadOnlyDictionary<string, string?> map, string? skipKey)
+    {
+        if (map is Dictionary<string, string?> dict)
+        {
+            foreach (var kv in dict)
             {
-                AppendAttr(sb, "aria-", kv.Key, kv.Value);
+                if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                {
+                    AppendAttr(sb, prefix, kv.Key, kv.Value);
+                }
+            }
+        }
+        else
+        {
+            foreach (var kv in map)
+            {
+                if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
+                {
+                    AppendAttr(sb, prefix, kv.Key, kv.Value);
+                }
             }
         }
     }
