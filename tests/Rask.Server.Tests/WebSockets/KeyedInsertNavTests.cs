@@ -15,8 +15,15 @@ public class KeyedInsertNavTests
 {
     public KeyedInsertNavTests() => LiveOptions.DiffMode = LiveDiffMode.Forced;
 
-    [Fact]
-    public async Task KeyedInsertDuringNavigation_ShipsCorrectRowHtml()
+    // The keyed list is seeded [10,20,30]; navigating inserts a row at the head, middle, or tail.
+    // Every position rides the same post-head-splice HTML-slice path, so all three must ship the
+    // complete, correctly-sliced <li> — the row-content regression had to be checked at each slot,
+    // not just the tail append the original test covered.
+    [Theory]
+    [InlineData("/add-head", 5)]
+    [InlineData("/add-mid", 15)]
+    [InlineData("/add-tail", 40)]
+    public async Task KeyedInsertDuringNavigation_ShipsCorrectRowHtml(string path, int key)
     {
         await using var fixture = await ConnectedSession.Connect<KeyedNavApp>();
 
@@ -24,15 +31,15 @@ public class KeyedInsertNavTests
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/list", query = "" });
         _ = await DrainAll(fixture.Ws);
 
-        // Navigate to /add: the RouteState.Changed handler appends keyed item 3 — the keyed
+        // Navigate: the RouteState.Changed handler inserts the keyed item — the keyed
         // InsertSubtree rides this navigation diff.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/add", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path, query = "" });
         var frames = await DrainAll(fixture.Ws);
 
         var insert = FindInsertSubtree(frames);
         Assert.NotNull(insert);
         // The fragment must be the complete, correctly-sliced <li> — not garbled bytes.
-        Assert.Equal("<li class=\"row\" data-rask-key=\"3\">item 3</li>", insert);
+        Assert.Equal($"<li class=\"row\" data-rask-key=\"{key}\">item {key}</li>", insert);
     }
 
     // Walk every shipped diff frame; return the HTML payload of the first InsertSubtree op
