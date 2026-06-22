@@ -36,11 +36,11 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
     // so typing in the dialog input won't clobber what the user just typed.
     protected override void OnPropsChanged() => _form.Title = EditingItem?.Title ?? "";
 
-    private void OpenAdd() => nav.Navigate("/todos/new");
+    private void OpenAdd() => nav.NavigateTo("/todos/new");
 
-    private void OpenEdit(TodoItem item) => nav.Navigate($"/todos/{item.Id}/edit");
+    private void OpenEdit(TodoItem item) => nav.NavigateTo($"/todos/{item.Id}/edit");
 
-    private void Cancel() => nav.Navigate("/todos");
+    private void Cancel() => nav.NavigateTo("/todos");
 
     private void Save(TodoForm m)
     {
@@ -54,7 +54,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
             item.Title = title;
         }
 
-        nav.Navigate("/todos");
+        nav.NavigateTo("/todos");
     }
 
     private void Delete(TodoItem item) => _todos.Remove(item);

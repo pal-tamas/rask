@@ -16,7 +16,7 @@ public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
         Div(Class: "d-flex gap-2 mt-3")[
             Button(
                 Class: "btn btn-primary",
-                OnClick: () => nav.Navigate("/"))[I(Class: "bi bi-house me-2"), "Back to welcome"]
+                OnClick: () => nav.NavigateTo("/"))[I(Class: "bi bi-house me-2"), "Back to welcome"]
         ]
     ];
 }

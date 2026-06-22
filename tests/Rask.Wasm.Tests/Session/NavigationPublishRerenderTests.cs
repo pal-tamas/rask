@@ -5,7 +5,7 @@ using Rask.Wasm.Tests.Infrastructure;
 
 namespace Rask.Wasm.Tests.Session;
 
-// Regression: when a handler that calls Navigator.Navigate(...) also triggers
+// Regression: when a handler that calls Navigator.NavigateTo(...) also triggers
 // a publish-render rebuild within the same dispatch (LiveTicker's
 // OnRenderedAsync → Chart.js-draw continuation is the canonical case), the
 // final payload must still carry the history.url. The prior
@@ -29,7 +29,7 @@ public class NavigationPublishRerenderTests : ResettingTestBase
         Assert.NotEmpty(result);
         using var doc = JsonDocument.Parse(result.AsMemory());
 
-        // The handler called nav.Navigate("/destination") → the payload must
+        // The handler called nav.NavigateTo("/destination") → the payload must
         // surface a `history.url` field even though the publish-render rebuild
         // ran. Pre-fix this assertion failed because the rebuild dropped
         // historyUrl on the floor.

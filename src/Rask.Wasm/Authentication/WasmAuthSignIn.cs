@@ -24,6 +24,6 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
     {
         await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
         await userProvider.RefreshAsync().ConfigureAwait(false);
-        navigator.Navigate(returnUrl ?? "/");
+        navigator.NavigateTo(returnUrl ?? "/");
     }
 }

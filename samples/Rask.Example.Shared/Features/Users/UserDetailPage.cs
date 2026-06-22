@@ -39,13 +39,13 @@ public sealed class UserDetailPage(Navigator nav) : Component
         Div(Class: "btn-group mb-3")[
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/users/1"))["User #1"],
+                OnClick: () => nav.NavigateTo("/users/1"))["User #1"],
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/users/42"))["#42"],
+                OnClick: () => nav.NavigateTo("/users/42"))["#42"],
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/users/137"))["#137"]
+                OnClick: () => nav.NavigateTo("/users/137"))["#137"]
         ],
         Div()[
             Button(
