@@ -82,7 +82,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         if (!resp.IsSuccessStatusCode) return false;
         await users.RefreshAsync();
         // Open-redirect guard: an attacker-supplied returnUrl must never navigate off-origin.
-        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
+        nav.NavigateTo(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 
@@ -90,7 +90,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
     {
         await http.PostAsync("auth/logout", null);
         // Navigate first (still in the handler scope), then clear the principal.
-        nav.Navigate("/login");
+        nav.NavigateTo("/login");
         await users.RefreshAsync();
     }
 }

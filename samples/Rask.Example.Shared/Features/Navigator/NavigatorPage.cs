@@ -51,13 +51,13 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
         Div(Class: "d-flex flex-wrap gap-2 mb-4")[
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
-                "Navigate(\"/navigator\")"],
+                OnClick: () => nav.NavigateTo("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
+                "NavigateTo(\"/navigator\")"],
             Button(
                 Class: "btn btn-outline-primary btn-sm",
                 OnClick: () =>
-                    nav.Navigate("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[
-                I(Class: "bi bi-arrow-up-right me-1"), "Navigate(path, query)"]
+                    nav.NavigateTo("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[
+                I(Class: "bi bi-arrow-up-right me-1"), "NavigateTo(path, query)"]
         ],
         Div(Class: "alert alert-info d-flex align-items-start")[
             I(Class: "bi bi-info-circle-fill me-3 fs-4"),

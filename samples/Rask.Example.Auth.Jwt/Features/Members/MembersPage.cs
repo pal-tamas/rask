@@ -38,6 +38,6 @@ public sealed class MemberContent(ProtectedSessionStorage store, SessionUserProv
     {
         await store.DeleteAsync("rask.jwt");
         users.Clear();
-        nav.Navigate("/login");
+        nav.NavigateTo("/login");
     }
 }

@@ -74,7 +74,7 @@ public sealed class HomePage(Navigator nav) : Component
                 Div(Class: "d-flex flex-wrap gap-2")[
                     Button(
                         Class: "btn btn-light btn-lg fw-semibold",
-                        OnClick: () => nav.Navigate("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                        OnClick: () => nav.NavigateTo("/tags"))[I(Class: "bi bi-arrow-right me-2"),
                         "Start with Tags"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
@@ -130,7 +130,7 @@ public sealed class HomePage(Navigator nav) : Component
                     P(Class: "text-secondary small mb-3")[body],
                     Button(
                         Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                        OnClick: () => nav.Navigate(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
+                        OnClick: () => nav.NavigateTo(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
                 ]
             ]
         ];

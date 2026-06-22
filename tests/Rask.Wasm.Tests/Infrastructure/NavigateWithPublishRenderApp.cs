@@ -6,7 +6,7 @@ using static Rask.Core.Components.Generated;
 
 namespace Rask.Wasm.Tests.Infrastructure;
 
-// Reproduces the LiveTicker shape: a click handler calls Navigator.Navigate
+// Reproduces the LiveTicker shape: a click handler calls Navigator.NavigateTo
 // AND a child component's render calls StateHasChanged() inside the dispatch.
 // That second call lands in WasmLiveSession.RequestRenderInternalAsync while
 // InHandlerScope=true, sets _pendingRenderInScope, and forces
@@ -42,7 +42,7 @@ internal sealed class NavigateWithPublishRenderApp : Component
                 Head()[Title()["nav-pub"]],
                 Body()[
                     Div()[$"path={_routeState.Path}"],
-                    Button(OnClick: () => _nav.Navigate("/destination"))["go"]
+                    Button(OnClick: () => _nav.NavigateTo("/destination"))["go"]
                 ]
             ]];
     }

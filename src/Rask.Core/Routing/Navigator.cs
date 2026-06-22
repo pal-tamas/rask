@@ -33,7 +33,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     ///     Back-button stop).
     /// </param>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
-    public void Navigate(RouteUrl url, bool replace = false)
+    public void NavigateTo(RouteUrl url, bool replace = false)
     {
         EnsureInHandler();
         routeState.Path = url.Path;
@@ -51,7 +51,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     /// <param name="path">Target path (e.g. <c>"/users/42"</c>).</param>
     /// <param name="replace"><c>true</c> replaces the current history entry instead of pushing.</param>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
-    public void Navigate(string path, bool replace = false)
+    public void NavigateTo(string path, bool replace = false)
     {
         EnsureInHandler();
         ArgumentNullException.ThrowIfNull(path);
@@ -70,7 +70,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     /// <param name="query">The complete new query string as key/value pairs.</param>
     /// <param name="replace"><c>true</c> replaces the current history entry instead of pushing.</param>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
-    public void Navigate(string path, IEnumerable<KeyValuePair<string, string?>> query, bool replace = false)
+    public void NavigateTo(string path, IEnumerable<KeyValuePair<string, string?>> query, bool replace = false)
     {
         EnsureInHandler();
         ArgumentNullException.ThrowIfNull(path);
@@ -201,7 +201,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     internal IDisposable EnterHandler()
     {
         // Clear any navigation a prior handler queued but never consumed — e.g. it called
-        // Navigate(...) and then threw before TryConsumeHistory ran. Resetting on entry (rather
+        // NavigateTo(...) and then threw before TryConsumeHistory ran. Resetting on entry (rather
         // than on scope dispose) starts each dispatch clean so a faulted handler can't leak its
         // pending nav (and _replace flag) into the next one, while still allowing the caller to
         // consume the navigation after the scope disposes.

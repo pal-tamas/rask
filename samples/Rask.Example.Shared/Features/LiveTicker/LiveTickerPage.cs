@@ -82,7 +82,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 ? "btn btn-primary btn-sm"
                 : "btn btn-outline-primary btn-sm",
             Id: $"ticker-switch-{symbol}",
-            OnClick: () => nav.Navigate($"/realtime/{symbol}"))[symbol];
+            OnClick: () => nav.NavigateTo($"/realtime/{symbol}"))[symbol];
 
     private void AppendLog(string entry)
     {

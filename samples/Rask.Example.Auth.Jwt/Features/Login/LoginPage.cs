@@ -59,6 +59,6 @@ public sealed class LoginPage(
             users.Set(principal);
         }
 
-        nav.Navigate("/members");
+        nav.NavigateTo("/members");
     }
 }
