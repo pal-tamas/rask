@@ -214,14 +214,26 @@ public sealed class LiveSessionStore : IAsyncDisposable
             }
         }
 
+        // Capture the token here, on the calling thread, while this CTS is freshly created and
+        // provably not disposed. Reading cts.Token *inside* the task instead would race a
+        // concurrent CancelPendingRemoval / retire that disposes this CTS first — the getter
+        // then throws ObjectDisposedException, which the OperationCanceledException catch below
+        // would miss, surfacing as an unobserved task exception.
+        var token = cts.Token;
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(delay, cts.Token).ConfigureAwait(false);
+                await Task.Delay(delay, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                // The CTS was retired (a newer ScheduleRemoval) or cancelled and disposed
+                // concurrently. Either way this removal is obsolete — the owning thread handles it.
                 return;
             }
 

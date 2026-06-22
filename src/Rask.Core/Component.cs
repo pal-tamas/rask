@@ -521,6 +521,24 @@ public abstract class Component
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }
 
+    // One-shot guard for the unmount → cancel → dispose teardown. A tree mutation inside an
+    // OnUnmount hook (e.g. clearing PersistedChildren, or re-parenting) can leave a node
+    // reachable from more than one dispose pass; without this guard that node would fire
+    // OnUnmount and the user's Dispose twice. Returns true exactly once. The lifetime CTS is
+    // already idempotent (DisposeLifetimeToken nulls it via Interlocked, Cancel swallows ODE);
+    // this protects the user-visible lifecycle hooks. Disposal runs under the session render
+    // lock, so a plain flag is sufficient — same threading contract as IsUnmounted.
+    internal bool TryBeginDispose()
+    {
+        if (Live.IsDisposed)
+        {
+            return false;
+        }
+
+        Live.IsDisposed = true;
+        return true;
+    }
+
     internal void CancelLifetimeToken()
     {
         var cts = Volatile.Read(ref _lifetimeCts);
@@ -1360,6 +1378,7 @@ public abstract class Component
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;
         public bool HasInitialized;
         public bool HasRenderedOnce;
+        public bool IsDisposed;
         public bool IsUnmounted;
         public int NextHandlerId;
         public Dictionary<Component, Component>? ParentMap;

@@ -72,36 +72,36 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task MalformedJson_PayloadCausesSessionToBeRemoved()
+    public async Task MalformedJson_IsDropped_SessionSurvivesAndKeepsDispatching()
     {
-        var prev = RaskEndpointExtensions.SessionGracePeriod;
-        RaskEndpointExtensions.SessionGracePeriod = TimeSpan.FromMilliseconds(50);
-        try
-        {
-            using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        // A single malformed frame must NOT tear down the live session. Previously the
+        // unguarded JsonDocument.Parse threw JsonException out of the receive loop, detaching
+        // the socket and scheduling the session for removal — one bad (buggy or adversarial)
+        // frame dropped the whole session. Now it is dropped and the loop keeps serving.
+        using var host = RaskTestHost.Create<TestApp>();
+        var initial = await host.Http.GetAsync("/start");
+        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var sessionId = Markup.SessionId(initialHtml);
+        var handlerId = Markup.FirstHandlerId(initialHtml);
 
-            using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            Assert.Equal(1, host.Store.Count);
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(1, host.Store.Count);
 
-            var bytes = Encoding.UTF8.GetBytes("{not-json");
-            await ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
+        var bytes = Encoding.UTF8.GetBytes("{not-json");
+        await ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
 
-            // Socket loop tears down on JsonException; the session is then scheduled for removal.
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-            while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(20);
-            }
+        // No teardown: the socket stays open, the session is not removed, and a subsequent
+        // valid handler frame still dispatches and renders.
+        await ws.SendJsonAsync(new { id = handlerId });
+        var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            Assert.Equal(0, host.Store.Count);
-        }
-        finally
-        {
-            RaskEndpointExtensions.SessionGracePeriod = prev;
-        }
+        Assert.NotNull(text);
+        using var doc = JsonDocument.Parse(text!);
+        Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
+        Assert.Equal(WebSocketState.Open, ws.State);
+        Assert.Equal(1, host.Store.Count);
     }
 
     [Fact]
