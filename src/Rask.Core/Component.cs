@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Components;
@@ -362,6 +363,25 @@ public abstract class Component
             // Only allocate the concatenated name when a frame writer is active. The
             // common no-frames path stays zero-allocation.
             fw.Attribute(namePrefix + nameSuffix, value);
+        }
+    }
+
+    // Integer-valued attribute (e.g. tabindex). Formats the value straight into the builder via
+    // a stack buffer, so the no-frames render path allocates nothing — int.ToString() would
+    // allocate a string per element on every render. An int's text is always HTML-safe (digits
+    // plus an optional leading minus), so it skips the encode pass.
+    protected static void AppendAttr(StringBuilder sb, string name, int value)
+    {
+        sb.Append(' ').Append(name).Append("=\"");
+        Span<char> buffer = stackalloc char[12]; // int.MinValue is 11 chars; 12 always fits.
+        _ = value.TryFormat(buffer, out var written, provider: CultureInfo.InvariantCulture);
+        sb.Append(buffer[..written]);
+        sb.Append('"');
+
+        if (FrameSinkScope.Current is { } fw)
+        {
+            // Allocate the value string only when a frame writer is active.
+            fw.Attribute(name, value.ToString(CultureInfo.InvariantCulture));
         }
     }
 
