@@ -73,7 +73,7 @@ public sealed class UserPage : Component
 ```
 
 `RouteUrl` is a small `readonly record struct` carrying `Path` and an optional `QueryString`. It converts implicitly
-to and from `string`, so you can pass it straight to `NavLink`, `Navigator.Navigate`, or anywhere a path string is
+to and from `string`, so you can pass it straight to `NavLink`, `Navigator.NavigateToTo`, or anywhere a path string is
 expected:
 
 ```csharp
@@ -164,7 +164,7 @@ like any other framework service:
 public sealed class ProductsPage(Navigator nav) : Component
 {
     protected override RenderResult Render() =>
-        Button(OnClick: () => nav.Navigate("/dashboard"))["Open dashboard"];
+        Button(OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"];
 }
 ```
 
@@ -180,11 +180,11 @@ resulting URL into browser history.
 
 ```csharp
 // Path navigation — CLEARS any existing query string:
-nav.Navigate("/users/42");
-nav.Navigate(Routes.UserPage(Id: 42));     // type-safe RouteUrl overload
+nav.NavigateTo("/users/42");
+nav.NavigateTo(Routes.UserPage(Id: 42));     // type-safe RouteUrl overload
 
 // Path + a complete new query in one step (REPLACES the whole query):
-nav.Navigate("/users/ada",
+nav.NavigateTo("/users/ada",
     new[] { KeyValuePair.Create<string, string?>("tab", "profile") });
 
 // Single-param mutations on the CURRENT path (path unchanged):
@@ -198,20 +198,20 @@ nav.ClearQuery();                           // drop all query params, keep the p
 
 Key behaviours:
 
-- `Navigate(path)` and `Navigate(RouteUrl)` **clear the query** unless the `RouteUrl` itself carries one. To navigate
-  to a path and keep params, use the `Navigate(path, query)` overload or follow up with `SetQuery`.
-- `Navigate(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
+- `NavigateTo(path)` and `NavigateTo(RouteUrl)` **clear the query** unless the `RouteUrl` itself carries one. To navigate
+  to a path and keep params, use the `NavigateTo(path, query)` overload or follow up with `SetQuery`.
+- `NavigateTo(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
 - `SetQuery` / `RemoveQuery` / `ClearQuery` operate on the **current** path and leave it unchanged — they're for
   partial query updates (`?page=2&sort=asc`).
 
 ### The `replace` flag
 
-`Navigate(...)` overloads take an optional `replace` parameter (default `false`). `true` replaces the current history
+`NavigateTo(...)` overloads take an optional `replace` parameter (default `false`). `true` replaces the current history
 entry instead of pushing a new one, so it adds no extra Back-button stop:
 
 ```csharp
-nav.Navigate("/login", replace: true);   // redirect without a back-stack entry
+nav.NavigateTo("/login", replace: true);   // redirect without a back-stack entry
 ```
 
 `Navigator` also exposes `Download(...)` for pushing files to the browser (same event-handler-only rule); that lives in
@@ -219,7 +219,7 @@ the Files section of the README.
 
 ### Scroll position on navigation
 
-Forward navigation — a `NavLink` click or `Navigate(...)` that **pushes** a history entry — scrolls the window back to
+Forward navigation — a `NavLink` click or `NavigateTo(...)` that **pushes** a history entry — scrolls the window back to
 the top of the new page, matching how a server-rendered page load behaves. `replace: true` navigations and the browser's
 Back/Forward buttons do **not** force a scroll reset: the browser's native scroll restoration owns those, so returning to
 a page restores where you were. If a `NavLink`'s `Href` includes a `#fragment` that matches an element on the destination

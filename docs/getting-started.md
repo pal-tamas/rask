@@ -263,7 +263,7 @@ NavLink(UserPage(id: 42))["View user"];
 
 The `Router()` in your shell matches the current path and renders the page. To
 navigate from an event handler, inject the `Navigator` service through the
-constructor and call `nav.Navigate(HomePage())`, `nav.SetQuery("tab", "settings")`,
+constructor and call `nav.NavigateTo(HomePage())`, `nav.SetQuery("tab", "settings")`,
 and so on. For nested layouts (`[ParentRoute]` + `Outlet()`), 404 pages
 (`[NotFound]`), and the full routing model, see [routing](routing.md).
 

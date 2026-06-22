@@ -49,6 +49,11 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
+  (`RouteUrl`, `string` path, and `string` path + query) now read as `nav.NavigateTo(...)` at the
+  call site, matching the `NavigateTo` convention. This is a breaking API change with no compatibility
+  shim — update call sites accordingly. The `SetQuery`/`RemoveQuery`/`ClearQuery`/`Download` members
+  are unchanged.
 - **RASK002 no longer fires when a parameterless constructor is available.** The "`required`
   property is incompatible with a DI constructor" warning now only triggers when the component's
   *only* constructor takes dependency-injected parameters (no parameterless ctor). With a
@@ -93,6 +98,17 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **RASK002 now catches the two cases where a parameterless ctor does *not* rescue a `required`
+  property.** The previous narrowing (only warn when no parameterless ctor exists) had two gaps.
+  First, a `required` property that *also* carries a member initializer is excluded from the factory
+  parameters, so the object-initializer path never assigns it — the consumer build failed with a
+  cryptic `CS9035` inside generated code and no diagnostic; RASK002 now fires for this combination.
+  Second, the diagnostic message, `docs/diagnostics.md`, and the `/components` showcase all
+  recommended "add a parameterless constructor" as a fix — but doing so while keeping the DI
+  constructor makes the factory build the component with `new C()` and silently skip the DI ctor,
+  leaving injected services `null` at render time (a runtime `NullReferenceException` in place of the
+  former compile-time nudge). The guidance now warns against that trap and points to dropping the DI
+  constructor or moving the value to a constructor parameter instead.
 - **A single malformed WebSocket frame no longer tears down the live session.** The Server receive
   loop parsed each inbound frame with an unguarded `JsonDocument.Parse`, and a valid-JSON-but-non-object
   root (a bare array/number/string) reached `TryGetProperty`, which throws on non-objects — either way
