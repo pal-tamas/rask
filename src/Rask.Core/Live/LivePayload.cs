@@ -259,7 +259,8 @@ public static class LivePayload
         string? historyUrl = null,
         bool replace = false,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
-        string? headHtml = null)
+        string? headHtml = null,
+        string? newHtml = null)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -372,13 +373,21 @@ public static class LivePayload
 
                     break;
                 case EditOpKind.InsertSubtree:
-                    if (op.Value is null)
+                    // Prefer a verbatim Value (directly-constructed ops); otherwise slice the
+                    // fragment straight out of the render HTML by the op's deferred char range
+                    // (the FrameDiffer hot path), encoding to UTF-8 with no intermediate string.
+                    if (op.Value is not null)
                     {
-                        writer.WriteNullValue();
+                        writer.WriteStringValue(op.Value);
+                    }
+                    else if (newHtml is not null && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
+                             && op.HtmlEnd <= newHtml.Length)
+                    {
+                        writer.WriteStringValue(newHtml.AsSpan(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
                     }
                     else
                     {
-                        writer.WriteStringValue(op.Value);
+                        writer.WriteNullValue();
                     }
 
                     writer.WriteNumberValue(op.Length);

@@ -47,6 +47,13 @@ them until tagged releases begin.
   panel hosts a second, independently sortable `TableModel<T>`. Expand and both grids' sort are held in
   plain component fields; each open row inserts a keyed detail `<tr>`, so the live diff reconciles
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
+- **Duplicate-`Key` warning in the live diff.** Two sibling elements sharing the same `Key:`
+  (`data-rask-key`) silently disabled keyed reconciliation and fell back to a positional diff, which
+  can graft a row's DOM state (focus, input value, scroll position) onto the wrong sibling when the
+  list reorders — a hard-to-spot correctness bug. The diff codec now emits a one-time warning naming
+  the offending key to standard error when it detects a duplicate (deduplicated, capped, and only ever
+  reached on the already-broken path, so a correctly-keyed render pays nothing). See the
+  [composition guide](docs/composition.md).
 
 ### Changed
 - **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
@@ -199,6 +206,20 @@ them until tagged releases begin.
   risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
   host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
   legitimate same-origin WebSocket handshakes are rejected with `403`.
+- **File downloads now send `X-Content-Type-Options: nosniff`.** The one-shot download endpoint serves
+  its content-type from whoever staged the entry — often echoed verbatim from a client upload — so a
+  mislabelled file could be MIME-sniffed by the browser. The response now sets `nosniff` alongside the
+  existing `Content-Disposition: attachment` and same-origin / same-session-owner guards, matching the
+  asset endpoints. The `Raw` component also gained an XML-doc XSS warning making explicit that it is the
+  framework's only un-encoded output path and must never carry untrusted input.
+- **Upload filenames are sanitized before they are stored and echoed.** A client-supplied upload filename
+  is attacker-controlled and is returned in the upload response (`name`) for hosts to display. Staged
+  files were always written to a server-generated token path (never the name), so there was no
+  server-side traversal — but the echoed name could carry directory components (`../../etc/passwd`) or
+  control characters. The upload endpoint now reduces it to a safe leaf (drops `/` and `\` directory
+  components whatever the host OS, strips control/NUL characters, caps the length at 255, and falls back
+  to `file` for empty / path-dot inputs) as defence in depth. The returned `name` is still
+  attacker-controlled and must be HTML-encoded by hosts before display — never bound into `Raw`.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
@@ -212,6 +233,15 @@ them until tagged releases begin.
   a11y-rich tree (`Aria` + `Role` + `TabIndex`) **808 KB → 677 KB** (−16%); small/medium trees −25–30%.
   No change to rendered output or the documented attribute order. New `AccessibilityAttributesBenchmarks`
   locks in the a11y path.
+- **Halve the diff-codec allocation when a keyed list grows.** `FrameDiffer` sliced each inserted
+  subtree's HTML out of the rendered document with a `Substring` while diffing — one short-lived string
+  per `InsertSubtree` op. Each op now carries the fragment's `[HtmlStart..HtmlEnd)` char range instead,
+  and `LivePayload.BuildPayloadUtf8Diff` slices it straight into the UTF-8 wire buffer at write time
+  (`Utf8JsonWriter.WriteStringValue(ReadOnlySpan<char>)`), so no intermediate string is materialised.
+  Directly-constructed ops still ship a verbatim `Value`, so the wire format is byte-identical. Measured
+  on the new `FrameDifferBenchmarks.InsertRows` (M-class, ShortRun): a 100-row list gaining 50 rows
+  dropped **11.32 KB → 5.11 KB** allocated (−55%), and a 1,000-row list gaining 500 rows
+  **113.27 KB → 50.81 KB** (−55%). Reorder/no-change/text paths are unchanged.
 - **Cheaper attribute-name symbol table in the diff payload.** `LivePayload.BuildPayloadUtf8Diff` built
   an attribute-name count map (and, in a burst, an index map + names list) on every diff to intern names
   appearing 3+ times. A diff with fewer than 3 ops can never reach that break-even, so the whole pass is
