@@ -199,6 +199,12 @@ them until tagged releases begin.
   risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
   host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
   legitimate same-origin WebSocket handshakes are rejected with `403`.
+- **File downloads now send `X-Content-Type-Options: nosniff`.** The one-shot download endpoint serves
+  its content-type from whoever staged the entry — often echoed verbatim from a client upload — so a
+  mislabelled file could be MIME-sniffed by the browser. The response now sets `nosniff` alongside the
+  existing `Content-Disposition: attachment` and same-origin / same-session-owner guards, matching the
+  asset endpoints. The `Raw` component also gained an XML-doc XSS warning making explicit that it is the
+  framework's only un-encoded output path and must never carry untrusted input.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
