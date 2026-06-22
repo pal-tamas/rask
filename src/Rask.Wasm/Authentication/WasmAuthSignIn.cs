@@ -24,6 +24,9 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
     {
         await http.PostAsync(LogoutPath, null).ConfigureAwait(false);
         await userProvider.RefreshAsync().ConfigureAwait(false);
-        navigator.NavigateTo(returnUrl ?? "/");
+        // Open-redirect guard: returnUrl is whatever the caller passed (often a login/query value
+        // that can be attacker-influenced), and NavigateTo can leave the origin. Collapse anything
+        // non-local to "/" at this boundary — the same LocalUrl rule the server sign-in path applies.
+        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
     }
 }
