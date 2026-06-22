@@ -109,6 +109,23 @@ them until tagged releases begin.
   leaving injected services `null` at render time (a runtime `NullReferenceException` in place of the
   former compile-time nudge). The guidance now warns against that trap and points to dropping the DI
   constructor or moving the value to a constructor parameter instead.
+- **A single malformed WebSocket frame no longer tears down the live session.** The Server receive
+  loop parsed each inbound frame with an unguarded `JsonDocument.Parse`, and a valid-JSON-but-non-object
+  root (a bare array/number/string) reached `TryGetProperty`, which throws on non-objects — either way
+  the exception escaped the loop's `OperationCanceledException` / `WebSocketException` catches, detached
+  the socket and scheduled the session for removal. One buggy or adversarial frame could drop a whole
+  session. Such frames are now dropped (logged once) and the loop keeps serving; the existing 8 MB
+  inbound-frame cap still bounds memory.
+- **Component teardown is now strictly one-shot.** A tree mutation inside an `OnUnmount` hook (clearing
+  persisted children, re-parenting) could route a node through a second dispose pass, firing `OnUnmount`
+  and the user's `Dispose()` twice. `DisposeComponentTree`/`DisposeComponentTreeAsync` now guard on a
+  per-component flag so the unmount → cancel → dispose sequence runs exactly once. (The lifetime
+  `CancellationTokenSource` was already idempotent.)
+- **The deferred-session-removal task can no longer surface an unobserved `ObjectDisposedException`.**
+  A reconnect or a reschedule that disposed the pending-removal `CancellationTokenSource` while the
+  delayed task was about to read `cts.Token` produced an exception the `OperationCanceledException`
+  catch missed. The token is now captured before the task starts and `ObjectDisposedException` is
+  handled, so an obsolete removal exits cleanly without orphaning the session.
 - **WASM now runs `IJSRuntime` calls issued *during* a render after the DOM is patched, matching
   Server.** Interop from a lifecycle hook — e.g. `OnRenderedAsync` focusing a dialog as it opens —
   used to dispatch immediately on WASM, *before* that render's DOM patch, so a `focus()` could hit a

@@ -4,6 +4,13 @@ internal static class ComponentLifecycle
 {
     internal static void DisposeComponentTree(Component component)
     {
+        // Run the teardown at most once per component — a tree mutation inside an OnUnmount
+        // hook could otherwise route the same node through a second dispose pass.
+        if (!component.TryBeginDispose())
+        {
+            return;
+        }
+
         foreach (var child in component.PersistedChildren.Values)
         {
             DisposeComponentTree(child);
@@ -39,6 +46,13 @@ internal static class ComponentLifecycle
 
     internal static async Task DisposeComponentTreeAsync(Component component)
     {
+        // Run the teardown at most once per component — a tree mutation inside an OnUnmount
+        // hook could otherwise route the same node through a second dispose pass.
+        if (!component.TryBeginDispose())
+        {
+            return;
+        }
+
         foreach (var child in component.PersistedChildren.Values)
         {
             await DisposeComponentTreeAsync(child).ConfigureAwait(false);
