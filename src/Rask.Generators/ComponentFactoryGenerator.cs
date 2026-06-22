@@ -33,8 +33,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
-        "'required' property is incompatible with DI constructor",
-        "Property '{0}.{1}' is marked 'required', but '{0}'s only constructor takes dependency-injected parameters; with no parameterless constructor the generated factory cannot honor 'required' through ActivatorUtilities.CreateInstance. Remove 'required', add a parameterless constructor, or remove the DI parameters.",
+        "'required' property cannot be honored by the generated factory",
+        "Property '{0}.{1}' is marked 'required', but the generated factory for '{0}' cannot set it: '{0}' has a dependency-injected constructor and the property is either excluded from the factory parameters (it has a member initializer) or only reachable via ActivatorUtilities.CreateInstance (no parameterless constructor). Adding a parameterless constructor does not help while the DI constructor remains — the factory then builds '{0}' with 'new {0}()' and the DI constructor never runs, leaving injected services null. Remove 'required', move the value to a constructor parameter (with no initializer), or drop the DI constructor.",
         "Rask.Generators",
         DiagnosticSeverity.Warning,
         true,
@@ -666,7 +666,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             foreach (var p in c.Properties)
             {
                 var location = MakeLocation(p);
-                if (p.UserMarkedRequired && c.HasDIConstructor && !c.HasParameterlessCtor)
+                // A parameterless ctor only rescues `required` props that are actually factory
+                // params. A `required` property carrying a member initializer is excluded from the
+                // factory params (IsParamProperty), so the generated object initializer never
+                // assigns it and the consumer build fails with CS9035 — keep warning in that case.
+                if (p.UserMarkedRequired && c.HasDIConstructor && (!c.HasParameterlessCtor || p.HasInitializer))
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(Rask002, location, c.FullyQualifiedName, p.Name));
                 }

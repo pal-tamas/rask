@@ -337,6 +337,29 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
+    public void UserMarkedRequiredWithInitializerAndParameterlessCtor_RaisesRask002()
+    {
+        // A `required` property carrying a member initializer is excluded from the factory
+        // parameters, so the object-init path never assigns it — a parameterless ctor does not
+        // rescue it and the consumer build would fail with CS9035. RASK002 must still fire.
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public interface IClock { }
+                  public sealed class Widget : Component
+                  {
+                      public Widget() { }
+                      public Widget(IClock clock) { }
+                      public required string Name { get; set; } = "x";
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK002");
+    }
+
+    [Fact]
     public void NonNullableNoDefault_RaisesRask001()
     {
         var src = """
