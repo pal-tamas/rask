@@ -25,6 +25,8 @@ public class FrameDifferBenchmarks
     private readonly FrameDiffer.DiffScratch _scratch = new();
     private RenderFrame[] _afterReorder = null!;
     private string _afterReorderHtml = "";
+    private RenderFrame[] _afterReverse = null!;
+    private string _afterReverseHtml = "";
     private RenderFrame[] _afterText = null!;
 
     private RenderFrame[] _before = null!;
@@ -54,6 +56,14 @@ public class FrameDifferBenchmarks
         (reordered[5], reordered[RowCount - 5]) = (reordered[RowCount - 5], reordered[5]);
         (_afterReorder, _afterReorderHtml) = FramesAndHtmlOf(BuildKeyedList(reordered, -1));
 
+        // Full reverse: the worst case for the keyed move loop. A reversed permutation has an LIS
+        // of length 1, so n-1 rows are off-LIS and each emits a move — the loop's per-move
+        // live.IndexOf + live.Insert (each O(n)) then makes the whole step O(n²). The two-swap
+        // Reorder above only ever moves a couple of rows, so it never surfaced this cost.
+        var reversed = (int[])order.Clone();
+        Array.Reverse(reversed);
+        (_afterReverse, _afterReverseHtml) = FramesAndHtmlOf(BuildKeyedList(reversed, -1));
+
         // Same key order, one kept row's inner text changed — exercises the keyed step-5
         // inner-diff recursion (the path that re-enters DiffSiblings under a keyed parent).
         _afterText = FramesOf(BuildKeyedList(order, RowCount / 2));
@@ -82,6 +92,16 @@ public class FrameDifferBenchmarks
     {
         _ops.Clear();
         FrameDiffer.Diff(_before, _afterReorder, _ops, new FrameDiffer.DiffScratch(), out _, _afterReorderHtml);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int ReverseReorder_ReusedScratch()
+    {
+        // Worst-case keyed reorder: ~n moves, so this is the benchmark that actually exercises the
+        // O(n²) move loop (live.IndexOf + live.Insert per off-LIS row).
+        _ops.Clear();
+        FrameDiffer.Diff(_before, _afterReverse, _ops, _scratch, out _, _afterReverseHtml);
         return _ops.Count;
     }
 
