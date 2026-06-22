@@ -130,7 +130,7 @@ public abstract partial class SharedSmokeTests
         await Expect(skip).ToContainTextAsync("Clicks: 10",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Routing: an in-handler Navigator.Navigate("/users/137") resolves through parent-route +
+        // Routing: an in-handler Navigator.NavigateTo("/users/137") resolves through parent-route +
         // outlet, same path as a sidebar click.
         await SideAsync("Routing", "Routing");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "/users/137" }).ClickAsync();
@@ -842,7 +842,7 @@ public abstract partial class SharedSmokeTests
     }
 
     // Scroll behaviour on forward navigation. The runtime resets window scroll to the top on a
-    // "push" (a sidebar Navigator.Navigate or a data-rask-nav link click), and when the link
+    // "push" (a sidebar Navigator.NavigateTo or a data-rask-nav link click), and when the link
     // carried a "#fragment" it scrolls to that element instead. Both transports share the JS
     // runtime path (rask.js / rask.wasm.js applyNavScroll), so every host exercises it here.
     private async Task AssertNavigationScrollAsync()

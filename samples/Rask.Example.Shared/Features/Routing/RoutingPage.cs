@@ -32,14 +32,14 @@ public sealed class RoutingPage(Navigator nav) : Component
         Div(Class: "d-flex flex-wrap gap-2 mb-2")[
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/users/42"))[I(Class: "bi bi-link-45deg me-1"), "/users/42"],
+                OnClick: () => nav.NavigateTo("/users/42"))[I(Class: "bi bi-link-45deg me-1"), "/users/42"],
             Button(
                 Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.Navigate("/users/137"))[I(Class: "bi bi-link-45deg me-1"), "/users/137"],
+                OnClick: () => nav.NavigateTo("/users/137"))[I(Class: "bi bi-link-45deg me-1"), "/users/137"],
             Button(
                 Class: "btn btn-outline-primary btn-sm",
                 OnClick: () =>
-                    nav.Navigate("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[
+                    nav.NavigateTo("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[
                 I(Class: "bi bi-link-45deg me-1"), "/users/ada?tab=profile"]
         ],
         H2(Class: "h4 mt-5 mb-3")["Reacting to navigation: RouteState.Changed"],

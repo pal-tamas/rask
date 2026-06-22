@@ -21,7 +21,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         await users.RefreshAsync();
         // Open-redirect guard: never navigate off-origin from an attacker-supplied returnUrl
         // (parity with the server's SanitizeReturnUrl). Unsafe values collapse to "/".
-        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
+        nav.NavigateTo(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 
@@ -30,7 +30,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         await http.PostAsync("auth/logout", null);
         // Navigate first (while still in the click-handler scope), then clear the principal — refreshing
         // first would close the Authorize gate and unmount this component before the navigation runs.
-        nav.Navigate("/login");
+        nav.NavigateTo("/login");
         await users.RefreshAsync();
     }
 }

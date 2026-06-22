@@ -323,7 +323,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.LoginDto);
         if (!resp.IsSuccessStatusCode) return false;
         await users.RefreshAsync();
-        nav.Navigate(returnUrl ?? "/members");
+        nav.NavigateTo(returnUrl ?? "/members");
         return true;
     }
 
@@ -332,7 +332,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         await http.PostAsync("auth/logout", null);
         // Navigate first (still in the click-handler scope), then clear the principal — refreshing first
         // closes the Authorize gate and unmounts the calling component before the navigation runs.
-        nav.Navigate("/login");
+        nav.NavigateTo("/login");
         await users.RefreshAsync();
     }
 }
@@ -384,7 +384,7 @@ var jwt = issuer.Issue(name, roles);
 await sessionStore.SetAsync("rask.jwt", jwt);            // encrypted at rest, decrypted only server-side
 if (validator.Validate(jwt) is { } principal)
     users.Set(principal);                               // SessionUserProvider.Set — authenticated in-session
-nav.Navigate("/members");
+nav.NavigateTo("/members");
 
 // A headless bootstrap re-establishes the principal on a fresh session / refresh:
 protected override async Task OnMountAsync()
@@ -649,7 +649,7 @@ public sealed class LoginService(HttpClient http, TokenStore tokens, JwtUserProv
         var dto = await resp.Content.ReadFromJsonAsync(AuthJson.Default.TokenDto);
         await tokens.SetAsync(dto!.Token);
         users.SignedIn();
-        nav.Navigate(returnUrl ?? "/");
+        nav.NavigateTo(returnUrl ?? "/");
         return true;
     }
 
@@ -657,7 +657,7 @@ public sealed class LoginService(HttpClient http, TokenStore tokens, JwtUserProv
     {
         await tokens.ClearAsync();
         users.SignedOut();
-        nav.Navigate("/");
+        nav.NavigateTo("/");
     }
 }
 

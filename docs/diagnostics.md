@@ -10,7 +10,7 @@ build once.
 | ID | Severity | Summary |
 |----|----------|---------|
 | [RASK001](#rask001) | Hidden | Property is treated as a required factory parameter |
-| [RASK002](#rask002) | Warning | `required` property is incompatible with a DI constructor |
+| [RASK002](#rask002) | Warning | `required` property cannot be honored by the generated factory |
 | [RASK003](#rask003) | Error | Malformed route template |
 | [RASK004](#rask004) | Error | Route segment has no matching property |
 | [RASK005](#rask005) | Error | Property type does not match the route constraint |
@@ -54,18 +54,25 @@ public sealed class Badge : Component
 to stay ergonomic. See [factory generation rules](getting-started.md).
 
 ## RASK002
-**`required` property is incompatible with a DI constructor** · Warning
+**`required` property cannot be honored by the generated factory** · Warning
 
-A property is marked `required`, but the component's only constructor takes dependency-injected
-parameters. With no parameterless constructor available, the factory builds the component with
-`ActivatorUtilities.CreateInstance`, which can't satisfy a `required` member, so the requirement
-can't be honoured. (Adding a parameterless constructor lets the factory use the object-initializer
-path, which does honour `required` — so this warning does not fire in that case.)
+A property is marked `required`, but the generated factory can't set it. This fires when the
+component has a dependency-injected constructor **and** either:
 
-**Fix:** remove `required`, **or** move the value to a constructor parameter, **or** add a
-parameterless constructor, **or** drop the DI constructor. Framework services (`RouteState`,
-`Navigator`, `HttpClient`, `IJSRuntime`) should come through the constructor, never as settable
-properties.
+- it has no parameterless constructor — the factory builds the component with
+  `ActivatorUtilities.CreateInstance`, which can't satisfy a `required` member; or
+- the `required` property carries a member initializer — that excludes it from the factory
+  parameters, so the generated object initializer never assigns it (the consumer build then fails
+  with `CS9035`).
+
+> **Adding a parameterless constructor is _not_ a safe fix while you keep the DI constructor.** The
+> factory prefers the parameterless ctor, so it builds the component with `new C()` and the DI
+> constructor never runs — your injected services stay `null` at render time. Only add a
+> parameterless constructor if you also remove the DI constructor.
+
+**Fix:** remove `required`, **or** move the value to a constructor parameter (with no member
+initializer on it), **or** drop the DI constructor. Framework services (`RouteState`, `Navigator`,
+`HttpClient`, `IJSRuntime`) should come through the constructor, never as settable properties.
 
 ## RASK003
 **Malformed route template** · Error
