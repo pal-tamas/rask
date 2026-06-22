@@ -28,6 +28,14 @@ public class FrameDifferBenchmarks
     private RenderFrame[] _afterText = null!;
 
     private RenderFrame[] _before = null!;
+
+    // Insert scenario: a sparse list (even keys only) grows into the full list, so every odd
+    // key is an InsertSubtree carrying its freshly-sliced HTML fragment. _fullHtml is the diff's
+    // newHtml source, so each insert op runs FrameDiffer.SliceHtml (one Substring per inserted row).
+    private RenderFrame[] _beforeSparse = null!;
+    private RenderFrame[] _afterFull = null!;
+    private string _fullHtml = "";
+
     [Params(100, 1000)] public int RowCount { get; set; }
 
     [GlobalSetup]
@@ -49,6 +57,16 @@ public class FrameDifferBenchmarks
         // Same key order, one kept row's inner text changed — exercises the keyed step-5
         // inner-diff recursion (the path that re-enters DiffSiblings under a keyed parent).
         _afterText = FramesOf(BuildKeyedList(order, RowCount / 2));
+
+        // Sparse → full: even keys present before, all keys after, so the odd keys insert.
+        var evenOrder = new int[(RowCount + 1) / 2];
+        for (var i = 0; i < evenOrder.Length; i++)
+        {
+            evenOrder[i] = i * 2;
+        }
+
+        _beforeSparse = FramesOf(BuildKeyedList(evenOrder, -1));
+        (_afterFull, _fullHtml) = FramesAndHtmlOf(BuildKeyedList(order, -1));
     }
 
     [Benchmark(Baseline = true)]
@@ -82,6 +100,16 @@ public class FrameDifferBenchmarks
     {
         _ops.Clear();
         FrameDiffer.Diff(_before, _afterText, _ops, _scratch, out _);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int InsertRows_ReusedScratch()
+    {
+        // Every odd key inserts, so this measures the per-InsertSubtree HTML SliceHtml cost
+        // (one Substring of _fullHtml per inserted row) on top of the keyed reconcile.
+        _ops.Clear();
+        FrameDiffer.Diff(_beforeSparse, _afterFull, _ops, _scratch, out _, _fullHtml);
         return _ops.Count;
     }
 

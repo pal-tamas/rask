@@ -32,9 +32,10 @@ public enum EditOpKind : byte
     /// <summary>
     ///     Insert a new subtree at <see cref="EditOp.Path" /> (the index of the
     ///     slot among the parent's existing DOM children; ops further into the same
-    ///     parent reference subsequent indices). <see cref="EditOp.Value" /> carries the
-    ///     pre-serialized HTML fragment for the inserted subtree (set by the codec at
-    ///     wire-format time once HtmlSerializer captures per-frame byte offsets).
+    ///     parent reference subsequent indices). The inserted markup travels as the
+    ///     <see cref="EditOp.HtmlStart" />/<see cref="EditOp.HtmlEnd" /> char range into the render
+    ///     HTML (sliced into the wire payload at write time), or as a verbatim
+    ///     <see cref="EditOp.Value" /> string for directly-constructed ops.
     /// </summary>
     InsertSubtree = 4,
 
@@ -84,7 +85,7 @@ public enum EditOpKind : byte
 public readonly struct EditOp
 {
     public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false,
-        int[]? moves = null)
+        int[]? moves = null, int htmlStart = -1, int htmlEnd = -1)
     {
         Kind = kind;
         Path = path;
@@ -93,6 +94,8 @@ public readonly struct EditOp
         Length = length;
         Trusted = trusted;
         Moves = moves;
+        HtmlStart = htmlStart;
+        HtmlEnd = htmlEnd;
     }
 
     public EditOpKind Kind { get; }
@@ -108,6 +111,19 @@ public readonly struct EditOp
     public string? Name { get; }
     public string? Value { get; }
     public int Length { get; }
+
+    /// <summary>
+    ///     For <see cref="EditOpKind.InsertSubtree" />: the <c>[HtmlStart..HtmlEnd)</c> char range of
+    ///     the inserted subtree's markup within the render HTML, so the wire codec can slice the
+    ///     fragment straight into the UTF-8 payload at write time instead of materialising a
+    ///     per-insert <see cref="Value" /> string during the diff. <c>-1</c> (the default) means no
+    ///     deferred slice — the codec then ships <see cref="Value" /> verbatim (the path used by
+    ///     directly-constructed ops) or null. Ignored for every other op kind.
+    /// </summary>
+    public int HtmlStart { get; }
+
+    /// <summary>Companion to <see cref="HtmlStart" /> — the exclusive end of the fragment range.</summary>
+    public int HtmlEnd { get; }
 
     /// <summary>
     ///     For <see cref="EditOpKind.PermutationBatch" /> only: a flat
@@ -176,11 +192,12 @@ public static class FrameDiffer
     ///     producing edit ops into <paramref name="output" />. Returns the number of ops
     ///     written. When the streams are identical, returns 0 without touching the
     ///     output list. When <paramref name="newHtml" /> is supplied,
-    ///     <see cref="EditOpKind.InsertSubtree" /> ops carry the HTML fragment to ship
-    ///     to the client (sliced from <paramref name="newHtml" /> using each frame's
-    ///     <see cref="RenderFrame.HtmlStart" />/<see cref="RenderFrame.HtmlEnd" />);
-    ///     otherwise InsertSubtree ops have <c>Value == null</c> and the caller must
-    ///     route those payloads through the full-HTML fallback.
+    ///     <see cref="EditOpKind.InsertSubtree" /> ops carry the inserted fragment's
+    ///     <see cref="EditOp.HtmlStart" />/<see cref="EditOp.HtmlEnd" /> char range (from each frame's
+    ///     <see cref="RenderFrame.HtmlStart" />/<see cref="RenderFrame.HtmlEnd" />) so the wire codec
+    ///     slices it from the same HTML at write time — no per-insert string is allocated here.
+    ///     Without <paramref name="newHtml" /> those ops carry the <c>(-1, -1)</c> sentinel and the
+    ///     caller must route the payload through the full-HTML fallback.
     /// </summary>
     public static int Diff(
         ReadOnlySpan<RenderFrame> oldFrames,
@@ -290,9 +307,10 @@ public static class FrameDiffer
                 // without re-rendering.
                 output.Add(new EditOp(EditOpKind.RemoveSubtree, PathPlus(path, domSlot), null, null,
                     DomNodeCount(oldFrames, oi, oi + oldFrame.SubtreeLength)));
-                output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null,
-                    SliceHtml(newHtml, newFrame.HtmlStart, newFrame.HtmlEnd),
-                    DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength)));
+                var (replStart, replEnd) = InsertHtmlRange(newHtml, newFrame);
+                output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null, null,
+                    DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength),
+                    htmlStart: replStart, htmlEnd: replEnd));
                 oi += oldFrame.SubtreeLength;
                 ni += newFrame.SubtreeLength;
                 domSlot++;
@@ -376,22 +394,31 @@ public static class FrameDiffer
         while (ni < newEnd)
         {
             ref readonly var newFrame = ref newFrames[ni];
-            output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null,
-                SliceHtml(newHtml, newFrame.HtmlStart, newFrame.HtmlEnd),
-                DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength)));
+            var (tailStart, tailEnd) = InsertHtmlRange(newHtml, newFrame);
+            output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null, null,
+                DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength),
+                htmlStart: tailStart, htmlEnd: tailEnd));
             ni += newFrame.SubtreeLength;
             domSlot++;
         }
     }
 
-    private static string? SliceHtml(string? newHtml, int start, int end)
+    // Defer the inserted subtree's HTML slice to wire-format time: carry the fragment's char
+    // range so LivePayload can write it straight into the UTF-8 payload, instead of allocating a
+    // per-insert Value string here in the hot diff path. Returns the sentinel (-1, -1) — "no
+    // deferred slice" — when no render HTML was supplied (one-shot / test callers that inspect
+    // ops without a wire build) or the frame's offsets are degenerate, so the codec then ships a
+    // null fragment exactly as the old null-Value path did.
+    private static (int Start, int End) InsertHtmlRange(string? newHtml, in RenderFrame frame)
     {
+        var start = frame.HtmlStart;
+        var end = frame.HtmlEnd;
         if (newHtml is null || end <= start || (uint)end > (uint)newHtml.Length)
         {
-            return null;
+            return (-1, -1);
         }
 
-        return newHtml.Substring(start, end - start);
+        return (start, end);
     }
 
     private static void DiffAttributes(
@@ -681,14 +708,16 @@ public static class FrameDiffer
             }
 
             ref readonly var elem = ref newFrames[nc.FrameIndex];
-            var html = SliceHtml(newHtml, elem.HtmlStart, elem.HtmlEnd);
+            var (insStart, insEnd) = InsertHtmlRange(newHtml, elem);
             output.Add(new EditOp(
                 EditOpKind.InsertSubtree,
                 PathPlus(path, j),
                 null,
-                html,
+                null,
                 DomNodeCount(newFrames, nc.FrameIndex, nc.FrameIndex + elem.SubtreeLength),
-                true));
+                true,
+                htmlStart: insStart,
+                htmlEnd: insEnd));
             surviving.Insert(j, nc);
         }
 
@@ -828,13 +857,16 @@ public static class FrameDiffer
                     null,
                     DomNodeCount(oldFrames, oc.FrameIndex, oc.FrameIndex + oldElem.SubtreeLength),
                     true));
+                var (swapStart, swapEnd) = InsertHtmlRange(newHtml, newElem);
                 output.Add(new EditOp(
                     EditOpKind.InsertSubtree,
                     PathPlus(path, j),
                     null,
-                    SliceHtml(newHtml, newElem.HtmlStart, newElem.HtmlEnd),
+                    null,
                     DomNodeCount(newFrames, nc.FrameIndex, nc.FrameIndex + newElem.SubtreeLength),
-                    true));
+                    true,
+                    htmlStart: swapStart,
+                    htmlEnd: swapEnd));
                 continue;
             }
 
