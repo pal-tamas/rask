@@ -47,6 +47,13 @@ them until tagged releases begin.
   panel hosts a second, independently sortable `TableModel<T>`. Expand and both grids' sort are held in
   plain component fields; each open row inserts a keyed detail `<tr>`, so the live diff reconciles
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
+- **Duplicate-`Key` warning in the live diff.** Two sibling elements sharing the same `Key:`
+  (`data-rask-key`) silently disabled keyed reconciliation and fell back to a positional diff, which
+  can graft a row's DOM state (focus, input value, scroll position) onto the wrong sibling when the
+  list reorders — a hard-to-spot correctness bug. The diff codec now emits a one-time warning naming
+  the offending key to standard error when it detects a duplicate (deduplicated, capped, and only ever
+  reached on the already-broken path, so a correctly-keyed render pays nothing). See the
+  [composition guide](docs/composition.md).
 
 ### Changed
 - **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
