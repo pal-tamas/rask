@@ -1004,6 +1004,50 @@ app.UseRask<App>();
 
 ---
 
+## Content Security Policy
+
+Rask doesn't emit a `Content-Security-Policy` header — CSP is app- and deployment-specific, so the
+host owns it. Rask's runtime is built to work under a **strict** policy: the runtime script and every
+scoped asset are served as **external** `<script src>` / `<link rel="stylesheet">` (no inline
+`<script>` blocks), and DOM events bind through `data-rask-on-*` attributes + `addEventListener` (no
+inline `onclick=` handlers), so you don't need `script-src 'unsafe-inline'`.
+
+Two things do shape the policy:
+
+- **Inline style attributes.** The `Style:` parameter renders `style="…"` attributes, which CSP
+  governs via `style-src` — so a strict policy needs `style-src 'self' 'unsafe-inline'`. (`'unsafe-inline'`
+  for *style attributes* is far weaker than for scripts; if you avoid `Style:` entirely in favour of
+  scoped CSS classes you can drop it.)
+- **The WebSocket (Server host).** The live runtime opens a **same-origin** WebSocket to `/rask/ws`,
+  covered by `connect-src 'self'`.
+
+A working baseline, set as middleware **before** `UseRask<App>()`:
+
+```csharp
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self'; " +          // runtime + scoped scripts are external; no inline JS
+        "style-src 'self' 'unsafe-inline'; " + // inline style="" from the Style: parameter
+        "img-src 'self' data:; " +
+        "connect-src 'self'; " +         // same-origin WebSocket (/rask/ws)
+        "base-uri 'self'; " +
+        "frame-ancestors 'none'";
+    await next();
+});
+```
+
+**WASM host:** the .NET WebAssembly runtime requires `'wasm-unsafe-eval'` in `script-src`, so use
+`script-src 'self' 'wasm-unsafe-eval'`. A standalone (static-file) WASM app sets the same policy via
+its host's header config (e.g. `staticwebapp.config.json`, an nginx `add_header`, or a CDN rule)
+rather than ASP.NET middleware.
+
+Tighten from there per app: add `upgrade-insecure-requests` on HTTPS, list any third-party CDN/API
+origins you actually use, and consider `report-uri`/`report-to` to catch violations before enforcing.
+
+---
+
 ## Security checklist
 
 - ☑ Serve auth over **HTTPS** only (`Cookie.SecurePolicy = Always` on `AddCookie`).
@@ -1013,6 +1057,7 @@ app.UseRask<App>();
 - ☑ Short JWT lifetime + app-driven silent refresh so sessions stay smooth without long-lived tokens.
 - ☑ Keep `UseAuthentication()` **before** `UseRask()`.
 - ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local same-origin paths (rejects `//`, `/\`, and backslash/control-char variants).
+- ☑ Set a **[Content-Security-Policy](#content-security-policy)** — Rask runs under a strict policy (`script-src 'self'`, plus `'wasm-unsafe-eval'` on WASM); only `style-src` needs `'unsafe-inline'` for `Style:` attributes.
 - ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.
 - ☑ Behind a reverse proxy, wire **ForwardedHeaders** so the host-only same-origin checks (redeem + WS) see the public host.
 - ☑ For untrusted-traffic hosts, set `RaskLiveOptions.MaxSessions` and a reverse-proxy rate limit to bound session creation.
