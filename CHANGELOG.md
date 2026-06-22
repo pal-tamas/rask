@@ -180,6 +180,12 @@ them until tagged releases begin.
   warnings-as-errors) failed `restore` for every job. A scoped `NuGetAuditSuppress` for this single
   advisory unblocks the build while leaving audit active for everything else; it is annotated to be
   removed once a patched SQLitePCLRaw family ships.
+- **File downloads now send `X-Content-Type-Options: nosniff`.** The one-shot download endpoint serves
+  its content-type from whoever staged the entry — often echoed verbatim from a client upload — so a
+  mislabelled file could be MIME-sniffed by the browser. The response now sets `nosniff` alongside the
+  existing `Content-Disposition: attachment` and same-origin / same-session-owner guards, matching the
+  asset endpoints. The `Raw` component also gained an XML-doc XSS warning making explicit that it is the
+  framework's only un-encoded output path and must never carry untrusted input.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
