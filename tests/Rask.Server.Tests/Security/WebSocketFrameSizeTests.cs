@@ -6,6 +6,12 @@ namespace Rask.Server.Tests.Security;
 // M1: a client must not be able to stream an unbounded fragmented WS frame and force the server to
 // buffer it whole before parsing. The receive loop caps reassembly at MaxInboundFrameBytes and
 // aborts the socket past it.
+//
+// In SessionGracePeriod (DisableParallelization) so the static MaxInboundFrameBytes write doesn't
+// leak onto a parallel test's connection (same rationale as WebSocketFrameRateTests / the
+// MaxPendingHandlers tests). The 32 KB cap is benign for typical small-frame tests, but serialising
+// the global mutation keeps it from ever applying to traffic another test depends on.
+[Collection("SessionGracePeriod")]
 public class WebSocketFrameSizeTests
 {
     [Fact]

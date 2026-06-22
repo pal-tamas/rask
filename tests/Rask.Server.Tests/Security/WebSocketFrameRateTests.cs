@@ -7,6 +7,12 @@ namespace Rask.Server.Tests.Security;
 // handler-backlog breaker don't bound — each non-handler frame (jsResult / navigate / malformed)
 // still costs a JSON parse. The receive loop counts inbound frames over a sliding one-second window
 // (MaxInboundFramesPerSecond) and closes the socket on a flood.
+//
+// In SessionGracePeriod (DisableParallelization) so the static MaxInboundFramesPerSecond write can't
+// leak onto a parallel test's connection: a low cap here would otherwise trip the breaker on an
+// unrelated socket mid-run (e.g. CheckboxBindingDiffTests sends 6 frames and would be closed at the
+// 6th). Same rationale that puts HandlerBackpressureTests (MaxPendingHandlers) in this collection.
+[Collection("SessionGracePeriod")]
 public class WebSocketFrameRateTests
 {
     [Fact]
