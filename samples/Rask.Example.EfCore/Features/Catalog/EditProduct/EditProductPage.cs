@@ -50,7 +50,7 @@ public sealed class EditProductPage(IDbContextFactory<CatalogDbContext> dbContex
             await db.SaveChangesAsync(CancellationToken);
         }
 
-        navigator.Navigate("/products");
+        navigator.NavigateTo("/products");
     }
 
     protected override RenderResult Render()

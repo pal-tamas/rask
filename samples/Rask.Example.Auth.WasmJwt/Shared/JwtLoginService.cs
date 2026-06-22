@@ -25,14 +25,14 @@ public sealed class JwtLoginService(HttpClient http, TokenStore tokens, IUserPro
         await users.RefreshAsync();
         // Open-redirect guard: never navigate off-origin from an attacker-supplied returnUrl
         // (parity with the server's SanitizeReturnUrl). Unsafe values collapse to "/".
-        nav.Navigate(LocalUrl.Sanitize(returnUrl ?? "/members"));
+        nav.NavigateTo(LocalUrl.Sanitize(returnUrl ?? "/members"));
         return true;
     }
 
     public async Task LogoutAsync()
     {
         // Navigate first (still in the handler scope), then clear the token + principal.
-        nav.Navigate("/login");
+        nav.NavigateTo("/login");
         await tokens.ClearAsync();
         await users.RefreshAsync();
     }

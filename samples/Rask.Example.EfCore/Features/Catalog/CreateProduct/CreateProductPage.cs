@@ -26,7 +26,7 @@ public sealed class CreateProductPage(IDbContextFactory<CatalogDbContext> dbCont
         db.Products.Add(product);
         await db.SaveChangesAsync(CancellationToken);
 
-        navigator.Navigate("/products");
+        navigator.NavigateTo("/products");
     }
 
     protected override RenderResult Render() =>

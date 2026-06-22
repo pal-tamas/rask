@@ -74,7 +74,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                     OnClick: () =>
                     {
                         _drawerOpen = false;
-                        nav.Navigate("/");
+                        nav.NavigateTo("/");
                     })[
                     RaskLogo.Mark(24, "brandBolt"),
                     Span()["Rask"],
@@ -127,7 +127,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
                 OnClick: () =>
                 {
                     _drawerOpen = false;
-                    nav.Navigate(path);
+                    nav.NavigateTo(path);
                 })[
                 I(Class: $"bi {icon} me-2"),
                 Span()[label]

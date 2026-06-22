@@ -49,6 +49,11 @@ them until tagged releases begin.
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
 
 ### Changed
+- **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
+  (`RouteUrl`, `string` path, and `string` path + query) now read as `nav.NavigateTo(...)` at the
+  call site, matching the `NavigateTo` convention. This is a breaking API change with no compatibility
+  shim — update call sites accordingly. The `SetQuery`/`RemoveQuery`/`ClearQuery`/`Download` members
+  are unchanged.
 - **RASK002 no longer fires when a parameterless constructor is available.** The "`required`
   property is incompatible with a DI constructor" warning now only triggers when the component's
   *only* constructor takes dependency-injected parameters (no parameterless ctor). With a

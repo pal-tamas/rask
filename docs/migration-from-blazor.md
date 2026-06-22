@@ -129,7 +129,7 @@ public sealed class UserPage(Navigator nav) : Component   // Navigator via ctor
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
-    // navigate from a handler: nav.Navigate(HomePage()), nav.SetQuery("tab", "x")
+    // navigate from a handler: nav.NavigateTo(HomePage()), nav.SetQuery("tab", "x")
 }
 
 // type-safe link (generated URL builder) instead of a "/users/42" string:
