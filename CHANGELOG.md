@@ -180,6 +180,15 @@ them until tagged releases begin.
   `Rask.Core.Virtualization` support types keep their names.
 
 ### Security
+- **Inbound WebSocket frame-rate cap.** The Server receive loop now closes a connection that sends
+  more than 1000 frames/second (sliding one-second window). This complements the existing per-frame
+  size cap (8 MB) and handler-backlog breaker (512 queued dispatches), which don't bound a flood of
+  small non-handler frames (`jsResult` / `navigate` / malformed) — each of which still costs a JSON
+  parse, so a high-rate stream was a CPU-DoS gap. On a trip the socket closes with a policy-violation
+  status and the client reconnects against the intact session. The cap is a fixed internal default
+  (far above any legitimate interaction burst); operators should still front the app with a
+  reverse-proxy / WAF rate limit for connection-count and cross-connection floods. See the
+  [hardening reference](docs/authentication.md#hardening-reference).
 - **Suppressed the unactionable `SQLitePCLRaw.lib.e_sqlite3` audit advisory (`GHSA-2m69-gcr7-jv3q`).**
   The native SQLite package arrives transitively through the latest `Microsoft.EntityFrameworkCore.Sqlite`
   (used only by the `Rask.Example.EfCore` sample); the whole SQLitePCLRaw family tops out at `2.1.11`
