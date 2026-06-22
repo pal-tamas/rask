@@ -627,6 +627,52 @@ public class FrameDifferTests
         Assert.Equal(after, live.ToArray());
     }
 
+    [Theory]
+    [InlineData(50)]
+    [InlineData(500)]
+    [InlineData(1000)]
+    public void Diff_KeyedList_FullReverse_MoveOpsReproduceTargetOrder(int n)
+    {
+        // The worst case for the keyed move loop: a fully reversed list has an LIS of length 1, so
+        // n-1 rows are off-LIS and each emits a move. The RandomPermutation gate above (n ≤ 250)
+        // rarely lands on a clean reverse, and the FrameDiffer ReverseReorder benchmark measures
+        // this shape's *cost* — this test pins its *correctness*: replaying the single
+        // PermutationBatch's (dst,src) pairs against the before-order must reproduce the reverse.
+        // Covers large n so the move semantics stay correct if the O(n²) loop is ever reworked.
+        var before = new int[n];
+        for (var i = 0; i < n; i++)
+        {
+            before[i] = i;
+        }
+
+        var after = (int[])before.Clone();
+        Array.Reverse(after);
+
+        var beforeFrames = Frames(BuildKeyedRows(before));
+        var afterFrames = Frames(BuildKeyedRows(after));
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(beforeFrames, afterFrames, ops, out var usedKeyed);
+
+        Assert.True(usedKeyed);
+        var batch = Assert.Single(ops);
+        Assert.Equal(EditOpKind.PermutationBatch, batch.Kind);
+        Assert.True(batch.Trusted);
+
+        // Replay the (dst,src) pairs exactly as the DOM interpreter does: detach at src, insert at
+        // dst in the post-detach list.
+        var live = new List<int>(before);
+        var moves = batch.Moves!;
+        for (var m = 0; m + 1 < moves.Length; m += 2)
+        {
+            var moved = live[moves[m + 1]];
+            live.RemoveAt(moves[m + 1]);
+            live.Insert(moves[m], moved);
+        }
+
+        Assert.Equal(after, live.ToArray());
+    }
+
     [Fact]
     public void Diff_NestedKeyedList_OuterReorderAndInnerReorder_EmitsTrustedBatchesAtBothDepths()
     {
