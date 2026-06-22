@@ -181,6 +181,19 @@ them until tagged releases begin.
   advisory unblocks the build while leaving audit active for everything else; it is annotated to be
   removed once a patched SQLitePCLRaw family ships.
 
+### Performance
+- **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
+  `Element.WriteAttributes` iterated the `Data` and `Aria` bags through the
+  `IReadOnlyDictionary<,>` interface, boxing an enumerator on every render of an attribute-bearing
+  element, and formatted `TabIndex` with `int.ToString()`, allocating a string per element. The bags
+  now take a `Dictionary<,>` struct-enumerator fast path (the common `new() { … }` literal), and
+  `TabIndex` formats straight into the pooled `StringBuilder` via a new integer `AppendAttr` overload
+  (zero allocation on the no-frame-sink path). Measured on the render benchmarks (M-class, ShortRun):
+  a 1,000-row data-rich tree dropped **661 KB → 552 KB** allocated (−16.5%), and a 1,000-row
+  a11y-rich tree (`Aria` + `Role` + `TabIndex`) **808 KB → 677 KB** (−16%); small/medium trees −25–30%.
+  No change to rendered output or the documented attribute order. New `AccessibilityAttributesBenchmarks`
+  locks in the a11y path.
+
 ## [0.9.0] - 2026-06-16
 
 ### Added
