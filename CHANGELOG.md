@@ -212,6 +212,14 @@ them until tagged releases begin.
   a11y-rich tree (`Aria` + `Role` + `TabIndex`) **808 KB → 677 KB** (−16%); small/medium trees −25–30%.
   No change to rendered output or the documented attribute order. New `AccessibilityAttributesBenchmarks`
   locks in the a11y path.
+- **Cheaper attribute-name symbol table in the diff payload.** `LivePayload.BuildPayloadUtf8Diff` built
+  an attribute-name count map (and, in a burst, an index map + names list) on every diff to intern names
+  appearing 3+ times. A diff with fewer than 3 ops can never reach that break-even, so the whole pass is
+  now skipped for the common small update; larger diffs reuse per-thread scratch collections instead of
+  reallocating the count map each frame. Measured on the new `AttributeDiffPayloadBenchmarks` (M-class,
+  ShortRun): a 2-attribute update dropped **424 B → 208 B** allocated (−51%) and a 100-op
+  single-name burst **728 B → 208 B** (−71%) — the 208 B floor is the `Utf8JsonWriter`'s own state.
+  Wire output and the interning threshold are unchanged.
 
 ## [0.9.0] - 2026-06-16
 
