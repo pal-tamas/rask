@@ -46,10 +46,10 @@ public sealed class ComponentsPage : Component
                 Div()[
                     Strong()["Warning."],
                     " ", Code()["required"],
-                    " on a property when the component's only constructor takes DI-injected parameters (no parameterless ctor): ",
+                    " on a property the generated factory can't set — when the component has a DI constructor and the property either has no parameterless ctor (",
                     Code()["ActivatorUtilities"],
-                    " cannot satisfy ", Code()["required"], " members. Add a parameterless ctor, or drop ",
-                    Code()["required"], " or the DI parameters."
+                    " can't satisfy ", Code()["required"], " members) or carries a member initializer (excluded from factory params). Drop ",
+                    Code()["required"], " or the DI ctor — note that adding a parameterless ctor makes the factory skip the DI ctor, leaving injected services null."
                 ]
             ]
         ]

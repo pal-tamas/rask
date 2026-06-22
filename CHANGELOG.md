@@ -93,6 +93,17 @@ them until tagged releases begin.
   excluded.
 
 ### Fixed
+- **RASK002 now catches the two cases where a parameterless ctor does *not* rescue a `required`
+  property.** The previous narrowing (only warn when no parameterless ctor exists) had two gaps.
+  First, a `required` property that *also* carries a member initializer is excluded from the factory
+  parameters, so the object-initializer path never assigns it — the consumer build failed with a
+  cryptic `CS9035` inside generated code and no diagnostic; RASK002 now fires for this combination.
+  Second, the diagnostic message, `docs/diagnostics.md`, and the `/components` showcase all
+  recommended "add a parameterless constructor" as a fix — but doing so while keeping the DI
+  constructor makes the factory build the component with `new C()` and silently skip the DI ctor,
+  leaving injected services `null` at render time (a runtime `NullReferenceException` in place of the
+  former compile-time nudge). The guidance now warns against that trap and points to dropping the DI
+  constructor or moving the value to a constructor parameter instead.
 - **WASM now runs `IJSRuntime` calls issued *during* a render after the DOM is patched, matching
   Server.** Interop from a lifecycle hook — e.g. `OnRenderedAsync` focusing a dialog as it opens —
   used to dispatch immediately on WASM, *before* that render's DOM patch, so a `focus()` could hit a
