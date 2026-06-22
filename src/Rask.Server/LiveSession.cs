@@ -58,8 +58,19 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // already has from the GET response (or the prior socket) still matches the session
     // state and the hello-time render is redundant. Skipping the redundant render is
     // what aligns Server's initial-mount OnRendered count with WASM's.
-    private bool _renderRequestedWhileDetached;
-    private WebSocket? _socket;
+    // Volatile: written lock-free by AttachSocket (WS-accept thread) and RequestRenderInternalAsync
+    // (handler-dispatch thread), read lock-free by FlushPendingRenderAsync at hello time. Pairs with
+    // the already-volatile _forceResend in the same reconnect handoff — both must be reliably visible
+    // across threads or a dropped render goes unrecovered.
+    private volatile bool _renderRequestedWhileDetached;
+
+    // Volatile so AttachSocket's "publish _socket last" actually carries release semantics: the
+    // volatile write makes the preceding _renderRequestedWhileDetached / _forceResend writes visible
+    // before the new socket becomes observable, and a reader's acquiring read sees them in lockstep.
+    // Without it the store-store order holds on x86 (TSO) but not on weaker models (ARM64), where a
+    // concurrent render could observe the fresh socket yet miss the resend flags and drop the
+    // reconnect catch-up frame.
+    private volatile WebSocket? _socket;
     private CancellationToken _socketCt;
 
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
@@ -265,8 +276,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             _forceResend = true;
         }
 
-        // Publish _socket last: a concurrent background render early-returns while it reads
-        // null/closed, so the new socket only becomes visible after the resend flag above.
+        // Publish _socket last. _socket is volatile, so this write has release semantics: the
+        // resend flags set above are guaranteed visible before the new socket is — a concurrent
+        // background render either reads the old null/closed socket (early-returns, having recorded
+        // the drop) or reads the new socket and sees the flags set. The ordering holds on weak
+        // memory models too (see the _socket field note).
         _socket = socket;
         _hasAttachedBefore = true;
     }
@@ -471,15 +485,27 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // back into DotNetDispatcher.EndInvokeJS — same shape RaskEndpointExtensions.HandleJsResult
     // uses for an honest browser-supplied jsResult. Used when the WS send fails after the
     // queue is already cleared. Best-effort: a missing runtime / dispatcher throw means we
-    // log and move on; the original send exception is the meaningful one for the caller.
+    // log and move on; the original send exception is the meaningful one for the caller, so
+    // a fault in here must never mask it (the catch re-establishes that contract — without it
+    // a throwing Fail would propagate from RenderAndSendAsync in place of the send error, and
+    // the awaiting Task<T> the Fail was meant to complete would still hang).
     private void FailPendingJsInvokes(PendingJsInvoke[] invokes, Exception cause)
     {
-        if (Services.GetService<RaskJSRuntime>() is { } runtime)
+        try
         {
-            LiveJsInvokeQueue.Fail(runtime, invokes,
-                string.IsNullOrEmpty(cause.Message)
-                    ? "Rask: WebSocket send failed before JS invoke could be dispatched"
-                    : cause.Message);
+            if (Services.GetService<RaskJSRuntime>() is { } runtime)
+            {
+                LiveJsInvokeQueue.Fail(runtime, invokes,
+                    string.IsNullOrEmpty(cause.Message)
+                        ? "Rask: WebSocket send failed before JS invoke could be dispatched"
+                        : cause.Message);
+            }
+        }
+        catch (Exception failEx)
+        {
+            Console.Error.WriteLine(
+                $"[Rask.LiveSession] Failed to fault {invokes.Length} pending JS invoke(s) for " +
+                $"session {Id} after a send error: {failEx}");
         }
     }
 }
