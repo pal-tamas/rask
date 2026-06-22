@@ -152,6 +152,41 @@ public readonly struct EditOp
 /// </summary>
 public static class FrameDiffer
 {
+    // Bounds the warn-once memory: a correct app never populates this, and a buggy one that
+    // churns unbounded distinct duplicate keys stops being warned past the cap rather than
+    // growing without limit. Guarded by its own lock — the diff runs single-threaded per
+    // session but distinct sessions can diff concurrently.
+    private static readonly HashSet<string> WarnedDuplicateKeys = new(StringComparer.Ordinal);
+
+    /// <summary>
+    ///     Invoked with the offending <c>data-rask-key</c> value when the diff codec finds two
+    ///     sibling elements sharing a key. A duplicate key defeats keyed reconciliation, so the
+    ///     codec falls back to a positional walk that can graft a surviving node's DOM state
+    ///     (focus, input value, scroll) onto the wrong sibling when the list reorders — a silent
+    ///     correctness bug. Defaults to a deduplicated <see cref="Console.Error" /> writer
+    ///     (<see cref="WarnDuplicateKeyOnce" />); set to <c>null</c> to silence, or replace to
+    ///     route into a logger or test sink. Only ever fires on the already-broken path, so it
+    ///     adds no cost to a correctly-keyed render.
+    /// </summary>
+    internal static Action<string>? OnDuplicateKey = WarnDuplicateKeyOnce;
+
+    private static void WarnDuplicateKeyOnce(string key)
+    {
+        lock (WarnedDuplicateKeys)
+        {
+            if (WarnedDuplicateKeys.Count >= 1024 || !WarnedDuplicateKeys.Add(key))
+            {
+                return;
+            }
+        }
+
+        Console.Error.WriteLine(
+            $"Rask live diff: two sibling elements share data-rask-key=\"{key}\". Keys must be " +
+            "unique among siblings; the duplicate disables keyed reconciliation for that list and " +
+            "falls back to a positional diff, which can attach a node's state to the wrong sibling " +
+            "when the list reorders. Give each sibling a distinct Key.");
+    }
+
     /// <summary>
     ///     Walk <paramref name="oldFrames" /> and <paramref name="newFrames" /> together
     ///     producing edit ops into <paramref name="output" />. Returns the number of ops
@@ -564,8 +599,12 @@ public static class FrameDiffer
 
             if (!seen.Add(key))
             {
-                // Duplicate keys in the same sibling list — diagnostic-worthy but we
-                // fall back to positional rather than guessing which one to match.
+                // Duplicate keys in the same sibling list. We can't trust the keyed match
+                // (which survivor does the key name?), so we fall back to positional — but
+                // a positional walk can attach a surviving node's state to the wrong sibling
+                // on reorder, so surface the bug rather than failing silently. The hook only
+                // ever fires on this genuinely-broken path, so it costs correct apps nothing.
+                OnDuplicateKey?.Invoke(key);
                 return false;
             }
 

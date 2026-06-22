@@ -461,6 +461,60 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Diff_KeyedList_DuplicateKeys_WarnsWithTheOffendingKey()
+    {
+        var before = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+        ]);
+        var after = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a!"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
+        ]);
+
+        var warned = new List<string>();
+        var previous = FrameDiffer.OnDuplicateKey;
+        FrameDiffer.OnDuplicateKey = warned.Add;
+        try
+        {
+            FrameDiffer.Diff(before, after, new List<EditOp>(), out var usedKeyed);
+            Assert.False(usedKeyed);
+            Assert.Contains("row-7", warned);
+        }
+        finally
+        {
+            FrameDiffer.OnDuplicateKey = previous;
+        }
+    }
+
+    [Fact]
+    public void Diff_KeyedList_UniqueKeys_DoesNotWarn()
+    {
+        var before = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+        ]);
+        var after = Frames(Ul()[
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["1!"],
+            Li(Data: new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
+        ]);
+
+        var warned = new List<string>();
+        var previous = FrameDiffer.OnDuplicateKey;
+        FrameDiffer.OnDuplicateKey = warned.Add;
+        try
+        {
+            FrameDiffer.Diff(before, after, new List<EditOp>(), out var usedKeyed);
+            Assert.True(usedKeyed);
+            Assert.Empty(warned);
+        }
+        finally
+        {
+            FrameDiffer.OnDuplicateKey = previous;
+        }
+    }
+
+    [Fact]
     public void Diff_KeyedList_SameKeyDifferentTag_EmitsTrustedRemoveAndInsert()
     {
         // Same data-rask-key but the element kind changed (Li → Span). The keyed branch

@@ -24,7 +24,7 @@ Guides and references for building with Rask. New here? Start with the project
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–023)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–024)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing

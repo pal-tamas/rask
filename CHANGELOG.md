@@ -47,6 +47,13 @@ them until tagged releases begin.
   panel hosts a second, independently sortable `TableModel<T>`. Expand and both grids' sort are held in
   plain component fields; each open row inserts a keyed detail `<tr>`, so the live diff reconciles
   expand/collapse as an in-place keyed insert/remove and sibling open rows keep their own inner sort.
+- **Duplicate-`Key` warning in the live diff.** Two sibling elements sharing the same `Key:`
+  (`data-rask-key`) silently disabled keyed reconciliation and fell back to a positional diff, which
+  can graft a row's DOM state (focus, input value, scroll position) onto the wrong sibling when the
+  list reorders — a hard-to-spot correctness bug. The diff codec now emits a one-time warning naming
+  the offending key to standard error when it detects a duplicate (deduplicated, capped, and only ever
+  reached on the already-broken path, so a correctly-keyed render pays nothing). See the
+  [composition guide](docs/composition.md).
 
 ### Changed
 - **`Navigator.Navigate(...)` renamed to `Navigator.NavigateTo(...)`.** All three overloads
@@ -180,6 +187,31 @@ them until tagged releases begin.
   warnings-as-errors) failed `restore` for every job. A scoped `NuGetAuditSuppress` for this single
   advisory unblocks the build while leaving audit active for everything else; it is annotated to be
   removed once a patched SQLitePCLRaw family ships.
+- **New `RASK024` analyzer — `UseAuthentication()` must precede `UseRask()`.** A compile-time warning
+  when `app.UseRask<App>()` is wired before `app.UseAuthentication()`. Rask seeds the live session from
+  `HttpContext.User` during the initial GET render and the WebSocket upgrade; if authentication runs
+  after `UseRask`, the principal is empty at that point and every `[Authorize]` page challenges — a
+  silent, easy-to-miss misconfiguration the docs previously only warned about in prose. Fires only when
+  both calls are present and `UseAuthentication` is positioned after `UseRask`; an app with no
+  authentication middleware is left alone. Documented in [diagnostics](docs/diagnostics.md#rask024).
+- **CI now scans for vulnerable and deprecated dependencies.** The `unit` job runs
+  `dotnet list package --vulnerable --include-transitive` and `--deprecated` and fails on findings —
+  defence-in-depth beyond restore-time `NuGetAudit` (which doesn't cover transitive or deprecated
+  packages). The accepted-and-suppressed SQLitePCLRaw advisory is excluded, and "Legacy" (superseded
+  but functional) deprecations are reported as informational rather than failing the build.
+- **The scaffolded WASM JWT token store now warns when it holds a plaintext token.** The
+  `dotnet new rask-wasm --auth` `TokenStore` keeps the bearer JWT in `localStorage` (a development
+  floor — readable by any script via XSS); it now logs a one-time `console.warn` steering to an
+  HttpOnly cookie or `ProtectedTokenStore` so a scaffold shipped to production unchanged surfaces the
+  risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
+  host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
+  legitimate same-origin WebSocket handshakes are rejected with `403`.
+- **File downloads now send `X-Content-Type-Options: nosniff`.** The one-shot download endpoint serves
+  its content-type from whoever staged the entry — often echoed verbatim from a client upload — so a
+  mislabelled file could be MIME-sniffed by the browser. The response now sets `nosniff` alongside the
+  existing `Content-Disposition: attachment` and same-origin / same-session-owner guards, matching the
+  asset endpoints. The `Raw` component also gained an XML-doc XSS warning making explicit that it is the
+  framework's only un-encoded output path and must never carry untrusted input.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
