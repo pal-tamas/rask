@@ -83,6 +83,12 @@ internal static class GeneratorDriverFixture
         // Pull Rask.Core in directly (TestAssembly compilation needs to know about Rask.Core.Component).
         var raskCore = Assembly.Load("Rask.Core");
         refs.Add(MetadataReference.CreateFromFile(raskCore.Location));
+
+        // Rask.Server too, so analyzer tests can resolve the real UseRask symbol (the ASP.NET Core
+        // shared framework rides along in the trusted-platform-assemblies set above via the project's
+        // transitive framework reference, giving UseAuthentication / WebApplication as well).
+        var raskServer = Assembly.Load("Rask.Server");
+        refs.Add(MetadataReference.CreateFromFile(raskServer.Location));
         return refs.ToImmutableArray();
     }
 

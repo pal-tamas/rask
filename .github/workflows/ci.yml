@@ -42,6 +42,42 @@ jobs:
       - name: Restore
         run: dotnet restore Rask.slnx
 
+      # Dependency hygiene. NuGetAudit already fails restore on vulnerable packages (honouring the
+      # scoped NuGetAuditSuppress entries), so this is defence-in-depth that also covers transitive
+      # vulnerabilities and DEPRECATED packages — which audit does not flag. `dotnet list package`
+      # exits 0 even on findings, so we parse its output. The accepted-and-suppressed SQLitePCLRaw
+      # advisory (GHSA-2m69-gcr7-jv3q, no patched version) is excluded so it doesn't re-fail here;
+      # remove that filter once a patched SQLitePCLRaw family ships.
+      - name: Vulnerable & deprecated package scan
+        run: |
+          set -euo pipefail
+          echo "== Vulnerable (incl. transitive) =="
+          dotnet list Rask.slnx package --vulnerable --include-transitive > vuln.log 2>&1 || true
+          cat vuln.log
+          unexpected="$(grep -E '^\s*>' vuln.log | grep -v 'GHSA-2m69-gcr7-jv3q' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "::error::Unexpected vulnerable package(s) found:"
+            echo "$unexpected"
+            exit 1
+          fi
+          echo "== Deprecated =="
+          dotnet list Rask.slnx package --deprecated > deprecated.log 2>&1 || true
+          cat deprecated.log
+          # Package rows start with '>'. "Legacy" means superseded-but-functional (e.g. xunit v2 ->
+          # v3, a large separate migration); treat those as informational. Fail only on harder
+          # deprecation reasons (Critical Bugs / Other) that warrant action now.
+          deprecated_rows="$(grep -E '^\s*>' deprecated.log || true)"
+          if [ -n "$deprecated_rows" ]; then
+            actionable="$(printf '%s\n' "$deprecated_rows" | grep -v -i 'Legacy' || true)"
+            if [ -n "$actionable" ]; then
+              echo "::error::Actionable deprecated package(s) found:"
+              echo "$actionable"
+              exit 1
+            fi
+            echo "::warning::Legacy (superseded) packages present — informational only:"
+            printf '%s\n' "$deprecated_rows"
+          fi
+
       - name: Build (no WASM bundle)
         # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll
         # (MSB3026 copy-retry / MSB3030 not-found) rather than masking the warning.

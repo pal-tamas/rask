@@ -30,23 +30,52 @@ public sealed class LoginModel
 public partial class AuthJson : JsonSerializerContext;
 
 // Bearer JWT in localStorage (survives refresh) + an in-memory copy the handler reads synchronously.
-// Note: a token in JS storage is readable by any script (XSS). Prefer an HttpOnly cookie where you can.
+// SECURITY: a token in localStorage is plaintext and readable by ANY script on the page (XSS), so this
+// scaffolded store is a development-grade floor. Before production, prefer an HttpOnly cookie (the token
+// never reaches JS) or encrypt at rest with ProtectedTokenStore — see docs/authentication.md. The
+// WarnOnce below logs a one-time reminder to the browser console while this plaintext store is in use.
 public sealed class TokenStore(IJSRuntime js)
 {
+    private bool _warned;
+
     public string? Token { get; private set; }
 
-    public async Task InitAsync() => Token = await js.InvokeAsync<string?>("localStorage.getItem", "rask.jwt");
+    public async Task InitAsync()
+    {
+        Token = await js.InvokeAsync<string?>("localStorage.getItem", "rask.jwt");
+        if (Token is not null)
+        {
+            await WarnOnceAsync();
+        }
+    }
 
     public async Task SetAsync(string token)
     {
         Token = token;
         await js.InvokeVoidAsync("localStorage.setItem", "rask.jwt", token);
+        await WarnOnceAsync();
     }
 
     public async Task ClearAsync()
     {
         Token = null;
         await js.InvokeVoidAsync("localStorage.removeItem", "rask.jwt");
+    }
+
+    // One-time console warning so a scaffold shipped to production unchanged surfaces the risk.
+    // Delete this (and harden the store) once you've moved to an HttpOnly cookie or ProtectedTokenStore.
+    private async Task WarnOnceAsync()
+    {
+        if (_warned)
+        {
+            return;
+        }
+
+        _warned = true;
+        await js.InvokeVoidAsync("console.warn",
+            "Rask: the bearer token is stored in plaintext localStorage and is readable by any script "
+            + "(XSS risk). This is a development floor — for production use an HttpOnly cookie or encrypt "
+            + "the token at rest (ProtectedTokenStore). See docs/authentication.md.");
     }
 }
 

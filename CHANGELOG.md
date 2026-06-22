@@ -147,6 +147,25 @@ them until tagged releases begin.
   warnings-as-errors) failed `restore` for every job. A scoped `NuGetAuditSuppress` for this single
   advisory unblocks the build while leaving audit active for everything else; it is annotated to be
   removed once a patched SQLitePCLRaw family ships.
+- **New `RASK024` analyzer — `UseAuthentication()` must precede `UseRask()`.** A compile-time warning
+  when `app.UseRask<App>()` is wired before `app.UseAuthentication()`. Rask seeds the live session from
+  `HttpContext.User` during the initial GET render and the WebSocket upgrade; if authentication runs
+  after `UseRask`, the principal is empty at that point and every `[Authorize]` page challenges — a
+  silent, easy-to-miss misconfiguration the docs previously only warned about in prose. Fires only when
+  both calls are present and `UseAuthentication` is positioned after `UseRask`; an app with no
+  authentication middleware is left alone. Documented in [diagnostics](docs/diagnostics.md#rask024).
+- **CI now scans for vulnerable and deprecated dependencies.** The `unit` job runs
+  `dotnet list package --vulnerable --include-transitive` and `--deprecated` and fails on findings —
+  defence-in-depth beyond restore-time `NuGetAudit` (which doesn't cover transitive or deprecated
+  packages). The accepted-and-suppressed SQLitePCLRaw advisory is excluded, and "Legacy" (superseded
+  but functional) deprecations are reported as informational rather than failing the build.
+- **The scaffolded WASM JWT token store now warns when it holds a plaintext token.** The
+  `dotnet new rask-wasm --auth` `TokenStore` keeps the bearer JWT in `localStorage` (a development
+  floor — readable by any script via XSS); it now logs a one-time `console.warn` steering to an
+  HttpOnly cookie or `ProtectedTokenStore` so a scaffold shipped to production unchanged surfaces the
+  risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
+  host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
+  legitimate same-origin WebSocket handshakes are rejected with `403`.
 
 ## [0.9.0] - 2026-06-16
 

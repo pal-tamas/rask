@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK023)
+# Rask diagnostics (RASK001–RASK024)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -32,6 +32,7 @@ build once.
 | [RASK021](#rask021) | Warning | Root component must render a complete page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
+| [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
 
 ---
 
@@ -254,3 +255,23 @@ announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/W
 
 **Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
 assistive technology skips it. See [accessibility](accessibility.md).
+
+## RASK024
+**`UseAuthentication()` must precede `UseRask()`** · Warning
+
+`app.UseRask<App>()` is wired before `app.UseAuthentication()`. Rask seeds the live session from
+`HttpContext.User` during the initial GET render and the WebSocket upgrade — if the authentication
+middleware runs *after* `UseRask`, the principal is empty at that point and every `[Authorize]` page
+challenges.
+
+```csharp
+// ✗ app.UseRask<App>();
+//   app.UseAuthentication();
+// ✓ app.UseAuthentication();   // populates HttpContext.User on GET + WS upgrade
+//   app.UseAuthorization();
+//   app.UseRask<App>();
+```
+
+**Fix:** call `app.UseAuthentication()` (and `app.UseAuthorization()`) before `app.UseRask()`. The
+warning fires only when both calls are present and `UseAuthentication` is positioned after `UseRask`;
+an app with no authentication middleware is left alone. See [authentication](authentication.md).

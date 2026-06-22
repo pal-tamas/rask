@@ -963,6 +963,47 @@ Define an IdentityResource/`role` claim and add it to the client's allowed scope
 
 ---
 
+## Behind a reverse proxy (ForwardedHeaders)
+
+Rask's anti-CSWSH and redeem-CSRF defenses are a **host-only same-origin check**: the `/rask/ws`
+handshake and `/_rask/auth/redeem` compare the request's host to the `Origin` header's host and reject a
+mismatch with `403`. Behind a TLS-terminating proxy (nginx, Caddy, a cloud load balancer, Azure App
+Service, …) the app receives the request on an internal address, so `HttpContext.Request.Host` is the
+**internal** host (e.g. `localhost:8080`) while the browser's `Origin` carries the **public** host
+(`app.example.com`). Those don't match, and **every legitimate same-origin WebSocket handshake and
+redeem POST is rejected** — auth appears to silently break in production but works locally.
+
+Restore the public host by enabling forwarded headers **before** `UseAuthentication()`/`UseRask()`, so
+the rest of the pipeline (including Rask's origin checks) sees the real host and scheme:
+
+```csharp
+using Microsoft.AspNetCore.HttpOverrides;
+
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                       | ForwardedHeaders.XForwardedProto
+                       | ForwardedHeaders.XForwardedHost;   // <- the host the origin check needs
+    // Trust only your proxy. The defaults clear KnownNetworks/KnownProxies, which drops forwarded
+    // headers entirely unless you add the proxy here (or trust a known network range).
+    o.KnownProxies.Add(System.Net.IPAddress.Parse("10.0.0.1"));
+});
+
+var app = builder.Build();
+
+app.UseForwardedHeaders();   // FIRST — before auth/Rask, so Host/Scheme are corrected upstream
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRask<App>();
+```
+
+> **Make sure the proxy actually sends `X-Forwarded-Host`** (and `X-Forwarded-Proto`). Some proxies
+> forward `For`/`Proto` but not `Host` by default. Only trust these headers from a proxy you control —
+> an attacker who can reach the app directly could otherwise spoof the host. If you can't use
+> `ForwardedHeaders`, host Rask on the same origin the browser sees so the internal host already matches.
+
+---
+
 ## Security checklist
 
 - ☑ Serve auth over **HTTPS** only (`Cookie.SecurePolicy = Always` on `AddCookie`).
