@@ -78,6 +78,23 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
+    public async Task Upload_FilenameWithPath_ReturnsSanitizedLeafName()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var sessionId = await CreateSessionAsync(host);
+
+        var form = BuildSingleFileForm("../../etc/passwd", new byte[] { 1, 2, 3 });
+        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form);
+
+        response.EnsureSuccessStatusCode();
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var name = doc.RootElement.GetProperty("files")[0].GetProperty("name").GetString();
+        // The directory components are stripped before the name is stored and echoed, so a host
+        // that surfaces it cannot be steered into a traversal (and it must still HTML-encode it).
+        Assert.Equal("passwd", name);
+    }
+
+    [Fact]
     public async Task Upload_CrossOrigin_IsRejected()
     {
         using var host = RaskTestHost.Create<TestApp>();

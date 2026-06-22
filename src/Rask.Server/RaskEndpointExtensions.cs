@@ -1305,6 +1305,41 @@ public static class RaskEndpointExtensions
     // Rask.Core's LocalUrl.Sanitize (single source of truth for the IsLocalUrl rule).
     internal static string SanitizeReturnUrl(string? returnUrl) => LocalUrl.Sanitize(returnUrl);
 
+    // Reduce a client-supplied upload filename to a safe display leaf: drop any directory
+    // components (both '/' and '\' separators, whatever the host OS), strip control characters
+    // and NUL, cap the length, and fall back to a generic name when nothing usable remains. The
+    // staged file is always written to a server-generated token path (never the name), so this is
+    // defense-in-depth — the returned `name` is still attacker-controlled and hosts must
+    // HTML-encode it before display (use Text / element children, never Raw).
+    internal static string SanitizeUploadFileName(string? fileName)
+    {
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return "file";
+        }
+
+        // Take the segment after the last separator — handles "../../x", "C:\x", "a/b/c".
+        var lastSeparator = fileName.AsSpan().LastIndexOfAny('/', '\\');
+        var leaf = lastSeparator >= 0 ? fileName[(lastSeparator + 1)..] : fileName;
+
+        var sb = new StringBuilder(leaf.Length);
+        foreach (var ch in leaf)
+        {
+            if (!char.IsControl(ch))
+            {
+                sb.Append(ch);
+            }
+
+            if (sb.Length >= 255)
+            {
+                break;
+            }
+        }
+
+        var cleaned = sb.ToString().Trim();
+        return cleaned.Length == 0 || cleaned == "." || cleaned == ".." ? "file" : cleaned;
+    }
+
     /// <summary>
     ///     Serves a single per-component scoped asset by its content hash. The hash and
     ///     extension are validated by routing pattern + a hex/length check here; on miss,
@@ -1440,7 +1475,7 @@ public static class RaskEndpointExtensions
 
             var entry = await uploads.StageAsync(
                 sessionId,
-                file.FileName,
+                SanitizeUploadFileName(file.FileName),
                 string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
                 file.Length,
                 DateTimeOffset.FromUnixTimeMilliseconds(lastModified),

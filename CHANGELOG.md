@@ -199,6 +199,14 @@ them until tagged releases begin.
   risk. New [reverse-proxy `ForwardedHeaders` guidance](docs/authentication.md) documents that the
   host-only anti-CSWSH / redeem-CSRF checks need forwarded headers behind a TLS-terminating proxy, or
   legitimate same-origin WebSocket handshakes are rejected with `403`.
+- **Upload filenames are sanitized before they are stored and echoed.** A client-supplied upload filename
+  is attacker-controlled and is returned in the upload response (`name`) for hosts to display. Staged
+  files were always written to a server-generated token path (never the name), so there was no
+  server-side traversal — but the echoed name could carry directory components (`../../etc/passwd`) or
+  control characters. The upload endpoint now reduces it to a safe leaf (drops `/` and `\` directory
+  components whatever the host OS, strips control/NUL characters, caps the length at 255, and falls back
+  to `file` for empty / path-dot inputs) as defence in depth. The returned `name` is still
+  attacker-controlled and must be HTML-encoded by hosts before display — never bound into `Raw`.
 
 ### Performance
 - **Lower render allocations for elements carrying `Data` / `Aria` / `TabIndex`.**
