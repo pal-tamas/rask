@@ -207,11 +207,12 @@ public class FrameDifferTests
     }
 
     [Fact]
-    public void Diff_ChildAdded_WithNewHtml_InsertSubtreeCarriesFragment()
+    public void Diff_ChildAdded_WithNewHtml_InsertSubtreeCarriesFragmentRange()
     {
-        // When the caller passes newHtml, FrameDiffer attaches the HTML slice for the
-        // inserted subtree to op.Value. This is what makes the client-side InsertSubtree
-        // applicable without a follow-up full render: the op carries everything needed.
+        // When the caller passes newHtml, FrameDiffer records the inserted subtree's char range
+        // (HtmlStart/HtmlEnd) instead of allocating a Value string. The wire codec slices the
+        // fragment from the same HTML at write time — verified here by both the range and a full
+        // BuildPayloadUtf8Diff round-trip, which is what the client actually receives.
         var before = Frames(Ul()[Li()["a"], Li()["b"]]);
         var (afterFrames, afterHtml) = FramesAndHtml(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
 
@@ -220,8 +221,10 @@ public class FrameDifferTests
 
         var insert = Assert.Single(ops);
         Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
-        Assert.NotNull(insert.Value);
-        Assert.Equal("<li>c</li>", insert.Value);
+        Assert.Null(insert.Value);
+        Assert.True(insert.HtmlStart >= 0 && insert.HtmlEnd > insert.HtmlStart);
+        Assert.Equal("<li>c</li>", afterHtml.Substring(insert.HtmlStart, insert.HtmlEnd - insert.HtmlStart));
+        Assert.Equal("<li>c</li>", WireInsertHtml(ops, afterHtml));
     }
 
     [Fact]
@@ -236,6 +239,27 @@ public class FrameDifferTests
         var insert = Assert.Single(ops);
         Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
         Assert.Null(insert.Value);
+        // No render HTML supplied → sentinel range, so the wire carries a null fragment and the
+        // caller routes the payload through the full-HTML fallback.
+        Assert.True(insert.HtmlStart < 0);
+    }
+
+    // Build the diff payload exactly as the live session does and pull the first InsertSubtree
+    // op's html field ([kind, path, html, domCount]) back out of the wire JSON.
+    private static string? WireInsertHtml(IReadOnlyList<EditOp> ops, string newHtml)
+    {
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        LivePayload.BuildPayloadUtf8Diff(buffer, ops, newHtml: newHtml);
+        using var doc = System.Text.Json.JsonDocument.Parse(buffer.WrittenMemory);
+        foreach (var op in doc.RootElement.GetProperty("ops").EnumerateArray())
+        {
+            if (op[0].GetInt32() == (int)EditOpKind.InsertSubtree)
+            {
+                return op[2].ValueKind == System.Text.Json.JsonValueKind.Null ? null : op[2].GetString();
+            }
+        }
+
+        return null;
     }
 
     // ----- Keyed-list path -------------------------------------------------------------
@@ -333,8 +357,10 @@ public class FrameDifferTests
         var insert = Assert.Single(ops);
         Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
         Assert.True(insert.Trusted);
-        Assert.NotNull(insert.Value);
-        Assert.Contains("data-rask-key=\"3\"", insert.Value!);
+        // The fragment travels as a deferred char range, sliced into the wire payload at write
+        // time — assert via the actual BuildPayloadUtf8Diff output the client receives.
+        Assert.Null(insert.Value);
+        Assert.Contains("data-rask-key=\"3\"", WireInsertHtml(ops, afterHtml)!);
     }
 
     [Fact]

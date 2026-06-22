@@ -193,6 +193,15 @@ them until tagged releases begin.
   a11y-rich tree (`Aria` + `Role` + `TabIndex`) **808 KB → 677 KB** (−16%); small/medium trees −25–30%.
   No change to rendered output or the documented attribute order. New `AccessibilityAttributesBenchmarks`
   locks in the a11y path.
+- **Halve the diff-codec allocation when a keyed list grows.** `FrameDiffer` sliced each inserted
+  subtree's HTML out of the rendered document with a `Substring` while diffing — one short-lived string
+  per `InsertSubtree` op. Each op now carries the fragment's `[HtmlStart..HtmlEnd)` char range instead,
+  and `LivePayload.BuildPayloadUtf8Diff` slices it straight into the UTF-8 wire buffer at write time
+  (`Utf8JsonWriter.WriteStringValue(ReadOnlySpan<char>)`), so no intermediate string is materialised.
+  Directly-constructed ops still ship a verbatim `Value`, so the wire format is byte-identical. Measured
+  on the new `FrameDifferBenchmarks.InsertRows` (M-class, ShortRun): a 100-row list gaining 50 rows
+  dropped **11.32 KB → 5.11 KB** allocated (−55%), and a 1,000-row list gaining 500 rows
+  **113.27 KB → 50.81 KB** (−55%). Reorder/no-change/text paths are unchanged.
 
 ## [0.9.0] - 2026-06-16
 

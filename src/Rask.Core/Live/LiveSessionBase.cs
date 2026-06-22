@@ -134,7 +134,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
                 && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
             {
                 var headHtml = headChanged ? LiveDiffGate.ExtractHead(html) : null;
-                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes, headHtml);
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
+                    headHtml, html);
 
                 // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
                 // under Forced. Only the pathological case (nearly every node changed on a tiny page,
