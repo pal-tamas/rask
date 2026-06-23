@@ -409,6 +409,7 @@ The collapsible sections below are a feature-by-feature tour. For step-by-step g
 see **[`docs/`](docs/)**:
 
 - **[Getting started](docs/getting-started.md)** — scaffold, first component, interactivity, routing.
+- **[Best practices](docs/best-practices.md)** — the patterns and pitfalls that keep an app correct, secure, and fast.
 - **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · *
   *[Authentication](docs/authentication.md)**
 - **[Accessibility](docs/accessibility.md)** · **[Observability](docs/observability.md)** · **[Configuration](docs/configuration.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
