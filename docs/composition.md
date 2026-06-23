@@ -110,20 +110,20 @@ focus — and the runtime never `preventDefault`s it, so handlers compose with n
 Todos sample uses it to close its dialog on Escape (it focuses the `<dialog>` on open via an
 `ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
 
-**Cancelling async handler work.** Inside an event handler, `Component.EventCancellationToken` is a
-token cancelled when the component unmounts **or** when the host cancels the dispatch — the server's
-optional `RaskServerOptions.HandlerTimeout` elapsing, or the socket closing. Thread it into the
-cancellable async work a handler starts so a slow handler unwinds instead of pinning the session's
-render pipeline:
+**Cancelling async work.** `Component.CancellationToken` is cancelled when the component unmounts —
+and, *while an event handler is running*, **also** when the host cancels that dispatch (the server's
+optional `RaskServerOptions.HandlerTimeout` elapsing, or the socket closing). Thread it into the
+cancellable async work a handler or lifecycle hook starts, so the work aborts when the component goes
+away and a slow handler unwinds instead of pinning the session's render pipeline:
 
 ```csharp
 Button(OnClickAsync: async () =>
-    _rows = await _api.LoadAsync(EventCancellationToken))["Load"]
+    _rows = await _api.LoadAsync(CancellationToken))["Load"]
 ```
 
 It is cooperative: a handler that ignores the token (or runs unbounded synchronous work) can't be
-force-aborted — that's a .NET reality, not a Rask limitation. Outside a handler the property is just
-the component's lifetime `CancellationToken`.
+force-aborted — that's a .NET reality, not a Rask limitation. In a lifecycle hook (no handler
+dispatch) the token is simply the component's lifetime token.
 
 ---
 

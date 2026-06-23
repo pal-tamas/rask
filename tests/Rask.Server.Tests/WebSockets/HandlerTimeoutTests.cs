@@ -4,7 +4,7 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-// RaskServerOptions.HandlerTimeout: a cooperative handler that threads EventCancellationToken into its
+// RaskServerOptions.HandlerTimeout: a cooperative handler that threads CancellationToken into its
 // async work is cancelled when the timeout elapses, so it unwinds instead of pinning the render lock.
 [Collection("SessionGracePeriod")]
 public class HandlerTimeoutTests
@@ -28,7 +28,7 @@ public class HandlerTimeoutTests
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            // Fire the slow handler. It awaits a 30 s delay observing EventCancellationToken, so without
+            // Fire the slow handler. It awaits a 30 s delay observing CancellationToken, so without
             // the timeout this would hang for 30 s; with it, the handler is cancelled within ~300 ms.
             await ws.SendJsonAsync(new { id = handlerId });
 

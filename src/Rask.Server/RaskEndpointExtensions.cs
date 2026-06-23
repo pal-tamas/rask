@@ -86,7 +86,7 @@ public static class RaskEndpointExtensions
     // reconnect under SessionGracePeriod). Seeded from RaskServerOptions.IdleSocketTimeout. Zero = off.
     internal static TimeSpan IdleSocketTimeout = TimeSpan.Zero;
 
-    // Cancel a handler dispatch's EventCancellationToken after this long, so a cooperative handler that
+    // Cancel a handler dispatch's CancellationToken after this long, so a cooperative handler that
     // observes it unwinds instead of pinning the render pipeline. Seeded from
     // RaskServerOptions.HandlerTimeout. Zero = off.
     internal static TimeSpan HandlerTimeout = TimeSpan.Zero;
@@ -1001,8 +1001,8 @@ public static class RaskEndpointExtensions
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
 
-        // Handler timeout: cancel the dispatch's EventCancellationToken after HandlerTimeout (linked to
-        // the socket so a close cancels it too). A handler that threads EventCancellationToken into its
+        // Handler timeout: cancel the dispatch's CancellationToken after HandlerTimeout (linked to
+        // the socket so a close cancels it too). A handler that threads CancellationToken into its
         // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
         // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.
         using var handlerCts = HandlerTimeout > TimeSpan.Zero
@@ -1078,7 +1078,7 @@ public static class RaskEndpointExtensions
             catch (OperationCanceledException)
                 when (handlerCts is not null && handlerCts.IsCancellationRequested && !ct.IsCancellationRequested)
             {
-                // The handler timed out and observed EventCancellationToken, unwinding cleanly. The
+                // The handler timed out and observed CancellationToken, unwinding cleanly. The
                 // session survives; record it rather than letting it look like a normal cancellation.
                 metrics?.HandlerTimedOut();
                 activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");

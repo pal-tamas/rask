@@ -35,10 +35,9 @@ https://github.com/pal-tamas/rask/tree/main/docs
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
 - **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, your own) through the constructor**,
   not as settable properties (a non-nullable settable property becomes a required factory param).
-- **Async handler cancellation:** pass `EventCancellationToken` (cancelled on unmount or the optional
-  `RaskServerOptions.HandlerTimeout`) into the cancellable work an `OnClickAsync`/`OnSubmitAsync` starts,
-  e.g. `await http.GetFromJsonAsync<T>(url, EventCancellationToken)`. Use `CancellationToken` (lifetime
-  only) inside lifecycle hooks.
+- **Async cancellation:** pass `CancellationToken` into the cancellable work a handler or lifecycle hook
+  starts, e.g. `await http.GetFromJsonAsync<T>(url, CancellationToken)`. It cancels on unmount, and —
+  inside an event handler — also on the optional `RaskServerOptions.HandlerTimeout` / socket close.
 
 ## Events, scoped CSS/JS, forms, auth
 - **Events / parent callbacks** are plain delegate props: child declares `Action<int>? OnRate`,
