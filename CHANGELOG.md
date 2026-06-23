@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **Beginner-friendly getting-started rewrite ([docs/getting-started.md](docs/getting-started.md)).**
+  Restructured for a developer new to Rask into a "run → understand → extend" path: promoted
+  prerequisites, a recommended default template, a *"what you should see"* checkpoint, a new tour of the
+  scaffolded files, and a troubleshooting section. Security/edge-case detail (string encoding, URL
+  sanitization, the `RenderResult` shapes) moved into clearly-labelled asides instead of interrupting
+  the main flow. Surfaced prerequisites up front in `README.md` and `NUGET.md`, and pointed the
+  `docs/README.md` index at the guide as the starting point.
+
 ### Added
 - **Best practices guide ([docs/best-practices.md](docs/best-practices.md)).** A new hub that
   consolidates the patterns and common pitfalls previously scattered across the subsystem docs and

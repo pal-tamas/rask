@@ -1,13 +1,14 @@
 # Rask documentation
 
-Guides and references for building with Rask. New here? Start with the project
-[README](../README.md) for the pitch and a quick demo, then come back for depth.
+Guides and references for building with Rask. **New to Rask?** Read
+[Getting started](getting-started.md) start to finish — it goes from zero to a running, routed,
+interactive app. Want the pitch and a quick demo first? See the project [README](../README.md).
 
 ## Guides
 
 | Guide | What it covers |
 |-------|----------------|
-| [Getting started](getting-started.md) | Install the templates, scaffold an app, write your first component, add interactivity and a route. |
+| [Getting started](getting-started.md) | Prerequisites, scaffold an app, a tour of the generated files, your first component, interactivity, routing, and troubleshooting. |
 | [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), `VirtualizeModel`, `TableModel`, drag-and-drop. |
