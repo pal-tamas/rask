@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Rask.Core.Live;
 using Rask.Example.Shared;
 using Rask.Server;
+using Rask.Server.Diagnostics;
 
 // The framework default since AddRask gained an options shape is
 // LiveDiffMode.Auto, so `services.AddRask()` already ships the diff codec out of
@@ -18,6 +19,10 @@ if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
+// Live-session capacity health check (Healthy / Degraded ≥80% / Unhealthy at cap), surfaced at
+// /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
+// docs/observability.md.
+builder.Services.AddHealthChecks().AddRaskLiveSessions();
 // The HTTP demo's HttpClient calls back into this server for its own static
 // data/posts-1.json. Resolve the bound origin lazily from IServerAddressesFeature
 // (populated once the server is listening); fall back to localhost for the
@@ -40,6 +45,10 @@ var app = builder.Build();
 // auto-insert and lets real files (wwwroot/lib, /img, /data) serve first.
 app.UseStaticFiles();
 app.UseRouting();
+
+// Live-session capacity probe (see docs/observability.md). Returns 200 Healthy / Degraded and
+// 503 Unhealthy once at the MaxSessions cap, so an orchestrator can shed load before refusals.
+app.MapHealthChecks("/health");
 
 // Test-only diagnostic endpoint: exposes the server's session count and GC heap
 // so E2E memory/session-lifecycle tests can assert bounded growth. Lives in the

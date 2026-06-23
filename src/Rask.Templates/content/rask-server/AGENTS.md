@@ -23,6 +23,10 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Accessibility:** set ARIA via the `Aria` dictionary on any element — `Button(Aria: new() { ["label"] = "Close" })`
   renders `aria-label="Close"`. `Role:` / `TabIndex:` are typed params. `Img` needs `Alt:` (or `Alt: ""`
   for decorative images) or RASK023 warns. See `docs/accessibility.md`.
+- **Observability:** framework faults flow into your `ILogger` automatically; metrics publish on the
+  `Rask.Server` meter (`dotnet-counters --counters Rask.Server` or `AddMeter(...)`), traces on the
+  `Rask.Server` activity source. Add `services.AddHealthChecks().AddRaskLiveSessions()` for a
+  live-session capacity probe. See `docs/observability.md`.
 
 ## Routing & lifecycle
 - Route with an attribute: `[Route("/users/{id:int}")]` + `[RouteParam] public int Id { get; set; }`

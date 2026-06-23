@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Production observability for the server host (OpenTelemetry-aligned).** The Rask server is now
+  instrumented with standard .NET primitives — no extra packages, exportable to OpenTelemetry out of
+  the box. (1) **Structured logging:** `UseRask<TApp>()` bridges the framework's internal diagnostics
+  seam to your `ILogger` pipeline, so every framework fault (a lifecycle hook that threw with no
+  ancestor `ErrorBoundary`, a duplicate sibling `Key`, a malformed WS frame, a handler that threw) is
+  logged under a stable category (`Rask.Live`, `Rask.Diff`, `Rask.Lifecycle`, …) at the matching level
+  with the original exception — replacing the previous scattered `Console.Error` writes. (2)
+  **Metrics:** a `Meter` named `Rask.Server` (`RaskTelemetry.MeterName`) exposes session counters
+  (`rask.sessions.created` / `.rejected` / `.evicted`), an active-sessions gauge, handler counters
+  (`rask.handlers.dispatched` / `.faulted`) and duration histogram, and a `rask.ws.frames.rejected`
+  counter tagged by `reason` (`size` / `rate` / `backlog`) — the headline DoS-visibility signal. Read
+  with `dotnet-counters --counters Rask.Server` or `AddMeter(RaskTelemetry.MeterName)`. (3) **Tracing:**
+  an `ActivitySource` named `Rask.Server` spans each handler dispatch (`rask.handler.dispatch`),
+  zero-cost when no listener is attached. (4) **Health checks:** `services.AddHealthChecks()`
+  `.AddRaskLiveSessions()` reports live-session capacity — `Healthy` / `Degraded` (≥80% of
+  `MaxSessions`) / `Unhealthy` (at the cap). All of it is on by default with no configuration; you opt
+  in only to *exporting* it. The render/diff/serialization hot path is untouched; the per-dispatch
+  instrumentation (a counter increment, a `Stopwatch` timing pair, a histogram record, and a tracing
+  `Activity` that is `null` when no tracer is attached) is allocation-free. See the new
+  [observability guide](docs/observability.md).
 - **Keyboard events on every element.** `Element` now exposes the `OnKeyDown` / `OnKeyDownAsync` and
   `OnKeyUp` / `OnKeyUpAsync` pairs, the focus-scoped counterpart to `OnClick`, wired by both client
   runtimes (Server WS + WASM) via `data-rask-on-keydown` / `data-rask-on-keyup`. A handler takes

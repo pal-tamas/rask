@@ -55,4 +55,15 @@ public sealed class ProgramTests
         // The framework's catch-all routes to the NotFound page; it returns 200 with HTML.
         Assert.Contains("Page not found", body);
     }
+
+    [Fact]
+    public async Task HealthEndpoint_ReportsHealthy_WhenBelowCapacity()
+    {
+        // Wired via services.AddHealthChecks().AddRaskLiveSessions() + app.MapHealthChecks("/health").
+        // With no sessions and the default uncapped store, the live-session check is Healthy.
+        using var host = ExampleServerTestHost.Create();
+        var response = await host.Http.GetAsync("/health");
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+    }
 }
