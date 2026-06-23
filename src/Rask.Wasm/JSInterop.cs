@@ -3,6 +3,7 @@ using System.Runtime.InteropServices.JavaScript;
 #endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop.Infrastructure;
+using Rask.Core.Diagnostics;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
 
@@ -66,7 +67,11 @@ internal static partial class JSInterop
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[Rask.Wasm] EndInvokeJSResult dispatch failed: {ex}");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error,
+                "Rask.Wasm",
+                "[Rask.Wasm] EndInvokeJSResult dispatch failed",
+                ex);
         }
     }
 
@@ -96,8 +101,11 @@ internal static partial class JSInterop
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[Rask.Wasm] BeginDotNetInvoke '{assemblyName}.{methodIdentifier}' failed: {ex}");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error,
+                "Rask.Wasm",
+                $"[Rask.Wasm] BeginDotNetInvoke '{assemblyName}.{methodIdentifier}' failed",
+                ex);
         }
     }
 
