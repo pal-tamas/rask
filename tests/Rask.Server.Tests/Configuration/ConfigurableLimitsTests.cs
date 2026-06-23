@@ -27,7 +27,9 @@ public class ConfigurableLimitsTests
             RaskEndpointExtensions.MaxPendingHandlers,
             RaskEndpointExtensions.MaxInboundFramesPerSecond,
             RaskEndpointExtensions.SessionGracePeriod,
-            RaskEndpointExtensions.UnconnectedSessionGracePeriod);
+            RaskEndpointExtensions.UnconnectedSessionGracePeriod,
+            RaskEndpointExtensions.IdleSocketTimeout,
+            RaskEndpointExtensions.MaxPendingHandlerBytes);
         try
         {
             new ServiceCollection().AddRask(configureServer: o =>
@@ -37,6 +39,8 @@ public class ConfigurableLimitsTests
                 o.MaxInboundFramesPerSecond = 42;
                 o.SessionGracePeriod = TimeSpan.FromSeconds(5);
                 o.UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(2);
+                o.IdleSocketTimeout = TimeSpan.FromSeconds(90);
+                o.MaxPendingHandlerBytes = 4096;
             });
 
             Assert.Equal(1234, RaskEndpointExtensions.MaxInboundFrameBytes);
@@ -44,6 +48,8 @@ public class ConfigurableLimitsTests
             Assert.Equal(42, RaskEndpointExtensions.MaxInboundFramesPerSecond);
             Assert.Equal(TimeSpan.FromSeconds(5), RaskEndpointExtensions.SessionGracePeriod);
             Assert.Equal(TimeSpan.FromSeconds(2), RaskEndpointExtensions.UnconnectedSessionGracePeriod);
+            Assert.Equal(TimeSpan.FromSeconds(90), RaskEndpointExtensions.IdleSocketTimeout);
+            Assert.Equal(4096, RaskEndpointExtensions.MaxPendingHandlerBytes);
         }
         finally
         {
@@ -51,8 +57,24 @@ public class ConfigurableLimitsTests
                 RaskEndpointExtensions.MaxPendingHandlers,
                 RaskEndpointExtensions.MaxInboundFramesPerSecond,
                 RaskEndpointExtensions.SessionGracePeriod,
-                RaskEndpointExtensions.UnconnectedSessionGracePeriod) = saved;
+                RaskEndpointExtensions.UnconnectedSessionGracePeriod,
+                RaskEndpointExtensions.IdleSocketTimeout,
+                RaskEndpointExtensions.MaxPendingHandlerBytes) = saved;
         }
+    }
+
+    [Fact]
+    public void AddRask_NegativeIdleSocketTimeout_ThrowsAtStartup()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.IdleSocketTimeout = TimeSpan.FromSeconds(-1)));
+    }
+
+    [Fact]
+    public void AddRask_NegativePendingHandlerBytes_ThrowsAtStartup()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.MaxPendingHandlerBytes = -1));
     }
 
     [Fact]
