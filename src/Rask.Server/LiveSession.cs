@@ -116,6 +116,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // Aggregate bytes of the cloned payloads currently queued — the memory companion to the count
+    // above, so the receive loop can bound the queue's footprint, not just its length.
+    private long _pendingHandlerBytes;
+
+    internal long AddPendingHandlerBytes(long bytes) => Interlocked.Add(ref _pendingHandlerBytes, bytes);
+
+    internal void SubtractPendingHandlerBytes(long bytes) => Interlocked.Add(ref _pendingHandlerBytes, -bytes);
+
     public async ValueTask DisposeAsync()
     {
         _disposed = true;

@@ -82,6 +82,14 @@ public static class RaskEndpointExtensions
     // tune ingress with a reverse-proxy rate limiter. 0 = off.
     internal static int MaxInboundFramesPerSecond = 1000;
 
+    // Close a connected socket that sends no inbound frame for this long (the session survives for
+    // reconnect under SessionGracePeriod). Seeded from RaskServerOptions.IdleSocketTimeout. Zero = off.
+    internal static TimeSpan IdleSocketTimeout = TimeSpan.Zero;
+
+    // Aggregate-bytes companion to MaxPendingHandlers: bounds the queued cloned-payload memory, not just
+    // the queue count. Seeded from RaskServerOptions.MaxPendingHandlerBytes. 0 = off.
+    internal static long MaxPendingHandlerBytes;
+
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
@@ -162,6 +170,8 @@ public static class RaskEndpointExtensions
             MaxInboundFramesPerSecond = serverOptions.MaxInboundFramesPerSecond;
             SessionGracePeriod = serverOptions.SessionGracePeriod;
             UnconnectedSessionGracePeriod = serverOptions.UnconnectedSessionGracePeriod;
+            IdleSocketTimeout = serverOptions.IdleSocketTimeout;
+            MaxPendingHandlerBytes = serverOptions.MaxPendingHandlerBytes;
         }
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
@@ -602,7 +612,37 @@ public static class RaskEndpointExtensions
                 WebSocketReceiveResult result;
                 ReadOnlyMemory<byte> payload;
 
-                result = await ws.ReceiveAsync(buffer, ct);
+                // Idle-socket timeout: if enabled, bound how long we wait for the *next* message to
+                // start. A fired timer (and not a shutdown) means the client went silent — close the
+                // socket; the session survives for reconnect under the grace period.
+                if (IdleSocketTimeout > TimeSpan.Zero)
+                {
+                    using var idleCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    idleCts.CancelAfter(IdleSocketTimeout);
+                    try
+                    {
+                        result = await ws.ReceiveAsync(buffer, idleCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                        when (idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                    {
+                        using var idleClose = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                        try
+                        {
+                            await ws.CloseAsync(
+                                    WebSocketCloseStatus.PolicyViolation, "idle timeout", idleClose.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch { }
+
+                        break;
+                    }
+                }
+                else
+                {
+                    result = await ws.ReceiveAsync(buffer, ct);
+                }
+
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     return;
@@ -808,16 +848,21 @@ public static class RaskEndpointExtensions
                 var capturedSession = session;
                 var capturedHandlerId = handlerId;
 
-                // Backpressure circuit-breaker: bound the number of dispatches queued on the
-                // chain. When handlers drain slower than the client sends (a flood) or the chain
-                // head is stuck (a hung handler), the queue — each entry holding a cloned
-                // JsonElement — would grow without limit. Trip before cloning so we don't even
-                // allocate the payload we'd have to drop; close the socket so the client
-                // reconnects (hello) against the intact session and resumes from current state.
+                // Backpressure circuit-breaker: bound both the number of dispatches queued on the
+                // chain (MaxPendingHandlers) and their aggregate cloned-payload bytes
+                // (MaxPendingHandlerBytes). When handlers drain slower than the client sends (a flood)
+                // or the chain head is stuck (a hung handler), the queue — each entry holding a cloned
+                // JsonElement — would grow without limit. Trip before cloning so we don't even allocate
+                // the payload we'd have to drop; close the socket so the client reconnects (hello)
+                // against the intact session and resumes from current state.
+                var payloadBytes = (long)payload.Length;
                 var pending = capturedSession.IncrementPendingHandlers();
-                if (MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
+                var pendingBytes = capturedSession.AddPendingHandlerBytes(payloadBytes);
+                if ((MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
+                    || (MaxPendingHandlerBytes > 0 && pendingBytes > MaxPendingHandlerBytes))
                 {
                     capturedSession.DecrementPendingHandlers();
+                    capturedSession.SubtractPendingHandlerBytes(payloadBytes);
                     metrics?.FrameRejected("backlog");
                     using var capCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
                     try
@@ -839,6 +884,7 @@ public static class RaskEndpointExtensions
                     capturedSession,
                     capturedHandlerId,
                     capturedRoot,
+                    payloadBytes,
                     metrics,
                     ct);
             }
@@ -867,6 +913,7 @@ public static class RaskEndpointExtensions
         LiveSession session,
         string handlerId,
         JsonElement root,
+        long payloadBytes,
         RaskMetrics? metrics,
         CancellationToken ct)
     {
@@ -901,9 +948,10 @@ public static class RaskEndpointExtensions
         }
         finally
         {
-            // Pairs with the IncrementPendingHandlers in the receive loop when this dispatch was
-            // queued, so the backpressure counter tracks the live chain depth.
+            // Pairs with the Increment/AddPendingHandlerBytes in the receive loop when this dispatch
+            // was queued, so the backpressure count and byte total track the live chain depth.
             session.DecrementPendingHandlers();
+            session.SubtractPendingHandlerBytes(payloadBytes);
         }
     }
 
@@ -1558,7 +1606,9 @@ public static class RaskEndpointExtensions
         var staged = new List<SessionUploadStore.Entry>(form.Files.Count);
         foreach (var file in form.Files)
         {
-            if (file.Length > options.MaxFileSize)
+            // Per-file size cap, and the cumulative per-session upload quota.
+            if (file.Length > options.MaxFileSize
+                || uploads.WouldExceedQuota(sessionId, file.Length, options.MaxBytesPerSession))
             {
                 foreach (var prior in staged)
                 {

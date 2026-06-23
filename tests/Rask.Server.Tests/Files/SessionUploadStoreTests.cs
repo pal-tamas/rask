@@ -53,4 +53,46 @@ public class SessionUploadStoreTests
         Assert.Equal(42, entry.Size);
         store.Release("session-1", entry.Token);
     }
+
+    [Fact]
+    public async Task WouldExceedQuota_TracksCumulativeStagedBytesPerSession()
+    {
+        using var store = new SessionUploadStore();
+        const long quota = 100;
+
+        // Nothing staged yet — a 60-byte file fits.
+        Assert.False(store.WouldExceedQuota("s1", 60, quota));
+        var a = await store.StageAsync("s1", "a.bin", "application/octet-stream", 60, DateTimeOffset.UnixEpoch,
+            path => File.WriteAllBytesAsync(path, new byte[60]));
+
+        // 60 staged; another 60 would total 120 > 100 → rejected. A 40-byte one (→100) still fits.
+        Assert.True(store.WouldExceedQuota("s1", 60, quota));
+        Assert.False(store.WouldExceedQuota("s1", 40, quota));
+
+        // The quota is per-session: a different session has its own budget.
+        Assert.False(store.WouldExceedQuota("s2", 90, quota));
+
+        // Releasing frees the bytes back to the session's budget.
+        store.Release("s1", a.Token);
+        Assert.False(store.WouldExceedQuota("s1", 90, quota));
+    }
+
+    [Fact]
+    public async Task ReleaseSession_ResetsTheQuotaTotal()
+    {
+        using var store = new SessionUploadStore();
+        await store.StageAsync("s1", "a.bin", "application/octet-stream", 80, DateTimeOffset.UnixEpoch,
+            path => File.WriteAllBytesAsync(path, new byte[80]));
+        Assert.True(store.WouldExceedQuota("s1", 80, 100));
+
+        store.ReleaseSession("s1");
+        Assert.False(store.WouldExceedQuota("s1", 80, 100));
+    }
+
+    [Fact]
+    public void WouldExceedQuota_NonPositiveQuota_IsAlwaysAllowed()
+    {
+        using var store = new SessionUploadStore();
+        Assert.False(store.WouldExceedQuota("s1", long.MaxValue, 0));
+    }
 }

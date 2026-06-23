@@ -66,6 +66,24 @@ public sealed class RaskServerOptions
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
+    ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
+    ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
+    ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently
+    ///     connected client that would otherwise hold a socket open indefinitely.
+    ///     <see cref="TimeSpan.Zero" /> (default) disables the timeout, preserving prior behaviour.
+    /// </summary>
+    public TimeSpan IdleSocketTimeout { get; set; } = TimeSpan.Zero;
+
+    /// <summary>
+    ///     Maximum aggregate bytes of inbound handler payloads queued (awaiting their turn in
+    ///     WS-arrival order) before the server closes the socket with a backpressure policy violation.
+    ///     Complements <see cref="MaxPendingHandlers" /> (which bounds the queue's <em>count</em>): a
+    ///     client could fill the count-bounded queue with large frames and pin many megabytes of cloned
+    ///     payloads, so this bounds the queue's <em>memory</em>. <c>0</c> (default) disables the cap.
+    /// </summary>
+    public long MaxPendingHandlerBytes { get; set; }
+
+    /// <summary>
     ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
     ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
@@ -106,6 +124,20 @@ public sealed class RaskServerOptions
             throw new ArgumentOutOfRangeException(
                 nameof(UnconnectedSessionGracePeriod), UnconnectedSessionGracePeriod,
                 "UnconnectedSessionGracePeriod must be positive.");
+        }
+
+        if (IdleSocketTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(IdleSocketTimeout), IdleSocketTimeout,
+                "IdleSocketTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
+        }
+
+        if (MaxPendingHandlerBytes < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxPendingHandlerBytes), MaxPendingHandlerBytes,
+                "MaxPendingHandlerBytes must be >= 0 (0 disables the cap).");
         }
     }
 }

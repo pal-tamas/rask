@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Resource-exhaustion hardening for the server host (all opt-in, default off).** Three new bounds,
+  configurable via `RaskServerOptions` / `RaskUploadOptions`: (1) **`IdleSocketTimeout`** closes a
+  connected WebSocket that sends no inbound frame for the window — reclaiming silently-idle sockets
+  that would otherwise hold a receive loop open indefinitely; the session survives for reconnect under
+  the grace period. (2) **`MaxPendingHandlerBytes`** bounds the *aggregate bytes* of queued handler
+  payloads (the memory companion to `MaxPendingHandlers`, which bounds only the queue length), so a
+  client can't fill the count-bounded queue with large frames and pin gigabytes of cloned payloads;
+  tracked on the live session and tripped before cloning. (3) **`RaskUploadOptions.MaxBytesPerSession`**
+  caps the cumulative staged-upload bytes a single session may hold at once — an authenticated client
+  can no longer accumulate unbounded temp-file storage across requests (a request over the quota is
+  rejected with `413`; staged bytes are freed when the session ends). Each new limit is validated at
+  startup and defaults to off, so upgrading is a no-op. See the [configuration guide](docs/configuration.md).
 - **The WebSocket and session-lifecycle safety limits are now configurable** through a new
   server-host-only options object, `RaskServerOptions`, set via a second `AddRask` callback
   (`configureServer`): the inbound frame-size cap (`MaxInboundFrameBytes`), the handler-backpressure

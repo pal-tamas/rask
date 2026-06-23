@@ -60,6 +60,8 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `MaxInboundFramesPerSecond` | `1000` | Per-connection inbound message rate cap over a sliding 1 s window — bounds a small-frame CPU DoS. `0` disables. |
 | `SessionGracePeriod` | `30 s` | How long a session is retained after its socket disconnects, for reconnect. |
 | `UnconnectedSessionGracePeriod` | `10 s` | How long a GET-minted session is retained before its first `hello` arrives. |
+| `IdleSocketTimeout` | `0` (off) | Close a connected socket that sends no inbound frame for this long (the session survives for reconnect). Reclaims silently-idle connections. |
+| `MaxPendingHandlerBytes` | `0` (off) | Aggregate-bytes companion to `MaxPendingHandlers` — bounds the queued cloned-payload *memory*, not just the queue length. |
 
 ### File uploads
 
@@ -69,6 +71,7 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | --- | --- | --- |
 | `MaxFileSize` | `50 MB` | Maximum size of a single uploaded file. |
 | `MaxFilesPerRequest` | `16` | Maximum files in one multipart upload request. |
+| `MaxBytesPerSession` | `0` (off) | Maximum cumulative staged-upload bytes one session may hold at once; a request over the quota is rejected with `413`. Released when the session ends. |
 
 ```csharp
 builder.Services.Configure<RaskUploadOptions>(o => o.MaxFileSize = 10 * 1024 * 1024);
