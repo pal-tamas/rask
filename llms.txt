@@ -17,6 +17,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Data access](docs/data-access.md): EF Core + SQLite, IDbContextFactory, loading in the lifecycle, vertical slices, DDD value objects, SQLite decimal gotcha.
 - [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.
 - [Authentication](docs/authentication.md): cookie/JWT, Authorize, route guards.
+- [Observability](docs/observability.md): structured logging, the `Rask.Server` meter + activity source, `AddRaskLiveSessions()` health check.
 - [Accessibility](docs/accessibility.md): ARIA via the `Aria` dictionary, `Role`/`TabIndex`, the `Img` alt-text analyzer (RASK023).
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
 - [Diagnostics](docs/diagnostics.md): RASK001–024 compile-time diagnostics + fixes.
