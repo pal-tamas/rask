@@ -118,6 +118,10 @@ rest of this README walks through what they look like in practice.
 
 ## 📦 Install
 
+> **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
+> (`dotnet workload install wasm-tools`) for the WASM templates only. New to Rask? The
+> [getting started](docs/getting-started.md) guide walks the whole path end to end.
+
 ### Scaffold a new project with `dotnet new` (recommended)
 
 The fastest way to start. `Rask.Templates` ships three project templates — one per host model — already wired up to the
