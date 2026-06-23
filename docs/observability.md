@@ -57,6 +57,7 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.sessions.active` | Gauge | | Live sessions currently held. |
 | `rask.handlers.dispatched` | Counter | | Client event handlers dispatched to user code. |
 | `rask.handlers.faulted` | Counter | | Handler dispatches that threw (isolated; session survives). |
+| `rask.handlers.timedout` | Counter | | Handler dispatches cancelled by `HandlerTimeout`. |
 | `rask.handler.duration` | Histogram (ms) | | Wall-clock duration of an event-handler dispatch. |
 | `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` | Inbound frames refused by a safety limit. |
 

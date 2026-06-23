@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Cooperative handler timeout (`RaskServerOptions.HandlerTimeout`).** A new
+  `Component.EventCancellationToken` exposes, inside an event handler, a token cancelled when the
+  component unmounts **or** when the host cancels the dispatch — the server's `HandlerTimeout` elapsing,
+  or the socket closing. Thread it into the cancellable async work a handler starts (`HttpClient`,
+  `Task.Delay`) and a slow handler unwinds cleanly instead of pinning the session's render pipeline;
+  the timeout is logged and counted on `rask.handlers.timedout`. It is cooperative — a handler that
+  ignores the token can't be force-aborted (a .NET reality; the backpressure and idle-socket caps remain
+  the backstop). Opt-in: `HandlerTimeout` defaults to `TimeSpan.Zero` (off), validated at startup like
+  the other server limits. See the [configuration](docs/configuration.md) and
+  [composition](docs/composition.md) guides.
 - **Resource-exhaustion hardening for the server host (all opt-in, default off).** Three new bounds,
   configurable via `RaskServerOptions` / `RaskUploadOptions`: (1) **`IdleSocketTimeout`** closes a
   connected WebSocket that sends no inbound frame for the window — reclaiming silently-idle sockets
