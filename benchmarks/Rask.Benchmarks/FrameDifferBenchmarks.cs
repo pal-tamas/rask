@@ -29,6 +29,16 @@ public class FrameDifferBenchmarks
     private string _afterReverseHtml = "";
     private RenderFrame[] _afterText = null!;
 
+    // Realistic partial-shuffle shapes the 2-swap / full-reverse pair didn't cover. TopNRerank
+    // reverses just the first 10 rows (a table sort that only reranks the head) — a localized
+    // permutation with a near-full LIS, so only ~10 rows are off-LIS and the move loop stays
+    // sub-quadratic. AppendWithDeletes drops every 10th row and appends the same number of new keys
+    // at the tail (a feed/log churn) — survivors keep order, so it's removes + inserts, not moves.
+    private RenderFrame[] _afterTopN = null!;
+    private string _afterTopNHtml = "";
+    private RenderFrame[] _afterAppendDel = null!;
+    private string _afterAppendDelHtml = "";
+
     private RenderFrame[] _before = null!;
 
     // Insert scenario: a sparse list (even keys only) grows into the full list, so every odd
@@ -77,6 +87,32 @@ public class FrameDifferBenchmarks
 
         _beforeSparse = FramesOf(BuildKeyedList(evenOrder, -1));
         (_afterFull, _fullHtml) = FramesAndHtmlOf(BuildKeyedList(order, -1));
+
+        // Top-N rerank: reverse only the first 10 rows; the rest keep their order.
+        var topN = (int[])order.Clone();
+        Array.Reverse(topN, 0, Math.Min(10, RowCount));
+        (_afterTopN, _afterTopNHtml) = FramesAndHtmlOf(BuildKeyedList(topN, -1));
+
+        // Append-with-deletes: drop every 10th key, append that many fresh keys at the tail.
+        var kept = new List<int>(RowCount);
+        var removed = 0;
+        for (var i = 0; i < RowCount; i++)
+        {
+            if (i % 10 == 9)
+            {
+                removed++;
+                continue;
+            }
+
+            kept.Add(order[i]);
+        }
+
+        for (var i = 0; i < removed; i++)
+        {
+            kept.Add(RowCount + i); // brand-new keys → InsertSubtree at the tail
+        }
+
+        (_afterAppendDel, _afterAppendDelHtml) = FramesAndHtmlOf(BuildKeyedList(kept.ToArray(), -1));
     }
 
     [Benchmark(Baseline = true)]
@@ -102,6 +138,26 @@ public class FrameDifferBenchmarks
         // O(n²) move loop (live.IndexOf + live.Insert per off-LIS row).
         _ops.Clear();
         FrameDiffer.Diff(_before, _afterReverse, _ops, _scratch, out _, _afterReverseHtml);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int TopNRerank_ReusedScratch()
+    {
+        // Localized permutation: only the first 10 rows move, so the LIS is ~n and the move loop
+        // touches a handful of rows — the realistic table-sort case that stays well sub-quadratic.
+        _ops.Clear();
+        FrameDiffer.Diff(_before, _afterTopN, _ops, _scratch, out _, _afterTopNHtml);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int AppendWithDeletes_ReusedScratch()
+    {
+        // Feed/log churn: every 10th row removed, the same count of new keys appended. Survivors keep
+        // order (no moves), so this measures keyed remove + tail-insert reconcile, not the move loop.
+        _ops.Clear();
+        FrameDiffer.Diff(_before, _afterAppendDel, _ops, _scratch, out _, _afterAppendDelHtml);
         return _ops.Count;
     }
 
