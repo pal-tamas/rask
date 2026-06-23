@@ -86,6 +86,11 @@ public static class RaskEndpointExtensions
     // reconnect under SessionGracePeriod). Seeded from RaskServerOptions.IdleSocketTimeout. Zero = off.
     internal static TimeSpan IdleSocketTimeout = TimeSpan.Zero;
 
+    // Cancel a handler dispatch's EventCancellationToken after this long, so a cooperative handler that
+    // observes it unwinds instead of pinning the render pipeline. Seeded from
+    // RaskServerOptions.HandlerTimeout. Zero = off.
+    internal static TimeSpan HandlerTimeout = TimeSpan.Zero;
+
     // Aggregate-bytes companion to MaxPendingHandlers: bounds the queued cloned-payload memory, not just
     // the queue count. Seeded from RaskServerOptions.MaxPendingHandlerBytes. 0 = off.
     internal static long MaxPendingHandlerBytes;
@@ -171,6 +176,7 @@ public static class RaskEndpointExtensions
             SessionGracePeriod = serverOptions.SessionGracePeriod;
             UnconnectedSessionGracePeriod = serverOptions.UnconnectedSessionGracePeriod;
             IdleSocketTimeout = serverOptions.IdleSocketTimeout;
+            HandlerTimeout = serverOptions.HandlerTimeout;
             MaxPendingHandlerBytes = serverOptions.MaxPendingHandlerBytes;
         }
 
@@ -994,6 +1000,16 @@ public static class RaskEndpointExtensions
         activity?.SetTag("rask.handler.id", handlerId);
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
+
+        // Handler timeout: cancel the dispatch's EventCancellationToken after HandlerTimeout (linked to
+        // the socket so a close cancels it too). A handler that threads EventCancellationToken into its
+        // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
+        // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.
+        using var handlerCts = HandlerTimeout > TimeSpan.Zero
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+            : null;
+        handlerCts?.CancelAfter(HandlerTimeout);
+        var dispatchToken = handlerCts?.Token ?? default;
         try
         {
             var navigator = session.Services.GetRequiredService<Navigator>();
@@ -1014,7 +1030,8 @@ public static class RaskEndpointExtensions
                     {
                         await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
                     }
-                    else if (await session.View.TryInvokeHandlerAsync(handlerId, root, session.Services))
+                    else if (await session.View.TryInvokeHandlerAsync(
+                                 handlerId, root, session.Services, dispatchToken))
                     {
                         string? historyUrl = null;
                         var historyReplace = false;
@@ -1057,6 +1074,17 @@ public static class RaskEndpointExtensions
                         }
                     }
                 }
+            }
+            catch (OperationCanceledException)
+                when (handlerCts is not null && handlerCts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                // The handler timed out and observed EventCancellationToken, unwinding cleanly. The
+                // session survives; record it rather than letting it look like a normal cancellation.
+                metrics?.HandlerTimedOut();
+                activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Warning, "Rask.Live",
+                    $"Rask Live handler '{handlerId}' cancelled after HandlerTimeout ({HandlerTimeout})");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

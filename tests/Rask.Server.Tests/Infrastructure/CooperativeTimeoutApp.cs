@@ -1,0 +1,35 @@
+using Rask.Core;
+using Rask.Core.Components;
+
+#pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
+
+namespace Rask.Server.Tests.Infrastructure;
+
+// App whose click handler awaits a long delay that observes EventCancellationToken — a *cooperative*
+// slow handler. With RaskServerOptions.HandlerTimeout set, the dispatch cancels the token and the delay
+// throws, so the handler unwinds instead of pinning the session. Used to exercise the handler timeout.
+public sealed class CooperativeTimeoutApp : Component
+{
+    // Completed when the handler observes its EventCancellationToken being cancelled. Static so the test
+    // can await it without a handle to the DI-constructed instance; reset per test before the host starts.
+    public static TaskCompletionSource<bool> Cancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    protected override RenderResult Render() =>
+    [
+        Doctype(),
+        new Html()[new Head()[new Title()["timeout"]],
+            new Body()[
+                Button(OnClickAsync: async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(30), EventCancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Cancelled.TrySetResult(true);
+                        throw; // let the dispatch see the cancellation (records the timeout)
+                    }
+                })["go"]]]
+    ];
+}
