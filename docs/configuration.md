@@ -62,13 +62,14 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `UnconnectedSessionGracePeriod` | `10 s` | How long a GET-minted session is retained before its first `hello` arrives. |
 | `IdleSocketTimeout` | `0` (off) | Close a connected socket that sends no inbound frame for this long (the session survives for reconnect). Reclaims silently-idle connections. |
 | `MaxPendingHandlerBytes` | `0` (off) | Aggregate-bytes companion to `MaxPendingHandlers` — bounds the queued cloned-payload *memory*, not just the queue length. |
-| `HandlerTimeout` | `0` (off) | Cancel a handler dispatch's `Component.EventCancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
+| `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 
-> **Using `HandlerTimeout`:** thread `EventCancellationToken` into the cancellable async work your event
-> handlers start, so the timeout (or socket close) can unwind them:
+> **Using `HandlerTimeout`:** thread `Component.CancellationToken` into the cancellable async work your
+> event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token
+> reflects the dispatch; in a lifecycle hook it's just the component's lifetime token.
 > ```csharp
 > Button(OnClickAsync: async () =>
->     _data = await http.GetFromJsonAsync<T>(url, EventCancellationToken))["Load"]
+>     _data = await http.GetFromJsonAsync<T>(url, CancellationToken))["Load"]
 > ```
 
 ### File uploads

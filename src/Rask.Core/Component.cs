@@ -286,33 +286,34 @@ public abstract class Component
     }
 
     /// <summary>
-    ///     A <see cref="System.Threading.CancellationToken" /> tied to this component's lifetime.
-    ///     Cancelled exactly once when the component is unmounted (navigation away, parent
-    ///     removed, or session teardown). Pass into <c>HttpClient</c> calls, <c>Task.Delay</c>,
-    ///     or any other cancellable async work started inside a lifecycle hook so it aborts
-    ///     cleanly when the component goes away.
+    ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
+    ///     work. It is cancelled when the component is unmounted (navigation away, parent removed, or
+    ///     session teardown) — and, while an event handler is running, <em>also</em> when the host
+    ///     cancels that dispatch: a server-side <c>RaskServerOptions.HandlerTimeout</c> elapsing, or the
+    ///     WebSocket closing. Pass it into the <c>HttpClient</c> calls, <c>Task.Delay</c>s, and other
+    ///     cancellable work an <c>OnClick</c> / <c>OnSubmit</c> handler or a lifecycle hook starts, so the
+    ///     work aborts when the component goes away and a slow handler unwinds instead of pinning the
+    ///     session's render pipeline. In a lifecycle hook (no handler dispatch) it is just the lifetime
+    ///     token. Cancellation is cooperative — synchronous or token-ignoring handler code cannot be
+    ///     forcibly aborted; a handler must observe the token to be cancelled.
     /// </summary>
-    protected CancellationToken CancellationToken =>
-        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
-
-    /// <summary>
-    ///     The <see cref="System.Threading.CancellationToken" /> for the event handler currently
-    ///     running. It is cancelled when this component unmounts (like <see cref="CancellationToken" />)
-    ///     <em>and</em> when the dispatch is cancelled by the host — a server-side
-    ///     <c>RaskServerOptions.HandlerTimeout</c> elapsing, or the WebSocket closing. Pass it into the
-    ///     cancellable async work an <c>OnClick</c> / <c>OnSubmit</c> handler starts (an <c>HttpClient</c>
-    ///     call, a <c>Task.Delay</c>) so a stuck handler unwinds instead of pinning the session's render
-    ///     pipeline. Outside a handler it is the plain lifetime token. Forcibly aborting synchronous or
-    ///     token-ignoring handler code is not possible; a handler must observe this token to be cancelled.
-    /// </summary>
-    protected CancellationToken EventCancellationToken
+    protected CancellationToken CancellationToken
     {
         get
         {
+            // While an event handler runs, the dispatch scope holds a token already linked with this
+            // component's lifetime token (see TryInvokeHandlerAsync); outside one it is the raw lifetime
+            // token. The scope is only pushed when a handler timeout is configured, so the common path
+            // is the plain lifetime token below.
             var dispatch = DispatchEventTokenScope.Current;
-            return dispatch.CanBeCanceled ? dispatch : CancellationToken;
+            return dispatch.CanBeCanceled ? dispatch : LifetimeToken;
         }
     }
+
+    // The raw, stable lifetime token — cancelled once on unmount. Used internally to seed the linked
+    // per-dispatch token without re-entering the context-aware CancellationToken getter above.
+    private CancellationToken LifetimeToken =>
+        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
 
     internal IRenderHandle? RenderHandle { get; set; }
 
@@ -963,21 +964,20 @@ public abstract class Component
         var (owner, handler) = entry;
         using var __dispatchScope = DispatchServicesScope.Push(services);
 
-        // Expose a per-dispatch cancellation token to the handler via owner.EventCancellationToken.
-        // It cancels on the owner's unmount (lifetime token) AND on the host's dispatch token (a
-        // handler timeout / socket close). Only allocate the linked source when the host actually
-        // supplied a cancellable token (i.e. a timeout is configured); otherwise the lifetime token
-        // alone is the ambient, so the no-timeout path stays allocation-free.
+        // When the host supplied a cancellable dispatch token (a handler timeout is configured), make
+        // owner.CancellationToken observe it during this handler by publishing a token linked with the
+        // owner's lifetime token. With no timeout we push nothing — CancellationToken then resolves to
+        // the plain lifetime token — so the common path stays allocation-free.
         CancellationTokenSource? linkedCts = null;
-        var eventToken = owner.CancellationToken;
+        IDisposable? eventTokenScope = null;
         if (dispatchToken.CanBeCanceled)
         {
-            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(eventToken, dispatchToken);
-            eventToken = linkedCts.Token;
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(owner.LifetimeToken, dispatchToken);
+            eventTokenScope = DispatchEventTokenScope.Push(linkedCts.Token);
         }
 
-        using var __eventTokenScope = DispatchEventTokenScope.Push(eventToken);
         using var __linked = linkedCts;
+        using var __eventTokenScope = eventTokenScope;
 
         // Match Blazor: every event handler implicitly marks the registering component
         // dirty. Set BEFORE running so intermediate renders inside an async handler

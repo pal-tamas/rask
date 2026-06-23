@@ -6,14 +6,19 @@ using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Tests.Live;
 
-public class EventCancellationTokenTests
+// Component.CancellationToken is the lifetime token by default, but reflects the per-dispatch token an
+// event handler runs under (so a handler timeout / socket close cancels the handler's async work).
+public class CancellationTokenScopeTests
 {
     [Fact]
-    public void OutsideAHandler_IsTheLifetimeToken()
+    public void OutsideAHandler_IsAStableLifetimeToken()
     {
         var c = new Probe();
-        Assert.Equal(c.Lifetime, c.Event);
-        Assert.False(c.Event.IsCancellationRequested);
+        var a = c.Token;
+        var b = c.Token;
+
+        Assert.Equal(a, b); // same lifetime token each read
+        Assert.False(a.IsCancellationRequested);
     }
 
     [Fact]
@@ -24,20 +29,18 @@ public class EventCancellationTokenTests
 
         using (DispatchEventTokenScope.Push(cts.Token))
         {
-            Assert.Equal(cts.Token, c.Event);
+            Assert.Equal(cts.Token, c.Token);
             cts.Cancel();
-            Assert.True(c.Event.IsCancellationRequested);
+            Assert.True(c.Token.IsCancellationRequested);
         }
 
         // Scope popped — back to the (un-cancelled) lifetime token.
-        Assert.Equal(c.Lifetime, c.Event);
-        Assert.False(c.Event.IsCancellationRequested);
+        Assert.False(c.Token.IsCancellationRequested);
     }
 
     private sealed class Probe : Component
     {
-        public CancellationToken Lifetime => CancellationToken;
-        public CancellationToken Event => EventCancellationToken;
+        public CancellationToken Token => CancellationToken;
         protected override RenderResult Render() => C.Span();
     }
 }

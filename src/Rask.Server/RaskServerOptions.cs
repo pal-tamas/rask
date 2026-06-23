@@ -76,7 +76,7 @@ public sealed class RaskServerOptions
 
     /// <summary>
     ///     How long a single event-handler dispatch may run before its cancellation token
-    ///     (<c>Component.EventCancellationToken</c>) is cancelled. A handler that threads that token
+    ///     (<c>Component.CancellationToken</c>) is cancelled. A handler that threads that token
     ///     into its async work (an <c>HttpClient</c> call, a <c>Task.Delay</c>) then unwinds cleanly
     ///     instead of pinning the session's render pipeline; the timeout is logged and metered. It is
     ///     cooperative — a handler that ignores the token cannot be force-aborted (the backpressure and

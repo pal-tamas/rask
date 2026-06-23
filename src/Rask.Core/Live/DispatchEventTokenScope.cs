@@ -3,7 +3,7 @@ namespace Rask.Core.Live;
 /// <summary>
 ///     Ambient <see cref="CancellationToken" /> for the event-handler dispatch currently running on
 ///     this async flow. Pushed by <c>Component.TryInvokeHandlerAsync</c> around a handler invocation and
-///     read back through <c>Component.EventCancellationToken</c>, so a handler's async work can observe
+///     read back through <c>Component.CancellationToken</c>, so a handler's async work can observe
 ///     cancellation (a server-side handler timeout, or the socket closing) without the delegate having
 ///     to take a token parameter. Mirrors <see cref="Rask.Core.Forms.DispatchServicesScope" />; defaults
 ///     to <see cref="CancellationToken.None" /> outside a dispatch.
