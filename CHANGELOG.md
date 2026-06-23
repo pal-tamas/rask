@@ -16,8 +16,10 @@ them until tagged releases begin.
   These are server-only (the WASM runtime has no socket server), so they live in `Rask.Server` rather
   than the shared `RaskLiveOptions`. They were previously hardcoded; **all defaults are unchanged**, so
   upgrading is a no-op until you set one. Bind from configuration with
-  `AddRask(configureServer: o => builder.Configuration.GetSection("Rask").Bind(o))`. See the new
-  [configuration guide](docs/configuration.md).
+  `AddRask(configureServer: o => builder.Configuration.GetSection("Rask").Bind(o))`; `AddRask`
+  validates the values and throws `ArgumentOutOfRangeException` at startup on an out-of-range one (a
+  negative grace period, a non-positive frame-size cap), so a misconfiguration fails the boot rather
+  than misbehaving at runtime. See the new [configuration guide](docs/configuration.md).
 - **Production observability for the server host (OpenTelemetry-aligned).** The Rask server is now
   instrumented with standard .NET primitives — no extra packages, exportable to OpenTelemetry out of
   the box. (1) **Structured logging:** `UseRask<TApp>()` bridges the framework's internal diagnostics

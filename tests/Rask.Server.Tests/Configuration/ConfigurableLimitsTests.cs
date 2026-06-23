@@ -56,11 +56,52 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AddRask_NoConfigureServer_LeavesStaticLimitsAtTheirCurrentValue()
+    public void AddRask_NoConfigureServer_DoesNotResetStaticLimits()
     {
-        var before = RaskEndpointExtensions.MaxInboundFramesPerSecond;
-        new ServiceCollection().AddRask();
-        Assert.Equal(before, RaskEndpointExtensions.MaxInboundFramesPerSecond);
+        var saved = RaskEndpointExtensions.MaxInboundFramesPerSecond;
+        try
+        {
+            // Set a sentinel, then a bare AddRask() must leave it untouched (it would catch a
+            // regression that reset the statics to defaults on the no-callback path).
+            RaskEndpointExtensions.MaxInboundFramesPerSecond = 777;
+            new ServiceCollection().AddRask();
+            Assert.Equal(777, RaskEndpointExtensions.MaxInboundFramesPerSecond);
+        }
+        finally
+        {
+            RaskEndpointExtensions.MaxInboundFramesPerSecond = saved;
+        }
+    }
+
+    [Fact]
+    public void AddRask_NegativeGracePeriod_ThrowsAtStartup()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(-1)));
+    }
+
+    [Fact]
+    public void AddRask_ZeroFrameByteCap_ThrowsAtStartup()
+    {
+        // 0 would abort every non-empty frame; a frame-size cap is mandatory, so it must be rejected.
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.MaxInboundFrameBytes = 0));
+    }
+
+    [Fact]
+    public void AddRask_NegativeFrameRateCap_ThrowsAtStartup()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.MaxInboundFramesPerSecond = -1));
+    }
+
+    [Fact]
+    public void Validate_AllowsZeroForTheCountBasedCaps()
+    {
+        // 0 is the documented "disable this cap" value for the two count caps — Validate must accept it.
+        // Tested directly (not via AddRask) so it doesn't seed the process-global statics.
+        var o = new RaskServerOptions { MaxPendingHandlers = 0, MaxInboundFramesPerSecond = 0 };
+        Assert.Null(Record.Exception(o.Validate));
     }
 
     [Fact]

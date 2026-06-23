@@ -12,7 +12,15 @@ namespace Rask.Server;
 ///     Bind from configuration with
 ///     <c>AddRask(configureServer: o =&gt; builder.Configuration.GetSection("Rask").Bind(o))</c>.
 ///     Every default matches the framework's prior hardcoded value, so leaving this unconfigured
-///     changes nothing.
+///     changes nothing. <c>AddRask</c> validates the values and throws
+///     <see cref="ArgumentOutOfRangeException" /> on an out-of-range one (a negative grace period, a
+///     non-positive frame-size cap), so a misconfiguration fails fast at startup rather than at runtime.
+///     <para>
+///         These are applied to process-global state read by the WebSocket receive loop, so in a
+///         multi-host process the last <c>configureServer</c> wins for every host (the framework's
+///         original constants were likewise process-wide). Per-app limits would need a per-connection
+///         options lookup; configure one set of limits per process.
+///     </para>
 /// </summary>
 public sealed class RaskServerOptions
 {
@@ -20,7 +28,8 @@ public sealed class RaskServerOptions
     ///     Hard cap (bytes) on a single reassembled inbound WebSocket frame. Client→server messages
     ///     are small (event dispatch / jsResult / navigate) and file uploads use the HTTP endpoint, so
     ///     the 8&nbsp;MB default is generous headroom; it bounds a per-socket memory DoS where a client
-    ///     streams an unbounded fragmented frame.
+    ///     streams an unbounded fragmented frame. Must be positive — a frame-size cap is mandatory, so
+    ///     unlike the other caps there is no <c>0 = off</c>.
     /// </summary>
     public int MaxInboundFrameBytes { get; set; } = 8 * 1024 * 1024;
 
@@ -55,4 +64,48 @@ public sealed class RaskServerOptions
     ///     10&nbsp;seconds.
     /// </summary>
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Called by
+    ///     <c>AddRask</c> after the caller's <c>configureServer</c> runs, so a bad value (a negative
+    ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
+    ///     frame-size cap that would abort every socket) surfaces at startup instead of at runtime.
+    /// </summary>
+    internal void Validate()
+    {
+        if (MaxInboundFrameBytes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxInboundFrameBytes), MaxInboundFrameBytes,
+                "MaxInboundFrameBytes must be positive — a frame-size cap is mandatory.");
+        }
+
+        if (MaxPendingHandlers < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxPendingHandlers), MaxPendingHandlers,
+                "MaxPendingHandlers must be >= 0 (0 disables the cap).");
+        }
+
+        if (MaxInboundFramesPerSecond < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaxInboundFramesPerSecond), MaxInboundFramesPerSecond,
+                "MaxInboundFramesPerSecond must be >= 0 (0 disables the cap).");
+        }
+
+        if (SessionGracePeriod <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(SessionGracePeriod), SessionGracePeriod,
+                "SessionGracePeriod must be positive.");
+        }
+
+        if (UnconnectedSessionGracePeriod <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(UnconnectedSessionGracePeriod), UnconnectedSessionGracePeriod,
+                "UnconnectedSessionGracePeriod must be positive.");
+        }
+    }
 }

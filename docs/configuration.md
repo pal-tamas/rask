@@ -29,10 +29,14 @@ builder.Services.AddRask(
 {
   "Rask": {
     "MaxInboundFramesPerSecond": 500,
-    "SessionGracePeriod": "00:00:20"
+    "SessionGracePeriod": "00:00:20"   // TimeSpan: "hh:mm:ss" (or "d.hh:mm:ss")
   }
 }
 ```
+
+`TimeSpan` values bind from the standard `"[d.]hh:mm:ss"` format. `AddRask` validates the bound values
+and throws `ArgumentOutOfRangeException` at startup on an out-of-range one (a negative grace period, a
+non-positive `MaxInboundFrameBytes`), so a typo fails the boot rather than misbehaving at runtime.
 
 ## Shared options — `RaskLiveOptions` (`configure`)
 

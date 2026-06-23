@@ -156,6 +156,7 @@ public static class RaskEndpointExtensions
         {
             var serverOptions = new RaskServerOptions();
             configureServer(serverOptions);
+            serverOptions.Validate();
             MaxInboundFrameBytes = serverOptions.MaxInboundFrameBytes;
             MaxPendingHandlers = serverOptions.MaxPendingHandlers;
             MaxInboundFramesPerSecond = serverOptions.MaxInboundFramesPerSecond;
