@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Example.Shared;
 using Rask.Server;
+using Rask.Server.Diagnostics;
 
 namespace Rask.Example.Server.Tests.Infrastructure;
 
@@ -36,6 +37,7 @@ internal sealed class ExampleServerTestHost : IDisposable
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
         builder.Services.AddRask();
+        builder.Services.AddHealthChecks().AddRaskLiveSessions();
         // Mirror Program.cs: resolve the origin from IServerAddressesFeature, falling
         // back to localhost for the in-memory TestServer (no real bound address).
         builder.Services.AddExampleServices(sp =>
@@ -47,6 +49,7 @@ internal sealed class ExampleServerTestHost : IDisposable
 
         var app = builder.Build();
         app.UseRouting();
+        app.MapHealthChecks("/health");
         app.UseWebSockets();
         app.UseRask<App>();
         app.StartAsync().GetAwaiter().GetResult();

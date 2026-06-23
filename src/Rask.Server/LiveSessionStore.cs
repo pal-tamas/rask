@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
+using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
 
@@ -9,6 +10,7 @@ namespace Rask.Server;
 
 public sealed class LiveSessionStore : IAsyncDisposable
 {
+    private readonly RaskMetrics? _metrics;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRemovals = new();
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
@@ -19,17 +21,28 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // on a failed build), so a concurrent GET burst can never exceed MaxSessions.
     private int _liveCount;
 
-    public LiveSessionStore(IServiceScopeFactory scopeFactory, IHostApplicationLifetime? lifetime = null)
+    public LiveSessionStore(
+        IServiceScopeFactory scopeFactory,
+        IHostApplicationLifetime? lifetime = null,
+        RaskMetrics? metrics = null)
     {
         _scopeFactory = scopeFactory;
+        _metrics = metrics;
         _stopping = lifetime?.ApplicationStopping ?? CancellationToken.None;
         if (lifetime is not null)
         {
             lifetime.ApplicationStopping.Register(CancelAllPending);
         }
+
+        // Active-session count is an observable gauge: the collector polls Count on scrape, so
+        // there's no per-create/per-remove bookkeeping beyond the counters below.
+        _metrics?.TrackActiveSessions(() => Count);
     }
 
     public int Count => _sessions.Count;
+
+    /// <summary>The metrics sink threaded into the WS loop for frame/handler instrumentation (may be null).</summary>
+    internal RaskMetrics? Metrics => _metrics;
 
     /// <summary>
     ///     Hard cap on concurrent sessions (<c>0</c> = unlimited). Set from
@@ -101,6 +114,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         if (MaxSessions > 0 && reserved > MaxSessions)
         {
             Interlocked.Decrement(ref _liveCount);
+            _metrics?.SessionRejected();
             return null;
         }
 
@@ -146,6 +160,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
 
         _sessions[session.Id] = session;
+        _metrics?.SessionCreated();
         return session;
     }
 
@@ -161,6 +176,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         if (_sessions.TryRemove(id, out var session))
         {
             Interlocked.Decrement(ref _liveCount);
+            _metrics?.SessionEvicted();
             session.Dispose();
         }
     }
@@ -171,6 +187,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         if (_sessions.TryRemove(id, out var session))
         {
             Interlocked.Decrement(ref _liveCount);
+            _metrics?.SessionEvicted();
             await session.DisposeAsync().ConfigureAwait(false);
         }
     }
