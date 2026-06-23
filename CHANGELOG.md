@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The WebSocket and session-lifecycle safety limits are now configurable** through a new
+  server-host-only options object, `RaskServerOptions`, set via a second `AddRask` callback
+  (`configureServer`): the inbound frame-size cap (`MaxInboundFrameBytes`), the handler-backpressure
+  cap (`MaxPendingHandlers`), the per-connection inbound rate cap (`MaxInboundFramesPerSecond`), and the
+  reconnect / unconnected session grace periods (`SessionGracePeriod` / `UnconnectedSessionGracePeriod`).
+  These are server-only (the WASM runtime has no socket server), so they live in `Rask.Server` rather
+  than the shared `RaskLiveOptions`. They were previously hardcoded; **all defaults are unchanged**, so
+  upgrading is a no-op until you set one. Bind from configuration with
+  `AddRask(configureServer: o => builder.Configuration.GetSection("Rask").Bind(o))`. See the new
+  [configuration guide](docs/configuration.md).
 - **Production observability for the server host (OpenTelemetry-aligned).** The Rask server is now
   instrumented with standard .NET primitives — no extra packages, exportable to OpenTelemetry out of
   the box. (1) **Structured logging:** `UseRask<TApp>()` bridges the framework's internal diagnostics

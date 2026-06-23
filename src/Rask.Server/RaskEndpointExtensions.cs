@@ -47,7 +47,8 @@ public static class RaskEndpointExtensions
     // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP
     // endpoint — never the socket — so this is generous headroom. It bounds a per-socket memory DoS
     // where a client streams an unbounded fragmented frame the server would otherwise buffer whole
-    // before JsonDocument.Parse. Mutable static so a test can lower it; not a public knob.
+    // before JsonDocument.Parse. Seeded from RaskServerOptions.MaxInboundFrameBytes by AddRask; the
+    // static is the DI-free hot-path source of truth (tests also set it directly).
     internal static int MaxInboundFrameBytes = 8 * 1024 * 1024;
 
     private static FileSystemWatcher? _sourceWatcher;
@@ -77,7 +78,8 @@ public static class RaskEndpointExtensions
     // a flood of them is a CPU DoS those caps miss. Counted over a sliding one-second window. A
     // realistic interaction peak (rapid typing with per-keystroke handlers, a 60 Hz scroll handler)
     // is well under 100/s, so 1000 is far above any legitimate burst. Mutable static so a test can
-    // lower it; not a public knob — operators tune ingress with a reverse-proxy rate limiter. 0 = off.
+    // lower it. Seeded from RaskServerOptions.MaxInboundFramesPerSecond by AddRask; operators can also
+    // tune ingress with a reverse-proxy rate limiter. 0 = off.
     internal static int MaxInboundFramesPerSecond = 1000;
 
     private static readonly byte[] SessionUnknownPayload =
@@ -105,12 +107,20 @@ public static class RaskEndpointExtensions
     /// </summary>
     /// <param name="services">The service collection to add Rask services to.</param>
     /// <param name="configure">
-    ///     Optional per-app live-runtime options (diff mode, path base, session cap). When omitted,
-    ///     framework defaults apply (<see cref="Rask.Core.Live.LiveDiffMode.Auto" />, no path base, uncapped).
+    ///     Optional per-app live-runtime options shared by the Server and WASM runtimes (diff mode,
+    ///     path base, session cap, scoped-asset preload). When omitted, framework defaults apply
+    ///     (<see cref="Rask.Core.Live.LiveDiffMode.Auto" />, no path base, uncapped).
+    /// </param>
+    /// <param name="configureServer">
+    ///     Optional server-host-only limits (<see cref="RaskServerOptions" />): the WebSocket
+    ///     frame-size / frame-rate / pending-handler caps and the session grace periods. When omitted,
+    ///     the framework's prior hardcoded defaults apply. Bind from configuration with
+    ///     <c>AddRask(configureServer: o =&gt; config.GetSection("Rask").Bind(o))</c>.
     /// </param>
     /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
     public static IServiceCollection AddRask(this IServiceCollection services,
-        Action<RaskLiveOptions>? configure = null)
+        Action<RaskLiveOptions>? configure = null,
+        Action<RaskServerOptions>? configureServer = null)
     {
         // Per-app live runtime options. The framework default for DiffMode is
         // LiveDiffMode.Auto (set on the static LiveOptions.DiffMode at class init),
@@ -137,6 +147,20 @@ public static class RaskEndpointExtensions
             // Session cap is a per-store instance value (not a static) so concurrent
             // hosts/tests don't clobber each other through global state.
             maxSessions = liveOptions.MaxSessions;
+        }
+
+        // Seed the server-only WS / grace-period safety limits from RaskServerOptions. Defaults match
+        // the statics, so an absent callback is a no-op. The statics are the DI-free hot-path source of
+        // truth read by the WS receive loop; tests also set them directly.
+        if (configureServer is not null)
+        {
+            var serverOptions = new RaskServerOptions();
+            configureServer(serverOptions);
+            MaxInboundFrameBytes = serverOptions.MaxInboundFrameBytes;
+            MaxPendingHandlers = serverOptions.MaxPendingHandlers;
+            MaxInboundFramesPerSecond = serverOptions.MaxInboundFramesPerSecond;
+            SessionGracePeriod = serverOptions.SessionGracePeriod;
+            UnconnectedSessionGracePeriod = serverOptions.UnconnectedSessionGracePeriod;
         }
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
