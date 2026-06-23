@@ -82,6 +82,14 @@ public static class RaskEndpointExtensions
     // tune ingress with a reverse-proxy rate limiter. 0 = off.
     internal static int MaxInboundFramesPerSecond = 1000;
 
+    // Close a connected socket that sends no inbound frame for this long (the session survives for
+    // reconnect under SessionGracePeriod). Seeded from RaskServerOptions.IdleSocketTimeout. Zero = off.
+    internal static TimeSpan IdleSocketTimeout = TimeSpan.Zero;
+
+    // Aggregate-bytes companion to MaxPendingHandlers: bounds the queued cloned-payload memory, not just
+    // the queue count. Seeded from RaskServerOptions.MaxPendingHandlerBytes. 0 = off.
+    internal static long MaxPendingHandlerBytes;
+
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
 
@@ -162,6 +170,8 @@ public static class RaskEndpointExtensions
             MaxInboundFramesPerSecond = serverOptions.MaxInboundFramesPerSecond;
             SessionGracePeriod = serverOptions.SessionGracePeriod;
             UnconnectedSessionGracePeriod = serverOptions.UnconnectedSessionGracePeriod;
+            IdleSocketTimeout = serverOptions.IdleSocketTimeout;
+            MaxPendingHandlerBytes = serverOptions.MaxPendingHandlerBytes;
         }
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
@@ -595,6 +605,14 @@ public static class RaskEndpointExtensions
         var rateWindowStartTick = Environment.TickCount64;
         var framesInWindow = 0;
 
+        // One connection-scoped CTS for the idle-socket timeout (null when disabled). Armed across the
+        // whole inbound message — first frame and every continuation fragment — and disarmed while the
+        // message is dispatched, so a mid-fragment stall is reclaimed too and we don't allocate a CTS
+        // per message. CancelAfter just reschedules the one internal timer.
+        using var idleCts = IdleSocketTimeout > TimeSpan.Zero
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+            : null;
+
         try
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
@@ -602,52 +620,74 @@ public static class RaskEndpointExtensions
                 WebSocketReceiveResult result;
                 ReadOnlyMemory<byte> payload;
 
-                result = await ws.ReceiveAsync(buffer, ct);
-                if (result.MessageType == WebSocketMessageType.Close)
+                // Arm the idle timer for this whole message-receive cycle; the finally disarms it
+                // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
+                // means the client went silent mid-stream — close the socket (the session survives for
+                // reconnect under the grace period).
+                idleCts?.CancelAfter(IdleSocketTimeout);
+                var receiveToken = idleCts?.Token ?? ct;
+                try
                 {
-                    return;
-                }
-
-                if (result.EndOfMessage)
-                {
-                    // Hot path: single-fragment message. Parse JSON directly from the
-                    // receive buffer slice — no UTF-8 string decode, no accumulator copy.
-                    payload = buffer.AsMemory(0, result.Count);
-                }
-                else
-                {
-                    message.ResetWrittenCount();
-                    if (result.Count > 0)
+                    result = await ws.ReceiveAsync(buffer, receiveToken);
+                    if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        message.Write(buffer.AsSpan(0, result.Count));
+                        return;
                     }
 
-                    do
+                    if (result.EndOfMessage)
                     {
-                        result = await ws.ReceiveAsync(buffer, ct);
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            return;
-                        }
-
+                        // Hot path: single-fragment message. Parse JSON directly from the
+                        // receive buffer slice — no UTF-8 string decode, no accumulator copy.
+                        payload = buffer.AsMemory(0, result.Count);
+                    }
+                    else
+                    {
+                        message.ResetWrittenCount();
                         if (result.Count > 0)
                         {
                             message.Write(buffer.AsSpan(0, result.Count));
                         }
 
-                        // Abort a socket that streams a frame past the cap rather than buffering it
-                        // whole — bounds per-socket memory against a fragmented-frame DoS.
-                        if (message.WrittenCount > MaxInboundFrameBytes)
+                        do
                         {
-                            metrics?.FrameRejected("size");
-                            try { ws.Abort(); }
-                            catch { }
+                            // Same idle token covers continuation fragments, so a client that stalls
+                            // mid-message is reclaimed too.
+                            result = await ws.ReceiveAsync(buffer, receiveToken);
+                            if (result.MessageType == WebSocketMessageType.Close)
+                            {
+                                return;
+                            }
 
-                            return;
-                        }
-                    } while (!result.EndOfMessage);
+                            if (result.Count > 0)
+                            {
+                                message.Write(buffer.AsSpan(0, result.Count));
+                            }
 
-                    payload = message.WrittenMemory;
+                            // Abort a socket that streams a frame past the cap rather than buffering it
+                            // whole — bounds per-socket memory against a fragmented-frame DoS.
+                            if (message.WrittenCount > MaxInboundFrameBytes)
+                            {
+                                metrics?.FrameRejected("size");
+                                try { ws.Abort(); }
+                                catch { }
+
+                                return;
+                            }
+                        } while (!result.EndOfMessage);
+
+                        payload = message.WrittenMemory;
+                    }
+                }
+                catch (OperationCanceledException)
+                    when (idleCts is not null && idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    metrics?.FrameRejected("idle");
+                    await ClosePolicyViolationAsync(ws, "idle timeout").ConfigureAwait(false);
+                    break;
+                }
+                finally
+                {
+                    idleCts?.CancelAfter(Timeout.InfiniteTimeSpan);
                 }
 
                 // Inbound frame-rate cap: count every completed receive over a sliding one-second
@@ -667,15 +707,7 @@ public static class RaskEndpointExtensions
                     if (++framesInWindow > MaxInboundFramesPerSecond)
                     {
                         metrics?.FrameRejected("rate");
-                        using var rateCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                        try
-                        {
-                            await ws.CloseAsync(
-                                    WebSocketCloseStatus.PolicyViolation, "frame rate", rateCts.Token)
-                                .ConfigureAwait(false);
-                        }
-                        catch { }
-
+                        await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
                         break;
                     }
                 }
@@ -808,26 +840,23 @@ public static class RaskEndpointExtensions
                 var capturedSession = session;
                 var capturedHandlerId = handlerId;
 
-                // Backpressure circuit-breaker: bound the number of dispatches queued on the
-                // chain. When handlers drain slower than the client sends (a flood) or the chain
-                // head is stuck (a hung handler), the queue — each entry holding a cloned
-                // JsonElement — would grow without limit. Trip before cloning so we don't even
-                // allocate the payload we'd have to drop; close the socket so the client
-                // reconnects (hello) against the intact session and resumes from current state.
+                // Backpressure circuit-breaker: bound both the number of dispatches queued on the
+                // chain (MaxPendingHandlers) and their aggregate cloned-payload bytes
+                // (MaxPendingHandlerBytes). When handlers drain slower than the client sends (a flood)
+                // or the chain head is stuck (a hung handler), the queue — each entry holding a cloned
+                // JsonElement — would grow without limit. Trip before cloning so we don't even allocate
+                // the payload we'd have to drop; close the socket so the client reconnects (hello)
+                // against the intact session and resumes from current state.
+                var payloadBytes = (long)payload.Length;
                 var pending = capturedSession.IncrementPendingHandlers();
-                if (MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
+                var pendingBytes = capturedSession.AddPendingHandlerBytes(payloadBytes);
+                if ((MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
+                    || (MaxPendingHandlerBytes > 0 && pendingBytes > MaxPendingHandlerBytes))
                 {
                     capturedSession.DecrementPendingHandlers();
+                    capturedSession.SubtractPendingHandlerBytes(payloadBytes);
                     metrics?.FrameRejected("backlog");
-                    using var capCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                    try
-                    {
-                        await ws.CloseAsync(
-                                WebSocketCloseStatus.PolicyViolation, "handler backlog", capCts.Token)
-                            .ConfigureAwait(false);
-                    }
-                    catch { }
-
+                    await ClosePolicyViolationAsync(ws, "handler backlog").ConfigureAwait(false);
                     break;
                 }
 
@@ -839,6 +868,7 @@ public static class RaskEndpointExtensions
                     capturedSession,
                     capturedHandlerId,
                     capturedRoot,
+                    payloadBytes,
                     metrics,
                     ct);
             }
@@ -862,11 +892,27 @@ public static class RaskEndpointExtensions
         }
     }
 
+    // Best-effort PolicyViolation close shared by the rate / backlog / idle breakers: the client
+    // reconnects (hello) against the intact session. A 2 s deadline bounds a wedged close handshake.
+    private static async Task ClosePolicyViolationAsync(WebSocket ws, string reason)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, reason, cts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Socket already faulted / closing — nothing to do.
+        }
+    }
+
     private static async Task ChainHandlerDispatchAsync(
         Task previous,
         LiveSession session,
         string handlerId,
         JsonElement root,
+        long payloadBytes,
         RaskMetrics? metrics,
         CancellationToken ct)
     {
@@ -901,9 +947,10 @@ public static class RaskEndpointExtensions
         }
         finally
         {
-            // Pairs with the IncrementPendingHandlers in the receive loop when this dispatch was
-            // queued, so the backpressure counter tracks the live chain depth.
+            // Pairs with the Increment/AddPendingHandlerBytes in the receive loop when this dispatch
+            // was queued, so the backpressure count and byte total track the live chain depth.
             session.DecrementPendingHandlers();
+            session.SubtractPendingHandlerBytes(payloadBytes);
         }
     }
 
@@ -1512,6 +1559,14 @@ public static class RaskEndpointExtensions
         return reader.ReadToEnd();
     }
 
+    private static void RollbackStaged(SessionUploadStore uploads, List<SessionUploadStore.Entry> staged)
+    {
+        foreach (var prior in staged)
+        {
+            uploads.Release(prior.SessionId, prior.Token);
+        }
+    }
+
     private static async Task HandleUploadAsync(
         HttpContext ctx,
         string sessionId,
@@ -1560,11 +1615,7 @@ public static class RaskEndpointExtensions
         {
             if (file.Length > options.MaxFileSize)
             {
-                foreach (var prior in staged)
-                {
-                    uploads.Release(prior.SessionId, prior.Token);
-                }
-
+                RollbackStaged(uploads, staged);
                 ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
                 return;
             }
@@ -1575,6 +1626,8 @@ public static class RaskEndpointExtensions
                 lastModified = lm;
             }
 
+            // StageAsync atomically enforces the cumulative per-session quota: a null return means this
+            // file would push the session over MaxBytesPerSession (the temp file is already cleaned up).
             var entry = await uploads.StageAsync(
                 sessionId,
                 SanitizeUploadFileName(file.FileName),
@@ -1586,7 +1639,16 @@ public static class RaskEndpointExtensions
                     await using var output = File.Create(path);
                     await using var input = file.OpenReadStream();
                     await input.CopyToAsync(output, ctx.RequestAborted).ConfigureAwait(false);
-                });
+                },
+                options.MaxBytesPerSession);
+
+            if (entry is null)
+            {
+                RollbackStaged(uploads, staged);
+                ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                return;
+            }
+
             staged.Add(entry);
         }
 
