@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-23
+
 ### Added
 - **Cooperative handler timeout (`RaskServerOptions.HandlerTimeout`).** `Component.CancellationToken`
   now does double duty: it still cancels on unmount, and *while an event handler is running* it **also**
