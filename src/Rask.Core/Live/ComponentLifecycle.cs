@@ -1,3 +1,5 @@
+using Rask.Core.Diagnostics;
+
 namespace Rask.Core.Live;
 
 internal static class ComponentLifecycle
@@ -99,5 +101,9 @@ internal static class ComponentLifecycle
     }
 
     private static void LogDisposeError(Component component, Exception ex) =>
-        Console.Error.WriteLine($"Rask component dispose on {component.GetType().Name} threw: {ex}");
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Lifecycle",
+            $"Rask component dispose on {component.GetType().Name} threw",
+            ex);
 }

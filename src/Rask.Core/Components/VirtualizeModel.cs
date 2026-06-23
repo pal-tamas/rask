@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Virtualization;
 
@@ -368,7 +369,11 @@ public sealed class VirtualizeModel : Component
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Rask VirtualizeModel: ItemsProvider threw: {ex}");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error,
+                "Rask.Virtualize",
+                "Rask VirtualizeModel: ItemsProvider threw",
+                ex);
             return;
         }
 

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -130,7 +131,11 @@ public sealed class WasmHostBuilder
             try { await userProvider.EnsureLoadedAsync().ConfigureAwait(false); }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[Rask.Wasm] IUserProvider.EnsureLoadedAsync failed: {ex.Message}");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.Wasm",
+                    "[Rask.Wasm] IUserProvider.EnsureLoadedAsync failed",
+                    ex);
             }
         }
 

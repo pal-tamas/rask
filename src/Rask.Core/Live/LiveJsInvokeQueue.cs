@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
+using Rask.Core.Diagnostics;
 
 namespace Rask.Core.Live;
 
@@ -82,8 +83,11 @@ internal sealed class LiveJsInvokeQueue
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(
-                    $"Rask: failed to surface JS invoke fault for taskId={invoke.TaskId}: {ex}");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.JsInvoke",
+                    $"Rask: failed to surface JS invoke fault for taskId={invoke.TaskId}",
+                    ex);
             }
         }
     }
