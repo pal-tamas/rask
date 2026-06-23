@@ -8,6 +8,7 @@ Guides and references for building with Rask. New here? Start with the project
 | Guide | What it covers |
 |-------|----------------|
 | [Getting started](getting-started.md) | Install the templates, scaffold an app, write your first component, add interactivity and a route. |
+| [Best practices](best-practices.md) | Production patterns and common pitfalls across component design, state, forms, data access, security, accessibility, performance and testing — each linking to the deep dive. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), `VirtualizeModel`, `TableModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & JS conventions, calling JS via `IJSRuntime`, element refs (`Ref:`), asset delivery. |
