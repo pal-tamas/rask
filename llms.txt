@@ -18,6 +18,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.
 - [Authentication](docs/authentication.md): cookie/JWT, Authorize, route guards.
 - [Observability](docs/observability.md): structured logging, the `Rask.Server` meter + activity source, `AddRaskLiveSessions()` health check.
+- [Configuration](docs/configuration.md): `RaskLiveOptions` (shared: diff mode, path base, session cap) + `RaskServerOptions` (server-only WS/grace limits), appsettings binding, upload limits.
 - [Accessibility](docs/accessibility.md): ARIA via the `Aria` dictionary, `Role`/`TabIndex`, the `Img` alt-text analyzer (RASK023).
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
 - [Diagnostics](docs/diagnostics.md): RASK001–024 compile-time diagnostics + fixes.
