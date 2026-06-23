@@ -34,12 +34,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
             lifetime.ApplicationStopping.Register(CancelAllPending);
         }
 
-        // Active-session count is an observable gauge: the collector polls Count on scrape, so
-        // there's no per-create/per-remove bookkeeping beyond the counters below.
-        _metrics?.TrackActiveSessions(() => Count);
+        // Active-session gauge: the collector polls on scrape. Reads LiveCount (reservations +
+        // committed) — the same number admission and the health check gate on — so the gauge, the
+        // capacity cap, and /health never disagree by the count of mid-build sessions.
+        _metrics?.TrackActiveSessions(() => LiveCount);
     }
 
     public int Count => _sessions.Count;
+
+    /// <summary>
+    ///     Reserved + in-flight + committed session count — the authoritative capacity number that
+    ///     <see cref="TryCreate" /> / <see cref="AtCapacity" /> gate on. Differs from
+    ///     <see cref="Count" /> (committed sessions only) during the window where a reserved session's
+    ///     component tree is still building.
+    /// </summary>
+    internal int LiveCount => Volatile.Read(ref _liveCount);
 
     /// <summary>The metrics sink threaded into the WS loop for frame/handler instrumentation (may be null).</summary>
     internal RaskMetrics? Metrics => _metrics;
@@ -64,12 +73,27 @@ public sealed class LiveSessionStore : IAsyncDisposable
         CancelAllPending();
         foreach (var key in _sessions.Keys.ToArray())
         {
-            if (_sessions.TryRemove(key, out var session))
+            if (Detach(key) is { } session)
             {
-                Interlocked.Decrement(ref _liveCount);
                 await session.DisposeAsync().ConfigureAwait(false);
             }
         }
+    }
+
+    // The single removal point all three paths (Remove / RemoveAsync / DisposeAsync) funnel through:
+    // atomically take the session out of the map, drop the live-count reservation, and record the
+    // eviction metric exactly once. Returns the detached session for the caller to dispose (sync or
+    // async), or null if another thread already removed it.
+    private LiveSession? Detach(string id)
+    {
+        if (_sessions.TryRemove(id, out var session))
+        {
+            Interlocked.Decrement(ref _liveCount);
+            _metrics?.SessionEvicted();
+            return session;
+        }
+
+        return null;
     }
 
     private void CancelAllPending()
@@ -173,21 +197,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
     internal void Remove(string id)
     {
         CancelPendingRemoval(id);
-        if (_sessions.TryRemove(id, out var session))
-        {
-            Interlocked.Decrement(ref _liveCount);
-            _metrics?.SessionEvicted();
-            session.Dispose();
-        }
+        Detach(id)?.Dispose();
     }
 
     internal async Task RemoveAsync(string id)
     {
         CancelPendingRemoval(id);
-        if (_sessions.TryRemove(id, out var session))
+        if (Detach(id) is { } session)
         {
-            Interlocked.Decrement(ref _liveCount);
-            _metrics?.SessionEvicted();
             await session.DisposeAsync().ConfigureAwait(false);
         }
     }
