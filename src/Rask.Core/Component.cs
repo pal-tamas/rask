@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Components;
+using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
@@ -630,7 +631,11 @@ public abstract class Component
     }
 
     internal static void LogUnmountError(Component comp, Exception ex) =>
-        Console.Error.WriteLine($"Rask unmount hook on {comp.GetType().Name} threw: {ex}");
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Lifecycle",
+            $"Rask unmount hook on {comp.GetType().Name} threw",
+            ex);
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {
@@ -694,8 +699,8 @@ public abstract class Component
             return;
         }
 
-        // Prefer the boundary: it'll re-render with the fallback. Fall back to Console.Error
-        // logging only when there is no ancestor boundary, so a faulting hook is never silent.
+        // Prefer the boundary: it'll re-render with the fallback. Fall back to a diagnostics
+        // report only when there is no ancestor boundary, so a faulting hook is never silent.
         var boundary = comp.Boundary;
         if (boundary is not null)
         {
@@ -703,7 +708,11 @@ public abstract class Component
             return;
         }
 
-        Console.Error.WriteLine($"Rask lifecycle hook on {comp.GetType().Name} faulted: {actual}");
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Lifecycle",
+            $"Rask lifecycle hook on {comp.GetType().Name} faulted",
+            actual);
     }
 
     internal Component RenderForLive()

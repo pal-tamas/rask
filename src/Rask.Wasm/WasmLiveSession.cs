@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
+using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
@@ -242,7 +243,11 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Rask WASM handler '{handlerId}' threw: {ex}");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.Wasm",
+                    $"Rask WASM handler '{handlerId}' threw",
+                    ex);
                 return Array.Empty<byte>();
             }
         }
@@ -292,7 +297,11 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Rask WASM navigate '{navPath}' threw: {ex}");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error,
+                    "Rask.Wasm",
+                    $"Rask WASM navigate '{navPath}' threw",
+                    ex);
                 return Array.Empty<byte>();
             }
         }
@@ -344,7 +353,9 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         // telemetry so dispatch-render-loop bugs are greppable on either runtime.
         if (_pendingRenderInScope)
         {
-            Console.Error.WriteLine(
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning,
+                "Rask.Wasm",
                 "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
                 "in-dispatch render was queued and dropped. Inspect any handlers " +
                 "that re-trigger StateHasChanged in OnRenderedAsync / dispose " +
