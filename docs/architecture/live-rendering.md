@@ -253,6 +253,20 @@ ComputeLisIndexSet(targets, n, lis);
 // already-final node at the next index — the standard correct minimal-move reconcile
 ```
 
+**Complexity.** The LIS itself is `O(n log n)`. The move loop then repositions each off-LIS node
+with a `live.IndexOf` + `live.Insert` on a `List<int>`, each `O(n)`, so the loop is
+`O((n − |LIS|) · n)`. The number of off-LIS nodes — not `n` — is what matters: a **full reverse**
+has `|LIS| = 1`, so all `n − 1` rows move and the loop degrades to `O(n²)` (this is the genuine
+worst case, and it's deliberately pinned by `FrameDifferBenchmarks.ReverseReorder_ReusedScratch`).
+**Realistic** edits keep a near-full LIS — a table sort that reranks only the head, a feed that
+drops a few rows and appends new ones — so only a handful of rows are off-LIS and the loop stays
+effectively linear (`TopNRerank_ReusedScratch` / `AppendWithDeletes_ReusedScratch` pin those shapes).
+The quadratic case is bounded (one `List<int>` per parent, `n` capped by the rendered list size) and
+hasn't warranted replacing the list with an `O(log n)` order-statistic structure; the benchmarks
+guard against a regression that would make it matter. At 1000 rows the full reverse runs ~1.9× a
+two-element swap, while the top-N rerank and append-with-deletes shapes run at ~1.0× — confirming the
+cost is the off-LIS move count, not the list size.
+
 ### `PermutationBatch` (op kind 7)
 
 Rather than emitting one `MoveSubtree` op per moved row — each re-emitting the full
