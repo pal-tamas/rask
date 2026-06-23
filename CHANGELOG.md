@@ -7,6 +7,13 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Best practices guide ([docs/best-practices.md](docs/best-practices.md)).** A new hub that
+  consolidates the patterns and common pitfalls previously scattered across the subsystem docs and
+  the RASK diagnostics — component design, rendering/keys, state & callbacks, context/DI, forms, data
+  access, security, accessibility, performance, and testing — with each rule linking to its deep
+  dive. Indexed from `docs/README.md`, `README.md`, and `llms.txt`.
+
 ## [0.10.0] - 2026-06-23
 
 ### Added

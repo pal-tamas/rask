@@ -10,6 +10,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 
 ## Docs
 - [Getting started](docs/getting-started.md): install, first app, project layout.
+- [Best practices](docs/best-practices.md): production patterns + common pitfalls across components, state, forms, data, security, accessibility, performance, testing (each links the deep dive).
 - [Routing](docs/routing.md): `[Route]`, params, `Router()`/`Outlet()`, navigation.
 - [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
 - [Composition](docs/composition.md): children, context (provide/consume), callbacks, headless primitives (`VirtualizeModel<T>`, `TableModel<T>`), drag-and-drop.
