@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Security.Claims;
@@ -21,11 +22,13 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
 using Rask.Core.Components;
+using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Server.Authentication;
+using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
 using Components = Rask.Core.Components.Generated;
@@ -136,9 +139,12 @@ public static class RaskEndpointExtensions
             maxSessions = liveOptions.MaxSessions;
         }
 
+        // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
+        services.TryAddSingleton<RaskMetrics>();
         services.AddSingleton(sp => new LiveSessionStore(
             sp.GetRequiredService<IServiceScopeFactory>(),
-            sp.GetService<IHostApplicationLifetime>())
+            sp.GetService<IHostApplicationLifetime>(),
+            sp.GetService<RaskMetrics>())
         { MaxSessions = maxSessions });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
@@ -191,7 +197,12 @@ public static class RaskEndpointExtensions
         string pathBase = "")
         where TApp : Component
     {
-        var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask");
+        // Route every framework diagnostic (Rask.Core + this host) into the application's logging
+        // pipeline. No-ops when no ILoggerFactory is registered, leaving the stderr default in place.
+        var loggerFactory = app.Services.GetService<ILoggerFactory>();
+        RaskServerDiagnostics.Install(loggerFactory);
+
+        var logger = loggerFactory?.CreateLogger("Rask");
         if (logger is not null)
             logger.LogInformation("Rask {Version} (Server) starting", RaskVersion.Current);
         else
@@ -463,8 +474,9 @@ public static class RaskEndpointExtensions
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(
-                        $"Rask: debounced asset-change rerender failed: {ex.Message}");
+                    RaskDiagnostics.Report(
+                        RaskLogLevel.Warning, "Rask.HotReload",
+                        "Rask: debounced asset-change rerender failed", ex);
                 }
             });
         };
@@ -507,7 +519,8 @@ public static class RaskEndpointExtensions
                     try { await sessionStore.RerenderAllAsync().ConfigureAwait(false); }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine($"Rask: source-watch rerender failed: {ex.Message}");
+                        RaskDiagnostics.Report(
+                            RaskLogLevel.Warning, "Rask.HotReload", "Rask: source-watch rerender failed", ex);
                     }
                 });
             }
@@ -519,7 +532,8 @@ public static class RaskEndpointExtensions
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Rask: source watcher disabled ({ex.Message})");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.HotReload", "Rask: source watcher disabled", ex);
         }
     }
 
@@ -533,7 +547,8 @@ public static class RaskEndpointExtensions
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"Rask Live: dropped malformed WS frame ({ex.Message})");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live", "Rask Live: dropped malformed WS frame", ex);
             return null;
         }
     }
@@ -546,6 +561,7 @@ public static class RaskEndpointExtensions
             try { ws.Abort(); }
             catch { }
         });
+        var metrics = store.Metrics;
         LiveSession? session = null;
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
@@ -598,6 +614,7 @@ public static class RaskEndpointExtensions
                         // whole — bounds per-socket memory against a fragmented-frame DoS.
                         if (message.WrittenCount > MaxInboundFrameBytes)
                         {
+                            metrics?.FrameRejected("size");
                             try { ws.Abort(); }
                             catch { }
 
@@ -624,6 +641,7 @@ public static class RaskEndpointExtensions
 
                     if (++framesInWindow > MaxInboundFramesPerSecond)
                     {
+                        metrics?.FrameRejected("rate");
                         using var rateCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
                         try
                         {
@@ -775,6 +793,7 @@ public static class RaskEndpointExtensions
                 if (MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
                 {
                     capturedSession.DecrementPendingHandlers();
+                    metrics?.FrameRejected("backlog");
                     using var capCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
                     try
                     {
@@ -795,6 +814,7 @@ public static class RaskEndpointExtensions
                     capturedSession,
                     capturedHandlerId,
                     capturedRoot,
+                    metrics,
                     ct);
             }
         }
@@ -822,6 +842,7 @@ public static class RaskEndpointExtensions
         LiveSession session,
         string handlerId,
         JsonElement root,
+        RaskMetrics? metrics,
         CancellationToken ct)
     {
         try
@@ -837,7 +858,7 @@ public static class RaskEndpointExtensions
                 // prevent this dispatch from running. The chain is for ordering only.
             }
 
-            await DispatchHandlerAsync(session, handlerId, root, ct).ConfigureAwait(false);
+            await DispatchHandlerAsync(session, handlerId, root, metrics, ct).ConfigureAwait(false);
 
             // Acknowledge the handler so the client's slow-link pending indicator can
             // resolve — crucially even when the render deduped and no frame was sent
@@ -884,6 +905,7 @@ public static class RaskEndpointExtensions
         LiveSession session,
         string handlerId,
         JsonElement root,
+        RaskMetrics? metrics,
         CancellationToken ct)
     {
         try
@@ -896,6 +918,10 @@ public static class RaskEndpointExtensions
         }
 
         session.InHandlerScope = true;
+        using var activity = RaskActivity.Source.StartActivity("rask.handler.dispatch");
+        activity?.SetTag("rask.handler.id", handlerId);
+        metrics?.HandlerDispatched();
+        var dispatchStart = Stopwatch.GetTimestamp();
         try
         {
             var navigator = session.Services.GetRequiredService<Navigator>();
@@ -962,13 +988,17 @@ public static class RaskEndpointExtensions
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                Console.Error.WriteLine($"Rask Live handler '{handlerId}' threw: {ex}");
+                metrics?.HandlerFaulted();
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handlerId}' threw", ex);
             }
         }
         finally
         {
             session.InHandlerScope = false;
             session.Lock.Release();
+            metrics?.RecordHandlerDuration(Stopwatch.GetElapsedTime(dispatchStart).TotalMilliseconds);
         }
     }
 
@@ -1036,7 +1066,8 @@ public static class RaskEndpointExtensions
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Rask jsResult dispatch for taskId={taskId} threw: {ex}");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live", $"Rask jsResult dispatch for taskId={taskId} threw", ex);
         }
     }
 
@@ -1083,7 +1114,9 @@ public static class RaskEndpointExtensions
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Rask dotNetInvoke '{assemblyName}.{methodIdentifier}' threw: {ex}");
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live",
+                $"Rask dotNetInvoke '{assemblyName}.{methodIdentifier}' threw", ex);
         }
     }
 
@@ -1122,7 +1155,8 @@ public static class RaskEndpointExtensions
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                Console.Error.WriteLine($"Rask Live navigate '{navPath}' threw: {ex}");
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Error, "Rask.Live", $"Rask Live navigate '{navPath}' threw", ex);
             }
         }
         finally

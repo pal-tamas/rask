@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Files;
@@ -473,7 +474,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         // warning gives the user a single grep target.
         if (_pendingRenderInScope)
         {
-            Console.Error.WriteLine(
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live",
                 $"[Rask.LiveSession] Coalesce-loop budget exhausted for session {Id}; " +
                 "a third in-dispatch render was queued and dropped. Inspect any handlers " +
                 "that re-trigger StateHasChanged in OnRenderedAsync / dispose callbacks " +
@@ -503,9 +505,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
         catch (Exception failEx)
         {
-            Console.Error.WriteLine(
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live",
                 $"[Rask.LiveSession] Failed to fault {invokes.Length} pending JS invoke(s) for " +
-                $"session {Id} after a send error: {failEx}");
+                $"session {Id} after a send error", failEx);
         }
     }
 }
