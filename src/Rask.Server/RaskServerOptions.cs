@@ -75,6 +75,17 @@ public sealed class RaskServerOptions
     public TimeSpan IdleSocketTimeout { get; set; } = TimeSpan.Zero;
 
     /// <summary>
+    ///     How long a single event-handler dispatch may run before its cancellation token
+    ///     (<c>Component.EventCancellationToken</c>) is cancelled. A handler that threads that token
+    ///     into its async work (an <c>HttpClient</c> call, a <c>Task.Delay</c>) then unwinds cleanly
+    ///     instead of pinning the session's render pipeline; the timeout is logged and metered. It is
+    ///     cooperative — a handler that ignores the token cannot be force-aborted (the backpressure and
+    ///     idle-socket caps remain the backstop for that). <see cref="TimeSpan.Zero" /> (default)
+    ///     disables the timeout.
+    /// </summary>
+    public TimeSpan HandlerTimeout { get; set; } = TimeSpan.Zero;
+
+    /// <summary>
     ///     Maximum aggregate bytes of inbound handler payloads queued (awaiting their turn in
     ///     WS-arrival order) before the server closes the socket with a backpressure policy violation.
     ///     Complements <see cref="MaxPendingHandlers" /> (which bounds the queue's <em>count</em>): a
@@ -133,6 +144,13 @@ public sealed class RaskServerOptions
             throw new ArgumentOutOfRangeException(
                 nameof(IdleSocketTimeout), IdleSocketTimeout,
                 "IdleSocketTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
+        }
+
+        if (HandlerTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(HandlerTimeout), HandlerTimeout,
+                "HandlerTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
         }
 
         if (MaxPendingHandlerBytes < 0)

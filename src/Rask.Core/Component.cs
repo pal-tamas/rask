@@ -295,6 +295,25 @@ public abstract class Component
     protected CancellationToken CancellationToken =>
         LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
 
+    /// <summary>
+    ///     The <see cref="System.Threading.CancellationToken" /> for the event handler currently
+    ///     running. It is cancelled when this component unmounts (like <see cref="CancellationToken" />)
+    ///     <em>and</em> when the dispatch is cancelled by the host — a server-side
+    ///     <c>RaskServerOptions.HandlerTimeout</c> elapsing, or the WebSocket closing. Pass it into the
+    ///     cancellable async work an <c>OnClick</c> / <c>OnSubmit</c> handler starts (an <c>HttpClient</c>
+    ///     call, a <c>Task.Delay</c>) so a stuck handler unwinds instead of pinning the session's render
+    ///     pipeline. Outside a handler it is the plain lifetime token. Forcibly aborting synchronous or
+    ///     token-ignoring handler code is not possible; a handler must observe this token to be cancelled.
+    /// </summary>
+    protected CancellationToken EventCancellationToken
+    {
+        get
+        {
+            var dispatch = DispatchEventTokenScope.Current;
+            return dispatch.CanBeCanceled ? dispatch : CancellationToken;
+        }
+    }
+
     internal IRenderHandle? RenderHandle { get; set; }
 
     internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _live?.Children ?? _emptyChildren;
@@ -933,7 +952,8 @@ public abstract class Component
     internal ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload)
         => TryInvokeHandlerAsync(id, payload, null);
 
-    internal async ValueTask<bool> TryInvokeHandlerAsync(string id, JsonElement payload, IServiceProvider? services)
+    internal async ValueTask<bool> TryInvokeHandlerAsync(
+        string id, JsonElement payload, IServiceProvider? services, CancellationToken dispatchToken = default)
     {
         if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
         {
@@ -942,6 +962,23 @@ public abstract class Component
 
         var (owner, handler) = entry;
         using var __dispatchScope = DispatchServicesScope.Push(services);
+
+        // Expose a per-dispatch cancellation token to the handler via owner.EventCancellationToken.
+        // It cancels on the owner's unmount (lifetime token) AND on the host's dispatch token (a
+        // handler timeout / socket close). Only allocate the linked source when the host actually
+        // supplied a cancellable token (i.e. a timeout is configured); otherwise the lifetime token
+        // alone is the ambient, so the no-timeout path stays allocation-free.
+        CancellationTokenSource? linkedCts = null;
+        var eventToken = owner.CancellationToken;
+        if (dispatchToken.CanBeCanceled)
+        {
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(eventToken, dispatchToken);
+            eventToken = linkedCts.Token;
+        }
+
+        using var __eventTokenScope = DispatchEventTokenScope.Push(eventToken);
+        using var __linked = linkedCts;
+
         // Match Blazor: every event handler implicitly marks the registering component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.

@@ -19,6 +19,7 @@ public sealed class RaskMetrics : IDisposable
     private readonly Counter<long> _framesRejected;
     private readonly Counter<long> _handlersDispatched;
     private readonly Counter<long> _handlersFaulted;
+    private readonly Counter<long> _handlersTimedOut;
     private readonly Histogram<double> _handlerDuration;
     private readonly Meter _meter;
     private readonly Counter<long> _sessionsCreated;
@@ -45,6 +46,8 @@ public sealed class RaskMetrics : IDisposable
             "rask.handlers.dispatched", "{handler}", "Client event handlers dispatched to user code.");
         _handlersFaulted = _meter.CreateCounter<long>(
             "rask.handlers.faulted", "{handler}", "Event-handler dispatches that threw (isolated, session survives).");
+        _handlersTimedOut = _meter.CreateCounter<long>(
+            "rask.handlers.timedout", "{handler}", "Event-handler dispatches cancelled by the HandlerTimeout.");
         _handlerDuration = _meter.CreateHistogram<double>(
             "rask.handler.duration", "ms", "Wall-clock duration of an event-handler dispatch.");
         _framesRejected = _meter.CreateCounter<long>(
@@ -71,6 +74,8 @@ public sealed class RaskMetrics : IDisposable
     public void HandlerDispatched() => _handlersDispatched.Add(1);
 
     public void HandlerFaulted() => _handlersFaulted.Add(1);
+
+    public void HandlerTimedOut() => _handlersTimedOut.Add(1);
 
     public void RecordHandlerDuration(double milliseconds) => _handlerDuration.Record(milliseconds);
 

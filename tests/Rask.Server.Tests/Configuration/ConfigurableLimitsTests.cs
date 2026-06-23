@@ -29,7 +29,8 @@ public class ConfigurableLimitsTests
             RaskEndpointExtensions.SessionGracePeriod,
             RaskEndpointExtensions.UnconnectedSessionGracePeriod,
             RaskEndpointExtensions.IdleSocketTimeout,
-            RaskEndpointExtensions.MaxPendingHandlerBytes);
+            RaskEndpointExtensions.MaxPendingHandlerBytes,
+            RaskEndpointExtensions.HandlerTimeout);
         try
         {
             new ServiceCollection().AddRask(configureServer: o =>
@@ -41,6 +42,7 @@ public class ConfigurableLimitsTests
                 o.UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(2);
                 o.IdleSocketTimeout = TimeSpan.FromSeconds(90);
                 o.MaxPendingHandlerBytes = 4096;
+                o.HandlerTimeout = TimeSpan.FromSeconds(7);
             });
 
             Assert.Equal(1234, RaskEndpointExtensions.MaxInboundFrameBytes);
@@ -50,6 +52,7 @@ public class ConfigurableLimitsTests
             Assert.Equal(TimeSpan.FromSeconds(2), RaskEndpointExtensions.UnconnectedSessionGracePeriod);
             Assert.Equal(TimeSpan.FromSeconds(90), RaskEndpointExtensions.IdleSocketTimeout);
             Assert.Equal(4096, RaskEndpointExtensions.MaxPendingHandlerBytes);
+            Assert.Equal(TimeSpan.FromSeconds(7), RaskEndpointExtensions.HandlerTimeout);
         }
         finally
         {
@@ -59,8 +62,16 @@ public class ConfigurableLimitsTests
                 RaskEndpointExtensions.SessionGracePeriod,
                 RaskEndpointExtensions.UnconnectedSessionGracePeriod,
                 RaskEndpointExtensions.IdleSocketTimeout,
-                RaskEndpointExtensions.MaxPendingHandlerBytes) = saved;
+                RaskEndpointExtensions.MaxPendingHandlerBytes,
+                RaskEndpointExtensions.HandlerTimeout) = saved;
         }
+    }
+
+    [Fact]
+    public void AddRask_NegativeHandlerTimeout_ThrowsAtStartup()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ServiceCollection().AddRask(configureServer: o => o.HandlerTimeout = TimeSpan.FromSeconds(-1)));
     }
 
     [Fact]
