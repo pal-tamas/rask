@@ -30,6 +30,9 @@ public sealed class Counter : Component
 
 ## Install
 
+> **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
+> (`dotnet workload install wasm-tools`) for the WASM templates only.
+
 ```bash
 dotnet new install Rask.Templates        # scaffolding
 dotnet new rask-server -o MyApp          # or: rask-wasm, rask-wasm-hosted
