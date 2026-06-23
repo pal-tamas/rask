@@ -24,7 +24,10 @@ them until tagged releases begin.
   zero-cost when no listener is attached. (4) **Health checks:** `services.AddHealthChecks()`
   `.AddRaskLiveSessions()` reports live-session capacity — `Healthy` / `Degraded` (≥80% of
   `MaxSessions`) / `Unhealthy` (at the cap). All of it is on by default with no configuration; you opt
-  in only to *exporting* it. See the new [observability guide](docs/observability.md).
+  in only to *exporting* it. The render/diff/serialization hot path is untouched; the per-dispatch
+  instrumentation (a counter increment, a `Stopwatch` timing pair, a histogram record, and a tracing
+  `Activity` that is `null` when no tracer is attached) is allocation-free. See the new
+  [observability guide](docs/observability.md).
 - **Keyboard events on every element.** `Element` now exposes the `OnKeyDown` / `OnKeyDownAsync` and
   `OnKeyUp` / `OnKeyUpAsync` pairs, the focus-scoped counterpart to `OnClick`, wired by both client
   runtimes (Server WS + WASM) via `data-rask-on-keydown` / `data-rask-on-keyup`. A handler takes

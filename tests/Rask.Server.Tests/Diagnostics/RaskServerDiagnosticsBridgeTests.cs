@@ -5,38 +5,41 @@ using Rask.Server.Diagnostics;
 
 namespace Rask.Server.Tests.Diagnostics;
 
+// Exercises the bridge's per-event Emit directly rather than installing it as the process-global
+// RaskDiagnostics.Sink, so these tests never race host-based tests that drive the same global seam.
 public class RaskServerDiagnosticsBridgeTests
 {
-    [Fact]
-    public void Install_RoutesFrameworkDiagnostics_ToILogger()
+    // RaskLogLevel is internal, so it can't be a public test-method parameter — pass its numeric
+    // value and cast inside. LogLevel is public.
+    [Theory]
+    [InlineData((int)RaskLogLevel.Error, LogLevel.Error)]
+    [InlineData((int)RaskLogLevel.Warning, LogLevel.Warning)]
+    [InlineData((int)RaskLogLevel.Information, LogLevel.Information)]
+    public void Emit_RoutesToILogger_WithMappedLevelCategoryAndException(int raskLevel, LogLevel expected)
     {
         var provider = new CapturingLoggerProvider();
         using var factory = LoggerFactory.Create(b => b.AddProvider(provider));
-        var previousSink = RaskDiagnostics.Sink;
-        try
-        {
-            RaskServerDiagnostics.Install(factory);
 
-            var boom = new InvalidOperationException("boom");
-            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Test.Bridge", "bridged fault", boom);
+        var boom = new InvalidOperationException("boom");
+        RaskServerDiagnostics.Emit(
+            factory, new RaskDiagnosticEvent((RaskLogLevel)raskLevel, "Rask.Test.Bridge", "bridged fault", boom));
 
-            var entry = Assert.Single(provider.Entries, e => e.Category == "Rask.Test.Bridge");
-            Assert.Equal(LogLevel.Error, entry.Level);
-            Assert.Same(boom, entry.Exception);
-            Assert.Contains("bridged fault", entry.Message);
-        }
-        finally
-        {
-            RaskDiagnostics.Sink = previousSink;
-        }
+        var entry = Assert.Single(provider.Entries, e => e.Category == "Rask.Test.Bridge");
+        Assert.Equal(expected, entry.Level);
+        Assert.Same(boom, entry.Exception);
+        Assert.Contains("bridged fault", entry.Message);
     }
 
     [Fact]
-    public void Install_Null_LeavesSinkUnchanged()
+    public void Emit_WhenLoggingThrows_Swallows_SoADiagnosticNeverBecomesAFault()
     {
-        var previousSink = RaskDiagnostics.Sink;
-        RaskServerDiagnostics.Install(null);
-        Assert.Same(previousSink, RaskDiagnostics.Sink);
+        // A disposed factory / misbehaving provider must not escape into the framework's catch blocks.
+        var ex = Record.Exception(() =>
+            RaskServerDiagnostics.Emit(
+                new ThrowingLoggerFactory(),
+                new RaskDiagnosticEvent(RaskLogLevel.Error, "Rask.Test", "ignored", null)));
+
+        Assert.Null(ex);
     }
 
     private sealed record LogEntry(string Category, LogLevel Level, string Message, Exception? Exception);
@@ -64,6 +67,19 @@ public class RaskServerDiagnosticsBridgeTests
                 Exception? exception,
                 Func<TState, Exception?, string> formatter) =>
                 entries.Add(new LogEntry(category, logLevel, formatter(state, exception), exception));
+        }
+    }
+
+    private sealed class ThrowingLoggerFactory : ILoggerFactory
+    {
+        public void AddProvider(ILoggerProvider provider)
+        {
+        }
+
+        public ILogger CreateLogger(string categoryName) => throw new ObjectDisposedException("factory");
+
+        public void Dispose()
+        {
         }
     }
 }

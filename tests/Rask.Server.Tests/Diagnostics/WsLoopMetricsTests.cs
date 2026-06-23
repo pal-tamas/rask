@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Diagnostics.Metrics;
 using System.Net.WebSockets;
 using Rask.Server.Tests.Infrastructure;
 
@@ -16,30 +14,8 @@ public class WsLoopMetricsTests
         var sessionId = Markup.SessionId(initialHtml);
         var handlerId = Markup.FirstHandlerId(initialHtml);
 
-        // Scope the listener to this host's metrics instance so parallel tests can't leak in.
-        var metrics = host.Store.Metrics!;
-        var counters = new ConcurrentDictionary<string, long>();
-        var durationSamples = 0;
-        using var listener = new MeterListener
-        {
-            InstrumentPublished = (inst, l) =>
-            {
-                if (ReferenceEquals(inst.Meter, metrics.Meter))
-                {
-                    l.EnableMeasurementEvents(inst);
-                }
-            }
-        };
-        listener.SetMeasurementEventCallback<long>((inst, measurement, _, _) =>
-            counters.AddOrUpdate(inst.Name, measurement, (_, v) => v + measurement));
-        listener.SetMeasurementEventCallback<double>((inst, _, _, _) =>
-        {
-            if (inst.Name == "rask.handler.duration")
-            {
-                Interlocked.Increment(ref durationSamples);
-            }
-        });
-        listener.Start();
+        // Scope the capture to this host's metrics instance so parallel tests can't leak in.
+        using var capture = MeterCapture.For(host.Store.Metrics!.Meter);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
@@ -55,13 +31,14 @@ public class WsLoopMetricsTests
         // its finally (so it includes the send). Receiving the reply therefore does not guarantee the
         // finally has run yet — poll briefly rather than assume synchrony.
         var ok = await WaitUntil(
-            () => counters.GetValueOrDefault("rask.handlers.dispatched") >= 1
-                  && Volatile.Read(ref durationSamples) >= 1,
+            () => capture.Counter("rask.handlers.dispatched") >= 1
+                  && capture.HistogramSampleCount("rask.handler.duration") >= 1,
             TimeSpan.FromSeconds(2));
 
         Assert.True(ok,
-            $"expected a dispatched counter and a duration sample; " +
-            $"dispatched={counters.GetValueOrDefault("rask.handlers.dispatched")}, durationSamples={durationSamples}");
+            "expected a dispatched counter and a duration sample; " +
+            $"dispatched={capture.Counter("rask.handlers.dispatched")}, " +
+            $"durationSamples={capture.HistogramSampleCount("rask.handler.duration")}");
     }
 
     private static async Task<bool> WaitUntil(Func<bool> condition, TimeSpan timeout)

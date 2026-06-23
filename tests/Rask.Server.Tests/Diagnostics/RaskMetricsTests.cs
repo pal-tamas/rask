@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Diagnostics.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
@@ -13,7 +11,7 @@ public class RaskMetricsTests
     public void SessionLifecycle_EmitsCreatedRejectedEvictedCounters()
     {
         using var metrics = new RaskMetrics();
-        var counts = ListenCounters(metrics);
+        using var capture = MeterCapture.For(metrics.Meter);
 
         var store = NewStore(metrics);
         store.MaxSessions = 1;
@@ -24,86 +22,50 @@ public class RaskMetricsTests
         Assert.Null(s2);
         store.Remove(s1!.Id); // evicted
 
-        Assert.Equal(1, counts.GetValueOrDefault("rask.sessions.created"));
-        Assert.Equal(1, counts.GetValueOrDefault("rask.sessions.rejected"));
-        Assert.Equal(1, counts.GetValueOrDefault("rask.sessions.evicted"));
+        Assert.Equal(1, capture.Counter("rask.sessions.created"));
+        Assert.Equal(1, capture.Counter("rask.sessions.rejected"));
+        Assert.Equal(1, capture.Counter("rask.sessions.evicted"));
+    }
+
+    [Fact]
+    public async Task DisposeAsync_EvictsRemainingSessions_EmitsEvictedCounter()
+    {
+        using var metrics = new RaskMetrics();
+        using var capture = MeterCapture.For(metrics.Meter);
+
+        var store = NewStore(metrics);
+        store.Create(_ => new BasicComponent());
+        store.Create(_ => new BasicComponent());
+
+        await store.DisposeAsync(); // shutdown teardown must also count as eviction
+
+        Assert.Equal(2, capture.Counter("rask.sessions.created"));
+        Assert.Equal(2, capture.Counter("rask.sessions.evicted"));
     }
 
     [Fact]
     public void ActiveSessions_ObservableGauge_ReportsLiveCount()
     {
         using var metrics = new RaskMetrics();
-        var gauge = 0;
-        using var listener = new MeterListener
-        {
-            InstrumentPublished = (inst, l) =>
-            {
-                if (ReferenceEquals(inst.Meter, metrics.Meter) && inst.Name == "rask.sessions.active")
-                {
-                    l.EnableMeasurementEvents(inst);
-                }
-            }
-        };
-        listener.SetMeasurementEventCallback<int>((_, measurement, _, _) => gauge = measurement);
-        listener.Start();
+        using var capture = MeterCapture.For(metrics.Meter);
 
         var store = NewStore(metrics);
         store.Create(_ => new BasicComponent());
         store.Create(_ => new BasicComponent());
 
-        listener.RecordObservableInstruments();
-        Assert.Equal(2, gauge);
+        capture.RecordObservable();
+        Assert.Equal(2, capture.Gauge("rask.sessions.active"));
     }
 
     [Fact]
     public void FrameRejected_TagsTheReason()
     {
         using var metrics = new RaskMetrics();
-        var reasons = new ConcurrentBag<string?>();
-        using var listener = new MeterListener
-        {
-            InstrumentPublished = (inst, l) =>
-            {
-                if (ReferenceEquals(inst.Meter, metrics.Meter) && inst.Name == "rask.ws.frames.rejected")
-                {
-                    l.EnableMeasurementEvents(inst);
-                }
-            }
-        };
-        listener.SetMeasurementEventCallback<long>((_, _, tags, _) =>
-        {
-            foreach (var tag in tags)
-            {
-                if (tag.Key == "reason")
-                {
-                    reasons.Add(tag.Value as string);
-                }
-            }
-        });
-        listener.Start();
+        using var capture = MeterCapture.For(metrics.Meter);
 
         metrics.FrameRejected("rate");
 
-        Assert.Contains("rate", reasons);
-    }
-
-    private static ConcurrentDictionary<string, long> ListenCounters(RaskMetrics metrics)
-    {
-        var counts = new ConcurrentDictionary<string, long>();
-        var listener = new MeterListener
-        {
-            InstrumentPublished = (inst, l) =>
-            {
-                if (ReferenceEquals(inst.Meter, metrics.Meter))
-                {
-                    l.EnableMeasurementEvents(inst);
-                }
-            }
-        };
-        listener.SetMeasurementEventCallback<long>((inst, measurement, _, _) =>
-            counts.AddOrUpdate(inst.Name, measurement, (_, v) => v + measurement));
-        listener.Start();
-        return counts;
+        Assert.Contains("rate", capture.TagValues("rask.ws.frames.rejected", "reason"));
     }
 
     private static LiveSessionStore NewStore(RaskMetrics metrics)

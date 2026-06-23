@@ -18,7 +18,10 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        var active = store.Count;
+        // LiveCount (reservations + committed), not Count (committed only): admission refuses new
+        // sessions at LiveCount == MaxSessions, so the health status must track the same number or it
+        // would report Healthy while the host is already answering 503s during a concurrent GET burst.
+        var active = store.LiveCount;
         var max = store.MaxSessions;
         var data = new Dictionary<string, object>
         {
