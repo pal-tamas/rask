@@ -1,8 +1,9 @@
 name: nightly
 
 # Nightly prerelease on every change to main. MinVer derives a prerelease version
-# (e.g. 0.7.1-alpha.0.N) for untagged commits, so packs are naturally prerelease on nuget.org.
-# Stable releases (no -prerelease suffix) still come only from tagging via release.yml.
+# (e.g. 0.10.1-alpha.0.N after the v0.10.0 tag) for untagged commits, so packs are naturally
+# prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
+# via release.yml.
 on:
   push:
     branches: [main]
