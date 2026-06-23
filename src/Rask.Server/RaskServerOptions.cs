@@ -79,7 +79,9 @@ public sealed class RaskServerOptions
     ///     WS-arrival order) before the server closes the socket with a backpressure policy violation.
     ///     Complements <see cref="MaxPendingHandlers" /> (which bounds the queue's <em>count</em>): a
     ///     client could fill the count-bounded queue with large frames and pin many megabytes of cloned
-    ///     payloads, so this bounds the queue's <em>memory</em>. <c>0</c> (default) disables the cap.
+    ///     payloads, so this bounds the queue's <em>memory</em>. Measured by inbound wire bytes — a close
+    ///     proxy for the cloned <c>JsonElement</c> footprint, sized to bound the same order of magnitude
+    ///     rather than the exact managed size. <c>0</c> (default) disables the cap.
     /// </summary>
     public long MaxPendingHandlerBytes { get; set; }
 

@@ -605,6 +605,14 @@ public static class RaskEndpointExtensions
         var rateWindowStartTick = Environment.TickCount64;
         var framesInWindow = 0;
 
+        // One connection-scoped CTS for the idle-socket timeout (null when disabled). Armed across the
+        // whole inbound message — first frame and every continuation fragment — and disarmed while the
+        // message is dispatched, so a mid-fragment stall is reclaimed too and we don't allocate a CTS
+        // per message. CancelAfter just reschedules the one internal timer.
+        using var idleCts = IdleSocketTimeout > TimeSpan.Zero
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+            : null;
+
         try
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
@@ -612,82 +620,74 @@ public static class RaskEndpointExtensions
                 WebSocketReceiveResult result;
                 ReadOnlyMemory<byte> payload;
 
-                // Idle-socket timeout: if enabled, bound how long we wait for the *next* message to
-                // start. A fired timer (and not a shutdown) means the client went silent — close the
-                // socket; the session survives for reconnect under the grace period.
-                if (IdleSocketTimeout > TimeSpan.Zero)
+                // Arm the idle timer for this whole message-receive cycle; the finally disarms it
+                // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
+                // means the client went silent mid-stream — close the socket (the session survives for
+                // reconnect under the grace period).
+                idleCts?.CancelAfter(IdleSocketTimeout);
+                var receiveToken = idleCts?.Token ?? ct;
+                try
                 {
-                    using var idleCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    idleCts.CancelAfter(IdleSocketTimeout);
-                    try
+                    result = await ws.ReceiveAsync(buffer, receiveToken);
+                    if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        result = await ws.ReceiveAsync(buffer, idleCts.Token);
-                    }
-                    catch (OperationCanceledException)
-                        when (idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
-                    {
-                        using var idleClose = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                        try
-                        {
-                            await ws.CloseAsync(
-                                    WebSocketCloseStatus.PolicyViolation, "idle timeout", idleClose.Token)
-                                .ConfigureAwait(false);
-                        }
-                        catch { }
-
-                        break;
-                    }
-                }
-                else
-                {
-                    result = await ws.ReceiveAsync(buffer, ct);
-                }
-
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    return;
-                }
-
-                if (result.EndOfMessage)
-                {
-                    // Hot path: single-fragment message. Parse JSON directly from the
-                    // receive buffer slice — no UTF-8 string decode, no accumulator copy.
-                    payload = buffer.AsMemory(0, result.Count);
-                }
-                else
-                {
-                    message.ResetWrittenCount();
-                    if (result.Count > 0)
-                    {
-                        message.Write(buffer.AsSpan(0, result.Count));
+                        return;
                     }
 
-                    do
+                    if (result.EndOfMessage)
                     {
-                        result = await ws.ReceiveAsync(buffer, ct);
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            return;
-                        }
-
+                        // Hot path: single-fragment message. Parse JSON directly from the
+                        // receive buffer slice — no UTF-8 string decode, no accumulator copy.
+                        payload = buffer.AsMemory(0, result.Count);
+                    }
+                    else
+                    {
+                        message.ResetWrittenCount();
                         if (result.Count > 0)
                         {
                             message.Write(buffer.AsSpan(0, result.Count));
                         }
 
-                        // Abort a socket that streams a frame past the cap rather than buffering it
-                        // whole — bounds per-socket memory against a fragmented-frame DoS.
-                        if (message.WrittenCount > MaxInboundFrameBytes)
+                        do
                         {
-                            metrics?.FrameRejected("size");
-                            try { ws.Abort(); }
-                            catch { }
+                            // Same idle token covers continuation fragments, so a client that stalls
+                            // mid-message is reclaimed too.
+                            result = await ws.ReceiveAsync(buffer, receiveToken);
+                            if (result.MessageType == WebSocketMessageType.Close)
+                            {
+                                return;
+                            }
 
-                            return;
-                        }
-                    } while (!result.EndOfMessage);
+                            if (result.Count > 0)
+                            {
+                                message.Write(buffer.AsSpan(0, result.Count));
+                            }
 
-                    payload = message.WrittenMemory;
+                            // Abort a socket that streams a frame past the cap rather than buffering it
+                            // whole — bounds per-socket memory against a fragmented-frame DoS.
+                            if (message.WrittenCount > MaxInboundFrameBytes)
+                            {
+                                metrics?.FrameRejected("size");
+                                try { ws.Abort(); }
+                                catch { }
+
+                                return;
+                            }
+                        } while (!result.EndOfMessage);
+
+                        payload = message.WrittenMemory;
+                    }
+                }
+                catch (OperationCanceledException)
+                    when (idleCts is not null && idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    metrics?.FrameRejected("idle");
+                    await ClosePolicyViolationAsync(ws, "idle timeout").ConfigureAwait(false);
+                    break;
+                }
+                finally
+                {
+                    idleCts?.CancelAfter(Timeout.InfiniteTimeSpan);
                 }
 
                 // Inbound frame-rate cap: count every completed receive over a sliding one-second
@@ -707,15 +707,7 @@ public static class RaskEndpointExtensions
                     if (++framesInWindow > MaxInboundFramesPerSecond)
                     {
                         metrics?.FrameRejected("rate");
-                        using var rateCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                        try
-                        {
-                            await ws.CloseAsync(
-                                    WebSocketCloseStatus.PolicyViolation, "frame rate", rateCts.Token)
-                                .ConfigureAwait(false);
-                        }
-                        catch { }
-
+                        await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
                         break;
                     }
                 }
@@ -864,15 +856,7 @@ public static class RaskEndpointExtensions
                     capturedSession.DecrementPendingHandlers();
                     capturedSession.SubtractPendingHandlerBytes(payloadBytes);
                     metrics?.FrameRejected("backlog");
-                    using var capCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                    try
-                    {
-                        await ws.CloseAsync(
-                                WebSocketCloseStatus.PolicyViolation, "handler backlog", capCts.Token)
-                            .ConfigureAwait(false);
-                    }
-                    catch { }
-
+                    await ClosePolicyViolationAsync(ws, "handler backlog").ConfigureAwait(false);
                     break;
                 }
 
@@ -905,6 +889,21 @@ public static class RaskEndpointExtensions
                 try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token); }
                 catch { }
             }
+        }
+    }
+
+    // Best-effort PolicyViolation close shared by the rate / backlog / idle breakers: the client
+    // reconnects (hello) against the intact session. A 2 s deadline bounds a wedged close handshake.
+    private static async Task ClosePolicyViolationAsync(WebSocket ws, string reason)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, reason, cts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Socket already faulted / closing — nothing to do.
         }
     }
 
@@ -1560,6 +1559,14 @@ public static class RaskEndpointExtensions
         return reader.ReadToEnd();
     }
 
+    private static void RollbackStaged(SessionUploadStore uploads, List<SessionUploadStore.Entry> staged)
+    {
+        foreach (var prior in staged)
+        {
+            uploads.Release(prior.SessionId, prior.Token);
+        }
+    }
+
     private static async Task HandleUploadAsync(
         HttpContext ctx,
         string sessionId,
@@ -1606,15 +1613,9 @@ public static class RaskEndpointExtensions
         var staged = new List<SessionUploadStore.Entry>(form.Files.Count);
         foreach (var file in form.Files)
         {
-            // Per-file size cap, and the cumulative per-session upload quota.
-            if (file.Length > options.MaxFileSize
-                || uploads.WouldExceedQuota(sessionId, file.Length, options.MaxBytesPerSession))
+            if (file.Length > options.MaxFileSize)
             {
-                foreach (var prior in staged)
-                {
-                    uploads.Release(prior.SessionId, prior.Token);
-                }
-
+                RollbackStaged(uploads, staged);
                 ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
                 return;
             }
@@ -1625,6 +1626,8 @@ public static class RaskEndpointExtensions
                 lastModified = lm;
             }
 
+            // StageAsync atomically enforces the cumulative per-session quota: a null return means this
+            // file would push the session over MaxBytesPerSession (the temp file is already cleaned up).
             var entry = await uploads.StageAsync(
                 sessionId,
                 SanitizeUploadFileName(file.FileName),
@@ -1636,7 +1639,16 @@ public static class RaskEndpointExtensions
                     await using var output = File.Create(path);
                     await using var input = file.OpenReadStream();
                     await input.CopyToAsync(output, ctx.RequestAborted).ConfigureAwait(false);
-                });
+                },
+                options.MaxBytesPerSession);
+
+            if (entry is null)
+            {
+                RollbackStaged(uploads, staged);
+                ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                return;
+            }
+
             staged.Add(entry);
         }
 
