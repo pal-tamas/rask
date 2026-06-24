@@ -33,7 +33,7 @@ public sealed class VirtualizeModel : Component
     private int _clientHeight;
     private IEnumerable? _lastItems;
     private Delegate? _lastProvider;
-    private Action<ScrollEvent>? _onScrollDelegate;
+    private Callback<ScrollEvent>? _onScrollDelegate;
     private int _scrollTop;
     private int _totalCount;
     private bool _totalCountKnown;

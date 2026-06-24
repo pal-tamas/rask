@@ -76,121 +76,121 @@ public abstract class Element : Component
     private Delegate? _onDrop;
     private Delegate? _onDragEnd;
 
-    public Action? OnDragStart
+    public Callback? OnDragStart
     {
-        get => _onDragStart as Action;
+        get => _onDragStart as Callback;
         set => SetSync(ref _onDragStart, value);
     }
 
-    public Func<Task>? OnDragStartAsync
+    public CallbackAsync? OnDragStartAsync
     {
-        get => _onDragStart as Func<Task>;
+        get => _onDragStart as CallbackAsync;
         set => SetAsync(ref _onDragStart, value);
     }
 
-    public Action? OnDragOver
+    public Callback? OnDragOver
     {
-        get => _onDragOver as Action;
+        get => _onDragOver as Callback;
         set => SetSync(ref _onDragOver, value);
     }
 
-    public Func<Task>? OnDragOverAsync
+    public CallbackAsync? OnDragOverAsync
     {
-        get => _onDragOver as Func<Task>;
+        get => _onDragOver as CallbackAsync;
         set => SetAsync(ref _onDragOver, value);
     }
 
-    public Action? OnDrop
+    public Callback? OnDrop
     {
-        get => _onDrop as Action;
+        get => _onDrop as Callback;
         set => SetSync(ref _onDrop, value);
     }
 
-    public Func<Task>? OnDropAsync
+    public CallbackAsync? OnDropAsync
     {
-        get => _onDrop as Func<Task>;
+        get => _onDrop as CallbackAsync;
         set => SetAsync(ref _onDrop, value);
     }
 
-    public Action? OnDragEnd
+    public Callback? OnDragEnd
     {
-        get => _onDragEnd as Action;
+        get => _onDragEnd as Callback;
         set => SetSync(ref _onDragEnd, value);
     }
 
-    public Func<Task>? OnDragEndAsync
+    public CallbackAsync? OnDragEndAsync
     {
-        get => _onDragEnd as Func<Task>;
+        get => _onDragEnd as CallbackAsync;
         set => SetAsync(ref _onDragEnd, value);
     }
 
     // Keyboard events, available on every element (a key event needs the element — or a descendant
     // — focused, the same focus-scoped model as click). Bound by the client runtime via
     // data-rask-on-keydown / data-rask-on-keyup. Each ships a sync `OnXxx`
-    // (Action<KeyboardEventArgs>) and an async `OnXxxAsync` (Func<KeyboardEventArgs, Task>) sibling
+    // (Callback<KeyboardEventArgs>) and an async `OnXxxAsync` (CallbackAsync<KeyboardEventArgs>) sibling
     // coalesced over a single LiveState slot by delegate type (like the drag pairs above); the
     // dispatcher unpacks the {key, code, modifiers, repeat} payload into a KeyboardEventArgs. The
     // client never preventDefaults a key event, so handlers compose with normal typing. Storage is
     // hoisted into the lazy LiveState (like Ref/Role/Aria) so an element with no key handler keeps
     // `_live` null and pays no per-instance footprint — see OnKeyDownInternal/OnKeyUpInternal.
-    public Action<KeyboardEventArgs>? OnKeyDown
+    public Callback<KeyboardEventArgs>? OnKeyDown
     {
-        get => OnKeyDownInternal as Action<KeyboardEventArgs>;
+        get => OnKeyDownInternal as Callback<KeyboardEventArgs>;
         set
         {
             if (value is not null)
             {
                 OnKeyDownInternal = value;
             }
-            else if (OnKeyDownInternal is Action<KeyboardEventArgs>)
+            else if (OnKeyDownInternal is Callback<KeyboardEventArgs>)
             {
                 OnKeyDownInternal = null;
             }
         }
     }
 
-    public Func<KeyboardEventArgs, Task>? OnKeyDownAsync
+    public CallbackAsync<KeyboardEventArgs>? OnKeyDownAsync
     {
-        get => OnKeyDownInternal as Func<KeyboardEventArgs, Task>;
+        get => OnKeyDownInternal as CallbackAsync<KeyboardEventArgs>;
         set
         {
             if (value is not null)
             {
                 OnKeyDownInternal = value;
             }
-            else if (OnKeyDownInternal is Func<KeyboardEventArgs, Task>)
+            else if (OnKeyDownInternal is CallbackAsync<KeyboardEventArgs>)
             {
                 OnKeyDownInternal = null;
             }
         }
     }
 
-    public Action<KeyboardEventArgs>? OnKeyUp
+    public Callback<KeyboardEventArgs>? OnKeyUp
     {
-        get => OnKeyUpInternal as Action<KeyboardEventArgs>;
+        get => OnKeyUpInternal as Callback<KeyboardEventArgs>;
         set
         {
             if (value is not null)
             {
                 OnKeyUpInternal = value;
             }
-            else if (OnKeyUpInternal is Action<KeyboardEventArgs>)
+            else if (OnKeyUpInternal is Callback<KeyboardEventArgs>)
             {
                 OnKeyUpInternal = null;
             }
         }
     }
 
-    public Func<KeyboardEventArgs, Task>? OnKeyUpAsync
+    public CallbackAsync<KeyboardEventArgs>? OnKeyUpAsync
     {
-        get => OnKeyUpInternal as Func<KeyboardEventArgs, Task>;
+        get => OnKeyUpInternal as CallbackAsync<KeyboardEventArgs>;
         set
         {
             if (value is not null)
             {
                 OnKeyUpInternal = value;
             }
-            else if (OnKeyUpInternal is Func<KeyboardEventArgs, Task>)
+            else if (OnKeyUpInternal is CallbackAsync<KeyboardEventArgs>)
             {
                 OnKeyUpInternal = null;
             }
@@ -200,25 +200,25 @@ public abstract class Element : Component
     // Shared coalescing helpers for the drag handler pairs: a non-null value always wins; a null
     // only clears the slot when it currently holds the same kind (sync Action vs async Func<Task>),
     // so re-applying the unset sibling never wipes the handler the caller set.
-    private static void SetSync(ref Delegate? slot, Action? value)
+    private static void SetSync(ref Delegate? slot, Callback? value)
     {
         if (value is not null)
         {
             slot = value;
         }
-        else if (slot is Action)
+        else if (slot is Callback)
         {
             slot = null;
         }
     }
 
-    private static void SetAsync(ref Delegate? slot, Func<Task>? value)
+    private static void SetAsync(ref Delegate? slot, CallbackAsync? value)
     {
         if (value is not null)
         {
             slot = value;
         }
-        else if (slot is Func<Task>)
+        else if (slot is CallbackAsync)
         {
             slot = null;
         }

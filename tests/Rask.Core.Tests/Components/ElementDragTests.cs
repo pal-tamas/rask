@@ -21,7 +21,7 @@ public class ElementDragTests
         // static draggable attribute survives.
         Assert.Equal(
             "<div draggable=\"true\"></div>",
-            Div(Draggable: true, OnDragStart: new Action(() => { }), OnDrop: new Action(() => { })).ToHtml());
+            Div(Draggable: true, OnDragStart: new Callback(() => { }), OnDrop: new Callback(() => { })).ToHtml());
 
     [Fact]
     public void DragHandlers_InsideLiveContext_EmitDataAttributesInRegistrationOrder()
@@ -30,10 +30,10 @@ public class ElementDragTests
             Id: "d",
             Class: "x",
             Draggable: true,
-            OnDragStart: new Action(() => { }),
-            OnDragOver: new Action(() => { }),
-            OnDrop: new Action(() => { }),
-            OnDragEnd: new Action(() => { })));
+            OnDragStart: new Callback(() => { }),
+            OnDragOver: new Callback(() => { }),
+            OnDrop: new Callback(() => { }),
+            OnDragEnd: new Callback(() => { })));
 
         // Universal attrs first (id, class), then draggable, then the drag handler hooks in
         // dragstart → dragover → drop → dragend order (matching RegisterHandler id assignment).
@@ -47,7 +47,7 @@ public class ElementDragTests
     [Fact]
     public void DragHandlers_OnlyNonNullEmitted()
     {
-        var view = new StubComponent(() => Div(OnDrop: new Action(() => { })));
+        var view = new StubComponent(() => Div(OnDrop: new Callback(() => { })));
         Assert.Equal("<div data-rask-on-drop=\"h0\"></div>", view.RenderAsLiveRoot());
     }
 

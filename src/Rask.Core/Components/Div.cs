@@ -7,8 +7,8 @@ public sealed class Div : Element
 {
     protected override string TagName => "div";
 
-    public Action? OnClick { get; set; }
-    public Func<Task>? OnClickAsync { get; set; }
+    public Callback? OnClick { get; set; }
+    public CallbackAsync? OnClickAsync { get; set; }
 
     // Bound to the element's `scroll` event by the client runtime (data-rask-on-scroll). Ships a
     // sync `OnScroll` (Action<ScrollEvent>) and an async `OnScrollAsync` (Func<ScrollEvent, Task>)
@@ -18,32 +18,32 @@ public sealed class Div : Element
     // {scrollTop, clientHeight, scrollHeight} payload into a typed ScrollEvent before invoking.
     private Delegate? _onScroll;
 
-    public Action<ScrollEvent>? OnScroll
+    public Callback<ScrollEvent>? OnScroll
     {
-        get => _onScroll as Action<ScrollEvent>;
+        get => _onScroll as Callback<ScrollEvent>;
         set
         {
             if (value is not null)
             {
                 _onScroll = value;
             }
-            else if (_onScroll is Action<ScrollEvent>)
+            else if (_onScroll is Callback<ScrollEvent>)
             {
                 _onScroll = null;
             }
         }
     }
 
-    public Func<ScrollEvent, Task>? OnScrollAsync
+    public CallbackAsync<ScrollEvent>? OnScrollAsync
     {
-        get => _onScroll as Func<ScrollEvent, Task>;
+        get => _onScroll as CallbackAsync<ScrollEvent>;
         set
         {
             if (value is not null)
             {
                 _onScroll = value;
             }
-            else if (_onScroll is Func<ScrollEvent, Task>)
+            else if (_onScroll is CallbackAsync<ScrollEvent>)
             {
                 _onScroll = null;
             }

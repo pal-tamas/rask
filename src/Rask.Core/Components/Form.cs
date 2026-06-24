@@ -31,9 +31,9 @@ public sealed class Form : Element
     public string? Autocomplete { get; set; }
     public bool? Novalidate { get; set; }
     public string? Name { get; set; }
-    public Action<FormData>? OnSubmit { get; set; }
+    public Callback<FormData>? OnSubmit { get; set; }
 
-    public Func<FormData, Task>? OnSubmitAsync { get; set; }
+    public CallbackAsync<FormData>? OnSubmitAsync { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without

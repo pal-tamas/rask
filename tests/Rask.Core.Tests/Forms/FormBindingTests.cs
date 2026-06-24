@@ -133,7 +133,7 @@ public class FormBindingTests
 
         var view = new StubComponent(() => Form(
             p,
-            (Action<Person>)(m => captured = m))[Input(() => p.Name), Input(() => p.Age)]);
+            (Callback<Person>)(m => captured = m))[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
         var submitId = Markup.Attr(html, "data-rask-on-submit");

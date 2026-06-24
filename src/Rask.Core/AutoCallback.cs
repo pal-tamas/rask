@@ -111,4 +111,88 @@ public static class AutoCallback
             r.StateHasChanged();
         };
     }
+
+    // Named-type overloads — the framework's own components declare callbacks as Callback/CallbackAsync
+    // (see Callbacks.cs). Same typed wrapper as above (no DynamicInvoke), so the re-render path stays
+    // allocation-equivalent. The Action/Func overloads remain for consumer code that uses standard delegates.
+
+    /// <summary>Wrap a no-arg sync <see cref="Callback" /> so it re-renders its owner after running.</summary>
+    public static Callback? Wrap(Callback? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (d.Target is not Component r)
+        {
+            return d;
+        }
+
+        return () =>
+        {
+            d();
+            r.StateHasChanged();
+        };
+    }
+
+    /// <summary>Wrap a one-arg sync <see cref="Callback{T}" /> so it re-renders its owner after running.</summary>
+    public static Callback<T>? Wrap<T>(Callback<T>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (d.Target is not Component r)
+        {
+            return d;
+        }
+
+        return arg =>
+        {
+            d(arg);
+            r.StateHasChanged();
+        };
+    }
+
+    /// <summary>Wrap a no-arg <see cref="CallbackAsync" /> so it awaits, then re-renders its owner.</summary>
+    public static CallbackAsync? Wrap(CallbackAsync? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (d.Target is not Component r)
+        {
+            return d;
+        }
+
+        return async () =>
+        {
+            await d().ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
+
+    /// <summary>Wrap a one-arg <see cref="CallbackAsync{T}" /> so it awaits, then re-renders its owner.</summary>
+    public static CallbackAsync<T>? Wrap<T>(CallbackAsync<T>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (d.Target is not Component r)
+        {
+            return d;
+        }
+
+        return async arg =>
+        {
+            await d(arg).ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
 }

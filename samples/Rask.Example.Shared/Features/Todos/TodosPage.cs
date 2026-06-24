@@ -136,8 +136,8 @@ public sealed class TodoFormDialog : Component
     public bool Open { get; set; }
     public TodoForm Model { get; set; }
     public bool IsAdding { get; set; }
-    public Action OnCancel { get; set; }
-    public Action<TodoForm> OnSave { get; set; }
+    public Callback OnCancel { get; set; }
+    public Callback<TodoForm> OnSave { get; set; }
 #pragma warning restore CS8618
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
@@ -171,7 +171,7 @@ public sealed class TodoFormDialog : Component
             // ::backdrop, so we render our own — clicking it cancels, like the nav drawer's backdrop.
             Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : Fragment(),
             // tabindex makes the <dialog> programmatically focusable; OnKeyDown gives it Escape-to-close.
-            Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: new Action<KeyboardEventArgs>(OnKey))[
+            Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: new Callback<KeyboardEventArgs>(OnKey))[
                 H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
                 Form(Model, OnSave, Class: "vstack gap-3")[
                     DataAnnotationsValidator(),
