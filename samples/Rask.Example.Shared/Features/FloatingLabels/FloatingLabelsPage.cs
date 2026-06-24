@@ -12,7 +12,7 @@ public sealed class FloatingLabelsPage : Component
     [
         PageHeader.Render(
             "Floating labels",
-            "FloatingInput is a reusable example component (not framework code) that wraps Rask's Input, Label, and ValidationMessage in Bootstrap 5.3's .form-floating markup. It owns no validation state and needs no extra CSS — DataAnnotationsValidator() drives the messages, shown via Bootstrap's own .invalid-feedback .d-block utilities. One line per field, with the input type inferred from the bound property."),
+            "FloatingInput, FloatingSelect, and FloatingTextarea are reusable example components (not framework code) that wrap Rask's Input/Select/Textarea + Label + ValidationMessage in Bootstrap 5.3's .form-floating markup. They own no validation state and need no extra CSS — DataAnnotationsValidator() drives the messages, shown via Bootstrap's own .invalid-feedback .d-block utilities. One line per field, with the input type inferred from the bound property."),
         H2(Class: "h4 mt-4 mb-3")["A floating-label form"],
         CodeSample(
             ["FloatingLabelsDemo.cs"],
