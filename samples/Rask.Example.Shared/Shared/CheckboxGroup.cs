@@ -1,11 +1,14 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Core.Components;
+namespace Rask.Example.Shared;
 
-// Hand-written generic factory: binds an ICollection<TItem> model property to a set of checkboxes,
-// one per option. Toggling an option adds/removes it from the bound collection (mutated in place)
-// and re-validates the field. Returns a transparent Fragment so the consumer owns layout.
+// Example generic form control: binds an ICollection<TItem> model property to a set of checkboxes, one per
+// option. Toggling an option adds/removes it from the bound collection (mutated in place) and re-validates
+// the field. Emits Bootstrap 5.3 check markup (https://getbootstrap.com/docs/5.3/forms/checks-radios/):
+// each item is a <div class="form-check"> wrapping a .form-check-input and a .form-check-label tied together
+// by id/for. ItemClass adds extra classes to that wrapper (e.g. "form-check-inline"). Returns a transparent
+// Fragment so the consumer owns the surrounding layout.
 public static partial class Generated
 {
     public static Component CheckboxGroup<TItem>(
@@ -25,22 +28,26 @@ public static partial class Generated
         var groupName = Name ?? acc.PropertyName;
         var selected = acc.Getter() as ICollection<TItem>;
         var comparer = EqualityComparer<TItem>.Default;
+        var wrapperClass = ItemClass is null ? "form-check" : $"form-check {ItemClass}";
 
         var children = new List<Child>();
         var index = 0;
         foreach (var option in Options)
         {
             var optionValue = option; // capture per iteration
+            var optionId = $"{groupName}-{index}";
             var isChecked = selected is not null && Contains(selected, optionValue, comparer);
-            var label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
-            children.Add(Label(Class: ItemClass)[
+            children.Add(Div(Class: wrapperClass, Key: index)[
                 Input(
                     "checkbox",
                     groupName,
                     BindingHelpers.FormatValue(option),
                     Checked: isChecked,
                     Disabled: Disabled,
+                    Class: "form-check-input",
+                    Id: optionId,
                     // The checkbox change payload carries the new checked state as a bool string.
                     OnChangeAsync: async value =>
                     {
@@ -68,14 +75,13 @@ public static partial class Generated
                         {
                             await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
                         }
-                    },
-                    Key: index),
-                label
+                    }),
+                Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
         }
 
-        return new Fragment(children);
+        return Fragment()[children];
     }
 
     private static bool Contains<TItem>(ICollection<TItem> collection, TItem item, IEqualityComparer<TItem> comparer)

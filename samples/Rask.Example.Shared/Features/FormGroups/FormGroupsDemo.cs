@@ -14,16 +14,14 @@ public sealed class FormGroupsDemo : Component
                 RadioGroup(
                     () => _prefs.Plan,
                     new[] { Plan.Free, Plan.Pro, Plan.Team },
-                    p => Span(Class: "ms-1 me-3")[p.ToString()],
-                    ItemClass: "form-check-label")
+                    ItemClass: "form-check-inline")
             ],
             Div(Class: "mb-3")[
                 Label(Class: "form-label fw-semibold d-block")["Interests"],
                 CheckboxGroup<string>(
                     () => _prefs.Interests,
                     new[] { "Web", "Mobile", "AI", "Games" },
-                    t => Span(Class: "ms-1 me-3")[t],
-                    ItemClass: "form-check-label")
+                    ItemClass: "form-check-inline")
             ],
             P(Class: "small text-secondary mb-0", Id: "groups-summary")[
                 $"Plan: {_prefs.Plan} · Interests: "

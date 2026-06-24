@@ -1,44 +1,93 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 
 namespace Rask.Example.Shared;
 
 // Generic multiselect: a custom Bootstrap dropdown of checkable options with the chosen items shown as
-// removable chips. Unlike the native <select multiple>, it binds to an ICollection<TItem> model property
-// and drives the ambient EditContext (validation) — the same contract as CheckboxGroup<TItem>. Open/close
-// is pure server live-diff state (no client JS; the showcase loads Bootstrap CSS only). It demonstrates
-// the public binding API: ExpressionAccessor.Parse + BindingHelpers.ResolveBindingContext are all a
-// custom form control needs to bind to a model and report changes/validation.
+// removable chips. Unlike the native <select multiple>, it binds to an ICollection<TItem> and drives the
+// ambient EditContext (validation) — the same contract as CheckboxGroup<TItem>. Open/close, the
+// click-outside backdrop and Esc-to-close are all pure server live-diff state (no client JS; the showcase
+// loads Bootstrap CSS only). It demonstrates the public binding API: ExpressionAccessor.Parse +
+// BindingHelpers.ResolveBindingContext are all a custom form control needs to bind to a model, register a
+// per-field validator and report changes.
 //
-//   MultiSelect<string>(() => model.Interests, new[] { "Web", "Mobile", "AI" })
+// Two usage shapes, mirroring Input:
+//   • Bound    — MultiSelect<string>(() => model.Interests, options, Validate: …, AfterBind: …)
+//                two-way binds the model collection, runs the per-field Validate rule and surfaces its
+//                message through the embedded ValidationMessage. AfterBind/AfterBindAsync are post-bind
+//                side-effect hooks (the bound value is passed in), exactly like Input's AfterBind.
+//   • Controlled — MultiSelect<string>(options, Value: selection, OnChange: next => …)
+//                the parent owns the selection; OnChange/OnChangeAsync deliver the new collection. No
+//                EditContext, so no Validate in this mode.
 //
-// The OnChange callback re-renders the consumer (a component can't re-render its own parent), so the
-// parent's summary/validation updates as selections change.
+// Live feedback in bound mode lives inside the control (the chips and the embedded ValidationMessage),
+// which refresh because MultiSelect re-renders itself. In controlled mode OnChange/OnChangeAsync are
+// auto-wrapped (AutoCallback) so invoking them re-renders the consumer that owns the handler — host-side
+// derived UI (a summary) updates for free, no StateHasChanged. AfterBind exists for consumer logic.
 public sealed class MultiSelect<TItem> : Component
 {
-    public required Expression<Func<ICollection<TItem>>> Bind { get; set; }
     public required IEnumerable<TItem> Options { get; set; }
+
+    // Controlled mode (no Bind): the parent owns the selection and is notified of every change.
+    public ICollection<TItem>? Value { get; set; }
+    public Action<IReadOnlyCollection<TItem>>? OnChange { get; set; }
+    public Func<IReadOnlyCollection<TItem>, Task>? OnChangeAsync { get; set; }
+
+    // Bound mode. Set through the Bind-first factory overloads (Generated.MultiSelect), kept off the
+    // generated controlled factory via [SkipFactory] so the two entry points stay distinct.
+    [SkipFactory] public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    [SkipFactory] public Action<ICollection<TItem>>? AfterBind { get; set; }
+    [SkipFactory] public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
+
+    // Per-field validator (bound mode only): a sync Func<ICollection<TItem>, IEnumerable<string>> or async
+    // Func<ICollection<TItem>, CancellationToken, ValueTask<IEnumerable<string>>>, registered with the
+    // EditContext just like Input's Validate. Collapsed to a single Delegate the context invokes.
+    [SkipFactory] public Delegate? Validate { get; set; }
+
     public Func<TItem, Child>? OptionLabel { get; set; }
-    public Action? OnChange { get; set; }
     public string? Id { get; set; }
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
-    // View state only — the selection itself lives in the bound model collection. Toggling re-renders
-    // this component through the live diff; no Bootstrap dropdown JS is involved.
+    // View state only — the selection itself lives in the bound model collection (bound mode) or the
+    // parent's Value (controlled mode). Toggling open/close re-renders this component through the live
+    // diff; no Bootstrap dropdown JS is involved.
     private bool _open;
 
     protected override RenderResult Render()
     {
-        ArgumentNullException.ThrowIfNull(Bind);
         ArgumentNullException.ThrowIfNull(Options);
 
-        var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
-        var fid = acc.Field;
-        var selected = acc.Getter() as ICollection<TItem>;
+        var bound = Bind is not null;
+        if (bound == Value is not null)
+        {
+            throw new InvalidOperationException(
+                "MultiSelect requires exactly one of Bind (bound mode) or Value (controlled mode).");
+        }
+
         var comparer = EqualityComparer<TItem>.Default;
         var disabled = Disabled == true; // when disabled the whole control is inert: no wired handlers
+
+        // Resolve the binding once per render. In controlled mode there is no EditContext/field; the
+        // selection is read straight from Value and changes flow out through OnChange.
+        ExpressionAccessor.Accessor? acc = null;
+        EditContext? ctx = null;
+        var fid = default(FieldIdentifier);
+        ICollection<TItem>? selected;
+        if (bound)
+        {
+            acc = ExpressionAccessor.Parse(Bind!);
+            ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+            fid = acc.Field;
+            // Always register — null clears a stale rule from a prior render, matching Input's BoundCore.
+            ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+            selected = acc.Getter() as ICollection<TItem>;
+        }
+        else
+        {
+            selected = Value;
+        }
 
         Child LabelOf(TItem item) =>
             OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
@@ -70,7 +119,7 @@ public sealed class MultiSelect<TItem> : Component
         }
 
         // One row per option; a (display-only) checkbox shows membership and the row toggles it. The menu
-        // stays open across selections — only the box toggles _open.
+        // stays open across selections — only the box / backdrop / Esc toggle _open.
         var rows = new List<Child>();
         var idx = 0;
         foreach (var option in Options)
@@ -89,22 +138,70 @@ public sealed class MultiSelect<TItem> : Component
             idx++;
         }
 
-        return Div(Class: "dropdown", Id: Id)[
+        var children = new List<Child>
+        {
             // When disabled, the toggle drops its click handler and gains Bootstrap's .disabled look —
-            // mirroring the disabled option/chip buttons so the whole control is inert.
+            // mirroring the disabled option/chip buttons so the whole control is inert. TabIndex makes the
+            // box focusable so Esc (OnKeyDown) reaches it once the user has opened the menu.
             Div(
                 Class: disabled
                     ? "form-select h-auto d-flex flex-wrap align-items-center gap-1 disabled pe-none"
                     : "form-select h-auto d-flex flex-wrap align-items-center gap-1",
-                OnClick: disabled ? null : () => _open = !_open)[box],
-            Div(Class: _open ? "dropdown-menu show d-block w-100" : "dropdown-menu")[rows],
-            ValidationMessage(Bind, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]])
-        ];
+                TabIndex: disabled ? null : 0,
+                OnClick: disabled ? null : () => _open = !_open,
+                OnKeyDown: disabled ? null : OnBoxKeyDown)[box],
+            Div(Class: _open ? "dropdown-menu show d-block w-100" : "dropdown-menu")[rows]
+        };
+
+        // Click-outside: a transparent full-viewport backdrop sits behind the open menu but above the rest
+        // of the page; any click that misses the menu lands here and closes. Its z-index is below the
+        // Bootstrap dropdown-menu (1000) so option clicks reach the menu, not the backdrop.
+        if (_open && !disabled)
+        {
+            children.Add(Div(
+                Class: "position-fixed top-0 start-0 w-100 h-100",
+                Style: "z-index: 999;",
+                OnClick: () => _open = false));
+        }
+
+        if (bound)
+        {
+            children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
+        }
+
+        return Div(Class: "dropdown", Id: Id)[children];
     }
 
-    // Re-resolves the collection from the accessor (the model may have swapped it), adds/removes the item
-    // by comparer equality, then notifies + revalidates the field and pings the consumer to re-render.
+    private void OnBoxKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _open = false;
+        }
+    }
+
+    // Adds/removes the item by comparer equality, then (bound) notifies + revalidates the field and runs
+    // AfterBind, or (controlled) emits a fresh collection through OnChange (auto-wrapped, so the consumer
+    // re-renders).
     private async Task ToggleAsync(
+        ExpressionAccessor.Accessor? acc,
+        EditContext? ctx,
+        FieldIdentifier fid,
+        TItem item,
+        IEqualityComparer<TItem> comparer,
+        bool add)
+    {
+        if (acc is not null)
+        {
+            await ToggleBoundAsync(acc, ctx, fid, item, comparer, add).ConfigureAwait(false);
+        }
+        else
+        {
+            await ToggleControlledAsync(item, comparer, add).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ToggleBoundAsync(
         ExpressionAccessor.Accessor acc,
         EditContext? ctx,
         FieldIdentifier fid,
@@ -112,6 +209,7 @@ public sealed class MultiSelect<TItem> : Component
         IEqualityComparer<TItem> comparer,
         bool add)
     {
+        // Re-resolve from the accessor (the model may have swapped the collection instance).
         if (acc.Getter() is not ICollection<TItem> collection)
         {
             return;
@@ -136,7 +234,34 @@ public sealed class MultiSelect<TItem> : Component
             await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
         }
 
-        OnChange?.Invoke();
+        AfterBind?.Invoke(collection);
+        if (AfterBindAsync is not null)
+        {
+            await AfterBindAsync(collection).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ToggleControlledAsync(TItem item, IEqualityComparer<TItem> comparer, bool add)
+    {
+        // The parent owns Value; never mutate it in place. Build the next selection and hand it back.
+        var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
+        if (add)
+        {
+            if (!next.Contains(item, comparer))
+            {
+                next.Add(item);
+            }
+        }
+        else
+        {
+            Remove(next, item, comparer);
+        }
+
+        OnChange?.Invoke(next);
+        if (OnChangeAsync is not null)
+        {
+            await OnChangeAsync(next).ConfigureAwait(false);
+        }
     }
 
     // Membership uses Enumerable.Contains(comparer); removal finds the match first and removes it after

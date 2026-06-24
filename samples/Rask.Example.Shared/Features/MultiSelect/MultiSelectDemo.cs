@@ -1,11 +1,10 @@
-using Rask.Core.Forms;
-
 namespace Rask.Example.Shared.Features;
 
-// The generic MultiSelect<TItem> bound to a model collection inside a Form: selecting/removing options
-// mutates model.Interests and a form-level Validate rule rejects fewer than two picks. OnChange =
-// StateHasChanged so the live summary re-renders as selections change. (A form-level inline validator
-// is used rather than a [MinLength] DataAnnotation so the WASM sample stays trim-clean.)
+// The generic MultiSelect<TItem> bound to a model collection inside a Form. A per-field Validate rule —
+// the same shape as Input's Validate — rejects fewer than two picks and surfaces its message inline through
+// the control's own ValidationMessage. Live feedback (the chips and the validation message) lives inside the
+// control, so it refreshes as you select without any StateHasChanged. (An inline Validate is used rather
+// than a [MinLength] DataAnnotation so the WASM sample stays trim-clean.)
 public sealed class MultiSelectDemo : Component
 {
     private static readonly string[] AllInterests =
@@ -14,37 +13,23 @@ public sealed class MultiSelectDemo : Component
     private readonly Prefs _prefs = new();
     private string? _submission;
 
-    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
-    {
-        var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
-        return formOnly.Count == 0
-            ? Fragment()
-            : Div(Class: "alert alert-danger small mb-0")[
-                Ul(Class: "mb-0 ps-3")[formOnly.Select((e, i) => Li(Key: i)[e.Message])]
-            ];
-    }
-
     protected override RenderResult Render() =>
     [
         Form(
             _prefs,
             OnValidSubmit: m => _submission = $"Saved {m.Interests.Count} interest(s)",
-            Class: "vstack gap-3",
-            Validate: m =>
-                m.Interests.Count >= 2 ? Array.Empty<string>() : new[] { "Pick at least two interests." })[
+            Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold")["Interests"],
                 MultiSelect<string>(
                     () => _prefs.Interests,
                     AllInterests,
+                    Validate: interests => interests.Count >= 2
+                        ? Array.Empty<string>()
+                        : ["Pick at least two interests."],
                     Id: "ms-interests",
-                    Placeholder: "Pick a few…",
-                    OnChange: StateHasChanged)
+                    Placeholder: "Pick a few…")
             ],
-            P(Class: "small text-secondary mb-0", Id: "ms-summary")[
-                "Selected: " + (_prefs.Interests.Count == 0 ? "none" : string.Join(", ", _prefs.Interests))
-            ],
-            ValidationSummary(SummaryAlert),
             Div()[
                 Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
             ]

@@ -13,8 +13,7 @@ public sealed class MultiSelectCheckboxDemo : Component
                 CheckboxGroup<string>(
                     () => _prefs.Interests,
                     ["Web", "Mobile", "AI", "Games"],
-                    t => Span(Class: "ms-1 me-3")[t],
-                    ItemClass: "form-check-label")
+                    ItemClass: "form-check-inline")
             ],
             P(Class: "small text-secondary mb-0", Id: "ms-checkbox-summary")[
                 "Selected: " + (_prefs.Interests.Count == 0 ? "none" : string.Join(", ", _prefs.Interests))
