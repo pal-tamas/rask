@@ -13,6 +13,11 @@ them until tagged releases begin.
   same machinery the sample `RadioGroup`/`CheckboxGroup`/`MultiSelect` use, so consumers can build their
   own controls that bind to a model property and drive the ambient `EditContext`. `docs/forms.md` §9 is a
   "building form components" guide. See also `EditContext.RegisterFieldValidator` for per-field rules.
+- **`BindingHelpers.SetCollectionMembership<T>` and `NotifyAndValidateFieldAsync`.** Two more public
+  building blocks for custom bound controls: the first adds/removes an item in a bound `ICollection<T>`
+  by a comparer (returns whether it changed); the second commits a field change (marks it changed +
+  touched and re-validates, no-op without a context). The sample `MultiSelect`/`CheckboxGroup`/`RadioGroup`
+  now share these instead of each hand-rolling the add/remove + notify/validate logic.
 - **Multi-select showcase.** A reusable generic `MultiSelect<TItem>` example component
   (`samples/Rask.Example.Shared/Shared/MultiSelect.cs`) — a custom Bootstrap dropdown with removable
   chips, open/close + Esc / click-outside close driven entirely by the server live diff (no client JS).
