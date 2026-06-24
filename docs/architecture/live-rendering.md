@@ -204,8 +204,12 @@ the path coordinates line up with the server's DOM-relevant frame counting.
 `src/Rask.Core/Resources/rask-dom.js`, spliced into both clients at build time at the
 `RASK_DOM` marker — the same mechanism the full-HTML morph (`rask-morph.js`, `RASK_MORPH`
 marker) already uses (see `_RaskBuildClientJs` in `Rask.Server.csproj` and
-`_RaskSpliceClientJs` in `Rask.Wasm.csproj`). Keeping the codec in a single ES5 source
-means both runtimes decode the C# `FrameDiffer` opcodes identically — they cannot drift.
+`_RaskSpliceClientJs` in `Rask.Wasm.csproj`). Keeping the codec in a single shared source
+means both runtimes decode the C# `FrameDiffer` opcodes identically — they cannot drift. The
+shared code is modern JS, with two splice constraints: its top-level helpers stay hoisted
+`function` declarations (so `applyDiff` can call `reviveScript`/value-guard helpers regardless
+of splice order), and it uses no `export`/`import` (it is spliced inside the Server's
+classic-`<script>` IIFE, where module syntax is illegal).
 
 ## Keyed reconciliation: trusted structural ops
 
