@@ -3,7 +3,10 @@ using System.Reflection;
 
 namespace Rask.Core.Forms;
 
-// Parses Bind / For expressions into a runtime (owner-instance, PropertyInfo) accessor.
+// Public binding API: parses Bind / For expressions into a runtime (owner-instance, PropertyInfo)
+// accessor. This is the entry point consumers use to build their own form-bound controls (see the
+// MultiSelect sample) — it pairs with BindingHelpers.ResolveBindingContext to wire a control to the
+// ambient EditContext.
 // The body must end in a *property* access — anything that produces a value via a property
 // getter/setter. The expression *under* that terminal access can be arbitrary: a parameter
 // reference, a foreach-captured local, a chain of member accesses, an array indexer, a
@@ -22,7 +25,7 @@ namespace Rask.Core.Forms;
 //   () => p.GetName()               method call as terminal
 //   () => 1 + 1                     not a member access at all
 //   () => SomeStatic.Field          static or non-property member
-internal static class ExpressionAccessor
+public static class ExpressionAccessor
 {
     public static Accessor Parse(LambdaExpression expression)
     {
@@ -93,6 +96,10 @@ internal static class ExpressionAccessor
             v => prop.SetValue(target, v));
     }
 
+    // Target is the resolved owner instance; Getter/Setter read and write the terminal property on it.
+    // Caveat: if the target is a value type (e.g. binding `() => structLocal.Field`), Target is a boxed
+    // copy, so Setter writes to that copy, not the original — value-type targets are read-only in practice.
+    // Bind to properties of reference-type models (the normal case) for round-tripping writes.
     public sealed record Accessor(
         object Target,
         PropertyInfo Property,

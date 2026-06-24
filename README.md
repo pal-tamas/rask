@@ -961,6 +961,15 @@ Form(_prefs)[
 concrete `List<T>`. Membership is compared with `EqualityComparer<TItem>.Default`. Changing any option re-renders the
 component that declared the group, so a live summary updates immediately.
 
+#### Custom bound controls
+
+`RadioGroup`/`CheckboxGroup` are built on a small public API in `Rask.Core.Forms` you can reuse to write your own
+form-bound controls: `ExpressionAccessor.Parse(() => model.Prop)` yields a runtime accessor (target, getter, field),
+and `BindingHelpers.ResolveBindingContext(model)` resolves the surrounding `EditContext` so your handlers can call
+`NotifyFieldChanged` / `ValidateFieldAsync`. The showcase's `MultiSelect<TItem>` — a custom dropdown with removable
+chips bound to an `ICollection<TItem>`, open/close driven entirely by the live diff (no client JS) — is a worked
+example; see `docs/forms.md` §9 and the `/multiselect` page.
+
 </details>
 
 <details>
