@@ -12,16 +12,22 @@ public sealed class FloatingLabelsDemoTests
     {
         var html = new LiveHost(() => FloatingLabelsDemo(), TestServices.Default()).RenderAsLiveRoot();
 
-        // Bootstrap floating-label markup: a .form-floating wrapper around a .form-control input.
+        // Bootstrap floating-label markup across all three controls.
         Assert.Contains("form-floating", html);
-        Assert.Contains("form-control", html);
+        Assert.Contains("form-control", html);   // input + textarea
+        Assert.Contains("form-select", html);    // select
 
         // Ids are derived from the bound property name (ff-{Property}) and the label links to them.
-        foreach (var prop in new[] { "FullName", "Email", "Age" })
+        foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
         {
             Assert.Contains($"id=\"ff-{prop}\"", html);
             Assert.Contains($"for=\"ff-{prop}\"", html);
         }
+
+        // Labels come from the model's [Display(Name)] attributes, not the property names.
+        Assert.Contains(">Full name<", html);
+        Assert.Contains(">Email address<", html);
+        Assert.Contains(">Short bio<", html);
 
         Assert.Contains(">Create account<", html);
         // No messages until a failed submit.
@@ -29,18 +35,25 @@ public sealed class FloatingLabelsDemoTests
     }
 
     [Fact]
-    public void AccountModel_Empty_FailsRequiredAndAgeRange()
+    public void AccountModel_Empty_FailsRequiredFields()
     {
         var errors = Validate(new AccountModel());
         Assert.Contains(errors, e => e.MemberNames.Contains("FullName"));
         Assert.Contains(errors, e => e.MemberNames.Contains("Email"));
-        Assert.Contains(errors, e => e.MemberNames.Contains("Age"));
+        Assert.Contains(errors, e => e.MemberNames.Contains("Plan"));
     }
 
     [Fact]
     public void AccountModel_ValidValues_HasNoErrors()
     {
-        var model = new AccountModel { FullName = "Pat Lee", Email = "pat@example.com", Age = 30 };
+        var model = new AccountModel
+        {
+            FullName = "Pat Lee",
+            Email = "pat@example.com",
+            Age = 30,
+            Plan = "pro",
+            Bio = "Hello"
+        };
         Assert.Empty(Validate(model));
     }
 

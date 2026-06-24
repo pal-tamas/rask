@@ -460,9 +460,10 @@ public abstract partial class SharedSmokeTests
             .ToContainTextAsync("taken",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000, IgnoreCase = true });
 
-        // Floating labels: the reusable FloatingInput wrapper. An empty submit surfaces the Bootstrap
-        // .invalid-feedback under a field (shown via .d-block, no is-invalid toggle); a valid submit
-        // reaches the success banner. (FloatingInput's structure/id derivation is unit-tested.)
+        // Floating labels: the reusable Floating* wrappers (input/select/textarea). An empty submit
+        // surfaces the Bootstrap .invalid-feedback under a field (shown via .d-block, no is-invalid
+        // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
+        // unit-tested.)
         await SideAsync("Floating labels", "Floating labels");
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
@@ -471,6 +472,7 @@ public abstract partial class SharedSmokeTests
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
         await floatingForm.Locator("#ff-Age").FillAsync("30");
+        await floatingForm.Locator("#ff-Plan").SelectOptionAsync("pro");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.Locator(".sample-result-body .alert-success")
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
