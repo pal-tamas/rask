@@ -101,4 +101,38 @@ public class ForwarderFactoryEmissionTests
         // Forwarders also carry the debugger-skip attribute (keeps stepping out of generated code).
         Assert.Contains("[global::System.Diagnostics.DebuggerStepThrough]", output);
     }
+
+    [Fact]
+    public void ValidatorForwarder_FansIntoNoneSyncAsyncOverloads()
+    {
+        var src = """
+                  using System;
+                  using System.Linq.Expressions;
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      [GenerateForwarderFactory(Validator = "Validate")]
+                      public static Widget Bound<TProp>(
+                          Expression<Func<TProp>> Bind, Delegate? Validate = null, string? Class = null)
+                          => new() { Class = Class };
+                      public override RenderResult Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        // None overload: validator parameter omitted; forwarded as null (by name).
+        Assert.Contains(
+            "public static global::Demo.Widget Widget<TProp>(global::System.Linq.Expressions.Expression<global::System.Func<TProp>> Bind, string? Class = null)",
+            output);
+        Assert.Contains("=> global::Demo.Widget.Bound<TProp>(Bind: Bind, Validate: null, Class: Class);", output);
+
+        // Sync overload: typed Validate<TProp>, required (no default), right after Bind.
+        Assert.Contains("global::Rask.Core.Forms.Validate<TProp> Validate, string? Class = null)", output);
+        // Async overload: typed ValidateAsync<TProp>.
+        Assert.Contains("global::Rask.Core.Forms.ValidateAsync<TProp> Validate, string? Class = null)", output);
+        Assert.Contains("=> global::Demo.Widget.Bound<TProp>(Bind: Bind, Validate: Validate, Class: Class);", output);
+    }
 }

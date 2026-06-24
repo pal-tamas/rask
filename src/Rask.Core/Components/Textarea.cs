@@ -31,13 +31,13 @@ public sealed class Textarea : Element
 
     public CallbackAsync<string>? OnChangeAsync { get; set; }
 
-    // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
-    // updates per-keystroke (OnInput) since textareas are inherently string-valued.
-    // `Validate` ships as three overloads (none / `Validate<TProp>` / `ValidateAsync<TProp>`) so callers
-    // can pass a bare lambda without a delegate cast.
-    [GenerateForwarderFactory]
+    // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always updates
+    // per-keystroke (OnInput) since textareas are inherently string-valued. The `Validator` arg fans this
+    // single core into none / `Validate<TProp>` / `ValidateAsync<TProp>` overloads.
+    [GenerateForwarderFactory(Validator = "Validate")]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Delegate? Validate = null,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
@@ -56,90 +56,13 @@ public sealed class Textarea : Element
         string? Class = null,
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
-            MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            null, AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    [GenerateForwarderFactory]
-    public static Textarea Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Validate<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        int? Rows = null,
-        int? Cols = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Wrap = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
-            MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    [GenerateForwarderFactory]
-    public static Textarea Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        ValidateAsync<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        int? Rows = null,
-        int? Cols = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Wrap = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Name, Rows, Cols, Placeholder, Required, Disabled, ReadOnly,
-            MaxLength, MinLength, Wrap, Autofocus, Autocomplete,
-            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    private static Textarea BoundCore<TProp>(
-        Expression<Func<TProp>> Bind,
-        string? Name,
-        int? Rows,
-        int? Cols,
-        string? Placeholder,
-        bool Required,
-        bool Disabled,
-        bool ReadOnly,
-        int? MaxLength,
-        int? MinLength,
-        string? Wrap,
-        bool Autofocus,
-        string? Autocomplete,
-        Delegate? validate,
-        Action<TProp>? afterBindSync,
-        Func<TProp, Task>? afterBindAsync,
-        string? Id,
-        string? Class,
-        string? Style,
-        IReadOnlyDictionary<string, string?>? Data)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
-        ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
-        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
+        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
         var stringValue = BindingHelpers.FormatValue(acc.Getter());
 
         return (Textarea)C.Textarea(
