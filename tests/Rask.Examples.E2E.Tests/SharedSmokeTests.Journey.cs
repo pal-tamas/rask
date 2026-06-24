@@ -488,6 +488,18 @@ public abstract partial class SharedSmokeTests
         await Expect(groups).ToContainTextAsync("Plan: Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Multi-select: the reusable MultiSelect<T> dropdown binds to an ICollection — open it (server
+        // live-diff, no Bootstrap JS), pick an option (it appears as a chip) and the bound-collection
+        // summary updates. (Component mechanics are unit-tested in Demos/MultiSelectTests.)
+        await SideAsync("Multi-select", "Multi-select");
+        var multi = Page.Locator("#ms-interests");
+        await multi.Locator(".form-select").ClickAsync(); // open the dropdown
+        await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
+        await Expect(multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" }))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#ms-summary")).ToContainTextAsync("AI",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
     private async Task WalkStylingDataAndAppPagesAsync()
