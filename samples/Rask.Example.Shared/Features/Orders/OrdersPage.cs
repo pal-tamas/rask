@@ -1,48 +1,48 @@
 using System.Globalization;
 using Rask.Core.Routing;
-using Rask.Core.Tables;
 
 namespace Rask.Example.Shared.Features;
 
 // Master-detail datagrid. The sibling Data table page drives all of its state through the URL query
 // string; this page is the deliberate contrast — expand/collapse and both grids' sort live in plain
-// component fields. A click mutates a field and the auto-wrapped callback re-renders the page (exactly
-// how ShowcaseLayout's drawer toggle works), so no BypassRenderCache is needed.
+// component fields. A click mutates a field and StateHasChanged() re-renders the page.
 //
 // Expanding a row inserts a second, keyed <tr> ("detail-{id}") right after the keyed main row
 // ("{id}"). Because every row carries a stable Key, the live diff treats expand as an in-place keyed
 // Insert and collapse as a keyed Remove — sibling expanded rows keep their own inner sort across the
-// reconcile. Each detail panel hosts its own controlled TableModel<LineItem>, so the page owns three
-// independent pieces of state: the expanded set, the outer sort, and a per-order inner sort.
+// reconcile. Each detail panel hosts its own plain <table> of line items with an independent sort, so
+// the page owns three pieces of state: the expanded set, the outer sort, and a per-order inner sort.
 [Route("master-detail")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class OrdersPage : Component
 {
     private static readonly Order[] _orders = BuildOrders();
 
-    private static readonly IReadOnlyList<ColumnDef<Order>> _orderColumns =
+    // (id, header, sortable) — the expander column has no label and no sort.
+    private static readonly (string Id, string Header, bool Sortable)[] _orderColumns =
     [
-        new() { Id = "expander", Header = "", Sortable = false },
-        new() { Id = "customer", Header = "Customer" },
-        new() { Id = "placed", Header = "Placed" },
-        new() { Id = "status", Header = "Status" },
-        new() { Id = "items", Header = "Items" },
-        new() { Id = "total", Header = "Total" }
+        ("expander", "", false),
+        ("customer", "Customer", true),
+        ("placed", "Placed", true),
+        ("status", "Status", true),
+        ("items", "Items", true),
+        ("total", "Total", true)
     ];
 
-    private static readonly IReadOnlyList<ColumnDef<LineItem>> _itemColumns =
+    private static readonly (string Id, string Header)[] _itemColumns =
     [
-        new() { Id = "sku", Header = "SKU" },
-        new() { Id = "product", Header = "Product" },
-        new() { Id = "qty", Header = "Qty" },
-        new() { Id = "unit", Header = "Unit price" },
-        new() { Id = "line", Header = "Line total" }
+        ("sku", "SKU"),
+        ("product", "Product"),
+        ("qty", "Qty"),
+        ("unit", "Unit price"),
+        ("line", "Line total")
     ];
 
     // Expanded order ids, the outer sort, and the inner sort per order — all local UI state.
+    // A sort is a (column id, ascending) pair; an empty column id means "unsorted".
     private readonly HashSet<int> _expanded = new();
-    private readonly Dictionary<int, IReadOnlyList<ColumnSort>> _itemSort = new();
-    private IReadOnlyList<ColumnSort> _orderSort = [];
+    private readonly Dictionary<int, (string Col, bool Asc)> _itemSort = new();
+    private (string Col, bool Asc) _orderSort = ("", true);
 
     protected override RenderResult Head => Title()["Master-detail — Rask"];
 
@@ -54,60 +54,53 @@ public sealed class OrdersPage : Component
         [
             PageHeader.Render(
                 "Master-detail",
-                "Collapsible rows with a nested datagrid. Click a row to reveal its line items in an " +
-                "inner, independently sortable TableModel<T>. Expand/collapse and both grids' sort are " +
-                "held in plain component fields — the deliberate contrast with the URL-driven Data table."),
-            TableModel<Order>(
-                ctx => Div(Class: "card shadow-sm border-0")[
-                    Div(Class: "table-responsive")[
-                        Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
-                            Thead(Class: "table-light")[
-                                Tr()[ctx.Headers.Select(h => OrderHeader(h))]
-                            ],
-                            Tbody()[BuildOrderRows(ctx)]
-                        ]
+                "Collapsible rows with a nested datagrid. Click a row to reveal its line items in an inner, " +
+                "independently sortable table. Expand/collapse and both grids' sort are held in plain component " +
+                "fields — the deliberate contrast with the URL-driven Data table."),
+            Div(Class: "card shadow-sm border-0")[
+                Div(Class: "table-responsive")[
+                    Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
+                        Thead(Class: "table-light")[
+                            Tr()[_orderColumns.Select(c =>
+                                c.Sortable
+                                    ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
+                                    : Th(Scope: "col", Key: c.Id))]
+                        ],
+                        Tbody()[BuildOrderRows(orders)]
                     ]
-                ],
-                Columns: _orderColumns,
-                Rows: orders,
-                KeySelector: o => o.Id,
-                Sort: _orderSort,
-                OnSort: sort =>
-                {
-                    _orderSort = sort;
-                    StateHasChanged();
-                }),
+                ]
+            ],
             P(Class: "small text-secondary mt-3 mb-0")[
                 "Expand state is a ",
                 Code()["HashSet<int>"],
-                " on the page; toggling it re-renders through the callback auto-wrap. Each open row " +
-                "inserts a keyed ",
+                " on the page; toggling it calls ",
+                Code()["StateHasChanged()"],
+                ". Each open row inserts a keyed ",
                 Code()["<tr>"],
-                " detail row, so the live diff reconciles it as an in-place insert/remove and the other " +
-                "open rows keep their own inner sort. The detail panel hosts a second controlled ",
-                Code()["TableModel<LineItem>"],
-                " — headless grids all the way down."
+                " detail row, so the live diff reconciles it as an in-place insert/remove and the other open rows " +
+                "keep their own inner sort. The detail panel hosts a second plain ",
+                Code()["Table"],
+                " of line items with its own sort."
             ],
             CodeSample(
                 ["OrdersPage.cs"],
                 Title: "Source",
                 Notes:
-                "The whole page above, verbatim. Expand state is a HashSet<int>, the outer sort and " +
-                "each order's inner sort are plain fields — a click mutates one and the auto-wrapped " +
-                "callback re-renders. Open rows insert a keyed detail <tr>, so the live diff reconciles " +
-                "them as in-place insert/remove and sibling open rows keep their own inner sort.")
+                "The whole page above, verbatim. Expand state is a HashSet<int>, the outer sort and each order's " +
+                "inner sort are plain fields — a click mutates one and StateHasChanged() re-renders. Open rows " +
+                "insert a keyed detail <tr>, so the live diff reconciles them as in-place insert/remove and sibling " +
+                "open rows keep their own inner sort.")
         ];
     }
 
-    private List<Child> BuildOrderRows(TableModelContext<Order> ctx)
+    private List<Child> BuildOrderRows(IReadOnlyList<Order> orders)
     {
-        var rows = new List<Child>(ctx.Rows.Count * 2);
-        foreach (var row in ctx.Rows)
+        var rows = new List<Child>(orders.Count * 2);
+        foreach (var order in orders)
         {
-            var order = row.Value;
             var open = _expanded.Contains(order.Id);
 
-            rows.Add(Tr(Key: row.Key, Class: "md-row")[
+            rows.Add(Tr(Key: order.Id, Class: "md-row")[
                 Td(Style: "width:44px;")[
                     Button(
                         "button",
@@ -129,7 +122,7 @@ public sealed class OrdersPage : Component
             if (open)
             {
                 rows.Add(Tr(Key: $"detail-{order.Id}", Class: "md-detail")[
-                    Td(Colspan: _orderColumns.Count, Class: "p-0 bg-light")[
+                    Td(Colspan: _orderColumns.Length, Class: "p-0 bg-light")[
                         Div(
                             Class: "p-3",
                             Data: new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[
@@ -145,37 +138,29 @@ public sealed class OrdersPage : Component
 
     private Component InnerGrid(Order order)
     {
-        var sort = _itemSort.GetValueOrDefault(order.Id, []);
+        var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return TableModel<LineItem>(
-            ctx => Table(Class: "table table-sm table-striped align-middle mb-0 bg-white")[
-                Thead()[Tr()[ctx.Headers.Select(h => ItemHeader(h))]],
-                Tbody()[
-                    ctx.Rows.Select(row =>
-                        Tr(Key: row.Key)[
-                            Td()[Code()[row.Value.Sku]],
-                            Td()[row.Value.Product],
-                            Td(Class: "text-secondary")[row.Value.Qty],
-                            Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
-                                "$" + row.Value.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
-                            ],
-                            Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
-                                "$" + row.Value.LineTotal.ToString("N2", CultureInfo.InvariantCulture)
-                            ]
-                        ])
-                ]
+        return Table(Class: "table table-sm table-striped align-middle mb-0 bg-white")[
+            Thead()[
+                Tr()[_itemColumns.Select(c =>
+                    SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
             ],
-            Columns: _itemColumns,
-            Rows: items,
-            KeySelector: it => it.Id,
-            Sort: sort,
-            OnSort: next =>
-            {
-                _itemSort[order.Id] = next;
-                StateHasChanged();
-            },
-            Key: $"inner-model-{order.Id}");
+            Tbody()[
+                items.Select(it =>
+                    Tr(Key: it.Id)[
+                        Td()[Code()[it.Sku]],
+                        Td()[it.Product],
+                        Td(Class: "text-secondary")[it.Qty],
+                        Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
+                            "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
+                        ],
+                        Td(Style: "text-align:right; font-variant-numeric:tabular-nums;")[
+                            "$" + it.LineTotal.ToString("N2", CultureInfo.InvariantCulture)
+                        ]
+                    ])
+            ]
+        ];
     }
 
     private void Toggle(int id)
@@ -188,16 +173,34 @@ public sealed class OrdersPage : Component
         StateHasChanged();
     }
 
-    private static IReadOnlyList<Order> SortOrders(IReadOnlyList<Order> source, IReadOnlyList<ColumnSort> sort)
+    private void ToggleOrderSort(string col)
     {
-        if (sort.Count == 0)
+        _orderSort = NextSort(_orderSort, col);
+        StateHasChanged();
+    }
+
+    private void ToggleItemSort(int orderId, string col)
+    {
+        _itemSort[orderId] = NextSort(_itemSort.GetValueOrDefault(orderId, ("", true)), col);
+        StateHasChanged();
+    }
+
+    // Cycle a column's sort: unsorted → asc → desc → unsorted.
+    private static (string Col, bool Asc) NextSort((string Col, bool Asc) current, string col) =>
+        current.Col != col ? (col, true)
+        : current.Asc ? (col, false)
+        : ("", true);
+
+    private static IReadOnlyList<Order> SortOrders(IReadOnlyList<Order> source, (string Col, bool Asc) sort)
+    {
+        if (sort.Col.Length == 0)
         {
             return source;
         }
 
-        var (col, asc) = (sort[0].ColumnId, sort[0].Direction == SortDirection.Ascending);
+        var asc = sort.Asc;
         IEnumerable<Order> view = source;
-        view = col switch
+        view = sort.Col switch
         {
             "customer" => asc ? view.OrderBy(o => o.Customer) : view.OrderByDescending(o => o.Customer),
             "placed" => asc ? view.OrderBy(o => o.Placed) : view.OrderByDescending(o => o.Placed),
@@ -209,16 +212,16 @@ public sealed class OrdersPage : Component
         return view.ToArray();
     }
 
-    private static IReadOnlyList<LineItem> SortItems(IReadOnlyList<LineItem> source, IReadOnlyList<ColumnSort> sort)
+    private static IReadOnlyList<LineItem> SortItems(IReadOnlyList<LineItem> source, (string Col, bool Asc) sort)
     {
-        if (sort.Count == 0)
+        if (sort.Col.Length == 0)
         {
             return source;
         }
 
-        var (col, asc) = (sort[0].ColumnId, sort[0].Direction == SortDirection.Ascending);
+        var asc = sort.Asc;
         IEnumerable<LineItem> view = source;
-        view = col switch
+        view = sort.Col switch
         {
             "sku" => asc ? view.OrderBy(i => i.Sku) : view.OrderByDescending(i => i.Sku),
             "product" => asc ? view.OrderBy(i => i.Product) : view.OrderByDescending(i => i.Product),
@@ -230,29 +233,23 @@ public sealed class OrdersPage : Component
         return view.ToArray();
     }
 
-    private static Component OrderHeader(HeaderCell header) =>
-        header.Sortable ? SortHeader(header) : Th(Scope: "col", Key: header.ColumnId);
-
-    private static Component ItemHeader(HeaderCell header) => SortHeader(header);
-
-    // Shared sort-aware header: a link button that proposes the next sort, with a chevron reflecting
-    // the column's current direction. Used by both the outer and the inner grid.
-    private static Component SortHeader(HeaderCell header)
+    // Shared sort-aware header: a link button that toggles the column's sort, with a chevron reflecting
+    // its current direction. Used by both the outer and the inner grid.
+    private static Component SortHeader(string columnId, string header, (string Col, bool Asc) sort,
+        Action<string> toggle)
     {
-        var icon = header.Direction switch
-        {
-            SortDirection.Ascending => "bi-chevron-up",
-            SortDirection.Descending => "bi-chevron-down",
-            _ => "bi-chevron-expand text-secondary opacity-50"
-        };
+        var sorted = sort.Col == columnId;
+        var icon = sorted
+            ? sort.Asc ? "bi-chevron-up" : "bi-chevron-down"
+            : "bi-chevron-expand text-secondary opacity-50";
 
-        return Th(Scope: "col", Key: header.ColumnId)[
+        return Th(Scope: "col", Key: columnId)[
             Button(
                 "button",
                 Class: "btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex " +
                        "align-items-center gap-1",
-                OnClick: header.ToggleSort)[
-                Span()[header.Header],
+                OnClick: () => toggle(columnId))[
+                Span()[header],
                 I(Class: $"bi {icon} small")
             ]
         ];
