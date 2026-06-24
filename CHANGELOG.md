@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Validate<T>` / `ValidateAsync<T>` delegate types.** Named, shared validator delegate types in
+  `Rask.Core.Forms` replace the verbose inline `Func<T, IEnumerable<string>>` /
+  `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>` as the `Validate` parameter shape on every
+  form control (`Input`/`Select`/`Textarea`/`Form`/`MultiSelect`). **Changed (minor breaking):** the
+  `Validate` parameter type changes accordingly — lambda call sites are unaffected; a caller passing a
+  pre-typed `Func<…>` variable must adjust.
 - **Public binding API for custom form controls.** `ExpressionAccessor` (+ its `Accessor` record) and
   `BindingHelpers` (`ResolveBindingContext`, `FormatValue`) in `Rask.Core.Forms` are now public — the
   same machinery the sample `RadioGroup`/`CheckboxGroup`/`MultiSelect` use, so consumers can build their

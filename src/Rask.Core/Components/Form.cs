@@ -11,9 +11,9 @@ namespace Rask.Core.Components;
 // the two back into a single `Delegate?` argument before forwarding to the non-generic factory.
 //
 // `Validate` rides on TypedValidatorProperties, which fans out into three overloads of the
-// generic factory — no `Validate`, typed sync `Func<TModel, IEnumerable<string>>`, and typed
-// async `Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>>` — so callers can
-// pass a bare lambda without the `(Func<…>)` cast.
+// generic factory — no `Validate`, typed sync `Validate<TModel>`, and typed async
+// `ValidateAsync<TModel>` (the shared validator delegate types in Rask.Core.Forms) — so callers
+// can pass a bare lambda without a delegate cast.
 [FactoryGeneric("TModel",
     ModelProperty = nameof(Model),
     TypedDelegateProperties = new[] { nameof(OnValidSubmit), nameof(OnInvalidSubmit) },
@@ -61,8 +61,8 @@ public sealed class Form : Element
     public Delegate? OnInvalidSubmit { get; set; }
 
     // Cross-field validation rule. Accepts either:
-    //   sync   — Func<TModel, IEnumerable<string>>
-    //   async  — Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>>
+    //   sync   — Validate<TModel>
+    //   async  — ValidateAsync<TModel>
     // Messages produced here attach to FieldIdentifier(Model, "") — i.e. they surface in
     // ValidationSummary and any field-less ValidationMessage, not against a specific input.
     public Delegate? Validate { get; set; }

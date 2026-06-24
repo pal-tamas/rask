@@ -1021,8 +1021,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // Fan out into three overloads. Overload resolution at the call site disambiguates:
         //   - no `Validate:` arg          → None overload (Validate forwarded as null)
-        //   - one-arg lambda `v => …`     → Sync overload (typed Func<T, IEnumerable<string>>)
-        //   - two-arg lambda `(v, ct) => …` → Async overload (typed Func<T, CT, ValueTask<…>>)
+        //   - one-arg lambda `v => …`     → Sync overload (typed Validate<T>)
+        //   - two-arg lambda `(v, ct) => …` → Async overload (typed ValidateAsync<T>)
         // Both Sync and Async overloads make the validator parameter required so the No
         // overload remains the unambiguous match when the caller passes neither.
         EmitOneOverload(sb, c, gf, visibility, typedSet, typedDelegates, typedValidators, validatorSet,
@@ -1075,8 +1075,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 first = false;
-                sb.Append("global::System.Func<").Append(gf.TypeParameter)
-                    .Append(", global::System.Collections.Generic.IEnumerable<string>> ").Append(vp);
+                sb.Append("global::Rask.Core.Forms.Validate<").Append(gf.TypeParameter).Append("> ").Append(vp);
             }
         }
         else if (validatorShape == ValidatorShape.Async)
@@ -1089,11 +1088,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 first = false;
-                sb.Append("global::System.Func<").Append(gf.TypeParameter)
-                    .Append(", global::System.Threading.CancellationToken, ")
-                    .Append(
-                        "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> ")
-                    .Append(vp);
+                sb.Append("global::Rask.Core.Forms.ValidateAsync<").Append(gf.TypeParameter).Append("> ").Append(vp);
             }
         }
 

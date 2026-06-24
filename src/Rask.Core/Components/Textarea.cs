@@ -33,8 +33,8 @@ public sealed class Textarea : Element
 
     // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
     // updates per-keystroke (OnInput) since textareas are inherently string-valued.
-    // `Validate` ships as three overloads (none / typed sync / typed async) so callers can
-    // pass a bare lambda without the `(Func<…>)` cast.
+    // `Validate` ships as three overloads (none / `Validate<TProp>` / `ValidateAsync<TProp>`) so callers
+    // can pass a bare lambda without a delegate cast.
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
@@ -63,7 +63,7 @@ public sealed class Textarea : Element
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, IEnumerable<string>> Validate,
+        Validate<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
@@ -89,7 +89,7 @@ public sealed class Textarea : Element
     [GenerateForwarderFactory]
     public static Textarea Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        ValidateAsync<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
