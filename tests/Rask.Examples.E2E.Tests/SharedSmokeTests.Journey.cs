@@ -490,16 +490,39 @@ public abstract partial class SharedSmokeTests
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Multi-select: the reusable MultiSelect<T> dropdown binds to an ICollection — open it (server
-        // live-diff, no Bootstrap JS), pick an option (it appears as a chip) and the bound-collection
-        // summary updates. (Component mechanics are unit-tested in Demos/MultiSelectTests.)
+        // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
+        // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
         await SideAsync("Multi-select", "Multi-select");
         var multi = Page.Locator("#ms-interests");
         await multi.Locator(".form-select").ClickAsync(); // open the dropdown
         await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
         await Expect(multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#ms-summary")).ToContainTextAsync("AI",
+
+        // The menu stays open across selections; Escape closes it (the focusable box handles keydown — no JS).
+        var openMenu = Page.Locator("#ms-interests .dropdown-menu.show");
+        await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await multi.Locator(".form-select").FocusAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Re-open, then close by clicking outside — the transparent full-viewport backdrop catches it.
+        await multi.Locator(".form-select").ClickAsync();
+        await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await multi.Locator(".position-fixed").ClickAsync();
+        await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Controlled MultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
+        // and the parent's summary updates — again with no StateHasChanged.
+        var controlled = Page.Locator("#ms-controlled");
+        await controlled.Locator(".form-select").ClickAsync();
+        await controlled.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
+        await Expect(Page.Locator("#ms-controlled-summary")).ToContainTextAsync("Tech",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Close it again so the open dropdown's full-viewport backdrop doesn't intercept later navigation.
+        await controlled.Locator(".position-fixed").ClickAsync();
+        await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
+            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
 
     private async Task WalkStylingDataAndAppPagesAsync()

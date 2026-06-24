@@ -10,13 +10,15 @@ them until tagged releases begin.
 ### Added
 - **Public binding API for custom form controls.** `ExpressionAccessor` (+ its `Accessor` record) and
   `BindingHelpers` (`ResolveBindingContext`, `FormatValue`) in `Rask.Core.Forms` are now public — the
-  same machinery `RadioGroup`/`CheckboxGroup` use, so consumers can build their own controls that bind
-  to a model property and drive the ambient `EditContext`. See `docs/forms.md` §9.
+  same machinery the sample `RadioGroup`/`CheckboxGroup`/`MultiSelect` use, so consumers can build their
+  own controls that bind to a model property and drive the ambient `EditContext`. `docs/forms.md` §9 is a
+  "building form components" guide. See also `EditContext.RegisterFieldValidator` for per-field rules.
 - **Multi-select showcase.** A reusable generic `MultiSelect<TItem>` example component
   (`samples/Rask.Example.Shared/Shared/MultiSelect.cs`) — a custom Bootstrap dropdown with removable
-  chips that binds to an `ICollection<TItem>` and validates like any bound field, with open/close
-  driven entirely by the server live diff (no client JS). Surfaced on a new `/multiselect` page under
-  the Forms nav group, alongside the built-in `CheckboxGroup`/`RadioGroup`.
+  chips, open/close + Esc / click-outside close driven entirely by the server live diff (no client JS).
+  Supports two shapes: **bound** (`() => model.Items` with `AfterBind`/`AfterBindAsync` post-bind hooks
+  and a per-field `Validate` rule, sync or async) and **controlled** (`Value` + `OnChange`/`OnChangeAsync`,
+  no `Bind`). Surfaced on the `/multiselect` page with both bound and controlled demos.
 - **Floating-label form controls showcase (samples only).** Reusable `FloatingInput<TProp>`,
   `FloatingSelect<TProp>`, and `FloatingTextarea<TProp>` example components
   (`samples/Rask.Example.Shared/Shared/`) wrap Rask's `Input`/`Select`/`Textarea` + `Label` +
@@ -25,6 +27,17 @@ them until tagged releases begin.
   input type inferred from `TProp`. They own no validation state and need no extra CSS (errors show
   via Bootstrap's `.invalid-feedback .d-block`). Surfaced on a new `/floating-labels` page under the
   Forms nav group.
+
+### Changed
+- **Moved `CheckboxGroup<TItem>` and `RadioGroup<TValue>` out of `Rask.Core` into the samples**
+  (`samples/Rask.Example.Shared/Shared/`), where they join `MultiSelect<TItem>` as copyable example
+  controls built on the public binding API — keeping `Rask.Core` minimal (the framework ships the
+  binding API, not a control library). They now render Bootstrap 5.3
+  [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) (`form-check` wrapper +
+  `form-check-input`/`form-check-label` with `id`/`for`); `ItemClass` now adds extra wrapper classes
+  (e.g. `form-check-inline`). **Breaking:** they are no longer part of `Rask.Core` — copy the sample
+  files into your project, or build equivalents on `ExpressionAccessor`/`BindingHelpers` (see
+  `docs/forms.md` §9).
 
 ### Removed
 - **Dropped the `TableModel<T>` headless-table primitive and the `Rask.Core.Tables` namespace**

@@ -1,13 +1,15 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Core.Components;
+namespace Rask.Example.Shared;
 
-// Hand-written generic factory (same shape as VirtualizeModel<T> / Context.Provide<T>): binds a single
-// TValue model property to a set of mutually-exclusive radio inputs. Mirrors Input.Bound — parses
-// the expression, resolves the ambient EditContext, and wires each radio's change handler to set
-// the property and re-validate. Returns a transparent Fragment of <label><input radio>…</label>
-// so the consumer controls layout via Class/ItemClass.
+// Example generic form control (the single-value sibling of CheckboxGroup): binds a single TValue model
+// property to a set of mutually-exclusive radios. Parses the expression, resolves the ambient EditContext,
+// and wires each radio's change handler to set the property and re-validate. Emits Bootstrap 5.3 check
+// markup (https://getbootstrap.com/docs/5.3/forms/checks-radios/): each item is a <div class="form-check">
+// wrapping a .form-check-input radio and a .form-check-label tied together by id/for. ItemClass adds extra
+// classes to that wrapper (e.g. "form-check-inline"). Returns a transparent Fragment so the consumer owns
+// the surrounding layout.
 public static partial class Generated
 {
     public static Component RadioGroup<TValue>(
@@ -27,22 +29,26 @@ public static partial class Generated
         var groupName = Name ?? acc.PropertyName;
         var current = acc.Getter();
         var comparer = EqualityComparer<TValue>.Default;
+        var wrapperClass = ItemClass is null ? "form-check" : $"form-check {ItemClass}";
 
         var children = new List<Child>();
         var index = 0;
         foreach (var option in Options)
         {
             var optionValue = option; // capture per iteration for the handler closure
+            var optionId = $"{groupName}-{index}";
             var isChecked = current is TValue typed && comparer.Equals(option, typed);
-            var label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
-            children.Add(Label(Class: ItemClass)[
+            children.Add(Div(Class: wrapperClass, Key: index)[
                 Input(
                     "radio",
                     groupName,
                     BindingHelpers.FormatValue(option),
                     Checked: isChecked,
                     Disabled: Disabled,
+                    Class: "form-check-input",
+                    Id: optionId,
                     OnChangeAsync: async _ =>
                     {
                         // A radio only fires change when it becomes selected → set the bound value.
@@ -53,13 +59,12 @@ public static partial class Generated
                         {
                             await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
                         }
-                    },
-                    Key: index),
-                label
+                    }),
+                Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
         }
 
-        return new Fragment(children);
+        return Fragment()[children];
     }
 }

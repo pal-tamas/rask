@@ -937,38 +937,46 @@ already applies to the root model (preserve its public properties via `[Dynamica
 `<TrimmerRootDescriptor>`) extends to every nested type. The full Forms/Complex-models showcase under `/nested-forms`
 demonstrates all four patterns side-by-side.
 
-#### Radio & checkbox groups
+#### Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an `ICollection<TItem>`,
-toggling each item in place. Both are transparent `Fragment`s built on the same `Input.Bound` machinery as the rest of
-the form, so changes flow through the `EditContext` (validation, touched-tracking) like any bound field:
+toggling each item in place. They are **example components that ship in the samples**
+(`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls built on the public
+binding API below. Both render a transparent `Fragment` with Bootstrap
+[check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/), so changes flow through the `EditContext`
+(validation, touched-tracking) like any bound field:
 
 ```csharp
 Form(_prefs)[
     RadioGroup(
         () => _prefs.Plan,                                  // single value
-        Options: new[] { Plan.Free, Plan.Pro, Plan.Team },
-        OptionLabel: p => Span()[p.ToString()]),
+        new[] { Plan.Free, Plan.Pro, Plan.Team },
+        ItemClass: "form-check-inline"),
 
     CheckboxGroup<string>(                                  // a collection — toggles in place
         () => _prefs.Interests,
-        Options: new[] { "Web", "Mobile", "AI", "Games" },
-        OptionLabel: t => Span()[t])
+        new[] { "Web", "Mobile", "AI", "Games" },
+        ItemClass: "form-check-inline")
 ]
 ```
 
 `CheckboxGroup` usually needs the explicit type argument (`CheckboxGroup<string>`) when the bound collection is a
-concrete `List<T>`. Membership is compared with `EqualityComparer<TItem>.Default`. Changing any option re-renders the
-component that declared the group, so a live summary updates immediately.
+concrete `List<T>`. Membership is compared with `EqualityComparer<TItem>.Default`. Because they return a `Fragment`
+(no component boundary), changing an option re-renders the component that declared the group, so a live summary updates
+immediately.
 
-#### Custom bound controls
+#### Building form components
 
-`RadioGroup`/`CheckboxGroup` are built on a small public API in `Rask.Core.Forms` you can reuse to write your own
-form-bound controls: `ExpressionAccessor.Parse(() => model.Prop)` yields a runtime accessor (target, getter, field),
-and `BindingHelpers.ResolveBindingContext(model)` resolves the surrounding `EditContext` so your handlers can call
-`NotifyFieldChanged` / `ValidateFieldAsync`. The showcase's `MultiSelect<TItem>` — a custom dropdown with removable
-chips bound to an `ICollection<TItem>`, open/close driven entirely by the live diff (no client JS) — is a worked
-example; see `docs/forms.md` §9 and the `/multiselect` page.
+Rask ships a small public binding API in `Rask.Core.Forms` rather than a large control library, so you write exactly
+the controls you need — `RadioGroup`/`CheckboxGroup` and the showcase `MultiSelect<TItem>` are built on it.
+`ExpressionAccessor.Parse(() => model.Prop)` yields a runtime accessor (target, getter, field);
+`BindingHelpers.ResolveBindingContext(model)` resolves the surrounding `EditContext` so your handlers can call
+`NotifyFieldChanged` / `ValidateFieldAsync`; `EditContext.RegisterFieldValidator` adds a per-field rule. A stateless
+control returns a `Fragment` (its handlers re-render the host for free, like a bound `Input`); a stateful one (an
+open/close dropdown) is a `Component` that keeps live feedback inside itself or exposes an auto-wrapped `OnChange`
+callback to refresh host-side UI. The showcase's `MultiSelect<TItem>` — a dropdown with removable chips, Esc /
+click-outside close (no client JS), bound and controlled modes, and a `Validate` rule — is the worked example; see
+`docs/forms.md` §9 and the `/multiselect` page.
 
 </details>
 
