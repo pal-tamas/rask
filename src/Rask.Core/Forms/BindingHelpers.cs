@@ -14,7 +14,10 @@ namespace Rask.Core.Forms;
 // ResolveBindingContext falls back to LiveRenderContext.GetOrCreateEditContext (keyed
 // by model reference), which yields the same instance Form will later push, so per-
 // field NotifyFieldChanged / ValidateField from input handlers land in the right context.
-internal static class BindingHelpers
+// Public surface: ResolveBindingContext and FormatValue are the two members consumers need to build
+// custom form-bound controls (see the MultiSelect sample). The remaining members are forwarder plumbing
+// shared by the generated Input/Textarea/Select bind factories.
+public static class BindingHelpers
 {
     // Determines whether an empty form value should round-trip to `null`. Value types use
     // Nullable<T>; reference types (notably `string?`) carry C# nullable-annotation metadata
@@ -28,8 +31,13 @@ internal static class BindingHelpers
     // bind path — it's only ever taken once per property, on the first empty-value bind to it.
     private static readonly ConcurrentDictionary<PropertyInfo, bool> _refTypeNullableCache = new();
 
-    public static EditContext? ResolveBindingContext(object model) =>
-        EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
+    public static EditContext? ResolveBindingContext(object model)
+    {
+        // Public entry point: guard null up front (a custom control could pass an unresolved target)
+        // rather than NREing deep inside GetOrCreateEditContext when a live context is current.
+        ArgumentNullException.ThrowIfNull(model);
+        return EditContextScope.Current ?? LiveRenderContext.Current?.GetOrCreateEditContext(model);
+    }
 
     // Picks the <input type=…> attribute from the bound property's CLR type. Every numeric
     // primitive that .NET ships an IParsable<T> for maps to "number" so the browser supplies

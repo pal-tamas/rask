@@ -412,3 +412,42 @@ Form(_prefs)[
   so DataAnnotations / FluentValidation rules on the bound property apply.
 
 See `samples/Rask.Example.Shared/Features/FormGroups/FormGroupsPage.cs`.
+
+## 9. Building a custom bound control (public binding API)
+
+`RadioGroup`/`CheckboxGroup` are built on a small public API in `Rask.Core.Forms` that you can use to
+write your own form-bound controls — anything that needs to read/write a model property and drive the
+ambient `EditContext`:
+
+- **`ExpressionAccessor.Parse(Expression)` → `Accessor`** — turns a `() => model.Prop` lambda into a
+  runtime accessor: `Target` (the owner instance), `Getter()`, `PropertyName`, `PropertyType`, and
+  `Field` (the `FieldIdentifier`). It accepts simple properties, nested chains, foreach-captured
+  locals, and indexer access on the inner expression (e.g. `() => model.Items[i].Name`).
+- **`BindingHelpers.ResolveBindingContext(object model)` → `EditContext?`** — resolves the
+  `EditContext` the surrounding `Form` will use (returns `null` outside a form/live render).
+- **`BindingHelpers.FormatValue(object?)` → `string`** — the framework's value→string convention
+  (invariant culture; the shapes `<input>` round-trips).
+
+A control reads the bound value during `Render`, and on each interaction mutates it, then calls
+`NotifyFieldChanged` / `NotifyFieldTouched` / `ValidateFieldAsync` on the resolved context:
+
+```csharp
+var acc = ExpressionAccessor.Parse(Bind);                 // Bind: Expression<Func<ICollection<T>>>
+var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+var selected = acc.Getter() as ICollection<T>;
+// …render options from `selected`…
+// in a click/change handler, after add/remove on the collection:
+ctx?.NotifyFieldChanged(acc.Field);
+ctx?.NotifyFieldTouched(acc.Field);
+if (ctx is not null) await ctx.ValidateFieldAsync(acc.Field);
+```
+
+If your control is a `Component` (so it can hold view state, like an open/closed dropdown), its own
+handlers re-render *it*, not the parent. Expose an `Action? OnChange` callback the consumer can pass
+(callbacks re-render the owning parent) so a live summary or sibling field updates as the selection
+changes.
+
+The showcase's `MultiSelect<TItem>` (`samples/Rask.Example.Shared/Shared/MultiSelect.cs`) is a worked
+example: a custom Bootstrap dropdown with removable chips, bound to an `ICollection<TItem>`, open/close
+driven purely by the live diff (no client JS). See the `/multiselect` page, which also shows the
+built-in `CheckboxGroup`/`RadioGroup` alongside it.

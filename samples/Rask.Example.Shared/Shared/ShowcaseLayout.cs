@@ -40,6 +40,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/floating-labels", "Floating labels", "bi-input-cursor-text", "Forms", null),
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms", null),
         ("/form-groups", "Radio & checkbox", "bi-ui-radios", "Forms", null),
+        ("/multiselect", "Multi-select", "bi-ui-checks", "Forms", null),
         ("/svg", "SVG", "bi-vector-pen", "DSL", null),
         ("/scoped-css", "Scoped CSS", "bi-palette", "Styling", null),
         ("/asset-loading", "Asset loading", "bi-link-45deg", "Styling", null),

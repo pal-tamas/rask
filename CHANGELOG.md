@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Public binding API for custom form controls.** `ExpressionAccessor` (+ its `Accessor` record) and
+  `BindingHelpers` (`ResolveBindingContext`, `FormatValue`) in `Rask.Core.Forms` are now public — the
+  same machinery `RadioGroup`/`CheckboxGroup` use, so consumers can build their own controls that bind
+  to a model property and drive the ambient `EditContext`. See `docs/forms.md` §9.
+- **Multi-select showcase.** A reusable generic `MultiSelect<TItem>` example component
+  (`samples/Rask.Example.Shared/Shared/MultiSelect.cs`) — a custom Bootstrap dropdown with removable
+  chips that binds to an `ICollection<TItem>` and validates like any bound field, with open/close
+  driven entirely by the server live diff (no client JS). Surfaced on a new `/multiselect` page under
+  the Forms nav group, alongside the built-in `CheckboxGroup`/`RadioGroup`.
 - **Floating-label form controls showcase (samples only).** Reusable `FloatingInput<TProp>`,
   `FloatingSelect<TProp>`, and `FloatingTextarea<TProp>` example components
   (`samples/Rask.Example.Shared/Shared/`) wrap Rask's `Input`/`Select`/`Textarea` + `Label` +
