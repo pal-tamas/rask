@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Rask.Core;
+using Rask.Core.Forms;
 
 namespace Rask.Example.Shared;
 
@@ -26,7 +27,7 @@ public static partial class Generated
     public static MultiSelect<TItem> MultiSelect<TItem>(
         Expression<Func<ICollection<TItem>>> Bind,
         IEnumerable<TItem> Options,
-        Func<ICollection<TItem>, IEnumerable<string>> Validate,
+        Validate<ICollection<TItem>> Validate,
         Func<TItem, Child>? OptionLabel = null,
         Action<ICollection<TItem>>? AfterBind = null,
         Func<ICollection<TItem>, Task>? AfterBindAsync = null,
@@ -38,7 +39,7 @@ public static partial class Generated
     public static MultiSelect<TItem> MultiSelect<TItem>(
         Expression<Func<ICollection<TItem>>> Bind,
         IEnumerable<TItem> Options,
-        Func<ICollection<TItem>, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        ValidateAsync<ICollection<TItem>> Validate,
         Func<TItem, Child>? OptionLabel = null,
         Action<ICollection<TItem>>? AfterBind = null,
         Func<ICollection<TItem>, Task>? AfterBindAsync = null,

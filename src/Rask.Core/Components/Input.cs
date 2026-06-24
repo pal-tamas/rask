@@ -57,10 +57,11 @@ public sealed class Input : Element
     // per-type input type (checkbox/number/date/text), and per-type change handlers wired
     // into the ambient EditContext.
     //
-    // `Validate` ships as three overloads to dodge the `(Func<…>)` cast at the call site:
+    // `Validate` ships as three overloads to dodge the delegate cast at the call site:
     //   - no Validate parameter at all (omit to skip validation),
-    //   - typed sync   `Func<TProp, IEnumerable<string>> Validate`,
-    //   - typed async  `Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate`.
+    //   - typed sync   `Validate<TProp> Validate`,
+    //   - typed async  `ValidateAsync<TProp> Validate`.
+    // Both are the shared validator delegate types in Rask.Core.Forms.
     // Overload resolution picks based on the lambda's arity; all three forward to the shared
     // BoundCore which collapses to the single `Delegate?` the EditContext consumes.
     [GenerateForwarderFactory]
@@ -96,7 +97,7 @@ public sealed class Input : Element
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, IEnumerable<string>> Validate,
+        Validate<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,
@@ -127,7 +128,7 @@ public sealed class Input : Element
     [GenerateForwarderFactory]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        ValidateAsync<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,

@@ -29,8 +29,8 @@ public sealed class Select : Element
 
     // Expression-driven factory; pre-marks the matching <option> as selected so the
     // initial render reflects the bound value without round-tripping through the browser.
-    // `Validate` ships as three overloads to avoid the `(Func<…>)` call-site cast — see
-    // Input.Bound for the dispatch rationale.
+    // `Validate` ships as three overloads (none / `Validate<TProp>` / `ValidateAsync<TProp>`) to avoid a
+    // delegate cast at the call site — see Input.Bound for the dispatch rationale.
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
@@ -53,7 +53,7 @@ public sealed class Select : Element
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, IEnumerable<string>> Validate,
+        Validate<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
@@ -73,7 +73,7 @@ public sealed class Select : Element
     [GenerateForwarderFactory]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
-        Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> Validate,
+        ValidateAsync<TProp> Validate,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
