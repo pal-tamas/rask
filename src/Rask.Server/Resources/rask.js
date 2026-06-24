@@ -4,18 +4,18 @@
     // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
     // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
     window.__raskEl = window.__raskEl || {
-        focus: function (el) {
+        focus: (el) => {
             if (el) el.focus();
         },
-        blur: function (el) {
+        blur: (el) => {
             if (el) el.blur();
         },
-        scrollIntoView: function (el, opts) {
+        scrollIntoView: (el, opts) => {
             if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
         }
     };
 
-    var root = document.querySelector("[data-rask-root]");
+    let root = document.querySelector("[data-rask-root]");
     if (!root) return;
 
     // Serializes render application across messages. A navigation diff may defer its
@@ -24,17 +24,17 @@
     // the diff and full-HTML paths chain through this tail promise so a deferred body
     // always commits before the following message's ops — paths in a later diff are
     // computed against the render this one produces, so they must not be applied first.
-    var _renderQueue = Promise.resolve();
+    let _renderQueue = Promise.resolve();
     // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
     // browser (the navigate message carries only path+query, and the server's history
     // url has no hash), so we stash it here on click and consume it when the matching
     // push reply commits — scroll to that anchor, else to the top. Cleared on consume.
-    var _pendingScrollHash = "";
+    let _pendingScrollHash = "";
     // Hard cap on how long a navigation diff defers the body swap waiting for a newly
     // mounted page's scoped stylesheet to load. A warm content-addressed
     // /_rask/a/{hash}.css load resolves in a few ms; the cap only ever applies to a
     // genuinely slow/failed sheet, where we'd rather show the page than stall nav.
-    var CSS_FOUC_GUARD_MS = 500;
+    const CSS_FOUC_GUARD_MS = 500;
 
     // Read once from an explicit <base href> element so the runtime can host
     // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
@@ -43,37 +43,37 @@
     // pages carry no <base>, and document.baseURI would otherwise fall back to
     // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
     // base that breaks the WS/asset URLs on every deep route.
-    var basePath = null;
+    let basePath = null;
 
     function getBasePath() {
         if (basePath !== null) return basePath;
-        var baseEl = document.querySelector("base[href]");
+        const baseEl = document.querySelector("base[href]");
         if (!baseEl) {
             basePath = "/";
             return basePath;
         }
-        var p = new URL(baseEl.href, location.href).pathname;
-        var last = p.lastIndexOf("/");
+        const p = new URL(baseEl.href, location.href).pathname;
+        const last = p.lastIndexOf("/");
         basePath = last < 0 ? "/" : p.slice(0, last + 1);
         return basePath;
     }
 
     function stripBase(pathname) {
-        var b = getBasePath();
+        const b = getBasePath();
         if (b === "/" || !pathname) return pathname;
         if (pathname === b.slice(0, -1) || pathname === b) return "/";
         return pathname.indexOf(b) === 0 ? "/" + pathname.slice(b.length) : pathname;
     }
 
     function prependBase(url) {
-        var b = getBasePath();
+        const b = getBasePath();
         if (b === "/" || typeof url !== "string" || url.charAt(0) !== "/" || url.indexOf(b) === 0) return url;
         return b + url.slice(1);
     }
 
-    var sessionId = root.getAttribute("data-rask-root");
-    var proto = location.protocol === "https:" ? "wss:" : "ws:";
-    var baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
+    const sessionId = root.getAttribute("data-rask-root");
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    const baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
 
     // JWT-on-WebSocket hook. Browsers can't set Authorization headers on a WS upgrade, so a
     // bearer-token app carries the access token on the URL as ?access_token= (the SignalR pattern;
@@ -82,13 +82,13 @@
     // <meta name="rask-access-token"> tag. With no token set this is a no-op — cookie auth is
     // unaffected and the URL is unchanged.
     function buildWsUrl() {
-        var token = null;
+        let token = null;
         try {
-            var r = window.Rask;
+            const r = window.Rask;
             if (r && typeof r.authToken === "function") token = r.authToken();
             else if (r && typeof r.authToken === "string") token = r.authToken;
             if (!token) {
-                var meta = document.querySelector('meta[name="rask-access-token"]');
+                const meta = document.querySelector('meta[name="rask-access-token"]');
                 if (meta) token = meta.getAttribute("content");
             }
         } catch (e) {
@@ -98,21 +98,21 @@
         return baseWsUrl + (baseWsUrl.indexOf("?") >= 0 ? "&" : "?") + "access_token=" + encodeURIComponent(token);
     }
 
-    var ws = null;
-    var queue = [];
-    var open = false;
-    var attempt = 0;
-    var reconnectTimer = null;
-    var suppressEvents = false;
-    var overlay = installOverlay();
+    let ws = null;
+    const queue = [];
+    let open = false;
+    let attempt = 0;
+    let reconnectTimer = null;
+    let suppressEvents = false;
+    const overlay = installOverlay();
     // The reconnect overlay doubles as the auth-handshake indicator. During a sign-in/out the
     // socket is deliberately closed and reconnected to pick up the new cookie; that reconnect is
     // an authentication step, not a dropped connection, so the overlay says "Authenticating…"
     // instead of "Reconnecting…" for its duration.
-    var overlayMsg = overlay.querySelector(".rask-overlay__msg");
-    var authInProgress = false;
-    var RECONNECT_MSG = "Reconnecting…";
-    var AUTH_MSG = "Authenticating…";
+    const overlayMsg = overlay.querySelector(".rask-overlay__msg");
+    let authInProgress = false;
+    const RECONNECT_MSG = "Reconnecting…";
+    const AUTH_MSG = "Authenticating…";
 
     function setOverlayMessage(text) {
         if (overlayMsg) overlayMsg.textContent = text;
@@ -123,12 +123,12 @@
     function connect() {
         ws = new WebSocket(buildWsUrl());
 
-        ws.addEventListener("open", function () {
+        ws.addEventListener("open", () => {
             open = true;
             attempt = 0;
             suppressEvents = false;
             ws.send(JSON.stringify({type: "hello", session: sessionId}));
-            for (var i = 0; i < queue.length; i++) ws.send(queue[i]);
+            for (const m of queue) ws.send(m);
             queue.length = 0;
             // Auth reconnect completed — restore the default message for any future drop.
             if (authInProgress) {
@@ -138,8 +138,8 @@
             hideOverlay();
         });
 
-        ws.addEventListener("message", function (e) {
-            var data;
+        ws.addEventListener("message", (e) => {
+            let data;
             try {
                 data = JSON.parse(e.data);
             } catch (err) {
@@ -161,20 +161,10 @@
             // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
             // message — paths in a later diff are computed against this render's output.
             if (data.kind === "diff" && Array.isArray(data.ops)) {
-                _renderQueue = _renderQueue.then(function () {
-                        return applyDiffReply(data);
-                    },
-                    function () {
-                        return applyDiffReply(data);
-                    });
+                _renderQueue = _renderQueue.then(() => applyDiffReply(data), () => applyDiffReply(data));
                 return;
             }
-            _renderQueue = _renderQueue.then(function () {
-                    return applyFullReply(data);
-                },
-                function () {
-                    return applyFullReply(data);
-                });
+            _renderQueue = _renderQueue.then(() => applyFullReply(data), () => applyFullReply(data));
         });
 
         ws.addEventListener("close", scheduleReconnect);
@@ -186,10 +176,10 @@
         open = false;
         resetPending();
         showOverlay();
-        var delays = [500, 1000, 2000, 4000, 5000];
-        var delay = delays[Math.min(attempt, delays.length - 1)];
+        const delays = [500, 1000, 2000, 4000, 5000];
+        const delay = delays[Math.min(attempt, delays.length - 1)];
         attempt++;
-        reconnectTimer = setTimeout(function () {
+        reconnectTimer = setTimeout(() => {
             reconnectTimer = null;
             connect();
         }, delay);
@@ -200,7 +190,7 @@
         // invisible — these are framework-managed siblings of the server-rendered
         // tree and would otherwise get trimmed on the first morph that doesn't
         // include them. data-rask-overlay is just a query selector tag.
-        var style = document.createElement("style");
+        const style = document.createElement("style");
         style.setAttribute("data-rask-overlay", "");
         style.setAttribute("data-rask-managed", "");
         style.textContent =
@@ -216,16 +206,25 @@
             "@keyframes rask-spin{to{transform:rotate(360deg);}}";
         document.head.appendChild(style);
 
-        var el = document.createElement("div");
+        const el = document.createElement("div");
         el.className = "rask-overlay";
         el.setAttribute("data-rask-managed", "");
         el.setAttribute("aria-live", "polite");
         el.setAttribute("aria-hidden", "true");
-        el.innerHTML =
-            '<div class="rask-overlay__card">' +
-            '<span class="rask-overlay__spinner" aria-hidden="true"></span>' +
-            '<span class="rask-overlay__msg">Reconnecting…</span>' +
-            '</div>';
+        // Built via DOM APIs rather than innerHTML: the markup is static and
+        // framework-owned, but constructing it avoids the only innerHTML write on a
+        // non-<template> path, which keeps the runtime clean under a strict CSP / lint.
+        const card = document.createElement("div");
+        card.className = "rask-overlay__card";
+        const spinner = document.createElement("span");
+        spinner.className = "rask-overlay__spinner";
+        spinner.setAttribute("aria-hidden", "true");
+        const msg = document.createElement("span");
+        msg.className = "rask-overlay__msg";
+        msg.textContent = "Reconnecting…";
+        card.appendChild(spinner);
+        card.appendChild(msg);
+        el.appendChild(card);
         document.documentElement.appendChild(el);
         return el;
     }
@@ -249,15 +248,15 @@
     // a high-latency user sees that their action registered; it clears when the matching
     // (or any later) ack arrives. A hard timeout backstops a genuinely lost frame. This
     // is distinct from — and sits one z-index below — the full reconnect overlay above.
-    var PENDING_LATENCY_MS = 300;
-    var PENDING_HARD_TIMEOUT_MS = 10000;
-    var seqCounter = 0;
-    var outstandingSeq = 0;
-    var ackedSeq = 0;
-    var pendingTimer = null;
-    var pendingHardTimer = null;
-    var pendingVisible = false;
-    var pendingBar = installPendingBar();
+    const PENDING_LATENCY_MS = 300;
+    const PENDING_HARD_TIMEOUT_MS = 10000;
+    let seqCounter = 0;
+    let outstandingSeq = 0;
+    let ackedSeq = 0;
+    let pendingTimer = null;
+    let pendingHardTimer = null;
+    let pendingVisible = false;
+    const pendingBar = installPendingBar();
 
     function stampSeq(payload) {
         // Only genuine handler events get a seq: they carry an `id` and dispatch through
@@ -321,7 +320,7 @@
         // Managed siblings of the server-rendered tree (data-rask-managed), so the morph
         // diff treats them as invisible and never trims them — same convention as the
         // reconnect overlay.
-        var style = document.createElement("style");
+        const style = document.createElement("style");
         style.setAttribute("data-rask-pending", "");
         style.setAttribute("data-rask-managed", "");
         style.textContent =
@@ -335,12 +334,14 @@
             "100%{transform:translateX(350%);}}";
         document.head.appendChild(style);
 
-        var el = document.createElement("div");
+        const el = document.createElement("div");
         el.className = "rask-pending";
         el.setAttribute("data-rask-managed", "");
         el.setAttribute("data-rask-pending", "");
         el.setAttribute("aria-hidden", "true");
-        el.innerHTML = '<div class="rask-pending__bar"></div>';
+        const bar = document.createElement("div");
+        bar.className = "rask-pending__bar";
+        el.appendChild(bar);
         document.documentElement.appendChild(el);
         return el;
     }
@@ -351,8 +352,8 @@
     // run them in document order before DOMContentLoaded, which is well before any
     // user click could trigger a Rask.* invoke. The legacy bundle-based gate that
     // waited for a single big script to load is gone with the bundle endpoint itself.
-    var scopedJsReady = true;
-    var pendingScopedInvokes = [];
+    let scopedJsReady = true;
+    let pendingScopedInvokes = [];
 
     // External Head-declared <script src> and <link rel=stylesheet> are tracked
     // here so Rask.* JS invokes can wait until each declared dep has reached a
@@ -372,16 +373,15 @@
     // defensive — e.g. `if (typeof window.hljs === "undefined") return;`.
     // The framework logs a clear warning on the failure paths so the
     // resulting TypeError isn't a mystery.
-    var pendingHeadAssets = new Set();
-    var trackedHeadAssets = new WeakSet();
-    var failedHeadAssets = new Set();
-    var HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
+    const pendingHeadAssets = new Set();
+    const trackedHeadAssets = new WeakSet();
+    const failedHeadAssets = new Set();
+    const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
 
     function isAssetAlreadyLoaded(url) {
         if (!url || !window.performance || !performance.getEntriesByName) return false;
-        var entries = performance.getEntriesByName(url);
-        for (var i = 0; i < entries.length; i++) {
-            if (entries[i].responseEnd > 0) return true;
+        for (const entry of performance.getEntriesByName(url)) {
+            if (entry.responseEnd > 0) return true;
         }
         return false;
     }
@@ -393,49 +393,44 @@
         // long-lived immutable caching — their load is essentially synchronous on
         // warm cache, and the user-facing Rask.* invoke deferral logic doesn't
         // need to track them. Skip so we don't bloat pendingHeadAssets.
-        var keyAttr = el.getAttribute("data-rask-key");
+        const keyAttr = el.getAttribute("data-rask-key");
         if (keyAttr && keyAttr.indexOf("rsk-") === 0) return;
-        var url;
+        let url;
         if (el.tagName === "SCRIPT" && el.src) url = el.src;
         else if (el.tagName === "LINK" && el.rel === "stylesheet" && el.href) url = el.href;
         else return;
         trackedHeadAssets.add(el);
         if (isAssetAlreadyLoaded(url)) return;
         pendingHeadAssets.add(el);
-        var finish = function (outcome) {
+        const finish = (outcome) => {
             if (!pendingHeadAssets.delete(el)) return;
             if (outcome === "error" || outcome === "timeout") {
                 failedHeadAssets.add(url);
-                var reason = outcome === "error"
+                const reason = outcome === "error"
                     ? "fired 'error' event (network failure / blocked / integrity mismatch / CSP)"
-                    : "did not fire load/error within " + HEAD_ASSET_LOAD_TIMEOUT_MS + "ms — proceeding anyway";
+                    : `did not fire load/error within ${HEAD_ASSET_LOAD_TIMEOUT_MS}ms — proceeding anyway`;
                 // console.warn rather than .error: the page CAN still render
                 // (the user's defensive code is the contract). Surface enough
                 // context that the consequent TypeError in user JS is traceable
                 // back to the asset that failed.
-                console.warn("[Rask] Head asset (" + el.tagName.toLowerCase() + ") " + url + " " + reason + ". " +
+                console.warn(`[Rask] Head asset (${el.tagName.toLowerCase()}) ${url} ${reason}. ` +
                     "Queued Rask.* invokes will run; user JS depending on this asset's global must be defensive.");
             }
             maybeDrainPendingInvokes();
         };
-        el.addEventListener("load", function () {
-            finish("load");
-        }, {once: true});
-        el.addEventListener("error", function () {
-            finish("error");
-        }, {once: true});
+        el.addEventListener("load", () => finish("load"), {once: true});
+        el.addEventListener("error", () => finish("error"), {once: true});
         // Safety: the load/error event may have fired between insertion and
         // our listener attach (cache hit on a CDN). Performance.getEntriesByName
         // covers the common case; the timeout covers everything else so a
         // missed event doesn't hold Rask.* invokes forever.
-        setTimeout(function () {
-            finish("timeout");
-        }, HEAD_ASSET_LOAD_TIMEOUT_MS);
+        setTimeout(() => finish("timeout"), HEAD_ASSET_LOAD_TIMEOUT_MS);
     }
 
     function scanHeadAssets() {
-        var els = document.head.querySelectorAll("script[src], link[rel=stylesheet]");
-        for (var i = 0; i < els.length; i++) trackHeadAsset(els[i]);
+        for (const el of document.head.querySelectorAll("script[src], link[rel=stylesheet]")) {
+            trackHeadAsset(el);
+        }
     }
 
     function headAssetsReady() {
@@ -454,13 +449,11 @@
     // freshly inserted one has .sheet === null and is awaited (its load fires within ~1
     // frame on warm cache).
     function waitForUnappliedHeadCss() {
-        var pending = [];
-        document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (l) {
+        const pending = [];
+        document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
             if (!l.href || l.sheet) return;
-            pending.push(new Promise(function (resolve) {
-                var done = function () {
-                    resolve();
-                };
+            pending.push(new Promise((resolve) => {
+                const done = () => resolve();
                 l.addEventListener("load", done, {once: true});
                 l.addEventListener("error", done, {once: true});
                 setTimeout(done, CSS_FOUC_GUARD_MS);
@@ -482,21 +475,19 @@
     // Returns null when the document adds no new scoped stylesheet (the common case), so a
     // navigation that mounts nothing new keeps today's single-pass, no-wait timing.
     function preloadNewHeadStylesheets(freshHtml) {
-        var freshHead = freshHtml.querySelector("head");
+        const freshHead = freshHtml.querySelector("head");
         if (!freshHead) return null;
-        var liveKeys = {};
-        document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach(function (l) {
+        const liveKeys = {};
+        document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
             liveKeys[l.getAttribute("data-rask-key")] = true;
         });
-        var pending = [];
-        freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach(function (fl) {
+        const pending = [];
+        freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
             if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
-            var clone = fl.cloneNode(true);
+            const clone = fl.cloneNode(true);
             document.head.appendChild(clone);
-            pending.push(new Promise(function (resolve) {
-                var done = function () {
-                    resolve();
-                };
+            pending.push(new Promise((resolve) => {
+                const done = () => resolve();
                 clone.addEventListener("load", done, {once: true});
                 clone.addEventListener("error", done, {once: true});
                 setTimeout(done, CSS_FOUC_GUARD_MS);
@@ -515,10 +506,10 @@
             _pendingScrollHash = "";
             return;
         }
-        var hash = _pendingScrollHash;
+        const hash = _pendingScrollHash;
         _pendingScrollHash = "";
         if (hash && hash.length > 1) {
-            var el = null;
+            let el = null;
             try {
                 el = document.querySelector(hash) ||
                     document.getElementById(decodeURIComponent(hash.slice(1)));
@@ -541,12 +532,12 @@
     // swapped body never paints unstyled (FOUC). Returns the wait Promise so _renderQueue
     // holds the next message until the body has committed.
     function applyDiffReply(data) {
-        var applyBody = function () {
+        const applyBody = () => {
             // Each op carries a Path (childNodes indices from the document root) and an
             // op-specific payload.
             applyDiff(data.ops, Array.isArray(data.names) ? data.names : null);
             if (data.history && typeof data.history.url === "string") {
-                var diffTarget = prependBase(data.history.url);
+                let diffTarget = prependBase(data.history.url);
                 if (data.history.action === "replace") {
                     history.replaceState({rask: true}, "", diffTarget);
                 } else {
@@ -564,10 +555,10 @@
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         };
         if (typeof data.head === "string") {
-            var freshHead = new DOMParser().parseFromString(data.head, "text/html").head;
+            const freshHead = new DOMParser().parseFromString(data.head, "text/html").head;
             if (freshHead) {
                 morph(document.head, freshHead);
-                var wait = waitForUnappliedHeadCss();
+                const wait = waitForUnappliedHeadCss();
                 if (wait) return wait.then(applyBody);
             }
         }
@@ -583,13 +574,13 @@
     // duplicated) and the body it paints is already styled. Returns the wait Promise so
     // _renderQueue holds the next message until the body has committed.
     function applyFullReply(data) {
-        var freshHtml = null;
+        let freshHtml = null;
         if (typeof data.html === "string") {
-            var doc = new DOMParser().parseFromString(data.html, "text/html");
+            const doc = new DOMParser().parseFromString(data.html, "text/html");
             freshHtml = doc.documentElement;
         }
 
-        var commit = function () {
+        const commit = () => {
             if (freshHtml) {
                 morph(document.documentElement, freshHtml);
                 root = document.querySelector("[data-rask-root]") || root;
@@ -598,7 +589,7 @@
                 scanHeadAssets();
             }
             if (data.history && typeof data.history.url === "string") {
-                var fullTarget = prependBase(data.history.url);
+                let fullTarget = prependBase(data.history.url);
                 if (data.history.action === "replace") {
                     history.replaceState({rask: true}, "", fullTarget);
                 } else {
@@ -634,7 +625,7 @@
         // preloadNewHeadStylesheets). Returns null — and we commit synchronously, at today's
         // timing — when the render mounts no new scoped CSS.
         if (freshHtml) {
-            var wait = preloadNewHeadStylesheets(freshHtml);
+            const wait = preloadNewHeadStylesheets(freshHtml);
             if (wait) return wait.then(commit);
         }
         commit();
@@ -648,51 +639,48 @@
         if (pendingScopedInvokes.length === 0) return;
         // Re-queue any invoke whose Rask.{Name} namespace still hasn't appeared —
         // the polling loop drains them when (if) the per-component script loads.
-        var stillWaiting = [];
-        var ready = [];
-        for (var i = 0; i < pendingScopedInvokes.length; i++) {
-            var inv = pendingScopedInvokes[i];
+        const stillWaiting = [];
+        const ready = [];
+        for (const inv of pendingScopedInvokes) {
             if (raskNamespaceReady(inv.identifier)) ready.push(inv);
             else stillWaiting.push(inv);
         }
         pendingScopedInvokes = stillWaiting;
-        for (var j = 0; j < ready.length; j++) {
-            dispatchJsInvoke(ready[j]);
-        }
+        for (const inv of ready) dispatchJsInvoke(inv);
     }
 
     function raskNamespaceReady(identifier) {
         if (typeof identifier !== "string") return true;
         if (identifier.indexOf("Rask.") !== 0) return true;
-        var rest = identifier.substring(5);
-        var dot = rest.indexOf(".");
-        var name = dot < 0 ? rest : rest.substring(0, dot);
+        const rest = identifier.substring(5);
+        const dot = rest.indexOf(".");
+        const name = dot < 0 ? rest : rest.substring(0, dot);
         return !!(window.Rask && window.Rask[name]);
     }
 
     // Per-component scripts load asynchronously from /_rask/a/{hash}.js. A first-render
     // Rask.* invoke races their load; the parked invoke wakes when window.Rask.{TypeName}
     // appears (or after the 5s timeout, in which case the original "Could not find" surfaces).
-    var RASK_NS_POLL_INTERVAL_MS = 100;
-    var RASK_NS_POLL_TIMEOUT_MS = 5000;
-    var raskNsPollHandle = 0;
-    var raskNsPollStarted = 0;
+    const RASK_NS_POLL_INTERVAL_MS = 100;
+    const RASK_NS_POLL_TIMEOUT_MS = 5000;
+    let raskNsPollHandle = 0;
+    let raskNsPollStarted = 0;
 
     function ensureRaskNamespacePoll() {
         if (raskNsPollHandle !== 0) return;
         raskNsPollStarted = Date.now();
-        raskNsPollHandle = setInterval(function () {
+        raskNsPollHandle = setInterval(() => {
             if (pendingScopedInvokes.length === 0
                 || Date.now() - raskNsPollStarted > RASK_NS_POLL_TIMEOUT_MS) {
                 clearInterval(raskNsPollHandle);
                 raskNsPollHandle = 0;
-                var drained = pendingScopedInvokes;
+                const drained = pendingScopedInvokes;
                 pendingScopedInvokes = [];
-                for (var i = 0; i < drained.length; i++) {
+                for (const inv of drained) {
                     // After timeout, force-dispatch through the post-gate body so the
                     // original "Could not find" surface (caught by the user's ErrorBoundary)
                     // beats hanging forever on a broken asset URL.
-                    forceDispatchJsInvoke(drained[i]);
+                    forceDispatchJsInvoke(inv);
                 }
                 return;
             }
@@ -708,7 +696,7 @@
     function send(payload) {
         if (suppressEvents) return;
         stampSeq(payload);
-        var msg = JSON.stringify(payload);
+        const msg = JSON.stringify(payload);
         if (open && ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
         else queue.push(msg);
     }
@@ -725,12 +713,12 @@
             headers: {"content-type": "application/json"},
             body: JSON.stringify({ticket: auth.ticket, session: sessionId}),
             credentials: "same-origin"
-        }).then(function () {
+        }).then(() => {
             try {
                 if (ws) ws.close(1000, "auth-refresh");
             } catch (e) {
             }
-        }).catch(function (err) {
+        }).catch((err) => {
             try {
                 console.error("Rask auth redeem failed:", err);
             } catch (e) {
@@ -744,15 +732,15 @@
         return root.contains(el);
     }
 
-    document.addEventListener("click", function (e) {
+    document.addEventListener("click", (e) => {
         if (e.defaultPrevented) return;
         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        var a = e.target.closest("a[data-rask-nav]");
+        const a = e.target.closest("a[data-rask-nav]");
         if (!a) return;
         if (a.getAttribute("target") === "_blank") return;
-        var href = a.getAttribute("href");
+        const href = a.getAttribute("href");
         if (!href) return;
-        var url;
+        let url;
         try {
             url = new URL(href, location.href);
         } catch (err) {
@@ -767,13 +755,13 @@
         send({type: "navigate", path: stripBase(url.pathname), query: url.search});
     });
 
-    window.addEventListener("popstate", function () {
+    window.addEventListener("popstate", () => {
         flushInputsNow();
         send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
     });
 
-    document.addEventListener("click", function (e) {
-        var t = e.target.closest("[data-rask-on-click]");
+    document.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-rask-on-click]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
         flushInputsNow();
@@ -793,16 +781,16 @@
     // action that depends on them — without this, a change event triggered
     // immediately after typing reaches the server BEFORE the coalesced input, and
     // any validator the change kicks off reads the stale model value.
-    var inputPending = new Set();
-    var inputRaf = 0;
+    const inputPending = new Set();
+    let inputRaf = 0;
 
     function flushInputs() {
         inputRaf = 0;
-        inputPending.forEach(function (el) {
+        inputPending.forEach((el) => {
             if (!el.isConnected) return;
-            var id = el.getAttribute("data-rask-on-input");
+            const id = el.getAttribute("data-rask-on-input");
             if (!id) return;
-            send({id: id, type: "input", value: el.value});
+            send({id, type: "input", value: el.value});
         });
         inputPending.clear();
     }
@@ -820,8 +808,8 @@
         if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
     }
 
-    document.addEventListener("input", function (e) {
-        var t = e.target.closest("[data-rask-on-input]");
+    document.addEventListener("input", (e) => {
+        const t = e.target.closest("[data-rask-on-input]");
         if (!t || !inRoot(t)) return;
         // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the
         // change event typically fires in the same task (Playwright fill, browser commit
@@ -837,19 +825,19 @@
         queueInput(t);
     });
 
-    document.addEventListener("change", function (e) {
-        var t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
+    document.addEventListener("change", (e) => {
+        const t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
         if (!t || !inRoot(t)) return;
         // Flush before processing — if the same element (or a sibling) has a pending
         // coalesced input, the server needs to see it BEFORE the change-triggered
         // validator / handler runs, otherwise the validator reads stale model state.
         flushInputsNow();
         if (t.tagName === "INPUT" && t.type === "file" && t.hasAttribute("data-rask-on-files")) {
-            var files = t.files;
+            const files = t.files;
             if (!files || files.length === 0) return;
-            uploadFiles(files).then(function (metas) {
+            uploadFiles(files).then((metas) => {
                 send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas});
-            }).catch(function (err) {
+            }).catch((err) => {
                 console.error("Rask: file upload failed", err);
             });
             return;
@@ -860,7 +848,7 @@
             // model to the actual state (self-correcting) instead of relying on a server-side
             // toggle. Radios and text inputs keep sending el.value (a radio's value IS the
             // selected option).
-            var changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
+            const changeVal = (t.tagName === "INPUT" && t.type === "checkbox")
                 ? (t.checked ? "true" : "false")
                 : t.value;
             // Record the PRE-EDIT value (the last server-rendered `value` attribute)
@@ -869,7 +857,7 @@
             // see raskShouldSuppressValue. Checkboxes self-correct via the checked
             // path, so they don't participate in the value guard.
             if (!(t.tagName === "INPUT" && t.type === "checkbox")) {
-                var sv = t.getAttribute("value");
+                const sv = t.getAttribute("value");
                 raskNotePendingValue(t, sv === null ? "" : sv);
             }
             send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
@@ -877,40 +865,38 @@
     });
 
     function uploadFiles(files) {
-        var fd = new FormData();
-        for (var i = 0; i < files.length; i++) {
-            fd.append("f" + i, files[i], files[i].name);
-            fd.append("f" + i + "__lastModified", String(files[i].lastModified || 0));
+        const fd = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            fd.append(`f${i}`, files[i], files[i].name);
+            fd.append(`f${i}__lastModified`, String(files[i].lastModified || 0));
         }
-        return fetch(prependBase("/_rask/upload/" + encodeURIComponent(sessionId)), {
+        return fetch(prependBase(`/_rask/upload/${encodeURIComponent(sessionId)}`), {
             method: "POST",
             body: fd,
             credentials: "same-origin"
-        }).then(function (res) {
-            if (!res.ok) throw new Error("upload failed: " + res.status);
+        }).then((res) => {
+            if (!res.ok) throw new Error(`upload failed: ${res.status}`);
             return res.json();
-        }).then(function (json) {
-            return Array.isArray(json.files) ? json.files : [];
-        });
+        }).then((json) => Array.isArray(json.files) ? json.files : []);
     }
 
     function triggerDownload(url, filename) {
         // url is framework-built (/_rask/download/...); resolve + reject anything
         // that isn't same-origin so a javascript:/cross-origin href can never land here.
-        var resolved;
+        let resolved;
         try {
             resolved = new URL(url, location.href);
         } catch (_) {
             return;
         }
         if (resolved.origin !== location.origin) return;
-        var a = document.createElement("a");
+        const a = document.createElement("a");
         a.href = resolved.href;
         a.download = filename;
         a.style.display = "none";
         document.body.appendChild(a);
         a.click();
-        setTimeout(function () {
+        setTimeout(() => {
             try {
                 document.body.removeChild(a);
             } catch (_) {
@@ -921,17 +907,17 @@
     // scroll events don't bubble — listen in capture phase at the document level so we
     // observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
     // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
-    var scrollPending = new Set();
-    var scrollRaf = 0;
+    const scrollPending = new Set();
+    let scrollRaf = 0;
 
     function flushScroll() {
         scrollRaf = 0;
-        scrollPending.forEach(function (el) {
+        scrollPending.forEach((el) => {
             if (!el.isConnected) return;
-            var id = el.getAttribute("data-rask-on-scroll");
+            const id = el.getAttribute("data-rask-on-scroll");
             if (!id) return;
             send({
-                id: id,
+                id,
                 type: "scroll",
                 scrollTop: el.scrollTop | 0,
                 clientHeight: el.clientHeight | 0,
@@ -941,8 +927,8 @@
         scrollPending.clear();
     }
 
-    document.addEventListener("scroll", function (e) {
-        var t = e.target;
+    document.addEventListener("scroll", (e) => {
+        const t = e.target;
         if (!t || t.nodeType !== 1) return;
         if (!t.hasAttribute || !t.hasAttribute("data-rask-on-scroll")) return;
         if (!inRoot(t)) return;
@@ -950,32 +936,30 @@
         if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll);
     }, true);
 
-    document.addEventListener("submit", function (e) {
-        var t = e.target.closest("[data-rask-on-submit]");
+    document.addEventListener("submit", (e) => {
+        const t = e.target.closest("[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
         flushInputsNow();
-        submitForm(t).catch(function (err) {
+        submitForm(t).catch((err) => {
             console.error("Rask: submit failed", err);
         });
     });
 
     function submitForm(form) {
-        var obj = {};
-        var fileInputs = form.querySelectorAll('input[type="file"][name]');
-        var pending = [];
-        var fileFields = {};
-        for (var i = 0; i < fileInputs.length; i++) {
-            (function (input) {
-                if (!input.files || input.files.length === 0) return;
-                pending.push(uploadFiles(input.files).then(function (metas) {
-                    fileFields[input.name] = metas;
-                }));
-            })(fileInputs[i]);
+        const obj = {};
+        const fileInputs = form.querySelectorAll('input[type="file"][name]');
+        const pending = [];
+        const fileFields = {};
+        for (const input of fileInputs) {
+            if (!input.files || input.files.length === 0) continue;
+            pending.push(uploadFiles(input.files).then((metas) => {
+                fileFields[input.name] = metas;
+            }));
         }
-        return Promise.all(pending).then(function () {
-            var fd = new FormData(form);
-            fd.forEach(function (v, k) {
+        return Promise.all(pending).then(() => {
+            const fd = new FormData(form);
+            fd.forEach((v, k) => {
                 if (v instanceof File || v instanceof Blob) return;
                 obj[k] = String(v);
             });
@@ -991,10 +975,10 @@
     // must preventDefault on a drop target or the browser rejects the drop. The optional
     // data-rask-on-dragover round-trip drives a server-rendered drop-target highlight — deduped
     // to one message per hovered element so a continuous dragover stream doesn't flood the socket.
-    var lastDragOverEl = null;
+    let lastDragOverEl = null;
 
-    document.addEventListener("dragstart", function (e) {
-        var t = e.target.closest("[data-rask-on-dragstart]");
+    document.addEventListener("dragstart", (e) => {
+        const t = e.target.closest("[data-rask-on-dragstart]");
         if (!t || !inRoot(t)) return;
         if (e.dataTransfer) {
             try {
@@ -1007,8 +991,8 @@
         send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
     });
 
-    document.addEventListener("dragover", function (e) {
-        var t = e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]");
+    document.addEventListener("dragover", (e) => {
+        const t = e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]");
         if (!t || !inRoot(t)) return;
         // preventDefault is what marks this element as a valid drop target.
         e.preventDefault();
@@ -1019,17 +1003,17 @@
         send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
     });
 
-    document.addEventListener("drop", function (e) {
-        var t = e.target.closest("[data-rask-on-drop]");
+    document.addEventListener("drop", (e) => {
+        const t = e.target.closest("[data-rask-on-drop]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
         lastDragOverEl = null;
         send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
     });
 
-    document.addEventListener("dragend", function (e) {
+    document.addEventListener("dragend", (e) => {
         lastDragOverEl = null;
-        var t = e.target.closest("[data-rask-on-dragend]");
+        const t = e.target.closest("[data-rask-on-dragend]");
         if (!t || !inRoot(t)) return;
         send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
     });
@@ -1039,23 +1023,18 @@
     // decides what a key means. flushInputsNow first so an Enter-to-submit handler reads the value
     // the user just typed, not the pre-flush one. Modifier flags + repeat ride along for shortcuts.
     function sendKey(e, attr, type) {
-        var t = e.target.closest ? e.target.closest("[" + attr + "]") : null;
+        const t = e.target.closest ? e.target.closest(`[${attr}]`) : null;
         if (!t || !inRoot(t)) return;
         flushInputsNow();
         send({
-            id: t.getAttribute(attr), type: type,
+            id: t.getAttribute(attr), type,
             key: e.key, code: e.code, repeat: e.repeat,
             shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
         });
     }
 
-    document.addEventListener("keydown", function (e) {
-        sendKey(e, "data-rask-on-keydown", "keydown");
-    });
-
-    document.addEventListener("keyup", function (e) {
-        sendKey(e, "data-rask-on-keyup", "keyup");
-    });
+    document.addEventListener("keydown", (e) => sendKey(e, "data-rask-on-keydown", "keydown"));
+    document.addEventListener("keyup", (e) => sendKey(e, "data-rask-on-keyup", "keyup"));
 
     // ----- IJSRuntime global-JS dispatcher -----------------------------------
     // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
@@ -1064,8 +1043,8 @@
     // returns get a stable handle id; DotNetObjectReference values flow back via a
     // {__dotNetObject:<id>} placeholder so the .NET side can re-hydrate them.
 
-    var jsObjectRefs = new Map();   // id -> target
-    var nextJsObjectRefId = 1;
+    const jsObjectRefs = new Map();   // id -> target
+    let nextJsObjectRefId = 1;
 
     function resolveIdentifier(target, identifier) {
         // Walk a dotted JS path on the given target (typically window). Returns
@@ -1073,14 +1052,14 @@
         // calling methods (e.g. sessionStorage.setItem must run with sessionStorage
         // as `this`). Returns null on miss — caller throws.
         if (typeof identifier !== "string" || identifier.length === 0) return null;
-        var parts = identifier.split(".");
-        var parent = target;
-        for (var i = 0; i < parts.length - 1; i++) {
+        const parts = identifier.split(".");
+        let parent = target;
+        for (let i = 0; i < parts.length - 1; i++) {
             if (parent == null) return null;
             parent = parent[parts[i]];
         }
         if (parent == null) return null;
-        var last = parts[parts.length - 1];
+        const last = parts[parts.length - 1];
         return [parent, last];
     }
 
@@ -1100,41 +1079,35 @@
     }
 
     function forceDispatchJsInvoke(inv) {
-        var taskId = inv.id;
-        var resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
-        var argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
-        var targetInstanceId = (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0;
+        const taskId = inv.id;
+        const resultType = (typeof inv.resultType === "number") ? inv.resultType : 0;
+        const argsJson = (typeof inv.argsJson === "string") ? inv.argsJson : "[]";
+        const targetInstanceId = (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0;
 
-        Promise.resolve().then(function () {
-            var args;
+        Promise.resolve().then(() => {
+            let args;
             try {
                 args = JSON.parse(argsJson, jsonReviver);
             } catch (e) {
-                throw new Error("Failed to parse argsJson: " + e.message);
+                throw new Error(`Failed to parse argsJson: ${e.message}`);
             }
 
-            var target = window;
+            let target = window;
             if (targetInstanceId !== 0) {
                 target = jsObjectRefs.get(targetInstanceId);
-                if (!target) throw new Error("Unknown JS object reference: " + targetInstanceId);
+                if (!target) throw new Error(`Unknown JS object reference: ${targetInstanceId}`);
             }
 
-            var resolved = resolveIdentifier(target, inv.identifier);
-            if (!resolved) throw new Error("Could not find '" + inv.identifier + "' on target");
-            var parent = resolved[0];
-            var key = resolved[1];
-            var fn = parent[key];
+            const resolved = resolveIdentifier(target, inv.identifier);
+            if (!resolved) throw new Error(`Could not find '${inv.identifier}' on target`);
+            const parent = resolved[0];
+            const key = resolved[1];
+            const fn = parent[key];
 
-            var result;
-            if (typeof fn === "function") {
-                result = fn.apply(parent, args);
-            } else {
-                // Identifier names a property (not a method) — return its value. This is
-                // how blazor handles e.g. `localStorage.length`.
-                result = fn;
-            }
-            return result;
-        }).then(function (value) {
+            // Identifier names a property (not a method) — return its value. This is
+            // how blazor handles e.g. `localStorage.length`.
+            return (typeof fn === "function") ? fn.apply(parent, args) : fn;
+        }).then((value) => {
             // Mirrors Microsoft.JSInterop.JSCallResultType:
             //   0 = Default            — ship the value as-is.
             //   1 = JSObjectReference  — mint a handle id, send {__jsObjectId:<id>}.
@@ -1145,13 +1118,13 @@
                 return;
             }
             if (resultType === 1) {
-                var refId = nextJsObjectRefId++;
+                const refId = nextJsObjectRefId++;
                 jsObjectRefs.set(refId, value);
                 sendJsResult(taskId, true, {"__jsObjectId": refId});
                 return;
             }
             sendJsResult(taskId, true, value);
-        }).catch(function (err) {
+        }).catch((err) => {
             sendJsResult(taskId, false, null, (err && err.message) || String(err));
         });
     }
@@ -1164,15 +1137,18 @@
                 return jsObjectRefs.get(value.__jsObjectId);
             }
             // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
+            // CSS.escape the id so a value carrying a quote/bracket can't break out of the
+            // attribute selector or match an unintended element (defense-in-depth — ids are
+            // framework-minted, but the reviver runs on server-supplied JSON).
             if (typeof value.__raskRef__ === "string") {
-                return document.querySelector('[data-rask-ref="' + value.__raskRef__ + '"]');
+                return document.querySelector(`[data-rask-ref="${CSS.escape(value.__raskRef__)}"]`);
             }
         }
         return value;
     }
 
     function sendJsResult(id, success, result, error) {
-        var msg = {type: "jsResult", id: id, success: success};
+        const msg = {type: "jsResult", id, success};
         if (success) {
             msg.result = result;
         } else {
@@ -1187,26 +1163,25 @@
     // [JSInvokable] callbacks. JS code calls `DotNet.invokeMethodAsync("MyApp",
     // "MyMethod", arg1, arg2)`; we serialise args, ship a dotNetInvoke message,
     // and resolve the returned Promise when the server replies with dotNetResult.
-    var dotNetPending = new Map();    // callId -> {resolve, reject}
-    var nextDotNetCallId = 1;
+    const dotNetPending = new Map();    // callId -> {resolve, reject}
+    let nextDotNetCallId = 1;
 
     window.DotNet = window.DotNet || {
-        invokeMethodAsync: function (assemblyName, methodIdentifier /*, ...args */) {
-            var args = Array.prototype.slice.call(arguments, 2);
-            var callId = String(nextDotNetCallId++);
-            return new Promise(function (resolve, reject) {
-                dotNetPending.set(callId, {resolve: resolve, reject: reject});
+        invokeMethodAsync(assemblyName, methodIdentifier, ...args) {
+            const callId = String(nextDotNetCallId++);
+            return new Promise((resolve, reject) => {
+                dotNetPending.set(callId, {resolve, reject});
                 send({
                     type: "dotNetInvoke",
-                    callId: callId,
-                    assemblyName: assemblyName,
-                    methodIdentifier: methodIdentifier,
+                    callId,
+                    assemblyName,
+                    methodIdentifier,
                     argsJson: JSON.stringify(args)
                 });
             });
         },
-        _endInvokeDotNet: function (msg) {
-            var pending = dotNetPending.get(msg.callId);
+        _endInvokeDotNet(msg) {
+            const pending = dotNetPending.get(msg.callId);
             if (!pending) return;
             dotNetPending.delete(msg.callId);
             if (msg.success) {
