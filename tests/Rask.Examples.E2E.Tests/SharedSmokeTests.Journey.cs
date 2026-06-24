@@ -325,7 +325,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Master-detail: expand state is local; toggling inserts a keyed detail <tr> hosting a nested,
-        // independently sortable TableModel. Collapse removes it via the same keyed diff.
+        // independently sortable plain <table>. Collapse removes it via the same keyed diff.
         await SideAsync("Master-detail", "Master-detail");
         await Expect(Page.Locator("#md-orders tbody tr.md-row")).ToHaveCountAsync(14,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });

@@ -1037,40 +1037,6 @@ demo.
 </details>
 
 <details>
-<summary><b>🧮 Headless tables</b></summary>
-<br>
-
-`TableModel<T>` is a fully **controlled, headless** table primitive (à la TanStack Table). It owns no state and
-transforms no data — *you* sort, filter, and page your own data and pass it the final `Rows` plus the current view
-state (`Sort`, `PageIndex`, `SelectedKeys`). It projects sort-aware `Headers` and selection-aware `Rows` into the
-`Render` delegate and raises `OnSort` / `OnPage` / `OnSelect` **intents**; you apply them to your own state and
-re-render.
-
-```csharp
-TableModel<Person>(
-    Columns: columns,                  // ColumnDef<Person> { Id, Header, Sortable }
-    Rows: pageRows,                    // the final page YOU sorted + sliced
-    KeySelector: p => p.Id,
-    Sort: sort, PageIndex: page, PageCount: pages, SelectedKeys: selected,
-    MultiSort: true,
-    OnSort:   s => { sort = s; },       // YOU apply + re-render; new props flow back in
-    OnPage:   p => { page = p; },
-    OnSelect: k => { selected = k; },
-    Render: ctx => Table()[
-        Thead()[Tr()[ ctx.Headers.Select(h => Th(Key: h.ColumnId)[
-            Button(OnClick: h.ToggleSort)[h.Header]]) ]],
-        Tbody()[ ctx.Rows.Select(row => Tr(Key: row.Key)[
-            Td()[Input("checkbox", Checked: row.IsSelected, OnChange: _ => row.ToggleSelected())],
-            Td()[row.Value.Name] ]) ]
-    ])
-```
-
-`OnSort` / `OnPage` / `OnSelect` are auto-wrapped callbacks, so firing an intent re-renders the owning host. See
-`samples/Rask.Example.Shared/Features/Table/TablePage.cs` for a URL-driven, sortable + paged demo.
-
-</details>
-
-<details>
 <summary><b>🔀 Drag & drop</b></summary>
 <br>
 
