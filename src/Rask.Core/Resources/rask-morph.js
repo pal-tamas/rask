@@ -6,6 +6,16 @@
 //  - rask.js is a classic <script> served from /rask/rask.js (no ES-module hook).
 //  - rask.wasm.js is loaded by JSHost.ImportAsync as an ES module.
 // Concat sidesteps the loader mismatch and keeps the single-file delivery model.
+//
+// Modern JS is fine here — both runtimes target current browsers (the codec uses
+// moveBefore / crypto.randomUUID). Two splice constraints, not a dialect one:
+//  - The top-level helpers stay hoisted `function` declarations, NOT `const fn =
+//    () => …`: applyDiff (rask-dom.js) calls reviveScript() / raskShouldSuppressValue()
+//    here, and the two files concatenate into one scope in EITHER order, so the
+//    cross-references must resolve regardless of splice ordering (hoisting). Locals,
+//    callbacks, and literals inside them use modern syntax freely.
+//  - No `export` / `import`: this island is spliced inside the Server's classic-script
+//    IIFE, where module syntax is illegal.
 
 // Scripts produced by DOMParser have their "already started" flag set, so the
 // browser silently skips them when morph() appends them into the live document.
@@ -16,14 +26,11 @@
 // on a not-yet-loaded global like window.hljs.
 function reviveScript(node) {
     if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return node;
-    var s = document.createElement("script");
-    for (var i = 0; i < node.attributes.length; i++) {
-        var a = node.attributes[i];
-        s.setAttribute(a.name, a.value);
-    }
+    const s = document.createElement("script");
+    for (const a of node.attributes) s.setAttribute(a.name, a.value);
     if (s.src) {
         s.async = false;
-        s.addEventListener("load", function () {
+        s.addEventListener("load", () => {
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         }, {once: true});
     }
@@ -100,7 +107,7 @@ function raskNotePendingValue(el, supersededValue) {
 }
 
 function raskShouldSuppressValue(el, incoming) {
-    var map = _raskPendingValues();
+    const map = _raskPendingValues();
     if (!el || !map.has(el)) return false;
     if (map.get(el) === incoming) return true;   // lagging frame carrying the stale value
     map.delete(el);                               // authoritative response — release the guard
@@ -116,16 +123,17 @@ function morph(from, to) {
         if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
         return;
     }
-    var fa = from.attributes, ta = to.attributes;
-    for (var i = fa.length - 1; i >= 0; i--) {
-        var name = fa[i].name;
+    const fa = from.attributes, ta = to.attributes;
+    // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
+    // by index from the end to keep the unvisited slots stable.
+    for (let i = fa.length - 1; i >= 0; i--) {
+        const name = fa[i].name;
         if (!to.hasAttribute(name)) from.removeAttribute(name);
     }
-    for (var j = 0; j < ta.length; j++) {
-        var a = ta[j];
+    for (const a of ta) {
         if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
     }
-    var tag = from.tagName;
+    const tag = from.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") {
         // Only inputs with data-rask-on-input stream keystrokes — those need the
         // focus guard so a lagging re-render doesn't clobber mid-typed characters.
@@ -133,16 +141,16 @@ function morph(from, to) {
         // radio) commit at change time; the rendered value is canonical and must
         // win, otherwise Chromium leaves a focused date input's dirty value flag
         // stale and the first picker change appears to be dropped.
-        var streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
         if (!streaming || document.activeElement !== from) {
-            var newVal = to.getAttribute("value");
+            let newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
             if (newVal === null) newVal = "";
             // raskShouldSuppressValue runs first so it can clear a confirmed echo
             // even when from.value already equals newVal; a still-pending user edit
             // (incoming !== the value the user committed) is left untouched.
             if (!raskShouldSuppressValue(from, newVal) && from.value !== newVal) from.value = newVal;
-            var checked = to.hasAttribute("checked");
+            const checked = to.hasAttribute("checked");
             if (from.checked !== checked) from.checked = checked;
         }
     }
@@ -152,42 +160,40 @@ function morph(from, to) {
     // the Server overlay (reconnect spinner sibling of <html>) and the WASM
     // scoped-css / scoped-js bundle tags (head children that don't appear in
     // the .NET-rendered HTML payload).
-    var fc = [], tc = [];
-    for (var n = from.firstChild; n; n = n.nextSibling) {
+    const fc = [], tc = [];
+    for (let n = from.firstChild; n; n = n.nextSibling) {
         if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
         fc.push(n);
     }
-    for (var m = to.firstChild; m; m = m.nextSibling) tc.push(m);
+    for (let m = to.firstChild; m; m = m.nextSibling) tc.push(m);
 
     // Keyed reconciliation: if any incoming child carries data-rask-key, match
     // by key instead of by position so reordered list items keep their DOM
     // identity (focus, scroll, animations, ::part state) across re-renders.
     // Falls back to the positional walk below when no keys are present.
-    var keyed = false;
-    for (var ki = 0; ki < tc.length; ki++) {
-        if (tc[ki].nodeType === 1 && tc[ki].getAttribute && tc[ki].getAttribute("data-rask-key") !== null) {
+    let keyed = false;
+    for (const node of tc) {
+        if (node.nodeType === 1 && node.getAttribute && node.getAttribute("data-rask-key") !== null) {
             keyed = true;
             break;
         }
     }
     if (keyed) {
-        var keyMap = new Map();
-        var unkeyedFrom = [];
-        for (var fi = 0; fi < fc.length; fi++) {
-            var fn = fc[fi];
-            var fk = (fn.nodeType === 1 && fn.getAttribute) ? fn.getAttribute("data-rask-key") : null;
+        const keyMap = new Map();
+        const unkeyedFrom = [];
+        for (const fn of fc) {
+            const fk = (fn.nodeType === 1 && fn.getAttribute) ? fn.getAttribute("data-rask-key") : null;
             if (fk !== null) keyMap.set(fk, fn);
             else unkeyedFrom.push(fn);
         }
-        var unkeyedCursor = 0;
+        let unkeyedCursor = 0;
         // Sentinel: keep the place we want to insert before. As we move/create
         // keyed nodes we advance this past the just-placed node; unkeyed nodes
         // follow the same anchor.
-        var anchor = (fc.length > 0) ? fc[0] : null;
-        for (var ti = 0; ti < tc.length; ti++) {
-            var dst = tc[ti];
-            var dk = (dst.nodeType === 1 && dst.getAttribute) ? dst.getAttribute("data-rask-key") : null;
-            var src;
+        let anchor = (fc.length > 0) ? fc[0] : null;
+        for (const dst of tc) {
+            const dk = (dst.nodeType === 1 && dst.getAttribute) ? dst.getAttribute("data-rask-key") : null;
+            let src;
             if (dk !== null) {
                 src = keyMap.get(dk) || null;
                 if (src) keyMap.delete(dk);
@@ -206,20 +212,20 @@ function morph(from, to) {
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
-        keyMap.forEach(function (n) {
+        keyMap.forEach((n) => {
             if (n.parentNode === from) _raskRemoveChild(from, n);
         });
         // Drop trailing unkeyed nodes too.
         while (unkeyedCursor < unkeyedFrom.length) {
-            var leftover = unkeyedFrom[unkeyedCursor++];
+            const leftover = unkeyedFrom[unkeyedCursor++];
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         return;
     }
 
-    var max = Math.max(fc.length, tc.length);
-    for (var k = 0; k < max; k++) {
-        var src = fc[k], dst = tc[k];
+    const max = Math.max(fc.length, tc.length);
+    for (let k = 0; k < max; k++) {
+        const src = fc[k], dst = tc[k];
         if (!src) _raskAppendChild(from, reviveScript(dst));
         else if (!dst) _raskRemoveChild(from, src);
         else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);

@@ -7,7 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **`CSS.escape` the ElementRef reviver selector (both runtimes).** The client reviver that
+  resolves an `{"__raskRef__":"id"}` placeholder to a live DOM element now escapes the id via
+  `CSS.escape(...)` before building the `[data-rask-ref="…"]` selector, in `rask.js` (Server) and
+  `rask.wasm.js` (WASM). Defense-in-depth: ids are framework-minted, but escaping closes any path
+  by which a value carrying a quote/bracket could break out of the attribute selector. The reconnect
+  overlay is now built with `document.createElement`/`textContent` instead of `innerHTML`, removing
+  the only `innerHTML` write on a non-`<template>` path (cleaner under a strict CSP).
+
 ### Changed
+- **Modernized the client runtime JavaScript.** `rask.js` (Server), the shared diff/morph codec
+  (`rask-dom.js`/`rask-morph.js`), the WASM runtime (`rask.wasm.js`) and `main.js` were brought to
+  modern JS (`const`/`let`, arrow callbacks, `for…of`, template literals, optional chaining, rest
+  params). Behavior is unchanged; the shared spliced helpers keep hoisted `function` declarations
+  and emit no `export`/`import` so they remain valid in both the Server's classic-`<script>` IIFE
+  and the WASM ES module. Release-build minification stays correct (single-line template literals).
 - **Beginner-friendly getting-started rewrite ([docs/getting-started.md](docs/getting-started.md)).**
   Restructured for a developer new to Rask into a "run → understand → extend" path: promoted
   prerequisites, a recommended default template, a *"what you should see"* checkpoint, a new tour of the

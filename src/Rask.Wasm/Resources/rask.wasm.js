@@ -9,13 +9,13 @@ let basePath = null;
 // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
 // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
 window.__raskEl = window.__raskEl || {
-    focus: function (el) {
+    focus: (el) => {
         if (el) el.focus();
     },
-    blur: function (el) {
+    blur: (el) => {
         if (el) el.blur();
     },
-    scrollIntoView: function (el, opts) {
+    scrollIntoView: (el, opts) => {
         if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
     }
 };
@@ -899,8 +899,11 @@ function jsReviver(_key, value) {
             return jsObjectRefs.get(value.__jsObjectId);
         }
         // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
+        // CSS.escape the id so a value carrying a quote/bracket can't break out of the
+        // attribute selector or match an unintended element (defense-in-depth — ids are
+        // framework-minted, but the reviver runs on server-supplied JSON).
         if (typeof value.__raskRef__ === "string") {
-            return document.querySelector('[data-rask-ref="' + value.__raskRef__ + '"]');
+            return document.querySelector(`[data-rask-ref="${CSS.escape(value.__raskRef__)}"]`);
         }
     }
     return value;
@@ -981,8 +984,7 @@ const dotNetPending = new Map();
 let nextDotNetCallId = 1;
 
 window.DotNet = window.DotNet || {
-    invokeMethodAsync(assemblyName, methodIdentifier /*, ...args */) {
-        const args = Array.prototype.slice.call(arguments, 2);
+    invokeMethodAsync(assemblyName, methodIdentifier, ...args) {
         const callId = String(nextDotNetCallId++);
         return new Promise((resolve, reject) => {
             dotNetPending.set(callId, {resolve, reject});

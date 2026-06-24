@@ -14,16 +14,16 @@ import {dotnet} from './_framework/dotnet.js';
 // have to reconcile encoded vs. decoded sizes; counts sidestep that. The bar
 // stays hidden (spinner-only fallback) until the first progress tick arrives.
 const boot = document.querySelector(".rask-boot");
-const bootProgress = boot && boot.querySelector(".rask-boot__progress");
-const bootFill = boot && boot.querySelector(".rask-boot__fill");
-const bootLabel = boot && boot.querySelector(".rask-boot__label");
+const bootProgress = boot?.querySelector(".rask-boot__progress");
+const bootFill = boot?.querySelector(".rask-boot__fill");
+const bootLabel = boot?.querySelector(".rask-boot__label");
 
 function renderBootProgress(loaded, total) {
     if (!bootProgress || !(total > 0)) return;
     bootProgress.hidden = false;
     const pct = Math.min(100, Math.round((loaded / total) * 100));
-    if (bootFill) bootFill.style.width = pct + "%";
-    if (bootLabel) bootLabel.textContent = "Loading… " + pct + "%";
+    if (bootFill) bootFill.style.width = `${pct}%`;
+    if (bootLabel) bootLabel.textContent = `Loading… ${pct}%`;
 }
 
 const {getAssemblyExports, runMain} = await dotnet

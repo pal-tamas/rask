@@ -9,13 +9,13 @@ let basePath = null;
 // Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
 // The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
 window.__raskEl = window.__raskEl || {
-    focus: function (el) {
+    focus: (el) => {
         if (el) el.focus();
     },
-    blur: function (el) {
+    blur: (el) => {
         if (el) el.blur();
     },
-    scrollIntoView: function (el, opts) {
+    scrollIntoView: (el, opts) => {
         if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
     }
 };
@@ -462,6 +462,16 @@ function inRoot(el) {
 //  - rask.js is a classic <script> served from /rask/rask.js (no ES-module hook).
 //  - rask.wasm.js is loaded by JSHost.ImportAsync as an ES module.
 // Concat sidesteps the loader mismatch and keeps the single-file delivery model.
+//
+// Modern JS is fine here — both runtimes target current browsers (the codec uses
+// moveBefore / crypto.randomUUID). Two splice constraints, not a dialect one:
+//  - The top-level helpers stay hoisted `function` declarations, NOT `const fn =
+//    () => …`: applyDiff (rask-dom.js) calls reviveScript() / raskShouldSuppressValue()
+//    here, and the two files concatenate into one scope in EITHER order, so the
+//    cross-references must resolve regardless of splice ordering (hoisting). Locals,
+//    callbacks, and literals inside them use modern syntax freely.
+//  - No `export` / `import`: this island is spliced inside the Server's classic-script
+//    IIFE, where module syntax is illegal.
 
 // Scripts produced by DOMParser have their "already started" flag set, so the
 // browser silently skips them when morph() appends them into the live document.
@@ -472,14 +482,11 @@ function inRoot(el) {
 // on a not-yet-loaded global like window.hljs.
 function reviveScript(node) {
     if (!node || node.nodeType !== 1 || node.tagName !== "SCRIPT") return node;
-    var s = document.createElement("script");
-    for (var i = 0; i < node.attributes.length; i++) {
-        var a = node.attributes[i];
-        s.setAttribute(a.name, a.value);
-    }
+    const s = document.createElement("script");
+    for (const a of node.attributes) s.setAttribute(a.name, a.value);
     if (s.src) {
         s.async = false;
-        s.addEventListener("load", function () {
+        s.addEventListener("load", () => {
             if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
         }, {once: true});
     }
@@ -556,7 +563,7 @@ function raskNotePendingValue(el, supersededValue) {
 }
 
 function raskShouldSuppressValue(el, incoming) {
-    var map = _raskPendingValues();
+    const map = _raskPendingValues();
     if (!el || !map.has(el)) return false;
     if (map.get(el) === incoming) return true;   // lagging frame carrying the stale value
     map.delete(el);                               // authoritative response — release the guard
@@ -572,16 +579,17 @@ function morph(from, to) {
         if (from.nodeValue !== to.nodeValue) from.nodeValue = to.nodeValue;
         return;
     }
-    var fa = from.attributes, ta = to.attributes;
-    for (var i = fa.length - 1; i >= 0; i--) {
-        var name = fa[i].name;
+    const fa = from.attributes, ta = to.attributes;
+    // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
+    // by index from the end to keep the unvisited slots stable.
+    for (let i = fa.length - 1; i >= 0; i--) {
+        const name = fa[i].name;
         if (!to.hasAttribute(name)) from.removeAttribute(name);
     }
-    for (var j = 0; j < ta.length; j++) {
-        var a = ta[j];
+    for (const a of ta) {
         if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);
     }
-    var tag = from.tagName;
+    const tag = from.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") {
         // Only inputs with data-rask-on-input stream keystrokes — those need the
         // focus guard so a lagging re-render doesn't clobber mid-typed characters.
@@ -589,16 +597,16 @@ function morph(from, to) {
         // radio) commit at change time; the rendered value is canonical and must
         // win, otherwise Chromium leaves a focused date input's dirty value flag
         // stale and the first picker change appears to be dropped.
-        var streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
+        const streaming = from.hasAttribute("data-rask-on-input") || to.hasAttribute("data-rask-on-input");
         if (!streaming || document.activeElement !== from) {
-            var newVal = to.getAttribute("value");
+            let newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
             if (newVal === null) newVal = "";
             // raskShouldSuppressValue runs first so it can clear a confirmed echo
             // even when from.value already equals newVal; a still-pending user edit
             // (incoming !== the value the user committed) is left untouched.
             if (!raskShouldSuppressValue(from, newVal) && from.value !== newVal) from.value = newVal;
-            var checked = to.hasAttribute("checked");
+            const checked = to.hasAttribute("checked");
             if (from.checked !== checked) from.checked = checked;
         }
     }
@@ -608,42 +616,40 @@ function morph(from, to) {
     // the Server overlay (reconnect spinner sibling of <html>) and the WASM
     // scoped-css / scoped-js bundle tags (head children that don't appear in
     // the .NET-rendered HTML payload).
-    var fc = [], tc = [];
-    for (var n = from.firstChild; n; n = n.nextSibling) {
+    const fc = [], tc = [];
+    for (let n = from.firstChild; n; n = n.nextSibling) {
         if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
         fc.push(n);
     }
-    for (var m = to.firstChild; m; m = m.nextSibling) tc.push(m);
+    for (let m = to.firstChild; m; m = m.nextSibling) tc.push(m);
 
     // Keyed reconciliation: if any incoming child carries data-rask-key, match
     // by key instead of by position so reordered list items keep their DOM
     // identity (focus, scroll, animations, ::part state) across re-renders.
     // Falls back to the positional walk below when no keys are present.
-    var keyed = false;
-    for (var ki = 0; ki < tc.length; ki++) {
-        if (tc[ki].nodeType === 1 && tc[ki].getAttribute && tc[ki].getAttribute("data-rask-key") !== null) {
+    let keyed = false;
+    for (const node of tc) {
+        if (node.nodeType === 1 && node.getAttribute && node.getAttribute("data-rask-key") !== null) {
             keyed = true;
             break;
         }
     }
     if (keyed) {
-        var keyMap = new Map();
-        var unkeyedFrom = [];
-        for (var fi = 0; fi < fc.length; fi++) {
-            var fn = fc[fi];
-            var fk = (fn.nodeType === 1 && fn.getAttribute) ? fn.getAttribute("data-rask-key") : null;
+        const keyMap = new Map();
+        const unkeyedFrom = [];
+        for (const fn of fc) {
+            const fk = (fn.nodeType === 1 && fn.getAttribute) ? fn.getAttribute("data-rask-key") : null;
             if (fk !== null) keyMap.set(fk, fn);
             else unkeyedFrom.push(fn);
         }
-        var unkeyedCursor = 0;
+        let unkeyedCursor = 0;
         // Sentinel: keep the place we want to insert before. As we move/create
         // keyed nodes we advance this past the just-placed node; unkeyed nodes
         // follow the same anchor.
-        var anchor = (fc.length > 0) ? fc[0] : null;
-        for (var ti = 0; ti < tc.length; ti++) {
-            var dst = tc[ti];
-            var dk = (dst.nodeType === 1 && dst.getAttribute) ? dst.getAttribute("data-rask-key") : null;
-            var src;
+        let anchor = (fc.length > 0) ? fc[0] : null;
+        for (const dst of tc) {
+            const dk = (dst.nodeType === 1 && dst.getAttribute) ? dst.getAttribute("data-rask-key") : null;
+            let src;
             if (dk !== null) {
                 src = keyMap.get(dk) || null;
                 if (src) keyMap.delete(dk);
@@ -662,20 +668,20 @@ function morph(from, to) {
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
-        keyMap.forEach(function (n) {
+        keyMap.forEach((n) => {
             if (n.parentNode === from) _raskRemoveChild(from, n);
         });
         // Drop trailing unkeyed nodes too.
         while (unkeyedCursor < unkeyedFrom.length) {
-            var leftover = unkeyedFrom[unkeyedCursor++];
+            const leftover = unkeyedFrom[unkeyedCursor++];
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
         return;
     }
 
-    var max = Math.max(fc.length, tc.length);
-    for (var k = 0; k < max; k++) {
-        var src = fc[k], dst = tc[k];
+    const max = Math.max(fc.length, tc.length);
+    for (let k = 0; k < max; k++) {
+        const src = fc[k], dst = tc[k];
         if (!src) _raskAppendChild(from, reviveScript(dst));
         else if (!dst) _raskRemoveChild(from, src);
         else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
@@ -734,12 +740,12 @@ function applyNavScroll(history) {
 //  - rask.wasm.js is loaded by JSHost.ImportAsync as an ES module.
 // Concat sidesteps the loader mismatch and keeps the single-file delivery model.
 //
-// Written in ES5 (var / function declarations, no arrow functions) so the same
-// source is valid spliced into the Server's classic-script IIFE and as an island
-// inside the WASM ES module — exactly like rask-morph.js. The function
-// declarations are hoisted within each client's closure, so applyDiff can call
-// reviveScript() and raskShouldSuppressValue() (both defined in rask-morph.js,
-// spliced into the same scope) regardless of splice order.
+// Modern JS is fine here (current-browser targets), with the same two splice
+// constraints as rask-morph.js: the top-level helpers stay hoisted `function`
+// declarations — applyDiff calls reviveScript() and raskShouldSuppressValue()
+// (both defined in rask-morph.js, spliced into the same scope) regardless of
+// splice order — and no `export` / `import` (this island is spliced inside the
+// Server's classic-script IIFE, where module syntax is illegal).
 
 // ----- Diff codec interpreter --------------------------------------------
 // Applies ops produced by C#-side FrameDiffer.Diff to the live DOM. Each op
@@ -765,13 +771,12 @@ function applyNavScroll(history) {
 // Comment nodes shift childNodes indices relative to the server's frame walk.
 // Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
 // match what FrameDiffer counts.
-var _relevantNodeTypes = {1: 1, 3: 1, 10: 1};
+const _relevantNodeTypes = {1: 1, 3: 1, 10: 1};
 
 function relevantChild(parent, index) {
     if (!parent || !parent.childNodes) return null;
-    var seen = 0;
-    for (var i = 0; i < parent.childNodes.length; i++) {
-        var n = parent.childNodes[i];
+    let seen = 0;
+    for (const n of parent.childNodes) {
         if (_relevantNodeTypes[n.nodeType]) {
             if (seen === index) return n;
             seen++;
@@ -785,9 +790,8 @@ function relevantChild(parent, index) {
 // WITHOUT detaching the moving node, so the move can run as a single relocation.
 function relevantChildSkipping(parent, index, skip) {
     if (!parent || !parent.childNodes) return null;
-    var seen = 0;
-    for (var i = 0; i < parent.childNodes.length; i++) {
-        var n = parent.childNodes[i];
+    let seen = 0;
+    for (const n of parent.childNodes) {
         if (n === skip) continue;
         if (_relevantNodeTypes[n.nodeType]) {
             if (seen === index) return n;
@@ -816,9 +820,9 @@ function moveChildBefore(parent, node, ref) {
 }
 
 function resolvePath(path) {
-    var node = document;
-    for (var i = 0; i < path.length; i++) {
-        node = relevantChild(node, path[i]);
+    let node = document;
+    for (const slot of path) {
+        node = relevantChild(node, slot);
         if (!node) return null;
     }
     return node;
@@ -841,7 +845,7 @@ function syncFormProperty(el, name, value, isPresent) {
     // are presence-based: `<input checked>`, `<input checked="">`, and
     // `<input checked="checked">` all mean checked. RemoveAttribute → unchecked.
     if (!el) return;
-    var tag = el.tagName;
+    const tag = el.tagName;
     if (!tag) return;
     if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
         if (document.activeElement === el) return;
@@ -862,17 +866,16 @@ function applyDiff(ops, names) {
         return raw;
     }
 
-    for (var i = 0; i < ops.length; i++) {
-        var op = ops[i];
-        var k = op[0];
-        var path = op[1] || [];
+    for (const op of ops) {
+        const k = op[0];
+        const path = op[1] || [];
         switch (k) {
             case 1: { // SetAttribute [k, path, name|idx, value]
-                var el = resolvePath(path);
+                const el = resolvePath(path);
                 if (el && el.setAttribute) {
-                    var name1 = resolveName(op[2]);
-                    var rawVal = op[3];
-                    var newVal = rawVal == null ? "" : rawVal;
+                    const name1 = resolveName(op[2]);
+                    const rawVal = op[3];
+                    const newVal = rawVal == null ? "" : rawVal;
                     el.setAttribute(name1, newVal);
                     // After a form-control has been interacted with, the value
                     // attribute is desynchronised from the .value/.checked property
@@ -883,16 +886,16 @@ function applyDiff(ops, names) {
                 break;
             }
             case 2: { // RemoveAttribute [k, path, name|idx]
-                var el2 = resolvePath(path);
+                const el2 = resolvePath(path);
                 if (el2 && el2.removeAttribute) {
-                    var name2 = resolveName(op[2]);
+                    const name2 = resolveName(op[2]);
                     el2.removeAttribute(name2);
                     syncFormProperty(el2, name2, "", false);
                 }
                 break;
             }
             case 3: { // UpdateText [k, path, value]
-                var textNode = resolvePath(path);
+                const textNode = resolvePath(path);
                 if (textNode) {
                     // UpdateText only ever targets a Text node now: the diff codec emits it
                     // exclusively for changed Text frames (HTML-encoded content), so
@@ -900,24 +903,24 @@ function applyDiff(ops, names) {
                     // UpdateText — its verbatim markup parses into a variable run of DOM
                     // nodes that textContent would escape and could not fully replace, so the
                     // codec ships it as a Remove+Insert that routes to the full-HTML morph.
-                    var txtVal = op[2];
+                    const txtVal = op[2];
                     textNode.textContent = txtVal == null ? "" : txtVal;
                 }
                 break;
             }
             case 4: { // InsertSubtree [k, path, html, domCount]
-                var insertHtml = op[2];
+                const insertHtml = op[2];
                 if (typeof insertHtml !== "string") {
                     console.warn("[Rask] InsertSubtree without payload — server " +
                         "must include HTML fragment. Falling back to full reload.");
                     location.reload();
                     return;
                 }
-                var parentPath = path.slice(0, path.length - 1);
-                var slot = path[path.length - 1];
-                var parent = resolvePath(parentPath);
+                const parentPath = path.slice(0, path.length - 1);
+                const slot = path[path.length - 1];
+                const parent = resolvePath(parentPath);
                 if (!parent) break;
-                var template = document.createElement("template");
+                const template = document.createElement("template");
                 template.innerHTML = insertHtml;
                 // Scripts parsed via innerHTML carry the "already started" flag and will
                 // NOT execute when inserted into the live document. Rebuild them via
@@ -925,25 +928,23 @@ function applyDiff(ops, names) {
                 // Head <script>) delivered through a keyed InsertSubtree diff actually
                 // runs — otherwise its window.Rask.{Type}/global never appears. Mirrors
                 // the full-HTML morph path, which already revives inserted scripts.
-                var insertScripts = template.content.querySelectorAll("script");
-                for (var si = 0; si < insertScripts.length; si++) {
-                    var oldScript = insertScripts[si];
+                for (const oldScript of template.content.querySelectorAll("script")) {
                     oldScript.parentNode.replaceChild(reviveScript(oldScript), oldScript);
                 }
-                var refNode = parent.childNodes[slot] || null;
+                const refNode = parent.childNodes[slot] || null;
                 while (template.content.firstChild) {
                     parent.insertBefore(template.content.firstChild, refNode);
                 }
                 break;
             }
             case 5: { // RemoveSubtree [k, path, domCount]
-                var rmParentPath = path.slice(0, path.length - 1);
-                var rmSlot = path[path.length - 1];
-                var rmParent = resolvePath(rmParentPath);
+                const rmParentPath = path.slice(0, path.length - 1);
+                const rmSlot = path[path.length - 1];
+                const rmParent = resolvePath(rmParentPath);
                 if (!rmParent) break;
-                var removeCount = op[2] || 1;
-                for (var r = 0; r < removeCount; r++) {
-                    var victim = rmParent.childNodes[rmSlot];
+                const removeCount = op[2] || 1;
+                for (let r = 0; r < removeCount; r++) {
+                    const victim = rmParent.childNodes[rmSlot];
                     if (!victim) break;
                     rmParent.removeChild(victim);
                 }
@@ -955,15 +956,15 @@ function applyDiff(ops, names) {
                 // (the live DOM with the moved node removed), so resolve the anchor
                 // by SKIPPING the moving node rather than detaching it — then relocate
                 // with moveChildBefore so a focused descendant keeps focus/selection.
-                var mvParentPath = path.slice(0, path.length - 1);
-                var mvDst = path[path.length - 1];
-                var mvParent = resolvePath(mvParentPath);
+                const mvParentPath = path.slice(0, path.length - 1);
+                const mvDst = path[path.length - 1];
+                const mvParent = resolvePath(mvParentPath);
                 if (!mvParent) break;
-                var mvSrcRaw = op[2];
-                var mvSrc = mvSrcRaw == null ? 0 : mvSrcRaw;
-                var mvNode = relevantChild(mvParent, mvSrc);
+                const mvSrcRaw = op[2];
+                const mvSrc = mvSrcRaw == null ? 0 : mvSrcRaw;
+                const mvNode = relevantChild(mvParent, mvSrc);
                 if (!mvNode) break;
-                var mvRef = relevantChildSkipping(mvParent, mvDst, mvNode);
+                const mvRef = relevantChildSkipping(mvParent, mvDst, mvNode);
                 moveChildBefore(mvParent, mvNode, mvRef);
                 break;
             }
@@ -973,15 +974,15 @@ function applyDiff(ops, names) {
                 // as mutated by the preceding pairs, so order is load-bearing — never reorder.
                 // Each dst is a post-detach slot, so resolve the anchor by skipping the moving
                 // node and relocate with moveChildBefore (preserves focus across the reorder).
-                var pbParent = resolvePath(path);
+                const pbParent = resolvePath(path);
                 if (!pbParent) break;
-                var pbMoves = op[2] || [];
-                for (var m = 0; m + 1 < pbMoves.length; m += 2) {
-                    var pbDst = pbMoves[m];
-                    var pbSrc = pbMoves[m + 1];
-                    var pbNode = relevantChild(pbParent, pbSrc);
+                const pbMoves = op[2] || [];
+                for (let m = 0; m + 1 < pbMoves.length; m += 2) {
+                    const pbDst = pbMoves[m];
+                    const pbSrc = pbMoves[m + 1];
+                    const pbNode = relevantChild(pbParent, pbSrc);
                     if (!pbNode) continue;
-                    var pbRef = relevantChildSkipping(pbParent, pbDst, pbNode);
+                    const pbRef = relevantChildSkipping(pbParent, pbDst, pbNode);
                     moveChildBefore(pbParent, pbNode, pbRef);
                 }
                 break;
@@ -1003,10 +1004,9 @@ function applyDiff(ops, names) {
 // executor differs per host (Server posts the result over the WS; WASM returns it through the
 // endInvokeJSResult JSExport), so the caller passes dispatchOne. Shared so the loop isn't copied.
 function applyFrameInvokes(reply, dispatchOne) {
-    var invokes = reply && reply.jsInvokes;
+    const invokes = reply && reply.jsInvokes;
     if (!invokes || typeof invokes.length !== "number") return;
-    for (var i = 0; i < invokes.length; i++) {
-        var inv = invokes[i];
+    for (const inv of invokes) {
         if (inv && typeof inv.identifier === "string") dispatchOne(inv);
     }
 }
@@ -1414,8 +1414,11 @@ function jsReviver(_key, value) {
             return jsObjectRefs.get(value.__jsObjectId);
         }
         // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
+        // CSS.escape the id so a value carrying a quote/bracket can't break out of the
+        // attribute selector or match an unintended element (defense-in-depth — ids are
+        // framework-minted, but the reviver runs on server-supplied JSON).
         if (typeof value.__raskRef__ === "string") {
-            return document.querySelector('[data-rask-ref="' + value.__raskRef__ + '"]');
+            return document.querySelector(`[data-rask-ref="${CSS.escape(value.__raskRef__)}"]`);
         }
     }
     return value;
@@ -1496,8 +1499,7 @@ const dotNetPending = new Map();
 let nextDotNetCallId = 1;
 
 window.DotNet = window.DotNet || {
-    invokeMethodAsync(assemblyName, methodIdentifier /*, ...args */) {
-        const args = Array.prototype.slice.call(arguments, 2);
+    invokeMethodAsync(assemblyName, methodIdentifier, ...args) {
         const callId = String(nextDotNetCallId++);
         return new Promise((resolve, reject) => {
             dotNetPending.set(callId, {resolve, reject});
