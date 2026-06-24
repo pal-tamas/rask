@@ -104,6 +104,66 @@ public static class BindingHelpers
         };
     }
 
+    // Adds or removes an item in a bound ICollection<T> by a supplied comparer — the membership edit a
+    // multi-select control performs on every toggle. When `include`, the item is added only if no element
+    // already compares equal; otherwise the first comparer-equal element is removed. Removal targets that
+    // exact matched instance because ICollection<T>.Remove uses the collection's own equality (value
+    // equality for records, reference equality for most classes), which can differ from `comparer`.
+    // Returns whether the collection changed. `comparer` defaults to EqualityComparer<T>.Default.
+    public static bool SetCollectionMembership<T>(
+        ICollection<T> collection, T item, bool include, IEqualityComparer<T>? comparer = null)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+        comparer ??= EqualityComparer<T>.Default;
+
+        T? match = default;
+        var present = false;
+        foreach (var existing in collection)
+        {
+            if (comparer.Equals(existing, item))
+            {
+                match = existing;
+                present = true;
+                break;
+            }
+        }
+
+        if (include)
+        {
+            if (present)
+            {
+                return false;
+            }
+
+            collection.Add(item);
+            return true;
+        }
+
+        if (!present)
+        {
+            return false;
+        }
+
+        collection.Remove(match!);
+        return true;
+    }
+
+    // Commits a field change to the EditContext from a custom control's change handler: marks the field
+    // changed and touched, then re-validates it. No-op when there is no ambient context (the control is
+    // rendered outside a Form / live render). Mirrors what the bound Input/Select/Textarea handlers do, so
+    // a hand-written control drives validation the same way. See docs/forms.md §9.
+    public static async Task NotifyAndValidateFieldAsync(EditContext? ctx, FieldIdentifier field)
+    {
+        if (ctx is null)
+        {
+            return;
+        }
+
+        ctx.NotifyFieldChanged(field);
+        ctx.NotifyFieldTouched(field);
+        await ctx.ValidateFieldAsync(field).ConfigureAwait(false);
+    }
+
     // Collapses the typed AfterBind / AfterBindAsync pair from a `Bound<TProp>` factory into a
     // single non-generic Func<Task>? closure. Returns null when neither is supplied so the
     // handler builders can stay on the cheap no-callback path. The closure reads the now-set

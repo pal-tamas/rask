@@ -970,8 +970,10 @@ immediately.
 Rask ships a small public binding API in `Rask.Core.Forms` rather than a large control library, so you write exactly
 the controls you need — `RadioGroup`/`CheckboxGroup` and the showcase `MultiSelect<TItem>` are built on it.
 `ExpressionAccessor.Parse(() => model.Prop)` yields a runtime accessor (target, getter, field);
-`BindingHelpers.ResolveBindingContext(model)` resolves the surrounding `EditContext` so your handlers can call
-`NotifyFieldChanged` / `ValidateFieldAsync`; `EditContext.RegisterFieldValidator` adds a per-field rule. A stateless
+`BindingHelpers.ResolveBindingContext(model)` resolves the surrounding `EditContext`;
+`BindingHelpers.SetCollectionMembership(collection, item, include)` toggles a bound collection by comparer and
+`BindingHelpers.NotifyAndValidateFieldAsync(ctx, field)` commits a change (marks changed/touched + re-validates);
+`EditContext.RegisterFieldValidator` adds a per-field rule. A stateless
 control returns a `Fragment` (its handlers re-render the host for free, like a bound `Input`); a stateful one (an
 open/close dropdown) is a `Component` that keeps live feedback inside itself or exposes an auto-wrapped `OnChange`
 callback to refresh host-side UI. The showcase's `MultiSelect<TItem>` — a dropdown with removable chips, Esc /
