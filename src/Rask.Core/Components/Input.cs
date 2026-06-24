@@ -51,22 +51,19 @@ public sealed class Input : Element
 
     public CallbackAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
 
-    // Expression-driven factory. The generator picks up [GenerateForwarderFactory] and emits
-    // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers
-    // write `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field,
-    // per-type input type (checkbox/number/date/text), and per-type change handlers wired
-    // into the ambient EditContext.
+    // Expression-driven factory. The generator picks up [GenerateForwarderFactory(Validator=…)] and emits
+    // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers write
+    // `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field, per-type input
+    // type (checkbox/number/date/text), and per-type change handlers wired into the ambient EditContext.
     //
-    // `Validate` ships as three overloads to dodge the delegate cast at the call site:
-    //   - no Validate parameter at all (omit to skip validation),
-    //   - typed sync   `Validate<TProp> Validate`,
-    //   - typed async  `ValidateAsync<TProp> Validate`.
-    // Both are the shared validator delegate types in Rask.Core.Forms.
-    // Overload resolution picks based on the lambda's arity; all three forward to the shared
-    // BoundCore which collapses to the single `Delegate?` the EditContext consumes.
-    [GenerateForwarderFactory]
+    // The `Validator = nameof(Validate)` arg makes the generator fan this single core into three emitted
+    // overloads — none / `Validate<TProp>` / `ValidateAsync<TProp>` — to dodge the delegate cast at the
+    // call site; overload resolution picks by the lambda's arity. The `Validate` parameter is the single
+    // `Delegate?` the EditContext consumes (null in the none overload).
+    [GenerateForwarderFactory(Validator = "Validate")]
     public static Input Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Delegate? Validate = null,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Type = null,
@@ -89,98 +86,6 @@ public sealed class Input : Element
         string? Class = null,
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
-            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, null,
-            AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    [GenerateForwarderFactory]
-    public static Input Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Validate<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Type = null,
-        string? Name = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        string? Min = null,
-        string? Max = null,
-        string? Step = null,
-        string? Pattern = null,
-        int? Size = null,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Autocomplete = null,
-        bool Autofocus = false,
-        string? List = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
-            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, Validate,
-            AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    [GenerateForwarderFactory]
-    public static Input Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        ValidateAsync<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Type = null,
-        string? Name = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        string? Min = null,
-        string? Max = null,
-        string? Step = null,
-        string? Pattern = null,
-        int? Size = null,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Autocomplete = null,
-        bool Autofocus = false,
-        string? List = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-        => BoundCore(Bind, Type, Name, Placeholder, Required, Disabled, ReadOnly,
-            Min, Max, Step, Pattern, Size, MaxLength, MinLength,
-            Autocomplete, Autofocus, List, Validate,
-            AfterBind, AfterBindAsync, Id, Class, Style, Data);
-
-    private static Input BoundCore<TProp>(
-        Expression<Func<TProp>> Bind,
-        string? Type,
-        string? Name,
-        string? Placeholder,
-        bool Required,
-        bool Disabled,
-        bool ReadOnly,
-        string? Min,
-        string? Max,
-        string? Step,
-        string? Pattern,
-        int? Size,
-        int? MaxLength,
-        int? MinLength,
-        string? Autocomplete,
-        bool Autofocus,
-        string? List,
-        Delegate? validate,
-        Action<TProp>? afterBindSync,
-        Func<TProp, Task>? afterBindAsync,
-        string? Id,
-        string? Class,
-        string? Style,
-        IReadOnlyDictionary<string, string?>? Data)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
@@ -190,9 +95,9 @@ public sealed class Input : Element
 
         // Always call Register — null clears a stale delegate from a prior render so dropping
         // the parameter between frames doesn't leave the old rule running.
-        ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
+        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
 
-        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
+        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
         var current = acc.Getter();
 
         if (resolvedType == "checkbox")

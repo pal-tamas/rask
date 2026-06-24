@@ -27,13 +27,13 @@ public sealed class Select : Element
 
     public CallbackAsync<string>? OnChangeAsync { get; set; }
 
-    // Expression-driven factory; pre-marks the matching <option> as selected so the
-    // initial render reflects the bound value without round-tripping through the browser.
-    // `Validate` ships as three overloads (none / `Validate<TProp>` / `ValidateAsync<TProp>`) to avoid a
-    // delegate cast at the call site — see Input.Bound for the dispatch rationale.
-    [GenerateForwarderFactory]
+    // Expression-driven factory; pre-marks the matching <option> as selected so the initial render
+    // reflects the bound value without round-tripping through the browser. The `Validator` arg fans this
+    // single core into none / `Validate<TProp>` / `ValidateAsync<TProp>` overloads — see Input.Bound.
+    [GenerateForwarderFactory(Validator = "Validate")]
     public static Select Bound<TProp>(
         Expression<Func<TProp>> Bind,
+        Delegate? Validate = null,
         Action<TProp>? AfterBind = null,
         Func<TProp, Task>? AfterBindAsync = null,
         string? Name = null,
@@ -47,72 +47,13 @@ public sealed class Select : Element
         string? Style = null,
         IReadOnlyDictionary<string, string?>? Data = null,
         params IEnumerable<Child> Children)
-        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            null, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
-
-    [GenerateForwarderFactory]
-    public static Select Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Validate<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        bool Required = false,
-        bool Disabled = false,
-        int? Size = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null,
-        params IEnumerable<Child> Children)
-        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
-
-    [GenerateForwarderFactory]
-    public static Select Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        ValidateAsync<TProp> Validate,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        bool Required = false,
-        bool Disabled = false,
-        int? Size = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null,
-        params IEnumerable<Child> Children)
-        => BoundCore(Bind, Name, Required, Disabled, Size, Autofocus, Autocomplete,
-            Validate, AfterBind, AfterBindAsync, Id, Class, Style, Data, Children);
-
-    private static Select BoundCore<TProp>(
-        Expression<Func<TProp>> Bind,
-        string? Name,
-        bool Required,
-        bool Disabled,
-        int? Size,
-        bool Autofocus,
-        string? Autocomplete,
-        Delegate? validate,
-        Action<TProp>? afterBindSync,
-        Func<TProp, Task>? afterBindAsync,
-        string? Id,
-        string? Class,
-        string? Style,
-        IReadOnlyDictionary<string, string?>? Data,
-        IEnumerable<Child> Children)
     {
         var acc = ExpressionAccessor.Parse(Bind);
         var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
         var fid = acc.Field;
         var name = Name ?? acc.PropertyName;
-        ctx?.RegisterFieldValidator(fid, validate, () => acc.Getter());
-        var afterBind = BindingHelpers.BuildAfterBind(acc, afterBindSync, afterBindAsync);
+        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
 
         var select = (Select)C.Select(
             name, Required: Required, Disabled: Disabled, Size: Size,
