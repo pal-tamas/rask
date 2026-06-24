@@ -37,6 +37,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/boom", "Error boundary", "bi-shield-exclamation", "Components", null),
         ("/binding", "Two-way binding", "bi-arrow-left-right", "Forms", null),
         ("/validation", "Validation", "bi-shield-check", "Forms", null),
+        ("/floating-labels", "Floating labels", "bi-input-cursor-text", "Forms", null),
         ("/nested-forms", "Complex models", "bi-diagram-3", "Forms", null),
         ("/form-groups", "Radio & checkbox", "bi-ui-radios", "Forms", null),
         ("/svg", "SVG", "bi-vector-pen", "DSL", null),

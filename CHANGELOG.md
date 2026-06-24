@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Floating-label form input showcase (samples only).** A reusable `FloatingInput<TProp>` example
+  component (`samples/Rask.Example.Shared/Shared/FloatingInput.cs`) wraps Rask's `Input` + `Label` +
+  `ValidationMessage` in Bootstrap 5.3's `.form-floating` markup — one line per field, with the id
+  derived from the bound property and the input type inferred from `TProp`. It owns no validation
+  state and needs no extra CSS (errors show via Bootstrap's `.invalid-feedback .d-block`). Surfaced
+  on a new `/floating-labels` page under the Forms nav group.
+
 ### Security
 - **`CSS.escape` the ElementRef reviver selector (both runtimes).** The client reviver that
   resolves an `{"__raskRef__":"id"}` placeholder to a live DOM element now escapes the id via
