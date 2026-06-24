@@ -437,9 +437,16 @@ so you can write exactly the controls you need. `RadioGroup`/`CheckboxGroup` (§
   validator (a `Func<T, IEnumerable<string>>` or async
   `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>`). Always call it each render — passing
   `null` clears a stale rule.
+- **`BindingHelpers.SetCollectionMembership(collection, item, include, comparer?)`** — add (when absent)
+  or remove (the matched instance) an item in a bound `ICollection<T>` by a comparer
+  (default `EqualityComparer<T>.Default`); returns whether it changed. The membership edit a multi-select
+  / checkbox-group performs per toggle.
+- **`BindingHelpers.NotifyAndValidateFieldAsync(ctx, field)`** — commits a change: marks the field
+  changed + touched and re-validates it (no-op when `ctx` is `null`). The one call a custom control's
+  change handler needs.
 
 A bound control reads the value during `Render`, registers any validator, and on each interaction
-mutates the value then notifies/validates the field:
+mutates the value then commits the field:
 
 ```csharp
 var acc = ExpressionAccessor.Parse(Bind);                 // Bind: Expression<Func<ICollection<T>>>
@@ -447,10 +454,9 @@ var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
 ctx?.RegisterFieldValidator(acc.Field, Validate, () => acc.Getter());   // null clears a stale rule
 var selected = acc.Getter() as ICollection<T>;
 // …render options from `selected`…
-// in a click/change handler, after add/remove on the collection:
-ctx?.NotifyFieldChanged(acc.Field);
-ctx?.NotifyFieldTouched(acc.Field);
-if (ctx is not null) await ctx.ValidateFieldAsync(acc.Field);
+// in a click/change handler, after toggling the bound collection:
+BindingHelpers.SetCollectionMembership(selected!, item, include: nowChecked);
+await BindingHelpers.NotifyAndValidateFieldAsync(ctx, acc.Field);
 ```
 
 Surface field messages with `ValidationMessage(Bind, …)` (§2.Rendering messages) inside the control.

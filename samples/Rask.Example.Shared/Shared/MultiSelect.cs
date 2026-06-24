@@ -215,24 +215,8 @@ public sealed class MultiSelect<TItem> : Component
             return;
         }
 
-        if (add)
-        {
-            if (!collection.Contains(item, comparer))
-            {
-                collection.Add(item);
-            }
-        }
-        else
-        {
-            Remove(collection, item, comparer);
-        }
-
-        ctx?.NotifyFieldChanged(fid);
-        ctx?.NotifyFieldTouched(fid);
-        if (ctx is not null)
-        {
-            await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-        }
+        BindingHelpers.SetCollectionMembership(collection, item, add, comparer);
+        await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
 
         AfterBind?.Invoke(collection);
         if (AfterBindAsync is not null)
@@ -245,46 +229,12 @@ public sealed class MultiSelect<TItem> : Component
     {
         // The parent owns Value; never mutate it in place. Build the next selection and hand it back.
         var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
-        if (add)
-        {
-            if (!next.Contains(item, comparer))
-            {
-                next.Add(item);
-            }
-        }
-        else
-        {
-            Remove(next, item, comparer);
-        }
+        BindingHelpers.SetCollectionMembership(next, item, add, comparer);
 
         OnChange?.Invoke(next);
         if (OnChangeAsync is not null)
         {
             await OnChangeAsync(next).ConfigureAwait(false);
-        }
-    }
-
-    // Membership uses Enumerable.Contains(comparer); removal finds the match first and removes it after
-    // the loop (never mutating mid-enumeration), matching CheckboxGroup's vetted pattern. ICollection.Remove
-    // uses the collection's default equality, which can differ from the supplied comparer, so we remove the
-    // exact captured instance.
-    private static void Remove(ICollection<TItem> collection, TItem item, IEqualityComparer<TItem> comparer)
-    {
-        TItem? match = default;
-        var found = false;
-        foreach (var existing in collection)
-        {
-            if (comparer.Equals(existing, item))
-            {
-                match = existing;
-                found = true;
-                break;
-            }
-        }
-
-        if (found)
-        {
-            collection.Remove(match!);
         }
     }
 }

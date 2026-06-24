@@ -53,12 +53,7 @@ public static partial class Generated
                     {
                         // A radio only fires change when it becomes selected → set the bound value.
                         acc.Setter(optionValue);
-                        ctx?.NotifyFieldChanged(fid);
-                        ctx?.NotifyFieldTouched(fid);
-                        if (ctx is not null)
-                        {
-                            await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                        }
+                        await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
                     }),
                 Label(Class: "form-check-label", For: optionId)[label]
             ]);

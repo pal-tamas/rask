@@ -36,7 +36,7 @@ public static partial class Generated
         {
             var optionValue = option; // capture per iteration
             var optionId = $"{groupName}-{index}";
-            var isChecked = selected is not null && Contains(selected, optionValue, comparer);
+            var isChecked = selected is not null && selected.Contains(optionValue, comparer);
             Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
@@ -57,24 +57,8 @@ public static partial class Generated
                         }
 
                         var nowChecked = bool.TryParse(value, out var b) && b;
-                        if (nowChecked)
-                        {
-                            if (!Contains(collection, optionValue, comparer))
-                            {
-                                collection.Add(optionValue);
-                            }
-                        }
-                        else
-                        {
-                            Remove(collection, optionValue, comparer);
-                        }
-
-                        ctx?.NotifyFieldChanged(fid);
-                        ctx?.NotifyFieldTouched(fid);
-                        if (ctx is not null)
-                        {
-                            await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                        }
+                        BindingHelpers.SetCollectionMembership(collection, optionValue, nowChecked, comparer);
+                        await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
                     }),
                 Label(Class: "form-check-label", For: optionId)[label]
             ]);
@@ -82,40 +66,5 @@ public static partial class Generated
         }
 
         return Fragment()[children];
-    }
-
-    private static bool Contains<TItem>(ICollection<TItem> collection, TItem item, IEqualityComparer<TItem> comparer)
-    {
-        foreach (var existing in collection)
-        {
-            if (comparer.Equals(existing, item))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void Remove<TItem>(ICollection<TItem> collection, TItem item, IEqualityComparer<TItem> comparer)
-    {
-        // Remove by comparer equality (collection.Remove uses default equality, which for records
-        // is value equality but for reference items may differ from the supplied comparer).
-        TItem? match = default;
-        var found = false;
-        foreach (var existing in collection)
-        {
-            if (comparer.Equals(existing, item))
-            {
-                match = existing;
-                found = true;
-                break;
-            }
-        }
-
-        if (found)
-        {
-            collection.Remove(match!);
-        }
     }
 }
