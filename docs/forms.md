@@ -362,12 +362,13 @@ See `samples/Rask.Example.Shared/Features/NestedForms/NestedFormPage.cs` for all
 
 ---
 
-## 8. Radio & checkbox groups
+## 8. Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`, toggling each item in place. Both are transparent `Fragment`s built on the same
-binding machinery, so changes flow through the `EditContext` (validation, touched-tracking) like any
-bound field.
+`ICollection<TItem>`, toggling each item in place. They are **example components that ship in the
+samples** (`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls
+built on the public binding API of §9. Both render a transparent `Fragment`, so changes flow through the
+`EditContext` (validation, touched-tracking) like any bound field.
 
 ```csharp
 public static Component RadioGroup<TValue>(
@@ -390,50 +391,60 @@ public static Component CheckboxGroup<TItem>(
 ```csharp
 Form(_prefs)[
     RadioGroup(() => _prefs.Plan,                       // single value
-        Options: new[] { Plan.Free, Plan.Pro, Plan.Team },
-        OptionLabel: p => Span()[p.ToString()]),
+        new[] { Plan.Free, Plan.Pro, Plan.Team },
+        ItemClass: "form-check-inline"),
 
     CheckboxGroup<string>(() => _prefs.Interests,       // a collection — toggles in place
-        Options: new[] { "Web", "Mobile", "AI", "Games" },
-        OptionLabel: t => Span()[t])
+        new[] { "Web", "Mobile", "AI", "Games" },
+        ItemClass: "form-check-inline")
 ]
 ```
 
 - The first positional argument is the `Bind` expression.
+- Each item renders Bootstrap 5.3
+  [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
+  `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
+  `id`/`for`. `ItemClass` adds extra classes to that wrapper (e.g. `"form-check-inline"`); `OptionLabel`
+  customizes the label content.
 - `RadioGroup` renders the option equal to the current value `checked`; the change handler sets the
-  bound property.
-- `CheckboxGroup` mutates the bound collection in place; membership is compared with
+  bound property. `CheckboxGroup` mutates the bound collection in place; membership is compared with
   `EqualityComparer<TItem>.Default`. You usually need the explicit type argument
   (`CheckboxGroup<string>`) when the bound collection is a concrete `List<T>`.
-- Each renders a transparent `Fragment` of `<label><input>…</label>` — control layout with
-  `OptionLabel` and `ItemClass`.
-- Changing an option re-renders the component that declared the group, so a live summary updates
-  immediately. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` + `ValidateFieldAsync`,
-  so DataAnnotations / FluentValidation rules on the bound property apply.
+- Because they return a `Fragment` (no component boundary of their own), changing an option re-renders
+  the component that declared the group — a live summary updates immediately. Each change calls
+  `NotifyFieldChanged` + `NotifyFieldTouched` + `ValidateFieldAsync`, so DataAnnotations /
+  FluentValidation rules on the bound property apply.
 
 See `samples/Rask.Example.Shared/Features/FormGroups/FormGroupsPage.cs`.
 
-## 9. Building a custom bound control (public binding API)
+## 9. Building form components (public binding API)
 
-`RadioGroup`/`CheckboxGroup` are built on a small public API in `Rask.Core.Forms` that you can use to
-write your own form-bound controls — anything that needs to read/write a model property and drive the
-ambient `EditContext`:
+Rask doesn't ship a large control library — instead it exposes a small public API in `Rask.Core.Forms`
+so you can write exactly the controls you need. `RadioGroup`/`CheckboxGroup` (§8) and the showcase
+`MultiSelect<TItem>` are built entirely on it. This section is the recipe.
+
+### The binding API
 
 - **`ExpressionAccessor.Parse(Expression)` → `Accessor`** — turns a `() => model.Prop` lambda into a
-  runtime accessor: `Target` (the owner instance), `Getter()`, `PropertyName`, `PropertyType`, and
-  `Field` (the `FieldIdentifier`). It accepts simple properties, nested chains, foreach-captured
-  locals, and indexer access on the inner expression (e.g. `() => model.Items[i].Name`).
-- **`BindingHelpers.ResolveBindingContext(object model)` → `EditContext?`** — resolves the
-  `EditContext` the surrounding `Form` will use (returns `null` outside a form/live render).
+  runtime accessor: `Target` (the owner instance), `Getter()`/`Setter(value)`, `PropertyName`,
+  `PropertyType`, and `Field` (the `FieldIdentifier`). Accepts simple properties, nested chains,
+  foreach-captured locals, and indexer access (e.g. `() => model.Items[i].Name`).
+- **`BindingHelpers.ResolveBindingContext(object model)` → `EditContext?`** — resolves the `EditContext`
+  the surrounding `Form` will use (returns `null` outside a form/live render).
 - **`BindingHelpers.FormatValue(object?)` → `string`** — the framework's value→string convention
   (invariant culture; the shapes `<input>` round-trips).
+- **`EditContext.RegisterFieldValidator(field, validate, valueGetter)`** — register a per-field
+  validator (a `Func<T, IEnumerable<string>>` or async
+  `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>`). Always call it each render — passing
+  `null` clears a stale rule.
 
-A control reads the bound value during `Render`, and on each interaction mutates it, then calls
-`NotifyFieldChanged` / `NotifyFieldTouched` / `ValidateFieldAsync` on the resolved context:
+A bound control reads the value during `Render`, registers any validator, and on each interaction
+mutates the value then notifies/validates the field:
 
 ```csharp
 var acc = ExpressionAccessor.Parse(Bind);                 // Bind: Expression<Func<ICollection<T>>>
 var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
+ctx?.RegisterFieldValidator(acc.Field, Validate, () => acc.Getter());   // null clears a stale rule
 var selected = acc.Getter() as ICollection<T>;
 // …render options from `selected`…
 // in a click/change handler, after add/remove on the collection:
@@ -442,12 +453,38 @@ ctx?.NotifyFieldTouched(acc.Field);
 if (ctx is not null) await ctx.ValidateFieldAsync(acc.Field);
 ```
 
-If your control is a `Component` (so it can hold view state, like an open/closed dropdown), its own
-handlers re-render *it*, not the parent. Expose an `Action? OnChange` callback the consumer can pass
-(callbacks re-render the owning parent) so a live summary or sibling field updates as the selection
-changes.
+Surface field messages with `ValidationMessage(Bind, …)` (§2.Rendering messages) inside the control.
 
-The showcase's `MultiSelect<TItem>` (`samples/Rask.Example.Shared/Shared/MultiSelect.cs`) is a worked
-example: a custom Bootstrap dropdown with removable chips, bound to an `ICollection<TItem>`, open/close
-driven purely by the live diff (no client JS). See the `/multiselect` page, which also shows the
-built-in `CheckboxGroup`/`RadioGroup` alongside it.
+### Stateless (`Fragment`) vs stateful (`Component`) — and host re-render
+
+This is the one subtlety worth understanding:
+
+- A control with **no view state of its own** is best written as a static factory returning a
+  `Fragment` (like `CheckboxGroup`). Its `<input>` handlers are owned by the **host** component that
+  declared it (handler-owner resolution keeps the owner as the host when the handler isn't a
+  `Component`-targeted delegate), so a change re-renders the host for free — exactly like a bound
+  `Input`. Host-side derived UI (a live summary) just updates.
+- A control that **needs view state** (an open/closed dropdown) must be a `Component`. Now its own
+  handlers re-render *it*, not the host, so host-side derived UI would go stale. Two clean options:
+  - keep the live feedback **inside the control** (chips, an embedded `ValidationMessage`) — it refreshes
+    because the control re-renders itself; or
+  - expose an `Action<T>`/`Func<T,Task>` **callback** (`OnChange`) the consumer passes. Callback props on
+    a component are auto-wrapped (`AutoCallback`) so invoking them re-renders the component that owns the
+    handler — i.e. the host — so a host-side summary updates with no `StateHasChanged`.
+
+### Bound vs controlled
+
+Mirror `Input` and offer both shapes where it makes sense:
+
+- **Bound** — take a `Bind` expression and drive the `EditContext` (validation, touched-tracking). Add
+  `AfterBind`/`AfterBindAsync(value)` post-mutation hooks for consumer logic.
+- **Controlled** — take a `Value` + `OnChange`/`OnChangeAsync(newValue)` pair and let the parent own the
+  state (no `EditContext`, so no validation). Build a *new* collection rather than mutating `Value`.
+
+### Worked examples
+
+- `samples/Rask.Example.Shared/Shared/CheckboxGroup.cs` / `RadioGroup.cs` — minimal stateless
+  `Fragment` controls with per-field binding and validation.
+- `samples/Rask.Example.Shared/Shared/MultiSelect.cs` — a stateful `Component`: a Bootstrap dropdown
+  with removable chips, Esc / click-outside close (pure live-diff, no client JS), both bound (with a
+  `Validate` rule) and controlled (`Value` + auto-wrapped `OnChange`) modes. See the `/multiselect` page.

@@ -13,8 +13,7 @@ public sealed class MultiSelectRadioDemo : Component
                 RadioGroup(
                     () => _prefs.Plan,
                     [Tier.Free, Tier.Pro, Tier.Team],
-                    p => Span(Class: "ms-1 me-3")[p.ToString()],
-                    ItemClass: "form-check-label")
+                    ItemClass: "form-check-inline")
             ],
             P(Class: "small text-secondary mb-0", Id: "ms-radio-summary")[$"Plan: {_prefs.Plan}"]
         ];

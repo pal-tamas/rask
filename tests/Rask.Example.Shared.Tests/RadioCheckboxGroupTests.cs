@@ -1,19 +1,24 @@
 using System.Text.Json;
+using Rask.Example.Shared;
+using Rask.Example.Shared.Tests.Infrastructure;
+using static Rask.Core.Components.Generated;
+using static Rask.Example.Shared.Generated;
 
-#pragma warning disable RASK014 // test uses the StubComponent test helper directly
+namespace Rask.Example.Shared.Tests.Demos;
 
-namespace Rask.Core.Tests.Forms;
-
+// RadioGroup<TValue> / CheckboxGroup<TItem> are example form controls (moved out of Rask.Core into the
+// samples). These drive the live change handlers directly and assert the bound model + rendered checks.
 public class RadioCheckboxGroupTests
 {
     [Fact]
     public void RadioGroup_RendersOnePerOption_CurrentChecked()
     {
         var m = new ColorModel { Choice = Color.Green };
-        var view = new StubComponent(() =>
-            Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })]);
+        var host = new LiveHost(
+            () => Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })],
+            TestServices.Default());
 
-        var html = view.RenderAsLiveRoot();
+        var html = host.RenderAsLiveRoot();
 
         Assert.Equal(3, CountOccurrences(html, "type=\"radio\""));
         Assert.Equal(3, CountOccurrences(html, "name=\"Choice\""));
@@ -29,22 +34,23 @@ public class RadioCheckboxGroupTests
     public async Task RadioGroup_Change_SetsBoundValue()
     {
         var m = new ColorModel { Choice = Color.Red };
-        var view = new StubComponent(() =>
-            Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })]);
+        var host = new LiveHost(
+            () => Form(m)[RadioGroup(() => m.Choice, new[] { Color.Red, Color.Green, Color.Blue })],
+            TestServices.Default());
 
-        var html = view.RenderAsLiveRoot();
+        var html = host.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
         Assert.Equal(3, ids.Count);
 
         // Fire the third radio (Blue). A radio change carries the checked state; the handler
         // ignores it and sets the bound value to its captured option.
         using var doc = JsonDocument.Parse("{\"value\":\"true\"}");
-        await view.TryInvokeHandlerAsync(ids[2], doc.RootElement);
+        await host.TryInvokeHandlerAsync(ids[2], doc.RootElement);
 
         Assert.Equal(Color.Blue, m.Choice);
 
         // Re-render: the checked radio moved to Blue.
-        var html2 = view.RenderAsLiveRoot();
+        var html2 = host.RenderAsLiveRoot();
         var blueIdx = html2.IndexOf("value=\"Blue\"", StringComparison.Ordinal);
         var checkedIdx = html2.IndexOf(" checked", StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(html2, " checked"));
@@ -56,10 +62,11 @@ public class RadioCheckboxGroupTests
     {
         var m = new TagsModel();
         m.Tags.Add("b");
-        var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
+        var host = new LiveHost(
+            () => Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            TestServices.Default());
 
-        var html = view.RenderAsLiveRoot();
+        var html = host.RenderAsLiveRoot();
 
         Assert.Equal(3, CountOccurrences(html, "type=\"checkbox\""));
         Assert.Equal(1, CountOccurrences(html, " checked")); // only "b"
@@ -73,14 +80,15 @@ public class RadioCheckboxGroupTests
     public async Task CheckboxGroup_Check_AddsToCollection()
     {
         var m = new TagsModel();
-        var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
+        var host = new LiveHost(
+            () => Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            TestServices.Default());
 
-        var html = view.RenderAsLiveRoot();
+        var html = host.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
 
         using var doc = JsonDocument.Parse("{\"value\":\"true\"}");
-        await view.TryInvokeHandlerAsync(ids[0], doc.RootElement); // check "a"
+        await host.TryInvokeHandlerAsync(ids[0], doc.RootElement); // check "a"
 
         Assert.Contains("a", m.Tags);
         Assert.Single(m.Tags);
@@ -92,14 +100,15 @@ public class RadioCheckboxGroupTests
         var m = new TagsModel();
         m.Tags.Add("a");
         m.Tags.Add("b");
-        var view = new StubComponent(() =>
-            Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })]);
+        var host = new LiveHost(
+            () => Form(m)[CheckboxGroup<string>(() => m.Tags, new[] { "a", "b", "c" })],
+            TestServices.Default());
 
-        var html = view.RenderAsLiveRoot();
+        var html = host.RenderAsLiveRoot();
         var ids = AllChangeIds(html);
 
         using var doc = JsonDocument.Parse("{\"value\":\"false\"}");
-        await view.TryInvokeHandlerAsync(ids[1], doc.RootElement); // uncheck "b"
+        await host.TryInvokeHandlerAsync(ids[1], doc.RootElement); // uncheck "b"
 
         Assert.DoesNotContain("b", m.Tags);
         Assert.Contains("a", m.Tags);
