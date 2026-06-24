@@ -10,4 +10,10 @@ namespace Rask.Core;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class GenerateForwarderFactoryAttribute : Attribute
 {
+    // When set to the name of a `System.Delegate?` parameter on the source method, the generator fans the
+    // forwarder into three overloads (none / sync / async) instead of one verbatim forwarder — the
+    // validator parameter is omitted (forwarded as null), typed `Validate<T>`, or typed `ValidateAsync<T>`
+    // respectively, where T is the method's first type parameter. Lets a control declare a single `Bound`
+    // core and get the cast-free Validate overloads generated, instead of hand-writing all three.
+    public string? Validator { get; init; }
 }

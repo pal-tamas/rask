@@ -168,11 +168,20 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             var hasAttr = false;
+            string? validatorParam = null;
             foreach (var attr in method.GetAttributes())
             {
                 if (attr.AttributeClass?.ToDisplayString() == GenerateForwarderFactoryFullName)
                 {
                     hasAttr = true;
+                    foreach (var named in attr.NamedArguments)
+                    {
+                        if (named.Key == "Validator" && named.Value.Value is string v && v.Length > 0)
+                        {
+                            validatorParam = v;
+                        }
+                    }
+
                     break;
                 }
             }
@@ -181,6 +190,10 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 continue;
             }
+
+            // The validator fan-out types its sync/async overloads as Validate<T>/ValidateAsync<T> over the
+            // method's first type parameter (the bound property type), so it only applies to generic methods.
+            var validatorTypeArg = method.TypeParameters.Length > 0 ? method.TypeParameters[0].Name : string.Empty;
 
             var typeParams = method.TypeParameters.Length > 0
                 ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
@@ -206,7 +219,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 method.Name,
                 typeParams,
                 constraints,
-                new EquatableArray<ForwarderParamInfo>(parameters)));
+                new EquatableArray<ForwarderParamInfo>(parameters),
+                validatorTypeArg.Length > 0 ? validatorParam : null,
+                validatorTypeArg));
         }
 
         return result;
@@ -936,35 +951,75 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static void EmitForwarderFactory(StringBuilder sb, Candidate c, ForwarderInfo f, bool emitNavigation)
     {
+        // No validator configured → one verbatim forwarder (the original behavior).
+        if (f.ValidatorParam is null)
+        {
+            EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.None, fanOut: false);
+            return;
+        }
+
+        // Validator configured → fan into none/sync/async, exactly like the [FactoryGeneric] validator
+        // fan-out, but forwarding to the hand-written source method instead of building the component.
+        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.None, fanOut: true);
+        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.Sync, fanOut: true);
+        EmitForwarderOverload(sb, c, f, emitNavigation, ValidatorShape.Async, fanOut: true);
+    }
+
+    private static void EmitForwarderOverload(
+        StringBuilder sb, Candidate c, ForwarderInfo f, bool emitNavigation, ValidatorShape shape, bool fanOut)
+    {
         var visibility = c.IsPublic ? "public" : "internal";
 
         // Signature: `public static {Component} {ComponentName}<...>(<params>) <constraints>`
         EmitMethodHeader(sb, c, emitNavigation);
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
             .Append(c.TypeName).Append(f.TypeParameters).Append('(');
+        var first = true;
         for (var i = 0; i < f.Parameters.Count; i++)
         {
-            if (i > 0)
+            var p = f.Parameters[i];
+            var isValidator = fanOut && p.Name == f.ValidatorParam;
+
+            // The None overload drops the validator parameter entirely (it's forwarded as null below).
+            if (isValidator && shape == ValidatorShape.None)
+            {
+                continue;
+            }
+
+            if (!first)
             {
                 sb.Append(", ");
             }
 
-            var p = f.Parameters[i];
+            first = false;
             if (p.IsParams)
             {
                 sb.Append("params ");
             }
 
-            sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
-            if (p.DefaultLiteral.Length > 0)
+            if (isValidator && shape == ValidatorShape.Sync)
             {
-                sb.Append(" = ").Append(p.DefaultLiteral);
+                sb.Append("global::Rask.Core.Forms.Validate<").Append(f.ValidatorTypeArg).Append("> ").Append(p.Name);
+            }
+            else if (isValidator && shape == ValidatorShape.Async)
+            {
+                sb.Append("global::Rask.Core.Forms.ValidateAsync<").Append(f.ValidatorTypeArg).Append("> ")
+                    .Append(p.Name);
+            }
+            else
+            {
+                sb.Append(p.TypeFqn).Append(' ').Append(p.Name);
+                if (p.DefaultLiteral.Length > 0)
+                {
+                    sb.Append(" = ").Append(p.DefaultLiteral);
+                }
             }
         }
 
         sb.Append(')').AppendLine(f.TypeParameterConstraints);
 
-        // Body: `=> global::{Component.FQN}.{MethodName}<...>(arg1, arg2, ...);`
+        // Body forwards to the source method. Non-fan-out keeps positional forwarding (verbatim shape);
+        // fan-out forwards by name so the omitted validator can be passed as null at its real position.
         sb.Append("        => ").Append(c.FullyQualifiedName).Append('.').Append(f.MethodName)
             .Append(f.TypeParameters).Append('(');
         for (var i = 0; i < f.Parameters.Count; i++)
@@ -974,7 +1029,19 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.Append(", ");
             }
 
-            sb.Append(f.Parameters[i].Name);
+            var p = f.Parameters[i];
+            if (!fanOut)
+            {
+                sb.Append(p.Name);
+            }
+            else if (p.Name == f.ValidatorParam && shape == ValidatorShape.None)
+            {
+                sb.Append(p.Name).Append(": null");
+            }
+            else
+            {
+                sb.Append(p.Name).Append(": ").Append(p.Name);
+            }
         }
 
         sb.AppendLine(");");
@@ -1366,7 +1433,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string MethodName,
         string TypeParameters,
         string TypeParameterConstraints,
-        EquatableArray<ForwarderParamInfo> Parameters);
+        EquatableArray<ForwarderParamInfo> Parameters,
+        string? ValidatorParam,
+        string ValidatorTypeArg);
 
     private readonly record struct ForwarderParamInfo(
         string TypeFqn,
