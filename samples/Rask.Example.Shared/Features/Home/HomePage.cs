@@ -40,6 +40,7 @@ public sealed class HomePage(Navigator nav) : Component
 
         ("Forms", "bi-arrow-left-right", "Two-way binding", "() => model.X bindings.", "/binding"),
         ("Forms", "bi-shield-check", "Validation", "Inline, DataAnnotations, FluentValidation.", "/validation"),
+        ("Forms", "bi-input-cursor-text", "Floating labels", "Bootstrap floating labels + validation.", "/floating-labels"),
         ("Forms", "bi-diagram-3", "Complex models", "Nested objects and collections.", "/nested-forms"),
         ("Forms", "bi-ui-radios", "Radio & checkbox", "RadioGroup and CheckboxGroup.", "/form-groups"),
 
