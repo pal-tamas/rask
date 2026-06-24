@@ -1059,6 +1059,85 @@ public abstract class Component
                     owner.Live.StateDirty = true;
                     return true;
                 }
+                // Named callback delegate types (Callbacks.cs) — typed fast path mirroring the
+                // Action/Func cases above so the framework's own handlers don't fall to DynamicInvoke.
+                case Callback c:
+                    c();
+                    return true;
+                case Callback<MouseModifiers> c:
+                    c(ExtractModifiers(payload));
+                    return true;
+                case Callback<string> c:
+                    c(ExtractString(payload, "value"));
+                    return true;
+                case Callback<FormData> c:
+                    c(FormData.FromJson(payload));
+                    return true;
+                case Callback<ScrollEvent> c:
+                    c(ScrollEvent.FromJson(payload));
+                    return true;
+                case Callback<KeyboardEventArgs> c:
+                    c(KeyboardEventArgs.FromJson(payload));
+                    return true;
+                case Callback<IReadOnlyList<RaskFile>> c:
+                {
+                    var files = FileListReader.Read(payload);
+                    try { c(files); }
+                    finally { ReleaseFiles(files); }
+
+                    return true;
+                }
+                case CallbackAsync c:
+                    await InvokeWithRenderingAsync(() => c()).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                case CallbackAsync<MouseModifiers> c:
+                {
+                    var mods = ExtractModifiers(payload);
+                    await InvokeWithRenderingAsync(() => c(mods)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<string> c:
+                {
+                    var value = ExtractString(payload, "value");
+                    await InvokeWithRenderingAsync(() => c(value)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<FormData> c:
+                {
+                    var fd = FormData.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(fd)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<ScrollEvent> c:
+                {
+                    var sc = ScrollEvent.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(sc)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<KeyboardEventArgs> c:
+                {
+                    var ke = KeyboardEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(ke)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case CallbackAsync<IReadOnlyList<RaskFile>> c:
+                {
+                    var files = FileListReader.Read(payload);
+                    try
+                    {
+                        await InvokeWithRenderingAsync(() => c(files)).ConfigureAwait(false);
+                    }
+                    finally { ReleaseFiles(files); }
+
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
                 default:
                 {
                     // Parameterless delegate shapes outside the fast-path list above can still arrive

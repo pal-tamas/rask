@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Rask.Core;
 using Rask.Core.Forms;
 
 #pragma warning disable RASK014 // test-only StubComponent subclass has no generated factory
@@ -23,7 +24,7 @@ public class DataAnnotationsValidatorTests
         Person? captured = null;
         var view = new StubComponent(() => Form<Person>(
             p,
-            (Action<Person>)(m => captured = m))[
+            (Callback<Person>)(m => captured = m))[
             DataAnnotationsValidator(),
             Input(() => p.Name),
             Input(() => p.Age)

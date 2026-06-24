@@ -19,7 +19,7 @@ public sealed class BoomHandlerDemo : Component
             ]
         ];
 
-    private static Child BoundaryFallback(Exception ex, Action recover) =>
+    private static Child BoundaryFallback(Exception ex, Callback recover) =>
         Div(Class: "alert alert-danger d-flex align-items-start", Id: "boom-fallback")[
             I(Class: "bi bi-exclamation-octagon-fill me-3 fs-4"),
             Div()[

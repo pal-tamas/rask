@@ -25,11 +25,11 @@ public sealed class Textarea : Element
     public string? Autocomplete { get; set; }
     public string? Form { get; set; }
     public string? Dirname { get; set; }
-    public Action<string>? OnInput { get; set; }
-    public Action<string>? OnChange { get; set; }
-    public Func<string, Task>? OnInputAsync { get; set; }
+    public Callback<string>? OnInput { get; set; }
+    public Callback<string>? OnChange { get; set; }
+    public CallbackAsync<string>? OnInputAsync { get; set; }
 
-    public Func<string, Task>? OnChangeAsync { get; set; }
+    public CallbackAsync<string>? OnChangeAsync { get; set; }
 
     // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always
     // updates per-keystroke (OnInput) since textareas are inherently string-valued.

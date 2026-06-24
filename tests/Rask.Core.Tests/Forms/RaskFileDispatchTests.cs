@@ -17,7 +17,7 @@ public class RaskFileDispatchTests
             .BuildServiceProvider();
 
         IReadOnlyList<RaskFile>? received = null;
-        Action<IReadOnlyList<RaskFile>> handler = files => received = files;
+        Callback<IReadOnlyList<RaskFile>> handler = files => received = files;
 
         var view = new StubComponent(() => Input(OnFiles: handler));
         view.RenderAsLiveRoot();
@@ -48,7 +48,7 @@ public class RaskFileDispatchTests
             .BuildServiceProvider();
 
         var seen = 0;
-        Func<IReadOnlyList<RaskFile>, Task> handler = files =>
+        CallbackAsync<IReadOnlyList<RaskFile>> handler = files =>
         {
             seen = files.Count;
             return Task.CompletedTask;
@@ -72,7 +72,7 @@ public class RaskFileDispatchTests
     [Fact]
     public void Input_Emits_DataRaskOnFiles_Attribute_When_OnFiles_Set()
     {
-        Action<IReadOnlyList<RaskFile>> handler = _ => { };
+        Callback<IReadOnlyList<RaskFile>> handler = _ => { };
         var view = new StubComponent(() => Input("file", OnFiles: handler));
         var html = view.RenderAsLiveRoot();
         Assert.Contains("data-rask-on-files=", html);

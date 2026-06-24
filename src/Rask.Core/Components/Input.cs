@@ -43,13 +43,13 @@ public sealed class Input : Element
     public string? Src { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public Action<string>? OnInput { get; set; }
-    public Action<string>? OnChange { get; set; }
-    public Func<string, Task>? OnInputAsync { get; set; }
-    public Func<string, Task>? OnChangeAsync { get; set; }
-    public Action<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Callback<string>? OnInput { get; set; }
+    public Callback<string>? OnChange { get; set; }
+    public CallbackAsync<string>? OnInputAsync { get; set; }
+    public CallbackAsync<string>? OnChangeAsync { get; set; }
+    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
 
-    public Func<IReadOnlyList<RaskFileType>, Task>? OnFilesAsync { get; set; }
+    public CallbackAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
 
     // Expression-driven factory. The generator picks up [GenerateForwarderFactory] and emits
     // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers

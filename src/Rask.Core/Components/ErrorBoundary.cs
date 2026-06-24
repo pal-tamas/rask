@@ -2,7 +2,7 @@ namespace Rask.Core.Components;
 
 public sealed class ErrorBoundary : Component
 {
-    public Func<Exception, Action, Child>? Fallback { get; set; }
+    public Func<Exception, Callback, Child>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
@@ -15,7 +15,7 @@ public sealed class ErrorBoundary : Component
     // props in one call.
     internal void SetProps(
         IEnumerable<Child>? children,
-        Func<Exception, Action, Child>? fallback)
+        Func<Exception, Callback, Child>? fallback)
     {
         Children = children;
         Fallback = fallback;

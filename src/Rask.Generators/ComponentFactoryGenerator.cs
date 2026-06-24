@@ -1102,7 +1102,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append("global::System.Action<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
+            sb.Append("global::Rask.Core.Callback<").Append(gf.TypeParameter).Append(">? ").Append(dp).Append(" = null");
         }
 
         foreach (var dp in typedDelegates)
@@ -1113,8 +1113,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             first = false;
-            sb.Append("global::System.Func<").Append(gf.TypeParameter)
-                .Append(", global::System.Threading.Tasks.Task>? ").Append(dp).Append("Async = null");
+            sb.Append("global::Rask.Core.CallbackAsync<").Append(gf.TypeParameter)
+                .Append(">? ").Append(dp).Append("Async = null");
         }
 
         // Remaining props in declaration order, skipping the Model and typed-delegate names

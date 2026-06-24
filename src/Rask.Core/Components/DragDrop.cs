@@ -22,8 +22,8 @@ public sealed class DragDrop : Component
     public Func<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone. Set exactly one of OnDrop / OnDropAsync.
-    public Action<DragDropMove>? OnDrop { get; set; }
-    public Func<DragDropMove, Task>? OnDropAsync { get; set; }
+    public Callback<DragDropMove>? OnDrop { get; set; }
+    public CallbackAsync<DragDropMove>? OnDropAsync { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
     // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.

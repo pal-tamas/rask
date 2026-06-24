@@ -23,9 +23,9 @@ public sealed class Select : Element
     public string? Form { get; set; }
     public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
-    public Action<string>? OnChange { get; set; }
+    public Callback<string>? OnChange { get; set; }
 
-    public Func<string, Task>? OnChangeAsync { get; set; }
+    public CallbackAsync<string>? OnChangeAsync { get; set; }
 
     // Expression-driven factory; pre-marks the matching <option> as selected so the
     // initial render reflects the bound value without round-tripping through the browser.

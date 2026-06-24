@@ -36,8 +36,8 @@ public abstract class SvgElement : Element
     public string? Visibility { get; set; }
     public string? PointerEvents { get; set; }
 
-    public Action? OnClick { get; set; }
-    public Func<Task>? OnClickAsync { get; set; }
+    public Callback? OnClick { get; set; }
+    public CallbackAsync? OnClickAsync { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
