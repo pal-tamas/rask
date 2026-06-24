@@ -17,6 +17,15 @@ them until tagged releases begin.
   via Bootstrap's `.invalid-feedback .d-block`). Surfaced on a new `/floating-labels` page under the
   Forms nav group.
 
+### Removed
+- **Dropped the `TableModel<T>` headless-table primitive and the `Rask.Core.Tables` namespace**
+  (`ColumnDef<T>`, `ColumnSort`, `SortDirection`, `HeaderCell`, `TableRow<T>`, `TableModelContext<T>`)
+  from the framework, keeping `Rask.Core` minimal. The `/table` and `/master-detail` showcase pages
+  now render a plain `Table` directly — they already owned all the sort/page/expand state, so the
+  controlled-projection layer added no capability over the standard HTML table components. **Breaking:**
+  consumers using `TableModel<T>` should render `Table`/`Thead`/`Tbody`/`Tr`/`Td` themselves (see
+  `samples/Rask.Example.Shared/Features/Table/TablePage.cs` for the pattern).
+
 ### Security
 - **`CSS.escape` the ElementRef reviver selector (both runtimes).** The client reviver that
   resolves an `{"__raskRef__":"id"}` placeholder to a live DOM element now escapes the id via
