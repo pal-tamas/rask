@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Callback` / `Callback<T>` / `CallbackAsync` / `CallbackAsync<T>` delegate types.** Named delegate
+  types in `Rask.Core` are now the shape of every built-in component's event callbacks (the `X` / `XAsync`
+  pairs: `OnClick`/`OnClickAsync`, `OnInput`/`OnChange`/`…Async`, `OnKeyDown`/`OnKeyUp`, `OnDrag*`,
+  `OnScroll`, `OnSubmit`, `OnFiles`, and `Form`'s `OnValidSubmit`/`OnInvalidSubmit`), replacing the inline
+  `Action`/`Func<…,Task>` spellings — paired with the `Validate`/`ValidateAsync` convention. `AutoCallback`
+  and the live dispatcher (`Component.TryInvokeHandlerAsync`) carry typed overloads/cases for them, so the
+  re-render and DOM-dispatch hot paths stay reflection-free. **Standard `Action`/`Func` handlers remain
+  supported** for consumer code — these are additive. (`CallbackAsync`, not `AsyncCallback`, to avoid the
+  `System.AsyncCallback` clash.) **Minor breaking:** code passing a pre-typed `Action`/`Func` *variable* to
+  a built-in handler must switch the variable to the matching `Callback`/`CallbackAsync` type (inline
+  lambdas and method groups are unaffected).
 - **`Validate<T>` / `ValidateAsync<T>` delegate types.** Named, shared validator delegate types in
   `Rask.Core.Forms` replace the verbose inline `Func<T, IEnumerable<string>>` /
   `Func<T, CancellationToken, ValueTask<IEnumerable<string>>>` as the `Validate` parameter shape on every

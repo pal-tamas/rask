@@ -61,8 +61,8 @@ public class FormTests
 
         var view = new StubComponent(() => Form(
             p,
-            (Action<Person>)(_ => validCalled++),
-            (Action<Person>)(_ => invalidCalled++),
+            (Callback<Person>)(_ => validCalled++),
+            (Callback<Person>)(_ => invalidCalled++),
             Context: ctx)[Input(() => p.Name), Input(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 

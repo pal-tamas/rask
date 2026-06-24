@@ -64,7 +64,7 @@ public class AutoCallbackTests
     public void Wrap_NullDelegate_ReturnsNull()
     {
         Assert.Null(AutoCallback.Wrap((Action?)null));
-        Assert.Null(AutoCallback.Wrap(null));
+        Assert.Null(AutoCallback.Wrap((Func<Task>?)null));
         Assert.Null(AutoCallback.Wrap((Action<int>?)null));
         Assert.Null(AutoCallback.Wrap((Func<int, Task>?)null));
     }
@@ -158,17 +158,17 @@ public class AutoCallbackTests
             switch (_mode)
             {
                 case Mode.Sync:
-                    OnAdd = AutoCallback.Wrap<int>(n => Count += n);
+                    OnAdd = AutoCallback.Wrap((Action<int>)(n => Count += n));
                     break;
                 case Mode.Async:
-                    OnAddAsync = AutoCallback.Wrap<int>(async n =>
+                    OnAddAsync = AutoCallback.Wrap((Func<int, Task>)(async n =>
                     {
                         await Task.Yield();
                         Count += n;
-                    });
+                    }));
                     break;
                 case Mode.StringArg:
-                    OnText = AutoCallback.Wrap<string>(s => Text = s);
+                    OnText = AutoCallback.Wrap((Action<string>)(s => Text = s));
                     break;
             }
 
@@ -215,7 +215,7 @@ public class AutoCallbackTests
 
         public ValueTask Fire(int n)
         {
-            var cb = AutoCallback.Wrap<int>(v => Seen = v);
+            var cb = AutoCallback.Wrap((Action<int>)(v => Seen = v));
             cb!(n);
             return default;
         }

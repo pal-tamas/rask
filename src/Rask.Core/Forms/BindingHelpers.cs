@@ -194,7 +194,7 @@ public static class BindingHelpers
     // `AfterBindAsync` factory parameters on Input/Select/Textarea). It only fires when a parse
     // actually mutated the model, so the user never sees a stale value; we run it after
     // NotifyFieldChanged so validators that observe IsModified see the new state.
-    public static Func<string, Task> StringSetHandler(
+    public static CallbackAsync<string> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
         Func<Task>? afterBind = null) =>
         async raw =>
@@ -226,7 +226,7 @@ public static class BindingHelpers
             }
         };
 
-    public static Func<string, Task> TouchAndValidateHandler(
+    public static CallbackAsync<string> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
         Func<Task>? afterBind = null) =>
         async raw =>
@@ -270,7 +270,7 @@ public static class BindingHelpers
     // inverting, which surfaced as the checkbox "sticking" after a few clicks once those
     // clicks started shipping diffs (which don't re-base an unchanged checked attribute)
     // instead of full HTML (whose morph re-based it every time).
-    public static Func<string, Task> BoolSetHandler(
+    public static CallbackAsync<string> BoolSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid,
         Func<Task>? afterBind = null) =>
         async value =>

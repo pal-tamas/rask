@@ -15,8 +15,8 @@ public sealed class A : Element
     public string? Type { get; set; }
     public string? ReferrerPolicy { get; set; }
     public string? Ping { get; set; }
-    public Action? OnClick { get; set; }
-    public Func<Task>? OnClickAsync { get; set; }
+    public Callback? OnClick { get; set; }
+    public CallbackAsync? OnClickAsync { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {

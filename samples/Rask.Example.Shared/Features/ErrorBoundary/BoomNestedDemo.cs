@@ -24,7 +24,7 @@ public sealed class BoomNestedDemo : Component
             ]
         ];
 
-    private static Child InnerFallback(Exception ex, Action recover) =>
+    private static Child InnerFallback(Exception ex, Callback recover) =>
         Div(Class: "alert alert-warning d-flex align-items-start",
             Id: "boom-nested-inner-fallback")[
             I(Class: "bi bi-shield-exclamation me-3 fs-4"),

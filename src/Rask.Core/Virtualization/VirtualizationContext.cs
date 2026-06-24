@@ -34,5 +34,5 @@ public sealed class VirtualizationContext<T>
     public int ItemSize => State.ItemSize;
     public int OffsetBefore => State.OffsetBefore;
     public int OffsetAfter => State.OffsetAfter;
-    public Action<ScrollEvent> OnScroll => State.OnScroll;
+    public Callback<ScrollEvent> OnScroll => State.OnScroll;
 }
