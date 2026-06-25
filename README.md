@@ -742,9 +742,12 @@ fallback is the only reset path.
 <summary><b>✅ Forms &amp; validation</b></summary>
 <br>
 
-Bind inputs two-way with `Input(Bind: () => model.Field)` — the input type is inferred from the property's CLR type
-(string → text, bool → checkbox, int → number, DateOnly → date, …) and new values flow back into the model on each
-event. `Form<TModel>(model, OnValidSubmit: …, OnInvalidSubmit: …)` routes submit through whichever validators are
+Bind inputs two-way with `Input(Bind: () => model.Field)` — `Input<T>`/`Select<T>`/`Textarea<T>` are generic over the
+bound value type, inferred from the expression (`Input(() => model.Age)` → `Input<int>`), and the input type is
+inferred from `T` (string → text, bool → checkbox, int → number, DateOnly → date, …); new values flow back into the
+model on each event. Plain (unbound) usage takes the explicit argument — `Input<string>(InputType.Text, …)` — and the
+`Type` is the `InputType` enum, not a free string. Custom form controls get the same surface by implementing
+`IFormControl<T>` (the generator synthesizes their bound + controlled factories). `Form<TModel>(model, OnValidSubmit: …, OnInvalidSubmit: …)` routes submit through whichever validators are
 attached to its `EditContext`. Field errors render via `ValidationMessage` and a top-of-form digest via
 `ValidationSummary` — both are headless and take a required `Template:` lambda so you control the markup
 (e.g. `Template: errs => Div(Class: "err")[errs[0]]`).
@@ -986,12 +989,12 @@ click-outside close (no client JS), bound and controlled modes, and a `Validate`
 <summary><b>📎 Files: upload and download</b></summary>
 <br>
 
-`Input(Type: "file", OnFiles: …)` accepts files; `Navigator.Download(...)` sends them. The same component code runs
+`Input<string>(InputType.File, OnFiles: …)` accepts files; `Navigator.Download(...)` sends them. The same component code runs
 unchanged on Server and WASM — only the transport differs (multipart over the WebSocket on the server, JS-Map +
 chunked reads on WASM; downloads go through `/_rask/download/{token}` on the server, base64 + Blob URL on WASM).
 
 ```csharp
-Input(Type: "file", OnFiles: async files => {
+Input<string>(InputType.File, OnFiles: async files => {
     var file = files[0];                                         // RaskFile
     using var s = file.OpenReadStream(maxAllowedSize: 5_000_000); // valid only inside this handler
     await s.CopyToAsync(destination);
@@ -1241,7 +1244,7 @@ public sealed class MeasureDemo : Component
 
     protected override RenderResult Render() =>
         Div()[
-            Input(Ref: _input, Type: "text"),
+            Input<string>(Ref: _input, Type: InputType.Text),
             Div(Ref: _box)["A box whose width JS will read."],
             Button(OnClickAsync: () => _input.FocusAsync(_js))["Focus the input"],
             Button(OnClickAsync: MeasureBox)["Measure the box"]

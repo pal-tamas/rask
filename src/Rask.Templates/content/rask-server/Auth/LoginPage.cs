@@ -23,7 +23,7 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
             // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
             Form(_model, OnValidSubmitAsync: SubmitAsync)[
                 Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: "password")],
+                Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
                 Button("submit")["Sign in"]
             ],
             P()["Try alice / password (user) or root / password (admin)."]

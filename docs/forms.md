@@ -16,7 +16,7 @@ For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostic
 The low-level path wires `Value` and an event handler yourself:
 
 ```csharp
-Input(Type: "text", Value: _typed, OnInput: v => _typed = v)
+Input<string>(InputType.Text, Value: _typed, OnInput: v => _typed = v)
 P()[$"Echo: {_typed}"]
 ```
 
@@ -34,7 +34,7 @@ derives everything from the bound property:
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else
-  `→ text`. Override with `Type:`.
+  `→ text`. Override with `Type:` (an `InputType` enum value — `InputType.Email`, `InputType.Password`, …).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
   updates on `OnChange` (blur). `Textarea(Bind: …)` always streams on `OnInput`.
 
