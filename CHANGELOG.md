@@ -26,6 +26,13 @@ them until tagged releases begin.
   `Validate` over `ICollection<TItem>`) and the hand-written `MultiSelectBoundFactory` is removed.
 
 ### Changed
+- **`Input`'s `Type` is now a strict `InputType` enum instead of a free string.** `InputType` (in
+  `Rask.Core`) is the closed set of HTML input types (`Text`/`Search`/`Tel`/`Url`/`Email`/`Password`/
+  `Number`/`Checkbox`/`Radio`/`File`/`Date`/`DatetimeLocal`/`Time`/…), so the type is validated at compile
+  time; `Input<T>` still derives the type from `T` when `Type` is unset. New analyzer **RASK025** warns when
+  a string-only `InputType` (text family) is set on a non-`string` `Input<T>` (the type would never
+  round-trip). **Breaking:** `Type:` takes an `InputType` — `Input<string>(InputType.Text, …)`,
+  `Input(() => m.Email, Type: InputType.Email)` — instead of a string literal.
 - **Built-in `Input`/`Select`/`Textarea` are now generic `Input<T>`/`Select<T>`/`Textarea<T>` implementing
   `IFormControl<T>`.** Bound usage infers `T` from the expression (`Input(() => model.Age)` → `Input<int>` →
   `<input type="number">` — the HTML input `type` derives from `T`: `bool`→checkbox, numeric→number,

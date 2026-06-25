@@ -19,7 +19,7 @@ public sealed class LoginPage(JwtLoginService login) : Component
             _error is null ? (Child)Fragment() : Div(Style: "color:#b00020")[_error],
             Form(_model, OnValidSubmitAsync: SubmitAsync)[
                 Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
-                Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: "password")],
+                Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],
                 Button("submit", Id: "login-submit")["Sign in"]
             ]
         ];

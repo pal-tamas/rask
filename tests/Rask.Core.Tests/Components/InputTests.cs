@@ -13,7 +13,7 @@ public class InputTests
     {
         Assert.Equal(
             "<input id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" alt=\"alt\" autocomplete=\"off\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
-            Input<string>("text", "n", "v", "p", true, true, true, true, "1", "10", "1", "[a-z]+", 20, 100, 1, true, ".png",
+            Input<string>(InputType.Text, "n", "v", "p", true, true, true, true, "1", "10", "1", "[a-z]+", 20, 100, 1, true, ".png",
                 "alt", "off", true, "f", "/a", "multipart/form-data", "post", true, "_blank", "l", "/s", 80, 40,
                 Id: "i", Class: "c", Style: "s", Data: new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }

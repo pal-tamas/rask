@@ -78,7 +78,7 @@ public sealed class RadioGroup<TValue> : Component, IFormControl<TValue>
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Input<string>(
-                    "radio",
+                    InputType.Radio,
                     groupName,
                     BindingHelpers.FormatValue(option),
                     Checked: isChecked,

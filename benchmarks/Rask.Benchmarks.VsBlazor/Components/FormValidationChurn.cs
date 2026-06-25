@@ -38,7 +38,7 @@ internal static class FormValidationChurn
                 var fieldClass = _invalid[i] ? "field invalid" : "field";
                 children.Add(C.Div(Class: fieldClass, Id: $"f{i}")[
                     C.Label()[$"Field {i}"],
-                    C.Input("text", Value: _values[i] ?? string.Empty),
+                    C.Input(InputType.Text, Value: _values[i] ?? string.Empty),
                     _invalid[i]
                         ? C.Div(Class: "validation-msg")["required"]
                         : C.Div(Class: "validation-msg")

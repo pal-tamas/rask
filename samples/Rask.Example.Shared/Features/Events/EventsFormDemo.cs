@@ -11,7 +11,7 @@ public sealed class EventsFormDemo : Component
         Form(OnSubmit: OnSubmit, Class: "mb-2")[
             Div(Class: "input-group")[
                 Input<string>(
-                    "text",
+                    InputType.Text,
                     "name",
                     Class: "form-control",
                     Placeholder: "Your name"),

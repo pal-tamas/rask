@@ -36,7 +36,7 @@ public sealed class InlineValidateDemo : Component
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
             Div()[
                 Label("v4-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v4-email", Type: "email", Class: "form-control",
+                Input(() => _model.Email, Id: "v4-email", Type: InputType.Email, Class: "form-control",
                     Validate: v =>
                         v.Contains('@')
                             ? Array.Empty<string>()
@@ -45,11 +45,11 @@ public sealed class InlineValidateDemo : Component
             ],
             Div()[
                 Label("v4-password", Class: "form-label small mb-1")["Password"],
-                Input(() => _model.Password, Id: "v4-password", Type: "password", Class: "form-control")
+                Input(() => _model.Password, Id: "v4-password", Type: InputType.Password, Class: "form-control")
             ],
             Div()[
                 Label("v4-confirm", Class: "form-label small mb-1")["Confirm"],
-                Input(() => _model.Confirm, Id: "v4-confirm", Type: "password", Class: "form-control")
+                Input(() => _model.Confirm, Id: "v4-confirm", Type: InputType.Password, Class: "form-control")
             ],
             ValidationSummary(SummaryAlert),
             Div()[

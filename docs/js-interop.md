@@ -116,7 +116,7 @@ public sealed class FocusDemo : Component
 
     protected override RenderResult Render() =>
         Div()[
-            Input(Type: "text", Ref: _input),
+            Input<string>(InputType.Text, Ref: _input),
             Div(Ref: _box)["measure me"],
             Button(OnClickAsync: Focus)["Focus"],
             Button(OnClickAsync: Measure)["Measure"]

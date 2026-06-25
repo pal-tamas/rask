@@ -78,7 +78,7 @@ public class HtmlSerializerBenchmarks
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", "_blank", "noopener", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32, "lazy"),
-                C.Input<string>("text", $"f{i}", $"v{i}", "edit", MaxLength: 64)
+                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
             ]);
         }
 

@@ -36,7 +36,7 @@ public sealed class ValidationSummaryDemo : Component
             ],
             Div()[
                 Label("v2-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v2-email", Type: "email",
+                Input(() => _model.Email, Id: "v2-email", Type: InputType.Email,
                     Class: "form-control")
             ],
             Div()[

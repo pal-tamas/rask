@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Example.Shared.Features;
 
-// A self-contained file-picker demo. Input(Type: "file", OnFiles: …) wires the picker to a
+// A self-contained file-picker demo. Input(Type: InputType.File, OnFiles: …) wires the picker to a
 // typed handler; RaskFile carries the metadata while the handler is on the stack. The mutating
 // handler lives in this component so its field updates re-render the right tree.
 public sealed class UploadDemo : Component
@@ -32,7 +32,7 @@ public sealed class UploadDemo : Component
         Div()[
             Input<string>(
                 Id: "upload-input",
-                Type: "file",
+                Type: InputType.File,
                 Class: "form-control mb-3",
                 OnFiles: OnFiles),
             _name is null
