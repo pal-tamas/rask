@@ -24,7 +24,7 @@ public sealed class Input<T> : Element, IFormControl<T>
     protected override string TagName => "input";
     protected override bool SelfClosing => true;
 
-    public string? Type { get; set; }
+    public InputType? Type { get; set; }
     public string? Name { get; set; }
 
     // IFormControl<T> controlled value — kept at the legacy `Value` position so positional factory calls
@@ -92,8 +92,9 @@ public sealed class Input<T> : Element, IFormControl<T>
             boundValue = acc.Getter();
         }
 
-        // Type: bound mode (and non-string T) default from T; a plain string input keeps "no type unless set".
-        var resolvedType = Type;
+        // Type: an explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a
+        // plain string input keeps "no type unless set".
+        var resolvedType = Type?.ToHtml();
         if (resolvedType is null && (acc is not null || typeof(T) != typeof(string)))
         {
             resolvedType = BindingHelpers.DefaultInputType(typeof(T));

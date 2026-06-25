@@ -24,7 +24,7 @@ public sealed class ValidationFieldsDemo : Component
             ],
             Div()[
                 Label("v1-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "v1-email", Type: "email",
+                Input(() => _model.Email, Id: "v1-email", Type: InputType.Email,
                     Class: "form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],

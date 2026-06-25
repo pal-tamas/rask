@@ -112,7 +112,7 @@ public sealed class KeyedListsPage : Component
         Span(Class: "badge bg-secondary rounded-pill")[index + 1],
         Span(Class: "fw-semibold", Style: "min-width: 7rem;")[f.Name],
         Input<string>(
-            "text",
+            InputType.Text,
             Class: "form-control form-control-sm kl-note",
             Placeholder: "type here, then reorder…")
     ];

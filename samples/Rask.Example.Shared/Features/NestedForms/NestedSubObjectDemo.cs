@@ -27,7 +27,7 @@ public sealed class NestedSubObjectDemo : Component
             ],
             Div()[
                 Label("nf-email", Class: "form-label small mb-1")["Email"],
-                Input(() => _model.Email, Id: "nf-email", Type: "email",
+                Input(() => _model.Email, Id: "nf-email", Type: InputType.Email,
                     Class: "form-control"),
                 ValidationMessage(() => _model.Email, FieldError)
             ],

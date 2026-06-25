@@ -83,8 +83,8 @@ public class FrameDifferTests
     [Fact]
     public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
     {
-        var before = Frames(Input<string>("text", "f", "old", "edit"));
-        var after = Frames(Input<string>("text", "f", "new", "edit"));
+        var before = Frames(Input<string>(InputType.Text, "f", "old", "edit"));
+        var after = Frames(Input<string>(InputType.Text, "f", "new", "edit"));
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops);
@@ -106,8 +106,8 @@ public class FrameDifferTests
         // checkbox losing its event handler (so it stopped responding after a click) and
         // gaining a spurious value="". Name-keyed diffing emits exactly one op for the
         // toggled attribute and leaves `list` (emitted AFTER `checked`) untouched.
-        var unchecked_ = Frames(Input<string>("checkbox", "n", List: "dl"));
-        var checked_ = Frames(Input<string>("checkbox", "n", Checked: true, List: "dl"));
+        var unchecked_ = Frames(Input<string>(InputType.Checkbox, "n", List: "dl"));
+        var checked_ = Frames(Input<string>(InputType.Checkbox, "n", Checked: true, List: "dl"));
 
         var on = new List<EditOp>();
         FrameDiffer.Diff(unchecked_, checked_, on);
