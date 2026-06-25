@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **📱 PWA / mobile support (WASM)** — build installable, offline mobile apps in C#:
+  - **`IWebPush`** (`Rask.Wasm.Browser`): Web Push — `IsSupported`/`RequestPermission`/
+    `RegisterServiceWorker`/`Subscribe`/`GetSubscription`/`Unsubscribe`, returning a typed
+    `PushSubscription` to hand to your backend. (Server-side *sending* — VAPID/RFC 8291 — is out of scope.)
+  - **Default service worker `rask-sw.js`** shipped by `Rask.Wasm`: offline app-shell runtime cache
+    (navigations fall back to the cached shell) **plus** push display / notification-click handling.
+  - **`--pwa` option** on the `rask-wasm` and `rask-wasm-hosted` templates: scaffolds a web app
+    manifest + icon and registers the service worker, so `dotnet new rask-wasm --pwa` is installable
+    and offline out of the box.
+  - The **WASM showcase** (`samples/Rask.Example.Wasm`, deployed to GitHub Pages) is now an
+    installable, offline PWA.
+  - New [Mobile & PWA guide](docs/pwa.md).
 - **More typed browser APIs** (building on the typed browser-API foundation), all shared across Server
   and WASM and injected through the constructor: `ICookies` (`document.cookie` with typed
   `CookieOptions`), `IPermissions` (`QueryAsync` → `PermissionState`), `IVibration`

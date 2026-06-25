@@ -12,4 +12,5 @@ namespace Rask.Wasm.Browser;
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(ShareData))]
+[JsonSerializable(typeof(PushSubscription))]
 internal sealed partial class RaskWasmBrowserJsonContext : JsonSerializerContext;

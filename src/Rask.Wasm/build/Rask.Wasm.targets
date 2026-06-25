@@ -37,6 +37,8 @@
     <ItemGroup>
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\main.js"/>
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask.wasm.js"/>
+      <!-- Default PWA service worker (offline app-shell cache + Web Push), served at {root}/rask-sw.js. -->
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-sw.js"/>
     </ItemGroup>
     <DefineStaticWebAssets CandidateAssets="@(_RaskBootAsset)"
                            SourceType="Computed"

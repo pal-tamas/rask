@@ -44,10 +44,32 @@ public sealed class Counter : Component
 
 <sub>☝️ A complete, live, interactive component — routing, state, and event handling in a single C# class.</sub>
 
+---
+
+<div align="center">
+
+## 📱 Build mobile apps in C# — no Swift, Kotlin, React Native, or MAUI
+
+**The same component above ships as an installable, offline mobile app.** A Rask **WASM** app is a
+Progressive Web App: it **installs to the home screen**, **launches full-screen**, **works offline**,
+sends **push notifications**, and reaches the device — **vibration, share sheet, geolocation,
+clipboard** — through typed C#.
+
+```bash
+dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deploy
+```
+
+**[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/)**
+
+</div>
+
+---
+
 <details>
 <summary><b>Contents</b></summary>
 
 - [Why Rask](#-why-rask)
+- [📱 Build mobile apps in C#](#-build-mobile-apps-in-c--no-swift-kotlin-react-native-or-maui) — installable, offline PWAs
 - [Compared to Blazor](#-compared-to-blazor)
 - [Install](#-install)
 - [Quick Start — Server](#-quick-start--server)

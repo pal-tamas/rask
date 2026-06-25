@@ -1,0 +1,13 @@
+{
+  "name": "Rask App",
+  "short_name": "Rask App",
+  "description": "A Rask browser-WASM app.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#faf9fe",
+  "theme_color": "#512BD4",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
