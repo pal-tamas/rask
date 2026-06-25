@@ -10,7 +10,7 @@ public sealed class MultiSelectControlledDemo : Component
     private static readonly string[] AllTopics =
         ["News", "Sports", "Tech", "Music", "Travel"];
 
-    private IReadOnlyCollection<string> _topics = [];
+    private ICollection<string> _topics = [];
 
     protected override RenderResult Render() =>
         Div(Class: "vstack gap-3")[

@@ -186,7 +186,7 @@ public sealed class MultiSelectTests
     public async Task Controlled_OnChange_EmitsNewSelection_WithoutMutatingValue()
     {
         var value = new List<string> { "a" };
-        IReadOnlyCollection<string>? emitted = null;
+        ICollection<string>? emitted = null;
         var host = new LiveHost(
             () => MultiSelect<string>(Options, Value: value, OnChange: next => emitted = next),
             TestServices.Default());
@@ -203,7 +203,7 @@ public sealed class MultiSelectTests
     public async Task Controlled_OnChangeAsync_Fires()
     {
         var value = new List<string>();
-        IReadOnlyCollection<string>? emitted = null;
+        ICollection<string>? emitted = null;
         var host = new LiveHost(
             () => MultiSelect<string>(Options, Value: value, OnChangeAsync: next =>
             {

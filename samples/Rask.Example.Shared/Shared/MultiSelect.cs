@@ -25,55 +25,30 @@ namespace Rask.Example.Shared;
 // which refresh because MultiSelect re-renders itself. In controlled mode OnChange/OnChangeAsync are
 // auto-wrapped (AutoCallback) so invoking them re-renders the consumer that owns the handler — host-side
 // derived UI (a summary) updates for free, no StateHasChanged. AfterBind exists for consumer logic.
-public sealed class MultiSelect<TItem> : Component
+// Implements IFormControl<ICollection<TItem>> so the factory generator synthesizes both the controlled
+// factory (Options, Value, OnChange, …) and the Bind-first bound factory (with the validator fanned into
+// none/sync/async). No hand-written Bound method, no [SkipFactory] — the generator excludes the bound-mode
+// members from the controlled factory by interface.
+public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind): the parent owns the selection and is notified of every change.
     public ICollection<TItem>? Value { get; set; }
-    public Action<IReadOnlyCollection<TItem>>? OnChange { get; set; }
-    public Func<IReadOnlyCollection<TItem>, Task>? OnChangeAsync { get; set; }
+    public Callback<ICollection<TItem>>? OnChange { get; set; }
+    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
 
-    // Bound mode. Set through the Bind-first factory overloads (Generated.MultiSelect), kept off the
-    // generated controlled factory via [SkipFactory] so the two entry points stay distinct.
-    [SkipFactory] public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    [SkipFactory] public Action<ICollection<TItem>>? AfterBind { get; set; }
-    [SkipFactory] public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
-
-    // Per-field validator (bound mode only): a sync Func<ICollection<TItem>, IEnumerable<string>> or async
-    // Func<ICollection<TItem>, CancellationToken, ValueTask<IEnumerable<string>>>, registered with the
-    // EditContext just like Input's Validate. Collapsed to a single Delegate the context invokes.
-    [SkipFactory] public Delegate? Validate { get; set; }
+    // Bound mode (IFormControl members): two-way binds the model collection and runs the per-field rule.
+    public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    public Validate<ICollection<TItem>>? Validate { get; set; }
+    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    public Action<ICollection<TItem>>? AfterBind { get; set; }
+    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
     public Func<TItem, Child>? OptionLabel { get; set; }
     public string? Id { get; set; }
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
-
-    // Bound-mode entry. [GenerateForwarderFactory(Validator=…)] makes the generator emit the Bind-first
-    // Generated.MultiSelect<TItem>(…) factory in none/sync/async Validate flavors (Validate over the
-    // ICollection<TItem> from the Bind expression), each forwarding here. This builds the instance through
-    // the generated controlled factory (RASK014) and layers on the [SkipFactory] bound-mode props.
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static MultiSelect<TItem> Bound(
-        Expression<Func<ICollection<TItem>>> Bind,
-        IEnumerable<TItem> Options,
-        Delegate? Validate = null,
-        Action<ICollection<TItem>>? AfterBind = null,
-        Func<ICollection<TItem>, Task>? AfterBindAsync = null,
-        Func<TItem, Child>? OptionLabel = null,
-        string? Id = null,
-        string? Placeholder = null,
-        bool? Disabled = null)
-    {
-        var c = Generated.MultiSelect<TItem>(
-            Options, OptionLabel: OptionLabel, Id: Id, Placeholder: Placeholder, Disabled: Disabled);
-        c.Bind = Bind;
-        c.AfterBind = AfterBind;
-        c.AfterBindAsync = AfterBindAsync;
-        c.Validate = Validate;
-        return c;
-    }
 
     // View state only — the selection itself lives in the bound model collection (bound mode) or the
     // parent's Value (controlled mode). Toggling open/close re-renders this component through the live
@@ -106,7 +81,8 @@ public sealed class MultiSelect<TItem> : Component
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
             // Always register — null clears a stale rule from a prior render, matching Input's BoundCore.
-            ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+            // Collapse the typed sync/async validators into the single Delegate the context dispatches.
+            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
             selected = acc.Getter() as ICollection<TItem>;
         }
         else

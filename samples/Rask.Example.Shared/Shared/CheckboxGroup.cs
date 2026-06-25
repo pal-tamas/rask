@@ -14,49 +14,27 @@ namespace Rask.Example.Shared;
 //                  the host. No EditContext, so no Validate in this mode.
 // Each item is a <div class="form-check"> wrapping a .form-check-input + .form-check-label tied by id/for;
 // ItemClass adds extra wrapper classes (e.g. "form-check-inline").
-public sealed class CheckboxGroup<TItem> : Component
+public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
     // Controlled mode (no Bind).
     public ICollection<TItem>? Value { get; set; }
-    public Action<IReadOnlyCollection<TItem>>? OnChange { get; set; }
-    public Func<IReadOnlyCollection<TItem>, Task>? OnChangeAsync { get; set; }
+    public Callback<ICollection<TItem>>? OnChange { get; set; }
+    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
 
-    // Bound mode — set through the Bind-first factory overloads, kept off the controlled factory.
-    [SkipFactory] public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
-    [SkipFactory] public Action<ICollection<TItem>>? AfterBind { get; set; }
-    [SkipFactory] public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
-    [SkipFactory] public Delegate? Validate { get; set; }
+    // Bound mode (IFormControl members) — the generator synthesizes the Bind-first factory (validator
+    // fanned into none/sync/async) and excludes these from the controlled factory.
+    public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    public Validate<ICollection<TItem>>? Validate { get; set; }
+    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    public Action<ICollection<TItem>>? AfterBind { get; set; }
+    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
     public Func<TItem, Child>? OptionLabel { get; set; }
     public string? Name { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
-
-    // Bound-mode entry — the generator fans this into none/sync/async Validate flavors (Validate over the
-    // ICollection<TItem> from the Bind expression), each forwarding here; builds via the controlled factory
-    // (RASK014) and layers on the [SkipFactory] bound-mode props.
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static CheckboxGroup<TItem> Bound(
-        Expression<Func<ICollection<TItem>>> Bind,
-        IEnumerable<TItem> Options,
-        Delegate? Validate = null,
-        Action<ICollection<TItem>>? AfterBind = null,
-        Func<ICollection<TItem>, Task>? AfterBindAsync = null,
-        Func<TItem, Child>? OptionLabel = null,
-        string? Name = null,
-        string? ItemClass = null,
-        bool Disabled = false)
-    {
-        var c = Generated.CheckboxGroup<TItem>(
-            Options, OptionLabel: OptionLabel, Name: Name, ItemClass: ItemClass, Disabled: Disabled);
-        c.Bind = Bind;
-        c.AfterBind = AfterBind;
-        c.AfterBindAsync = AfterBindAsync;
-        c.Validate = Validate;
-        return c;
-    }
 
     protected override RenderResult Render()
     {
@@ -79,7 +57,7 @@ public sealed class CheckboxGroup<TItem> : Component
             acc = ExpressionAccessor.Parse(Bind!);
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
-            ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
             selected = acc.Getter() as ICollection<TItem>;
         }
         else

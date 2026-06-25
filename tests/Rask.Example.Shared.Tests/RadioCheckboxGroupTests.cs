@@ -118,7 +118,7 @@ public class RadioCheckboxGroupTests
     public async Task CheckboxGroup_Controlled_EmitsNewSelection_WithoutMutatingValue()
     {
         var value = new List<string> { "a" };
-        IReadOnlyCollection<string>? emitted = null;
+        ICollection<string>? emitted = null;
         var host = new LiveHost(
             () => CheckboxGroup<string>(new[] { "a", "b", "c" }, Value: value, OnChange: next => emitted = next),
             TestServices.Default());

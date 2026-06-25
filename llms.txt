@@ -14,7 +14,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Routing](docs/routing.md): `[Route]`, params, `Router()`/`Outlet()`, navigation.
 - [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
 - [Composition](docs/composition.md): children, context (provide/consume), callbacks, headless primitives (`VirtualizeModel<T>`), drag-and-drop.
-- [Forms](docs/forms.md): binding, validation, EditContext, building form components on the public binding API (`ExpressionAccessor`/`BindingHelpers`/`RegisterFieldValidator`) — RadioGroup/CheckboxGroup/MultiSelect are example controls in the samples, not framework primitives.
+- [Forms](docs/forms.md): binding, validation, EditContext, building form components — implement `IFormControl<T>` (Rask.Core.Forms) on a generic component and the generator synthesizes its controlled + bound factories, or use the public binding API directly (`ExpressionAccessor`/`BindingHelpers`/`RegisterFieldValidator`). RadioGroup/CheckboxGroup/MultiSelect are example controls in the samples, not framework primitives.
 - [Data access](docs/data-access.md): EF Core + SQLite, IDbContextFactory, loading in the lifecycle, vertical slices, DDD value objects, SQLite decimal gotcha.
 - [JS interop](docs/js-interop.md): scoped CSS/JS, element refs, IJSRuntime.
 - [Authentication](docs/authentication.md): cookie/JWT, Authorize, route guards.
