@@ -191,9 +191,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // The validator fan-out types its sync/async overloads as Validate<T>/ValidateAsync<T> over the
-            // method's first type parameter (the bound property type), so it only applies to generic methods.
-            var validatorTypeArg = method.TypeParameters.Length > 0 ? method.TypeParameters[0].Name : string.Empty;
+            // The validator fan-out types its sync/async overloads as Validate<T>/ValidateAsync<T>, where T
+            // is the bound value type — derived from the `Expression<Func<T>>` Bind parameter. That's the
+            // method's own type parameter for Input.Bound<TProp> (Expression<Func<TProp>>) and a concrete
+            // constructed type for MultiSelect.Bound (Expression<Func<ICollection<TItem>>>).
+            var validatorTypeArg = ExtractBoundValueType(method);
 
             var typeParams = method.TypeParameters.Length > 0
                 ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
@@ -322,6 +324,42 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             new EquatableArray<string>(typedDelegates),
             new EquatableArray<string>(typedValidators),
             constraint);
+    }
+
+    // Finds the bound value type T from a method's `Expression<Func<T>>` parameter (the Bind expression),
+    // fully qualified. Returns "" when no such parameter exists. Used to type the validator fan-out's
+    // Validate<T>/ValidateAsync<T> overloads.
+    private static string ExtractBoundValueType(IMethodSymbol method)
+    {
+        foreach (var p in method.Parameters)
+        {
+            if (p.Type is INamedTypeSymbol { Name: "Expression", TypeArguments.Length: 1 } expr
+                && expr.TypeArguments[0] is INamedTypeSymbol { Name: "Func", TypeArguments.Length: 1 } func)
+            {
+                return func.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+            }
+        }
+
+        return string.Empty;
+    }
+
+    // Merges two `<...>` type-parameter lists into one. Either may be empty; when both are present (a
+    // generic method on a generic component) they're concatenated: "<A>" + "<B>" → "<A, B>".
+    private static string MergeTypeParams(string a, string b)
+    {
+        if (a.Length == 0)
+        {
+            return b;
+        }
+
+        if (b.Length == 0)
+        {
+            return a;
+        }
+
+        return a.Substring(0, a.Length - 1) + ", " + b.Substring(1);
     }
 
     private static string BuildConstraintsClause(ImmutableArray<ITypeParameterSymbol> typeParameters)
@@ -970,10 +1008,18 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var visibility = c.IsPublic ? "public" : "internal";
 
+        // The generated factory method carries BOTH the component's and the method's type parameters: a
+        // generic method on a non-generic component (Input.Bound<TProp>) contributes the method's; a
+        // non-generic method on a generic component (MultiSelect<TItem>.Bound) contributes the component's.
+        // The call receiver is c.FullyQualifiedName (already constructed with the component's args), and the
+        // method is invoked with only its own type args (f.TypeParameters) — so both shapes forward right.
+        var factoryTypeParams = MergeTypeParams(c.TypeParameters, f.TypeParameters);
+        var factoryConstraints = (c.TypeParameterConstraints + f.TypeParameterConstraints);
+
         // Signature: `public static {Component} {ComponentName}<...>(<params>) <constraints>`
         EmitMethodHeader(sb, c, emitNavigation);
         sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
-            .Append(c.TypeName).Append(f.TypeParameters).Append('(');
+            .Append(c.TypeName).Append(factoryTypeParams).Append('(');
         var first = true;
         for (var i = 0; i < f.Parameters.Count; i++)
         {
@@ -1016,7 +1062,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        sb.Append(')').AppendLine(f.TypeParameterConstraints);
+        sb.Append(')').AppendLine(factoryConstraints);
 
         // Body forwards to the source method. Non-fan-out keeps positional forwarding (verbatim shape);
         // fan-out forwards by name so the omitted validator can be passed as null at its real position.
