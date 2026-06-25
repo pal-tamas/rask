@@ -119,6 +119,31 @@ surrounding level). The op kinds (`EditOpKind`):
 | `MoveSubtree`      | 6 | move an existing sibling node (detach at source, insert at dest) |
 | `PermutationBatch` | 7 | a batch of sibling moves under one keyed parent (see below) |
 
+### One frame per DOM node: text & `Raw`
+
+`Path` indexing only works if **every DOM-relevant frame maps to exactly one browser
+DOM node**. Two cases would otherwise break that 1:1 mapping, so the runtime normalizes
+them (`Live/RenderFrame.cs`, `FrameWriter.Text`):
+
+- **Adjacent text coalesces.** `Div()["a", value]` is two `Text` frames, but the browser
+  merges adjacent text into a *single* DOM node. The frame writer concatenates contiguous
+  text frames into one so the model matches — including text on either side of a
+  transparent `Fragment`/`Context`, which emits no markup of its own. (Contiguity is
+  detected by `HtmlEnd == htmlStart`: any tag or node between two texts advances the HTML,
+  so element-separated text stays distinct.)
+- **Empty text emits nothing.** An empty/`null` string child produces no HTML and no DOM
+  node, so no frame is emitted for it — otherwise every following sibling's path would
+  drift by one.
+
+`Raw` is the exception that *can't* be normalized: its verbatim markup parses into an
+unknown number of top-level nodes (zero, one, or many). A solitary `Raw` is safe (its
+nodes span the whole parent — nothing is indexed after it), but a `Raw` that shares a
+sibling level with other nodes makes every following position unreliable. When a changed
+sibling level mixes a `Raw` with other nodes, the diff sets a force-full-HTML flag
+(`DiffScratch.ForceFullHtml` → `SessionRenderCache.LastDiffForcedFullHtml`) and the render
+falls back to the morph, which reparses the markup correctly rather than shipping a
+mis-targeted positional op.
+
 ### When a diff ships vs full HTML
 
 `LiveDiffMode` (`Live/LiveOptions.cs`) is configured via

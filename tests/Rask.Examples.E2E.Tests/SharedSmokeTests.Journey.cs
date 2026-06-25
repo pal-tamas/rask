@@ -145,6 +145,20 @@ public abstract partial class SharedSmokeTests
         await Expect(Page).ToHaveTitleAsync("User #42 — Rask",
             new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
 
+        // Adjacent text nodes: the toggle renders a literal ("Toggle ?tab=") directly beside a dynamic
+        // value, which the browser coalesces into one text node. A diff-codec regression left the
+        // dynamic half stale after SetQuery (the bug that surfaced here). Assert the label actually
+        // flips on each click — exercises the coalesced-text UpdateText path on both transports.
+        var tabToggle = Page.Locator("button.btn-primary:has-text('Toggle ?tab=')");
+        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=profile",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await tabToggle.ClickAsync();
+        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=activity",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await tabToggle.ClickAsync();
+        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=profile",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
         // Navigator: SetQuery mutates the URL and the in-SPA head-diff updates <title> across a
         // route-param change.
         await SideAsync("Navigator", "Navigator");

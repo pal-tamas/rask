@@ -193,6 +193,32 @@ public sealed class FrameWriter
 
     public void Text(string? value, int htmlStart, int htmlEnd)
     {
+        // An empty text node emits no HTML and so produces NO DOM node — the browser never
+        // creates one. Emitting a frame for it would make the diff count a node that isn't there
+        // and drift every following sibling's domSlot path (same failure mode as adjacent text).
+        // htmlStart == htmlEnd means AppendEncoded wrote nothing — i.e. value was null or "".
+        if (htmlStart == htmlEnd)
+        {
+            return;
+        }
+
+        // The browser coalesces adjacent text into ONE DOM text node, so the frame model has to
+        // as well — otherwise the diff's per-frame domSlot walk drifts past the real childNodes
+        // and the UpdateText op targets a slot that doesn't exist (silently dropped → stale text).
+        // HtmlEnd == htmlStart means nothing was emitted between the two texts: a tag, element, or
+        // raw node would have advanced the StringBuilder, so contiguity is exactly DOM-adjacency.
+        // This catches Fragment/Context-boundary adjacency too (they emit no HTML of their own).
+        if (Count > 0)
+        {
+            ref var prev = ref _buffer[Count - 1];
+            if (prev.Kind == RenderFrameKind.Text && prev.HtmlEnd == htmlStart)
+            {
+                prev.Name = (prev.Name ?? string.Empty) + (value ?? string.Empty);
+                prev.HtmlEnd = htmlEnd;
+                return;
+            }
+        }
+
         var idx = Reserve();
         _buffer[idx] = new RenderFrame
         {

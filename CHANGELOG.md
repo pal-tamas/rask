@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Live diff now updates adjacent text nodes correctly.** Two bare strings rendered side by side
+  (e.g. `Button()[ "Toggle ?tab=", value ]`) were emitted as two render frames, but the browser
+  coalesces adjacent text into a single DOM node — so the diff's per-frame slot walk drifted past the
+  real child nodes and the `UpdateText` patch was silently dropped (the text never changed; surfaced on
+  the showcase "Switch user" toggle button after a `Navigator.SetQuery`). Adjacent text frames are now
+  coalesced at emission to match the DOM, including across transparent `Fragment`/`Context` boundaries.
+- **Empty text children no longer drift sibling positions.** An empty/`null` string child
+  (`Div()[Span(), "", Span()]`) produces no HTML and no DOM node, but still emitted a text frame — so
+  every following sibling's diff path was off by one. Empty text frames are now skipped.
+- **`Raw` adjacent to other siblings falls back to a full morph.** A `Raw`'s verbatim markup can parse
+  into zero, one, or many DOM nodes, so a sibling rendered after a non-sole-child `Raw` could be patched
+  at the wrong index by an ungated `UpdateText`/`SetAttribute`. When a changed sibling level mixes a
+  `Raw` with other nodes, the render now routes to the full-HTML morph (which reparses the markup
+  correctly) instead of shipping a mis-targeted positional op. A solitary `Raw` is unaffected.
+
 ### Changed
 - **`CheckboxGroup`/`RadioGroup` rewritten as Components** (the `MultiSelect<TItem>` template) instead of
   static `Fragment` factories. Each now supports **bound** (`() => model.X` with a per-field `Validate`
