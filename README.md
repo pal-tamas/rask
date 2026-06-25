@@ -414,7 +414,7 @@ see **[`docs/`](docs/)**:
 
 - **[Getting started](docs/getting-started.md)** — scaffold, first component, interactivity, routing.
 - **[Best practices](docs/best-practices.md)** — the patterns and pitfalls that keep an app correct, secure, and fast.
-- **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Lifecycle](docs/lifecycle.md)** · *
+- **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** · **[Lifecycle](docs/lifecycle.md)** · *
   *[Authentication](docs/authentication.md)**
 - **[Accessibility](docs/accessibility.md)** · **[Observability](docs/observability.md)** · **[Configuration](docs/configuration.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
 - **[Diagnostics (RASK001–024)](docs/diagnostics.md)** — every build error/warning and its fix.
@@ -981,7 +981,7 @@ control returns a `Fragment` (its handlers re-render the host for free, like a b
 open/close dropdown) is a `Component` that keeps live feedback inside itself or exposes an auto-wrapped `OnChange`
 callback to refresh host-side UI. The showcase's `MultiSelect<TItem>` — a dropdown with removable chips, Esc /
 click-outside close (no client JS), bound and controlled modes, and a `Validate` rule — is the worked example; see
-`docs/forms.md` §9 and the `/multiselect` page.
+the [building form controls guide](docs/building-form-controls.md) and the `/multiselect` page.
 
 </details>
 
