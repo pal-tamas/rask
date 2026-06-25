@@ -26,7 +26,7 @@ public sealed class LoginPage(WasmLoginService login) : Component
                     ],
                     Div(Class: "mb-3")[
                         Label("password", Class: "form-label")["Password"],
-                        Input(() => _model.Password, Id: "password", Type: "password", Class: "form-control")
+                        Input(() => _model.Password, Id: "password", Type: InputType.Password, Class: "form-control")
                     ],
                     Button("submit", Id: "login-submit", Class: "btn btn-primary w-100")["Sign in"]
                 ],

@@ -17,7 +17,7 @@ public sealed class ElementRefDemo : Component
     protected override RenderResult Render() =>
         Div()[
             Input<string>(
-                "text",
+                InputType.Text,
                 Class: "form-control mb-2",
                 Placeholder: "Focus me from C#",
                 Ref: _input),

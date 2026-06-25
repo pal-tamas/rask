@@ -12,7 +12,7 @@ public sealed class BindingManualDemo : Component
     protected override RenderResult Render() =>
     [
         Input(
-            "text",
+            InputType.Text,
             Class: "form-control mb-2",
             Placeholder: "Type something",
             Value: _typed,

@@ -80,7 +80,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Input<string>(
-                    "checkbox",
+                    InputType.Checkbox,
                     groupName,
                     BindingHelpers.FormatValue(option),
                     Checked: isChecked,

@@ -133,7 +133,7 @@ public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TIt
                 Disabled: Disabled,
                 OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
                 Key: idx)[
-                Input<string>("checkbox", Class: "form-check-input m-0 pe-none", Checked: isChecked),
+                Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
                 LabelOf(captured)
             ]);
             idx++;

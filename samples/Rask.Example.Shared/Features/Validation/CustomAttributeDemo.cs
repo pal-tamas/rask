@@ -33,12 +33,12 @@ public sealed class CustomAttributeDemo : Component
             ],
             Div()[
                 Label("v12-password", Class: "form-label small mb-1")["Password"],
-                Input(() => _model.Password, Id: "v12-password", Type: "password", Class: "form-control"),
+                Input(() => _model.Password, Id: "v12-password", Type: InputType.Password, Class: "form-control"),
                 ValidationMessage(() => _model.Password, FieldError)
             ],
             Div()[
                 Label("v12-confirm", Class: "form-label small mb-1")["Confirm password"],
-                Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: "password", Class: "form-control"),
+                Input(() => _model.ConfirmPassword, Id: "v12-confirm", Type: InputType.Password, Class: "form-control"),
                 ValidationMessage(() => _model.ConfirmPassword, FieldError)
             ],
             Div()[

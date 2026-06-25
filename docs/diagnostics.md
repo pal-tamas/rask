@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK024)
+# Rask diagnostics (RASK001–RASK025)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -33,6 +33,7 @@ build once.
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
+| [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 
 ---
 
@@ -282,3 +283,24 @@ challenges.
 **Fix:** call `app.UseAuthentication()` (and `app.UseAuthorization()`) before `app.UseRask()`. The
 warning fires only when both calls are present and `UseAuthentication` is positioned after `UseRask`;
 an app with no authentication middleware is left alone. See [authentication](authentication.md).
+
+## RASK025
+**`InputType` conflicts with the bound `Input<T>` value type** · Warning
+
+A generic `Input<T>` derives its HTML input `type` from `T` (`bool`→checkbox, `int`/`decimal`→number,
+`DateOnly`→date, …). The *string-only* `InputType`s — `Text`, `Search`, `Tel`, `Url`, `Email`,
+`Password` — only apply to `Input<string>`; pairing one with `Input<int>`/`Input<bool>`/… is a mistake
+(the entered value could never round-trip to `T`).
+
+```csharp
+// ✗ Age is int — a number input can't be an email field:
+Input(() => model.Age, Type: InputType.Email)
+// ✓ let the type derive from T (int → number):
+Input(() => model.Age)
+// ✓ or use a string-only type on a string field:
+Input(() => model.Email, Type: InputType.Email)
+```
+
+**Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
+for a statically-known string-family `InputType` on a non-`string` `Input<T>`; `Input<int>(Type:
+InputType.Number)` and any `Input<string>` are left alone. Suppressible like any analyzer.

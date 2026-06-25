@@ -127,7 +127,7 @@ public sealed class TablePage(Navigator nav) : Component
                     Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[
                         Span(Class: "input-group-text bg-white")[I(Class: "bi bi-search")],
                         Input(
-                            "search",
+                            InputType.Search,
                             Class: "form-control",
                             Placeholder: "Filter name, city, department…",
                             Value: Filter ?? string.Empty,

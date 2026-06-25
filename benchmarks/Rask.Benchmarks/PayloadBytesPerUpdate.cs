@@ -111,7 +111,7 @@ public class PayloadBytesPerUpdate
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>("text", $"f{i}", $"v{i}", "edit", MaxLength: 64)
+                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
             ]);
         }
 
@@ -165,7 +165,7 @@ public class PayloadBytesPerUpdate
                 C.Span(Class: "label")[text],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
                 C.Img($"/img/{i}.png", $"item {i}", 32, 32),
-                C.Input<string>("text", $"f{i}", $"v{i}", "edit", MaxLength: 64)
+                C.Input<string>(InputType.Text, $"f{i}", $"v{i}", "edit", MaxLength: 64)
             ]);
         }
 

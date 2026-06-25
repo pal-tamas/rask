@@ -148,7 +148,7 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
             _error is null ? Fragment() : Div(Class: "alert alert-danger")[_error],
             Form(_model, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
                 Input(() => _model.Username, Id: "username", Class: "form-control"),
-                Input(() => _model.Password, Id: "password", Type: "password", Class: "form-control"),
+                Input(() => _model.Password, Id: "password", Type: InputType.Password, Class: "form-control"),
                 Button("submit", Class: "btn btn-primary")["Sign in"]
             ]
         ];
