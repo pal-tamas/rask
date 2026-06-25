@@ -49,7 +49,16 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/download", "File download", "bi-cloud-download", "Files", null),
         ("/todos", "Todos", "bi-check2-square", "Apps", null),
         ("/jsruntime", "IJSRuntime", "bi-braces", "Apps", null),
-        ("/browser", "Browser APIs", "bi-globe", "Apps", null)
+        // Type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts implicitly to
+        // the string Path slot, so a renamed/removed [Route] is a compile error here, not a dead link.
+        (Features.Routes.StoragePage(), "Storage", "bi-hdd", "Browser APIs", null),
+        (Features.Routes.CookiesPage(), "Cookies", "bi-database", "Browser APIs", null),
+        (Features.Routes.ClipboardPage(), "Clipboard", "bi-clipboard", "Browser APIs", null),
+        (Features.Routes.GeolocationPage(), "Geolocation", "bi-geo-alt", "Browser APIs", null),
+        (Features.Routes.PermissionsPage(), "Permissions", "bi-shield-lock", "Browser APIs", null),
+        (Features.Routes.VibrationPage(), "Vibration", "bi-phone-vibrate", "Browser APIs", null),
+        (Features.Routes.PageVisibilityPage(), "Page visibility", "bi-eye", "Browser APIs", null),
+        (Features.Routes.NavigatorInfoPage(), "Browser info", "bi-info-circle", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

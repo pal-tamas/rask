@@ -1,17 +1,13 @@
 using Microsoft.JSInterop;
 
-namespace Rask.Core.Tests.Interop;
+namespace Rask.Wasm.Tests.Browser;
 
-// Records every IJSRuntime call (identifier + args) so the browser-API wrappers can be asserted
-// against the exact dotted identifier and argument list they ship — the contract the client-side
-// dispatcher and the framework JS helpers depend on. Returns canned values for read calls.
+// Minimal IJSRuntime recorder for asserting the WASM-only typed browser-API wrappers.
 internal sealed class FakeJsRuntime : IJSRuntime
 {
     private readonly List<(string Identifier, object?[]? Args)> _calls = [];
     private readonly Dictionary<string, Exception> _exceptions = new();
     private readonly Dictionary<string, object?> _responses = new();
-
-    public IReadOnlyList<(string Identifier, object?[]? Args)> Calls => _calls;
 
     public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
     {
@@ -37,8 +33,7 @@ internal sealed class FakeJsRuntime : IJSRuntime
 
     public void SetException(string identifier, Exception ex) => _exceptions[identifier] = ex;
 
-    public object?[]? ArgsFor(string identifier) =>
-        _calls.Single(c => c.Identifier == identifier).Args;
+    public object?[]? ArgsFor(string identifier) => _calls.Single(c => c.Identifier == identifier).Args;
 
     public int CallCount(string identifier) => _calls.Count(c => c.Identifier == identifier);
 }

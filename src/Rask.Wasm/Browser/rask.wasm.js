@@ -55,7 +55,48 @@ window.__raskApi = window.__raskApi || {
             },
             (err) => reject(new Error((err && err.message) || ("Geolocation error " + (err && err.code)))),
             opts);
-    })
+    }),
+
+    // Permissions API: query resolves to a live PermissionStatus object — return just its .state
+    // string so it serializes back to C# cleanly.
+    permissionState: (name) => navigator.permissions.query({name: name}).then((s) => s.state),
+
+    // Cookies via document.cookie. Reads parse the cookie string; writes/deletes build the
+    // assignment string (a bare `document.cookie = …` is a property write IJSRuntime can't express).
+    cookieGet: (name) => {
+        const prefix = encodeURIComponent(name) + "=";
+        const parts = document.cookie ? document.cookie.split("; ") : [];
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].indexOf(prefix) === 0) {
+                return decodeURIComponent(parts[i].slice(prefix.length));
+            }
+        }
+        return null;
+    },
+    cookieAll: () => {
+        const out = {};
+        const parts = document.cookie ? document.cookie.split("; ") : [];
+        for (let i = 0; i < parts.length; i++) {
+            const eq = parts[i].indexOf("=");
+            if (eq > 0) {
+                out[decodeURIComponent(parts[i].slice(0, eq))] = decodeURIComponent(parts[i].slice(eq + 1));
+            }
+        }
+        return out;
+    },
+    cookieSet: (name, value, maxAge, expires, path, domain, sameSite, secure) => {
+        let s = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+        if (maxAge != null) s += "; max-age=" + maxAge;
+        if (expires) s += "; expires=" + expires;
+        if (path) s += "; path=" + path;
+        if (domain) s += "; domain=" + domain;
+        if (sameSite) s += "; samesite=" + sameSite;
+        if (secure) s += "; secure";
+        document.cookie = s;
+    },
+    cookieDelete: (name, path) => {
+        document.cookie = encodeURIComponent(name) + "=; max-age=0" + (path ? "; path=" + path : "");
+    }
 };
 
 

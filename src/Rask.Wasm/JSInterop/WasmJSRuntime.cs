@@ -47,6 +47,7 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         // IGeolocation) with their source-generated, trim-safe metadata ahead of the reflection
         // fallback — so they survive PublishTrimmed without the caller wiring up a context.
         JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.Browser.RaskBrowserJsonContext.Default);
+        JsonSerializerOptions.TypeInfoResolverChain.Add(Browser.RaskWasmBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
     }
 
