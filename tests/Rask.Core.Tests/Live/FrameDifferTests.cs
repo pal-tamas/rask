@@ -42,6 +42,95 @@ public class FrameDifferTests
     }
 
     [Fact]
+    public void Frames_AdjacentTextChildren_CoalesceIntoOneFrame()
+    {
+        // The browser merges adjacent text into ONE DOM node; the frame model must match or
+        // the diff's per-frame domSlot walk drifts past the real childNodes. Two string children
+        // with nothing between them must emit a single Text frame holding the concatenation.
+        var frames = Frames(Div()["Toggle ?tab=", "profile"]);
+
+        var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("Toggle ?tab=profile", text.Name);
+    }
+
+    [Fact]
+    public void Diff_AdjacentTextChanged_ProducesSingleUpdateTextWithMergedValue()
+    {
+        // Regression (the "Switch user" toggle button): a label literal sits directly next to a
+        // dynamic value — `[<icon/>, "Toggle ?tab=", value]`. The browser coalesces the two texts
+        // into one node, so the changed value must ship as ONE UpdateText carrying the full merged
+        // string, targeting the single coalesced slot — not an op at a domSlot that doesn't exist.
+        var before = Frames(Div()[Span(), "Toggle ?tab=", "profile"]);
+        var after = Frames(Div()[Span(), "Toggle ?tab=", "activity"]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        var update = Assert.Single(ops);
+        Assert.Equal(EditOpKind.UpdateText, update.Kind);
+        Assert.Equal("Toggle ?tab=activity", update.Value);
+    }
+
+    [Fact]
+    public void Frames_AdjacentTextAcrossFragmentBoundary_Coalesces()
+    {
+        // A Fragment is transparent — it emits no HTML of its own — so text on either side of it
+        // is DOM-adjacent and coalesces. The contiguity (HtmlEnd == htmlStart) check catches this
+        // case that a children-list-level merge would miss.
+        var frames = Frames(Div()["a", Fragment()["b"]]);
+
+        var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("ab", text.Name);
+    }
+
+    [Fact]
+    public void Frames_TextSeparatedByElement_StaysDistinct()
+    {
+        // An element between two texts breaks DOM adjacency (`<span></span>` advances the HTML), so
+        // the frames must stay separate — merging them would mis-map the diff onto the real DOM.
+        var frames = Frames(Div()["a", Span(), "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
+
+        Assert.Equal(2, frames.Length);
+        Assert.Equal("a", frames[0].Name);
+        Assert.Equal("b", frames[1].Name);
+    }
+
+    [Fact]
+    public void Frames_TextAfterChildElement_NotMergedWithInnerText()
+    {
+        // The inner text "a" closes with `</span>` before the sibling text "b" starts, so they are
+        // not contiguous and must not merge — even though "a" is the most recently emitted frame.
+        var frames = Frames(Div()[Span()["a"], "b"]).Where(f => f.Kind == RenderFrameKind.Text).ToArray();
+
+        Assert.Equal(2, frames.Length);
+        Assert.Equal("a", frames[0].Name);
+        Assert.Equal("b", frames[1].Name);
+    }
+
+    [Fact]
+    public void Frames_EmptyTextBetweenElements_EmitsNoFrame()
+    {
+        // An empty string child produces no HTML and so no DOM node. If it emitted a Text frame,
+        // the diff would count a node the browser never created and every following sibling's
+        // domSlot would drift by one — the trailing Span here would be patched at the wrong index.
+        var (frames, html) = FramesAndHtml(Div()[Span(Id: "a"), "", Span(Id: "b")]);
+
+        Assert.DoesNotContain(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("<div><span id=\"a\"></span><span id=\"b\"></span></div>", html);
+    }
+
+    [Fact]
+    public void Frames_EmptyTextBetweenTexts_StillCoalescesNeighbours()
+    {
+        // An empty text in the middle of two real texts must drop out without breaking the
+        // coalescing of the survivors — the DOM has the single node "ab".
+        var frames = Frames(Div()["a", "", "b"]);
+
+        var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("ab", text.Name);
+    }
+
+    [Fact]
     public void Diff_RawValueUnchanged_ProducesZeroOps()
     {
         // An identical Raw value must produce no ops — the verbatim markup is the same
@@ -78,6 +167,57 @@ public class FrameDifferTests
         // routes the whole render to the full-HTML morph rather than applying them directly
         // — the morph reparses the new markup instead of escaping it.
         Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops));
+    }
+
+    [Fact]
+    public void Diff_RawWithChangingSibling_ForcesFullHtmlMorph()
+    {
+        // A Raw's markup parses into an unknown number of DOM nodes, so a sibling after it can't be
+        // patched positionally (the domSlot index assumes Raw == 1 node). Changing such a sibling
+        // must route to the full-HTML morph — NOT ship a mis-targeted, ungated UpdateText.
+        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div()[Raw("<a></a><b></b>"), Span()["y"]]);
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
+
+        Assert.True(scratch.ForceFullHtml);
+    }
+
+    [Fact]
+    public void Diff_RawWithSiblingsUnchanged_DoesNotForceFullHtml()
+    {
+        // The morph fallback only fires when something actually changed at the Raw-tainted level —
+        // an idle re-render of a page that happens to contain a Raw-with-siblings still ships nothing.
+        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
+
+        Assert.Empty(ops);
+        Assert.False(scratch.ForceFullHtml);
+    }
+
+    [Fact]
+    public void Diff_RawAsSoleChild_StaysOnDiffPath()
+    {
+        // A solitary Raw spans the whole parent — no sibling index follows it — so a sole-child Raw
+        // is safe and must not trip the morph fallback. (A CHANGED sole Raw still ships Remove+Insert
+        // via SiblingMatches, covered by Diff_RawValueChanged_*; here the surrounding text changes.)
+        var before = Frames(Div()[Code()[Raw("<i>x</i>")], Span()["a"]]);
+        var (after, afterHtml) = FramesAndHtml(Div()[Code()[Raw("<i>x</i>")], Span()["b"]]);
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
+
+        var update = Assert.Single(ops);
+        Assert.Equal(EditOpKind.UpdateText, update.Kind);
+        Assert.Equal("b", update.Value);
+        Assert.False(scratch.ForceFullHtml);
     }
 
     [Fact]

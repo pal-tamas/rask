@@ -133,6 +133,13 @@ public sealed class SessionRenderCache : IDisposable
     ///     corrupts the next diff: edits computed against an out-of-date snapshot
     ///     applied to a DOM the client has already moved past.
     /// </summary>
+    /// <summary>
+    ///     True when the last <see cref="TryComputeDiff" /> touched a sibling level that mixed a Raw
+    ///     frame with other siblings and emitted ops there — the positional paths are unreliable, so
+    ///     the session must ship full HTML (the morph reparses the Raw markup) rather than the diff.
+    /// </summary>
+    public bool LastDiffForcedFullHtml => _scratch?.ForceFullHtml ?? false;
+
     public void Snapshot() => RotateBuffers();
 
     /// <summary>
