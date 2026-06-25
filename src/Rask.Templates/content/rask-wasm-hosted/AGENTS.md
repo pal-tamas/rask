@@ -29,7 +29,8 @@ https://github.com/pal-tamas/rask/tree/main/docs
   (or `[QueryParam]`). Nested routes: `[ParentRoute(typeof(Parent))]` + `Outlet()`.
 - Lifecycle hooks: `OnMount`/`OnMountAsync` (once), `OnPropsChanged*` (on bound-prop/route change),
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
-- **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, your own) through the constructor**,
+- **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, the typed browser APIs
+  `IBrowserStorage`/`IClipboard`/`IGeolocation`/`INavigatorInfo`, your own) through the constructor**,
   not as settable properties (a non-nullable settable property becomes a required factory param).
 
 ## Events, scoped CSS/JS, forms, auth

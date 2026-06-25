@@ -6,6 +6,7 @@ both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 - [Scoped CSS](#scoped-css)
 - [Scoped JS](#scoped-js)
 - [Calling JS from C# (`IJSRuntime`)](#calling-js-from-c-ijsruntime)
+- [Typed browser APIs](#typed-browser-apis)
 - [Element refs](#element-refs)
 - [Delivery & caching](#delivery--caching)
 
@@ -95,6 +96,55 @@ public sealed class CodeSample : Component
 Nothing (no `el`) is passed automatically — pass what the function needs. For a return
 value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the trimmer
 (DAM annotation or a `JsonSerializerContext`).
+
+---
+
+## Typed browser APIs
+
+Rather than spelling out raw `IJSRuntime` identifiers (`"localStorage.getItem"`,
+`"navigator.clipboard.writeText"`) and getting the JSON shape right by hand, inject one of the
+built-in **typed wrappers** through a component constructor. Each is a thin, awaitable layer over
+the same unified `IJSRuntime`, so it behaves **identically on Server and WASM**. These are the
+Web APIs that work on both transports; WASM-only PWA APIs (service worker, cache, manifest) are a
+later step on the same pattern.
+
+| Service | Wraps | Key members |
+| --- | --- | --- |
+| `IBrowserStorage` | `localStorage` / `sessionStorage` | `.Local` / `.Session` → `GetAsync`, `SetAsync`, `RemoveAsync`, `ClearAsync`, `KeyAsync`, `LengthAsync` |
+| `IClipboard` | `navigator.clipboard` | `WriteTextAsync`, `ReadTextAsync` |
+| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition` |
+| `INavigatorInfo` | `window.navigator` | `OnLineAsync`, `LanguageAsync`, `UserAgentAsync` |
+
+```csharp
+public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
+{
+    private async Task Save() => await storage.Local.SetAsync("theme", "dark");
+
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var theme = await storage.Local.GetAsync("theme");   // string?, null if absent
+            var online = await navigator.OnLineAsync();          // bool
+        }
+    }
+}
+```
+
+Call them from an **event handler or lifecycle hook** (not from `Render()`). Clipboard and
+geolocation are **browser-gated** — they need a secure context (HTTPS or localhost) and the user's
+permission; a denial or timeout surfaces as a `JSException` from the awaited task, so wrap those
+calls in `try/catch`.
+
+Under the hood: storage/clipboard methods are plain function calls; `navigator.onLine` and
+`localStorage.length` are *property* reads the client returns directly; and the callback-based
+`getCurrentPosition` is wrapped in a Promise by the framework helper `__raskApi.geolocation`. That
+helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.js` and is spliced into both
+client runtimes at build time, so the two transports never drift. `GeolocationPosition` is rooted
+for the WASM trimmer by the framework, so it deserializes correctly in a `PublishTrimmed` app.
+
+Runnable demo: [`samples/Rask.Example.Shared/Features/Browser/BrowserApiDemo.cs`](../samples/Rask.Example.Shared/Features/Browser/BrowserApiDemo.cs)
+(the `/browser` page).
 
 ---
 

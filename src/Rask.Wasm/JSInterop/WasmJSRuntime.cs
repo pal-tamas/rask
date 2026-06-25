@@ -42,6 +42,11 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         // chaining the reflection-based resolver here makes InvokeAsync<T> work for
         // any T the user (or framework) can keep rooted via DAM or a
         // JsonSerializerContext. Same model Blazor WASM ships with.
+        //
+        // Root the framework's own browser-API return types (e.g. GeolocationPosition from
+        // IGeolocation) with their source-generated, trim-safe metadata ahead of the reflection
+        // fallback — so they survive PublishTrimmed without the caller wiring up a context.
+        JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.Browser.RaskBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
     }
 

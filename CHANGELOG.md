@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Typed browser-API foundation** — strongly-typed, DI-injected C# wrappers over the Web APIs that
+  previously needed raw `IJSRuntime` string identifiers, identical on Server and WASM: `IBrowserStorage`
+  (`localStorage`/`sessionStorage`), `IClipboard`, `IGeolocation` (`GetCurrentPositionAsync` →
+  `GeolocationPosition`), and `INavigatorInfo` (`OnLine`/`Language`/`UserAgent`). Inject the interface
+  through a component constructor and await typed methods. Shared framework JS interop helpers
+  (`__raskEl`, `__raskApi`) are now a single source of truth in `Rask.Core/Resources/rask-api.js`,
+  spliced into both client runtimes at build time so the transports never drift. New `/browser`
+  showcase page. First step toward PWA support (WASM-only service-worker/cache/manifest APIs follow on
+  the same pattern).
+
 ### Fixed
 - **Live diff now updates adjacent text nodes correctly.** Two bare strings rendered side by side
   (e.g. `Button()[ "Toggle ?tab=", value ]`) were emitted as two render frames, but the browser

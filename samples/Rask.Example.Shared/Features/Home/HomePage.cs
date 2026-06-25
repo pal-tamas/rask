@@ -53,7 +53,8 @@ public sealed class HomePage(Navigator nav) : Component
         ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
 
         ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos"),
-        ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime")
+        ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime"),
+        ("Apps", "bi-globe", "Browser APIs", "Typed Storage, Clipboard, Geolocation.", "/browser")
     ];
 
     protected override RenderResult Head => Title()["Welcome — Rask"];

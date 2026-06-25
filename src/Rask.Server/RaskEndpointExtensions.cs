@@ -21,6 +21,7 @@ using Microsoft.Net.Http.Headers;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Authorization;
+using Rask.Core.Browser;
 using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
@@ -190,6 +191,10 @@ public static class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<IBrowserStorage, BrowserStorage>();
+        services.AddScoped<IClipboard, Clipboard>();
+        services.AddScoped<IGeolocation, Geolocation>();
+        services.AddScoped<INavigatorInfo, NavigatorInfo>();
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();

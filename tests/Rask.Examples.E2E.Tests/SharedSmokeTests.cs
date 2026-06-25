@@ -29,7 +29,14 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _ctx = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = BaseUrl });
+        _ctx = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = BaseUrl,
+            // Grant the browser-gated APIs the /browser showcase exercises so their journey step is
+            // deterministic in headless Chromium: clipboard read/write, plus a fixed geolocation fix.
+            Permissions = ["clipboard-read", "clipboard-write", "geolocation"],
+            Geolocation = new Geolocation { Latitude = 51.5074f, Longitude = -0.1278f, Accuracy = 50 }
+        });
         Page = await _ctx.NewPageAsync();
         // Capture the browser console + uncaught page errors so a failing test can surface
         // the real client-side cause (e.g. a scoped-JS "Could not find … on target" force-fault

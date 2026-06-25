@@ -6,19 +6,9 @@ let dotnetExports = null;
 let root = null;
 let basePath = null;
 
-// Built-in element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
-// The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
-window.__raskEl = window.__raskEl || {
-    focus: (el) => {
-        if (el) el.focus();
-    },
-    blur: (el) => {
-        if (el) el.blur();
-    },
-    scrollIntoView: (el, opts) => {
-        if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
-    }
-};
+// Shared framework interop helpers (__raskEl, __raskApi) spliced from
+// Rask.Core/Resources/rask-api.js at build time — single source across both transports.
+// @@RASK_API@@
 
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /

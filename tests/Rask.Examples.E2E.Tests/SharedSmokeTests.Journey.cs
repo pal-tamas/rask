@@ -745,6 +745,45 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#demo-remove").ClickAsync();
         await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        await TestBrowserApisAsync();
+    }
+
+    // Typed browser-API foundation: Storage / Clipboard / Geolocation / Navigator wrappers, each over
+    // the unified IJSRuntime, identical on Server and WASM. Clipboard + geolocation are granted on the
+    // context (SharedSmokeTests.InitializeAsync), so every branch resolves rather than permission-faulting.
+    private async Task TestBrowserApisAsync()
+    {
+        await SideAsync("Browser APIs", "Typed browser APIs", "main h1.h2");
+        await Expect(Page.Locator("main .sample-card .sample-result-body #storage-input")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // localStorage round-trip via IBrowserStorage.
+        await Page.Locator("#storage-input").FillAsync("persist-me");
+        await Page.Locator("#storage-set").ClickAsync();
+        await Expect(Page.Locator("#browser-status")).ToContainTextAsync("Stored: persist-me",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#storage-read").ClickAsync();
+        await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Clipboard round-trip via IClipboard (copy then read back the same text).
+        await Page.Locator("#clipboard-copy").ClickAsync();
+        await Expect(Page.Locator("#browser-status")).ToContainTextAsync("Copied to clipboard",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#clipboard-paste").ClickAsync();
+        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Geolocation via IGeolocation + the __raskApi.geolocation Promise helper (fixed context fix).
+        await Page.Locator("#geo-get").ClickAsync();
+        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Navigator property reads via INavigatorInfo (returned directly by the invoke dispatcher).
+        await Page.Locator("#nav-read").ClickAsync();
+        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
