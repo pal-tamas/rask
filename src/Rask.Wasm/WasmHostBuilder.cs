@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
@@ -29,6 +30,10 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
+        Services.AddSingleton<IBrowserStorage, BrowserStorage>();
+        Services.AddSingleton<IClipboard, Clipboard>();
+        Services.AddSingleton<IGeolocation, Geolocation>();
+        Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();

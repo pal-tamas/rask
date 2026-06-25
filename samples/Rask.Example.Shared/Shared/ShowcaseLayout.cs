@@ -48,7 +48,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
         ("/upload", "File upload", "bi-upload", "Files", null),
         ("/download", "File download", "bi-cloud-download", "Files", null),
         ("/todos", "Todos", "bi-check2-square", "Apps", null),
-        ("/jsruntime", "IJSRuntime", "bi-braces", "Apps", null)
+        ("/jsruntime", "IJSRuntime", "bi-braces", "Apps", null),
+        ("/browser", "Browser APIs", "bi-globe", "Apps", null)
     ];
 
     private bool _drawerOpen;

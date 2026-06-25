@@ -9,18 +9,21 @@ public sealed class ResourcesSpliceTests
         var templatePath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Resources", "rask.wasm.js");
         var domPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-dom.js");
         var morphPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-morph.js");
+        var apiPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-api.js");
         var browserPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
         var template = File.ReadAllText(templatePath);
         var dom = File.ReadAllText(domPath);
         var morph = File.ReadAllText(morphPath);
+        var api = File.ReadAllText(apiPath);
         var committed = File.ReadAllText(browserPath);
 
-        // Mirror the two-marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj):
-        // the diff codec (rask-dom.js) first, then the full-HTML morph (rask-morph.js).
+        // Mirror the marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj): the diff codec
+        // (rask-dom.js), then the full-HTML morph (rask-morph.js), then the interop helpers (rask-api.js).
         var spliced = template
             .Replace("// @@RASK_DOM@@", dom)
-            .Replace("// @@RASK_MORPH@@", morph);
+            .Replace("// @@RASK_MORPH@@", morph)
+            .Replace("// @@RASK_API@@", api);
 
         Assert.True(
             spliced == committed,
