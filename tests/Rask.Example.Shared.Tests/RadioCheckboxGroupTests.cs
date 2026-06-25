@@ -114,6 +114,38 @@ public class RadioCheckboxGroupTests
         Assert.Contains("a", m.Tags);
     }
 
+    [Fact]
+    public async Task CheckboxGroup_Controlled_EmitsNewSelection_WithoutMutatingValue()
+    {
+        var value = new List<string> { "a" };
+        IReadOnlyCollection<string>? emitted = null;
+        var host = new LiveHost(
+            () => CheckboxGroup<string>(new[] { "a", "b", "c" }, Value: value, OnChange: next => emitted = next),
+            TestServices.Default());
+
+        var ids = AllChangeIds(host.RenderAsLiveRoot());
+        using var doc = JsonDocument.Parse("{\"value\":\"true\"}");
+        await host.TryInvokeHandlerAsync(ids[1], doc.RootElement); // check "b"
+
+        Assert.Equal(["a", "b"], emitted!);
+        Assert.Equal(["a"], value); // controlled mode never mutates the parent's Value
+    }
+
+    [Fact]
+    public async Task RadioGroup_Controlled_EmitsSelectedValue()
+    {
+        Color? picked = null;
+        var host = new LiveHost(
+            () => RadioGroup(new[] { Color.Red, Color.Green, Color.Blue }, Value: Color.Red, OnChange: v => picked = v),
+            TestServices.Default());
+
+        var ids = AllChangeIds(host.RenderAsLiveRoot());
+        using var doc = JsonDocument.Parse("{\"value\":\"true\"}");
+        await host.TryInvokeHandlerAsync(ids[2], doc.RootElement); // select Blue (third radio)
+
+        Assert.Equal(Color.Blue, picked);
+    }
+
     private static int CountOccurrences(string haystack, string needle)
     {
         var count = 0;

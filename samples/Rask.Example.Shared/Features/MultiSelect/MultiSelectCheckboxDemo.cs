@@ -1,27 +1,25 @@
 namespace Rask.Example.Shared.Features;
 
-// CheckboxGroup<TItem> — the framework primitive for selecting many values into an ICollection. Each
-// option is a checkbox; toggling adds/removes from the bound collection and re-validates the field.
+// CheckboxGroup<TItem> — selecting many values into a collection, here in controlled mode (Value + OnChange).
+// The parent owns the selection; OnChange (auto-wrapped) re-renders this demo so the summary stays live.
 public sealed class MultiSelectCheckboxDemo : Component
 {
-    private readonly Prefs _prefs = new();
+    private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
+
+    private IReadOnlyCollection<string> _interests = [];
 
     protected override RenderResult Render() =>
-        Form(_prefs)[
-            Div(Class: "mb-3")[
+        Div(Class: "vstack gap-3")[
+            Div()[
                 Label(Class: "form-label fw-semibold d-block")["Interests"],
                 CheckboxGroup<string>(
-                    () => _prefs.Interests,
-                    ["Web", "Mobile", "AI", "Games"],
+                    AllInterests,
+                    Value: _interests.ToList(),
+                    OnChange: next => _interests = next,
                     ItemClass: "form-check-inline")
             ],
             P(Class: "small text-secondary mb-0", Id: "ms-checkbox-summary")[
-                "Selected: " + (_prefs.Interests.Count == 0 ? "none" : string.Join(", ", _prefs.Interests))
+                "Selected: " + (_interests.Count == 0 ? "none" : string.Join(", ", _interests))
             ]
         ];
-
-    private sealed class Prefs
-    {
-        public List<string> Interests { get; } = [];
-    }
 }
