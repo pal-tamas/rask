@@ -19,7 +19,7 @@ public sealed class KeyedListsReorderDemo : Component
             Ul(Class: "list-group")[
                 _items.Select(f => Li(Key: f.Id, Class: "list-group-item")[
                     Span()[f.Name],
-                    Input("text") // unbound — its value lives only in the DOM
+                    Input<string>("text") // unbound — its value lives only in the DOM
                 ])
             ],
             Button(Class: "btn btn-sm btn-outline-primary mt-2", OnClick: Rotate)["Rotate"]

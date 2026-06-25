@@ -52,7 +52,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_StringActionHandler_ReceivesValueProperty()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input(OnInput: v => captured = v));
+        var view = new StubComponent(() => Input<string>(OnInput: v => captured = v));
         view.RenderAsLiveRoot();
 
         using var doc = JsonDocument.Parse("{\"id\":\"h0\",\"type\":\"input\",\"value\":\"hello\"}");
@@ -100,7 +100,7 @@ public class LiveViewTests
     public async Task TryInvokeHandlerAsync_FuncStringTaskHandler_ReceivesValue()
     {
         var captured = string.Empty;
-        var view = new StubComponent(() => Input(OnInputAsync: async v =>
+        var view = new StubComponent(() => Input<string>(OnInputAsync: async v =>
         {
             await Task.Yield();
             captured = v;

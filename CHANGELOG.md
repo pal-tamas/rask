@@ -25,6 +25,18 @@ them until tagged releases begin.
   `Expression<Func<T>>` Bind parameter, so the sample `MultiSelect<TItem>` declares one `Bound` core (its
   `Validate` over `ICollection<TItem>`) and the hand-written `MultiSelectBoundFactory` is removed.
 
+### Changed
+- **Built-in `Input`/`Select`/`Textarea` are now generic `Input<T>`/`Select<T>`/`Textarea<T>` implementing
+  `IFormControl<T>`.** Bound usage infers `T` from the expression (`Input(() => model.Age)` → `Input<int>` →
+  `<input type="number">` — the HTML input `type` derives from `T`: `bool`→checkbox, numeric→number,
+  `DateOnly`→date, etc.); binding is resolved at render time rather than in a `Bound` factory. **Breaking:**
+  plain (non-bound) usage now needs the explicit type argument — `Input<string>("text", …)`,
+  `Select<string>(…)`, `Textarea<string>(…)` — and bound `Select` takes its options via the `[...]` indexer
+  rather than a `Children:` argument. `IFormControl<T>` also gained default-method helpers that remove
+  per-control boilerplate (`Validator`, `RegisterValidator`, `InvokeAfterBindAsync`, `InvokeOnChangeAsync`,
+  `ControlledChangeHandler` — the string↔`T` bridge for controlled mode), adopted by the built-ins and the
+  sample `MultiSelect`/`CheckboxGroup`/`RadioGroup`.
+
 ### Added
 - **`IFormControl<T>` — a declarative contract for building custom form controls.** A generic component
   implementing `IFormControl<T>` (in `Rask.Core.Forms`) gets both of its factories synthesized by the

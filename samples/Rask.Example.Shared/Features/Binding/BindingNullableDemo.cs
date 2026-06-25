@@ -28,11 +28,9 @@ public sealed class BindingNullableDemo : Component
             Select(
                 () => _model.Favorite,
                 Id: "bind-null-color",
-                Class: "form-select",
-                Children: new Child[]
-                {
-                    Option("")["— none —"], Option("Red")["Red"], Option("Green")["Green"], Option("Blue")["Blue"]
-                })
+                Class: "form-select")[
+                Option("")["— none —"], Option("Red")["Red"], Option("Green")["Green"], Option("Blue")["Blue"]
+            ]
         ],
         Div(Class: "mb-3")[
             Label("bind-null-nick", Class: "form-label small")["Nickname (string?)"],

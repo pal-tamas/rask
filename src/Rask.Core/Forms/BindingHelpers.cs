@@ -358,6 +358,36 @@ public static class BindingHelpers
         return false;
     }
 
+    // Parses a DOM string value into the typed value of a controlled IFormControl<T> (the inverse of
+    // FormatValue). Identity for string; enums and IParsable<T> types round-trip via the same parser the
+    // bound setter uses. Takes a runtime Type so the caller's generic T carries no trimming annotation —
+    // the parse demands are covered by the same DynamicDependency that preserves the bound model's members,
+    // mirroring TrySetTyped's suppressions for the bound-setter path. Returns false when raw can't be parsed.
+    [UnconditionalSuppressMessage("Trimming", "IL2067",
+        Justification = "targetType is the declared value type of a typed form control; its enum/IParsable " +
+                        "parse demands are covered by the same DynamicDependency that preserves the model's " +
+                        "members, mirroring TrySetTyped.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "Same rationale as IL2067 — targetType flows to RouteValueParser.TryParse, which " +
+                        "carries its own suppressions for the IParsable<T> probe.")]
+    public static bool TryParseValue(Type targetType, string raw, out object? value)
+    {
+        var effective = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        if (effective.IsEnum)
+        {
+            if (Enum.TryParse(effective, raw, true, out var en))
+            {
+                value = en;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        return RouteValueParser.TryParse(targetType, raw, out value);
+    }
+
     private static bool IsNullableProperty(PropertyInfo prop, Type? underlying, Type type)
     {
         if (underlying is not null)
