@@ -36,7 +36,7 @@
         },
         {
           "condition": "(!pwa)",
-          "exclude": [ "**/wwwroot/manifest.webmanifest", "**/wwwroot/icon.svg" ]
+          "exclude": [ "**/wwwroot/icon.svg" ]
         }
       ]
     }

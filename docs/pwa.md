@@ -35,31 +35,30 @@ That scaffolds a web app manifest + icon and registers Rask's default service wo
 
 ## Installable — the web app manifest
 
-A `wwwroot/manifest.webmanifest` plus a `<link rel="manifest">` makes the app installable (the
-browser's "Install app" / "Add to Home Screen"):
+Configure a typed `WebAppManifest` in `Program.cs` — the framework injects the
+`<link rel="manifest">` (a `data:` URL, so **no `manifest.webmanifest` file to ship**) and the
+`<meta name="theme-color">` at boot. There's nothing to hand-write or keep in sync:
 
-```json
+```csharp
+using Rask.Wasm.Browser;
+
+var host = WasmHostBuilder.CreateDefault();
+host.UseManifest(new WebAppManifest
 {
-  "name": "My Rask App",
-  "short_name": "Rask App",
-  "start_url": ".",
-  "scope": ".",
-  "display": "standalone",
-  "background_color": "#faf9fe",
-  "theme_color": "#512BD4",
-  "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
-  ]
-}
+    Name = "My Rask App",
+    ShortName = "Rask App",
+    ThemeColor = "#512BD4",
+    BackgroundColor = "#faf9fe",
+    Display = DisplayMode.Standalone,
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
+});
+await host.RunAsync<App>();
 ```
 
-Relative `start_url`/`scope` (`"."`) keep it correct under a sub-path deploy (GitHub Pages). In
-`wwwroot/index.html`:
-
-```html
-<link href="manifest.webmanifest" rel="manifest"/>
-<meta content="#512BD4" name="theme-color"/>
-```
+Relative URLs (`StartUrl`/`Scope` default to `"."`, and icon `src`) are made **absolute against
+`<base href>`** when applied, so they stay correct under a sub-path deploy (GitHub Pages). Put your
+icon(s) in `wwwroot` (the `--pwa` templates ship an `icon.svg`). `WebAppManifest.ToJson()` is also
+available if you'd rather serve a physical `manifest.webmanifest` (e.g. from an ASP.NET host).
 
 ---
 
