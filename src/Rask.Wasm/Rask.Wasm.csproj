@@ -69,6 +69,7 @@
   <ItemGroup>
     <None Include="Browser\main.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\index.html" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\rask-sw.js" Pack="true" PackagePath="Browser\"/>
     <None Include="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
           Pack="true" PackagePath="Browser\rask.wasm.js"
           Condition=" '$(Configuration)' == 'Release' "/>
@@ -86,14 +87,15 @@
     contributors look at). NuGet consumers see whichever version is packed (above).
   -->
   <Target Name="_RaskSpliceClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;_RaskMinifyClientJs"
-          Inputs="Resources\rask.wasm.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js"
+          Inputs="Resources\rask.wasm.js;Resources\rask-wasm-api.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js"
           Outputs="Browser\rask.wasm.js">
     <PropertyGroup>
       <_RaskWasmTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.wasm.js'))</_RaskWasmTemplate>
       <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
-      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)'))</_RaskWasmJs>
+      <_RaskWasmApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-wasm-api.js'))</_RaskWasmApiBody>
+      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)'))</_RaskWasmJs>
     </PropertyGroup>
     <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>

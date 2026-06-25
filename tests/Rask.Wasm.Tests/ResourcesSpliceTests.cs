@@ -10,20 +10,24 @@ public sealed class ResourcesSpliceTests
         var domPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-dom.js");
         var morphPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-morph.js");
         var apiPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-api.js");
+        var wasmApiPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Resources", "rask-wasm-api.js");
         var browserPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
         var template = File.ReadAllText(templatePath);
         var dom = File.ReadAllText(domPath);
         var morph = File.ReadAllText(morphPath);
         var api = File.ReadAllText(apiPath);
+        var wasmApi = File.ReadAllText(wasmApiPath);
         var committed = File.ReadAllText(browserPath);
 
         // Mirror the marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj): the diff codec
-        // (rask-dom.js), then the full-HTML morph (rask-morph.js), then the interop helpers (rask-api.js).
+        // (rask-dom.js), the full-HTML morph (rask-morph.js), the shared interop helpers (rask-api.js),
+        // then the WASM-only helpers (rask-wasm-api.js — spliced into the WASM client only).
         var spliced = template
             .Replace("// @@RASK_DOM@@", dom)
             .Replace("// @@RASK_MORPH@@", morph)
-            .Replace("// @@RASK_API@@", api);
+            .Replace("// @@RASK_API@@", api)
+            .Replace("// @@RASK_WASM_API@@", wasmApi);
 
         Assert.True(
             spliced == committed,

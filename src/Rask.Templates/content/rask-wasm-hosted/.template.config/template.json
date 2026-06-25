@@ -19,6 +19,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Scaffold a cookie-backed login: the host serves /api/login + /api/me + /auth/logout, the client hydrates the user and gates a protected /members page."
+    },
+    "pwa": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Make the client an installable, offline PWA: adds a web app manifest + icon and registers Rask's default service worker (offline app-shell cache + Web Push) from index.html."
     }
   },
   "sources": [
@@ -27,6 +33,10 @@
         {
           "condition": "(!auth)",
           "exclude": [ "**/Auth/**" ]
+        },
+        {
+          "condition": "(!pwa)",
+          "exclude": [ "**/wwwroot/manifest.webmanifest", "**/wwwroot/icon.svg" ]
         }
       ]
     }

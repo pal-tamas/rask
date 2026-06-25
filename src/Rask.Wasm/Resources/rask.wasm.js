@@ -10,6 +10,10 @@ let basePath = null;
 // Rask.Core/Resources/rask-api.js at build time — single source across both transports.
 // @@RASK_API@@
 
+// WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
+// in the Server client, since these back APIs that can't work over the WebSocket round-trip.
+// @@RASK_WASM_API@@
+
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
 // preloadNewHeadStylesheets), opening a microtask/timer gap during which .NET could
