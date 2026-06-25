@@ -195,6 +195,12 @@ public static class RaskEndpointExtensions
         services.AddScoped<IClipboard, Clipboard>();
         services.AddScoped<IGeolocation, Geolocation>();
         services.AddScoped<INavigatorInfo, NavigatorInfo>();
+        services.AddScoped<ICookies, Cookies>();
+        services.AddScoped<IPermissions, Permissions>();
+        services.AddScoped<IVibration, Vibration>();
+        services.AddScoped<IPageVisibility, PageVisibilityInfo>();
+        // IShare is intentionally NOT registered on Server: navigator.share() requires transient user
+        // activation, which is lost across the WebSocket round-trip. It is WASM-only (see WasmHostBuilder).
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();

@@ -165,6 +165,25 @@ dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 
 pulls in `Rask.Wasm`. The validation packages add a global `using static` for their factory namespace, so
 `DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in scope without extra `using` lines.
 
+## ⚖️ When to use Server vs WASM
+
+The **same component code** runs on both hosts — pick the transport, not a rewrite. You can also start
+on one and move later.
+
+| | **Server** (`Rask.Server`) | **WASM** (`Rask.Wasm`) |
+| --- | --- | --- |
+| **Runs** | On the server; UI diffs stream over a WebSocket | Entirely in the browser (.NET on WebAssembly) |
+| **First paint** | Instant, tiny payload | Downloads the runtime first (cache it) |
+| **Needs a live connection** | Yes — UI pauses if the socket drops | No — works offline once loaded |
+| **Direct server/DB/secret access** | Yes, from event handlers | No — call an API |
+| **Scales by** | Server memory (one session each) | Client CPU (free per user) |
+| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (e.g. `IShare`) and upcoming PWA/offline APIs |
+
+**Rule of thumb:** reach for **Server** for data-dense internal apps, instant loads, and direct backend
+access; reach for **WASM** for offline-capable, installable, or static-hosted (e.g. GitHub Pages) apps —
+and it's the transport for the PWA features on the roadmap. See
+[architecture](docs/architecture/) and [JS interop → user-activation and the transport](docs/js-interop.md#typed-browser-apis).
+
 ## 🚀 Quick Start — Server
 
 Three files. Live, server-rendered, no JavaScript to write.
@@ -1237,7 +1256,11 @@ public sealed class Prefs(IBrowserStorage storage, IClipboard clipboard,
 }
 ```
 
-Clipboard and geolocation are browser-gated (secure context + permission) — wrap those in `try/catch`. See
+More shared wrappers (both transports, in `Rask.Core.Browser`): `ICookies` (`document.cookie`),
+`IPermissions` (query state before prompting), `IVibration`, and `IPageVisibility`. APIs that can't work
+on the Server transport live in `Rask.Wasm.Browser` — currently `IShare` (Web Share needs a live user
+gesture, lost across the Server round-trip). Clipboard and geolocation are browser-gated (secure context
++ permission) — wrap those in `try/catch`. See
 [JS interop → Typed browser APIs](docs/js-interop.md#typed-browser-apis).
 
 </details>

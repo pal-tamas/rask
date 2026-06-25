@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **More typed browser APIs** (building on the typed browser-API foundation), all shared across Server
+  and WASM and injected through the constructor: `ICookies` (`document.cookie` with typed
+  `CookieOptions`), `IPermissions` (`QueryAsync` → `PermissionState`), `IVibration`
+  (`navigator.vibrate`), and `IPageVisibility` (`document.visibilityState`). The showcase's browser-API
+  examples are now their own **Browser APIs** section — one page per wrapper (`/browser/storage`,
+  `/browser/cookies`, `/browser/clipboard`, `/browser/geolocation`, `/browser/permissions`,
+  `/browser/vibration`, `/browser/visibility`, `/browser/navigator-info`).
+- **WASM-only typed browser APIs now live in `Rask.Wasm.Browser`** (shared APIs stay in
+  `Rask.Core.Browser`). First entry: `IShare` (Web Share — `ShareAsync`/`CanShareAsync`), which needs
+  transient user activation and so can't work across the Server WebSocket round-trip. This namespace is
+  the home for upcoming PWA-only APIs.
+
+### Changed
+- **`Rask.Core.Browser` now holds only transport-shared browser APIs.** APIs that can't function on the
+  Server transport (currently `IShare`) moved to `Rask.Wasm.Browser`, registered by the WASM host only.
 - **Typed browser-API foundation** — strongly-typed, DI-injected C# wrappers over the Web APIs that
   previously needed raw `IJSRuntime` string identifiers, identical on Server and WASM: `IBrowserStorage`
   (`localStorage`/`sessionStorage`), `IClipboard`, `IGeolocation` (`GetCurrentPositionAsync` →

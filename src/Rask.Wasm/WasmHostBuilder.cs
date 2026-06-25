@@ -10,6 +10,7 @@ using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
+using Rask.Wasm.Browser;
 using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
@@ -34,6 +35,11 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IClipboard, Clipboard>();
         Services.AddSingleton<IGeolocation, Geolocation>();
         Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
+        Services.AddSingleton<ICookies, Cookies>();
+        Services.AddSingleton<IPermissions, Permissions>();
+        Services.AddSingleton<IShare, Share>();
+        Services.AddSingleton<IVibration, Vibration>();
+        Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
         Services.AddAuthorizationCore();
