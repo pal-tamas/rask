@@ -1,21 +1,24 @@
 namespace Rask.Example.Shared.Features;
 
-// RadioGroup<TValue> — the single-value sibling of CheckboxGroup. Selecting an option writes the bound
-// scalar property (here an enum) and re-validates the field.
+// RadioGroup<TValue> — the single-value sibling of CheckboxGroup, here in controlled mode (Value + OnChange).
+// Selecting an option calls OnChange (auto-wrapped), which re-renders this demo so the readout stays live.
 public sealed class MultiSelectRadioDemo : Component
 {
-    private readonly Prefs _prefs = new();
+    private static readonly Tier[] AllTiers = [Tier.Free, Tier.Pro, Tier.Team];
+
+    private Tier _plan = Tier.Free;
 
     protected override RenderResult Render() =>
-        Form(_prefs)[
-            Div(Class: "mb-3")[
+        Div(Class: "vstack gap-3")[
+            Div()[
                 Label(Class: "form-label fw-semibold d-block")["Plan"],
                 RadioGroup(
-                    () => _prefs.Plan,
-                    [Tier.Free, Tier.Pro, Tier.Team],
+                    AllTiers,
+                    Value: _plan,
+                    OnChange: v => _plan = v,
                     ItemClass: "form-check-inline")
             ],
-            P(Class: "small text-secondary mb-0", Id: "ms-radio-summary")[$"Plan: {_prefs.Plan}"]
+            P(Class: "small text-secondary mb-0", Id: "ms-radio-summary")[$"Plan: {_plan}"]
         ];
 
     private enum Tier
@@ -23,10 +26,5 @@ public sealed class MultiSelectRadioDemo : Component
         Free,
         Pro,
         Team
-    }
-
-    private sealed class Prefs
-    {
-        public Tier Plan { get; set; } = Tier.Free;
     }
 }

@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`CheckboxGroup`/`RadioGroup` rewritten as Components** (the `MultiSelect<TItem>` template) instead of
+  static `Fragment` factories. Each now supports **bound** (`() => model.X` with a per-field `Validate`
+  rule + `AfterBind` hooks) and **controlled** (`Value` + `OnChange`/`OnChangeAsync`) modes, and their
+  factories are generator-emitted (Bind-first validator fan-out for bound mode). **Note:** as Components
+  they are their own re-render boundary, so host-side derived UI updates via the auto-wrapped controlled
+  `OnChange` (the showcase group demos moved to controlled mode) rather than the free host re-render the
+  old `Fragment` form gave.
 - **Generator-driven validator fan-out for bound form controls.** `[GenerateForwarderFactory]` gained a
   `Validator` parameter: naming a `Delegate?` parameter makes the generator emit the none/sync/async
   `Validate<T>`/`ValidateAsync<T>` overloads around a single hand-written core. `Input`/`Select`/`Textarea`

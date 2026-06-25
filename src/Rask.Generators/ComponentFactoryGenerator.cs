@@ -646,6 +646,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 var isAutoRerenderDelegate = !isElement && IsAutoRerenderDelegate(prop.Type);
 
+                // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —
+                // there's no conversion from null to T — so its optional factory param must default to
+                // `default`. (A `class`/`notnull`-constrained T would accept null, but `default` is always
+                // valid, so key off the type-parameter kind rather than the constraint set.)
+                var isTypeParameter = prop.Type is ITypeParameterSymbol;
+
                 result.Add(new PropInfo(
                     prop.Name,
                     typeFqn,
@@ -656,7 +662,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     filePath,
                     spanStart,
                     spanLength,
-                    isAutoRerenderDelegate));
+                    isAutoRerenderDelegate,
+                    isTypeParameter));
             }
         }
 
@@ -703,7 +710,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     {
         // Only optional params reach this; the optional set is exactly the nullable props (a
         // non-nullable prop with no initializer is a required factory param with no default).
-        return p.IsNullable ? "null" : "default";
+        // A type-parameter prop must use `default` — `null` has no conversion to an unconstrained T.
+        return p.IsNullable && !p.IsTypeParameter ? "null" : "default";
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool emitNavigation)
@@ -1499,7 +1507,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         string DeclaringFilePath,
         int DeclaringSpanStart,
         int DeclaringSpanLength,
-        bool IsAutoRerenderDelegate)
+        bool IsAutoRerenderDelegate,
+        bool IsTypeParameter)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

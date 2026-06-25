@@ -1,31 +1,37 @@
 namespace Rask.Example.Shared.Features;
 
-// RadioGroup (single value) + CheckboxGroup (collection) bound to a model, with a live readout.
-// Changing any option re-renders this demo (the change handlers' owner resolves to it), so the
-// summary line updates immediately.
+// RadioGroup (single value) + CheckboxGroup (collection) in controlled mode (Value + OnChange), with a live
+// readout. The controls are Components; their OnChange callbacks are auto-wrapped (AutoCallback), so
+// selecting an option re-renders this demo and the summary line updates immediately — no StateHasChanged.
 public sealed class FormGroupsDemo : Component
 {
-    private readonly Prefs _prefs = new();
+    private static readonly Plan[] AllPlans = [Plan.Free, Plan.Pro, Plan.Team];
+    private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
+
+    private Plan _plan = Plan.Free;
+    private IReadOnlyCollection<string> _interests = [];
 
     protected override RenderResult Render() =>
-        Form(_prefs)[
-            Div(Class: "mb-3")[
+        Div(Class: "vstack gap-3")[
+            Div()[
                 Label(Class: "form-label fw-semibold d-block")["Plan"],
                 RadioGroup(
-                    () => _prefs.Plan,
-                    new[] { Plan.Free, Plan.Pro, Plan.Team },
+                    AllPlans,
+                    Value: _plan,
+                    OnChange: v => _plan = v,
                     ItemClass: "form-check-inline")
             ],
-            Div(Class: "mb-3")[
+            Div()[
                 Label(Class: "form-label fw-semibold d-block")["Interests"],
                 CheckboxGroup<string>(
-                    () => _prefs.Interests,
-                    new[] { "Web", "Mobile", "AI", "Games" },
+                    AllInterests,
+                    Value: _interests.ToList(),
+                    OnChange: next => _interests = next,
                     ItemClass: "form-check-inline")
             ],
             P(Class: "small text-secondary mb-0", Id: "groups-summary")[
-                $"Plan: {_prefs.Plan} · Interests: "
-                + (_prefs.Interests.Count == 0 ? "none" : string.Join(", ", _prefs.Interests))
+                $"Plan: {_plan} · Interests: "
+                + (_interests.Count == 0 ? "none" : string.Join(", ", _interests))
             ]
         ];
 
@@ -34,11 +40,5 @@ public sealed class FormGroupsDemo : Component
         Free,
         Pro,
         Team
-    }
-
-    private sealed class Prefs
-    {
-        public Plan Plan { get; set; } = Plan.Free;
-        public List<string> Interests { get; } = new();
     }
 }

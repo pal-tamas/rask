@@ -365,55 +365,41 @@ See `samples/Rask.Example.Shared/Features/NestedForms/NestedFormPage.cs` for all
 ## 8. Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`, toggling each item in place. They are **example components that ship in the
-samples** (`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls
-built on the public binding API of §9. Both render a transparent `Fragment`, so changes flow through the
-`EditContext` (validation, touched-tracking) like any bound field.
+`ICollection<TItem>`. They are **example components that ship in the samples**
+(`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls built on the
+public binding API of §9, structured exactly like `MultiSelect<TItem>` with **bound** and **controlled**
+modes (so the generator emits their factories):
 
 ```csharp
-public static Component RadioGroup<TValue>(
-    Expression<Func<TValue>> Bind,
-    IEnumerable<TValue> Options,
-    Func<TValue, Child>? OptionLabel = null,
-    string? Name = null,
-    string? ItemClass = null,
-    bool Disabled = false)
-
-public static Component CheckboxGroup<TItem>(
-    Expression<Func<ICollection<TItem>>> Bind,
-    IEnumerable<TItem> Options,
-    Func<TItem, Child>? OptionLabel = null,
-    string? Name = null,
-    string? ItemClass = null,
-    bool Disabled = false)
-```
-
-```csharp
+// Bound — two-way binds the model, with an optional per-field Validate rule.
 Form(_prefs)[
     RadioGroup(() => _prefs.Plan,                       // single value
         new[] { Plan.Free, Plan.Pro, Plan.Team },
         ItemClass: "form-check-inline"),
 
-    CheckboxGroup<string>(() => _prefs.Interests,       // a collection — toggles in place
+    CheckboxGroup<string>(() => _prefs.Interests,       // a collection
         new[] { "Web", "Mobile", "AI", "Games" },
-        ItemClass: "form-check-inline")
+        Validate: tags => tags.Count >= 1 ? [] : ["Pick at least one."])
 ]
+
+// Controlled — the parent owns the value; OnChange (auto-wrapped) re-renders it.
+RadioGroup(plans, Value: _plan, OnChange: v => _plan = v)
+CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests = next)
 ```
 
-- The first positional argument is the `Bind` expression.
+- Bound mode takes the `Bind` expression first; `Validate` fans into none/sync/async overloads like
+  `Input` (§9). `RadioGroup` renders the option equal to the current value `checked` and sets the bound
+  property on select; `CheckboxGroup` mutates the bound collection (membership by
+  `EqualityComparer<TItem>.Default`) — you usually need the explicit `CheckboxGroup<string>` when the
+  collection is a concrete `List<T>`. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
+  `ValidateFieldAsync`, so DataAnnotations / FluentValidation rules apply.
 - Each item renders Bootstrap 5.3
   [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/) — a
   `<div class="form-check">` wrapping a `.form-check-input` and a `.form-check-label` tied together by
-  `id`/`for`. `ItemClass` adds extra classes to that wrapper (e.g. `"form-check-inline"`); `OptionLabel`
-  customizes the label content.
-- `RadioGroup` renders the option equal to the current value `checked`; the change handler sets the
-  bound property. `CheckboxGroup` mutates the bound collection in place; membership is compared with
-  `EqualityComparer<TItem>.Default`. You usually need the explicit type argument
-  (`CheckboxGroup<string>`) when the bound collection is a concrete `List<T>`.
-- Because they return a `Fragment` (no component boundary of their own), changing an option re-renders
-  the component that declared the group — a live summary updates immediately. Each change calls
-  `NotifyFieldChanged` + `NotifyFieldTouched` + `ValidateFieldAsync`, so DataAnnotations /
-  FluentValidation rules on the bound property apply.
+  `id`/`for`. `ItemClass` adds extra classes (e.g. `"form-check-inline"`); `OptionLabel` customizes the label.
+- They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
+  host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
+  the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)
 
 See `samples/Rask.Example.Shared/Features/FormGroups/FormGroupsPage.cs`.
 
@@ -465,18 +451,19 @@ Surface field messages with `ValidationMessage(Bind, …)` (§2.Rendering messag
 
 This is the one subtlety worth understanding:
 
-- A control with **no view state of its own** is best written as a static factory returning a
-  `Fragment` (like `CheckboxGroup`). Its `<input>` handlers are owned by the **host** component that
-  declared it (handler-owner resolution keeps the owner as the host when the handler isn't a
-  `Component`-targeted delegate), so a change re-renders the host for free — exactly like a bound
-  `Input`. Host-side derived UI (a live summary) just updates.
-- A control that **needs view state** (an open/closed dropdown) must be a `Component`. Now its own
-  handlers re-render *it*, not the host, so host-side derived UI would go stale. Two clean options:
+- A control with **no view state of its own** *can* be a static factory returning a `Fragment`. Its
+  `<input>` handlers are owned by the **host** component that declared it (handler-owner resolution keeps
+  the owner as the host when the handler isn't a `Component`-targeted delegate), so a change re-renders
+  the host for free — exactly like a bound `Input`. Host-side derived UI (a live summary) just updates.
+- A control written as a **`Component`** (so the generator can emit its factory, or because it needs view
+  state like an open/closed dropdown) is its own re-render boundary: its handlers re-render *it*, not the
+  host, so host-side derived UI would go stale. Two clean options:
   - keep the live feedback **inside the control** (chips, an embedded `ValidationMessage`) — it refreshes
     because the control re-renders itself; or
-  - expose an `Action<T>`/`Func<T,Task>` **callback** (`OnChange`) the consumer passes. Callback props on
-    a component are auto-wrapped (`AutoCallback`) so invoking them re-renders the component that owns the
-    handler — i.e. the host — so a host-side summary updates with no `StateHasChanged`.
+  - expose an `OnChange` **callback** the consumer passes. Callback props on a component are auto-wrapped
+    (`AutoCallback`) so invoking them re-renders the component that owns the handler — i.e. the host — so a
+    host-side summary updates with no `StateHasChanged`. (The sample `CheckboxGroup`/`RadioGroup`/`MultiSelect`
+    are all Components and use exactly this for their controlled mode.)
 
 ### Bound vs controlled
 
@@ -489,8 +476,8 @@ Mirror `Input` and offer both shapes where it makes sense:
 
 ### Worked examples
 
-- `samples/Rask.Example.Shared/Shared/CheckboxGroup.cs` / `RadioGroup.cs` — minimal stateless
-  `Fragment` controls with per-field binding and validation.
+- `samples/Rask.Example.Shared/Shared/CheckboxGroup.cs` / `RadioGroup.cs` — Components with bound +
+  controlled modes and a per-field `Validate` rule, rendering Bootstrap `form-check` markup.
 - `samples/Rask.Example.Shared/Shared/MultiSelect.cs` — a stateful `Component`: a Bootstrap dropdown
   with removable chips, Esc / click-outside close (pure live-diff, no client JS), both bound (with a
   `Validate` rule) and controlled (`Value` + auto-wrapped `OnChange`) modes. See the `/multiselect` page.
