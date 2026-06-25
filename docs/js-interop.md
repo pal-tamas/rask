@@ -111,8 +111,12 @@ later step on the same pattern.
 | Service | Wraps | Key members |
 | --- | --- | --- |
 | `IBrowserStorage` | `localStorage` / `sessionStorage` | `.Local` / `.Session` → `GetAsync`, `SetAsync`, `RemoveAsync`, `ClearAsync`, `KeyAsync`, `LengthAsync` |
+| `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
 | `IClipboard` | `navigator.clipboard` | `WriteTextAsync`, `ReadTextAsync` |
 | `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition` |
+| `IPermissions` | `navigator.permissions` | `QueryAsync(PermissionName)` → `PermissionState` |
+| `IVibration` | `navigator.vibrate` | `VibrateAsync(params int[])`, `CancelAsync` |
+| `IPageVisibility` | `document.visibilityState` | `GetStateAsync()` → `PageVisibility`, `IsHiddenAsync` |
 | `INavigatorInfo` | `window.navigator` | `OnLineAsync`, `LanguageAsync`, `UserAgentAsync` |
 
 ```csharp
@@ -136,6 +140,25 @@ geolocation are **browser-gated** — they need a secure context (HTTPS or local
 permission; a denial or timeout surfaces as a `JSException` from the awaited task, so wrap those
 calls in `try/catch`.
 
+**User-activation and the transport — why one API is WASM-only.** Some browser APIs require
+*transient* activation: they must run inside the live user-gesture task. On **WASM** an event
+handler's interop call runs synchronously in that gesture's call stack, so it qualifies; on **Server**
+the click is forwarded over the WebSocket and the interop call runs a round-trip later, after the
+transient activation has expired. The practical effect:
+
+- **`IShare`** (Web Share) needs transient activation, so it is **WASM-only** and lives in
+  `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
+  would reject with "Must be handling a user gesture," so it isn't offered there.
+- **`IClipboard.WriteTextAsync`** needs transient activation *or* a granted `clipboard-write`
+  permission — the permission lets it work across the Server round-trip, so it stays shared.
+- **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
+  works on **both** transports (on devices with a vibration motor).
+- Everything else here (storage, cookies, geolocation, permissions, navigator info, page visibility)
+  is unaffected by activation and behaves identically on both transports.
+
+This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
+work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).
+
 Under the hood: storage/clipboard methods are plain function calls; `navigator.onLine` and
 `localStorage.length` are *property* reads the client returns directly; and the callback-based
 `getCurrentPosition` is wrapped in a Promise by the framework helper `__raskApi.geolocation`. That
@@ -143,8 +166,9 @@ helper (and `__raskEl`) lives in `src/Rask.Core/Resources/rask-api.js` and is sp
 client runtimes at build time, so the two transports never drift. `GeolocationPosition` is rooted
 for the WASM trimmer by the framework, so it deserializes correctly in a `PublishTrimmed` app.
 
-Runnable demo: [`samples/Rask.Example.Shared/Features/Browser/BrowserApiDemo.cs`](../samples/Rask.Example.Shared/Features/Browser/BrowserApiDemo.cs)
-(the `/browser` page).
+Runnable demos: the **Browser APIs** section of the showcase — one page per wrapper under
+[`samples/Rask.Example.Shared/Features/Browser/`](../samples/Rask.Example.Shared/Features/Browser/)
+(e.g. `StorageDemo.cs`, `CookiesDemo.cs`, `PermissionsDemo.cs`, `ShareDemo.cs`).
 
 ---
 

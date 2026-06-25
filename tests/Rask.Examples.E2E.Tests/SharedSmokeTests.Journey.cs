@@ -749,41 +749,63 @@ public abstract partial class SharedSmokeTests
         await TestBrowserApisAsync();
     }
 
-    // Typed browser-API foundation: Storage / Clipboard / Geolocation / Navigator wrappers, each over
-    // the unified IJSRuntime, identical on Server and WASM. Clipboard + geolocation are granted on the
-    // context (SharedSmokeTests.InitializeAsync), so every branch resolves rather than permission-faulting.
+    // Browser APIs section: one example page per typed wrapper, each over the unified IJSRuntime and
+    // identical on Server and WASM. Clipboard + geolocation are granted on the context
+    // (SharedSmokeTests.InitializeAsync), so those branches resolve rather than permission-faulting.
     private async Task TestBrowserApisAsync()
     {
-        await SideAsync("Browser APIs", "Typed browser APIs", "main h1.h2");
-        await Expect(Page.Locator("main .sample-card .sample-result-body #storage-input")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+        var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
 
-        // localStorage round-trip via IBrowserStorage.
+        // Storage — localStorage round-trip via IBrowserStorage.
+        await SideAsync("Storage", "Storage");
         await Page.Locator("#storage-input").FillAsync("persist-me");
         await Page.Locator("#storage-set").ClickAsync();
-        await Expect(Page.Locator("#browser-status")).ToContainTextAsync("Stored: persist-me",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
         await Page.Locator("#storage-read").ClickAsync();
         await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
-        // Clipboard round-trip via IClipboard (copy then read back the same text).
+        // Cookies — set then read back via ICookies (document.cookie).
+        await SideAsync("Cookies", "Cookies");
+        await Page.Locator("#cookie-input").FillAsync("choco");
+        await Page.Locator("#cookie-set").ClickAsync();
+        await Expect(Page.Locator("#cookie-status")).ToContainTextAsync("Set: choco", contains);
+        await Page.Locator("#cookie-get").ClickAsync();
+        await Expect(Page.Locator("#cookie-read-value")).ToHaveTextAsync("choco",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Clipboard — copy then read back the same text via IClipboard.
+        await SideAsync("Clipboard", "Clipboard");
         await Page.Locator("#clipboard-copy").ClickAsync();
-        await Expect(Page.Locator("#browser-status")).ToContainTextAsync("Copied to clipboard",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#clipboard-status")).ToContainTextAsync("Copied to clipboard", contains);
         await Page.Locator("#clipboard-paste").ClickAsync();
-        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!", contains);
 
-        // Geolocation via IGeolocation + the __raskApi.geolocation Promise helper (fixed context fix).
+        // Geolocation — IGeolocation via the __raskApi.geolocation Promise helper (fixed context fix).
+        await SideAsync("Geolocation", "Geolocation");
         await Page.Locator("#geo-get").ClickAsync();
-        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5", contains);
 
-        // Navigator property reads via INavigatorInfo (returned directly by the invoke dispatcher).
+        // Permissions — geolocation was granted on the context, so the query reports Granted.
+        await SideAsync("Permissions", "Permissions");
+        await Page.Locator("#perm-geo").ClickAsync();
+        await Expect(Page.Locator("#perm-geo-value")).ToContainTextAsync("Granted", contains);
+
+        // Browser info — navigator property reads returned directly by the invoke dispatcher.
+        await SideAsync("Browser info", "Browser info");
         await Page.Locator("#nav-read").ClickAsync();
-        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:", contains);
+
+        // Page visibility — the test page is foreground, so the state is Visible.
+        await SideAsync("Page visibility", "Page visibility");
+        await Page.Locator("#vis-read").ClickAsync();
+        await Expect(Page.Locator("#vis-value")).ToContainTextAsync("Visible", contains);
+
+        // Vibration is device-dependent (often unsupported in headless desktop), so smoke-check that the
+        // page renders its control rather than asserting an outcome.
+        await SideAsync("Vibration", "Vibration");
+        await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
