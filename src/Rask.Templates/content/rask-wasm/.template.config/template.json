@@ -19,6 +19,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Scaffold a JWT bearer login against an external API (token in localStorage, attached as Authorization: Bearer). Point BaseAddress at your auth API — a standalone SPA has no host of its own."
+    },
+    "pwa": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Make the app an installable, offline PWA: adds a web app manifest + icon and registers Rask's default service worker (offline app-shell cache + Web Push) from index.html."
     }
   },
   "sources": [
@@ -27,6 +33,10 @@
         {
           "condition": "(!auth)",
           "exclude": [ "Auth/**" ]
+        },
+        {
+          "condition": "(!pwa)",
+          "exclude": [ "wwwroot/manifest.webmanifest", "wwwroot/icon.svg" ]
         }
       ]
     }
