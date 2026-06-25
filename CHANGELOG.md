@@ -13,7 +13,10 @@ them until tagged releases begin.
   `Validate<T>`/`ValidateAsync<T>` overloads around a single hand-written core. `Input`/`Select`/`Textarea`
   now declare one `Bound` core each instead of three near-identical overloads + a private `BoundCore` — the
   generator emits the cast-free `Validate` overloads. The generated `Input(…)`/`Select(…)`/`Textarea(…)`
-  factory surface is unchanged (no consumer impact).
+  factory surface is unchanged (no consumer impact). The forwarder fan-out also supports **generic
+  components**: it carries the component's type parameters and derives the validator type `T` from the
+  `Expression<Func<T>>` Bind parameter, so the sample `MultiSelect<TItem>` declares one `Bound` core (its
+  `Validate` over `ICollection<TItem>`) and the hand-written `MultiSelectBoundFactory` is removed.
 
 ### Added
 - **`Callback` / `Callback<T>` / `CallbackAsync` / `CallbackAsync<T>` delegate types.** Named delegate
