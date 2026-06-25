@@ -6,7 +6,7 @@ public sealed class EventsSelectDemo : Component
 
     protected override RenderResult Render() =>
     [
-        Select(
+        Select<string>(
             Class: "form-select mb-2",
             OnChange: v => _pick = v)[
             Option("rask", _pick == "rask")["Rask"],

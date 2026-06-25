@@ -57,7 +57,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
             acc = ExpressionAccessor.Parse(Bind!);
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
-            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
+            ((IFormControl<ICollection<TItem>>)this).RegisterValidator(acc, ctx);
             selected = acc.Getter() as ICollection<TItem>;
         }
         else
@@ -79,7 +79,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
             Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
-                Input(
+                Input<string>(
                     "checkbox",
                     groupName,
                     BindingHelpers.FormatValue(option),
@@ -121,21 +121,13 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
 
             BindingHelpers.SetCollectionMembership(collection, item, include, comparer);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
-            AfterBind?.Invoke(collection);
-            if (AfterBindAsync is not null)
-            {
-                await AfterBindAsync(collection).ConfigureAwait(false);
-            }
+            await ((IFormControl<ICollection<TItem>>)this).InvokeAfterBindAsync(collection).ConfigureAwait(false);
         }
         else
         {
             var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
             BindingHelpers.SetCollectionMembership(next, item, include, comparer);
-            OnChange?.Invoke(next);
-            if (OnChangeAsync is not null)
-            {
-                await OnChangeAsync(next).ConfigureAwait(false);
-            }
+            await ((IFormControl<ICollection<TItem>>)this).InvokeOnChangeAsync(next).ConfigureAwait(false);
         }
     }
 }

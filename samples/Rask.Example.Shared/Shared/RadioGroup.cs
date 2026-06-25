@@ -55,7 +55,7 @@ public sealed class RadioGroup<TValue> : Component, IFormControl<TValue>
             acc = ExpressionAccessor.Parse(Bind!);
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
-            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
+            ((IFormControl<TValue>)this).RegisterValidator(acc, ctx);
             current = acc.Getter() is TValue typed ? typed : default;
         }
         else
@@ -77,7 +77,7 @@ public sealed class RadioGroup<TValue> : Component, IFormControl<TValue>
             Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
-                Input(
+                Input<string>(
                     "radio",
                     groupName,
                     BindingHelpers.FormatValue(option),
@@ -107,19 +107,11 @@ public sealed class RadioGroup<TValue> : Component, IFormControl<TValue>
         {
             acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
-            AfterBind?.Invoke(value);
-            if (AfterBindAsync is not null)
-            {
-                await AfterBindAsync(value).ConfigureAwait(false);
-            }
+            await ((IFormControl<TValue>)this).InvokeAfterBindAsync(value).ConfigureAwait(false);
         }
         else
         {
-            OnChange?.Invoke(value);
-            if (OnChangeAsync is not null)
-            {
-                await OnChangeAsync(value).ConfigureAwait(false);
-            }
+            await ((IFormControl<TValue>)this).InvokeOnChangeAsync(value).ConfigureAwait(false);
         }
     }
 }

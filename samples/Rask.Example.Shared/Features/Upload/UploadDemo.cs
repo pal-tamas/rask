@@ -30,7 +30,7 @@ public sealed class UploadDemo : Component
 
     protected override RenderResult Render() =>
         Div()[
-            Input(
+            Input<string>(
                 Id: "upload-input",
                 Type: "file",
                 Class: "form-control mb-3",

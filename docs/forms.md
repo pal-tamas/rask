@@ -488,9 +488,10 @@ All members are keyed on one value type `T`. In `Render`, collapse the typed val
 ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
 ```
 
-(Non-generic elements like the built-in `Input`/`Select`/`Textarea` can't carry a type-level `T`, so they
-keep their hand-written `Bound` + `[GenerateForwarderFactory]` instead — same validator fan-out, different
-type-system shape.)
+(The built-in `Input<T>`/`Select<T>`/`Textarea<T>` implement `IFormControl<T>` too: bound usage infers `T`
+from the expression (`Input(() => model.Age)` → `Input<int>`, type derived from `T`), while plain usage takes
+the explicit argument — `Input<string>("text", …)`. They resolve binding at render time via the same
+interface helpers (`RegisterValidator`/`ControlledChangeHandler`).)
 
 ### Stateless (`Fragment`) vs stateful (`Component`) — and host re-render
 

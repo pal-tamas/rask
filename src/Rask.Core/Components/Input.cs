@@ -3,19 +3,33 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 using RaskFileType = Rask.Core.Forms.RaskFile;
 
 namespace Rask.Core.Components;
 
-public sealed class Input : Element
+// Generic <input> form control implementing IFormControl<T>. The generator synthesizes a controlled/plain
+// factory (returning Input<string> — see the plain-factory note below) and a Bind-first bound factory
+// (validator fanned none/sync/async). Binding is resolved at render time (WriteAttributes): the HTML input
+// `type`, the value/checked state, and the change handlers are derived from the bound value type T and the
+// expression, rather than eagerly in a `Bound` factory.
+//
+// Type derivation from T: bool→checkbox, numeric→number, DateOnly→date, DateTime(Offset)→datetime-local,
+// TimeOnly/TimeSpan→time, everything else→text. In plain/controlled mode a string T keeps today's behavior
+// (no `type` attribute unless Type is set); bound mode and non-string T default the type from T.
+//
+// Plain usage stays string-shaped: `Input<string>("text", Value: …, OnInput: …)`. Bound usage infers T from
+// the expression: `Input(() => model.Age)` → Input<int> → <input type="number">.
+public sealed class Input<T> : Element, IFormControl<T>
 {
     protected override string TagName => "input";
     protected override bool SelfClosing => true;
 
     public string? Type { get; set; }
     public string? Name { get; set; }
-    public string? Value { get; set; }
+
+    // IFormControl<T> controlled value — kept at the legacy `Value` position so positional factory calls
+    // (Input<string>("text", "name", "value", …)) keep their argument order.
+    public T? Value { get; set; }
     public string? Placeholder { get; set; }
     public bool? Required { get; set; }
     public bool? Disabled { get; set; }
@@ -43,107 +57,85 @@ public sealed class Input : Element
     public string? Src { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public Callback<string>? OnInput { get; set; }
-    public Callback<string>? OnChange { get; set; }
-    public CallbackAsync<string>? OnInputAsync { get; set; }
-    public CallbackAsync<string>? OnChangeAsync { get; set; }
-    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
 
+    // DOM event handlers in the legacy declaration order so positional factory calls keep working.
+    // OnChange/OnChangeAsync are the IFormControl<T> controlled callbacks (typed T); OnInput/OnFiles are the
+    // string/file DOM handlers, not part of the interface.
+    public Callback<string>? OnInput { get; set; }
+    public Callback<T>? OnChange { get; set; }
+    public CallbackAsync<string>? OnInputAsync { get; set; }
+    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
     public CallbackAsync<IReadOnlyList<RaskFileType>>? OnFilesAsync { get; set; }
 
-    // Expression-driven factory. The generator picks up [GenerateForwarderFactory(Validator=…)] and emits
-    // `Components.Input<TProp>(Expression<Func<TProp>> Bind, …)` forwarding here, so callers write
-    // `Input(Bind: () => model.Name)` and get type-aware binding with auto-named field, per-type input
-    // type (checkbox/number/date/text), and per-type change handlers wired into the ambient EditContext.
-    //
-    // The `Validator = nameof(Validate)` arg makes the generator fan this single core into three emitted
-    // overloads — none / `Validate<TProp>` / `ValidateAsync<TProp>` — to dodge the delegate cast at the
-    // call site; overload resolution picks by the lambda's arity. The `Validate` parameter is the single
-    // `Delegate?` the EditContext consumes (null in the none overload).
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static Input Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Delegate? Validate = null,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Type = null,
-        string? Name = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        string? Min = null,
-        string? Max = null,
-        string? Step = null,
-        string? Pattern = null,
-        int? Size = null,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Autocomplete = null,
-        bool Autofocus = false,
-        string? List = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-    {
-        var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
-        var fid = acc.Field;
-        var resolvedType = Type ?? BindingHelpers.DefaultInputType(acc.PropertyType);
-        var name = Name ?? acc.PropertyName;
-
-        // Always call Register — null clears a stale delegate from a prior render so dropping
-        // the parameter between frames doesn't leave the old rule running.
-        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
-
-        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
-        var current = acc.Getter();
-
-        if (resolvedType == "checkbox")
-        {
-            var isChecked = current is bool b && b;
-            return C.Input(
-                "checkbox", name,
-                Checked: isChecked,
-                Required: Required, Disabled: Disabled, ReadOnly: ReadOnly,
-                Min: Min, Max: Max, Step: Step, Pattern: Pattern,
-                Size: Size, MaxLength: MaxLength, MinLength: MinLength,
-                Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-                OnChangeAsync: BindingHelpers.BoolSetHandler(acc, ctx, fid, afterBind),
-                Id: Id, Class: Class, Style: Style, Data: Data);
-        }
-
-        var stringValue = BindingHelpers.FormatValue(current);
-        var isImmediate = BindingHelpers.IsImmediateUpdateType(acc.PropertyType);
-
-        return C.Input(
-            resolvedType, name, stringValue, Placeholder,
-            Required, Disabled, ReadOnly,
-            Min: Min, Max: Max, Step: Step, Pattern: Pattern,
-            Size: Size, MaxLength: MaxLength, MinLength: MinLength,
-            Autocomplete: Autocomplete, Autofocus: Autofocus, List: List,
-            OnInputAsync: isImmediate ? BindingHelpers.StringSetHandler(acc, ctx, fid, false, afterBind) : null,
-            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, !isImmediate, afterBind),
-            Id: Id, Class: Class, Style: Style, Data: Data);
-    }
+    // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
+    public Expression<Func<T>>? Bind { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Type is not null)
+
+        // Resolve binding up front so the auto-derived name + value land in attribute order.
+        ExpressionAccessor.Accessor? acc = null;
+        EditContext? bindCtx = null;
+        var fid = default(FieldIdentifier);
+        object? boundValue = null;
+        if (Bind is not null)
         {
-            AppendAttr(sb, "type", Type);
+            acc = ExpressionAccessor.Parse(Bind);
+            bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
+            fid = acc.Field;
+            boundValue = acc.Getter();
         }
 
-        if (Name is not null)
+        // Type: bound mode (and non-string T) default from T; a plain string input keeps "no type unless set".
+        var resolvedType = Type;
+        if (resolvedType is null && (acc is not null || typeof(T) != typeof(string)))
         {
-            AppendAttr(sb, "name", Name);
+            resolvedType = BindingHelpers.DefaultInputType(typeof(T));
         }
 
-        if (Value is not null)
+        var isCheckbox = resolvedType == "checkbox";
+        var name = Name ?? acc?.PropertyName;
+
+        // Value / checked state. Bound mode derives one from the model (checkbox → checked, else → value);
+        // plain/controlled mode honors the explicit Value/Checked props independently, exactly as before.
+        string? valueString = null;
+        bool? checkedState = null;
+        if (acc is not null)
         {
-            AppendAttr(sb, "value", Value);
+            if (isCheckbox)
+            {
+                checkedState = boundValue is bool b && b;
+            }
+            else
+            {
+                valueString = BindingHelpers.FormatValue(boundValue);
+            }
+        }
+        else
+        {
+            checkedState = Checked;
+            valueString = Value is not null ? BindingHelpers.FormatValue(Value) : null;
+        }
+
+        if (resolvedType is not null)
+        {
+            AppendAttr(sb, "type", resolvedType);
+        }
+
+        if (name is not null)
+        {
+            AppendAttr(sb, "name", name);
+        }
+
+        if (valueString is not null)
+        {
+            AppendAttr(sb, "value", valueString);
         }
 
         if (Placeholder is not null)
@@ -166,7 +158,7 @@ public sealed class Input : Element
             AppendAttr(sb, "readonly", null);
         }
 
-        if (Checked is true)
+        if (checkedState is true)
         {
             AppendAttr(sb, "checked", null);
         }
@@ -281,25 +273,54 @@ public sealed class Input : Element
             AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (LiveRenderContext.CurrentSync is { } ctx)
+        if (LiveRenderContext.CurrentSync is not { } ctx)
         {
+            return;
+        }
+
+        if (acc is not null)
+        {
+            // Bound: write the model on input (immediate for string) / change, validate.
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            if (isCheckbox)
+            {
+                AppendAttr(sb, "data-rask-on-change",
+                    ctx.RegisterHandler(BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)));
+            }
+            else
+            {
+                var immediate = BindingHelpers.IsImmediateUpdateType(typeof(T));
+                if (immediate)
+                {
+                    AppendAttr(sb, "data-rask-on-input",
+                        ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
+                }
+
+                AppendAttr(sb, "data-rask-on-change",
+                    ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, !immediate, afterBind)));
+            }
+        }
+        else
+        {
+            // Plain / controlled.
             var input = (Delegate?)OnInput ?? OnInputAsync;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
             }
 
-            var change = (Delegate?)OnChange ?? OnChangeAsync;
+            var change = ((IFormControl<T>)this).ControlledChangeHandler();
             if (change is not null)
             {
                 AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
             }
+        }
 
-            var files = (Delegate?)OnFiles ?? OnFilesAsync;
-            if (files is not null)
-            {
-                AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
-            }
+        var files = (Delegate?)OnFiles ?? OnFilesAsync;
+        if (files is not null)
+        {
+            AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
         }
     }
 }
