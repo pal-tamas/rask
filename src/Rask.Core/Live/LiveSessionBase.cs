@@ -131,7 +131,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
             // the head fragment). Zero ops + no history + unchanged head means nothing to send.
             if (_renderCache.TryComputeDiff(_diffOps, commitCache, html)
                 && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
-                && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
+                && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
+                && !_renderCache.LastDiffForcedFullHtml)
             {
                 var headHtml = headChanged ? LiveDiffGate.ExtractHead(html) : null;
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,

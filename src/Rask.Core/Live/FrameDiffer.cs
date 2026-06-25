@@ -280,6 +280,14 @@ public static class FrameDiffer
 
         scratch.ReturnBundle(bundle);
 
+        // A Raw frame's verbatim markup parses into an unknown node count, so once a Raw shares a
+        // sibling level with anything else, every position after it is suspect. If this level (or
+        // its subtree) ends up emitting ANY op, the positional paths can't be trusted — flag the
+        // render for the full-HTML morph. Detected up front; committed below only if ops were
+        // actually produced, so an idle render of such a page still ships nothing.
+        var rawTaintedLevel = LevelHasRawWithSiblings(oldFrames, oldStart, oldEnd)
+                              || LevelHasRawWithSiblings(newFrames, newStart, newEnd);
+        var opCountAtEntry = output.Count;
 
         var oi = oldStart;
         var ni = newStart;
@@ -392,6 +400,37 @@ public static class FrameDiffer
             ni += newFrame.SubtreeLength;
             domSlot++;
         }
+
+        if (rawTaintedLevel && output.Count != opCountAtEntry)
+        {
+            scratch.ForceFullHtml = true;
+        }
+    }
+
+    // True when this sibling level contains a Raw frame alongside at least one other DOM-relevant
+    // sibling. A solitary Raw (the only child) is safe — its node(s) span the whole parent, so no
+    // sibling index follows it; only a Raw with neighbours can drift their positions.
+    private static bool LevelHasRawWithSiblings(ReadOnlySpan<RenderFrame> frames, int start, int end)
+    {
+        var hasRaw = false;
+        var domNodes = 0;
+        var i = start;
+        while (i < end)
+        {
+            var kind = frames[i].Kind;
+            if (kind != RenderFrameKind.Attribute)
+            {
+                domNodes++;
+                if (kind == RenderFrameKind.Raw)
+                {
+                    hasRaw = true;
+                }
+            }
+
+            i += frames[i].SubtreeLength;
+        }
+
+        return hasRaw && domNodes > 1;
     }
 
     // Defer the inserted subtree's HTML slice to wire-format time: carry the fragment's char
@@ -987,10 +1026,18 @@ public static class FrameDiffer
 
         internal bool UsedKeyedPath { get; set; }
 
+        // Set when the diff touched a sibling level that mixes a Raw frame with other DOM-relevant
+        // siblings. A Raw's verbatim markup parses into an unknown number of DOM nodes (0, 1, or
+        // many), so the positional domSlot of every sibling after it — and any descendant op routed
+        // through it — is unreliable. The session reads this to fall back to the full-HTML morph,
+        // which reparses the markup correctly, instead of shipping a mis-targeted positional patch.
+        internal bool ForceFullHtml { get; set; }
+
         internal void ResetForDiff()
         {
             Path.Clear();
             UsedKeyedPath = false;
+            ForceFullHtml = false;
         }
 
         internal KeyedBundle RentBundle() => _bundles.Count > 0 ? _bundles.Pop() : new KeyedBundle();
