@@ -12,21 +12,21 @@ public sealed class FormGroupsPage : Component
     [
         PageHeader.Render(
             "Radio & checkbox groups",
-            "Bind a set of radios to one value, or a set of checkboxes to a collection — one call each, wired into the same EditContext as Input(Bind: …)."),
+            "Pick one value from a set of radios, or many into a collection of checkboxes — example Components built on the public binding API, with the same bound and controlled shapes as MultiSelect<T>."),
         H2(Class: "h4 mt-4 mb-3")["RadioGroup + CheckboxGroup"],
         CodeSample(
-            ["FormGroupsDemo.cs"],
+            ["FormGroupsDemo.cs", "RadioGroup.cs", "CheckboxGroup.cs"],
             Notes:
-            "Both parse the bind expression, resolve the ambient EditContext, and wire each input's change handler to set the value (radios) or add/remove the item (checkboxes), then re-validate. They render a transparent Fragment of <label><input>…</label>, so you control layout with OptionLabel and ItemClass.",
+            "Shown in controlled mode (Value + OnChange): the parent owns the selection and OnChange (auto-wrapped) re-renders the demo, so the readout stays live. Each item is Bootstrap form-check markup; ItemClass adds wrapper classes like form-check-inline.",
             Result: FormGroupsDemo()),
         H2(Class: "h4 mt-5 mb-3")["Notes"],
         Ul(Class: "text-secondary")[
             Li()[
-                "RadioGroup binds a single TValue; the option equal to the current value renders checked. CheckboxGroup binds an ICollection<TItem>; the collection is mutated in place on toggle."],
+                "Two modes, like MultiSelect: bound — RadioGroup(() => model.Plan, …) / CheckboxGroup<T>(() => model.Tags, …) — two-way binds the model and runs a per-field Validate rule; controlled — Value + OnChange — the parent owns the value (used above)."],
             Li()[
-                "Changing an option re-renders the component that declared the group (the change handler's owner), so a summary like the one above updates immediately."],
+                "They're Components, so their own checks/radios update on toggle; host-side derived UI (the summary) updates via the auto-wrapped controlled OnChange."],
             Li()[
-                "Validation rides the same field: each change calls NotifyFieldChanged + ValidateFieldAsync, so DataAnnotations/FluentValidation rules on the bound property apply."]
+                "In bound mode, validation rides the field: each change calls NotifyFieldChanged + ValidateFieldAsync, so a Validate rule (or DataAnnotations/FluentValidation) on the bound property applies and surfaces via the embedded ValidationMessage."]
         ]
     ];
 }
