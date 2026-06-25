@@ -50,6 +50,31 @@ public sealed class MultiSelect<TItem> : Component
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
+    // Bound-mode entry. [GenerateForwarderFactory(Validator=…)] makes the generator emit the Bind-first
+    // Generated.MultiSelect<TItem>(…) factory in none/sync/async Validate flavors (Validate over the
+    // ICollection<TItem> from the Bind expression), each forwarding here. This builds the instance through
+    // the generated controlled factory (RASK014) and layers on the [SkipFactory] bound-mode props.
+    [GenerateForwarderFactory(Validator = "Validate")]
+    public static MultiSelect<TItem> Bound(
+        Expression<Func<ICollection<TItem>>> Bind,
+        IEnumerable<TItem> Options,
+        Delegate? Validate = null,
+        Action<ICollection<TItem>>? AfterBind = null,
+        Func<ICollection<TItem>, Task>? AfterBindAsync = null,
+        Func<TItem, Child>? OptionLabel = null,
+        string? Id = null,
+        string? Placeholder = null,
+        bool? Disabled = null)
+    {
+        var c = Generated.MultiSelect<TItem>(
+            Options, OptionLabel: OptionLabel, Id: Id, Placeholder: Placeholder, Disabled: Disabled);
+        c.Bind = Bind;
+        c.AfterBind = AfterBind;
+        c.AfterBindAsync = AfterBindAsync;
+        c.Validate = Validate;
+        return c;
+    }
+
     // View state only — the selection itself lives in the bound model collection (bound mode) or the
     // parent's Value (controlled mode). Toggling open/close re-renders this component through the live
     // diff; no Bootstrap dropdown JS is involved.
