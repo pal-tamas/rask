@@ -1223,6 +1223,23 @@ On **WASM**, the standard Blazor-WASM trimming constraint applies: `T` in `Invok
 call site (via `[DynamicallyAccessedMembers]` or a `JsonSerializerContext`). JSON primitives (`bool`, `int`, `long`,
 `double`, `string`) are always safe. Server has no such constraint.
 
+**Typed browser APIs.** For common Web APIs you don't have to spell out raw identifiers — inject a typed wrapper
+through the constructor. Each is a thin layer over the same `IJSRuntime`, identical on Server and WASM:
+
+```csharp
+public sealed class Prefs(IBrowserStorage storage, IClipboard clipboard,
+                          IGeolocation geolocation, INavigatorInfo navigator) : Component
+{
+    async Task Save()    => await storage.Local.SetAsync("theme", "dark");   // localStorage / sessionStorage
+    async Task Copy()    => await clipboard.WriteTextAsync("hi");            // navigator.clipboard
+    async Task Where()   { var p = await geolocation.GetCurrentPositionAsync(); /* p.Latitude … */ }
+    async Task Online()  => _ = await navigator.OnLineAsync();               // navigator.onLine / language / userAgent
+}
+```
+
+Clipboard and geolocation are browser-gated (secure context + permission) — wrap those in `try/catch`. See
+[JS interop → Typed browser APIs](docs/js-interop.md#typed-browser-apis).
+
 </details>
 
 <details>
