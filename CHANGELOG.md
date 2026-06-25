@@ -26,6 +26,16 @@ them until tagged releases begin.
   `Validate` over `ICollection<TItem>`) and the hand-written `MultiSelectBoundFactory` is removed.
 
 ### Added
+- **`IFormControl<T>` — a declarative contract for building custom form controls.** A generic component
+  implementing `IFormControl<T>` (in `Rask.Core.Forms`) gets both of its factories synthesized by the
+  generator: a **controlled** factory (`Value` + `OnChange`/`OnChangeAsync`) and a **bound** factory
+  (`() => model.Field`, Bind-first, with the per-field validator fanned into none/sync/async overloads).
+  The interface carries the typed `Bind`/`Validate`/`ValidateAsync`/`AfterBind`/`AfterBindAsync` (bound) and
+  `Value`/`OnChange`/`OnChangeAsync` (controlled) members over a single value type `T`; the generator
+  excludes the bound members from the controlled factory automatically (no `[SkipFactory]` needed). The
+  sample `MultiSelect<TItem>`/`CheckboxGroup<TItem>`/`RadioGroup<TValue>` now implement it and drop their
+  hand-written `Bound` methods. (Controlled `OnChange` for the collection controls now delivers
+  `ICollection<TItem>` rather than `IReadOnlyCollection<TItem>`, matching `Value`.)
 - **`Callback` / `Callback<T>` / `CallbackAsync` / `CallbackAsync<T>` delegate types.** Named delegate
   types in `Rask.Core` are now the shape of every built-in component's event callbacks (the `X` / `XAsync`
   pairs: `OnClick`/`OnClickAsync`, `OnInput`/`OnChange`/`…Async`, `OnKeyDown`/`OnKeyUp`, `OnDrag*`,

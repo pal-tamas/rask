@@ -447,6 +447,51 @@ await BindingHelpers.NotifyAndValidateFieldAsync(ctx, acc.Field);
 
 Surface field messages with `ValidationMessage(Bind, …)` (§2.Rendering messages) inside the control.
 
+### The `IFormControl<T>` contract (generator-synthesized factories)
+
+For a **generic** component, the cleanest path is to implement `IFormControl<T>` (in `Rask.Core.Forms`) and
+let the generator synthesize **both** factories — you write no `Bound` method and no factory plumbing:
+
+```csharp
+public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
+{
+    public required IEnumerable<TItem> Options { get; set; }
+
+    // controlled
+    public ICollection<TItem>? Value { get; set; }
+    public Callback<ICollection<TItem>>? OnChange { get; set; }
+    public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
+
+    // bound
+    public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
+    public Validate<ICollection<TItem>>? Validate { get; set; }
+    public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
+    public Action<ICollection<TItem>>? AfterBind { get; set; }
+    public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
+
+    public string? ItemClass { get; set; }   // shared/display — on both factories
+    protected override RenderResult Render() { /* … */ }
+}
+```
+
+The generator emits:
+- a **controlled** factory `CheckboxGroup<TItem>(Options, Value: …, OnChange: …, …)` — the bound members are
+  excluded automatically (no `[SkipFactory]`), and `OnChange`/`OnChangeAsync` are auto-wrapped so invoking
+  them re-renders the host;
+- a **bound** factory `CheckboxGroup<TItem>(() => model.Tags, Options, …)` — Bind-first, with the validator
+  fanned into none/sync/async overloads (`Validate:` accepts a sync `Validate<T>` or async `ValidateAsync<T>`).
+
+All members are keyed on one value type `T`. In `Render`, collapse the typed validators for the
+`EditContext`:
+
+```csharp
+ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
+```
+
+(Non-generic elements like the built-in `Input`/`Select`/`Textarea` can't carry a type-level `T`, so they
+keep their hand-written `Bound` + `[GenerateForwarderFactory]` instead — same validator fan-out, different
+type-system shape.)
+
 ### Stateless (`Fragment`) vs stateful (`Component`) — and host re-render
 
 This is the one subtlety worth understanding:

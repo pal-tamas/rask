@@ -20,7 +20,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
+    private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
+
+    // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
+    // factory, and (for Bind/AfterBind/AfterBindAsync) emitted as params on the synthesized bound factory.
+    // Validate/ValidateAsync are not direct params — they drive the none/sync/async validator fan-out.
+    private static readonly string[] BoundInterfaceMembers =
+        { "Bind", "Validate", "ValidateAsync", "AfterBind", "AfterBindAsync" };
 
     private static readonly DiagnosticDescriptor Rask001 = new(
         "RASK001",
@@ -123,7 +130,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var hasParameterlessCtor = HasPublicParameterlessConstructor(symbol);
         var hasDICtor = HasDIConstructor(symbol);
         var isPublic = IsExternallyVisible(symbol);
-        var properties = GetFactoryProperties(symbol);
+        var formControl = GetFormControlInfo(symbol);
+        var properties = GetFactoryProperties(symbol, formControl is not null);
         var typeParams = symbol.IsGenericType
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
@@ -148,8 +156,28 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             hasDICtor,
             isPublic,
             genericFactory,
+            formControl,
             new EquatableArray<PropInfo>(properties),
             new EquatableArray<ForwarderInfo>(forwarders));
+    }
+
+    // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
+    // type T (fully qualified). Null when the component is not a form control.
+    private static FormControlInfo? GetFormControlInfo(INamedTypeSymbol symbol)
+    {
+        foreach (var i in symbol.AllInterfaces)
+        {
+            if (i.TypeArguments.Length == 1 &&
+                i.OriginalDefinition.ToDisplayString() == FormControlOpenFullName)
+            {
+                var valueType = i.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+                return new FormControlInfo(valueType);
+            }
+        }
+
+        return null;
     }
 
     private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol)
@@ -542,7 +570,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol)
+    private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol, bool isFormControl)
     {
         var result = new List<PropInfo>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -652,6 +680,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // valid, so key off the type-parameter kind rather than the constraint set.)
                 var isTypeParameter = prop.Type is ITypeParameterSymbol;
 
+                // A bound-mode IFormControl<T> member (Bind/Validate/ValidateAsync/AfterBind/AfterBindAsync):
+                // excluded from the controlled factory and instead emitted on the synthesized bound factory.
+                var isBoundInterfaceProp = isFormControl &&
+                    Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
+
                 result.Add(new PropInfo(
                     prop.Name,
                     typeFqn,
@@ -663,7 +696,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     spanStart,
                     spanLength,
                     isAutoRerenderDelegate,
-                    isTypeParameter));
+                    isTypeParameter,
+                    isBoundInterfaceProp));
             }
         }
 
@@ -774,6 +808,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 EmitFactory(sb, c, emitNavigation);
                 sb.AppendLine();
 
+                if (c.FormControl is { } fc)
+                {
+                    EmitBoundFactory(sb, c, fc, emitNavigation);
+                    sb.AppendLine();
+                }
+
                 if (c.GenericFactory is { } gf)
                 {
                     EmitGenericFactoryOverload(sb, c, gf, emitNavigation);
@@ -842,7 +882,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitFactory(StringBuilder sb, Candidate c, bool emitNavigation)
     {
         var visibility = c.IsPublic ? "public" : "internal";
-        var paramProps = c.Properties.Where(IsParamProperty).ToList();
+        // Bound-mode IFormControl members are excluded from the controlled factory — they appear on the
+        // synthesized bound factory (EmitBoundFactory) instead.
+        var paramProps = c.Properties.Where(p => IsParamProperty(p) && !p.IsBoundInterfaceProp).ToList();
         var requiredProps = paramProps.Where(IsRequiredFactoryParam).ToList();
         var optionalProps = paramProps.Where(p => !IsRequiredFactoryParam(p)).ToList();
 
@@ -989,6 +1031,169 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         EmitSnapshotsAndAssignments(sb, paramProps, foldProps);
+        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
+        sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
+        sb.AppendLine("        return __c;");
+        sb.AppendLine("    }");
+    }
+
+    // For an IFormControl<T> component, synthesizes the Bind-first bound factory in none/sync/async
+    // validator flavors. It builds the instance through the same GetOrCreate/NotifyParameters path as the
+    // controlled factory and sets the bound-mode members (Bind/Validate/ValidateAsync/AfterBind/
+    // AfterBindAsync); the controlled members (Value/OnChange/OnChangeAsync) are left at their defaults
+    // (= bound mode). This replaces the hand-written `[GenerateForwarderFactory(Validator="Validate")] Bound`.
+    private static void EmitBoundFactory(StringBuilder sb, Candidate c, FormControlInfo fc, bool emitNavigation)
+    {
+        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.None);
+        sb.AppendLine();
+        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.Sync);
+        sb.AppendLine();
+        EmitBoundOverload(sb, c, fc, emitNavigation, ValidatorShape.Async);
+    }
+
+    private static void EmitBoundOverload(
+        StringBuilder sb, Candidate c, FormControlInfo fc, bool emitNavigation, ValidatorShape shape)
+    {
+        var visibility = c.IsPublic ? "public" : "internal";
+        var canUseObjectInit = c.HasParameterlessCtor || !c.HasDIConstructor;
+
+        PropInfo Member(string name) => c.Properties.First(p => p.Name == name);
+        var bind = Member("Bind");
+        var afterBind = Member("AfterBind");
+        var afterBindAsync = Member("AfterBindAsync");
+
+        // Shared/display props: everything that's a factory param and not an IFormControl member.
+        var controlled = new[] { "Value", "OnChange", "OnChangeAsync" };
+        var shared = c.Properties
+            .Where(p => IsParamProperty(p) && !p.IsBoundInterfaceProp && Array.IndexOf(controlled, p.Name) < 0)
+            .ToList();
+        var sharedRequired = shared.Where(IsRequiredFactoryParam).ToList();
+        var sharedOptional = shared.Where(p => !IsRequiredFactoryParam(p)).ToList();
+
+        var validatorType = shape == ValidatorShape.Sync
+            ? "global::Rask.Core.Forms.Validate<" + fc.ValueTypeFqn + ">"
+            : "global::Rask.Core.Forms.ValidateAsync<" + fc.ValueTypeFqn + ">";
+
+        // Signature: Bind (required) → shared required (e.g. Options) → validator (sync/async, required) →
+        // AfterBind/AfterBindAsync (optional) → shared optional (display).
+        EmitMethodHeader(sb, c, emitNavigation);
+        sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName).Append(' ')
+            .Append(c.TypeName).Append(c.TypeParameters).Append('(');
+        sb.Append(StripNullable(bind.TypeFqn)).Append(" Bind");
+        foreach (var p in sharedRequired)
+        {
+            sb.Append(", ").Append(p.TypeFqn).Append(' ').Append(p.Escaped);
+        }
+
+        if (shape != ValidatorShape.None)
+        {
+            sb.Append(", ").Append(validatorType).Append(" Validate");
+        }
+
+        sb.Append(", ").Append(afterBind.TypeFqn).Append(' ').Append(afterBind.Escaped).Append(" = null");
+        sb.Append(", ").Append(afterBindAsync.TypeFqn).Append(' ').Append(afterBindAsync.Escaped).Append(" = null");
+        foreach (var p in sharedOptional)
+        {
+            sb.Append(", ").Append(p.TypeFqn).Append(' ').Append(p.Escaped).Append(" = ").Append(DefaultLiteralFor(p));
+        }
+
+        sb.Append(')').AppendLine(c.TypeParameterConstraints);
+        sb.AppendLine("    {");
+
+        // Bound-mode member assignments (raw — never auto-wrapped; AfterBind is a post-bind hook, not an
+        // event callback). The validator param (named Validate either way) sets Validate for the sync
+        // overload and ValidateAsync for the async overload.
+        var validateExpr = shape == ValidatorShape.Sync ? "Validate" : "null";
+        var validateAsyncExpr = shape == ValidatorShape.Async ? "Validate" : "null";
+        var assigns = new List<(string Esc, string Expr)>
+        {
+            ("Bind", "Bind"),
+            ("Validate", validateExpr),
+            ("ValidateAsync", validateAsyncExpr),
+            (afterBind.Escaped, afterBind.Escaped),
+            (afterBindAsync.Escaped, afterBindAsync.Escaped),
+        };
+        foreach (var p in shared)
+        {
+            assigns.Add((p.Escaped, p.Escaped));
+        }
+
+        // Fold (propsChanged): only the shared value props participate — the bound members are fresh
+        // expressions/delegates each render (folding them would force propsChanged: true every frame).
+        var foldProps = shared.Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate).ToList();
+
+        void EmitInit(string indent)
+        {
+            sb.AppendLine();
+            sb.Append(indent).AppendLine("{");
+            for (var i = 0; i < assigns.Count; i++)
+            {
+                sb.Append(indent).Append("    ").Append(assigns[i].Esc).Append(" = ").Append(assigns[i].Expr);
+                sb.AppendLine(i < assigns.Count - 1 ? "," : string.Empty);
+            }
+
+            sb.Append(indent).Append('}');
+        }
+
+        sb.Append("        ").Append(c.FullyQualifiedName).AppendLine(" __c;");
+        sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
+        if (canUseObjectInit)
+        {
+            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append("                __sp => new ").Append(c.FullyQualifiedName).Append("()");
+            EmitInit("                ");
+            sb.AppendLine(");");
+            sb.AppendLine("        else");
+            sb.Append("            __c = new ").Append(c.FullyQualifiedName).Append("()");
+            EmitInit("            ");
+            sb.AppendLine(";");
+        }
+        else
+        {
+            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append(
+                    "                static __sp => global::Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<")
+                .Append(c.FullyQualifiedName).AppendLine(">(__sp));");
+            sb.AppendLine("        else");
+            sb.Append("            throw new global::System.InvalidOperationException(\"Component '")
+                .Append(c.FullyQualifiedName)
+                .AppendLine(
+                    "' has no parameterless constructor; it can only be instantiated inside a LiveRenderContext (e.g. via MapRask<TApp>).\");");
+        }
+
+        foreach (var p in foldProps)
+        {
+            sb.Append("        var __old_").Append(p.Name).Append(" = __c.").Append(p.Escaped).AppendLine(";");
+        }
+
+        foreach (var (esc, expr) in assigns)
+        {
+            sb.Append("        __c.").Append(esc).Append(" = ").Append(expr).AppendLine(";");
+        }
+
+        if (foldProps.Count == 0)
+        {
+            sb.AppendLine("        var __propsChanged = false;");
+        }
+        else if (foldProps.Count == 1)
+        {
+            var p = foldProps[0];
+            sb.Append("        var __propsChanged = !global::System.Collections.Generic.EqualityComparer<")
+                .Append(p.TypeFqn).Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped)
+                .AppendLine(");");
+        }
+        else
+        {
+            sb.AppendLine("        var __propsChanged =");
+            for (var i = 0; i < foldProps.Count; i++)
+            {
+                var p = foldProps[i];
+                sb.Append("            !global::System.Collections.Generic.EqualityComparer<").Append(p.TypeFqn)
+                    .Append(">.Default.Equals(__old_").Append(p.Name).Append(", ").Append(p.Escaped).Append(')');
+                sb.AppendLine(i < foldProps.Count - 1 ? " ||" : ";");
+            }
+        }
+
         sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx2)");
         sb.AppendLine("            __ctx2.NotifyParameters(__c, __propsChanged);");
         sb.AppendLine("        return __c;");
@@ -1473,8 +1678,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool HasDIConstructor,
         bool IsPublic,
         GenericFactoryConfig? GenericFactory,
+        FormControlInfo? FormControl,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders);
+
+    // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
+    // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T
+    // (the validator/after-bind fan key); the bound-member names are the fixed interface member names.
+    private readonly record struct FormControlInfo(string ValueTypeFqn);
 
     private readonly record struct GenericFactoryConfig(
         string TypeParameter,
@@ -1508,7 +1719,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         int DeclaringSpanStart,
         int DeclaringSpanLength,
         bool IsAutoRerenderDelegate,
-        bool IsTypeParameter)
+        bool IsTypeParameter,
+        bool IsBoundInterfaceProp)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);
