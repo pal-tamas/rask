@@ -62,3 +62,48 @@ window.__raskPush = window.__raskPush || {
         return out;
     }
 };
+
+// PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
+// relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
+// manifest is injected as a data: URL <link rel="manifest"> plus a <meta name="theme-color">. These
+// sit beside the shell's own <base>/<link rel=icon> and aren't touched by the render head morph.
+window.__raskPwa = window.__raskPwa || {
+    applyManifest: (json) => {
+        let m;
+        try {
+            m = JSON.parse(json);
+        } catch (_) {
+            return;
+        }
+        const abs = (u) => {
+            try {
+                return new URL(u, document.baseURI).href;
+            } catch (_) {
+                return u;
+            }
+        };
+        if (m.start_url) m.start_url = abs(m.start_url);
+        if (m.scope) m.scope = abs(m.scope);
+        if (Array.isArray(m.icons)) {
+            for (let i = 0; i < m.icons.length; i++) {
+                if (m.icons[i] && m.icons[i].src) m.icons[i].src = abs(m.icons[i].src);
+            }
+        }
+        let link = document.querySelector('link[rel="manifest"]');
+        if (!link) {
+            link = document.createElement("link");
+            link.rel = "manifest";
+            document.head.appendChild(link);
+        }
+        link.href = "data:application/manifest+json," + encodeURIComponent(JSON.stringify(m));
+        if (m.theme_color) {
+            let meta = document.querySelector('meta[name="theme-color"]');
+            if (!meta) {
+                meta = document.createElement("meta");
+                meta.name = "theme-color";
+                document.head.appendChild(meta);
+            }
+            meta.content = m.theme_color;
+        }
+    }
+};

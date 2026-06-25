@@ -50,8 +50,26 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<WasmJSRuntime>());
     }
 
+    private WebAppManifest? _manifest;
+
     /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>
     public IServiceCollection Services { get; }
+
+    /// <summary>
+    ///     Makes the app an installable PWA from a typed <see cref="WebAppManifest" /> — the framework
+    ///     injects the <c>&lt;link rel="manifest"&gt;</c> (a <c>data:</c> URL with sub-path-correct absolute
+    ///     URLs) and <c>&lt;meta name="theme-color"&gt;</c> at boot, so there's no <c>manifest.webmanifest</c>
+    ///     to hand-write. Call before <see cref="RunAsync{TApp}" />:
+    ///     <code>
+    ///     host.UseManifest(new WebAppManifest { Name = "My App", ThemeColor = "#512BD4",
+    ///         Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")] });
+    ///     </code>
+    /// </summary>
+    public WasmHostBuilder UseManifest(WebAppManifest manifest)
+    {
+        _manifest = manifest;
+        return this;
+    }
 
     /// <summary>
     ///     Page origin (e.g. "https://localhost:5050/") suitable for use as <see cref="HttpClient.BaseAddress" />.
@@ -162,5 +180,22 @@ public sealed class WasmHostBuilder
         }
 
         Console.WriteLine("[Rask.Wasm] first render applied");
+
+        // Inject the typed web app manifest (if configured) — a data: URL <link rel="manifest"> with
+        // sub-path-correct absolute URLs, plus <meta name="theme-color">. Non-fatal on failure.
+        if (_manifest is not null)
+        {
+            try
+            {
+                await provider.GetRequiredService<IJSRuntime>()
+                    .InvokeVoidAsync("__raskPwa.applyManifest", _manifest.ToJson())
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Warning, "Rask.Wasm", "[Rask.Wasm] applying web app manifest failed", ex);
+            }
+        }
     }
 }

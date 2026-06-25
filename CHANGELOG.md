@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Typed Web App Manifest (`WebAppManifest`)** — configure the PWA manifest in C# via
+  `WasmHostBuilder.UseManifest(new WebAppManifest { … })`; the framework injects the
+  `<link rel="manifest">` (a `data:` URL with sub-path-correct absolute URLs) and
+  `<meta name="theme-color">` at boot — no `manifest.webmanifest` to hand-write. `ToJson()` is
+  exposed for hosts that prefer to serve a physical file. The `--pwa` templates and the WASM showcase
+  now use it.
 - **📱 PWA / mobile support (WASM)** — build installable, offline mobile apps in C#:
   - **`IWebPush`** (`Rask.Wasm.Browser`): Web Push — `IsSupported`/`RequestPermission`/
     `RegisterServiceWorker`/`Subscribe`/`GetSubscription`/`Unsubscribe`, returning a typed
