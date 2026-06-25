@@ -13,46 +13,26 @@ namespace Rask.Example.Shared;
 // Mode is chosen by whether Bind is set (a value type can't use a null Value as the signal). Each item is a
 // <div class="form-check"> with a .form-check-input radio + .form-check-label tied by id/for; ItemClass adds
 // extra wrapper classes (e.g. "form-check-inline").
-public sealed class RadioGroup<TValue> : Component
+public sealed class RadioGroup<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
 
     // Controlled mode (used when Bind is null): the parent owns the current value.
     public TValue? Value { get; set; }
-    public Action<TValue>? OnChange { get; set; }
-    public Func<TValue, Task>? OnChangeAsync { get; set; }
+    public Callback<TValue>? OnChange { get; set; }
+    public CallbackAsync<TValue>? OnChangeAsync { get; set; }
 
-    // Bound mode — set through the Bind-first factory overloads, kept off the controlled factory.
-    [SkipFactory] public Expression<Func<TValue>>? Bind { get; set; }
-    [SkipFactory] public Action<TValue>? AfterBind { get; set; }
-    [SkipFactory] public Func<TValue, Task>? AfterBindAsync { get; set; }
-    [SkipFactory] public Delegate? Validate { get; set; }
+    // Bound mode (IFormControl members) — symmetric single TValue throughout.
+    public Expression<Func<TValue>>? Bind { get; set; }
+    public Validate<TValue>? Validate { get; set; }
+    public ValidateAsync<TValue>? ValidateAsync { get; set; }
+    public Action<TValue>? AfterBind { get; set; }
+    public Func<TValue, Task>? AfterBindAsync { get; set; }
 
     public Func<TValue, Child>? OptionLabel { get; set; }
     public string? Name { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
-
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static RadioGroup<TValue> Bound(
-        Expression<Func<TValue>> Bind,
-        IEnumerable<TValue> Options,
-        Delegate? Validate = null,
-        Action<TValue>? AfterBind = null,
-        Func<TValue, Task>? AfterBindAsync = null,
-        Func<TValue, Child>? OptionLabel = null,
-        string? Name = null,
-        string? ItemClass = null,
-        bool Disabled = false)
-    {
-        var c = Generated.RadioGroup<TValue>(
-            Options, OptionLabel: OptionLabel, Name: Name, ItemClass: ItemClass, Disabled: Disabled);
-        c.Bind = Bind;
-        c.AfterBind = AfterBind;
-        c.AfterBindAsync = AfterBindAsync;
-        c.Validate = Validate;
-        return c;
-    }
 
     protected override RenderResult Render()
     {
@@ -75,7 +55,7 @@ public sealed class RadioGroup<TValue> : Component
             acc = ExpressionAccessor.Parse(Bind!);
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
-            ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
+            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
             current = acc.Getter() is TValue typed ? typed : default;
         }
         else

@@ -9,7 +9,7 @@ public sealed class FormGroupsDemo : Component
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
 
     private Plan _plan = Plan.Free;
-    private IReadOnlyCollection<string> _interests = [];
+    private ICollection<string> _interests = [];
 
     protected override RenderResult Render() =>
         Div(Class: "vstack gap-3")[
