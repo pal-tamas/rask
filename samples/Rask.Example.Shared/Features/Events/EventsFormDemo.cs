@@ -10,7 +10,7 @@ public sealed class EventsFormDemo : Component
     [
         Form(OnSubmit: OnSubmit, Class: "mb-2")[
             Div(Class: "input-group")[
-                Input(
+                Input<string>(
                     "text",
                     "name",
                     Class: "form-control",

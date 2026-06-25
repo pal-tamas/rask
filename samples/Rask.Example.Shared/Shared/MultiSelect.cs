@@ -80,9 +80,9 @@ public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TIt
             acc = ExpressionAccessor.Parse(Bind!);
             ctx = BindingHelpers.ResolveBindingContext(acc.Target);
             fid = acc.Field;
-            // Always register — null clears a stale rule from a prior render, matching Input's BoundCore.
-            // Collapse the typed sync/async validators into the single Delegate the context dispatches.
-            ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
+            // Always register — null clears a stale rule from a prior render. The interface collapses the
+            // typed sync/async validators and wires the field getter.
+            ((IFormControl<ICollection<TItem>>)this).RegisterValidator(acc, ctx);
             selected = acc.Getter() as ICollection<TItem>;
         }
         else
@@ -133,7 +133,7 @@ public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TIt
                 Disabled: Disabled,
                 OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
                 Key: idx)[
-                Input("checkbox", Class: "form-check-input m-0 pe-none", Checked: isChecked),
+                Input<string>("checkbox", Class: "form-check-input m-0 pe-none", Checked: isChecked),
                 LabelOf(captured)
             ]);
             idx++;
@@ -218,12 +218,7 @@ public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TIt
 
         BindingHelpers.SetCollectionMembership(collection, item, add, comparer);
         await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
-
-        AfterBind?.Invoke(collection);
-        if (AfterBindAsync is not null)
-        {
-            await AfterBindAsync(collection).ConfigureAwait(false);
-        }
+        await ((IFormControl<ICollection<TItem>>)this).InvokeAfterBindAsync(collection).ConfigureAwait(false);
     }
 
     private async Task ToggleControlledAsync(TItem item, IEqualityComparer<TItem> comparer, bool add)
@@ -231,11 +226,6 @@ public sealed class MultiSelect<TItem> : Component, IFormControl<ICollection<TIt
         // The parent owns Value; never mutate it in place. Build the next selection and hand it back.
         var next = Value is null ? new List<TItem>() : new List<TItem>(Value);
         BindingHelpers.SetCollectionMembership(next, item, add, comparer);
-
-        OnChange?.Invoke(next);
-        if (OnChangeAsync is not null)
-        {
-            await OnChangeAsync(next).ConfigureAwait(false);
-        }
+        await ((IFormControl<ICollection<TItem>>)this).InvokeOnChangeAsync(next).ConfigureAwait(false);
     }
 }

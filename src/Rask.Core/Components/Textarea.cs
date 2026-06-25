@@ -3,11 +3,18 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Components;
 
-public sealed class Textarea : Element
+// Generic <textarea> form control implementing IFormControl<T>: the generator synthesizes a controlled
+// factory (Value/OnChange) and a Bind-first bound factory (validator fanned none/sync/async). The bound
+// value type T is usually string; non-string T round-trips through FormatValue (T→string) and the binding
+// parser (string→T). Binding is resolved at render time (WriteAttributes) rather than in a `Bound` factory:
+// the textarea's text content is the value, emitted as a child text node by RenderChildren.
+//
+// Plain usage stays `Textarea<string>(Name: …)[content]` — the value comes from Children; bound/controlled
+// usage derives it from Bind/Value.
+public sealed class Textarea<T> : Element, IFormControl<T>
 {
     protected override string TagName => "textarea";
 
@@ -25,62 +32,51 @@ public sealed class Textarea : Element
     public string? Autocomplete { get; set; }
     public string? Form { get; set; }
     public string? Dirname { get; set; }
+
+    // Per-keystroke DOM handler (a textarea is inherently string-valued); not part of IFormControl.
     public Callback<string>? OnInput { get; set; }
-    public Callback<string>? OnChange { get; set; }
     public CallbackAsync<string>? OnInputAsync { get; set; }
 
-    public CallbackAsync<string>? OnChangeAsync { get; set; }
+    // IFormControl<T> — bound mode.
+    public Expression<Func<T>>? Bind { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
-    // Expression-driven factory; see Input.Bound for the broader pattern. Textarea always updates
-    // per-keystroke (OnInput) since textareas are inherently string-valued. The `Validator` arg fans this
-    // single core into none / `Validate<TProp>` / `ValidateAsync<TProp>` overloads.
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static Textarea Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Delegate? Validate = null,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        int? Rows = null,
-        int? Cols = null,
-        string? Placeholder = null,
-        bool Required = false,
-        bool Disabled = false,
-        bool ReadOnly = false,
-        int? MaxLength = null,
-        int? MinLength = null,
-        string? Wrap = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null)
-    {
-        var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
-        var fid = acc.Field;
-        var name = Name ?? acc.PropertyName;
-        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
-        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
-        var stringValue = BindingHelpers.FormatValue(acc.Getter());
+    // IFormControl<T> — controlled mode.
+    public T? Value { get; set; }
+    public Callback<T>? OnChange { get; set; }
+    public CallbackAsync<T>? OnChangeAsync { get; set; }
 
-        return (Textarea)C.Textarea(
-            name, Rows, Cols, Placeholder,
-            Required, Disabled, ReadOnly,
-            MaxLength, MinLength, Wrap,
-            Autofocus, Autocomplete,
-            OnInputAsync: BindingHelpers.StringSetHandler(acc, ctx, fid, false, afterBind),
-            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, false),
-            Id: Id, Class: Class, Style: Style, Data: Data)[stringValue];
-    }
+    // The rendered text content, resolved in WriteAttributes (bound/controlled) and emitted by
+    // RenderChildren. Null leaves the plain Children content (indexer) in place.
+    private string? _content;
 
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Name is not null)
+
+        // Bound mode parses the expression up front so the auto-derived `name` lands in attribute order.
+        ExpressionAccessor.Accessor? acc = null;
+        EditContext? bindCtx = null;
+        var fid = default(FieldIdentifier);
+        if (Bind is not null)
         {
-            AppendAttr(sb, "name", Name);
+            acc = ExpressionAccessor.Parse(Bind);
+            bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
+            fid = acc.Field;
+            _content = BindingHelpers.FormatValue(acc.Getter());
+        }
+        else if (Value is not null)
+        {
+            _content = BindingHelpers.FormatValue(Value);
+        }
+
+        var name = Name ?? acc?.PropertyName;
+        if (name is not null)
+        {
+            AppendAttr(sb, "name", name);
         }
 
         if (Rows is not null)
@@ -148,19 +144,37 @@ public sealed class Textarea : Element
             AppendAttr(sb, "dirname", Dirname);
         }
 
-        if (LiveRenderContext.CurrentSync is { } ctx)
+        if (LiveRenderContext.CurrentSync is not { } ctx)
         {
-            var input = (Delegate?)OnInput ?? OnInputAsync;
-            if (input is not null)
-            {
-                AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
-            }
+            return;
+        }
 
-            var change = (Delegate?)OnChange ?? OnChangeAsync;
-            if (change is not null)
-            {
-                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
-            }
+        if (acc is not null)
+        {
+            // Bound: write the model on input, touch + revalidate on change.
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            AppendAttr(sb, "data-rask-on-input",
+                ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
+            AppendAttr(sb, "data-rask-on-change",
+                ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, false)));
+            return;
+        }
+
+        // Plain / controlled.
+        var input = (Delegate?)OnInput ?? OnInputAsync;
+        if (input is not null)
+        {
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+        }
+
+        var change = ((IFormControl<T>)this).ControlledChangeHandler();
+        if (change is not null)
+        {
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
+
+    protected override IEnumerable<Child> RenderChildren() =>
+        _content is not null ? [_content] : base.RenderChildren();
 }

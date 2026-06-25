@@ -33,7 +33,7 @@ public class RenderRoundTripBenchmarks
             rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
                 C.Span(Class: "label")[$"Item {i}"],
                 C.A($"/item/{i}", Class: "lnk")[$"open {i}"],
-                C.Input("text", $"f{i}", $"v{i}")
+                C.Input<string>("text", $"f{i}", $"v{i}")
             ]);
         }
 

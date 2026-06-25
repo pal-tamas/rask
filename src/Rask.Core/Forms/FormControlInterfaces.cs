@@ -31,4 +31,54 @@ public interface IFormControl<T>
     T? Value { get; set; }
     Callback<T>? OnChange { get; set; }
     CallbackAsync<T>? OnChangeAsync { get; set; }
+
+    // The single delegate the EditContext dispatches — sync or async, whichever the consumer set.
+    Delegate? Validator => (Delegate?)Validate ?? ValidateAsync;
+
+    // Registers the per-field validator for the bound field (no-op when context is null). Passing the
+    // collapsed Validator each render also clears a stale rule when the consumer drops it, so call it every
+    // render. Replaces the boilerplate `ctx?.RegisterFieldValidator(acc.Field, …, () => acc.Getter())` line.
+    void RegisterValidator(ExpressionAccessor.Accessor accessor, EditContext? context) =>
+        context?.RegisterFieldValidator(accessor.Field, Validator, () => accessor.Getter());
+
+    // Runs the post-bind hooks with the freshly-bound value.
+    async Task InvokeAfterBindAsync(T value)
+    {
+        AfterBind?.Invoke(value);
+        if (AfterBindAsync is not null)
+        {
+            await AfterBindAsync(value).ConfigureAwait(false);
+        }
+    }
+
+    // Notifies the controlled-mode consumer of a new value (sync + async).
+    async Task InvokeOnChangeAsync(T value)
+    {
+        OnChange?.Invoke(value);
+        if (OnChangeAsync is not null)
+        {
+            await OnChangeAsync(value).ConfigureAwait(false);
+        }
+    }
+
+    // Bridges a DOM string change to the typed OnChange/OnChangeAsync — parse the raw value to T (identity
+    // for string; enums / IParsable<T> round-trip via BindingHelpers.TryParseValue), then notify. Shared by
+    // every control's controlled mode; returns null when no controlled change handler is wired. Call it
+    // through the interface (`((IFormControl<T>)this).ControlledChangeHandler()`) and register the result as
+    // the element's `data-rask-on-change` handler.
+    Delegate? ControlledChangeHandler()
+    {
+        if (OnChange is null && OnChangeAsync is null)
+        {
+            return null;
+        }
+
+        return new CallbackAsync<string>(async raw =>
+        {
+            if (BindingHelpers.TryParseValue(typeof(T), raw, out var parsed) && parsed is T value)
+            {
+                await InvokeOnChangeAsync(value).ConfigureAwait(false);
+            }
+        });
+    }
 }

@@ -137,7 +137,7 @@ public sealed class TablePage(Navigator nav) : Component
                     ],
                     Div(Class: "d-flex align-items-center gap-2")[
                         Label(Class: "small text-secondary mb-0")["Rows per page"],
-                        Select(
+                        Select<string>(
                             Class: "form-select form-select-sm",
                             Style: "max-width:90px;",
                             OnChange: v => nav.SetQuery(

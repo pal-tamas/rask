@@ -3,16 +3,20 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using C = Rask.Core.Components.Generated;
 
 namespace Rask.Core.Components;
 
-public sealed class Select : Element
+// Generic <select> form control implementing IFormControl<T>. The generator synthesizes a controlled/plain
+// factory and a Bind-first bound factory (validator fanned none/sync/async). Binding is resolved at render
+// time (WriteAttributes); the matching <option> is pre-marked selected just before the serializer reads
+// Children (EnterChildrenScope), so the initial render reflects the bound/controlled value without a
+// round-trip. Plain usage stays `Select<string>(Name: …)[Option(…)…]`; bound infers T from the expression.
+public sealed class Select<T> : Element, IFormControl<T>
 {
-    // Set by BoundCore; non-bound selects (plain Generated.Select) leave _bound false and
-    // skip the serialize-time marking entirely.
+    // Set in WriteAttributes (bound/controlled); a plain select leaves _bound false and skips marking.
     private bool _bound;
-    private string _boundValue = "";
+    private string _selectedValue = "";
+
     protected override string TagName => "select";
 
     public string? Name { get; set; }
@@ -23,59 +27,24 @@ public sealed class Select : Element
     public string? Form { get; set; }
     public bool? Autofocus { get; set; }
     public string? Autocomplete { get; set; }
-    public Callback<string>? OnChange { get; set; }
 
-    public CallbackAsync<string>? OnChangeAsync { get; set; }
+    // IFormControl<T> — controlled mode (OnChange/OnChangeAsync are the typed change callbacks).
+    public Callback<T>? OnChange { get; set; }
+    public CallbackAsync<T>? OnChangeAsync { get; set; }
+    public T? Value { get; set; }
 
-    // Expression-driven factory; pre-marks the matching <option> as selected so the initial render
-    // reflects the bound value without round-tripping through the browser. The `Validator` arg fans this
-    // single core into none / `Validate<TProp>` / `ValidateAsync<TProp>` overloads — see Input.Bound.
-    [GenerateForwarderFactory(Validator = "Validate")]
-    public static Select Bound<TProp>(
-        Expression<Func<TProp>> Bind,
-        Delegate? Validate = null,
-        Action<TProp>? AfterBind = null,
-        Func<TProp, Task>? AfterBindAsync = null,
-        string? Name = null,
-        bool Required = false,
-        bool Disabled = false,
-        int? Size = null,
-        bool Autofocus = false,
-        string? Autocomplete = null,
-        string? Id = null,
-        string? Class = null,
-        string? Style = null,
-        IReadOnlyDictionary<string, string?>? Data = null,
-        params IEnumerable<Child> Children)
-    {
-        var acc = ExpressionAccessor.Parse(Bind);
-        var ctx = BindingHelpers.ResolveBindingContext(acc.Target);
-        var fid = acc.Field;
-        var name = Name ?? acc.PropertyName;
-        ctx?.RegisterFieldValidator(fid, Validate, () => acc.Getter());
-        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
-
-        var select = (Select)C.Select(
-            name, Required: Required, Disabled: Disabled, Size: Size,
-            Autofocus: Autofocus, Autocomplete: Autocomplete,
-            OnChangeAsync: BindingHelpers.TouchAndValidateHandler(acc, ctx, fid, true, afterBind),
-            Id: Id, Class: Class, Style: Style, Data: Data)[Children];
-
-        // Defer option pre-selection to serialize time. Options supplied via the [...] indexer
-        // (the idiomatic `Select(Bind: …)[Option(…)…]` form) replace Children *after* this
-        // factory returns, so marking them here would be discarded. EnterChildrenScope marks
-        // the matching <option> just before the serializer reads Children — covering both the
-        // indexer and the Children: argument forms.
-        select._bound = true;
-        select._boundValue = BindingHelpers.FormatValue(acc.Getter());
-        return select;
-    }
+    // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
+    public Expression<Func<T>>? Bind { get; set; }
+    public Validate<T>? Validate { get; set; }
+    public ValidateAsync<T>? ValidateAsync { get; set; }
+    public Action<T>? AfterBind { get; set; }
+    public Func<T, Task>? AfterBindAsync { get; set; }
 
     protected override IDisposable? EnterChildrenScope()
     {
         if (_bound && Children is not null)
         {
-            Children = MarkSelected(Children, _boundValue);
+            Children = MarkSelected(Children, _selectedValue);
         }
 
         return base.EnterChildrenScope();
@@ -150,9 +119,28 @@ public sealed class Select : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
-        if (Name is not null)
+
+        ExpressionAccessor.Accessor? acc = null;
+        EditContext? bindCtx = null;
+        var fid = default(FieldIdentifier);
+        if (Bind is not null)
         {
-            AppendAttr(sb, "name", Name);
+            acc = ExpressionAccessor.Parse(Bind);
+            bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
+            fid = acc.Field;
+            _bound = true;
+            _selectedValue = BindingHelpers.FormatValue(acc.Getter());
+        }
+        else if (Value is not null)
+        {
+            _bound = true;
+            _selectedValue = BindingHelpers.FormatValue(Value);
+        }
+
+        var name = Name ?? acc?.PropertyName;
+        if (name is not null)
+        {
+            AppendAttr(sb, "name", name);
         }
 
         if (Multiple is true)
@@ -190,10 +178,25 @@ public sealed class Select : Element
             AppendAttr(sb, "autocomplete", Autocomplete);
         }
 
-        var change = (Delegate?)OnChange ?? OnChangeAsync;
-        if (change is not null && LiveRenderContext.CurrentSync is { } ctx)
+        if (LiveRenderContext.CurrentSync is not { } ctx)
         {
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            return;
+        }
+
+        if (acc is not null)
+        {
+            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync);
+            ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            AppendAttr(sb, "data-rask-on-change",
+                ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind)));
+        }
+        else
+        {
+            var change = ((IFormControl<T>)this).ControlledChangeHandler();
+            if (change is not null)
+            {
+                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            }
         }
     }
 }
