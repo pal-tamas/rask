@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Resize Observer (`IResizeObserver`, `Rask.Core.Browser`)** — be notified when an element's size changes,
+  for container-responsive layouts or re-laying-out a canvas/chart (the sibling of `IIntersectionObserver`):
+  `ObserveAsync(ElementRef element, Func<ResizeEntry,Task> onChange)` returns an `IAsyncDisposable` and fires
+  once initially with the current size; the browser **pushes** each `ResizeEntry` (`Width`, `Height`) to the
+  C# handler via a static `[JSInvokable]`, so one implementation serves **both** Server and WASM (rooted for
+  the WASM trimmer). **Shared.** New `/browser/resize` showcase page.
 - **Intersection Observer (`IIntersectionObserver`, `Rask.Core.Browser`)** — be notified when an element
   enters/leaves the viewport, for lazy-loading, infinite scroll, reveal-on-scroll, or impression tracking:
   `ObserveAsync(ElementRef element, Func<IntersectionEntry,Task> onChange, IntersectionOptions?)` returns an

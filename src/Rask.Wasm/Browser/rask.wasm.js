@@ -184,6 +184,40 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Resize Observer (driven by IResizeObserver). Each observation is a live ResizeObserver held here under
+// the C#-minted id; each size change is pushed back to C# via the shared window.DotNet.invokeMethodAsync
+// shim (static [JSInvokable] ResizeInterop.Changed in Rask.Core). The element is resolved from an
+// ElementRef by the JSON reviver.
+window.__raskResize = window.__raskResize || (() => {
+    const observers = new Map();
+    return {
+        observe: (id, element) => {
+            if (!element) {
+                return;
+            }
+            const ro = new ResizeObserver((entries) => {
+                for (let i = 0; i < entries.length; i++) {
+                    const r = entries[i].contentRect;
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskResizeChanged", id, {
+                        width: r.width,
+                        height: r.height
+                    });
+                }
+            });
+            ro.observe(element);
+            observers.set(id, ro);
+        },
+        unobserve: (id) => {
+            const ro = observers.get(id);
+            if (!ro) {
+                return;
+            }
+            observers.delete(id);
+            ro.disconnect();
+        }
+    };
+})();
+
 // Intersection Observer (driven by IIntersectionObserver). Each observation is a live
 // IntersectionObserver held here under the C#-minted id; each change is pushed back to C# via the shared
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] IntersectionInterop.Changed in Rask.Core).
