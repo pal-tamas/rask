@@ -38,13 +38,11 @@ public sealed class BsButton : BsBlock
 
         var aria = Active is true ? BsClass.WithAria(Aria, "pressed", "true") : Aria;
 
-        // Forward only the handler the consumer set — supplying both OnClick and OnClickAsync in one
-        // call is RASK027. The delegate passes straight through to the native Button, whose handler-
-        // owner resolution re-renders the parent.
-        return OnClickAsync is not null
-            ? Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
-                Disabled: Disabled, Name: Name, Value: Value, Aria: aria, OnClickAsync: OnClickAsync)[Items]
-            : Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
-                Disabled: Disabled, Name: Name, Value: Value, Aria: aria, OnClick: OnClick)[Items];
+        // Both handlers forward straight through to the native Button (the consumer sets at most one;
+        // RASK027 enforces that at their call site). The set delegate passes raw to the DOM element,
+        // whose handler-owner resolution re-renders the parent.
+        return Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
+            Disabled: Disabled, Name: Name, Value: Value, Aria: aria,
+            OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
     }
 }

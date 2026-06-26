@@ -13,9 +13,6 @@ public sealed class BsAlert : BsBlock
     public Callback? OnClose { get; set; }
     public CallbackAsync? OnCloseAsync { get; set; }
 
-    private static readonly IReadOnlyDictionary<string, string?> CloseAria =
-        new Dictionary<string, string?> { ["label"] = "Close" };
-
     protected override RenderResult Render()
     {
         var dismissible = Dismissible is true;
@@ -30,10 +27,7 @@ public sealed class BsAlert : BsBlock
             return Div(Id: Id, Class: cls, Role: "alert")[Items];
         }
 
-        // Forward only the handler the consumer set (both at once is RASK027).
-        var close = OnCloseAsync is not null
-            ? Button(Type: "button", Class: "btn-close", Aria: CloseAria, OnClickAsync: OnCloseAsync)
-            : Button(Type: "button", Class: "btn-close", Aria: CloseAria, OnClick: OnClose);
-        return Div(Id: Id, Class: cls, Role: "alert")[ItemsWith(close)];
+        return Div(Id: Id, Class: cls, Role: "alert")[
+            ItemsWith(BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync))];
     }
 }

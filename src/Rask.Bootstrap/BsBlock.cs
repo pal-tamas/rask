@@ -1,10 +1,20 @@
 namespace Rask.Bootstrap;
 
-// Base for composite Bootstrap components — those that render a wrapper element around their
-// children (Card, Alert, ListGroup, …) rather than being a single styled element. It exposes the
-// Id/Class pass-through that the generated factory surfaces as optional parameters, without pulling
-// in the full HTML-element attribute/event surface that Element carries. Abstract, so the factory
-// generator skips it; subclasses inherit Id/Class as leading optional factory params.
+// Base for EVERY Bootstrap component. This is the enforced library convention:
+//
+//   1. Bs components WRAP the core components — their Render() composes Div()/Span()/Button()/… with
+//      Bootstrap classes. They never subclass Element to mint a new element type (an architecture
+//      test asserts no public Bs* type derives from Element directly).
+//   2. Inside a Bs component, prefer another Bs component when one exists (BsModal/BsAlert/BsOffcanvas/
+//      BsToast reuse BsCloseButton; BsDropdown reuses BsButton) instead of re-emitting raw classes.
+//   3. Event delegates are forwarded straight to the native component (the consumer's handler closes
+//      over their page, so handler-owner resolution re-renders it) — both the sync and async params
+//      are forwarded; RASK027 is suppressed in this layer only (see .editorconfig).
+//   4. Prefer the inline `cond ? node : (Child)Fragment()` shape over building List<Child>.
+//
+// BsBlock itself exposes the Id/Class pass-through that the generated factory surfaces as optional
+// parameters, without pulling in Element's full HTML attribute/event surface. Abstract, so the
+// factory generator skips it; subclasses inherit Id/Class as leading optional factory params.
 public abstract class BsBlock : Component
 {
     public string? Id { get; set; }

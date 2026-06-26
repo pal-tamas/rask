@@ -52,6 +52,15 @@ public enum BsPlaceholderAnimation
     Wave,
 }
 
+// Edge an offcanvas slides in from (.offcanvas-start/-end/-top/-bottom).
+public enum BsPlacement
+{
+    Start,
+    End,
+    Top,
+    Bottom,
+}
+
 // Maps the typed enums to their Bootstrap class tokens. A switch expression per mapping keeps the
 // translation allocation-free and culture-independent (no enum ToString + ToLower), and keeps every
 // emitted class string in one auditable place.

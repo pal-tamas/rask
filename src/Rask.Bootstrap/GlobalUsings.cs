@@ -6,3 +6,8 @@
 global using Rask.Core;
 global using Rask.Core.Components;
 global using static Rask.Core.Components.Generated;
+
+// The Bs* factories the generator emits for this project, so Bs components can compose OTHER Bs
+// components (e.g. BsModal/BsAlert reuse BsCloseButton, BsDropdown reuses BsButton) the same way a
+// consumer does — no core-class duplication. Bs-prefixed names never clash with the core factories.
+global using static Rask.Bootstrap.Generated;

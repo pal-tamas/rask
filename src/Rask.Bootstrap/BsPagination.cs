@@ -43,12 +43,9 @@ public sealed class BsPageItem : BsBlock
             ? new Dictionary<string, string?> { ["current"] = "page" }
             : null;
 
-        // Forward only the handler the consumer set (both at once is RASK027).
         Child link = Href is not null
             ? A(Class: "page-link", Href: Href)[Items]
-            : OnClickAsync is not null
-                ? Button(Type: "button", Class: "page-link", OnClickAsync: OnClickAsync)[Items]
-                : Button(Type: "button", Class: "page-link", OnClick: OnClick)[Items];
+            : Button(Type: "button", Class: "page-link", OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
 
         return Li(Id: Id, Class: BsClass.Join(liCls, Class), Aria: liAria)[[link]];
     }
