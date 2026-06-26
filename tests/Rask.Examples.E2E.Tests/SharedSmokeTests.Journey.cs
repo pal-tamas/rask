@@ -919,6 +919,13 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Visual viewport", "Visual viewport");
         await Page.Locator("#vv-read").ClickAsync();
         await Expect(Page.Locator("#vv-value")).ToContainTextAsync("scale", contains);
+
+        // Broadcast channel — exercises the full JS→C# push round-trip (BroadcastChannel.onmessage →
+        // static [JSInvokable] → handler → StateHasChanged) on every host, incl. trimmed WASM. The page
+        // opens a sender + receiver on one name, so a post is delivered to the receiver in the same page.
+        await SideAsync("Broadcast channel", "Broadcast channel");
+        await Page.Locator("#bc-send").ClickAsync();
+        await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal

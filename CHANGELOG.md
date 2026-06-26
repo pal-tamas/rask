@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Broadcast Channel (`IBroadcastChannel`, `Rask.Core.Browser`)** — same-origin cross-tab messaging from
+  C#: `OpenAsync(name, Func<string,Task> onMessage)` returns an `IBroadcastChannelConnection`
+  (`PostAsync(message)` + `IAsyncDisposable`); a connection receives messages posted by *other* connections
+  of the same name (other tabs/windows, or other connections in the page). Unlike the one-shot wrappers,
+  the browser **pushes** each message back to the C# handler — wired through a static `[JSInvokable]`
+  (`window.DotNet.invokeMethodAsync`) so a single implementation serves **both** Server and WASM (and is
+  rooted for the WASM trimmer). Great for cross-tab sync (sign-out, theme, "data updated"). **Shared.**
+  New `/browser/broadcast` showcase page.
 - **HTML elements showcase — every one of the 111 standard elements, live.** A new "HTML elements" section
   in the samples (`/elements/text`, `/grouping`, `/sections`, `/forms`, `/tables`, `/media`, `/interactive`,
   `/metadata`) demonstrates every element with a live example and its source via `CodeSample`, grouped by
