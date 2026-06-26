@@ -41,6 +41,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IScreenInfo, ScreenInfoReader>();
         Services.AddSingleton<IStorageEstimator, StorageEstimator>();
         Services.AddSingleton<IVisualViewport, VisualViewportReader>();
+        Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
