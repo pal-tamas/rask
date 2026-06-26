@@ -35,6 +35,9 @@ them until tagged releases begin.
   - **`IScreenOrientation`** — read the orientation (`GetAsync()` → `OrientationInfo`) and lock/unlock it
     (`LockAsync(OrientationLock)` / `UnlockAsync`; locking usually requires fullscreen).
   The WASM showcase gains `/wake-lock` and `/orientation` pages, and the `/pwa` page now sets an app badge.
+  These WASM-only demos show their source via `CodeSample` like every other example — `EmbeddedSource` now
+  resolves embedded demo sources across registered assemblies, so demos that must live in the WASM app
+  assembly (they reference `Rask.Wasm.Browser`) are covered too.
 - **Local notifications (`INotifications`, `Rask.Wasm.Browser`)** — show a notification from the running
   page (no server/push): `IsSupportedAsync` / `PermissionAsync` / `RequestPermissionAsync` /
   `ShowAsync(title, NotificationOptions?)`. WASM-only (`requestPermission` needs a live user gesture). For
