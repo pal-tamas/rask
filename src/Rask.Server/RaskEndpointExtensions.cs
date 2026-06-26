@@ -203,6 +203,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<IVisualViewport, VisualViewportReader>();
         services.AddScoped<IBroadcastChannel, BroadcastChannelService>();
         services.AddScoped<IIntersectionObserver, IntersectionObserverService>();
+        services.AddScoped<IResizeObserver, ResizeObserverService>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();

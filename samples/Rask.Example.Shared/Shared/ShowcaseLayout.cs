@@ -77,7 +77,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.StorageEstimatePage(), "Quota estimate", "bi-hdd-stack", "Browser APIs", null),
         (Features.Routes.VisualViewportPage(), "Visual viewport", "bi-aspect-ratio-fill", "Browser APIs", null),
         (Features.Routes.BroadcastChannelPage(), "Broadcast channel", "bi-broadcast-pin", "Browser APIs", null),
-        (Features.Routes.IntersectionObserverPage(), "Intersection observer", "bi-binoculars", "Browser APIs", null)
+        (Features.Routes.IntersectionObserverPage(), "Intersection observer", "bi-binoculars", "Browser APIs", null),
+        (Features.Routes.ResizeObserverPage(), "Resize observer", "bi-arrows-angle-expand", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

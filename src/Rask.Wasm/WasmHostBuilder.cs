@@ -43,6 +43,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IVisualViewport, VisualViewportReader>();
         Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
         Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
+        Services.AddSingleton<IResizeObserver, ResizeObserverService>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
