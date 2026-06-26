@@ -1,31 +1,18 @@
-using Rask.Core.Routing;
-using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
 
 /// <summary>
-///     A live, WASM-only demo of the Screen Orientation API (<see cref="IScreenOrientation" />) — read the
-///     current orientation, and lock/unlock it. WASM-only (locking needs the live, usually fullscreen,
-///     document), so it lives in the WASM host and is surfaced via a host-registered
-///     <see cref="ShowcaseNavEntry" /> (see Program.cs).
+///     <see cref="IScreenOrientation" /> — read the current screen orientation and, for an installed or
+///     fullscreen app, lock/unlock it. Locking is usually rejected outside fullscreen and is often
+///     unsupported on desktop, so each call is wrapped in try/catch.
 /// </summary>
-[Route("orientation")]
-[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class OrientationDemo(IScreenOrientation orientation) : Component
 {
     private string? _current;
     private string? _status;
 
-    protected override RenderResult Head => Title()["Orientation — Rask"];
-
     protected override RenderResult Render() =>
-    [
-        H1(Class: "h2 mb-1")["Orientation"],
-        P(Class: "text-secondary")[
-            "Read the screen orientation via IScreenOrientation and, for an installed or fullscreen app, ",
-            "lock it. Locking is usually rejected outside fullscreen and is often unsupported on desktop."
-        ],
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
@@ -41,8 +28,7 @@ public sealed class OrientationDemo(IScreenOrientation orientation) : Component
                     "Current: ", Code(Id: "orientation-current")[_current ?? "(read to see)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "orientation-status")[_status ?? "(idle)"]]
             ]
-        ]
-    ];
+        ];
 
     private async Task Read()
     {

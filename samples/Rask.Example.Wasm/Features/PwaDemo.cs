@@ -1,18 +1,12 @@
-using Rask.Core.Routing;
-using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
 
 /// <summary>
 ///     A live, WASM-only PWA demo: local notifications (<see cref="INotifications" />), Web Push
-///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). Lives in
-///     the WASM host (not the shared showcase) because these APIs are WASM-only; it's surfaced in the
-///     sidebar via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs) and nests in the
-///     shared <see cref="ShowcaseLayout" /> like every other page.
+///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). These
+///     APIs are WASM-only; <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-[Route("pwa")]
-[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge badge) : Component
 {
     private string? _notifyStatus;
@@ -20,16 +14,8 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
     private string? _badgeStatus;
     private int _badgeCount;
 
-    protected override RenderResult Head => Title()["PWA — Rask"];
-
     protected override RenderResult Render() =>
     [
-        H1(Class: "h2 mb-1")["PWA — notifications & push"],
-        P(Class: "text-secondary")[
-            "A live demo of the WASM-only PWA APIs. This site is itself an installable, offline PWA — ",
-            "install it from your browser's address bar, then try the buttons below."
-        ],
-
         Div(Class: "card shadow-sm border-0 mb-3")[
             Div(Class: "card-body")[
                 H6(Class: "fw-bold")[I(Class: "bi bi-bell me-2"), "Local notification (INotifications)"],

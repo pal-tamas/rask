@@ -43,6 +43,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBadge, Badge>();
         Services.AddSingleton<IWakeLock, WakeLock>();
         Services.AddSingleton<IScreenOrientation, ScreenOrientation>();
+        Services.AddSingleton<IFullscreen, Fullscreen>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();

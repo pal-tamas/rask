@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Fullscreen API (`IFullscreen`, `Rask.Wasm.Browser`)** — present an element or the whole page
+  fullscreen from C#: `IsSupportedAsync`, `IsActiveAsync`, `RequestAsync(ElementRef? element = null)`
+  (pass an `ElementRef` to fullscreen just that element, or omit it for the page), `ExitAsync`. WASM-only —
+  `requestFullscreen` needs transient user activation (like `IShare`). Pairs with `IScreenOrientation`:
+  request fullscreen first, then `LockAsync` (most browsers only allow the orientation lock in fullscreen).
+  New `/fullscreen` showcase page.
 - **Two-way bindings now re-render derived UI automatically — even outside the `Form`.** A bound write
   (`Bind` / `() => model.X`) re-renders the component that *authored* the binding, so a readout or summary
   the consumer renders as a sibling of the control (or the `Form`) updates live with **no
@@ -35,6 +41,9 @@ them until tagged releases begin.
   - **`IScreenOrientation`** — read the orientation (`GetAsync()` → `OrientationInfo`) and lock/unlock it
     (`LockAsync(OrientationLock)` / `UnlockAsync`; locking usually requires fullscreen).
   The WASM showcase gains `/wake-lock` and `/orientation` pages, and the `/pwa` page now sets an app badge.
+  These WASM-only demos show their source via `CodeSample` like every other example — `EmbeddedSource` now
+  resolves embedded demo sources across registered assemblies, so demos that must live in the WASM app
+  assembly (they reference `Rask.Wasm.Browser`) are covered too.
 - **Local notifications (`INotifications`, `Rask.Wasm.Browser`)** — show a notification from the running
   page (no server/push): `IsSupportedAsync` / `PermissionAsync` / `RequestPermissionAsync` /
   `ShowAsync(title, NotificationOptions?)`. WASM-only (`requestPermission` needs a live user gesture). For

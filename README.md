@@ -199,7 +199,7 @@ on one and move later.
 | **Needs a live connection** | Yes — UI pauses if the socket drops | No — works offline once loaded |
 | **Direct server/DB/secret access** | Yes, from event handlers | No — call an API |
 | **Scales by** | Server memory (one session each) | Client CPU (free per user) |
-| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (`IShare`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`) and offline/PWA |
+| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (`IShare`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`) and offline/PWA |
 
 **Rule of thumb:** reach for **Server** for data-dense internal apps, instant loads, and direct backend
 access; reach for **WASM** for offline-capable, installable, or static-hosted (e.g. GitHub Pages) apps —
