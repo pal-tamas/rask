@@ -1,4 +1,6 @@
+using Microsoft.Playwright;
 using Rask.Examples.E2E.Tests.Infrastructure;
+using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Examples.E2E.Tests;
 
@@ -21,4 +23,22 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             OfflineReconnect = false,
             Slow3g = true,
         }));
+
+    // The WASM-only PWA example page (PwaDemo) lives in the WASM host and is surfaced in the shared
+    // sidebar via a host-contributed ShowcaseNavEntry. Verify the entry routes and the page renders.
+    [Fact]
+    public Task PwaExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("PWA demo");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("PWA — notifications & push",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#pwa-notify")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#pwa-push")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    });
 }
