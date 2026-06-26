@@ -894,6 +894,11 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Quota estimate", "Quota estimate");
         await Page.Locator("#storage-est-read").ClickAsync();
         await Expect(Page.Locator("#storage-est-value")).Not.ToContainTextAsync("not requested", contains);
+
+        // Visual viewport — window.visualViewport is available in headless Chromium; assert the read.
+        await SideAsync("Visual viewport", "Visual viewport");
+        await Page.Locator("#vv-read").ClickAsync();
+        await Expect(Page.Locator("#vv-value")).ToContainTextAsync("scale", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
