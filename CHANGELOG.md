@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Local notifications (`INotifications`, `Rask.Wasm.Browser`)** — show a notification from the running
+  page (no server/push): `IsSupportedAsync` / `PermissionAsync` / `RequestPermissionAsync` /
+  `ShowAsync(title, NotificationOptions?)`. WASM-only (`requestPermission` needs a live user gesture). For
+  notifications while the app is closed, use `IWebPush` (delivered via the service worker).
 - **Typed Web App Manifest (`WebAppManifest`)** — configure the PWA manifest in C# via
   `WasmHostBuilder.UseManifest(new WebAppManifest { … })`; the framework injects the
   `<link rel="manifest">` (a `data:` URL with sub-path-correct absolute URLs) and

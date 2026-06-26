@@ -212,6 +212,15 @@ window.__raskPwa = window.__raskPwa || {
     }
 };
 
+// Local notifications (driven by INotifications). `new Notification(...)` is a constructor IJSRuntime
+// can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
+window.__raskNotify = window.__raskNotify || {
+    isSupported: () => "Notification" in window,
+    show: (title, options) => {
+        new Notification(title, options || {});
+    }
+};
+
 
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
