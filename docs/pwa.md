@@ -139,6 +139,7 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Media queries** | `IMediaQuery` | `MatchesAsync(query)` / `PrefersDarkAsync` / `PrefersReducedMotionAsync` |
 | **Speech (text-to-speech)** | `ISpeechSynthesis` | `SpeakAsync(text, SpeechOptions?)` / `CancelAsync` |
 | **Screen info** | `IScreenInfo` | `GetAsync()` → size / color depth / device pixel ratio (retina) |
+| **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
 | **Local notifications** | `INotifications` *(WASM)* | Show a notification from the page (no server) |
 | **App badge** | `IBadge` *(WASM)* | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
 | **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
