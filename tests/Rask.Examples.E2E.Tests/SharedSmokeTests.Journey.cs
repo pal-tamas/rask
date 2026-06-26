@@ -939,6 +939,12 @@ public abstract partial class SharedSmokeTests
         // box's current size, so the readout shows pixels (proves the round-trip) on every host.
         await SideAsync("Resize observer", "Resize observer");
         await Expect(Page.Locator("#resize-value")).ToContainTextAsync("px", contains);
+
+        // Live location — geolocation watch (push). The context grants permission + a fixed fix (51.5074),
+        // so starting the watch pushes that position via watchPosition → static [JSInvokable] → handler.
+        await SideAsync("Live location", "Live location");
+        await Page.Locator("#geowatch-start").ClickAsync();
+        await Expect(Page.Locator("#geowatch-value")).ToContainTextAsync("51.5", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal

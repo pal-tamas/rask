@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Live geolocation tracking — `IGeolocation.WatchAsync` (`Rask.Core.Browser`)** — continuous position
+  updates (`navigator.geolocation.watchPosition`): `WatchAsync(Func<GeolocationPosition,Task> onPosition,
+  GeolocationOptions?)` returns an `IAsyncDisposable` and fires for the initial fix plus every update; the
+  browser **pushes** each fix to the C# handler via a static `[JSInvokable]`, so one implementation serves
+  **both** Server and WASM (rooted for the WASM trimmer). Pairs with the one-shot `GetCurrentPositionAsync`.
+  New `/browser/geolocation-watch` ("Live location") showcase page.
 - **Resize Observer (`IResizeObserver`, `Rask.Core.Browser`)** — be notified when an element's size changes,
   for container-responsive layouts or re-laying-out a canvas/chart (the sibling of `IIntersectionObserver`):
   `ObserveAsync(ElementRef element, Func<ResizeEntry,Task> onChange)` returns an `IAsyncDisposable` and fires
