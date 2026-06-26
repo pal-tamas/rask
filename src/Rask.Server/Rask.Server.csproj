@@ -46,14 +46,15 @@
   <Import Project="..\..\build\Rask.MinifyJs.targets"/>
 
   <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js"
+          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js"
           Outputs="$(IntermediateOutputPath)rask.js">
     <PropertyGroup>
       <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
       <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
-      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)'))</_RaskClientJs>
+      <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
+      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)'))</_RaskClientJs>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>

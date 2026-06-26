@@ -1,5 +1,4 @@
 using System.Text;
-using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -15,8 +14,9 @@ public sealed class A : Element
     public string? Type { get; set; }
     public string? ReferrerPolicy { get; set; }
     public string? Ping { get; set; }
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+
+    // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface) — no longer
+    // declared per-tag. The base emits data-rask-on-click in the universal handler group.
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -59,12 +59,6 @@ public sealed class A : Element
         if (Ping is not null)
         {
             AppendAttr(sb, "ping", Ping);
-        }
-
-        var click = (Delegate?)OnClick ?? OnClickAsync;
-        if (click is not null && LiveRenderContext.CurrentSync is { } ctx)
-        {
-            AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Text;
-using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -11,8 +10,8 @@ public sealed class Button : Element
     public bool? Disabled { get; set; }
     public string? Name { get; set; }
     public string? Value { get; set; }
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+
+    // OnClick / OnClickAsync are inherited from Element (the GlobalEventHandlers surface).
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -35,12 +34,6 @@ public sealed class Button : Element
         if (Value is not null)
         {
             AppendAttr(sb, "value", Value);
-        }
-
-        var click = (Delegate?)OnClick ?? OnClickAsync;
-        if (click is not null && LiveRenderContext.CurrentSync is { } ctx)
-        {
-            AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }
     }
 }

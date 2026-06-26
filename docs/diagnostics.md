@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK025)
+# Rask diagnostics (RASK001–RASK027)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -35,6 +35,7 @@ build once.
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
+| [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
 
 ---
 
@@ -334,3 +335,26 @@ model the consumer reads), not the render count. The warning fires only for a se
 (`StateHasChanged()` / `this.StateHasChanged()`) lexically inside a Rask callback; a `StateHasChanged` in
 a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasChanged`), or a call on a
 *different* component, is left alone. Suppressible like any analyzer.
+
+## RASK027
+**Both the sync and async handler are set for one event** · Error
+
+Every DOM event on a component maps to a single handler slot. The typed `OnX` (sync) and `OnXAsync`
+(async) properties are two views over that one slot, so wiring **both** for the same event — e.g.
+`Button(OnClick: ..., OnClickAsync: ...)` — is a mistake: the runtime keeps the sync handler and silently
+ignores the async one, which is rarely what the author intended. Set exactly one handler per event.
+
+```csharp
+// ✗ both set — OnClickAsync is silently dropped at runtime:
+Button(OnClick: () => Toggle(), OnClickAsync: async () => await SaveAsync())["Save"]
+// ✓ pick one — the async handler, since it awaits:
+Button(OnClickAsync: async () => await SaveAsync())["Save"]
+// ✓ passing null for the sibling is allowed (a deliberate "at most one" conditional):
+Button(OnClick: useAsync ? null : Sync, OnClickAsync: useAsync ? Async : null)["Save"]
+```
+
+**Fix:** remove one of the two handlers (keep the async `OnXAsync` if it awaits, else the sync `OnX`).
+The error fires only when both siblings are passed as non-`null` arguments to the same factory call;
+passing `null` for one (a conditional "set at most one") is left alone. Applies to every paired event,
+including form callbacks (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, …). Suppressible like any
+analyzer.

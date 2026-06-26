@@ -255,36 +255,6 @@ public abstract class Component
         }
     }
 
-    // Backing store for Element.OnKeyDown/OnKeyUp, hoisted into the lazy LiveState for the same
-    // reason as Ref/Role/Aria: keyboard handlers are opt-in and rare, so a plain element keeps
-    // `_live` null and adds zero per-instance footprint (the allocation-pin tests enforce this).
-    // One slot per event holds either the sync (Action<KeyboardEventArgs>) or async
-    // (Func<KeyboardEventArgs, Task>) delegate — Element's typed OnKeyDown/OnKeyDownAsync property
-    // pair coalesces over it by delegate type, so no extra slot is needed for the async sibling.
-    internal Delegate? OnKeyDownInternal
-    {
-        get => _live?.OnKeyDown;
-        set
-        {
-            if (value is not null || _live is not null)
-            {
-                Live.OnKeyDown = value;
-            }
-        }
-    }
-
-    internal Delegate? OnKeyUpInternal
-    {
-        get => _live?.OnKeyUp;
-        set
-        {
-            if (value is not null || _live is not null)
-            {
-                Live.OnKeyUp = value;
-            }
-        }
-    }
-
     /// <summary>
     ///     A <see cref="System.Threading.CancellationToken" /> for this component's cancellable async
     ///     work. It is cancelled when the component is unmounted (navigation away, parent removed, or
@@ -1138,6 +1108,69 @@ public abstract class Component
                     owner.Live.StateDirty = true;
                     return true;
                 }
+                // Extended GlobalEventHandlers args (mouse/wheel/pointer/touch/clipboard/media). Each
+                // parses the flat client payload into its typed record; async siblings re-mark dirty
+                // after the mid-await render, mirroring the keyboard/scroll cases above.
+                case Callback<MouseEventArgs> c:
+                    c(MouseEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<MouseEventArgs> c:
+                {
+                    var args = MouseEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case Callback<WheelEventArgs> c:
+                    c(WheelEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<WheelEventArgs> c:
+                {
+                    var args = WheelEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case Callback<PointerEventArgs> c:
+                    c(PointerEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<PointerEventArgs> c:
+                {
+                    var args = PointerEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case Callback<TouchEventArgs> c:
+                    c(TouchEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<TouchEventArgs> c:
+                {
+                    var args = TouchEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case Callback<ClipboardEventArgs> c:
+                    c(ClipboardEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<ClipboardEventArgs> c:
+                {
+                    var args = ClipboardEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
+                case Callback<MediaEventArgs> c:
+                    c(MediaEventArgs.FromJson(payload));
+                    return true;
+                case CallbackAsync<MediaEventArgs> c:
+                {
+                    var args = MediaEventArgs.FromJson(payload);
+                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
+                    owner.Live.StateDirty = true;
+                    return true;
+                }
                 default:
                 {
                     // Parameterless delegate shapes outside the fast-path list above can still arrive
@@ -1518,8 +1551,6 @@ public abstract class Component
         public string? Role;
         public int? TabIndex;
         public IReadOnlyDictionary<string, string?>? Aria;
-        public Delegate? OnKeyDown;
-        public Delegate? OnKeyUp;
         public HeadAssetRegistry? HeadAssets;
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Handler)>? Handlers;

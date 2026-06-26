@@ -674,6 +674,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
                 var isAutoRerenderDelegate = !isElement && IsAutoRerenderDelegate(prop.Type);
 
+                // Any delegate-typed prop (event callbacks: Callback/CallbackAsync/Action/Func) is
+                // excluded from the propsChanged fold below — two delegates/closures are practically never
+                // equal, so folding them forces propsChanged: true every render (defeating the render
+                // cache) AND emits per-prop snapshot+compare bookkeeping that scales with the count. The
+                // universal GlobalEventHandlers surface adds ~50 delegate props to every element factory,
+                // so this is load-bearing for the render-hotpath allocation pin. Distinct from
+                // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
+                // props must NOT get.
+                var isDelegate = prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate };
+
                 // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —
                 // there's no conversion from null to T — so its optional factory param must default to
                 // `default`. (A `class`/`notnull`-constrained T would accept null, but `default` is always
@@ -697,7 +707,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     spanLength,
                     isAutoRerenderDelegate,
                     isTypeParameter,
-                    isBoundInterfaceProp));
+                    isBoundInterfaceProp,
+                    isDelegate));
             }
         }
 
@@ -902,7 +913,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         // `propsChanged: false` fast path for any callback-receiving component). They are still
         // assigned each render, just not folded.
         var nonKeyProps = paramProps.Where(p => !IsKeyProp(p)).ToList();
-        var foldProps = nonKeyProps.Where(p => !p.IsAutoRerenderDelegate).ToList();
+        var foldProps = nonKeyProps.Where(p => !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
 
         // Prefer the parameterless ctor + object-initializer path whenever it's available.
         // Even if the component declares additional ctors that take services (DI) or
@@ -997,15 +1008,28 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         // Has factory-param properties. Construct, then re-apply props every render so cached instances get fresh values.
+        var hasRequired = requiredProps.Count > 0;
         sb.Append("        ").Append(c.FullyQualifiedName).AppendLine(" __c;");
         sb.Append("        if (").Append(ContextFullName).AppendLine(".Current is { } __ctx)");
-        if (canUseObjectInit)
+        if (canUseObjectInit && hasRequired)
         {
-            // No DI ctor: closure captures args and seeds via object initializer (also satisfies `required`).
+            // Has `required` members: they MUST be set at construction, so capture the args in an object
+            // initializer. This closure allocates a display class per render, but `required` is rare.
             sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
             sb.Append("                __sp => new ").Append(c.FullyQualifiedName).Append("()");
             EmitInitializerBody(sb, paramProps);
             sb.AppendLine(");");
+        }
+        else if (canUseObjectInit)
+        {
+            // No `required` members → a STATIC, capture-free factory. Every prop is re-applied by the
+            // assignment pass below (which runs each render for cache reuse anyway), so seeding them in
+            // the lambda would be redundant — and capturing the args would allocate a display-class
+            // closure per render that scales with the parameter count. With the universal
+            // GlobalEventHandlers surface adding ~50 delegate params to every element factory, that
+            // closure dominated the render-hotpath allocation; a static lambda removes it entirely.
+            sb.Append("            __c = __ctx.GetOrCreate<").Append(c.FullyQualifiedName).AppendLine(">(");
+            sb.Append("                static __sp => new ").Append(c.FullyQualifiedName).AppendLine("());");
         }
         else
         {
@@ -1016,11 +1040,16 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        else");
-        if (canUseObjectInit)
+        if (canUseObjectInit && hasRequired)
         {
             sb.Append("            __c = new ").Append(c.FullyQualifiedName).Append("()");
             EmitInitializerBody(sb, paramProps);
             sb.AppendLine(";");
+        }
+        else if (canUseObjectInit)
+        {
+            // No-context fallback: bare construct; the assignment pass below applies every prop.
+            sb.Append("            __c = new ").Append(c.FullyQualifiedName).AppendLine("();");
         }
         else
         {
@@ -1120,7 +1149,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         // Fold (propsChanged): only the shared value props participate — the bound members are fresh
         // expressions/delegates each render (folding them would force propsChanged: true every frame).
-        var foldProps = shared.Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate).ToList();
+        var foldProps = shared.Where(p => !IsKeyProp(p) && !p.IsAutoRerenderDelegate && !p.IsDelegate).ToList();
 
         void EmitInit(string indent)
         {
@@ -1720,7 +1749,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         int DeclaringSpanLength,
         bool IsAutoRerenderDelegate,
         bool IsTypeParameter,
-        bool IsBoundInterfaceProp)
+        bool IsBoundInterfaceProp,
+        bool IsDelegate)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

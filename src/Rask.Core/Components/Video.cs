@@ -1,75 +1,35 @@
-using System.Globalization;
 using System.Text;
 
 namespace Rask.Core.Components;
 
-public sealed class Video : Element
+public sealed class Video : HtmlMediaElement
 {
     protected override string TagName => "video";
 
-    public string? Src { get; set; }
     public string? Poster { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
-    public bool? Controls { get; set; }
-    public bool? Autoplay { get; set; }
-    public bool? Loop { get; set; }
-    public bool? Muted { get; set; }
-    public string? Preload { get; set; }
-    public string? CrossOrigin { get; set; }
     public bool? PlaysInline { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
+        // Emits the universal attrs then the shared HtmlMediaElement block (src, controls, …,
+        // crossorigin); the video-specific attrs below follow that block.
         base.WriteAttributes(sb);
-        if (Src is not null)
-        {
-            AppendMediaUrlAttr(sb, "src", Src);
-        }
 
         if (Poster is not null)
         {
             AppendMediaUrlAttr(sb, "poster", Poster);
         }
 
-        if (Width is not null)
+        if (Width is { } width)
         {
-            AppendAttr(sb, "width", Width.Value.ToString(CultureInfo.InvariantCulture));
+            AppendAttr(sb, "width", width);
         }
 
-        if (Height is not null)
+        if (Height is { } height)
         {
-            AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        if (Controls is true)
-        {
-            AppendAttr(sb, "controls", null);
-        }
-
-        if (Autoplay is true)
-        {
-            AppendAttr(sb, "autoplay", null);
-        }
-
-        if (Loop is true)
-        {
-            AppendAttr(sb, "loop", null);
-        }
-
-        if (Muted is true)
-        {
-            AppendAttr(sb, "muted", null);
-        }
-
-        if (Preload is not null)
-        {
-            AppendAttr(sb, "preload", Preload);
-        }
-
-        if (CrossOrigin is not null)
-        {
-            AppendAttr(sb, "crossorigin", CrossOrigin);
+            AppendAttr(sb, "height", height);
         }
 
         if (PlaysInline is true)

@@ -94,20 +94,38 @@ returns unchanged and does **not** trigger a re-render.
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
 lambda identity between renders does not refire `OnPropsChanged`.
 
-**DOM events on elements.** `Element` exposes handler props the client runtime binds to real
-DOM events. Every one ships a **typed sync + async pair** — a synchronous `OnXxx` and an
-asynchronous `OnXxxAsync` (`Func<…, Task>`) — the same convention as `OnClick` / `OnClickAsync`;
-set at most one per event. The set: `OnClick` (on `Button`/`Div`/…), `OnScroll` /
-`OnScrollAsync` (`Action<ScrollEvent>` / `Func<ScrollEvent, Task>`), the drag hooks
-(`OnDragStart`/`OnDragOver`/`OnDrop`/`OnDragEnd`, each `Action` + `…Async` `Func<Task>`), and the
-keyboard pairs **`OnKeyDown` / `OnKeyDownAsync`** and **`OnKeyUp` / `OnKeyUpAsync`**.
-A key handler takes `Action<KeyboardEventArgs>` (or `Func<KeyboardEventArgs, Task>` for the async
-sibling); `KeyboardEventArgs` carries `Key` (`"Escape"`), `Code` (`"KeyA"`), the
-`Shift`/`Ctrl`/`Alt`/`Meta` modifiers, and `Repeat`. Like
-click, a key event is **focus-scoped** — it fires only while the element (or a descendant) holds
-focus — and the runtime never `preventDefault`s it, so handlers compose with normal typing. The
-Todos sample uses it to close its dialog on Escape (it focuses the `<dialog>` on open via an
-`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
+**DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
+**every** element (not a hand-picked few) carries the complete event set, just like the real DOM
+mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Callback<TArgs>`)
+and an asynchronous `OnXxxAsync` (`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
+is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
+the async). The surface:
+
+- **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
+  `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEventArgs` (button/buttons, client/screen/page/offset/
+  movement coords, modifiers).
+- **Wheel** — `OnWheel` (`WheelEventArgs`: the mouse geometry plus `DeltaX/Y/Z` + `DeltaMode`).
+- **Pointer & touch** — `OnPointerDown`/`Up`/`Move`/`Enter`/`Leave`/`Over`/`Out`/`Cancel`
+  (`PointerEventArgs`: mouse geometry + `PointerId`/`Pressure`/`PointerType`/`IsPrimary`/tilt);
+  `OnTouchStart`/`End`/`Move`/`Cancel` (`TouchEventArgs`).
+- **Focus** — `OnFocus`/`OnBlur`/`OnFocusIn`/`OnFocusOut` (parameterless; reach the element via
+  capture-phase delegation).
+- **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEventArgs`: `Key` `"Escape"`, `Code` `"KeyA"`, the
+  `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, `Repeat`). Focus-scoped; never `preventDefault`-ed, so
+  handlers compose with normal typing.
+- **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEventArgs.Text`).
+- **Scroll & drag** — `OnScroll` (`ScrollEvent`, rAF-coalesced); `OnDragStart`/`Over`/`Drop`/`End`
+  plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
+  handler's closure).
+- **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
+- **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
+  `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
+
+All of these are delegated by a single capture-phase listener per event in the shared client module
+(`rask-events.js`, spliced into both the Server and WASM runtimes), so there is no per-element JS. The
+Todos sample uses `OnKeyDown` to close its dialog on Escape (it focuses the `<dialog>` on open via an
+`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute). See the
+**DOM events** showcase page for a live demo.
 
 **Cancelling async work.** `Component.CancellationToken` is cancelled when the component unmounts —
 and, *while an event handler is running*, **also** when the host cancels that dispatch (the server's
