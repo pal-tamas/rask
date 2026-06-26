@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **HTML elements showcase — every one of the 111 standard elements, live.** A new "HTML elements" section
+  in the samples (`/elements/text`, `/grouping`, `/sections`, `/forms`, `/tables`, `/media`, `/interactive`,
+  `/metadata`) demonstrates every element with a live example and its source via `CodeSample`, grouped by
+  MDN category. The document/metadata elements (html/head/body/title/base/link/meta/style/script/noscript)
+  are shown via serialized output since they build the page shell.
 - **The full DOM `GlobalEventHandlers` surface on every element.** Beyond the previous click/scroll/
   keyboard/drag subset, every element now exposes the complete event set as typed sync `OnX` + async
   `OnXAsync` callback pairs: mouse (`OnMouseDown/Up/Move/Enter/Leave/Over/Out`, `OnDoubleClick`,
