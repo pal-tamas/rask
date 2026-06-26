@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Intersection Observer (`IIntersectionObserver`, `Rask.Core.Browser`)** — be notified when an element
+  enters/leaves the viewport, for lazy-loading, infinite scroll, reveal-on-scroll, or impression tracking:
+  `ObserveAsync(ElementRef element, Func<IntersectionEntry,Task> onChange, IntersectionOptions?)` returns an
+  `IAsyncDisposable`; the browser **pushes** each change (`IsIntersecting`, `Ratio`) to the C# handler via a
+  static `[JSInvokable]`, so one implementation serves **both** Server and WASM (rooted for the WASM
+  trimmer). **Shared.** New `/browser/intersection` showcase page.
 - **Broadcast Channel (`IBroadcastChannel`, `Rask.Core.Browser`)** — same-origin cross-tab messaging from
   C#: `OpenAsync(name, Func<string,Task> onMessage)` returns an `IBroadcastChannelConnection`
   (`PostAsync(message)` + `IAsyncDisposable`); a connection receives messages posted by *other* connections

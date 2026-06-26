@@ -125,6 +125,7 @@ later step on the same pattern.
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 | `IVisualViewport` | `window.visualViewport` | `IsSupportedAsync`, `GetAsync()` → `VisualViewport?` (visible size/offset/zoom after the soft keyboard) |
 | `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
+| `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -169,11 +170,12 @@ transient activation has expired. The practical effect:
   queries, speech synthesis, screen info, storage estimate, visual viewport, broadcast channel, page
   visibility) is unaffected by activation and behaves identically on both transports.
 
-Most of these are one-shot request/response calls. **`IBroadcastChannel`** is the exception — it's a
-*subscription*: `OpenAsync(name, onMessage)` returns a connection, and the browser **pushes** each
-cross-tab message back to the C# `onMessage` handler (via a static `[JSInvokable]`, so one wiring works on
-both transports). Open it from a lifecycle hook and dispose the connection on unmount; a handler that
-updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
+Most of these are one-shot request/response calls. **`IBroadcastChannel`** and
+**`IIntersectionObserver`** are the exceptions — they're *subscriptions*: you open/observe (returning an
+`IAsyncDisposable`) and the browser **pushes** each change back to a C# handler (via a static
+`[JSInvokable]`, so one wiring works on both transports — `IIntersectionObserver` additionally hands the
+observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a handler
+that updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
 subscription, not a render/binding callback, so RASK026 doesn't apply).
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't

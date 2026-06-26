@@ -184,6 +184,44 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Intersection Observer (driven by IIntersectionObserver). Each observation is a live
+// IntersectionObserver held here under the C#-minted id; each change is pushed back to C# via the shared
+// window.DotNet.invokeMethodAsync shim (static [JSInvokable] IntersectionInterop.Changed in Rask.Core).
+// The element is resolved from an ElementRef by the JSON reviver.
+window.__raskIntersect = window.__raskIntersect || (() => {
+    const observers = new Map();
+    return {
+        observe: (id, element, thresholds, rootMargin) => {
+            if (!element) {
+                return;
+            }
+            const opts = {threshold: (thresholds && thresholds.length) ? thresholds : 0};
+            if (rootMargin) {
+                opts.rootMargin = rootMargin;
+            }
+            const io = new IntersectionObserver((entries) => {
+                for (let i = 0; i < entries.length; i++) {
+                    const e = entries[i];
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskIntersectionChanged", id, {
+                        isIntersecting: e.isIntersecting,
+                        ratio: e.intersectionRatio
+                    });
+                }
+            }, opts);
+            io.observe(element);
+            observers.set(id, io);
+        },
+        unobserve: (id) => {
+            const io = observers.get(id);
+            if (!io) {
+                return;
+            }
+            observers.delete(id);
+            io.disconnect();
+        }
+    };
+})();
+
 // Broadcast Channel (driven by IBroadcastChannel). Each connection is a live BroadcastChannel held here
 // under the C#-minted integer id; an incoming message is pushed back to C# via the shared
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] BroadcastInterop.Receive in Rask.Core),

@@ -926,6 +926,14 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Broadcast channel", "Broadcast channel");
         await Page.Locator("#bc-send").ClickAsync();
         await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
+
+        // Intersection observer — another JS→C# push: scroll the (initially below-the-fold) target into
+        // view and the browser pushes the change → static [JSInvokable] → handler → StateHasChanged. Starts
+        // "out of view"; becomes "in view" after the scroll. Validates the round-trip on every host.
+        await SideAsync("Intersection observer", "Intersection observer");
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
+        await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
