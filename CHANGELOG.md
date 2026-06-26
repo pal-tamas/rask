@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Bootstrap Toast showcase example** (`samples/Rask.Example.Shared`, `/toast`) — a reusable `Toast`
+  component plus a live demo that shows, stacks, dismisses, places and auto-hides toasts driven entirely
+  by Rask state: no `bootstrap.bundle.js`, no `data-bs-dismiss`, no `setTimeout`. Auto-hide is a one-shot
+  `System.Threading.Timer` started in `OnMount` and disposed in `OnUnmount`; the close button fires an
+  `OnClose(Id)` callback bound as a host method group, so the framework re-renders the owning host.
 - **Fullscreen API (`IFullscreen`, `Rask.Wasm.Browser`)** — present an element or the whole page
   fullscreen from C#: `IsSupportedAsync`, `IsActiveAsync`, `RequestAsync(ElementRef? element = null)`
   (pass an `ElementRef` to fullscreen just that element, or omit it for the page), `ExitAsync`. WASM-only —
