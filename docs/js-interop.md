@@ -124,6 +124,7 @@ later step on the same pattern.
 | `IScreenInfo` | `window.screen` | `GetAsync()` → `ScreenInfo` (width/height, avail size, color depth, device pixel ratio) |
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 | `IVisualViewport` | `window.visualViewport` | `IsSupportedAsync`, `GetAsync()` → `VisualViewport?` (visible size/offset/zoom after the soft keyboard) |
+| `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -165,8 +166,15 @@ transient activation has expired. The practical effect:
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
   works on **both** transports (on devices with a vibration motor).
 - Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, media
-  queries, speech synthesis, screen info, storage estimate, visual viewport, page visibility) is unaffected
-  by activation and behaves identically on both transports.
+  queries, speech synthesis, screen info, storage estimate, visual viewport, broadcast channel, page
+  visibility) is unaffected by activation and behaves identically on both transports.
+
+Most of these are one-shot request/response calls. **`IBroadcastChannel`** is the exception — it's a
+*subscription*: `OpenAsync(name, onMessage)` returns a connection, and the browser **pushes** each
+cross-tab message back to the C# `onMessage` handler (via a static `[JSInvokable]`, so one wiring works on
+both transports). Open it from a lifecycle hook and dispose the connection on unmount; a handler that
+updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
+subscription, not a render/binding callback, so RASK026 doesn't apply).
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).
