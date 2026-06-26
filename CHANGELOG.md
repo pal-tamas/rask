@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Media queries (`IMediaQuery`, `Rask.Core.Browser`)** — evaluate CSS media queries from C# (the
+  `matchMedia` API): `MatchesAsync(query)` plus `PrefersDarkAsync()` / `PrefersReducedMotionAsync()`
+  conveniences. Branch component logic on viewport size or user preferences the way CSS branches styles.
+  **Shared** — works on both Server and WASM. New `/browser/media-query` showcase page.
 - **Network Information API (`INetworkInfo`, `Rask.Core.Browser`)** — read the connection quality to adapt
   loading: `IsSupportedAsync()` and `GetStatusAsync()` → `NetworkStatus?` (`EffectiveType` (`slow-2g`…`4g`),
   `Downlink` Mbps, `Rtt` ms, `SaveData`). **Shared** — works on both Server and WASM; returns `null` where

@@ -98,6 +98,10 @@ window.__raskApi = window.__raskApi || {
         document.cookie = encodeURIComponent(name) + "=; max-age=0" + (path ? "; path=" + path : "");
     },
 
+    // matchMedia (driven by IMediaQuery): evaluate a CSS media query and return just the boolean
+    // .matches from the live MediaQueryList.
+    matchMedia: (query) => window.matchMedia(query).matches,
+
     // Network Information: navigator.connection is a live, vendor-prefixed object. Return a plain
     // snapshot (mapped to NetworkStatus in C#), or null when unsupported (Firefox/Safari).
     networkSupported: () =>

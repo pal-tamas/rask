@@ -862,6 +862,11 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Network info", "Network info");
         await Page.Locator("#net-read").ClickAsync();
         await Expect(Page.Locator("#net-value")).Not.ToContainTextAsync("not requested", contains);
+
+        // Media queries — matchMedia is universally supported; the readout shows the evaluated booleans.
+        await SideAsync("Media queries", "Media queries");
+        await Page.Locator("#media-read").ClickAsync();
+        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal

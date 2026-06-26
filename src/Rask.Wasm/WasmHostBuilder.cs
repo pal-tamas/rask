@@ -36,6 +36,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IGeolocation, Geolocation>();
         Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
         Services.AddSingleton<INetworkInfo, NetworkInfo>();
+        Services.AddSingleton<IMediaQuery, MediaQuery>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
