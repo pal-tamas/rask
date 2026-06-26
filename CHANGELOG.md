@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Fullscreen API (`IFullscreen`, `Rask.Wasm.Browser`)** — present an element or the whole page
+  fullscreen from C#: `IsSupportedAsync`, `IsActiveAsync`, `RequestAsync(ElementRef? element = null)`
+  (pass an `ElementRef` to fullscreen just that element, or omit it for the page), `ExitAsync`. WASM-only —
+  `requestFullscreen` needs transient user activation (like `IShare`). Pairs with `IScreenOrientation`:
+  request fullscreen first, then `LockAsync` (most browsers only allow the orientation lock in fullscreen).
+  New `/fullscreen` showcase page.
 - **Two-way bindings now re-render derived UI automatically — even outside the `Form`.** A bound write
   (`Bind` / `() => model.X`) re-renders the component that *authored* the binding, so a readout or summary
   the consumer renders as a sibling of the control (or the `Form`) updates live with **no

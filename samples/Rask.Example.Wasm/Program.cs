@@ -40,4 +40,5 @@ host.UseManifest(new WebAppManifest
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi-fullscreen", "PWA"));
 await host.RunAsync<App>();
