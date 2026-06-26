@@ -25,6 +25,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.LifecyclePage(), "Lifecycle", "bi-arrow-repeat", "Components", null),
         (Features.Routes.ContextPage(), "Context", "bi-diagram-2", "Components", null),
         (Features.Routes.CallbackPage(), "Callback", "bi-arrow-up-right-circle", "Components", null),
+        (Features.Routes.ToastPage(), "Toast", "bi-bell", "Components", null),
         (Features.Routes.ElementRefPage(), "Element refs", "bi-bullseye", "Components", null),
         (Features.Routes.UserPage(), "User & auth", "bi-person-lock", "Components", null),
         (Features.Routes.LiveTickerPage("BTC"), "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
@@ -60,7 +61,11 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.PermissionsPage(), "Permissions", "bi-shield-lock", "Browser APIs", null),
         (Features.Routes.VibrationPage(), "Vibration", "bi-phone-vibrate", "Browser APIs", null),
         (Features.Routes.PageVisibilityPage(), "Page visibility", "bi-eye", "Browser APIs", null),
-        (Features.Routes.NavigatorInfoPage(), "Browser info", "bi-info-circle", "Browser APIs", null)
+        (Features.Routes.NavigatorInfoPage(), "Browser info", "bi-info-circle", "Browser APIs", null),
+        (Features.Routes.NetworkInfoPage(), "Network info", "bi-reception-4", "Browser APIs", null),
+        (Features.Routes.MediaQueryPage(), "Media queries", "bi-aspect-ratio", "Browser APIs", null),
+        (Features.Routes.SpeechPage(), "Speech", "bi-megaphone", "Browser APIs", null),
+        (Features.Routes.ScreenInfoPage(), "Screen info", "bi-display", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

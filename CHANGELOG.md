@@ -25,6 +25,34 @@ them until tagged releases begin.
   wires both `OnX` and `OnXAsync` for the same event (e.g. `Button(OnClick: …, OnClickAsync: …)`); only
   one handler runs (sync wins), so supplying both is almost always a mistake. Passing `null` for the
   sibling is allowed. See [docs/diagnostics.md](docs/diagnostics.md#rask027).
+- **Screen / display info (`IScreenInfo`, `Rask.Core.Browser`)** — read the display via `GetAsync()` →
+  `ScreenInfo` (`Width`/`Height`, `AvailWidth`/`AvailHeight`, `ColorDepth`, `PixelRatio`), e.g. to pick
+  retina image resolution or for analytics. **Shared** — works on both Server and WASM. New
+  `/browser/screen` showcase page.
+- **Speech synthesis / text-to-speech (`ISpeechSynthesis`, `Rask.Core.Browser`)** — speak text aloud from
+  C# (the SpeechSynthesis API): `IsSupportedAsync()`, `SpeakAsync(text, SpeechOptions?)` (optional `Lang`,
+  `Rate`, `Pitch`, `Volume`), `CancelAsync()`. For accessibility or audible notifications. **Shared** —
+  works on both Server and WASM. New `/browser/speech` showcase page.
+- **Media queries (`IMediaQuery`, `Rask.Core.Browser`)** — evaluate CSS media queries from C# (the
+  `matchMedia` API): `MatchesAsync(query)` plus `PrefersDarkAsync()` / `PrefersReducedMotionAsync()`
+  conveniences. Branch component logic on viewport size or user preferences the way CSS branches styles.
+  **Shared** — works on both Server and WASM. New `/browser/media-query` showcase page.
+- **Network Information API (`INetworkInfo`, `Rask.Core.Browser`)** — read the connection quality to adapt
+  loading: `IsSupportedAsync()` and `GetStatusAsync()` → `NetworkStatus?` (`EffectiveType` (`slow-2g`…`4g`),
+  `Downlink` Mbps, `Rtt` ms, `SaveData`). **Shared** — works on both Server and WASM; returns `null` where
+  the API is unsupported (Firefox/Safari). Pairs with `INavigatorInfo.OnLineAsync()`. New
+  `/browser/network` showcase page.
+- **Bootstrap Toast showcase example** (`samples/Rask.Example.Shared`, `/toast`) — a reusable `Toast`
+  component plus a live demo that shows, stacks, dismisses, places and auto-hides toasts driven entirely
+  by Rask state: no `bootstrap.bundle.js`, no `data-bs-dismiss`, no `setTimeout`. Auto-hide is a one-shot
+  `System.Threading.Timer` started in `OnMount` and disposed in `OnUnmount`; the close button fires an
+  `OnClose(Id)` callback bound as a host method group, so the framework re-renders the owning host.
+- **Fullscreen API (`IFullscreen`, `Rask.Wasm.Browser`)** — present an element or the whole page
+  fullscreen from C#: `IsSupportedAsync`, `IsActiveAsync`, `RequestAsync(ElementRef? element = null)`
+  (pass an `ElementRef` to fullscreen just that element, or omit it for the page), `ExitAsync`. WASM-only —
+  `requestFullscreen` needs transient user activation (like `IShare`). Pairs with `IScreenOrientation`:
+  request fullscreen first, then `LockAsync` (most browsers only allow the orientation lock in fullscreen).
+  New `/fullscreen` showcase page.
 - **Two-way bindings now re-render derived UI automatically — even outside the `Form`.** A bound write
   (`Bind` / `() => model.X`) re-renders the component that *authored* the binding, so a readout or summary
   the consumer renders as a sibling of the control (or the `Form`) updates live with **no
@@ -52,6 +80,9 @@ them until tagged releases begin.
   - **`IScreenOrientation`** — read the orientation (`GetAsync()` → `OrientationInfo`) and lock/unlock it
     (`LockAsync(OrientationLock)` / `UnlockAsync`; locking usually requires fullscreen).
   The WASM showcase gains `/wake-lock` and `/orientation` pages, and the `/pwa` page now sets an app badge.
+  These WASM-only demos show their source via `CodeSample` like every other example — `EmbeddedSource` now
+  resolves embedded demo sources across registered assemblies, so demos that must live in the WASM app
+  assembly (they reference `Rask.Wasm.Browser`) are covered too.
 - **Local notifications (`INotifications`, `Rask.Wasm.Browser`)** — show a notification from the running
   page (no server/push): `IsSupportedAsync` / `PermissionAsync` / `RequestPermissionAsync` /
   `ShowAsync(title, NotificationOptions?)`. WASM-only (`requestPermission` needs a live user gesture). For

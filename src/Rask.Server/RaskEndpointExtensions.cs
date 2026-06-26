@@ -195,6 +195,10 @@ public static class RaskEndpointExtensions
         services.AddScoped<IClipboard, Clipboard>();
         services.AddScoped<IGeolocation, Geolocation>();
         services.AddScoped<INavigatorInfo, NavigatorInfo>();
+        services.AddScoped<INetworkInfo, NetworkInfo>();
+        services.AddScoped<IMediaQuery, MediaQuery>();
+        services.AddScoped<ISpeechSynthesis, SpeechSynthesis>();
+        services.AddScoped<IScreenInfo, ScreenInfoReader>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();

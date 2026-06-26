@@ -96,6 +96,60 @@ window.__raskApi = window.__raskApi || {
     },
     cookieDelete: (name, path) => {
         document.cookie = encodeURIComponent(name) + "=; max-age=0" + (path ? "; path=" + path : "");
+    },
+
+    // matchMedia (driven by IMediaQuery): evaluate a CSS media query and return just the boolean
+    // .matches from the live MediaQueryList.
+    matchMedia: (query) => window.matchMedia(query).matches,
+
+    // Screen / display info (driven by IScreenInfo): a snapshot of window.screen plus devicePixelRatio,
+    // mapped to the ScreenInfo record in C#.
+    screen: () => ({
+        width: screen.width,
+        height: screen.height,
+        availWidth: screen.availWidth,
+        availHeight: screen.availHeight,
+        colorDepth: screen.colorDepth,
+        pixelRatio: window.devicePixelRatio
+    }),
+
+    // Speech synthesis (driven by ISpeechSynthesis): new SpeechSynthesisUtterance(...) is a constructor
+    // IJSRuntime can't call, so build it here and speak. Support/cancel are plain checks.
+    speechSupported: () => "speechSynthesis" in window,
+    speak: (text, options) => {
+        if (!("speechSynthesis" in window)) {
+            return;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        if (options) {
+            if (options.lang) u.lang = options.lang;
+            if (typeof options.rate === "number") u.rate = options.rate;
+            if (typeof options.pitch === "number") u.pitch = options.pitch;
+            if (typeof options.volume === "number") u.volume = options.volume;
+        }
+        window.speechSynthesis.speak(u);
+    },
+    cancelSpeech: () => {
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+        }
+    },
+
+    // Network Information: navigator.connection is a live, vendor-prefixed object. Return a plain
+    // snapshot (mapped to NetworkStatus in C#), or null when unsupported (Firefox/Safari).
+    networkSupported: () =>
+        !!(navigator.connection || navigator.mozConnection || navigator.webkitConnection),
+    network: () => {
+        const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) {
+            return null;
+        }
+        return {
+            effectiveType: c.effectiveType || null,
+            downlink: typeof c.downlink === "number" ? c.downlink : 0,
+            rtt: typeof c.rtt === "number" ? c.rtt : 0,
+            saveData: !!c.saveData
+        };
     }
 };
 
@@ -288,6 +342,16 @@ window.__raskOrientation = window.__raskOrientation || {
     get: () => ({ type: screen.orientation.type, angle: screen.orientation.angle }),
     lock: (type) => screen.orientation.lock(type),
     unlock: () => { screen.orientation.unlock(); }
+};
+
+// Fullscreen (driven by IFullscreen). requestFullscreen needs transient activation, so this is WASM-only.
+// The element arg is resolved from an ElementRef by the JSON reviver; with no element the whole page goes
+// fullscreen (document.documentElement). exit is a no-op when nothing is fullscreen.
+window.__raskFullscreen = window.__raskFullscreen || {
+    isSupported: () => !!document.fullscreenEnabled,
+    isActive: () => document.fullscreenElement != null,
+    request: (el) => (el || document.documentElement).requestFullscreen(),
+    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
 };
 
 

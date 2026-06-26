@@ -35,6 +35,10 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IClipboard, Clipboard>();
         Services.AddSingleton<IGeolocation, Geolocation>();
         Services.AddSingleton<INavigatorInfo, NavigatorInfo>();
+        Services.AddSingleton<INetworkInfo, NetworkInfo>();
+        Services.AddSingleton<IMediaQuery, MediaQuery>();
+        Services.AddSingleton<ISpeechSynthesis, SpeechSynthesis>();
+        Services.AddSingleton<IScreenInfo, ScreenInfoReader>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
@@ -43,6 +47,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBadge, Badge>();
         Services.AddSingleton<IWakeLock, WakeLock>();
         Services.AddSingleton<IScreenOrientation, ScreenOrientation>();
+        Services.AddSingleton<IFullscreen, Fullscreen>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();

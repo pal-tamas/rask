@@ -118,6 +118,10 @@ later step on the same pattern.
 | `IVibration` | `navigator.vibrate` | `VibrateAsync(params int[])`, `CancelAsync` |
 | `IPageVisibility` | `document.visibilityState` | `GetStateAsync()` → `PageVisibility`, `IsHiddenAsync` |
 | `INavigatorInfo` | `window.navigator` | `OnLineAsync`, `LanguageAsync`, `UserAgentAsync` |
+| `INetworkInfo` | `navigator.connection` | `IsSupportedAsync`, `GetStatusAsync()` → `NetworkStatus?` (effective type, downlink, RTT, Data Saver) |
+| `IMediaQuery` | `window.matchMedia` | `MatchesAsync(query)`, `PrefersDarkAsync`, `PrefersReducedMotionAsync` |
+| `ISpeechSynthesis` | `window.speechSynthesis` | `IsSupportedAsync`, `SpeakAsync(text, SpeechOptions?)`, `CancelAsync` |
+| `IScreenInfo` | `window.screen` | `GetAsync()` → `ScreenInfo` (width/height, avail size, color depth, device pixel ratio) |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -149,16 +153,18 @@ transient activation has expired. The practical effect:
 - **`IShare`** (Web Share) needs transient activation, so it is **WASM-only** and lives in
   `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
   would reject with "Must be handling a user gesture," so it isn't offered there.
-- **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), and **`IScreenOrientation`**
-  (read/lock orientation) are likewise **WASM-only** in `Rask.Wasm.Browser` — they depend on the
-  installed-PWA instance or the live document the Server round-trip can't carry. See the
-  [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
+- **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
+  (read/lock orientation), and **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
+  `requestFullscreen` needs transient activation) are likewise **WASM-only** in `Rask.Wasm.Browser` —
+  they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
+  the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IClipboard.WriteTextAsync`** needs transient activation *or* a granted `clipboard-write`
   permission — the permission lets it work across the Server round-trip, so it stays shared.
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
   works on **both** transports (on devices with a vibration motor).
-- Everything else here (storage, cookies, geolocation, permissions, navigator info, page visibility)
-  is unaffected by activation and behaves identically on both transports.
+- Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, media
+  queries, speech synthesis, screen info, page visibility) is unaffected by activation and behaves
+  identically on both transports.
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).

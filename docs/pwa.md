@@ -135,10 +135,15 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
+| **Network quality** | `INetworkInfo` | `GetStatusAsync()` → effective type / downlink / Data Saver, to adapt loading |
+| **Media queries** | `IMediaQuery` | `MatchesAsync(query)` / `PrefersDarkAsync` / `PrefersReducedMotionAsync` |
+| **Speech (text-to-speech)** | `ISpeechSynthesis` | `SpeakAsync(text, SpeechOptions?)` / `CancelAsync` |
+| **Screen info** | `IScreenInfo` | `GetAsync()` → size / color depth / device pixel ratio (retina) |
 | **Local notifications** | `INotifications` *(WASM)* | Show a notification from the page (no server) |
 | **App badge** | `IBadge` *(WASM)* | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
 | **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
+| **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
 
 **App badge.** `IBadge` (`Rask.Wasm.Browser`) sets a count on the **installed** app's icon —
 `SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
@@ -152,6 +157,12 @@ becomes visible again, so a sentinel stays effective until you dispose it.
 **Screen orientation.** `IScreenOrientation.GetAsync()` reads the current `OrientationInfo`
 (type + angle); `LockAsync(OrientationLock.Landscape)` / `UnlockAsync()` lock it — locking usually
 requires fullscreen and is often unsupported on desktop, so wrap it in `try/catch`.
+
+**Fullscreen.** `IFullscreen.RequestAsync(element)` presents an `ElementRef` (or, with no argument, the
+whole page) fullscreen; `ExitAsync()` leaves and `IsActiveAsync()` reports state. `requestFullscreen`
+needs a live user gesture, so call it from an event handler and gate on `IsSupportedAsync()`. Request
+fullscreen first when you also want to **lock the orientation** — most browsers only allow the lock in
+fullscreen.
 
 **Local vs push notifications.** `INotifications` (`Rask.Wasm.Browser`) shows a notification directly
 from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new NotificationOptions { … })`.

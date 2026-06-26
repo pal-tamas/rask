@@ -1,31 +1,18 @@
-using Rask.Core.Routing;
-using Rask.Example.Shared;
 using Rask.Wasm.Browser;
 
 namespace Rask.Example.Wasm.Features;
 
 /// <summary>
-///     A live, WASM-only demo of the Screen Wake Lock API (<see cref="IWakeLock" />) — hold the screen
-///     awake, then release it. WASM-only (the lock is tied to the live document), so it lives in the WASM
-///     host and is surfaced via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs).
+///     <see cref="IWakeLock" /> — keep the screen from dimming/locking, then release it. The lock is
+///     auto-released when the page is hidden and re-acquired when it returns; disposing the sentinel
+///     (here, toggling off — and on unmount via <see cref="IAsyncDisposable" />) releases it for good.
 /// </summary>
-[Route("wake-lock")]
-[ParentRoute(typeof(ShowcaseLayout))]
 public sealed class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposable
 {
     private IWakeLockSentinel? _sentinel;
     private string? _status;
 
-    protected override RenderResult Head => Title()["Wake lock — Rask"];
-
     protected override RenderResult Render() =>
-    [
-        H1(Class: "h2 mb-1")["Wake lock"],
-        P(Class: "text-secondary")[
-            "Keep the screen from dimming or locking via IWakeLock (the Screen Wake Lock API) — for timers, ",
-            "reading, or media. The lock is released automatically when the page is hidden and re-acquired ",
-            "when it returns."
-        ],
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
@@ -36,8 +23,7 @@ public sealed class WakeLockDemo(IWakeLock wakeLock) : Component, IAsyncDisposab
                 ],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "wakelock-status")[_status ?? "(idle)"]]
             ]
-        ]
-    ];
+        ];
 
     private async Task Toggle()
     {

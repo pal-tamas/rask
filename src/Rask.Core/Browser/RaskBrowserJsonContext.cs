@@ -13,5 +13,8 @@ namespace Rask.Core.Browser;
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(GeolocationPosition))]
+[JsonSerializable(typeof(NetworkReading))]
+[JsonSerializable(typeof(SpeechOptions))]
+[JsonSerializable(typeof(ScreenInfo))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 internal sealed partial class RaskBrowserJsonContext : JsonSerializerContext;

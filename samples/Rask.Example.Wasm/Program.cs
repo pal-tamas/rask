@@ -12,6 +12,11 @@ using Rask.Wasm.Browser;
 // /p:RaskPathBase=/myapp to rewrite the bundled index.html's <base href> for
 // sub-path deploys (GH Pages, plain static hosts). Override explicitly with
 // WasmHostBuilder.CreateDefault(o => o.PathBase = "/myapp") when needed.
+// CodeSample reads demo sources embedded as raksrc/{leaf} manifest resources. The WASM-only demos
+// (PwaDemo, WakeLockDemo, …) live in this app assembly, not Rask.Example.Shared, so register it with
+// EmbeddedSource — otherwise the lookup only sees the shared assembly and can't find them.
+EmbeddedSource.RegisterAssembly(System.Reflection.Assembly.GetExecutingAssembly());
+
 var host = WasmHostBuilder.CreateDefault();
 // The HTTP demo's HttpClient fetches data/posts-1.json from the AppBundle served at
 // the page origin. WasmHostBuilder.BaseAddress carries any sub-path (e.g. the GitHub
@@ -35,4 +40,5 @@ host.UseManifest(new WebAppManifest
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi-fullscreen", "PWA"));
 await host.RunAsync<App>();

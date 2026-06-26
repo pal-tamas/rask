@@ -423,6 +423,16 @@ public abstract partial class SharedSmokeTests
         await Expect(rating).ToContainTextAsync("You rated: 4/5",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Toast: Bootstrap toasts shown, stacked and dismissed entirely by live-diff state (no Bootstrap
+        // JS, no data-bs-dismiss). Showing renders class="toast show"; the × removes it from the host list.
+        await SideAsync("Toast", "Toast");
+        var toast = Page.Locator("main .sample-result-body .toast.show");
+        await Page.Locator("main .sample-result-body button:has-text('Show toast')").ClickAsync();
+        await Expect(toast).ToContainTextAsync("Hello, world!",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await toast.Locator(".btn-close").ClickAsync();
+        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
         // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
         // live on IUserProvider.Changed with no reload.
         await SideAsync("User & auth", "User & auth gating");
@@ -857,6 +867,26 @@ public abstract partial class SharedSmokeTests
         // page renders its control rather than asserting an outcome.
         await SideAsync("Vibration", "Vibration");
         await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
+
+        // Network info — Chromium exposes navigator.connection; assert the read populated the readout
+        // (the exact class differs by browser, so just confirm it's no longer the idle placeholder).
+        await SideAsync("Network info", "Network info");
+        await Page.Locator("#net-read").ClickAsync();
+        await Expect(Page.Locator("#net-value")).Not.ToContainTextAsync("not requested", contains);
+
+        // Media queries — matchMedia is universally supported; the readout shows the evaluated booleans.
+        await SideAsync("Media queries", "Media queries");
+        await Page.Locator("#media-read").ClickAsync();
+        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
+
+        // Speech — audio can't be asserted headlessly, so smoke-check the page renders its control.
+        await SideAsync("Speech", "Speech");
+        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+
+        // Screen info — window.screen is always available; assert the read populated the readout.
+        await SideAsync("Screen info", "Screen info");
+        await Page.Locator("#screen-read").ClickAsync();
+        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
