@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Storage estimate (`IStorageEstimator`, `Rask.Core.Browser`)** — read the origin's storage budget:
+  `IsSupportedAsync()` and `EstimateAsync()` → `StorageEstimate?` (`Quota`/`Usage` bytes plus a computed
+  `UsageRatio`), e.g. to budget an offline cache or warn before filling up. **Shared** — works on both
+  Server and WASM; returns `null` where unsupported. New `/browser/storage-estimate` showcase page.
 - **The full DOM `GlobalEventHandlers` surface on every element.** Beyond the previous click/scroll/
   keyboard/drag subset, every element now exposes the complete event set as typed sync `OnX` + async
   `OnXAsync` callback pairs: mouse (`OnMouseDown/Up/Move/Enter/Leave/Over/Out`, `OnDoubleClick`,
