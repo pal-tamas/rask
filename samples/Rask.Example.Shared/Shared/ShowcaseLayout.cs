@@ -3,7 +3,7 @@ using Rask.Core.Routing;
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
+public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<ShowcaseNavEntry> extraNav) : Component
 {
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
@@ -125,7 +125,10 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route) : Component
     {
         var children = new List<Child>();
         string? currentGroup = null;
-        foreach (var (path, label, icon, group, matchPrefix) in Links)
+        // Static showcase links, then any host-contributed entries (e.g. the WASM PWA example).
+        var all = Links.Concat(
+            extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix)));
+        foreach (var (path, label, icon, group, matchPrefix) in all)
         {
             if (group != currentGroup)
             {

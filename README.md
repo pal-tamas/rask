@@ -52,8 +52,8 @@ public sealed class Counter : Component
 
 **The same component above ships as an installable, offline mobile app.** A Rask **WASM** app is a
 Progressive Web App: it **installs to the home screen**, **launches full-screen**, **works offline**,
-sends **push notifications**, and reaches the device — **vibration, share sheet, geolocation,
-clipboard** — through typed C#.
+sends **push notifications**, badges its **app icon**, keeps the **screen awake**, and reaches the
+device — **vibration, share sheet, geolocation, clipboard, orientation** — through typed C#.
 
 ```bash
 dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deploy
@@ -199,7 +199,7 @@ on one and move later.
 | **Needs a live connection** | Yes — UI pauses if the socket drops | No — works offline once loaded |
 | **Direct server/DB/secret access** | Yes, from event handlers | No — call an API |
 | **Scales by** | Server memory (one session each) | Client CPU (free per user) |
-| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (e.g. `IShare`) and upcoming PWA/offline APIs |
+| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (`IShare`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`) and offline/PWA |
 
 **Rule of thumb:** reach for **Server** for data-dense internal apps, instant loads, and direct backend
 access; reach for **WASM** for offline-capable, installable, or static-hosted (e.g. GitHub Pages) apps —

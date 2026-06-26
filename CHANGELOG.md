@@ -25,6 +25,20 @@ them until tagged releases begin.
   `RadioGroup`, `CheckboxGroup`, `MultiSelect` — shown in both shapes side by side (controlled `Value +
   OnChange` and two-way `Bind`), each with a live readout that updates on every change with zero
   `StateHasChanged` in the demo source.
+- **Native-feel PWA capabilities (WASM-only, `Rask.Wasm.Browser`)** — three typed wrappers that round out
+  the installed-app experience, all injected through the constructor:
+  - **`IBadge`** — set/clear a count on the installed app's icon (the Badging API): `IsSupportedAsync`,
+    `SetAsync(int? count = null)` (no count = a plain dot), `ClearAsync`. A silent no-op in a normal tab.
+  - **`IWakeLock`** — keep the screen awake (the Screen Wake Lock API): `RequestAsync()` returns an
+    `IWakeLockSentinel` (`IAsyncDisposable`); dispose to release. Held locks are re-acquired when the
+    page returns to the foreground (browsers auto-release them when it's hidden).
+  - **`IScreenOrientation`** — read the orientation (`GetAsync()` → `OrientationInfo`) and lock/unlock it
+    (`LockAsync(OrientationLock)` / `UnlockAsync`; locking usually requires fullscreen).
+  The WASM showcase gains `/wake-lock` and `/orientation` pages, and the `/pwa` page now sets an app badge.
+- **Local notifications (`INotifications`, `Rask.Wasm.Browser`)** — show a notification from the running
+  page (no server/push): `IsSupportedAsync` / `PermissionAsync` / `RequestPermissionAsync` /
+  `ShowAsync(title, NotificationOptions?)`. WASM-only (`requestPermission` needs a live user gesture). For
+  notifications while the app is closed, use `IWebPush` (delivered via the service worker).
 - **Typed Web App Manifest (`WebAppManifest`)** — configure the PWA manifest in C# via
   `WasmHostBuilder.UseManifest(new WebAppManifest { … })`; the framework injects the
   `<link rel="manifest">` (a `data:` URL with sub-path-correct absolute URLs) and

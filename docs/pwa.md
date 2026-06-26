@@ -122,7 +122,8 @@ default `rask-sw.js` receives it and shows a notification from the JSON payload
 ## Device capabilities for mobile
 
 Typed wrappers for the browser APIs that make a web app feel native. The shared ones live in
-`Rask.Core.Browser` (work on both transports); `IShare` is WASM-only (it needs a live user gesture).
+`Rask.Core.Browser` (work on both transports); the `*(WASM)*` ones live in `Rask.Wasm.Browser` because
+they need a live user gesture or the installed-app instance the Server round-trip can't carry.
 
 | Capability | Service | Use |
 | --- | --- | --- |
@@ -134,6 +135,28 @@ Typed wrappers for the browser APIs that make a web app feel native. The shared 
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
+| **Local notifications** | `INotifications` *(WASM)* | Show a notification from the page (no server) |
+| **App badge** | `IBadge` *(WASM)* | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
+| **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
+| **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
+
+**App badge.** `IBadge` (`Rask.Wasm.Browser`) sets a count on the **installed** app's icon —
+`SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
+browser tab, so gate on `IsSupportedAsync()`. Pairs with notifications/push to surface an unread count.
+
+**Wake lock.** `IWakeLock.RequestAsync()` returns an `IWakeLockSentinel`; keep it while the screen
+should stay on and `DisposeAsync()` (e.g. `await using`, or from a component's `DisposeAsync`) to
+release. Browsers auto-release when the page is hidden — the framework re-acquires held locks when it
+becomes visible again, so a sentinel stays effective until you dispose it.
+
+**Screen orientation.** `IScreenOrientation.GetAsync()` reads the current `OrientationInfo`
+(type + angle); `LockAsync(OrientationLock.Landscape)` / `UnlockAsync()` lock it — locking usually
+requires fullscreen and is often unsupported on desktop, so wrap it in `try/catch`.
+
+**Local vs push notifications.** `INotifications` (`Rask.Wasm.Browser`) shows a notification directly
+from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new NotificationOptions { … })`.
+Use it for in-app alerts. For notifications delivered while the app is **closed**, use
+[`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
 
 See [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis) for the full surface.
 

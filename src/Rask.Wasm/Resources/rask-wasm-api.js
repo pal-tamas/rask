@@ -107,3 +107,81 @@ window.__raskPwa = window.__raskPwa || {
         }
     }
 };
+
+// Local notifications (driven by INotifications). `new Notification(...)` is a constructor IJSRuntime
+// can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
+window.__raskNotify = window.__raskNotify || {
+    isSupported: () => "Notification" in window,
+    show: (title, options) => {
+        new Notification(title, options || {});
+    }
+};
+
+// App badging (driven by IBadge). setAppBadge() with no argument shows a generic dot, with a number
+// shows the count — collapse the C# nullable int to that here. clearAppBadge() removes it.
+window.__raskBadge = window.__raskBadge || {
+    isSupported: () => "setAppBadge" in navigator,
+    set: (count) => (count === null || count === undefined)
+        ? navigator.setAppBadge()
+        : navigator.setAppBadge(count),
+    clear: () => navigator.clearAppBadge()
+};
+
+// Screen Wake Lock (driven by IWakeLock). A WakeLockSentinel is a live object IJSRuntime can't return,
+// so it's kept here under an integer id. Browsers auto-release the lock when the page is hidden, so we
+// re-acquire still-held locks when the page becomes visible again — a C# sentinel stays effective until
+// it's disposed (which calls release).
+window.__raskWakeLock = window.__raskWakeLock || (() => {
+    const held = new Map();
+    let nextId = 1;
+    let visBound = false;
+
+    const track = (entry) => {
+        entry.sentinel.addEventListener("release", () => { entry.released = true; });
+    };
+
+    const bindVisibility = () => {
+        if (visBound) return;
+        visBound = true;
+        document.addEventListener("visibilitychange", async () => {
+            if (document.visibilityState !== "visible") return;
+            for (const entry of held.values()) {
+                if (!entry.released) continue;
+                try {
+                    entry.sentinel = await navigator.wakeLock.request("screen");
+                    entry.released = false;
+                    track(entry);
+                } catch (_) { /* best-effort re-acquire */ }
+            }
+        });
+    };
+
+    return {
+        isSupported: () => "wakeLock" in navigator,
+        request: async () => {
+            bindVisibility();
+            const entry = { sentinel: await navigator.wakeLock.request("screen"), released: false };
+            track(entry);
+            const id = nextId++;
+            held.set(id, entry);
+            return id;
+        },
+        release: async (id) => {
+            const entry = held.get(id);
+            if (!entry) return;
+            held.delete(id);
+            try {
+                await entry.sentinel.release();
+            } catch (_) { /* already released (e.g. by the page going hidden) */ }
+        }
+    };
+})();
+
+// Screen Orientation (driven by IScreenOrientation). Reading returns the live screen.orientation as a
+// plain { type, angle } object (mapped to the typed OrientationInfo in C#); lock/unlock pass through.
+window.__raskOrientation = window.__raskOrientation || {
+    isSupported: () => "orientation" in screen,
+    get: () => ({ type: screen.orientation.type, angle: screen.orientation.angle }),
+    lock: (type) => screen.orientation.lock(type),
+    unlock: () => { screen.orientation.unlock(); }
+};
