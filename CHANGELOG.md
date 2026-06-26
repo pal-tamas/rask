@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Visual viewport (`IVisualViewport`, `Rask.Core.Browser`)** — read the actually-visible viewport via
+  `IsSupportedAsync()` and `GetAsync()` → `VisualViewport?` (visible width/height, offsets, page offsets,
+  pinch-zoom scale), e.g. to keep an input above the on-screen keyboard or react to zoom. Distinct from
+  `IScreenInfo` (the physical display). **Shared** — works on both Server and WASM. New
+  `/browser/visual-viewport` showcase page.
 - **Storage estimate (`IStorageEstimator`, `Rask.Core.Browser`)** — read the origin's storage budget:
   `IsSupportedAsync()` and `EstimateAsync()` → `StorageEstimate?` (`Quota`/`Usage` bytes plus a computed
   `UsageRatio`), e.g. to budget an offline cache or warn before filling up. **Shared** — works on both

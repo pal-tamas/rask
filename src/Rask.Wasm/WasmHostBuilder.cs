@@ -40,6 +40,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<ISpeechSynthesis, SpeechSynthesis>();
         Services.AddSingleton<IScreenInfo, ScreenInfoReader>();
         Services.AddSingleton<IStorageEstimator, StorageEstimator>();
+        Services.AddSingleton<IVisualViewport, VisualViewportReader>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
