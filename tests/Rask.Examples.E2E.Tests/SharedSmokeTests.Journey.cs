@@ -867,6 +867,10 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Media queries", "Media queries");
         await Page.Locator("#media-read").ClickAsync();
         await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
+
+        // Speech — audio can't be asserted headlessly, so smoke-check the page renders its control.
+        await SideAsync("Speech", "Speech");
+        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
