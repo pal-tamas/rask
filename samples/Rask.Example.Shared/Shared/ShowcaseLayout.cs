@@ -22,6 +22,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         ("/lifecycle", "Lifecycle", "bi-arrow-repeat", "Components", null),
         ("/context", "Context", "bi-diagram-2", "Components", null),
         ("/callback", "Callback", "bi-arrow-up-right-circle", "Components", null),
+        (Features.Routes.ToastPage(), "Toast", "bi-bell", "Components", null),
         ("/element-ref", "Element refs", "bi-bullseye", "Components", null),
         ("/user", "User & auth", "bi-person-lock", "Components", null),
         ("/realtime/BTC", "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),

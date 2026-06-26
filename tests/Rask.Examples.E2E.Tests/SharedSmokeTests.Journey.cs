@@ -412,6 +412,16 @@ public abstract partial class SharedSmokeTests
         await Expect(rating).ToContainTextAsync("You rated: 4/5",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Toast: Bootstrap toasts shown, stacked and dismissed entirely by live-diff state (no Bootstrap
+        // JS, no data-bs-dismiss). Showing renders class="toast show"; the × removes it from the host list.
+        await SideAsync("Toast", "Toast");
+        var toast = Page.Locator("main .sample-result-body .toast.show");
+        await Page.Locator("main .sample-result-body button:has-text('Show toast')").ClickAsync();
+        await Expect(toast).ToContainTextAsync("Hello, world!",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await toast.Locator(".btn-close").ClickAsync();
+        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
         // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
         // live on IUserProvider.Changed with no reload.
         await SideAsync("User & auth", "User & auth gating");

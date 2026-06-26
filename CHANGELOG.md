@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Bootstrap Toast showcase example** (`samples/Rask.Example.Shared`, `/toast`) — a reusable `Toast`
+  component plus a live demo that shows, stacks, dismisses, places and auto-hides toasts driven entirely
+  by Rask state: no `bootstrap.bundle.js`, no `data-bs-dismiss`, no `setTimeout`. Auto-hide is a one-shot
+  `System.Threading.Timer` started in `OnMount` and disposed in `OnUnmount`; the close button is a plain
+  `OnClose` callback the framework wraps to re-render the host.
 - **Native-feel PWA capabilities (WASM-only, `Rask.Wasm.Browser`)** — three typed wrappers that round out
   the installed-app experience, all injected through the constructor:
   - **`IBadge`** — set/clear a count on the installed app's icon (the Badging API): `IsSupportedAsync`,
