@@ -13,6 +13,11 @@ them until tagged releases begin.
   `/metadata`) demonstrates every element with a live example and its source via `CodeSample`, grouped by
   MDN category. The document/metadata elements (html/head/body/title/base/link/meta/style/script/noscript)
   are shown via serialized output since they build the page shell.
+- **Visual viewport (`IVisualViewport`, `Rask.Core.Browser`)** — read the actually-visible viewport via
+  `IsSupportedAsync()` and `GetAsync()` → `VisualViewport?` (visible width/height, offsets, page offsets,
+  pinch-zoom scale), e.g. to keep an input above the on-screen keyboard or react to zoom. Distinct from
+  `IScreenInfo` (the physical display). **Shared** — works on both Server and WASM. New
+  `/browser/visual-viewport` showcase page.
 - **Storage estimate (`IStorageEstimator`, `Rask.Core.Browser`)** — read the origin's storage budget:
   `IsSupportedAsync()` and `EstimateAsync()` → `StorageEstimate?` (`Quota`/`Usage` bytes plus a computed
   `UsageRatio`), e.g. to budget an offline cache or warn before filling up. **Shared** — works on both
