@@ -86,5 +86,22 @@ window.__raskApi = window.__raskApi || {
     },
     cookieDelete: (name, path) => {
         document.cookie = encodeURIComponent(name) + "=; max-age=0" + (path ? "; path=" + path : "");
+    },
+
+    // Network Information: navigator.connection is a live, vendor-prefixed object. Return a plain
+    // snapshot (mapped to NetworkStatus in C#), or null when unsupported (Firefox/Safari).
+    networkSupported: () =>
+        !!(navigator.connection || navigator.mozConnection || navigator.webkitConnection),
+    network: () => {
+        const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) {
+            return null;
+        }
+        return {
+            effectiveType: c.effectiveType || null,
+            downlink: typeof c.downlink === "number" ? c.downlink : 0,
+            rtt: typeof c.rtt === "number" ? c.rtt : 0,
+            saveData: !!c.saveData
+        };
     }
 };

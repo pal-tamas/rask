@@ -118,6 +118,7 @@ later step on the same pattern.
 | `IVibration` | `navigator.vibrate` | `VibrateAsync(params int[])`, `CancelAsync` |
 | `IPageVisibility` | `document.visibilityState` | `GetStateAsync()` → `PageVisibility`, `IsHiddenAsync` |
 | `INavigatorInfo` | `window.navigator` | `OnLineAsync`, `LanguageAsync`, `UserAgentAsync` |
+| `INetworkInfo` | `navigator.connection` | `IsSupportedAsync`, `GetStatusAsync()` → `NetworkStatus?` (effective type, downlink, RTT, Data Saver) |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -158,8 +159,8 @@ transient activation has expired. The practical effect:
   permission — the permission lets it work across the Server round-trip, so it stays shared.
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
   works on **both** transports (on devices with a vibration motor).
-- Everything else here (storage, cookies, geolocation, permissions, navigator info, page visibility)
-  is unaffected by activation and behaves identically on both transports.
+- Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, page
+  visibility) is unaffected by activation and behaves identically on both transports.
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).
