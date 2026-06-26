@@ -17,13 +17,13 @@ public class ElementKeyboardTests
         Assert.Equal(
             "<div></div>",
             Div(
-                OnKeyDown: new Callback<KeyboardEventArgs>(_ => { }),
-                OnKeyUp: new Callback<KeyboardEventArgs>(_ => { })).ToHtml());
+                OnKeyDown: _ => { },
+                OnKeyUp: _ => { }).ToHtml());
 
     [Fact]
     public void KeyHandlers_OnlyNonNullEmitted()
     {
-        var view = new StubComponent(() => Div(OnKeyDown: new Callback<KeyboardEventArgs>(_ => { })));
+        var view = new StubComponent(() => Div(OnKeyDown: _ => { }));
         Assert.Equal("<div data-rask-on-keydown=\"h0\"></div>", view.RenderAsLiveRoot());
     }
 
@@ -32,8 +32,8 @@ public class ElementKeyboardTests
     {
         // Setting only the async variant still registers the handler and emits the attribute.
         var view = new StubComponent(() => Div(
-            OnKeyDownAsync: new CallbackAsync<KeyboardEventArgs>(_ => Task.CompletedTask),
-            OnKeyUpAsync: new CallbackAsync<KeyboardEventArgs>(_ => Task.CompletedTask)));
+            OnKeyDownAsync: _ => Task.CompletedTask,
+            OnKeyUpAsync: _ => Task.CompletedTask));
         Assert.Equal(
             "<div data-rask-on-keydown=\"h0\" data-rask-on-keyup=\"h1\"></div>",
             view.RenderAsLiveRoot());
@@ -46,9 +46,9 @@ public class ElementKeyboardTests
             Id: "d",
             Class: "x",
             Draggable: true,
-            OnDragStart: new Callback(() => { }),
-            OnKeyDown: new Callback<KeyboardEventArgs>(_ => { }),
-            OnKeyUp: new Callback<KeyboardEventArgs>(_ => { }),
+            OnDragStart: () => { },
+            OnKeyDown: _ => { },
+            OnKeyUp: _ => { },
             Role: "dialog",
             TabIndex: -1));
 
@@ -79,7 +79,7 @@ public class ElementKeyboardTests
     public async Task KeyDown_TypedHandler_ReceivesParsedKeyCodeModifiersAndRepeat()
     {
         KeyboardEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnKeyDown: new Callback<KeyboardEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnKeyDown: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse(
@@ -100,11 +100,11 @@ public class ElementKeyboardTests
     public async Task KeyUp_AsyncTypedHandler_IsAwaited()
     {
         string? seenKey = null;
-        var view = new StubComponent(() => Div(OnKeyUpAsync: new CallbackAsync<KeyboardEventArgs>(e =>
+        var view = new StubComponent(() => Div(OnKeyUpAsync: e =>
         {
             seenKey = e.Key;
             return Task.CompletedTask;
-        })));
+        }));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keyup")!;
 
         using var payload = JsonDocument.Parse("{\"key\":\"a\",\"code\":\"KeyA\"}");
@@ -117,11 +117,11 @@ public class ElementKeyboardTests
     public async Task KeyDown_AsyncTypedHandler_IsAwaited()
     {
         KeyboardEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnKeyDownAsync: new CallbackAsync<KeyboardEventArgs>(e =>
+        var view = new StubComponent(() => Div(OnKeyDownAsync: e =>
         {
             seen = e;
             return Task.CompletedTask;
-        })));
+        }));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse("{\"key\":\"Enter\",\"code\":\"Enter\"}");
@@ -135,7 +135,7 @@ public class ElementKeyboardTests
     public async Task KeyDown_MissingPayloadFields_DefaultToEmptyAndFalse()
     {
         KeyboardEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnKeyDown: new Callback<KeyboardEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnKeyDown: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse("{}");
