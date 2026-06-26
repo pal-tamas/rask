@@ -102,6 +102,17 @@ window.__raskApi = window.__raskApi || {
     // .matches from the live MediaQueryList.
     matchMedia: (query) => window.matchMedia(query).matches,
 
+    // Screen / display info (driven by IScreenInfo): a snapshot of window.screen plus devicePixelRatio,
+    // mapped to the ScreenInfo record in C#.
+    screen: () => ({
+        width: screen.width,
+        height: screen.height,
+        availWidth: screen.availWidth,
+        availHeight: screen.availHeight,
+        colorDepth: screen.colorDepth,
+        pixelRatio: window.devicePixelRatio
+    }),
+
     // Speech synthesis (driven by ISpeechSynthesis): new SpeechSynthesisUtterance(...) is a constructor
     // IJSRuntime can't call, so build it here and speak. Support/cancel are plain checks.
     speechSupported: () => "speechSynthesis" in window,
