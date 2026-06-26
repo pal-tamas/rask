@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Speech synthesis / text-to-speech (`ISpeechSynthesis`, `Rask.Core.Browser`)** — speak text aloud from
+  C# (the SpeechSynthesis API): `IsSupportedAsync()`, `SpeakAsync(text, SpeechOptions?)` (optional `Lang`,
+  `Rate`, `Pitch`, `Volume`), `CancelAsync()`. For accessibility or audible notifications. **Shared** —
+  works on both Server and WASM. New `/browser/speech` showcase page.
 - **Media queries (`IMediaQuery`, `Rask.Core.Browser`)** — evaluate CSS media queries from C# (the
   `matchMedia` API): `MatchesAsync(query)` plus `PrefersDarkAsync()` / `PrefersReducedMotionAsync()`
   conveniences. Branch component logic on viewport size or user preferences the way CSS branches styles.

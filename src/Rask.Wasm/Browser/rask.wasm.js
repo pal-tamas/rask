@@ -102,6 +102,28 @@ window.__raskApi = window.__raskApi || {
     // .matches from the live MediaQueryList.
     matchMedia: (query) => window.matchMedia(query).matches,
 
+    // Speech synthesis (driven by ISpeechSynthesis): new SpeechSynthesisUtterance(...) is a constructor
+    // IJSRuntime can't call, so build it here and speak. Support/cancel are plain checks.
+    speechSupported: () => "speechSynthesis" in window,
+    speak: (text, options) => {
+        if (!("speechSynthesis" in window)) {
+            return;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        if (options) {
+            if (options.lang) u.lang = options.lang;
+            if (typeof options.rate === "number") u.rate = options.rate;
+            if (typeof options.pitch === "number") u.pitch = options.pitch;
+            if (typeof options.volume === "number") u.volume = options.volume;
+        }
+        window.speechSynthesis.speak(u);
+    },
+    cancelSpeech: () => {
+        if ("speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+        }
+    },
+
     // Network Information: navigator.connection is a live, vendor-prefixed object. Return a plain
     // snapshot (mapped to NetworkStatus in C#), or null when unsupported (Firefox/Safari).
     networkSupported: () =>
