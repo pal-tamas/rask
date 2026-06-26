@@ -89,6 +89,19 @@ public sealed class ToastDemoTests
     }
 
     [Fact]
+    public void Toast_ColouredVariant_UsesHeaderlessFlexLayout()
+    {
+        var html = new LiveHost(
+            () => Toast(Id: 1, Title: "Saved", Message: "Done", Variant: "text-bg-success"),
+            TestServices.Default()).RenderAsLiveRoot();
+
+        Assert.Contains("toast show align-items-center text-bg-success border-0", html);
+        Assert.Contains("<div class=\"d-flex\">", html);
+        Assert.Contains("btn-close btn-close-white me-2 m-auto", html);
+        Assert.DoesNotContain("toast-header", html); // colour scheme is body + close only
+    }
+
+    [Fact]
     public void Toast_Default_NoVariant_NoWhiteClose()
     {
         var html = new LiveHost(

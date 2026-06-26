@@ -10,6 +10,10 @@ namespace Rask.Example.Shared.Features;
 //                example's UnmountTimerProbe); OnUnmount disposes it. OnClose is the single removal signal,
 //                so the × and the timer share one path and there's no double-fire.
 //
+// Two layouts mirror the Bootstrap docs: a default toast uses the header (icon + title + timestamp + ×
+// over a body), while a coloured toast (Variant set) uses the "Color schemes" headerless variant — an
+// align-items-center root with a d-flex row of body + white × (Title/Timestamp are header-only).
+//
 // OnClose is Action<int> (the toast's Id), not Action. The host binds it as a method group
 // (OnClose: RemoveToast), so the delegate's Target is the host component — which is what AutoCallback
 // keys on to re-render the owner. A per-item lambda (() => Remove(t.Id)) would capture the loop local
@@ -65,18 +69,35 @@ public sealed class Toast : Component
 
     protected override RenderResult Render()
     {
-        var dark = Variant is not null;
-        return Div(
-            Class: dark ? $"toast show {Variant} border-0" : "toast show",
-            Role: "alert",
-            Aria: new Dictionary<string, string?> { ["live"] = "assertive", ["atomic"] = "true" })[
+        var aria = new Dictionary<string, string?> { ["live"] = "assertive", ["atomic"] = "true" };
+
+        // Coloured toast — Bootstrap's "Color schemes" headerless layout: body + white × in a flex row.
+        if (Variant is not null)
+        {
+            return Div(Class: $"toast show align-items-center {Variant} border-0", Role: "alert", Aria: aria)[
+                Div(Class: "d-flex")[
+                    Div(Class: "toast-body")[
+                        Icon is not null ? I(Class: $"bi {Icon} me-2") : (Child)Fragment(),
+                        Message
+                    ],
+                    Button(
+                        Type: "button",
+                        Class: "btn-close btn-close-white me-2 m-auto",
+                        Aria: new Dictionary<string, string?> { ["label"] = "Close" },
+                        OnClick: () => OnClose?.Invoke(Id))
+                ]
+            ];
+        }
+
+        // Default toast — header (icon + title + timestamp + ×) over the body.
+        return Div(Class: "toast show", Role: "alert", Aria: aria)[
             Div(Class: "toast-header")[
                 Icon is not null ? I(Class: $"bi {Icon} me-2") : (Child)Fragment(),
                 Strong(Class: "me-auto")[Title],
                 Timestamp is not null ? Small(Class: "text-secondary")[Timestamp] : (Child)Fragment(),
                 Button(
                     Type: "button",
-                    Class: dark ? "btn-close btn-close-white" : "btn-close",
+                    Class: "btn-close",
                     Aria: new Dictionary<string, string?> { ["label"] = "Close" },
                     OnClick: () => OnClose?.Invoke(Id))
             ],
