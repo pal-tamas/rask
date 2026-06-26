@@ -114,6 +114,25 @@ window.__raskApi = window.__raskApi || {
         return {quota: e.quota || 0, usage: e.usage || 0};
     },
 
+    // Visual viewport (driven by IVisualViewport): window.visualViewport is a live object — return a plain
+    // snapshot (mapped to VisualViewport in C#), or null when unsupported.
+    visualViewportSupported: () => !!window.visualViewport,
+    visualViewport: () => {
+        const v = window.visualViewport;
+        if (!v) {
+            return null;
+        }
+        return {
+            width: v.width,
+            height: v.height,
+            offsetLeft: v.offsetLeft,
+            offsetTop: v.offsetTop,
+            pageLeft: v.pageLeft,
+            pageTop: v.pageTop,
+            scale: v.scale
+        };
+    },
+
     // Screen / display info (driven by IScreenInfo): a snapshot of window.screen plus devicePixelRatio,
     // mapped to the ScreenInfo record in C#.
     screen: () => ({

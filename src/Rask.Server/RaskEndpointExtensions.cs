@@ -200,6 +200,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<ISpeechSynthesis, SpeechSynthesis>();
         services.AddScoped<IScreenInfo, ScreenInfoReader>();
         services.AddScoped<IStorageEstimator, StorageEstimator>();
+        services.AddScoped<IVisualViewport, VisualViewportReader>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();
