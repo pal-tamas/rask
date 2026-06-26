@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Example.Shared;
 using Rask.Wasm;
 using Rask.Wasm.Browser;
@@ -29,4 +30,6 @@ host.UseManifest(new WebAppManifest
     Display = DisplayMode.Standalone,
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
+// WASM-only example page (PwaDemo) — contribute its sidebar entry to the shared ShowcaseLayout.
+host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
 await host.RunAsync<App>();
