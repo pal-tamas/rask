@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **HTML elements showcase — every one of the 111 standard elements, live.** A new "HTML elements" section
+  in the samples (`/elements/text`, `/grouping`, `/sections`, `/forms`, `/tables`, `/media`, `/interactive`,
+  `/metadata`) demonstrates every element with a live example and its source via `CodeSample`, grouped by
+  MDN category. The document/metadata elements (html/head/body/title/base/link/meta/style/script/noscript)
+  are shown via serialized output since they build the page shell.
 - **Visual viewport (`IVisualViewport`, `Rask.Core.Browser`)** — read the actually-visible viewport via
   `IsSupportedAsync()` and `GetAsync()` → `VisualViewport?` (visible width/height, offsets, page offsets,
   pinch-zoom scale), e.g. to keep an input above the on-screen keyboard or react to zoom. Distinct from
