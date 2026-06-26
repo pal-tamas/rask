@@ -34,7 +34,9 @@ them until tagged releases begin.
   `OnTimeUpdate`, `OnEnded`, `OnVolumeChange`, …) with a typed `MediaEventArgs`. Wired by one
   capture-phase delegated listener per event in a shared client module (`rask-events.js`, spliced into
   both the Server and WASM runtimes), and `OnClick`/`OnScroll` (previously tag-local) and the keyboard/
-  drag handlers are now unified through one event store on `Element`.
+  drag handlers are now unified through one event store on `Element`. Handlers take a bare lambda or
+  method group (`OnMouseMove: e => { _x = e.OffsetX; }`, `OnKeyDown: OnKey`) — the named parameter gives
+  the lambda its type, so no `new Callback<T>(…)` wrapper is ever needed.
 - **`RASK027` analyzer — both the sync and async handler set for one event.** Errors when a factory call
   wires both `OnX` and `OnXAsync` for the same event (e.g. `Button(OnClick: …, OnClickAsync: …)`); only
   one handler runs (sync wins), so supplying both is almost always a mistake. Passing `null` for the
