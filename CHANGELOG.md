@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Screen / display info (`IScreenInfo`, `Rask.Core.Browser`)** — read the display via `GetAsync()` →
+  `ScreenInfo` (`Width`/`Height`, `AvailWidth`/`AvailHeight`, `ColorDepth`, `PixelRatio`), e.g. to pick
+  retina image resolution or for analytics. **Shared** — works on both Server and WASM. New
+  `/browser/screen` showcase page.
 - **Speech synthesis / text-to-speech (`ISpeechSynthesis`, `Rask.Core.Browser`)** — speak text aloud from
   C# (the SpeechSynthesis API): `IsSupportedAsync()`, `SpeakAsync(text, SpeechOptions?)` (optional `Lang`,
   `Rate`, `Pitch`, `Volume`), `CancelAsync()`. For accessibility or audible notifications. **Shared** —

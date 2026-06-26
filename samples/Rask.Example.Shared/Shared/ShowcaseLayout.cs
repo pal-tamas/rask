@@ -64,7 +64,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.NavigatorInfoPage(), "Browser info", "bi-info-circle", "Browser APIs", null),
         (Features.Routes.NetworkInfoPage(), "Network info", "bi-reception-4", "Browser APIs", null),
         (Features.Routes.MediaQueryPage(), "Media queries", "bi-aspect-ratio", "Browser APIs", null),
-        (Features.Routes.SpeechPage(), "Speech", "bi-megaphone", "Browser APIs", null)
+        (Features.Routes.SpeechPage(), "Speech", "bi-megaphone", "Browser APIs", null),
+        (Features.Routes.ScreenInfoPage(), "Screen info", "bi-display", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

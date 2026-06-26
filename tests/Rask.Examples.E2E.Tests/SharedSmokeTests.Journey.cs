@@ -871,6 +871,11 @@ public abstract partial class SharedSmokeTests
         // Speech — audio can't be asserted headlessly, so smoke-check the page renders its control.
         await SideAsync("Speech", "Speech");
         await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+
+        // Screen info — window.screen is always available; assert the read populated the readout.
+        await SideAsync("Screen info", "Screen info");
+        await Page.Locator("#screen-read").ClickAsync();
+        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
