@@ -5,18 +5,20 @@ using Rask.Wasm.Browser;
 namespace Rask.Example.Wasm.Features;
 
 /// <summary>
-///     A live, WASM-only PWA demo: local notifications (<see cref="INotifications" />) and Web Push
-///     readiness (<see cref="IWebPush" />). Lives in the WASM host (not the shared showcase) because
-///     these APIs are WASM-only; it's surfaced in the sidebar via a host-registered
-///     <see cref="ShowcaseNavEntry" /> (see Program.cs) and nests in the shared
-///     <see cref="ShowcaseLayout" /> like every other page.
+///     A live, WASM-only PWA demo: local notifications (<see cref="INotifications" />), Web Push
+///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). Lives in
+///     the WASM host (not the shared showcase) because these APIs are WASM-only; it's surfaced in the
+///     sidebar via a host-registered <see cref="ShowcaseNavEntry" /> (see Program.cs) and nests in the
+///     shared <see cref="ShowcaseLayout" /> like every other page.
 /// </summary>
 [Route("pwa")]
 [ParentRoute(typeof(ShowcaseLayout))]
-public sealed class PwaDemo(INotifications notifications, IWebPush push) : Component
+public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge badge) : Component
 {
     private string? _notifyStatus;
     private string? _pushStatus;
+    private string? _badgeStatus;
+    private int _badgeCount;
 
     protected override RenderResult Head => Title()["PWA — Rask"];
 
@@ -40,7 +42,7 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push) : Compo
             ]
         ],
 
-        Div(Class: "card shadow-sm border-0")[
+        Div(Class: "card shadow-sm border-0 mb-3")[
             Div(Class: "card-body")[
                 H6(Class: "fw-bold")[I(Class: "bi bi-broadcast me-2"), "Web Push (IWebPush)"],
                 P(Class: "small text-secondary")[
@@ -50,6 +52,23 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push) : Compo
                 Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "pwa-push", OnClickAsync: EnablePush)[
                     "Enable push (register service worker)"],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "pwa-push-status")[_pushStatus ?? "(idle)"]]
+            ]
+        ],
+
+        Div(Class: "card shadow-sm border-0")[
+            Div(Class: "card-body")[
+                H6(Class: "fw-bold")[I(Class: "bi bi-app-indicator me-2"), "App badge (IBadge)"],
+                P(Class: "small text-secondary")[
+                    "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
+                    "A silent no-op in a normal browser tab."
+                ],
+                Div(Class: "d-flex gap-2 flex-wrap mb-2")[
+                    Button(Class: "btn btn-outline-primary btn-sm", Id: "pwa-badge-inc", OnClickAsync: BumpBadge)[
+                        "Increment badge"],
+                    Button(Class: "btn btn-outline-danger btn-sm", Id: "pwa-badge-clear", OnClickAsync: ClearBadge)[
+                        "Clear badge"]
+                ],
+                Div(Class: "small text-secondary")["Status: ", Code(Id: "pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]
         ]
     ];
@@ -110,6 +129,39 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push) : Compo
         catch (Exception ex)
         {
             _pushStatus = "Failed: " + ex.Message;
+        }
+    }
+
+    private async Task BumpBadge()
+    {
+        try
+        {
+            if (!await badge.IsSupportedAsync())
+            {
+                _badgeStatus = "App badges not supported in this browser";
+                return;
+            }
+
+            await badge.SetAsync(++_badgeCount);
+            _badgeStatus = $"Badge set to {_badgeCount} (visible on the installed icon)";
+        }
+        catch (Exception ex)
+        {
+            _badgeStatus = "Failed: " + ex.Message;
+        }
+    }
+
+    private async Task ClearBadge()
+    {
+        try
+        {
+            _badgeCount = 0;
+            await badge.ClearAsync();
+            _badgeStatus = "Badge cleared";
+        }
+        catch (Exception ex)
+        {
+            _badgeStatus = "Failed: " + ex.Message;
         }
     }
 }
