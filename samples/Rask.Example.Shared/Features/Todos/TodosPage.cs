@@ -171,7 +171,7 @@ public sealed class TodoFormDialog : Component
             // ::backdrop, so we render our own — clicking it cancels, like the nav drawer's backdrop.
             Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : Fragment(),
             // tabindex makes the <dialog> programmatically focusable; OnKeyDown gives it Escape-to-close.
-            Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: new Callback<KeyboardEventArgs>(OnKey))[
+            Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: OnKey)[
                 H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
                 Form(Model, OnSave, Class: "vstack gap-3")[
                     DataAnnotationsValidator(),
