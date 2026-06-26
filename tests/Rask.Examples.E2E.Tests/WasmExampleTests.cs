@@ -40,5 +40,44 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pwa-push")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The badge section added alongside notifications/push.
+        await Expect(Page.Locator("#pwa-badge-inc")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only Wake Lock page (WakeLockDemo) — verify the host-contributed sidebar entry routes
+    // and the page renders. The lock itself can't be asserted headlessly, so we only check the UI.
+    [Fact]
+    public Task WakeLockExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Wake lock");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Wake lock",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#wakelock-toggle")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only Screen Orientation page (OrientationDemo) — verify it routes, renders, and that
+    // reading the orientation updates the status (screen.orientation is available in headless Chromium).
+    [Fact]
+    public Task OrientationExample_RoutesAndReads() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Orientation");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Orientation",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        await Page.Locator("#orientation-read").ClickAsync();
+        // After reading, the current-orientation code shows either "<Type> (<angle>°)" or "not supported"
+        // — both differ from the idle placeholder.
+        await Expect(Page.Locator("#orientation-current")).Not.ToContainTextAsync("read to see",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 }

@@ -30,6 +30,9 @@ host.UseManifest(new WebAppManifest
     Display = DisplayMode.Standalone,
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
 });
-// WASM-only example page (PwaDemo) — contribute its sidebar entry to the shared ShowcaseLayout.
+// WASM-only example pages — contribute their sidebar entries to the shared ShowcaseLayout. These APIs
+// can't run on the Server transport, so they live in the WASM host rather than the shared showcase.
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
 await host.RunAsync<App>();

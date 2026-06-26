@@ -149,6 +149,10 @@ transient activation has expired. The practical effect:
 - **`IShare`** (Web Share) needs transient activation, so it is **WASM-only** and lives in
   `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
   would reject with "Must be handling a user gesture," so it isn't offered there.
+- **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), and **`IScreenOrientation`**
+  (read/lock orientation) are likewise **WASM-only** in `Rask.Wasm.Browser` — they depend on the
+  installed-PWA instance or the live document the Server round-trip can't carry. See the
+  [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IClipboard.WriteTextAsync`** needs transient activation *or* a granted `clipboard-write`
   permission — the permission lets it work across the Server round-trip, so it stays shared.
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
