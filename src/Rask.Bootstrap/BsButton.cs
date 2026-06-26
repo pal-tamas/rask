@@ -1,16 +1,12 @@
-using System.Text;
-
 namespace Rask.Bootstrap;
 
-// A Bootstrap button: <button class="btn btn-{color} btn-{size}">. Extends Element so the factory
-// exposes every universal HTML attribute (Id/Class/Style/Data/Aria/Ref) and the full event surface
-// (OnClick/OnClickAsync, …) for free; the typed Color/Outline/Size/Active props compose the Bootstrap
-// classes through ResolveClass. For a link styled as a button, set Class:"btn btn-link" on an A().
-public sealed class BsButton : Element
+// A Bootstrap button. Wraps the core Button() component, composing the .btn classes from the typed
+// Color/Outline/Size/Active props and forwarding the common button attributes/handlers — it does not
+// re-implement the <button> element. Type defaults to "button" so a BsButton never implicitly submits
+// an enclosing form; pass Type:"submit" for a submit button. For a link styled as a button, use
+// A(Class:"btn btn-primary").
+public sealed class BsButton : BsBlock
 {
-    protected override string TagName => "button";
-
-    // Theme color. Null renders a class-less .btn (use Class to style), matching Bootstrap.
     public BsColor? Color { get; set; }
 
     // Outline variant (btn-outline-{color}); ignored when Color is null.
@@ -21,45 +17,34 @@ public sealed class BsButton : Element
     // Toggle/pressed state: adds .active and aria-pressed="true".
     public bool? Active { get; set; }
 
-    // Defaults to "button" so a BsButton never implicitly submits an enclosing form; pass
-    // Type:"submit" explicitly for a submit button.
     public string? Type { get; set; }
-
     public bool? Disabled { get; set; }
     public string? Name { get; set; }
     public string? Value { get; set; }
+    public string? Style { get; set; }
+    public IReadOnlyDictionary<string, string?>? Aria { get; set; }
 
-    protected override string? ResolveClass() => BsClass.Join(
-        "btn",
-        Color is { } c ? c.Button(Outline is true) : null,
-        Size is { } s ? s.ButtonSize() : null,
-        Active is true ? "active" : null,
-        Class);
+    public Callback? OnClick { get; set; }
+    public CallbackAsync? OnClickAsync { get; set; }
 
-    protected override void WriteAttributes(StringBuilder sb)
+    protected override RenderResult Render()
     {
-        base.WriteAttributes(sb);
+        var cls = BsClass.Join(
+            "btn",
+            Color is { } c ? c.Button(Outline is true) : null,
+            Size is { } s ? s.ButtonSize() : null,
+            Active is true ? "active" : null,
+            Class);
 
-        AppendAttr(sb, "type", Type ?? "button");
+        var aria = Active is true ? BsClass.WithAria(Aria, "pressed", "true") : Aria;
 
-        if (Disabled is true)
-        {
-            AppendAttr(sb, "disabled", null);
-        }
-
-        if (Active is true)
-        {
-            AppendAttr(sb, "aria-pressed", "true");
-        }
-
-        if (Name is not null)
-        {
-            AppendAttr(sb, "name", Name);
-        }
-
-        if (Value is not null)
-        {
-            AppendAttr(sb, "value", Value);
-        }
+        // Forward only the handler the consumer set — supplying both OnClick and OnClickAsync in one
+        // call is RASK027. The delegate passes straight through to the native Button, whose handler-
+        // owner resolution re-renders the parent.
+        return OnClickAsync is not null
+            ? Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
+                Disabled: Disabled, Name: Name, Value: Value, Aria: aria, OnClickAsync: OnClickAsync)[Items]
+            : Button(Id: Id, Class: cls, Style: Style, Type: Type ?? "button",
+                Disabled: Disabled, Name: Name, Value: Value, Aria: aria, OnClick: OnClick)[Items];
     }
 }

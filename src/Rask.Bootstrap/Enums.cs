@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Bootstrap;
 
 // Bootstrap's eight theme colors. Used for buttons, alerts, badges, backgrounds, borders, text,
@@ -34,8 +36,9 @@ public enum BsTheme
     Dark,
 }
 
-// The two Bootstrap spinner styles (.spinner-border / .spinner-grow).
-public enum BsSpinner
+// The two Bootstrap spinner styles (.spinner-border / .spinner-grow). Named *Kind to leave the
+// BsSpinner name free for the component.
+public enum BsSpinnerKind
 {
     Border,
     Grow,
@@ -103,6 +106,21 @@ internal static class BsClass
     // form-control-sm / form-control-lg (also used, with the prefix swapped, by selects)
     internal static string? ControlSize(this BsSize size, string prefix) =>
         size.Suffix() is { } s ? $"{prefix}-{s}" : null;
+
+    // Invariant numeric text for style widths / aria values (never culture-formatted in markup).
+    internal static string Num(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    // Returns a copy of an ARIA bag with one extra entry, so a wrapper can add aria-pressed/current
+    // on top of a caller-supplied Aria map without mutating the caller's dictionary.
+    internal static IReadOnlyDictionary<string, string?> WithAria(
+        IReadOnlyDictionary<string, string?>? source, string key, string value)
+    {
+        var dict = source is null
+            ? new Dictionary<string, string?>()
+            : new Dictionary<string, string?>(source);
+        dict[key] = value;
+        return dict;
+    }
 
     // Joins non-empty class tokens with single spaces, returning null when nothing is present so
     // callers can pass the result straight to a nullable Class parameter without emitting class="".

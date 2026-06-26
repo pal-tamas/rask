@@ -1,19 +1,22 @@
 namespace Rask.Bootstrap;
 
-// A Bootstrap badge: <span class="badge text-bg-{color}">. Bootstrap 5.3 uses the contrast-aware
-// text-bg-* helper so the label stays legible on light and dark colors alike.
-public sealed class BsBadge : Element
+// A Bootstrap badge. Wraps the core Span() with the .badge classes; Bootstrap 5.3's contrast-aware
+// text-bg-* helper keeps the label legible on light and dark colors alike.
+public sealed class BsBadge : BsBlock
 {
-    protected override string TagName => "span";
-
     public BsColor? Color { get; set; }
 
     // Fully rounded "pill" shape (.rounded-pill).
     public bool? Pill { get; set; }
 
-    protected override string? ResolveClass() => BsClass.Join(
-        "badge",
-        Color is { } c ? c.TextBg() : null,
-        Pill is true ? "rounded-pill" : null,
-        Class);
+    public string? Style { get; set; }
+
+    protected override RenderResult Render() => Span(
+        Id: Id,
+        Class: BsClass.Join(
+            "badge",
+            Color is { } c ? c.TextBg() : null,
+            Pill is true ? "rounded-pill" : null,
+            Class),
+        Style: Style)[Items];
 }
