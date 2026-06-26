@@ -1,0 +1,33 @@
+using Rask.Core.Browser;
+
+namespace Rask.Example.Shared.Features;
+
+/// <summary><see cref="IMediaQuery" /> — evaluate CSS media queries and user preferences from C#.</summary>
+public sealed class MediaQueryDemo(IMediaQuery media) : Component
+{
+    private string? _value;
+    private string? _status;
+
+    protected override RenderResult Render() =>
+        Div(Class: "card shadow-sm border-0")[
+            Div(Class: "card-body")[
+                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "media-read", OnClickAsync: Read)[
+                    "Evaluate media queries"],
+                Div(Class: "small text-secondary")["Result: ", Code(Id: "media-value")[_value ?? "(not requested)"]],
+                Div(Class: "small text-secondary")["Status: ", Code(Id: "media-status")[_status ?? "(idle)"]]
+            ]
+        ];
+
+    private async Task Read()
+    {
+        try
+        {
+            var wide = await media.MatchesAsync("(min-width: 768px)");
+            var dark = await media.PrefersDarkAsync();
+            var reduced = await media.PrefersReducedMotionAsync();
+            _value = $"≥768px: {wide}, prefersDark: {dark}, reducedMotion: {reduced}";
+            _status = "Media queries evaluated";
+        }
+        catch (Exception ex) { _status = "Read failed: " + ex.Message; }
+    }
+}
