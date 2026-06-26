@@ -17,6 +17,7 @@
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>
     <Folder Name="/src/">
+        <Project Path="src/Rask.Bootstrap/Rask.Bootstrap.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
@@ -28,6 +29,7 @@
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj"/>
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="tests/Rask.Bootstrap.Tests/Rask.Bootstrap.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Example.EfCore.Tests/Rask.Example.EfCore.Tests.csproj"/>
         <Project Path="tests/Rask.Example.Server.Tests/Rask.Example.Server.Tests.csproj"/>
