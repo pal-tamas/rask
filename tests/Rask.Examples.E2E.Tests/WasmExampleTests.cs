@@ -80,4 +80,23 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator("#orientation-current")).Not.ToContainTextAsync("read to see",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
+
+    // The WASM-only Fullscreen page (FullscreenDemo) — verify it routes and renders. Real fullscreen
+    // needs a user gesture and is unreliable headlessly, so this only checks the UI + CodeSample source.
+    [Fact]
+    public Task FullscreenExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Fullscreen");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Fullscreen",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#fullscreen-enter")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // CodeSample shows the demo's real source beside the live result.
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IFullscreen",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
 }

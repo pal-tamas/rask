@@ -185,3 +185,13 @@ window.__raskOrientation = window.__raskOrientation || {
     lock: (type) => screen.orientation.lock(type),
     unlock: () => { screen.orientation.unlock(); }
 };
+
+// Fullscreen (driven by IFullscreen). requestFullscreen needs transient activation, so this is WASM-only.
+// The element arg is resolved from an ElementRef by the JSON reviver; with no element the whole page goes
+// fullscreen (document.documentElement). exit is a no-op when nothing is fullscreen.
+window.__raskFullscreen = window.__raskFullscreen || {
+    isSupported: () => !!document.fullscreenEnabled,
+    isActive: () => document.fullscreenElement != null,
+    request: (el) => (el || document.documentElement).requestFullscreen(),
+    exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
+};

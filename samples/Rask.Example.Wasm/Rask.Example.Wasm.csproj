@@ -52,4 +52,27 @@
        served at /lib, /img, /data. The framework's build targets additionally stage
        index.html / main.js / rask.wasm.js into wwwroot (see build/Rask.Wasm.targets). -->
 
+  <!-- Embed the WASM-only demo sources verbatim so CodeSample can show the real file text
+       beside the live Result, exactly like Rask.Example.Shared — these demos can't live in
+       the shared project (they reference Rask.Wasm.Browser). EmbeddedSource reads them as
+       raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup
+       finds them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css">
+      <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Guard the bare-leaf LogicalName: a duplicate leaf would silently overwrite another in
+       the manifest (last writer wins), so EmbeddedSource would show the wrong file. Only the
+       raksrc/ items are checked, so unrelated SDK EmbeddedResource items don't trip it. -->
+  <Target Name="VerifyUniqueEmbeddedSourceNames" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskEmbeddedLeaf Include="@(EmbeddedResource->'%(LogicalName)')"
+                         Condition="$([System.String]::Copy('%(LogicalName)').StartsWith('raksrc/'))"/>
+    </ItemGroup>
+    <Error Condition="'@(_RaskEmbeddedLeaf->Distinct()->Count())' != '@(_RaskEmbeddedLeaf->Count())'"
+           Text="Duplicate embedded-source leaf name(s) under Features/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.js/.css must have a unique file name across the project (and not collide with a Rask.Example.Shared leaf). Rename the collision." />
+  </Target>
+
 </Project>
