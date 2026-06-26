@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Web Crypto (`ICrypto`, `Rask.Core.Browser`)** — cryptographically strong randomness and hashing from
+  C#: `RandomUuidAsync()` (`crypto.randomUUID`), `RandomBytesAsync(length)` → `byte[]`
+  (`crypto.getRandomValues`), and `DigestHexAsync(HashAlgorithm, text)` → lowercase hex
+  (`crypto.subtle.digest`, SHA-1/256/384/512). **Shared** — works on both Server and WASM; needs a secure
+  context. New `/browser/crypto` showcase page.
 - **Live geolocation tracking — `IGeolocation.WatchAsync` (`Rask.Core.Browser`)** — continuous position
   updates (`navigator.geolocation.watchPosition`): `WatchAsync(Func<GeolocationPosition,Task> onPosition,
   GeolocationOptions?)` returns an `IAsyncDisposable` and fires for the initial fix plus every update; the
