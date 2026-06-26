@@ -887,6 +887,13 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Screen info", "Screen info");
         await Page.Locator("#screen-read").ClickAsync();
         await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
+
+        // Quota estimate — Chromium supports navigator.storage.estimate; assert the read populated it
+        // (unsupported browsers say "not supported" — either way it leaves the idle placeholder). The nav
+        // label avoids the word "Storage" so it doesn't collide with the existing "Storage" sidebar entry.
+        await SideAsync("Quota estimate", "Quota estimate");
+        await Page.Locator("#storage-est-read").ClickAsync();
+        await Expect(Page.Locator("#storage-est-value")).Not.ToContainTextAsync("not requested", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
