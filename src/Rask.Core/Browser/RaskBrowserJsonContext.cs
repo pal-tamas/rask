@@ -16,5 +16,6 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(NetworkReading))]
 [JsonSerializable(typeof(SpeechOptions))]
 [JsonSerializable(typeof(ScreenInfo))]
+[JsonSerializable(typeof(StorageEstimate))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 internal sealed partial class RaskBrowserJsonContext : JsonSerializerContext;

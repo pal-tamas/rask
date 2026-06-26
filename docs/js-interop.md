@@ -122,6 +122,7 @@ later step on the same pattern.
 | `IMediaQuery` | `window.matchMedia` | `MatchesAsync(query)`, `PrefersDarkAsync`, `PrefersReducedMotionAsync` |
 | `ISpeechSynthesis` | `window.speechSynthesis` | `IsSupportedAsync`, `SpeakAsync(text, SpeechOptions?)`, `CancelAsync` |
 | `IScreenInfo` | `window.screen` | `GetAsync()` → `ScreenInfo` (width/height, avail size, color depth, device pixel ratio) |
+| `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -163,8 +164,8 @@ transient activation has expired. The practical effect:
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
   works on **both** transports (on devices with a vibration motor).
 - Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, media
-  queries, speech synthesis, screen info, page visibility) is unaffected by activation and behaves
-  identically on both transports.
+  queries, speech synthesis, screen info, storage estimate, page visibility) is unaffected by activation
+  and behaves identically on both transports.
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).

@@ -92,6 +92,18 @@ window.__raskApi = window.__raskApi || {
     // .matches from the live MediaQueryList.
     matchMedia: (query) => window.matchMedia(query).matches,
 
+    // Storage estimate (driven by IStorageEstimator): navigator.storage.estimate() resolves to a live
+    // object — return a plain { quota, usage } snapshot (mapped to StorageEstimate in C#), or null when
+    // unsupported.
+    storageSupported: () => !!(navigator.storage && navigator.storage.estimate),
+    storageEstimate: async () => {
+        if (!(navigator.storage && navigator.storage.estimate)) {
+            return null;
+        }
+        const e = await navigator.storage.estimate();
+        return {quota: e.quota || 0, usage: e.usage || 0};
+    },
+
     // Screen / display info (driven by IScreenInfo): a snapshot of window.screen plus devicePixelRatio,
     // mapped to the ScreenInfo record in C#.
     screen: () => ({
