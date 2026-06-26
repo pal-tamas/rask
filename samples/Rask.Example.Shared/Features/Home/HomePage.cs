@@ -25,6 +25,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-arrow-repeat", "Lifecycle", "Mount, props-changed, rendered hooks.", "/lifecycle"),
         ("Components", "bi-diagram-2", "Context", "Provide and consume without prop drilling.", "/context"),
         ("Components", "bi-arrow-up-right-circle", "Callbacks", "Child→parent events, auto re-render.", "/callback"),
+        ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", Routes.ToastPage()),
         ("Components", "bi-bullseye", "Element refs", "Reach the live DOM from C#.", "/element-ref"),
         ("Components", "bi-x-circle", "Cancellation", "A token that fires on unmount.", "/cancellation"),
         ("Components", "bi-trash", "Disposal", "IDisposable / IAsyncDisposable cleanup.", "/disposal"),
