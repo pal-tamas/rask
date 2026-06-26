@@ -51,9 +51,10 @@ protected override RenderResult Render() =>
 
 ## Callbacks: child → parent
 
-**Rask has no `Callback` / `EventCallback` type.** A child raises an event up to its
-parent with a plain delegate property — `Action`, `Action<T>`, `Func<Task>`, or
-`Func<T, Task>`. The generated factory wraps the delegate so that **invoking it
+**For parent callbacks, Rask has no Blazor-style `EventCallback` wrapper.** A child raises an
+event up to its parent with a plain delegate property — `Action`, `Action<T>`, `Func<Task>`, or
+`Func<T, Task>`. (DOM event handlers further down use the named `Callback<T>` / `CallbackAsync<T>`
+delegate types, but you still never *construct* one — see below.) The generated factory wraps the delegate so that **invoking it
 re-renders the parent that owns it**, with no `StateHasChanged` threaded through by hand.
 
 ```csharp
@@ -99,7 +100,9 @@ lambda identity between renders does not refire `OnPropsChanged`.
 mixin. Every event ships a **typed sync + async pair** — a synchronous `OnXxx` (`Callback<TArgs>`)
 and an asynchronous `OnXxxAsync` (`CallbackAsync<TArgs>`); set **at most one** per event (wiring both
 is a compile error, [RASK027](diagnostics.md#rask027) — the runtime would keep the sync one and drop
-the async). The surface:
+the async). Pass a **bare lambda or method group** — `OnMouseMove: e => { _x = e.OffsetX; }`,
+`OnKeyDown: OnKey` — never `new Callback<T>(…)`: the named parameter already gives the lambda its
+type, exactly like `OnClick: () => _count++`. The surface:
 
 - **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
   `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEventArgs` (button/buttons, client/screen/page/offset/

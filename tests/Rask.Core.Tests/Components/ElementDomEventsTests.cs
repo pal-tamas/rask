@@ -12,15 +12,15 @@ public class ElementDomEventsTests
 {
     [Fact]
     public void Handlers_OutsideLiveContext_NotEmitted() =>
-        Assert.Equal("<div></div>", Div(OnMouseDown: new Callback<MouseEventArgs>(_ => { })).ToHtml());
+        Assert.Equal("<div></div>", Div(OnMouseDown: _ => { }).ToHtml());
 
     [Fact]
     public void Events_AreUniversal_OnEveryElement()
     {
         // The surface lives on Element, so a Span (no tag-specific handlers of its own) exposes them.
         var view = new StubComponent(() => Span(
-            OnMouseEnter: new Callback<MouseEventArgs>(_ => { }),
-            OnContextMenu: new Callback<MouseEventArgs>(_ => { })));
+            OnMouseEnter: _ => { },
+            OnContextMenu: _ => { }));
         Assert.Equal(
             "<span data-rask-on-mouseenter=\"h0\" data-rask-on-contextmenu=\"h1\"></span>",
             view.RenderAsLiveRoot());
@@ -30,10 +30,10 @@ public class ElementDomEventsTests
     public void Emit_FollowsFixedOrder_ClickThenMouseThenFocusThenScroll()
     {
         var view = new StubComponent(() => Div(
-            OnScroll: new Callback<ScrollEvent>(_ => { }),
-            OnFocus: new Callback(() => { }),
-            OnMouseDown: new Callback<MouseEventArgs>(_ => { }),
-            OnClick: new Callback(() => { })));
+            OnScroll: _ => { },
+            OnFocus: () => { },
+            OnMouseDown: _ => { },
+            OnClick: () => { }));
         // GlobalEventOrder: click, …mouse…, focus, …, scroll (registration ids follow emit order).
         Assert.Equal(
             "<div data-rask-on-click=\"h0\" data-rask-on-mousedown=\"h1\" " +
@@ -57,7 +57,7 @@ public class ElementDomEventsTests
     public async Task Mouse_TypedHandler_ReceivesGeometryButtonsAndModifiers()
     {
         MouseEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnMouseDown: new Callback<MouseEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnMouseDown: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-mousedown")!;
 
         using var payload = JsonDocument.Parse(
@@ -80,7 +80,7 @@ public class ElementDomEventsTests
     public async Task Wheel_TypedHandler_ReceivesDeltasAndComposedMouse()
     {
         WheelEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnWheel: new Callback<WheelEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnWheel: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-wheel")!;
 
         using var payload = JsonDocument.Parse(
@@ -98,7 +98,7 @@ public class ElementDomEventsTests
     public async Task Pointer_TypedHandler_ReceivesPointerFieldsAndComposedMouse()
     {
         PointerEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnPointerDown: new Callback<PointerEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnPointerDown: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-pointerdown")!;
 
         using var payload = JsonDocument.Parse(
@@ -119,7 +119,7 @@ public class ElementDomEventsTests
     public async Task Touch_TypedHandler_ReceivesCountAndFirstTouchCoords()
     {
         TouchEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnTouchStart: new Callback<TouchEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnTouchStart: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-touchstart")!;
 
         using var payload = JsonDocument.Parse(
@@ -137,7 +137,7 @@ public class ElementDomEventsTests
     public async Task Clipboard_TypedHandler_ReceivesText()
     {
         ClipboardEventArgs? seen = null;
-        var view = new StubComponent(() => Div(OnPaste: new Callback<ClipboardEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Div(OnPaste: e => seen = e));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-paste")!;
 
         using var payload = JsonDocument.Parse("{\"text\":\"hello world\"}");
@@ -151,7 +151,7 @@ public class ElementDomEventsTests
     public async Task Focus_ParameterlessHandler_Fires()
     {
         var fired = 0;
-        var view = new StubComponent(() => Div(OnFocus: new Callback(() => fired++)));
+        var view = new StubComponent(() => Div(OnFocus: () => fired++));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-focus")!;
 
         var ok = await view.TryInvokeHandlerAsync(id, JsonDocument.Parse("{}").RootElement);
@@ -164,9 +164,9 @@ public class ElementDomEventsTests
     public void NewDragEvents_Emit()
     {
         var view = new StubComponent(() => Div(
-            OnDrag: new Callback(() => { }),
-            OnDragEnter: new Callback(() => { }),
-            OnDragLeave: new Callback(() => { })));
+            OnDrag: () => { },
+            OnDragEnter: () => { },
+            OnDragLeave: () => { }));
         Assert.Equal(
             "<div data-rask-on-drag=\"h0\" data-rask-on-dragenter=\"h1\" data-rask-on-dragleave=\"h2\"></div>",
             view.RenderAsLiveRoot());
@@ -176,7 +176,7 @@ public class ElementDomEventsTests
     public async Task BeforeInput_TypedHandler_ReceivesInsertedText()
     {
         string? seen = null;
-        var view = new StubComponent(() => Div(OnBeforeInput: new Callback<string>(s => seen = s)));
+        var view = new StubComponent(() => Div(OnBeforeInput: s => seen = s));
         var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-beforeinput")!;
 
         using var payload = JsonDocument.Parse("{\"value\":\"x\"}");
@@ -189,7 +189,7 @@ public class ElementDomEventsTests
     public async Task Media_TypedHandler_OnAudio_ReceivesPlaybackState()
     {
         MediaEventArgs? seen = null;
-        var view = new StubComponent(() => Audio(OnTimeUpdate: new Callback<MediaEventArgs>(e => seen = e)));
+        var view = new StubComponent(() => Audio(OnTimeUpdate: e => seen = e));
         var html = view.RenderAsLiveRoot();
         Assert.Contains("data-rask-on-timeupdate=\"h0\"", html);
 
@@ -212,8 +212,8 @@ public class ElementDomEventsTests
         var view = new StubComponent(() => Video(
             Src: "/v.mp4",
             Controls: true,
-            OnPlay: new Callback<MediaEventArgs>(_ => { }),
-            OnPause: new Callback<MediaEventArgs>(_ => { })));
+            OnPlay: _ => { },
+            OnPause: _ => { }));
         Assert.Equal(
             "<video src=\"/v.mp4\" controls data-rask-on-play=\"h0\" data-rask-on-pause=\"h1\"></video>",
             view.RenderAsLiveRoot());
