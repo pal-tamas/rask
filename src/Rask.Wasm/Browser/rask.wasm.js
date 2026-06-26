@@ -184,6 +184,38 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Broadcast Channel (driven by IBroadcastChannel). Each connection is a live BroadcastChannel held here
+// under the C#-minted integer id; an incoming message is pushed back to C# via the shared
+// window.DotNet.invokeMethodAsync shim (static [JSInvokable] BroadcastInterop.Receive in Rask.Core),
+// which works on both transports. A channel does not receive its own posts.
+window.__raskBroadcast = window.__raskBroadcast || (() => {
+    const channels = new Map();
+    return {
+        open: (id, name) => {
+            const ch = new BroadcastChannel(name);
+            ch.onmessage = (e) => {
+                const data = typeof e.data === "string" ? e.data : JSON.stringify(e.data);
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBroadcastReceive", id, data);
+            };
+            channels.set(id, ch);
+        },
+        post: (id, message) => {
+            const ch = channels.get(id);
+            if (ch) {
+                ch.postMessage(message);
+            }
+        },
+        close: (id) => {
+            const ch = channels.get(id);
+            if (!ch) {
+                return;
+            }
+            channels.delete(id);
+            ch.close();
+        }
+    };
+})();
+
 
 // WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
 // in the Server client, since these back APIs that can't work over the WebSocket round-trip.
