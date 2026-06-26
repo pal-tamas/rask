@@ -115,6 +115,26 @@ public abstract partial class SharedSmokeTests
         await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
         await Expect(ariaBtn.Locator("i")).ToHaveAttributeAsync("aria-hidden", "true");
 
+        // HTML elements showcase: each of the 8 category pages renders its live demo of every element
+        // in that group without tripping the root error boundary (SideAsync asserts the heading + no
+        // crash). Spot-check a couple of rendered elements to confirm the demos actually produced DOM.
+        await SideAsync("Text & inline", "Text & inline elements");
+        await Expect(Page.Locator(".sample-result-body ruby").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await SideAsync("Grouping & lists", "Grouping & list elements");
+        await Expect(Page.Locator(".sample-result-body ol[start='2'][reversed]").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await SideAsync("Sections & headings", "Sections & heading elements");
+        await SideAsync("Form elements", "Form elements");
+        await Expect(Page.Locator(".sample-result-body meter").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await SideAsync("Table elements", "Table elements");
+        await SideAsync("Media & embedded", "Media & embedded elements");
+        await SideAsync("Interactive", "Interactive elements");
+        await Expect(Page.Locator(".sample-result-body details[open] summary").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await SideAsync("Document & metadata", "Document & metadata elements");
+
         // User components: generated factory greeting + [SkipFactory] counter that keeps its state.
         await SideAsync("User components", "User components");
         var greeting = Page.Locator(".sample-result-body p")
