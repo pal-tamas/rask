@@ -934,6 +934,11 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
         await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
+
+        // Resize observer — another ElementRef + JS→C# push: the observer fires once on observe with the
+        // box's current size, so the readout shows pixels (proves the round-trip) on every host.
+        await SideAsync("Resize observer", "Resize observer");
+        await Expect(Page.Locator("#resize-value")).ToContainTextAsync("px", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
