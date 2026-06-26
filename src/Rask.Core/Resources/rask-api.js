@@ -174,6 +174,50 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Geolocation watch (driven by IGeolocation.WatchAsync). navigator.geolocation.watchPosition pushes each
+// fix; forward it to C# via the shared window.DotNet.invokeMethodAsync shim (static [JSInvokable]
+// GeolocationWatchInterop.Fix in Rask.Core). The fix object matches the GeolocationPosition record (same
+// shape as __raskApi.geolocation). Errors are ignored so the watch keeps trying.
+window.__raskGeoWatch = window.__raskGeoWatch || (() => {
+    const watches = new Map();
+    return {
+        watch: (id, enableHighAccuracy, timeoutMs, maximumAgeMs) => {
+            if (!navigator.geolocation) {
+                return;
+            }
+            const opts = {enableHighAccuracy: !!enableHighAccuracy, maximumAge: maximumAgeMs || 0};
+            if (timeoutMs != null) {
+                opts.timeout = timeoutMs;
+            }
+            const watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const c = pos.coords;
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskGeolocationFix", id, {
+                        latitude: c.latitude,
+                        longitude: c.longitude,
+                        accuracy: c.accuracy,
+                        altitude: c.altitude,
+                        altitudeAccuracy: c.altitudeAccuracy,
+                        heading: c.heading,
+                        speed: c.speed,
+                        timestampMs: pos.timestamp
+                    });
+                },
+                () => { /* error: keep watching, surface nothing */ },
+                opts);
+            watches.set(id, watchId);
+        },
+        clear: (id) => {
+            const watchId = watches.get(id);
+            if (watchId == null) {
+                return;
+            }
+            watches.delete(id);
+            navigator.geolocation.clearWatch(watchId);
+        }
+    };
+})();
+
 // Resize Observer (driven by IResizeObserver). Each observation is a live ResizeObserver held here under
 // the C#-minted id; each size change is pushed back to C# via the shared window.DotNet.invokeMethodAsync
 // shim (static [JSInvokable] ResizeInterop.Changed in Rask.Core). The element is resolved from an
