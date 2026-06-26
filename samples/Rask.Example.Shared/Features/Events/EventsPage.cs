@@ -13,8 +13,20 @@ public sealed class EventsPage : Component
     [
         PageHeader.Render(
             "Events",
-            "Event handlers are plain delegates on the factory call site — OnClick, OnInput, OnChange, OnSubmit. Each handler triggers a re-render after it runs."),
-        H2(Class: "h4 mt-4 mb-3")["Click"],
+            "Event handlers are plain delegates on the factory call site. Every element exposes the full DOM "
+            + "GlobalEventHandlers surface — mouse, pointer, touch, wheel, focus, clipboard, keyboard, drag — "
+            + "as typed sync OnX + async OnXAsync pairs, each handler triggering a re-render after it runs."),
+        H2(Class: "h4 mt-4 mb-3")["The full event surface — one component, zero StateHasChanged"],
+        CodeSample(
+            ["EventsDemo.cs"],
+            Notes:
+            "Every handler just mutates a field; the framework re-renders the component that owns the callback "
+            + "(the lambda's `this`), so the readouts update on their own. MouseEventArgs carries "
+            + "button/coords/modifiers, WheelEventArgs adds deltas, ClipboardEventArgs the pasted text. Wiring "
+            + "both OnX and OnXAsync for one event is a compile error (RASK027) — pick one. Audio/Video also "
+            + "expose the HTMLMediaElement events (OnPlay/OnTimeUpdate/…) with MediaEventArgs.",
+            Result: EventsDemo()),
+        H2(Class: "h4 mt-5 mb-3")["Click"],
         CodeSample(
             ["EventsClickDemo.cs"],
             Result: EventsClickDemo()),

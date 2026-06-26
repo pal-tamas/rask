@@ -285,6 +285,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Full GlobalEventHandlers surface demo: OnDoubleClick (a MouseEventArgs event) and OnFocus
+        // (a parameterless focus event) reach the C# handlers end-to-end and re-render the readouts —
+        // proving the new universal event store dispatches over both transports, not just OnClick.
+        var dblButton = Page.Locator(".sample-result-body button:has-text('Double-click')").First;
+        await dblButton.DblClickAsync();
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "double-clicks:" }))
+            .ToContainTextAsync("double-clicks: 1", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".sample-result-body div[tabindex='0']").First.ClickAsync();
+        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "last key:" }))
+            .ToContainTextAsync("focused", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
         // Virtualize: confirm it renders its source (the page now shows the demos via CodeSample)
         // and that the sticky header is pinned on the <th> cells — the fix for the old <thead>
         // sticky that flickered. Both are static checks (no scroll interaction) so this stays out

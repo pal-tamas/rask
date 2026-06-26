@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The full DOM `GlobalEventHandlers` surface on every element.** Beyond the previous click/scroll/
+  keyboard/drag subset, every element now exposes the complete event set as typed sync `OnX` + async
+  `OnXAsync` callback pairs: mouse (`OnMouseDown/Up/Move/Enter/Leave/Over/Out`, `OnDoubleClick`,
+  `OnContextMenu`), `OnWheel`, pointer (`OnPointerDown/Up/Move/Enter/Leave/Over/Out/Cancel`), touch
+  (`OnTouchStart/End/Move/Cancel`), focus (`OnFocus/OnBlur/OnFocusIn/OnFocusOut`), clipboard
+  (`OnCopy/OnCut/OnPaste`), the remaining drag events (`OnDrag/OnDragEnter/OnDragLeave`), and
+  `OnBeforeInput/OnSelect/OnInvalid/OnReset`. Each carries a typed payload — `MouseEventArgs`,
+  `WheelEventArgs`, `PointerEventArgs`, `TouchEventArgs`, `ClipboardEventArgs` — parsed from the client
+  event. `Audio`/`Video` additionally expose the `HTMLMediaElement` events (`OnPlay`, `OnPause`,
+  `OnTimeUpdate`, `OnEnded`, `OnVolumeChange`, …) with a typed `MediaEventArgs`. Wired by one
+  capture-phase delegated listener per event in a shared client module (`rask-events.js`, spliced into
+  both the Server and WASM runtimes), and `OnClick`/`OnScroll` (previously tag-local) and the keyboard/
+  drag handlers are now unified through one event store on `Element`.
+- **`RASK027` analyzer — both the sync and async handler set for one event.** Errors when a factory call
+  wires both `OnX` and `OnXAsync` for the same event (e.g. `Button(OnClick: …, OnClickAsync: …)`); only
+  one handler runs (sync wins), so supplying both is almost always a mistake. Passing `null` for the
+  sibling is allowed. See [docs/diagnostics.md](docs/diagnostics.md#rask027).
 - **Two-way bindings now re-render derived UI automatically — even outside the `Form`.** A bound write
   (`Bind` / `() => model.X`) re-renders the component that *authored* the binding, so a readout or summary
   the consumer renders as a sibling of the control (or the `Form`) updates live with **no
@@ -70,6 +87,15 @@ them until tagged releases begin.
   the home for upcoming PWA-only APIs.
 
 ### Changed
+- **HTML tag components now mirror the DOM interface hierarchy.** Tags that share a DOM interface derive
+  from a shared abstract base instead of each redeclaring the same attributes: `HtmlMediaElement`
+  (`Audio`/`Video`), `HtmlTableCellElement` (`Td`/`Th`), `HtmlModElement` (`Ins`/`Del`),
+  `HtmlTableColElement` (`Col`/`Colgroup`), `HtmlQuoteElement` (`Q`/`Blockquote`), plus the structural
+  `HtmlHeadingElement` (`H1`–`H6`) and `HtmlTableSectionElement` (`Thead`/`Tbody`/`Tfoot`). The factory
+  call shape is unchanged for every tag except that **`Video` and `Th` positional factory argument order
+  changed** (inherited attributes now sort after the tag's own) and `Video`'s tag-specific attributes emit
+  after the shared media block — use named arguments (`Video(Src: …, Poster: …)`). No runtime behavior
+  change for any other tag.
 - **`Rask.Core.Browser` now holds only transport-shared browser APIs.** APIs that can't function on the
   Server transport (currently `IShare`) moved to `Rask.Wasm.Browser`, registered by the WASM host only.
 - **Typed browser-API foundation** — strongly-typed, DI-injected C# wrappers over the Web APIs that

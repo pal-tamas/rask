@@ -866,6 +866,8 @@ function sendKey(e, attr, type) {
 document.addEventListener("keydown", (e) => sendKey(e, "data-rask-on-keydown", "keydown"));
 document.addEventListener("keyup", (e) => sendKey(e, "data-rask-on-keyup", "keyup"));
 
+// @@RASK_EVENTS@@
+
 // ----- IJSRuntime bridge -----------------------------------------------------
 // Called by Rask.Wasm.JSInterop.BeginInvokeJSImport (a [JSImport]). Walks the
 // dotted identifier on `window`, invokes it with the JSON-decoded args, then
