@@ -30,7 +30,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - Lifecycle hooks: `OnMount`/`OnMountAsync` (once), `OnPropsChanged*` (on bound-prop/route change),
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
 - **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, the typed browser APIs
-  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IShare`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`, your own) through the constructor**,
+  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IShare`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`INetworkInfo`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`, your own) through the constructor**,
   not as settable properties (a non-nullable settable property becomes a required factory param).
 
 ## Events, scoped CSS/JS, forms, auth

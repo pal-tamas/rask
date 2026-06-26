@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Network Information API (`INetworkInfo`, `Rask.Core.Browser`)** — read the connection quality to adapt
+  loading: `IsSupportedAsync()` and `GetStatusAsync()` → `NetworkStatus?` (`EffectiveType` (`slow-2g`…`4g`),
+  `Downlink` Mbps, `Rtt` ms, `SaveData`). **Shared** — works on both Server and WASM; returns `null` where
+  the API is unsupported (Firefox/Safari). Pairs with `INavigatorInfo.OnLineAsync()`. New
+  `/browser/network` showcase page.
 - **Bootstrap Toast showcase example** (`samples/Rask.Example.Shared`, `/toast`) — a reusable `Toast`
   component plus a live demo that shows, stacks, dismisses, places and auto-hides toasts driven entirely
   by Rask state: no `bootstrap.bundle.js`, no `data-bs-dismiss`, no `setTimeout`. Auto-hide is a one-shot

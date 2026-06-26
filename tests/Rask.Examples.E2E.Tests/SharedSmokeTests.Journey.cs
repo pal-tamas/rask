@@ -856,6 +856,12 @@ public abstract partial class SharedSmokeTests
         // page renders its control rather than asserting an outcome.
         await SideAsync("Vibration", "Vibration");
         await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
+
+        // Network info — Chromium exposes navigator.connection; assert the read populated the readout
+        // (the exact class differs by browser, so just confirm it's no longer the idle placeholder).
+        await SideAsync("Network info", "Network info");
+        await Page.Locator("#net-read").ClickAsync();
+        await Expect(Page.Locator("#net-value")).Not.ToContainTextAsync("not requested", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
