@@ -39,6 +39,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
         Services.AddSingleton<IWebPush, WebPush>();
+        Services.AddSingleton<INotifications, Notifications>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();

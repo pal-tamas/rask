@@ -134,6 +134,12 @@ Typed wrappers for the browser APIs that make a web app feel native. The shared 
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
+| **Local notifications** | `INotifications` *(WASM)* | Show a notification from the page (no server) |
+
+**Local vs push notifications.** `INotifications` (`Rask.Wasm.Browser`) shows a notification directly
+from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new NotificationOptions { … })`.
+Use it for in-app alerts. For notifications delivered while the app is **closed**, use
+[`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
 
 See [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis) for the full surface.
 
