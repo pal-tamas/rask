@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Two-way bindings now re-render derived UI automatically — even outside the `Form`.** A bound write
+  (`Bind` / `() => model.X`) re-renders the component that *authored* the binding, so a readout or summary
+  the consumer renders as a sibling of the control (or the `Form`) updates live with **no
+  `StateHasChanged`** and **no `AfterBind` hook**. The framework records the binding's authoring component
+  (the bind expression's closure root) on the `EditContext` and re-renders it on `NotifyFieldChanged` — the
+  bound-mode counterpart of the controlled-`OnChange` consumer re-render. Custom `IFormControl<T>` controls
+  get this for free.
+- **`RASK026` analyzer — redundant `StateHasChanged` in a Rask callback.** Warns when you call your own
+  `StateHasChanged()`/`StateHasChangedAsync()` from inside a generated-factory event/binding callback
+  (`OnChange`/`OnClick`/`OnInput`/`OnSubmit`/`AfterBind`/…); Rask already re-renders the callback's owner
+  after it runs (the tell-tale anti-pattern is `AfterBind: _ => StateHasChanged()`). Self-calls only;
+  lifecycle hooks, async loops, `feed.Updated += StateHasChanged`, and calls on a *different* component are
+  left alone. See [docs/diagnostics.md](docs/diagnostics.md#rask026).
+- **Form controls showcase page (`/form-controls`).** Every control — `Select`, `Input`, `Textarea`,
+  `RadioGroup`, `CheckboxGroup`, `MultiSelect` — shown in both shapes side by side (controlled `Value +
+  OnChange` and two-way `Bind`), each with a live readout that updates on every change with zero
+  `StateHasChanged` in the demo source.
 - **Native-feel PWA capabilities (WASM-only, `Rask.Wasm.Browser`)** — three typed wrappers that round out
   the installed-app experience, all injected through the constructor:
   - **`IBadge`** — set/clear a count on the installed app's icon (the Badging API): `IsSupportedAsync`,
@@ -66,6 +83,12 @@ them until tagged releases begin.
   the same pattern).
 
 ### Fixed
+- **Controlled `Select`/`Input`/`Textarea` `OnChange` now re-renders the consumer.** A controlled-mode
+  form control (`OnChange`/`OnChangeAsync` with parent-owned state, no `Bind`) wraps the typed callback
+  in its own DOM handler to parse the raw string → `T`. That handler's target is the control, so the
+  post-dispatch dirty-mark landed on the control instead of the component whose state `OnChange` mutates —
+  the consumer's view (e.g. the showcase "Select — onChange" picked-value text) never updated. The shared
+  `ControlledChangeHandler` bridge now notifies the callback's owning consumer after invoking it.
 - **Live diff now updates adjacent text nodes correctly.** Two bare strings rendered side by side
   (e.g. `Button()[ "Toggle ?tab=", value ]`) were emitted as two render frames, but the browser
   coalesces adjacent text into a single DOM node — so the diff's per-frame slot walk drifted past the

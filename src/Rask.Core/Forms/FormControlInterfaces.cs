@@ -38,8 +38,18 @@ public interface IFormControl<T>
     // Registers the per-field validator for the bound field (no-op when context is null). Passing the
     // collapsed Validator each render also clears a stale rule when the consumer drops it, so call it every
     // render. Replaces the boilerplate `ctx?.RegisterFieldValidator(acc.Field, …, () => acc.Getter())` line.
-    void RegisterValidator(ExpressionAccessor.Accessor accessor, EditContext? context) =>
-        context?.RegisterFieldValidator(accessor.Field, Validator, () => accessor.Getter());
+    void RegisterValidator(ExpressionAccessor.Accessor accessor, EditContext? context)
+    {
+        if (context is null)
+        {
+            return;
+        }
+
+        context.RegisterFieldValidator(accessor.Field, Validator, () => accessor.Getter());
+        // Record the binding's authoring component so a two-way write re-renders it (and any derived UI it
+        // owns outside the control/Form) automatically — no StateHasChanged on the consumer surface.
+        context.TrackBindingOwner(accessor.Field, accessor.Owner as Component);
+    }
 
     // Runs the post-bind hooks with the freshly-bound value.
     async Task InvokeAfterBindAsync(T value)
@@ -73,11 +83,20 @@ public interface IFormControl<T>
             return null;
         }
 
+        // Re-render the component that OWNS the callback (the consumer), not this control. The
+        // control is Element-derived (Select/Input/Textarea), so the generator skips AutoCallback
+        // wrapping (the !isElement hot-path guard), and the registered handler's Target is this
+        // control — so RegisterHandler's owner heuristic would dirty-mark the control, never the
+        // consumer whose state OnChange mutates. Capture the consumer via the same Target-as-Component
+        // heuristic AutoCallback uses and notify it after the typed callbacks run.
+        var consumer = (OnChange?.Target ?? OnChangeAsync?.Target) as Component;
+
         return new CallbackAsync<string>(async raw =>
         {
             if (BindingHelpers.TryParseValue(typeof(T), raw, out var parsed) && parsed is T value)
             {
                 await InvokeOnChangeAsync(value).ConfigureAwait(false);
+                consumer?.StateHasChanged();
             }
         });
     }

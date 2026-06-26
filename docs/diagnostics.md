@@ -34,6 +34,7 @@ build once.
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
+| [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 
 ---
 
@@ -304,3 +305,32 @@ Input(() => model.Email, Type: InputType.Email)
 **Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
 for a statically-known string-family `InputType` on a non-`string` `Input<T>`; `Input<int>(Type:
 InputType.Number)` and any `Input<string>` are left alone. Suppressible like any analyzer.
+
+## RASK026
+**Redundant `StateHasChanged` in a Rask callback** · Warning
+
+Rask re-renders the component that *owns* an event/binding callback automatically after the callback
+runs — including when a child control raised it (the framework re-renders the delegate's owner, captured
+from the lambda's `this`) and after a two-way bound write (the binding re-renders its authoring
+component). So calling your own `StateHasChanged()` from inside `OnChange`/`OnClick`/`OnInput`/`OnSubmit`/…
+or the `AfterBind`/`AfterBindAsync` hooks is dead weight. The tell-tale anti-pattern is reaching for
+`AfterBind: _ => StateHasChanged()` to make derived UI refresh.
+
+```csharp
+// ✗ redundant — the framework re-renders this component after OnChange runs:
+Select<string>(Value: _pick, OnChange: v => { _pick = v; StateHasChanged(); })
+// ✓ just update state; the render is automatic:
+Select<string>(Value: _pick, OnChange: v => _pick = v)
+
+// ✗ AfterBind only to force a re-render of a sibling readout:
+RadioGroup(() => model.Plan, options, AfterBind: _ => StateHasChanged())
+// ✓ a two-way write already re-renders the binding's owner — derived UI updates on its own:
+RadioGroup(() => model.Plan, options)
+```
+
+**Fix:** remove the `StateHasChanged()` call. If derived UI still isn't updating, the problem is the
+*owner* of the callback or binding (write the lambda where it captures the right `this`, or bind the
+model the consumer reads), not the render count. The warning fires only for a self-call
+(`StateHasChanged()` / `this.StateHasChanged()`) lexically inside a Rask callback; a `StateHasChanged` in
+a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasChanged`), or a call on a
+*different* component, is left alone. Suppressible like any analyzer.
