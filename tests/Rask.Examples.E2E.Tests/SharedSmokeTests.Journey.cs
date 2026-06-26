@@ -537,6 +537,46 @@ public abstract partial class SharedSmokeTests
         await controlled.Locator(".position-fixed").ClickAsync();
         await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Form controls page: every control in controlled (Value + OnChange) and bound (two-way) shape,
+        // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
+        // with no StateHasChanged in the demo — including the Component-style controls (RadioGroup /
+        // CheckboxGroup / MultiSelect) whose bound writes re-render the host via the binding owner.
+        await SideAsync("Form controls", "Form controls");
+
+        // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
+        await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
+        await Expect(Page.Locator("#fc-select-controlled-out")).ToContainTextAsync("Blazor",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#fc-select-bound").SelectOptionAsync("htmx");
+        await Expect(Page.Locator("#fc-select-bound-out")).ToContainTextAsync("htmx",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Input — bound streams per keystroke into a readout outside the Form.
+        await Page.Locator("#fc-input-bound").FillAsync("neo");
+        await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // RadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
+        await Page.Locator("input[type=radio][name='fc-radio-b'][value='Team']").CheckAsync();
+        await Expect(Page.Locator("#fc-radio-bound-out")).ToContainTextAsync("Team",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // CheckboxGroup — controlled.
+        await Page.Locator("input[type=checkbox][name='fc-checkbox-c'][value='AI']").CheckAsync();
+        await Expect(Page.Locator("#fc-checkbox-controlled-out")).ToContainTextAsync("AI",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // MultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
+        // backdrop doesn't intercept later navigation.
+        var fcMulti = Page.Locator("#fc-multiselect-bound");
+        await fcMulti.Locator(".form-select").ClickAsync();
+        await fcMulti.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
+        await Expect(Page.Locator("#fc-multiselect-bound-out")).ToContainTextAsync("Tech",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await fcMulti.Locator(".position-fixed").ClickAsync();
+        await Expect(fcMulti.Locator(".dropdown-menu.show")).ToBeHiddenAsync(
+            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
 
     private async Task WalkStylingDataAndAppPagesAsync()
