@@ -113,7 +113,7 @@ later step on the same pattern.
 | `IBrowserStorage` | `localStorage` / `sessionStorage` | `.Local` / `.Session` → `GetAsync`, `SetAsync`, `RemoveAsync`, `ClearAsync`, `KeyAsync`, `LengthAsync` |
 | `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
 | `IClipboard` | `navigator.clipboard` | `WriteTextAsync`, `ReadTextAsync` |
-| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition` |
+| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition`; `WatchAsync(Func<GeolocationPosition,Task>, …)` → `IAsyncDisposable` (live tracking) |
 | `IPermissions` | `navigator.permissions` | `QueryAsync(PermissionName)` → `PermissionState` |
 | `IVibration` | `navigator.vibrate` | `VibrateAsync(params int[])`, `CancelAsync` |
 | `IPageVisibility` | `document.visibilityState` | `GetStateAsync()` → `PageVisibility`, `IsHiddenAsync` |
@@ -172,10 +172,11 @@ transient activation has expired. The practical effect:
   visibility) is unaffected by activation and behaves identically on both transports.
 
 Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
-and **`IResizeObserver`** are the exceptions — they're *subscriptions*: you open/observe (returning an
-`IAsyncDisposable`) and the browser **pushes** each change back to a C# handler (via a static
-`[JSInvokable]`, so one wiring works on both transports — the observers additionally hand the observed
-element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a handler
+**`IResizeObserver`**, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
+open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
+handler (via a static `[JSInvokable]`, so one wiring works on both transports — the observers additionally
+hand the observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a
+handler
 that updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
 subscription, not a render/binding callback, so RASK026 doesn't apply).
 
