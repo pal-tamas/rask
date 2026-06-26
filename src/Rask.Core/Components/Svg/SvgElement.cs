@@ -1,5 +1,4 @@
 using System.Text;
-using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -36,8 +35,8 @@ public abstract class SvgElement : Element
     public string? Visibility { get; set; }
     public string? PointerEvents { get; set; }
 
-    public Callback? OnClick { get; set; }
-    public CallbackAsync? OnClickAsync { get; set; }
+    // OnClick (and the rest of the GlobalEventHandlers surface) is inherited from Element — any SVG
+    // shape is interactive through the universal data-rask-on-* path without redeclaring it here.
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -126,12 +125,6 @@ public abstract class SvgElement : Element
         if (PointerEvents is not null)
         {
             AppendAttr(sb, "pointer-events", PointerEvents);
-        }
-
-        var click = (Delegate?)OnClick ?? OnClickAsync;
-        if (click is not null && LiveRenderContext.CurrentSync is { } ctx)
-        {
-            AppendAttr(sb, "data-rask-on-click", ctx.RegisterHandler(click));
         }
     }
 }

@@ -137,6 +137,9 @@ public class LiveViewTests
     {
         var syncFired = 0;
         var asyncFired = 0;
+        // Deliberately wires BOTH siblings to verify the runtime tiebreak (sync wins). RASK027 flags
+        // this at the call site for real code; here it's the behaviour under test, so suppress it.
+#pragma warning disable RASK027
         var view = new StubComponent(() => Button(
             OnClick: () => syncFired++,
             OnClickAsync: async () =>
@@ -144,6 +147,7 @@ public class LiveViewTests
                 await Task.Yield();
                 asyncFired++;
             })["x"]);
+#pragma warning restore RASK027
 
         // emits attribute even when both set; sync wins when both registered
         var html = view.RenderAsLiveRoot();

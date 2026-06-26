@@ -1,35 +1,19 @@
-using System.Globalization;
 using System.Text;
 
 namespace Rask.Core.Components;
 
-public sealed class Th : Element
+public sealed class Th : HtmlTableCellElement
 {
     protected override string TagName => "th";
 
-    public int? Colspan { get; set; }
-    public int? Rowspan { get; set; }
-    public string? Headers { get; set; }
     public string? Scope { get; set; }
     public string? Abbr { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
+        // Emits the universal attrs then the shared HtmlTableCellElement block (colspan, rowspan,
+        // headers); the th-specific scope/abbr follow that block.
         base.WriteAttributes(sb);
-        if (Colspan is not null)
-        {
-            AppendAttr(sb, "colspan", Colspan.Value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        if (Rowspan is not null)
-        {
-            AppendAttr(sb, "rowspan", Rowspan.Value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        if (Headers is not null)
-        {
-            AppendAttr(sb, "headers", Headers);
-        }
 
         if (Scope is not null)
         {

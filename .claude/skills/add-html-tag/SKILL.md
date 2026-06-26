@@ -11,6 +11,14 @@ nullable enabled, expression-bodied single-line members.
 
 ## 1. Component — `src/Rask.Core/Components/{Tag}.cs`
 - `public sealed class {Tag} : Element`, override `protected override string TagName => "{tag}";`.
+  - **If the tag shares a DOM interface with sibling tags, derive from the matching `Html*Element`
+    base instead of `Element`** — these mirror the DOM hierarchy and hold the shared attributes:
+    `HtmlMediaElement` (audio/video), `HtmlTableCellElement` (td/th), `HtmlModElement` (ins/del),
+    `HtmlTableColElement` (col/colgroup), `HtmlQuoteElement` (q/blockquote), `HtmlHeadingElement`
+    (h1–h6), `HtmlTableSectionElement` (thead/tbody/tfoot). A base's `WriteAttributes` runs first, so
+    its shared attrs emit before your tag-specific ones; the generator still flattens every inherited
+    public prop into the factory. Add a new `Html*Element` base when two tags would otherwise duplicate
+    the same attribute set.
 - **Void/self-closing** elements (br, img, input, hr, meta, link, …) add `protected override bool SelfClosing => true;`.
 - Each tag-specific attribute is a **public mutable property**. Type choice drives the factory:
   - nullable (`string?`, `bool?`, `int?`) → **optional** factory param (default null) — use this for HTML attrs to keep them ergonomic.

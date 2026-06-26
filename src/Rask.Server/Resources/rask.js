@@ -1026,6 +1026,8 @@
     document.addEventListener("keydown", (e) => sendKey(e, "data-rask-on-keydown", "keydown"));
     document.addEventListener("keyup", (e) => sendKey(e, "data-rask-on-keyup", "keyup"));
 
+    // @@RASK_EVENTS@@
+
     // ----- IJSRuntime global-JS dispatcher -----------------------------------
     // Mirrors the Microsoft.JSInterop contract: server sends an "identifier" like
     // "sessionStorage.getItem", we resolve it on window, invoke it with args, then
