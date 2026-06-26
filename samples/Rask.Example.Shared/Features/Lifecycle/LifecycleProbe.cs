@@ -29,9 +29,11 @@ public sealed class LifecycleProbe : Component
         [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 Span(Class: "badge text-bg-primary fs-6")[$"Render #{++_renderCount}"],
+                // A bare event handler is enough: Rask re-renders the component that owns the callback
+                // after it runs, so the click repaints this probe with no StateHasChanged (RASK026).
                 Button(
                     Class: "btn btn-primary btn-sm",
-                    OnClick: () => StateHasChanged())[I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"]
+                    OnClick: () => { })[I(Class: "bi bi-arrow-clockwise me-1"), "Trigger re-render"]
             ],
             H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
             Ol(Class: "list-group list-group-numbered list-group-flush")[

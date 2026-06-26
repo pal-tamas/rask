@@ -93,7 +93,44 @@ public static class ExpressionAccessor
             target,
             prop,
             () => prop.GetValue(target),
-            v => prop.SetValue(target, v));
+            v => prop.SetValue(target, v))
+        {
+            Owner = FindRootConstant(me),
+        };
+    }
+
+    // Walks an expression chain down to its root captured constant and returns its value. For a binding
+    // authored in a component as `() => _model.Field`, the field/`this` access compiles to a chain ending
+    // in a ConstantExpression holding the component instance — so this returns that component (the
+    // *consumer* that owns the binding). When the binding closes over a local instead (the value is a
+    // compiler closure, not a component), it returns that — callers treat a non-Component result as "no
+    // owner". This is the bound-mode analogue of a callback delegate's Target.
+    private static object? FindRootConstant(Expression? e)
+    {
+        while (e is not null)
+        {
+            switch (e)
+            {
+                case ConstantExpression c:
+                    return c.Value;
+                case MemberExpression m:
+                    e = m.Expression;
+                    break;
+                case UnaryExpression u:
+                    e = u.Operand;
+                    break;
+                case BinaryExpression { NodeType: ExpressionType.ArrayIndex } b:
+                    e = b.Left;
+                    break;
+                case MethodCallExpression { Object: { } obj }:
+                    e = obj; // list/dictionary indexer (get_Item)
+                    break;
+                default:
+                    return null;
+            }
+        }
+
+        return null;
     }
 
     // Target is the resolved owner instance; Getter/Setter read and write the terminal property on it.
@@ -109,5 +146,10 @@ public static class ExpressionAccessor
         public Type PropertyType => Property.PropertyType;
         public string PropertyName => Property.Name;
         public FieldIdentifier Field => new(Target, Property.Name);
+
+        // The component that authored the bind expression (the closure root, when it is a component) —
+        // used to re-render the consumer on a two-way write so derived UI outside the control/Form
+        // updates without any StateHasChanged. Null when the binding closed over a non-component root.
+        public object? Owner { get; init; }
     }
 }

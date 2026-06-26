@@ -16,6 +16,12 @@ public sealed class EditContext : IDisposable
     private readonly Dictionary<FieldIdentifier, DelegateRegistration> _fieldDelegates = new();
     private readonly Dictionary<FieldIdentifier, FieldState> _states = new();
     private readonly List<IFieldValidator> _validators = new();
+
+    // The component that authored each field's bind expression (recorded when the control registers its
+    // validator). A two-way write re-renders this consumer so derived UI it owns — even a sibling of the
+    // Form, outside the control's own re-render scope — refreshes with no StateHasChanged. Mirrors the
+    // controlled-mode AutoCallback owner-rerender, for bound mode.
+    private readonly Dictionary<FieldIdentifier, Component> _bindingOwners = new();
     private Delegate? _formDelegate;
 
     public EditContext(object model) => Model = model ?? throw new ArgumentNullException(nameof(model));
@@ -238,11 +244,29 @@ public sealed class EditContext : IDisposable
     public bool HasValidationMessages() =>
         _states.Values.Any(s => s.Messages.Count > 0);
 
+    // Records the consumer that owns a field's bind expression so a write can re-render it. Idempotent per
+    // render; null owners (bindings closed over a non-component root) are ignored.
+    internal void TrackBindingOwner(FieldIdentifier field, Component? owner)
+    {
+        if (owner is not null)
+        {
+            _bindingOwners[field] = owner;
+        }
+    }
+
     public void NotifyFieldChanged(FieldIdentifier field)
     {
         var s = GetOrCreate(field);
         s.Modified = true;
         FieldChanged?.Invoke(field);
+
+        // Re-render the binding's authoring component so its derived UI (including siblings outside the
+        // Form / the control) reflects the new model value — the bound-mode counterpart of the
+        // controlled-OnChange consumer re-render. The control already re-renders itself; this covers the host.
+        if (_bindingOwners.TryGetValue(field, out var owner))
+        {
+            owner.StateHasChanged();
+        }
     }
 
     public void NotifyFieldTouched(FieldIdentifier field) =>
