@@ -174,6 +174,26 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Web Crypto (driven by ICrypto). getRandomValues fills a typed array and subtle.digest returns an
+// ArrayBuffer; return plain bytes / a lowercase hex string so IJSRuntime can marshal them. No regex
+// literals (the client-JS splice mangles backslashes), so hex uses a lookup, not String.prototype.padStart
+// on a radix string.
+window.__raskCrypto = window.__raskCrypto || {
+    randomUuid: () => crypto.randomUUID(),
+    randomBytes: (length) => Array.from(crypto.getRandomValues(new Uint8Array(length))),
+    digestHex: async (algorithm, text) => {
+        const data = new TextEncoder().encode(text);
+        const buf = await crypto.subtle.digest(algorithm, data);
+        const bytes = new Uint8Array(buf);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i++) {
+            const h = bytes[i].toString(16);
+            hex += (h.length === 1 ? "0" : "") + h;
+        }
+        return hex;
+    }
+};
+
 // Geolocation watch (driven by IGeolocation.WatchAsync). navigator.geolocation.watchPosition pushes each
 // fix; forward it to C# via the shared window.DotNet.invokeMethodAsync shim (static [JSInvokable]
 // GeolocationWatchInterop.Fix in Rask.Core). The fix object matches the GeolocationPosition record (same

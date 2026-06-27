@@ -79,7 +79,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.BroadcastChannelPage(), "Broadcast channel", "bi-broadcast-pin", "Browser APIs", null),
         (Features.Routes.IntersectionObserverPage(), "Intersection observer", "bi-binoculars", "Browser APIs", null),
         (Features.Routes.ResizeObserverPage(), "Resize observer", "bi-arrows-angle-expand", "Browser APIs", null),
-        (Features.Routes.GeolocationWatchPage(), "Live location", "bi-geo", "Browser APIs", null)
+        (Features.Routes.GeolocationWatchPage(), "Live location", "bi-geo", "Browser APIs", null),
+        (Features.Routes.CryptoPage(), "Web Crypto", "bi-shield-shaded", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

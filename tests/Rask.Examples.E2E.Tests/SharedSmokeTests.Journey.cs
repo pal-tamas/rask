@@ -945,6 +945,13 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Live location", "Live location");
         await Page.Locator("#geowatch-start").ClickAsync();
         await Expect(Page.Locator("#geowatch-value")).ToContainTextAsync("51.5", contains);
+
+        // Web Crypto — crypto.subtle.digest of the default input "hello" is a known SHA-256 constant, so
+        // the hash is deterministic across hosts (validates the round-trip + hex encoding).
+        await SideAsync("Web Crypto", "Web Crypto");
+        await Page.Locator("#crypto-hash").ClickAsync();
+        await Expect(Page.Locator("#crypto-hash-value"))
+            .ToContainTextAsync("2cf24dba5fb0a30e26e83b2ac5b9e29e", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal

@@ -204,6 +204,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<IBroadcastChannel, BroadcastChannelService>();
         services.AddScoped<IIntersectionObserver, IntersectionObserverService>();
         services.AddScoped<IResizeObserver, ResizeObserverService>();
+        services.AddScoped<ICrypto, Crypto>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();
