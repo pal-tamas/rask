@@ -608,6 +608,75 @@ window.__raskBroadcast = window.__raskBroadcast || (() => {
     };
 })();
 
+// Gamepad (driven by IGamepad). The Gamepad API has no input event, so each watch runs a
+// requestAnimationFrame poll of navigator.getGamepads() under the C#-minted id and pushes a reading back
+// via the shared window.DotNet.invokeMethodAsync shim (static [JSInvokable] GamepadInterop.Reading in
+// Rask.Core) ONLY when a pad's state changes — throttled to ~12 Hz so a held stick doesn't flood the
+// transport. rAF is paused by the browser while the tab is hidden, which also pauses the poll.
+window.__raskGamepad = window.__raskGamepad || (() => {
+    const watchers = new Map();
+    return {
+        isSupported: () => "getGamepads" in navigator,
+        watch: (id) => {
+            let last = 0;
+            let raf = 0;
+            const prev = new Map(); // pad index -> last serialized snapshot
+            const tick = () => {
+                const now = Date.now();
+                if (now - last >= 80) {
+                    last = now;
+                    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+                    const live = new Set();
+                    for (let i = 0; i < pads.length; i++) {
+                        const p = pads[i];
+                        if (!p) {
+                            continue;
+                        }
+                        live.add(p.index);
+                        const axes = Array.prototype.map.call(p.axes, (a) => Math.round(a * 1000) / 1000);
+                        const buttons = Array.prototype.map.call(p.buttons, (b) => b.value);
+                        const snap = axes.join(",") + "|" + buttons.join(",") + "|" + p.connected;
+                        if (prev.get(p.index) !== snap) {
+                            prev.set(p.index, snap);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: p.index,
+                                id: p.id,
+                                connected: p.connected,
+                                axes: axes,
+                                buttons: buttons
+                            });
+                        }
+                    }
+                    // Emit a final disconnect reading for pads that vanished since the last poll.
+                    prev.forEach((_, index) => {
+                        if (!live.has(index)) {
+                            prev.delete(index);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: index,
+                                id: "",
+                                connected: false,
+                                axes: [],
+                                buttons: []
+                            });
+                        }
+                    });
+                }
+                raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            watchers.set(id, () => cancelAnimationFrame(raf));
+        },
+        unwatch: (id) => {
+            const stop = watchers.get(id);
+            if (!stop) {
+                return;
+            }
+            watchers.delete(id);
+            stop();
+        }
+    };
+})();
+
 
 // WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
 // in the Server client, since these back APIs that can't work over the WebSocket round-trip.
@@ -863,6 +932,57 @@ window.__raskFullscreen = window.__raskFullscreen || {
     request: (el) => (el || document.documentElement).requestFullscreen(),
     exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
 };
+
+// EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
+// rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => "EyeDropper" in window,
+    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+};
+
+// Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
+// this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op
+// when no miniplayer is open.
+window.__raskPip = window.__raskPip || {
+    isSupported: () => !!document.pictureInPictureEnabled,
+    isActive: () => document.pictureInPictureElement != null,
+    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
+    exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
+};
+
+// Idle Detection (driven by IIdleDetector). Permission needs transient activation and the detector needs
+// the live document, so this is WASM-only. Each watch holds a live IdleDetector + AbortController under the
+// C#-minted id and pushes each change back via window.DotNet.invokeMethodAsync (static [JSInvokable]
+// IdleDetectorInterop.Changed in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
+window.__raskIdle = window.__raskIdle || (() => {
+    const detectors = new Map();
+    return {
+        isSupported: () => "IdleDetector" in window,
+        requestPermission: () =>
+            window.IdleDetector ? IdleDetector.requestPermission().catch(() => "denied") : Promise.resolve("denied"),
+        watch: async (id, thresholdSeconds) => {
+            const controller = new AbortController();
+            const detector = new IdleDetector();
+            detector.addEventListener("change", () => {
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskIdleChanged", id, {
+                    userIdle: detector.userState === "idle",
+                    screenLocked: detector.screenState === "locked"
+                });
+            });
+            // The spec enforces a 60-second floor; clamp here so a smaller value doesn't reject.
+            await detector.start({threshold: Math.max(60, thresholdSeconds) * 1000, signal: controller.signal});
+            detectors.set(id, controller);
+        },
+        unwatch: (id) => {
+            const controller = detectors.get(id);
+            if (!controller) {
+                return;
+            }
+            detectors.delete(id);
+            controller.abort();
+        }
+    };
+})();
 
 
 // Serializes render application across payloads. A navigation diff/full reply may defer

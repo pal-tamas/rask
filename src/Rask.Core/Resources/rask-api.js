@@ -597,3 +597,72 @@ window.__raskBroadcast = window.__raskBroadcast || (() => {
         }
     };
 })();
+
+// Gamepad (driven by IGamepad). The Gamepad API has no input event, so each watch runs a
+// requestAnimationFrame poll of navigator.getGamepads() under the C#-minted id and pushes a reading back
+// via the shared window.DotNet.invokeMethodAsync shim (static [JSInvokable] GamepadInterop.Reading in
+// Rask.Core) ONLY when a pad's state changes — throttled to ~12 Hz so a held stick doesn't flood the
+// transport. rAF is paused by the browser while the tab is hidden, which also pauses the poll.
+window.__raskGamepad = window.__raskGamepad || (() => {
+    const watchers = new Map();
+    return {
+        isSupported: () => "getGamepads" in navigator,
+        watch: (id) => {
+            let last = 0;
+            let raf = 0;
+            const prev = new Map(); // pad index -> last serialized snapshot
+            const tick = () => {
+                const now = Date.now();
+                if (now - last >= 80) {
+                    last = now;
+                    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+                    const live = new Set();
+                    for (let i = 0; i < pads.length; i++) {
+                        const p = pads[i];
+                        if (!p) {
+                            continue;
+                        }
+                        live.add(p.index);
+                        const axes = Array.prototype.map.call(p.axes, (a) => Math.round(a * 1000) / 1000);
+                        const buttons = Array.prototype.map.call(p.buttons, (b) => b.value);
+                        const snap = axes.join(",") + "|" + buttons.join(",") + "|" + p.connected;
+                        if (prev.get(p.index) !== snap) {
+                            prev.set(p.index, snap);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: p.index,
+                                id: p.id,
+                                connected: p.connected,
+                                axes: axes,
+                                buttons: buttons
+                            });
+                        }
+                    }
+                    // Emit a final disconnect reading for pads that vanished since the last poll.
+                    prev.forEach((_, index) => {
+                        if (!live.has(index)) {
+                            prev.delete(index);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: index,
+                                id: "",
+                                connected: false,
+                                axes: [],
+                                buttons: []
+                            });
+                        }
+                    });
+                }
+                raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            watchers.set(id, () => cancelAnimationFrame(raf));
+        },
+        unwatch: (id) => {
+            const stop = watchers.get(id);
+            if (!stop) {
+                return;
+            }
+            watchers.delete(id);
+            stop();
+        }
+    };
+})();

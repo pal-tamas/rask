@@ -957,6 +957,13 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#ms-publish").ClickAsync();
         await Expect(Page.Locator("#ms-status")).ToContainTextAsync("published", contains);
 
+        // Gamepad — chromium exposes navigator.getGamepads, so IsSupported resolves true on both hosts and
+        // the watch starts (status flips to "Ready"). No virtual pad is connected headless, so the count
+        // stays 0; the per-pad readings are covered by unit tests.
+        await SideAsync("Gamepad", "Gamepad");
+        await Expect(Page.Locator("#gamepad-status")).ToContainTextAsync("Ready", contains);
+        await Expect(Page.Locator("#gamepad-count")).ToContainTextAsync("0", contains);
+
         // Device sensors — chromium exposes DeviceOrientationEvent (no iOS prompt), so Start grants and
         // begins watching on both hosts; the status flips to "listening" even though no sensor data flows
         // headless. Proves the IsSupported/RequestPermission/WatchAsync round-trip; readings are unit-tested.
