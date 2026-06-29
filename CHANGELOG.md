@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Rask.Bootstrap — typed Bootstrap 5.3 component library (new optional package).** Discoverable C#
+  factories that emit correct Bootstrap markup, with typed enums replacing stringly-typed variants
+  (`BsColor`/`BsSize`/`BsTheme`; `BsIconName` covers every Bootstrap Icons glyph). Content components
+  (`BsButton`/`BsBadge`/`BsAlert`/`BsCard` + sections/`BsSpinner`/`BsProgress`/`BsListGroup`/
+  `BsPagination`/`BsBreadcrumb`/`BsPlaceholder`/`BsTable`/`BsCloseButton`/`BsIcon`); **interactive
+  components driven entirely by Rask's live runtime with zero JavaScript** — controlled state, no
+  `bootstrap.js` — (`BsModal`/`BsOffcanvas`/`BsCollapse`/`BsAccordion`/`BsTabs`/`BsDropdown`/`BsToast`);
+  and `IFormControl<T>`-bound form controls with `.is-invalid`/`.invalid-feedback` built in
+  (`BsInput<T>`/`BsTextarea<T>`/`BsSelect<T>`/`BsCheck`/`BsRadioGroup<T>`/`BsCheckboxGroup<T>`/
+  `BsMultiSelect<T>`/`BsFormGroup`/`BsFormLabel`/`BsInputGroup`). **Typed utility classes** —
+  `Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4, Bp.Md))` across the Shadow/Border/Margin/Padding/
+  Display/Flex/Rounded/Txt/Font/Sizing/Position/Bg families with responsive `Bp` breakpoints. Bootstrap
+  5.3.8 + Bootstrap Icons 1.13.1 ship as static web assets under `_content/Rask.Bootstrap`; link them
+  with `BootstrapStyles()`. Self-contained optional package (like the validation libraries). New
+  **Bootstrap** showcase section (`/bootstrap/*`). See `docs/bootstrap.md`. The sample apps now dogfood
+  the `Bs*` primitives throughout, and `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect`/`BsToast` are
+  promoted from the samples into the package.
 - **Broadcast Channel (`IBroadcastChannel`, `Rask.Core.Browser`)** — same-origin cross-tab messaging from
   C#: `OpenAsync(name, Func<string,Task> onMessage)` returns an `IBroadcastChannelConnection`
   (`PostAsync(message)` + `IAsyncDisposable`); a connection receives messages posted by *other* connections
@@ -164,6 +181,14 @@ them until tagged releases begin.
   the same pattern).
 
 ### Fixed
+- **Render cache is now children-aware for composite components.** A non-`Element` component's children
+  arrive via the `[...]` indexer (not a factory parameter, so absent from the prop-change check) and are
+  baked into its `Render()` output, so when the child set changed but its props didn't — e.g. a
+  conditional alert appearing inside a wrapper while the wrapper's own classes stayed fixed — the stale
+  cached render was reused and the update was dropped. `RenderForLive` no longer serves a non-`Element`
+  component that has children from the cache, so composite wrappers behave like the inline elements they
+  wrap. Allocation-neutral on the render benchmarks. (`Element`s were never affected — their children are
+  walked at serialization, not embedded in the cached result.)
 - **Controlled `Select`/`Input`/`Textarea` `OnChange` now re-renders the consumer.** A controlled-mode
   form control (`OnChange`/`OnChangeAsync` with parent-owned state, no `Bind`) wraps the typed callback
   in its own DOM handler to parse the raw string → `T`. That handler's target is the control, so the

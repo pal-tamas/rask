@@ -1,8 +1,8 @@
 # Building form controls
 
-Rask ships a few form elements (`Input`/`Select`/`Textarea`) and a few example controls
-(`MultiSelect`/`CheckboxGroup`/`RadioGroup` in the samples) — but the binding system is **public**, so you
-write exactly the controls your app needs. A custom control gets the same two-way binding, per-field
+Rask ships a few form elements (`Input`/`Select`/`Textarea`), and the optional **`Rask.Bootstrap`** package adds
+typed, ready-made controls (`BsMultiSelect`/`BsCheckboxGroup`/`BsRadioGroup`, see [bootstrap.md](bootstrap.md)) —
+but the binding system is **public**, so you write exactly the controls your app needs. A custom control gets the same two-way binding, per-field
 validation, and controlled mode as the built-ins by implementing one interface: **`IFormControl<T>`**.
 The factory generator does the rest.
 
@@ -227,4 +227,5 @@ feedback **inside** the control (an embedded `ValidationMessage`, chips), and fo
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
    E2E if it has a showcase page. Construct via the generated factory, never `new` (RASK014).
 
-Worked examples in the repo: `samples/Rask.Example.Shared/Shared/{MultiSelect,CheckboxGroup,RadioGroup}.cs`.
+Worked examples: the `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect` controls in the **Rask.Bootstrap**
+package (`src/Rask.Bootstrap/Bs{RadioGroup,CheckboxGroup,MultiSelect}.cs`).

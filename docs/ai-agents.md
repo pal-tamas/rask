@@ -12,7 +12,9 @@ Rask app correctly without you re-explaining the conventions.
   routing/lifecycle, scoped CSS/JS, callbacks, forms, auth).
 - **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
 - **The `docs/` set** — task guides (getting-started, routing, lifecycle, composition, forms,
-  js-interop, authentication, migration-from-blazor, diagnostics, testing).
+  js-interop, authentication, migration-from-blazor, diagnostics, testing) plus the optional
+  `Rask.Bootstrap` reference (`docs/bootstrap.md`: typed Bootstrap 5.3 components, zero-JS
+  interactivity, typed utility classes).
 
 ## How to use it
 

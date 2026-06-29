@@ -13,6 +13,7 @@
 [![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
 [![NuGet Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
 [![NuGet Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
+[![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -120,6 +121,7 @@ Only the hosting glue changes.
 |  ⚡  | **Live diff codec**                | After first paint, a small state change ships a minimal edit-op payload instead of re-serializing the page — a counter tick on a 50 KB page goes from ~50 KB to ~57 bytes on the wire. On by default.                                                                                                                                                                                                                                                                             |
 | 🔑  | **Keyed lists**                    | Add a `Key:` to list items (Blazor `@key` parity) and inserts/removes/reorders reconcile by identity — shipping trusted structural diffs that preserve focus and input state on the survivors. A `RASK022` analyzer flags a list item that's missing a key.                                                                                                                                                                                                                       |
 | 🔐  | **Authentication, ASP.NET-native** | Inject `IUserProvider` and read `.Current` (a never-null `ClaimsPrincipal`) plus a headless `Authorize(Roles:, Policy:, Authorized:, NotAuthorized:, Authorizing:)` component for declarative gating, and `[Authorize]` on a page for route gating. No bespoke options — wire cookies/JWT/OIDC on ASP.NET's own `AddCookie`/`AddJwtBearer`/`AddAuthorization`. Runnable samples + `dotnet new --auth` cover cookie & JWT on both Server and WASM. See **[docs/authentication.md](docs/authentication.md)**. |
+| 🅱️  | **Typed Bootstrap, zero JS**       | The optional **`Rask.Bootstrap`** package gives you typed Bootstrap 5.3 factories (`BsButton`, `BsCard`, `BsAlert`, …), interactive components driven by the live runtime with **no JavaScript** (`BsModal`/`BsOffcanvas`/`BsAccordion`/`BsTabs`/`BsDropdown`/`BsToast`, controlled state), `IFormControl<T>`-bound inputs, color modes, a typed `BsIcon`, and typed utility classes (`Bs.Join(Shadow.Sm, Margin.Bottom(4, Bp.Md))`). Bootstrap + Bootstrap Icons are bundled as static assets — link them with `BootstrapStyles()`. See **[docs/bootstrap.md](docs/bootstrap.md)**. |
 
 ## ⚖️ Compared to Blazor
 
@@ -174,6 +176,7 @@ Pick one host package per project, then add validation packages as needed:
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
 | `Rask.Validation.DataAnnotations`  | any host (referenced from the project that hosts your forms)        | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
 | `Rask.Validation.FluentValidation` | any host (referenced from the project that hosts your forms)        | drop `FluentValidationValidator(new MyValidator())` inside  |
+| `Rask.Bootstrap`                   | any host (referenced from the project with your components)         | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
 
 ```bash
 dotnet add package Rask.Server                       # server live host
@@ -181,11 +184,28 @@ dotnet add package Rask.Wasm                         # browser WASM client
 dotnet add package Rask.Wasm.Hosting                 # ASP.NET host serving a WASM bundle
 dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentModel.DataAnnotations
 dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
+dotnet add package Rask.Bootstrap                     # opt-in: typed Bootstrap 5.3 components
 ```
 
 `Rask.Server` and `Rask.Wasm` each pull in `Rask.Core` and the source generators transitively; `Rask.Wasm.Hosting`
-pulls in `Rask.Wasm`. The validation packages add a global `using static` for their factory namespace, so
-`DataAnnotationsValidator()` / `FluentValidationValidator(...)` are in scope without extra `using` lines.
+pulls in `Rask.Wasm`. The validation and `Rask.Bootstrap` packages add a global `using static` for their factory
+namespace, so `DataAnnotationsValidator()` / `FluentValidationValidator(...)` / the `Bs*` factories are in scope
+without extra `using` lines.
+
+`Rask.Bootstrap` is a self-contained, optional package: it bundles Bootstrap 5.3.8 + Bootstrap Icons 1.13.1 as static
+web assets under `_content/Rask.Bootstrap` and renders interactive components (`BsModal`, `BsAccordion`, `BsTabs`, …)
+through the live runtime with **zero JavaScript**. Link the CSS once in your `App`'s `Head`, then use the typed
+factories:
+
+```csharp
+protected override RenderResult Head => [Title()["My App"], BootstrapStyles()];
+
+// elsewhere
+BsButton(Color: BsColor.Primary, OnClick: () => _open = true)["Open"]
+BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[P()["No JS required."]]
+```
+
+See **[docs/bootstrap.md](docs/bootstrap.md)** for the full component and utility-class reference.
 
 ## ⚖️ When to use Server vs WASM
 
@@ -457,6 +477,7 @@ see **[`docs/`](docs/)**:
 - **[Best practices](docs/best-practices.md)** — the patterns and pitfalls that keep an app correct, secure, and fast.
 - **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** · **[Lifecycle](docs/lifecycle.md)** · *
   *[Authentication](docs/authentication.md)**
+- **[Bootstrap (Rask.Bootstrap)](docs/bootstrap.md)** — typed Bootstrap 5.3 components, zero-JS interactivity, and typed utility classes.
 - **[Accessibility](docs/accessibility.md)** · **[Observability](docs/observability.md)** · **[Configuration](docs/configuration.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
 - **[Diagnostics (RASK001–024)](docs/diagnostics.md)** — every build error/warning and its fix.
 - **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.
@@ -984,9 +1005,11 @@ demonstrates all four patterns side-by-side.
 #### Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an `ICollection<TItem>`,
-toggling each item in place. They are **example components that ship in the samples**
-(`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls built on the public
-binding API below. Both render a transparent `Fragment` with Bootstrap
+toggling each item in place. Production-ready, typed versions ship in the optional **`Rask.Bootstrap`** package as
+`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect` (see [docs/bootstrap.md](docs/bootstrap.md)); the versions below
+are a **copyable worked example** of the `IFormControl<T>` binding API (`samples/Rask.Example.Shared/Shared/`) — the
+interface is the framework primitive, the control is yours to build or take from the package. Both render a transparent
+`Fragment` with Bootstrap
 [check markup](https://getbootstrap.com/docs/5.3/forms/checks-radios/), so changes flow through the `EditContext`
 (validation, touched-tracking) like any bound field:
 

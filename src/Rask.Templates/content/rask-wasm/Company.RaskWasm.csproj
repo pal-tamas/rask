@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <PackageReference Include="Rask.Wasm" Version="RASK_PKG_VERSION"/>
+    <PackageReference Include="Rask.Bootstrap" Version="RASK_PKG_VERSION"/>
   </ItemGroup>
 
 </Project>
