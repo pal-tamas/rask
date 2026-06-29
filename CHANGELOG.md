@@ -30,6 +30,16 @@ them until tagged releases begin.
   assembly). New `/browser/gamepad` showcase page (shared sample) plus `/picture-in-picture`,
   `/eyedropper`, and `/idle` pages in the WASM sample; documented in the
   [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **File System Access (`IFileSystemAccess`, `Rask.Core.Browser`)** — open a file from disk, edit it, and
+  save it *back to the same file* (not just download a copy), or work against a whole directory — for
+  in-browser editors and file managers. `OpenFileAsync` / `OpenFilesAsync` / `SaveFileAsync` (typed
+  `FilePickerOptions` / `SaveFilePickerOptions`) and `OpenDirectoryAsync` return disposable `IFileHandle` /
+  `IDirectoryHandle` wrappers with `ReadTextAsync` / `WriteTextAsync` (and bytes, base64 over the wire) and
+  `ListAsync` / `GetFileAsync`; cancelling a picker returns `null` rather than throwing. The opaque browser
+  handles live JS-side under a framework-minted id (dispose the wrapper to release). **Shared** — works on
+  both transports, Chromium-family only (gate on `IsSupportedAsync` and fall back to upload/download). New
+  `/browser/file-system` showcase page (a tiny open→edit→save editor); documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Expanded `WebAppManifest` (`Rask.Wasm.Browser`)** — typed support for the richer manifest members,
   all optional and omitted when unset: `Categories`, `Orientation` (`ManifestOrientation`),
   `DisplayOverride` (`DisplayOverrideMode`, incl. `window-controls-overlay`), `Shortcuts`

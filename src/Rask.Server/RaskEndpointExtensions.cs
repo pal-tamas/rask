@@ -212,6 +212,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<ICrypto, Crypto>();
         services.AddScoped<IPerformance, Performance>();
         services.AddScoped<IIndexedDb, IndexedDb>();
+        services.AddScoped<IFileSystemAccess, FileSystemAccess>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();
