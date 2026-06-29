@@ -889,11 +889,13 @@ public abstract class Component
     internal string RegisterHandler(Delegate handler, Component owner)
     {
         // For lambdas / method groups that close over `this` inside a Component subclass
-        // (e.g., `() => _field++` or `OnSubmit: SubmitHandler`), the delegate's Target is
-        // the originating component. That's the right owner to dirty-mark after
-        // invocation — it sidesteps the case where an element with a handler is built in
-        // ComponentA.Render() but rendered inside ComponentB's subtree (passed as a prop).
-        if (handler.Target is Component target)
+        // (e.g., `() => _field++` or `OnSubmit: SubmitHandler`), the originating component is
+        // the right owner to dirty-mark after invocation — it sidesteps the case where an
+        // element with a handler is built in ComponentA.Render() but rendered inside
+        // ComponentB's subtree (passed as a child of a composite wrapper). DelegateOwner also
+        // unwraps a closure that captured `this` alongside a local (e.g. `() => _active = index`),
+        // so wrapping an interactive element in a composite never steals its re-render.
+        if (DelegateOwner.Resolve(handler) is { } target)
         {
             owner = target;
         }

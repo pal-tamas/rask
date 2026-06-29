@@ -72,6 +72,16 @@ them until tagged releases begin.
   component that has children from the cache, so composite wrappers behave like the inline elements they
   wrap. Allocation-neutral on the render benchmarks. (`Element`s were never affected — their children are
   walked at serialization, not embedded in the cached result.)
+- **Event-handler re-render resolves through a captured closure.** A handler that closes over `this` *and*
+  a local — e.g. `() => _active = index` inside a `Select((item, index) => …)` loop — is lowered by the
+  compiler to a closure, so its delegate `Target` is the closure, not the component. Previously the live
+  runtime fell back to the element's render-owner for such handlers, so when the element was nested inside
+  a composite wrapper (a `Bs*` card/button around it) the wrapper re-rendered instead of the component that
+  *defined* the handler — silently dropping the consumer's update (e.g. a `CodeSample` tab click, a parent
+  rating callback). Handler-owner resolution (and `AutoCallback`) now unwrap the closure's captured `this`,
+  so a handler always re-renders its defining component, however deeply it is wrapped. Allocation-neutral on
+  the render benchmarks (the common method-group / `this`-only handler path is unchanged; only closures pay
+  a one-time, cached field lookup).
 
 ## [0.11.0] - 2026-06-29
 
