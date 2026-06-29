@@ -51,4 +51,5 @@ host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi
 host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-in-Picture", "bi-pip", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", "bi-eyedropper", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", "bi-hourglass-split", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic", "bi-camera-video", "PWA"));
 await host.RunAsync<App>();

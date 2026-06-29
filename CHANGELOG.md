@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Camera / microphone / screen capture (`IMediaDevices`, `Rask.Wasm.Browser`)** — capture the camera,
+  microphone, or screen and show it in a `<video>`, for photo capture, video calls, QR scanning, or screen
+  recording. `GetUserMediaAsync(MediaConstraints)` / `GetDisplayMediaAsync()` return a disposable
+  `IMediaStreamHandle` with `AttachToAsync(ElementRef video)` and `StopAsync()`; `EnumerateDevicesAsync()`
+  lists cameras/mics/speakers. The live `MediaStream` stays JS-side under a framework-minted id — dispose
+  the handle to stop every track and release the hardware (the camera indicator turns off). **WASM-only** —
+  `getUserMedia` needs transient user activation, the live document, and a secure context. New
+  `/media-devices` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Browser-API quick-win batch — `IGamepad` (shared) + `IEyeDropper` / `IPictureInPicture` /
   `IIdleDetector` (WASM-only)** — four more typed Web-API wrappers, injected through the constructor like
   the rest. `IGamepad` (`Rask.Core.Browser`, **both transports**) reads connected controllers — sticks,

@@ -64,6 +64,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IEyeDropper, EyeDropper>();
         Services.AddSingleton<IPictureInPicture, PictureInPicture>();
         Services.AddSingleton<IIdleDetector, IdleDetectorService>();
+        Services.AddSingleton<IMediaDevices, MediaDevices>();
         Services.AddSingleton<IInstallPrompt, InstallPrompt>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
