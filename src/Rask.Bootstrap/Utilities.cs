@@ -143,7 +143,8 @@ public static class Flex
     public static string Gap(int size, Bp? bp = null) => $"gap-{bp.Infix()}{size}";
 
     public static string Justify(BsJustify value, Bp? bp = null) =>
-        $"justify-content-{bp.Infix()}{value switch {
+        $"justify-content-{bp.Infix()}{value switch
+        {
             BsJustify.End => "end",
             BsJustify.Center => "center",
             BsJustify.Between => "between",
@@ -153,7 +154,8 @@ public static class Flex
         }}";
 
     public static string Align(BsAlign value, Bp? bp = null) =>
-        $"align-items-{bp.Infix()}{value switch {
+        $"align-items-{bp.Infix()}{value switch
+        {
             BsAlign.End => "end",
             BsAlign.Center => "center",
             BsAlign.Baseline => "baseline",

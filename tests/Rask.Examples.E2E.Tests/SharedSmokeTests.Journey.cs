@@ -57,6 +57,7 @@ public abstract partial class SharedSmokeTests
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
+        await WalkBootstrapPagesAsync();
 
         await TestInSessionNotFoundAsync();
 
@@ -89,6 +90,29 @@ public abstract partial class SharedSmokeTests
             .CountAsync());
 
     // ---- page walk -----------------------------------------------------------------------------
+
+    // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
+    // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
+    // the modal opens and closes purely through Rask's live runtime.
+    private async Task WalkBootstrapPagesAsync()
+    {
+        await SideAsync("Buttons & badges", "Buttons & badges");
+        // Bootstrap CSS applied: the .btn has Bootstrap's padding (non-zero), proving _content served.
+        var btn = Page.Locator(".sample-result-body button.btn.btn-primary").First;
+        await Expect(btn).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // Modal — open + close driven by Rask state, no bootstrap.js loaded.
+        await SideAsync("Modal", "Modal");
+        await Page.Locator(".sample-result-body button:has-text(\"Launch demo modal\")").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Page.Locator("div.modal .btn-close").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await SideAsync("Tabs & accordion", "Tabs & accordion");
+        await SideAsync("Utility classes", "Utility classes");
+    }
 
     private async Task WalkDslAndComponentPagesAsync()
     {
