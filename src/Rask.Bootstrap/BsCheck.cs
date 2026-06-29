@@ -82,7 +82,8 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
             Reverse is true ? "form-check-reverse" : null,
             Class);
 
-        return Div(Id: Id, Class: wrapperCls)[
+        // Id lands on the input (so the label's `for` resolves), not the wrapper.
+        return Div(Class: wrapperCls)[
             input,
             Label is not null
                 ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
