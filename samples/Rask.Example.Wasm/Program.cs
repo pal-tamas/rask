@@ -48,4 +48,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", "b
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi-fullscreen", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-in-Picture", "bi-pip", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", "bi-eyedropper", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", "bi-hourglass-split", "PWA"));
 await host.RunAsync<App>();

@@ -72,6 +72,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
+| `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
@@ -89,6 +90,9 @@ which happens in-process on WASM), or the installed-PWA instance / live document
 | `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |
 | `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
+| `IEyeDropper` | EyeDropper API | Pick a color from anywhere on screen (design tools) | transient activation |
+| `IPictureInPicture` | Picture-in-Picture API | Float a `<video>` into an always-on-top miniplayer | transient activation |
+| `IIdleDetector` | Idle Detection API | Notice when the user goes idle / the screen locks (auto-lock, presence) | activation + live document |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
 covered separately in the [Mobile & PWA guide](pwa.md).
@@ -105,6 +109,8 @@ each change back into C#:
 - **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
 - **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
 - **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
+- **`IGamepad`** — `WatchAsync(onReading)` → `IAsyncDisposable` (a `requestAnimationFrame` poll pushed on change)
+- **`IIdleDetector`** *(WASM)* — `WatchAsync(onChange, thresholdSeconds?)` → `IAsyncDisposable`
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via
 `window.DotNet.invokeMethodAsync` (which Rask implements on **both** transports), routed back to your

@@ -22,6 +22,7 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(ResizeEntry))]
 [JsonSerializable(typeof(MutationEntry))]
 [JsonSerializable(typeof(MediaMetadata))]
+[JsonSerializable(typeof(GamepadReading))]
 [JsonSerializable(typeof(OrientationReading))]
 [JsonSerializable(typeof(MotionReading))]
 [JsonSerializable(typeof(NavigationTiming))]

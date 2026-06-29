@@ -46,6 +46,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IResizeObserver, ResizeObserverService>();
         Services.AddSingleton<IMutationObserver, MutationObserverService>();
         Services.AddSingleton<IMediaSession, MediaSession>();
+        Services.AddSingleton<IGamepad, Gamepad>();
         Services.AddSingleton<IDeviceOrientation, DeviceOrientation>();
         Services.AddSingleton<IDeviceMotion, DeviceMotion>();
         Services.AddSingleton<ICrypto, Crypto>();
@@ -60,6 +61,9 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IWakeLock, WakeLock>();
         Services.AddSingleton<IScreenOrientation, ScreenOrientation>();
         Services.AddSingleton<IFullscreen, Fullscreen>();
+        Services.AddSingleton<IEyeDropper, EyeDropper>();
+        Services.AddSingleton<IPictureInPicture, PictureInPicture>();
+        Services.AddSingleton<IIdleDetector, IdleDetectorService>();
         Services.AddSingleton<IInstallPrompt, InstallPrompt>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();

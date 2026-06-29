@@ -250,3 +250,54 @@ window.__raskFullscreen = window.__raskFullscreen || {
     request: (el) => (el || document.documentElement).requestFullscreen(),
     exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
 };
+
+// EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
+// rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => "EyeDropper" in window,
+    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+};
+
+// Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
+// this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op
+// when no miniplayer is open.
+window.__raskPip = window.__raskPip || {
+    isSupported: () => !!document.pictureInPictureEnabled,
+    isActive: () => document.pictureInPictureElement != null,
+    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
+    exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
+};
+
+// Idle Detection (driven by IIdleDetector). Permission needs transient activation and the detector needs
+// the live document, so this is WASM-only. Each watch holds a live IdleDetector + AbortController under the
+// C#-minted id and pushes each change back via window.DotNet.invokeMethodAsync (static [JSInvokable]
+// IdleDetectorInterop.Changed in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
+window.__raskIdle = window.__raskIdle || (() => {
+    const detectors = new Map();
+    return {
+        isSupported: () => "IdleDetector" in window,
+        requestPermission: () =>
+            window.IdleDetector ? IdleDetector.requestPermission().catch(() => "denied") : Promise.resolve("denied"),
+        watch: async (id, thresholdSeconds) => {
+            const controller = new AbortController();
+            const detector = new IdleDetector();
+            detector.addEventListener("change", () => {
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskIdleChanged", id, {
+                    userIdle: detector.userState === "idle",
+                    screenLocked: detector.screenState === "locked"
+                });
+            });
+            // The spec enforces a 60-second floor; clamp here so a smaller value doesn't reject.
+            await detector.start({threshold: Math.max(60, thresholdSeconds) * 1000, signal: controller.signal});
+            detectors.set(id, controller);
+        },
+        unwatch: (id) => {
+            const controller = detectors.get(id);
+            if (!controller) {
+                return;
+            }
+            detectors.delete(id);
+            controller.abort();
+        }
+    };
+})();
