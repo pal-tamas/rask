@@ -128,6 +128,7 @@ later step on the same pattern.
 | `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
 | `IResizeObserver` | `ResizeObserver` | `ObserveAsync(ElementRef, Func<ResizeEntry,Task>)` → `IAsyncDisposable` — element's size changes |
 | `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
+| `IPerformance` | `performance` | `NowAsync()` (high-res clock), `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB / DCL / load) |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -170,7 +171,7 @@ transient activation has expired. The practical effect:
   works on **both** transports (on devices with a vibration motor).
 - Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, media
   queries, speech synthesis, screen info, storage estimate, visual viewport, broadcast channel, crypto,
-  page visibility) is unaffected by activation and behaves identically on both transports.
+  performance, page visibility) is unaffected by activation and behaves identically on both transports.
 
 Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
 **`IResizeObserver`**, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you

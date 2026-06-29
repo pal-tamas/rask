@@ -45,6 +45,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
         Services.AddSingleton<IResizeObserver, ResizeObserverService>();
         Services.AddSingleton<ICrypto, Crypto>();
+        Services.AddSingleton<IPerformance, Performance>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();

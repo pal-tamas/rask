@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Performance / Navigation Timing (`IPerformance`, `Rask.Core.Browser`)** — a high-resolution monotonic
+  clock and page-load timing from C#: `NowAsync()` (`performance.now()`, sub-ms) and
+  `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB, DOM interactive, `DOMContentLoaded`, load,
+  duration), e.g. to time an operation or report real-user metrics. **Shared** — works on both Server and
+  WASM. New `/browser/performance` showcase page.
 - **Web Crypto (`ICrypto`, `Rask.Core.Browser`)** — cryptographically strong randomness and hashing from
   C#: `RandomUuidAsync()` (`crypto.randomUUID`), `RandomBytesAsync(length)` → `byte[]`
   (`crypto.getRandomValues`), and `DigestHexAsync(HashAlgorithm, text)` → lowercase hex
