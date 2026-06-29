@@ -94,7 +94,7 @@ public class FormControlChangeRerenderTests
         // consumer that authored `() => _model.Name` and shows a derived readout outside the wrapper. The
         // framework records the bind expression's owning component on the EditContext and re-renders it on
         // change, so the readout updates with no StateHasChanged on the consumer. (This is the path the
-        // sample Component-style controls — RadioGroup/CheckboxGroup/MultiSelect — rely on.)
+        // sample Component-style controls — BsRadioGroup/BsCheckboxGroup/BsMultiSelect — rely on.)
         var sp = RenderHarness.EmptyServices();
         var host = new BindOwnerHost();
 

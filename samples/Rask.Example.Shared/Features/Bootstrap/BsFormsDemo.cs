@@ -43,7 +43,8 @@ public sealed class BsFormsDemo : Component
         [Required(ErrorMessage = "Please choose a plan.")]
         public string Plan { get; set; } = "";
 
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms.")]
+        // Bound switch (left unvalidated — the [Range(typeof(bool), …)] "must accept" trick pulls in a
+        // RequiresUnreferencedCode converter that breaks the trim-clean WASM publish).
         public bool Agree { get; set; }
     }
 }

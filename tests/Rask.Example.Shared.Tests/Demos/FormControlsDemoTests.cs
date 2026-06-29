@@ -97,7 +97,7 @@ public sealed class FormControlsDemoTests
         Assert.Contains("Length: <strong>3</strong>", html2);
     }
 
-    // ---- RadioGroup ----
+    // ---- BsRadioGroup ----
 
     [Fact]
     public async Task Radio_Controlled_OnChange_UpdatesReadout()
@@ -128,7 +128,7 @@ public sealed class FormControlsDemoTests
         Assert.Contains("Plan: <strong>Team</strong>", html2);
     }
 
-    // ---- CheckboxGroup ----
+    // ---- BsCheckboxGroup ----
 
     [Fact]
     public async Task Checkbox_Controlled_OnChange_UpdatesReadout()
@@ -157,7 +157,7 @@ public sealed class FormControlsDemoTests
         Assert.Contains("Interests: <strong>Mobile</strong>", html2);
     }
 
-    // ---- MultiSelect ----
+    // ---- BsMultiSelect ----
 
     [Fact]
     public async Task MultiSelect_Controlled_Select_UpdatesReadout()

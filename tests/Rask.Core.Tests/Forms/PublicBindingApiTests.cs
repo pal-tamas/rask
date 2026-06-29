@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 namespace Rask.Core.Tests.Forms;
 
 // Guards the public binding API surface (ExpressionAccessor / BindingHelpers) that custom form-bound
-// controls — like the MultiSelect example component — rely on. These types were promoted from internal
+// controls — like the BsMultiSelect example component — rely on. These types were promoted from internal
 // to public; this test fails if they regress to internal or change shape.
 public class PublicBindingApiTests
 {

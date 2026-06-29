@@ -544,7 +544,7 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Multi-select: the reusable MultiSelect<T> dropdown binds to an ICollection — open it (server
+        // Multi-select: the reusable BsMultiSelect<T> dropdown binds to an ICollection — open it (server
         // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
         // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
         await SideAsync("Multi-select", "Multi-select");
@@ -567,7 +567,7 @@ public abstract partial class SharedSmokeTests
         await multi.Locator(".position-fixed").ClickAsync();
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
-        // Controlled MultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
+        // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
         // and the parent's summary updates — again with no StateHasChanged.
         var controlled = Page.Locator("#ms-controlled");
         await controlled.Locator(".form-select").ClickAsync();
@@ -581,8 +581,8 @@ public abstract partial class SharedSmokeTests
 
         // Form controls page: every control in controlled (Value + OnChange) and bound (two-way) shape,
         // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
-        // with no StateHasChanged in the demo — including the Component-style controls (RadioGroup /
-        // CheckboxGroup / MultiSelect) whose bound writes re-render the host via the binding owner.
+        // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
+        // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
         await SideAsync("Form controls", "Form controls");
 
         // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
@@ -598,17 +598,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // RadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
+        // BsRadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
         await Page.Locator("input[type=radio][name='fc-radio-b'][value='Team']").CheckAsync();
         await Expect(Page.Locator("#fc-radio-bound-out")).ToContainTextAsync("Team",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // CheckboxGroup — controlled.
+        // BsCheckboxGroup — controlled.
         await Page.Locator("input[type=checkbox][name='fc-checkbox-c'][value='AI']").CheckAsync();
         await Expect(Page.Locator("#fc-checkbox-controlled-out")).ToContainTextAsync("AI",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // MultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
+        // BsMultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
         // backdrop doesn't intercept later navigation.
         var fcMulti = Page.Locator("#fc-multiselect-bound");
         await fcMulti.Locator(".form-select").ClickAsync();

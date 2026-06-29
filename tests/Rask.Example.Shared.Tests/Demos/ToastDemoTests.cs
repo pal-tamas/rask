@@ -74,7 +74,7 @@ public sealed class ToastDemoTests
     public void Toast_Render_EmitsBootstrapMarkup()
     {
         var html = new LiveHost(
-            () => Toast(Id: 1, Title: "Heads up", Message: "A message", Timestamp: "just now", Icon: "bi-bell"),
+            () => BsToast(Id: 1, Title: "Heads up", Message: "A message", Timestamp: "just now", Icon: BsIconName.Bell),
             TestServices.Default()).RenderAsLiveRoot();
 
         Assert.Contains("toast show", html);
@@ -92,7 +92,7 @@ public sealed class ToastDemoTests
     public void Toast_ColouredVariant_UsesHeaderlessFlexLayout()
     {
         var html = new LiveHost(
-            () => Toast(Id: 1, Title: "Saved", Message: "Done", Variant: "text-bg-success"),
+            () => BsToast(Id: 1, Title: "Saved", Message: "Done", Color: BsColor.Success),
             TestServices.Default()).RenderAsLiveRoot();
 
         Assert.Contains("toast show align-items-center text-bg-success border-0", html);
@@ -105,7 +105,7 @@ public sealed class ToastDemoTests
     public void Toast_Default_NoVariant_NoWhiteClose()
     {
         var html = new LiveHost(
-            () => Toast(Id: 1, Title: "T", Message: "M"),
+            () => BsToast(Id: 1, Title: "T", Message: "M"),
             TestServices.Default()).RenderAsLiveRoot();
 
         Assert.DoesNotContain("text-bg", html);
