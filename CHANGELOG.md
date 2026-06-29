@@ -25,6 +25,97 @@ them until tagged releases begin.
   **Bootstrap** showcase section (`/bootstrap/*`). See `docs/bootstrap.md`. The sample apps now dogfood
   the `Bs*` primitives throughout, and `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect`/`BsToast` are
   promoted from the samples into the package.
+- **Expanded `WebAppManifest` (`Rask.Wasm.Browser`)** — typed support for the richer manifest members,
+  all optional and omitted when unset: `Categories`, `Orientation` (`ManifestOrientation`),
+  `DisplayOverride` (`DisplayOverrideMode`, incl. `window-controls-overlay`), `Shortcuts`
+  (`ManifestShortcut`), `Screenshots` (`ManifestScreenshot`), `ShareTarget` (`ShareTarget`/
+  `ShareTargetParams`), and `FileHandlers` (`FileHandler`). Existing manifests are unaffected. The WASM
+  sample now ships `categories` + a `shortcuts` entry; documented in the
+  [manifest guide](docs/pwa.md#installable--the-web-app-manifest).
+- **PWA install prompt (`IInstallPrompt`, `Rask.Wasm.Browser`)** — show a custom "Install app" button
+  instead of the browser's default mini-infobar. The framework captures and defers the
+  `beforeinstallprompt` event at boot; `CanInstallAsync()` reports when a deferred prompt is available,
+  `PromptAsync()` replays it and returns the user's `InstallOutcome` (Accepted/Dismissed/Unavailable),
+  and `IsInstalledAsync()` reports whether the app is running standalone. **WASM-only** — the install
+  flow needs the live document and transient activation. New `/install` showcase page in the WASM sample
+  and a [Custom install button](docs/pwa.md#custom-install-button-iinstallprompt) guide section.
+- **Device sensors (`IDeviceOrientation` + `IDeviceMotion`, `Rask.Core.Browser`)** — read the
+  gyroscope/compass tilt and the accelerometer/rotation rate, e.g. for tilt-controlled UIs, an AR
+  overlay, a compass, or shake gestures. `IsSupportedAsync()`, `RequestPermissionAsync()` (the iOS
+  user-gesture gate; returns `Granted` where no prompt is required), and `WatchAsync(handler)` →
+  `IAsyncDisposable` delivering `OrientationReading` (`Alpha`/`Beta`/`Gamma`/`Absolute`) or
+  `MotionReading` (acceleration X/Y/Z, rotation rate, interval) pushed from JS via the shared static
+  `[JSInvokable]` wiring. **Shared** — works on both Server and WASM. New `/browser/device-sensors`
+  showcase page.
+- **Media Session (`IMediaSession`, `Rask.Core.Browser`)** — publish now-playing metadata to the OS
+  (lock screen, media hub) and handle hardware media keys / lock-screen controls, so in-page audio or
+  video feels like a native player. `SetMetadataAsync(MediaMetadata)` and
+  `SetPlaybackStateAsync(PlaybackState)` are one-shot setters; `SetActionHandlerAsync(MediaSessionAction,
+  handler)` → `IAsyncDisposable` is a subscription pushed from JS via the shared static `[JSInvokable]`
+  wiring; `ClearAsync()` resets it. **Shared** — works on both Server and WASM. New
+  `/browser/media-session` showcase page.
+- **Mutation Observer (`IMutationObserver`, `Rask.Core.Browser`)** — be notified when an element's
+  children, attributes, or text content change, e.g. to react to DOM written by a third-party script or
+  a portal you don't own. `ObserveAsync(ElementRef, handler, MutationOptions?)` → `IAsyncDisposable`;
+  `MutationOptions` toggles `ChildList`/`Attributes`/`CharacterData`/`Subtree` + an optional
+  `AttributeFilter`, and each `MutationEntry` reports the record `Type`, added/removed counts, and the
+  changed attribute name. Completes the observer family alongside `IIntersectionObserver` and
+  `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
+  Server and WASM. New `/browser/mutation` showcase page.
+
+### Fixed
+- **Render cache is now children-aware for composite components.** A non-`Element` component's children
+  arrive via the `[...]` indexer (not a factory parameter, so absent from the prop-change check) and are
+  baked into its `Render()` output, so when the child set changed but its props didn't — e.g. a
+  conditional alert appearing inside a wrapper while the wrapper's own classes stayed fixed — the stale
+  cached render was reused and the update was dropped. `RenderForLive` no longer serves a non-`Element`
+  component that has children from the cache, so composite wrappers behave like the inline elements they
+  wrap. Allocation-neutral on the render benchmarks. (`Element`s were never affected — their children are
+  walked at serialization, not embedded in the cached result.)
+
+## [0.11.0] - 2026-06-29
+
+### Added
+- **[Browser APIs overview](docs/browser-apis.md)** — a new guide mapping the whole typed browser-API
+  surface (20 shared in `Rask.Core.Browser` + 7 WASM-only in `Rask.Wasm.Browser`): what each wraps,
+  one-shot vs subscription, the inject-from-constructor pattern, and the shared `[JSInvokable]` push
+  mechanism behind the observer/broadcast/geolocation-watch subscriptions. Linked from the docs index,
+  README, `js-interop.md`, and `CLAUDE.md`.
+- **IndexedDB key/value store (`IIndexedDb`, `Rask.Core.Browser`)** — a persistent, asynchronous,
+  large-capacity store (far beyond localStorage's ~5 MB), for caching app data offline:
+  `IsSupportedAsync()` and `OpenStoreAsync(name)` → `IKeyValueStore` with `SetAsync`/`GetAsync`/
+  `DeleteAsync`/`KeysAsync`/`ClearAsync` (string values — serialize objects to JSON). Each store is its own
+  IndexedDB database (single object store, cached connection); each operation is transaction-wrapped. The
+  full IndexedDB API (indexes, cursors, schema migrations) is intentionally out of scope. **Shared** —
+  works on both Server and WASM. New `/browser/indexeddb` showcase page.
+- **Performance / Navigation Timing (`IPerformance`, `Rask.Core.Browser`)** — a high-resolution monotonic
+  clock and page-load timing from C#: `NowAsync()` (`performance.now()`, sub-ms) and
+  `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB, DOM interactive, `DOMContentLoaded`, load,
+  duration), e.g. to time an operation or report real-user metrics. **Shared** — works on both Server and
+  WASM. New `/browser/performance` showcase page.
+- **Web Crypto (`ICrypto`, `Rask.Core.Browser`)** — cryptographically strong randomness and hashing from
+  C#: `RandomUuidAsync()` (`crypto.randomUUID`), `RandomBytesAsync(length)` → `byte[]`
+  (`crypto.getRandomValues`), and `DigestHexAsync(HashAlgorithm, text)` → lowercase hex
+  (`crypto.subtle.digest`, SHA-1/256/384/512). **Shared** — works on both Server and WASM; needs a secure
+  context. New `/browser/crypto` showcase page.
+- **Live geolocation tracking — `IGeolocation.WatchAsync` (`Rask.Core.Browser`)** — continuous position
+  updates (`navigator.geolocation.watchPosition`): `WatchAsync(Func<GeolocationPosition,Task> onPosition,
+  GeolocationOptions?)` returns an `IAsyncDisposable` and fires for the initial fix plus every update; the
+  browser **pushes** each fix to the C# handler via a static `[JSInvokable]`, so one implementation serves
+  **both** Server and WASM (rooted for the WASM trimmer). Pairs with the one-shot `GetCurrentPositionAsync`.
+  New `/browser/geolocation-watch` ("Live location") showcase page.
+- **Resize Observer (`IResizeObserver`, `Rask.Core.Browser`)** — be notified when an element's size changes,
+  for container-responsive layouts or re-laying-out a canvas/chart (the sibling of `IIntersectionObserver`):
+  `ObserveAsync(ElementRef element, Func<ResizeEntry,Task> onChange)` returns an `IAsyncDisposable` and fires
+  once initially with the current size; the browser **pushes** each `ResizeEntry` (`Width`, `Height`) to the
+  C# handler via a static `[JSInvokable]`, so one implementation serves **both** Server and WASM (rooted for
+  the WASM trimmer). **Shared.** New `/browser/resize` showcase page.
+- **Intersection Observer (`IIntersectionObserver`, `Rask.Core.Browser`)** — be notified when an element
+  enters/leaves the viewport, for lazy-loading, infinite scroll, reveal-on-scroll, or impression tracking:
+  `ObserveAsync(ElementRef element, Func<IntersectionEntry,Task> onChange, IntersectionOptions?)` returns an
+  `IAsyncDisposable`; the browser **pushes** each change (`IsIntersecting`, `Ratio`) to the C# handler via a
+  static `[JSInvokable]`, so one implementation serves **both** Server and WASM (rooted for the WASM
+  trimmer). **Shared.** New `/browser/intersection` showcase page.
 - **Broadcast Channel (`IBroadcastChannel`, `Rask.Core.Browser`)** — same-origin cross-tab messaging from
   C#: `OpenAsync(name, Func<string,Task> onMessage)` returns an `IBroadcastChannelConnection`
   (`PostAsync(message)` + `IAsyncDisposable`); a connection receives messages posted by *other* connections
@@ -181,14 +272,6 @@ them until tagged releases begin.
   the same pattern).
 
 ### Fixed
-- **Render cache is now children-aware for composite components.** A non-`Element` component's children
-  arrive via the `[...]` indexer (not a factory parameter, so absent from the prop-change check) and are
-  baked into its `Render()` output, so when the child set changed but its props didn't — e.g. a
-  conditional alert appearing inside a wrapper while the wrapper's own classes stayed fixed — the stale
-  cached render was reused and the update was dropped. `RenderForLive` no longer serves a non-`Element`
-  component that has children from the cache, so composite wrappers behave like the inline elements they
-  wrap. Allocation-neutral on the render benchmarks. (`Element`s were never affected — their children are
-  walked at serialization, not embedded in the cached result.)
 - **Controlled `Select`/`Input`/`Textarea` `OnChange` now re-renders the consumer.** A controlled-mode
   form control (`OnChange`/`OnChangeAsync` with parent-owned state, no `Bind`) wraps the typed callback
   in its own DOM handler to parse the raw string → `T`. That handler's target is the control, so the

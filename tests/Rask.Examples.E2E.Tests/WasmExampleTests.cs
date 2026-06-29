@@ -99,4 +99,24 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IFullscreen",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
+
+    // The WASM-only Install prompt page (InstallPromptDemo) — verify it routes and renders. The browser
+    // won't fire beforeinstallprompt headlessly, so the status reports "not installable yet"; real install
+    // needs a user gesture + install criteria, covered by unit tests.
+    [Fact]
+    public Task InstallPromptExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Install prompt");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Install prompt",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#install-status")).ToContainTextAsync("not installable yet",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // CodeSample shows the demo's real source beside the live result.
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IInstallPrompt",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
 }

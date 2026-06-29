@@ -1,0 +1,59 @@
+using Rask.Core;
+using Rask.Core.Browser;
+
+namespace Rask.Example.Shared.Features;
+
+/// <summary>
+///     <see cref="IIntersectionObserver" /> — observe when an element enters/leaves the viewport. Scroll
+///     the box below into view: the browser pushes the change to C#, which updates the badge (the handler
+///     calls <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update).
+/// </summary>
+public sealed class IntersectionObserverDemo(IIntersectionObserver observer) : Component, IAsyncDisposable
+{
+    private readonly ElementRef _target = ElementRef.New();
+    private IAsyncDisposable? _observation;
+    private bool _visible;
+    private int _changes;
+
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (!firstRender || _observation is not null)
+        {
+            return;
+        }
+
+        _observation = await observer.ObserveAsync(_target, entry =>
+        {
+            _visible = entry.IsIntersecting;
+            _changes++;
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    protected override RenderResult Render() =>
+        Div(Class: "card shadow-sm border-0")[
+            Div(Class: "card-body")[
+                Div(Class: "d-flex align-items-center gap-2 mb-2")[
+                    Span(Class: _visible ? "badge text-bg-success" : "badge text-bg-secondary", Id: "io-status")[
+                        _visible ? "in view" : "out of view"],
+                    Span(Class: "small text-secondary", Id: "io-changes")[$"{_changes} change(s)"]
+                ],
+                P(Class: "small text-secondary mb-2")["Scroll down — the target reports when it enters the viewport."],
+                // A tall spacer so the target starts below the fold, then the observed target.
+                Div(Style: "height: 130vh"),
+                Div(Ref: _target, Id: "io-target",
+                    Class: "p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-light"))[
+                    "🎯 observed target"
+                ]
+            ]
+        ];
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_observation is not null)
+        {
+            await _observation.DisposeAsync();
+        }
+    }
+}

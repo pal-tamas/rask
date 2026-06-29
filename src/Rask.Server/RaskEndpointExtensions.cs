@@ -202,6 +202,15 @@ public static class RaskEndpointExtensions
         services.AddScoped<IStorageEstimator, StorageEstimator>();
         services.AddScoped<IVisualViewport, VisualViewportReader>();
         services.AddScoped<IBroadcastChannel, BroadcastChannelService>();
+        services.AddScoped<IIntersectionObserver, IntersectionObserverService>();
+        services.AddScoped<IResizeObserver, ResizeObserverService>();
+        services.AddScoped<IMutationObserver, MutationObserverService>();
+        services.AddScoped<IMediaSession, MediaSession>();
+        services.AddScoped<IDeviceOrientation, DeviceOrientation>();
+        services.AddScoped<IDeviceMotion, DeviceMotion>();
+        services.AddScoped<ICrypto, Crypto>();
+        services.AddScoped<IPerformance, Performance>();
+        services.AddScoped<IIndexedDb, IndexedDb>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();

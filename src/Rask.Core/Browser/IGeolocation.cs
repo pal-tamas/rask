@@ -14,7 +14,7 @@ namespace Rask.Core.Browser;
 /// <remarks>
 ///     Requires a secure context (HTTPS or localhost) and the user's permission. A denial, timeout, or
 ///     unavailable sensor surfaces as a <see cref="JSException" /> from the awaited task — catch it.
-///     Continuous tracking (<c>watchPosition</c>) is not yet wrapped.
+///     For continuous tracking use <see cref="WatchAsync" /> (<c>watchPosition</c>).
 /// </remarks>
 public interface IGeolocation
 {
@@ -24,4 +24,15 @@ public interface IGeolocation
     /// </summary>
     /// <param name="options">Accuracy, timeout, and cache-age preferences; <c>null</c> uses defaults.</param>
     ValueTask<GeolocationPosition> GetCurrentPositionAsync(GeolocationOptions? options = null);
+
+    /// <summary>
+    ///     Starts tracking the device's position (<c>navigator.geolocation.watchPosition</c>), invoking
+    ///     <paramref name="onPosition" /> for the initial fix and every subsequent update. The browser
+    ///     <b>pushes</b> each fix to the handler, so a handler that updates state should call
+    ///     <c>StateHasChanged()</c> (a subscription, not a render/binding callback). Dispose the returned
+    ///     handle to stop watching (<c>clearWatch</c>).
+    /// </summary>
+    /// <param name="onPosition">Invoked for each position fix.</param>
+    /// <param name="options">Accuracy, timeout, and cache-age preferences; <c>null</c> uses defaults.</param>
+    ValueTask<IAsyncDisposable> WatchAsync(Func<GeolocationPosition, Task> onPosition, GeolocationOptions? options = null);
 }

@@ -33,11 +33,18 @@ host.UseManifest(new WebAppManifest
     ThemeColor = "#512BD4",
     BackgroundColor = "#faf9fe",
     Display = DisplayMode.Standalone,
-    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")],
+    Categories = ["developer", "productivity"],
+    Shortcuts =
+    [
+        new ManifestShortcut("Browser APIs", "browser/clipboard", ShortName: "APIs",
+            Description: "Jump straight to the Browser APIs showcase")
+    ]
 });
 // WASM-only example pages — contribute their sidebar entries to the shared ShowcaseLayout. These APIs
 // can't run on the Server transport, so they live in the WASM host rather than the shared showcase.
 host.Services.AddSingleton(new ShowcaseNavEntry("/pwa", "PWA demo", "bi-phone", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/install", "Install prompt", "bi-download", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/wake-lock", "Wake lock", "bi-display", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/orientation", "Orientation", "bi-phone-landscape", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/fullscreen", "Fullscreen", "bi-fullscreen", "PWA"));

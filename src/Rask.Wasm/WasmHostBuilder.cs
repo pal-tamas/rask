@@ -42,6 +42,15 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IStorageEstimator, StorageEstimator>();
         Services.AddSingleton<IVisualViewport, VisualViewportReader>();
         Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
+        Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
+        Services.AddSingleton<IResizeObserver, ResizeObserverService>();
+        Services.AddSingleton<IMutationObserver, MutationObserverService>();
+        Services.AddSingleton<IMediaSession, MediaSession>();
+        Services.AddSingleton<IDeviceOrientation, DeviceOrientation>();
+        Services.AddSingleton<IDeviceMotion, DeviceMotion>();
+        Services.AddSingleton<ICrypto, Crypto>();
+        Services.AddSingleton<IPerformance, Performance>();
+        Services.AddSingleton<IIndexedDb, IndexedDb>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
@@ -51,6 +60,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IWakeLock, WakeLock>();
         Services.AddSingleton<IScreenOrientation, ScreenOrientation>();
         Services.AddSingleton<IFullscreen, Fullscreen>();
+        Services.AddSingleton<IInstallPrompt, InstallPrompt>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();

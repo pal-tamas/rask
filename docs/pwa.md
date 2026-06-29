@@ -11,6 +11,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 
 - [Make your app a PWA](#make-your-app-a-pwa)
 - [Installable — the web app manifest](#installable--the-web-app-manifest)
+- [Custom install button (`IInstallPrompt`)](#custom-install-button-iinstallprompt)
 - [Offline — the service worker](#offline--the-service-worker)
 - [Push notifications (`IWebPush`)](#push-notifications-iwebpush)
 - [Device capabilities for mobile](#device-capabilities-for-mobile)
@@ -59,6 +60,70 @@ Relative URLs (`StartUrl`/`Scope` default to `"."`, and icon `src`) are made **a
 `<base href>`** when applied, so they stay correct under a sub-path deploy (GitHub Pages). Put your
 icon(s) in `wwwroot` (the `--pwa` templates ship an `icon.svg`). `WebAppManifest.ToJson()` is also
 available if you'd rather serve a physical `manifest.webmanifest` (e.g. from an ASP.NET host).
+
+Beyond the basics, `WebAppManifest` also exposes typed members for the richer manifest features — all
+optional and omitted when unset:
+
+| Member | Manifest key | Use |
+| --- | --- | --- |
+| `Categories` | `categories` | Store/launcher category hints |
+| `Orientation` | `orientation` | Preferred orientation (`ManifestOrientation`) |
+| `DisplayOverride` | `display_override` | Ordered fallback modes (e.g. `WindowControlsOverlay`) |
+| `Shortcuts` | `shortcuts` | Home-screen / jump-list entries (`ManifestShortcut`) |
+| `Screenshots` | `screenshots` | Richer install-UI previews (`ManifestScreenshot`) |
+| `ShareTarget` | `share_target` | Receive content from the OS share sheet (`ShareTarget`) |
+| `FileHandlers` | `file_handlers` | Open associated file types (`FileHandler`) |
+
+```csharp
+host.UseManifest(new WebAppManifest
+{
+    Name = "My Rask App",
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")],
+    Categories = ["productivity"],
+    Shortcuts = [new ManifestShortcut("New note", "/new", ShortName: "New")],
+});
+```
+
+---
+
+## Custom install button (`IInstallPrompt`)
+
+By default the browser shows its own small "install" hint. To present your **own** install button
+instead, inject `IInstallPrompt` (WASM-only). The framework captures the browser's
+`beforeinstallprompt` event at boot and defers it, so you can replay it from a user gesture:
+
+```csharp
+using Rask.Wasm.Browser;
+
+public sealed class InstallButton(IInstallPrompt install) : Component
+{
+    private bool _canInstall;
+
+    protected override async Task OnRenderedAsync(bool first)
+    {
+        if (!first) return;
+        _canInstall = !await install.IsInstalledAsync() && await install.CanInstallAsync();
+        StateHasChanged();
+    }
+
+    protected override RenderResult Render() => _canInstall
+        ? Button(OnClickAsync: Prompt)["Install app"]
+        : Text("");
+
+    private async Task Prompt()
+    {
+        var outcome = await install.PromptAsync();   // Accepted / Dismissed / Unavailable
+        _canInstall = false;                          // the prompt is one-shot
+        StateHasChanged();
+    }
+}
+```
+
+The browser only fires `beforeinstallprompt` when its install criteria are met (valid manifest,
+service worker, HTTPS) and **once per page load**, so gate your button on `CanInstallAsync()` and hide
+it once `IsInstalledAsync()` is true. iOS Safari has no `beforeinstallprompt` (users install via the
+Share sheet), so `CanInstallAsync()` returns `false` there — keep your manual "Add to Home Screen"
+hint as a fallback.
 
 ---
 
@@ -129,9 +194,10 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | --- | --- | --- |
 | **Share sheet** | `IShare` *(WASM)* | Hand a link/text to the OS share UI |
 | **Vibration** | `IVibration` | Haptic feedback (`VibrateAsync(200)`) |
-| **Geolocation** | `IGeolocation` | Current position |
+| **Geolocation** | `IGeolocation` | Current position (`GetCurrentPositionAsync`) + live tracking (`WatchAsync`) |
 | **Clipboard** | `IClipboard` | Copy/paste |
 | **Storage / Cookies** | `IBrowserStorage` / `ICookies` | Persist state on-device |
+| **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |

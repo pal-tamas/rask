@@ -101,6 +101,9 @@ value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the t
 
 ## Typed browser APIs
 
+> For the **full map** of every wrapper (shared vs WASM-only, one-shot vs subscription), see the
+> [Browser APIs overview](browser-apis.md). This section covers the shared set and the transport "why".
+
 Rather than spelling out raw `IJSRuntime` identifiers (`"localStorage.getItem"`,
 `"navigator.clipboard.writeText"`) and getting the JSON shape right by hand, inject one of the
 built-in **typed wrappers** through a component constructor. Each is a thin, awaitable layer over
@@ -113,7 +116,7 @@ later step on the same pattern.
 | `IBrowserStorage` | `localStorage` / `sessionStorage` | `.Local` / `.Session` → `GetAsync`, `SetAsync`, `RemoveAsync`, `ClearAsync`, `KeyAsync`, `LengthAsync` |
 | `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
 | `IClipboard` | `navigator.clipboard` | `WriteTextAsync`, `ReadTextAsync` |
-| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition` |
+| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync(GeolocationOptions?)` → `GeolocationPosition`; `WatchAsync(Func<GeolocationPosition,Task>, …)` → `IAsyncDisposable` (live tracking) |
 | `IPermissions` | `navigator.permissions` | `QueryAsync(PermissionName)` → `PermissionState` |
 | `IVibration` | `navigator.vibrate` | `VibrateAsync(params int[])`, `CancelAsync` |
 | `IPageVisibility` | `document.visibilityState` | `GetStateAsync()` → `PageVisibility`, `IsHiddenAsync` |
@@ -125,6 +128,15 @@ later step on the same pattern.
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 | `IVisualViewport` | `window.visualViewport` | `IsSupportedAsync`, `GetAsync()` → `VisualViewport?` (visible size/offset/zoom after the soft keyboard) |
 | `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
+| `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
+| `IResizeObserver` | `ResizeObserver` | `ObserveAsync(ElementRef, Func<ResizeEntry,Task>)` → `IAsyncDisposable` — element's size changes |
+| `IMutationObserver` | `MutationObserver` | `ObserveAsync(ElementRef, Func<MutationEntry,Task>, MutationOptions?)` → `IAsyncDisposable` — element's children/attributes/text change |
+| `IMediaSession` | `navigator.mediaSession` | `SetMetadataAsync`/`SetPlaybackStateAsync` + `SetActionHandlerAsync(MediaSessionAction, Func<Task>)` → `IAsyncDisposable` — now-playing metadata + media keys |
+| `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
+| `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
+| `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
+| `IPerformance` | `performance` | `NowAsync()` (high-res clock), `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB / DCL / load) |
+| `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`Delete`/`Keys`/`Clear`) — large async persistent storage |
 
 ```csharp
 public sealed class ThemeToggle(IBrowserStorage storage, INavigatorInfo navigator) : Component
@@ -157,8 +169,9 @@ transient activation has expired. The practical effect:
   `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
   would reject with "Must be handling a user gesture," so it isn't offered there.
 - **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
-  (read/lock orientation), and **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
-  `requestFullscreen` needs transient activation) are likewise **WASM-only** in `Rask.Wasm.Browser` —
+  (read/lock orientation), **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
+  `requestFullscreen` needs transient activation), and **`IInstallPrompt`** (capture/replay the deferred
+  `beforeinstallprompt` for a custom install button) are likewise **WASM-only** in `Rask.Wasm.Browser` —
   they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
   the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IClipboard.WriteTextAsync`** needs transient activation *or* a granted `clipboard-write`
@@ -166,14 +179,18 @@ transient activation has expired. The practical effect:
 - **`IVibration`** needs only *sticky* activation (the page was interacted with at some point), so it
   works on **both** transports (on devices with a vibration motor).
 - Everything else here (storage, cookies, geolocation, permissions, navigator info, network info, media
-  queries, speech synthesis, screen info, storage estimate, visual viewport, broadcast channel, page
-  visibility) is unaffected by activation and behaves identically on both transports.
+  queries, speech synthesis, screen info, storage estimate, visual viewport, broadcast channel, crypto,
+  performance, indexeddb, page visibility) is unaffected by activation and behaves identically on both
+  transports.
 
-Most of these are one-shot request/response calls. **`IBroadcastChannel`** is the exception — it's a
-*subscription*: `OpenAsync(name, onMessage)` returns a connection, and the browser **pushes** each
-cross-tab message back to the C# `onMessage` handler (via a static `[JSInvokable]`, so one wiring works on
-both transports). Open it from a lifecycle hook and dispose the connection on unmount; a handler that
-updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
+Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
+**`IResizeObserver`**, **`IMutationObserver`**, **`IDeviceOrientation`**, **`IDeviceMotion`**, **`IMediaSession`**'s
+action handlers, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
+open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
+handler (via a static `[JSInvokable]`, so one wiring works on both transports — the observers additionally
+hand the observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a
+handler
+that updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
 subscription, not a render/binding callback, so RASK026 doesn't apply).
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't

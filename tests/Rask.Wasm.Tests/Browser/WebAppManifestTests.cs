@@ -73,4 +73,62 @@ public class WebAppManifestTests
         Assert.Equal("any maskable", icons[0].GetProperty("purpose").GetString());
         Assert.False(icons[1].TryGetProperty("purpose", out _));
     }
+
+    [Fact]
+    public void ToJson_OmitsNewOptionalMembers_WhenUnset()
+    {
+        var json = new WebAppManifest { Name = "Bare" }.ToJson();
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Assert.False(root.TryGetProperty("categories", out _));
+        Assert.False(root.TryGetProperty("orientation", out _));
+        Assert.False(root.TryGetProperty("display_override", out _));
+        Assert.False(root.TryGetProperty("shortcuts", out _));
+        Assert.False(root.TryGetProperty("screenshots", out _));
+        Assert.False(root.TryGetProperty("share_target", out _));
+        Assert.False(root.TryGetProperty("file_handlers", out _));
+    }
+
+    [Fact]
+    public void ToJson_SerializesCategoriesOrientationAndDisplayOverride()
+    {
+        var json = new WebAppManifest
+        {
+            Name = "X",
+            Categories = ["productivity", "utilities"],
+            Orientation = ManifestOrientation.PortraitPrimary,
+            DisplayOverride = [DisplayOverrideMode.WindowControlsOverlay, DisplayOverrideMode.Standalone]
+        }.ToJson();
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Assert.Equal("productivity", root.GetProperty("categories")[0].GetString());
+        Assert.Equal("portrait-primary", root.GetProperty("orientation").GetString());
+        Assert.Equal("window-controls-overlay", root.GetProperty("display_override")[0].GetString());
+    }
+
+    [Fact]
+    public void ToJson_SerializesShortcutsScreenshotsShareTargetAndFileHandlers()
+    {
+        var json = new WebAppManifest
+        {
+            Name = "X",
+            Shortcuts = [new ManifestShortcut("New", "/new", ShortName: "New")],
+            Screenshots = [new ManifestScreenshot("shot.png", "1280x720", "image/png", "wide", "Home")],
+            ShareTarget = new ShareTarget("/share", new ShareTargetParams(Title: "title", Url: "link"), Method: "POST"),
+            FileHandlers = [new FileHandler("/open", new Dictionary<string, string[]> { ["text/csv"] = [".csv"] })]
+        }.ToJson();
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Assert.Equal("New", root.GetProperty("shortcuts")[0].GetProperty("name").GetString());
+        Assert.Equal("/new", root.GetProperty("shortcuts")[0].GetProperty("url").GetString());
+        Assert.Equal("wide", root.GetProperty("screenshots")[0].GetProperty("form_factor").GetString());
+        Assert.Equal("/share", root.GetProperty("share_target").GetProperty("action").GetString());
+        Assert.Equal("title", root.GetProperty("share_target").GetProperty("params").GetProperty("title").GetString());
+        Assert.Equal("POST", root.GetProperty("share_target").GetProperty("method").GetString());
+        var accept = root.GetProperty("file_handlers")[0].GetProperty("accept");
+        Assert.Equal(".csv", accept.GetProperty("text/csv")[0].GetString());
+    }
 }
