@@ -174,6 +174,26 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// Performance (driven by IPerformance): performance.now() through a helper (stable `this`), and the
+// navigation timing entry plucked into a plain object (mapped to NavigationTiming in C#), or null.
+window.__raskPerf = window.__raskPerf || {
+    now: () => performance.now(),
+    navigation: () => {
+        const entries = performance.getEntriesByType ? performance.getEntriesByType("navigation") : [];
+        const e = entries && entries.length ? entries[0] : null;
+        if (!e) {
+            return null;
+        }
+        return {
+            timeToFirstByteMs: e.responseStart,
+            domInteractiveMs: e.domInteractive,
+            domContentLoadedMs: e.domContentLoadedEventEnd,
+            loadMs: e.loadEventEnd,
+            durationMs: e.duration
+        };
+    }
+};
+
 // Web Crypto (driven by ICrypto). getRandomValues fills a typed array and subtle.digest returns an
 // ArrayBuffer; return plain bytes / a lowercase hex string so IJSRuntime can marshal them. No regex
 // literals (the client-JS splice mangles backslashes), so hex uses a lookup, not String.prototype.padStart

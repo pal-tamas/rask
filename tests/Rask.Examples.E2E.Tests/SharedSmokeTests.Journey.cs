@@ -952,6 +952,11 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#crypto-hash").ClickAsync();
         await Expect(Page.Locator("#crypto-hash-value"))
             .ToContainTextAsync("2cf24dba5fb0a30e26e83b2ac5b9e29e", contains);
+
+        // Performance — the page has long since loaded, so the navigation entry yields timing in ms.
+        await SideAsync("Performance", "Performance");
+        await Page.Locator("#perf-read").ClickAsync();
+        await Expect(Page.Locator("#perf-value")).ToContainTextAsync("ms", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
