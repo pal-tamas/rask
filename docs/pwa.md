@@ -132,6 +132,7 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Geolocation** | `IGeolocation` | Current position (`GetCurrentPositionAsync`) + live tracking (`WatchAsync`) |
 | **Clipboard** | `IClipboard` | Copy/paste |
 | **Storage / Cookies** | `IBrowserStorage` / `ICookies` | Persist state on-device |
+| **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |

@@ -46,6 +46,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IResizeObserver, ResizeObserverService>();
         Services.AddSingleton<ICrypto, Crypto>();
         Services.AddSingleton<IPerformance, Performance>();
+        Services.AddSingleton<IIndexedDb, IndexedDb>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
