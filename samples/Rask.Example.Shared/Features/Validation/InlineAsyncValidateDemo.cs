@@ -20,7 +20,7 @@ public sealed class InlineAsyncValidateDemo : Component
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
-            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
         ];
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
@@ -70,12 +70,12 @@ public sealed class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary(SummaryAlert),
             Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-gift me-1"), "Redeem"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Gift, Class: "me-1"), "Redeem"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

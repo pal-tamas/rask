@@ -31,12 +31,12 @@ public sealed class MultiSelectDemo : Component
                     Placeholder: "Pick a few…")
             ],
             Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Save"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 
     private sealed class Prefs

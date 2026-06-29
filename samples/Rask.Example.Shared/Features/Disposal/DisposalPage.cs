@@ -31,8 +31,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[I(Class: "bi bi-play-circle me-1"), "Mount sync probe"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-sync-unmount", Disabled: !_syncMounted, OnClick: UnmountSync)[I(Class: "bi bi-stop-circle me-1"), "Unmount sync probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount sync probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-sync-unmount", Disabled: !_syncMounted, OnClick: UnmountSync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount sync probe"]
                 ],
                 _syncMounted
                     ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
@@ -52,8 +52,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[I(Class: "bi bi-play-circle me-1"), "Mount async probe"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[I(Class: "bi bi-stop-circle me-1"), "Unmount async probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount async probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount async probe"]
                 ],
                 _asyncMounted
                     ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
@@ -62,7 +62,7 @@ public sealed class DisposalPage : Component
             ]
         ],
         BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
-            I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.ExclamationTriangleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Order:"],
                 " disposal walks children depth-first, then cancels the parent's lifetime token, then invokes Dispose / DisposeAsync on the parent. ",
@@ -84,8 +84,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[I(Class: "bi bi-play-circle me-1"), "Start ticker"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "unmount-hook-unmount", Disabled: !_hookMounted, OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Start ticker"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "unmount-hook-unmount", Disabled: !_hookMounted, OnClick: UnmountHook)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Stop ticker"]
                 ],
                 _hookMounted
                     ? UnmountTimerProbe(AppendHookLog, _nextHookId)

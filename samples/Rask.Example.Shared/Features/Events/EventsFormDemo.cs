@@ -15,7 +15,7 @@ public sealed class EventsFormDemo : Component
                     "name",
                     Class: "form-control",
                     Placeholder: "Your name"),
-                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-send me-1"), "Send"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Send, Class: "me-1"), "Send"]
             ]
         ],
         P(Class: "small mb-0")["Last submitted: ", Strong()[_submitted]]

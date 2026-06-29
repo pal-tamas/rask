@@ -49,14 +49,14 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
         ],
         H2(Class: "h4 mt-4 mb-3")["Path navigation"],
         Div(Class: "d-flex flex-wrap gap-2 mb-4")[
-            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.NavigateTo("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.NavigateTo("/navigator"))[BsIcon(Name: BsIconName.ArrowCounterclockwise, Class: "me-1"),
                 "NavigateTo(\"/navigator\")"],
             BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () =>
                     nav.NavigateTo("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[
-                I(Class: "bi bi-arrow-up-right me-1"), "NavigateTo(path, query)"]
+                BsIcon(Name: BsIconName.ArrowUpRight, Class: "me-1"), "NavigateTo(path, query)"]
         ],
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Why event-handler only:"],
                 " Navigator mutates RouteState and asks the dispatcher to push history. Doing that during Render() would mid-render the page out from under itself. Use it from button clicks, form submits, or lifecycle hooks that ran in response to an event."

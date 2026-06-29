@@ -45,11 +45,11 @@ public sealed class JsRuntimeDemo(IJSRuntime js) : Component
                 ],
                 Div(Class: "d-flex gap-2 flex-wrap mb-3")[
                     BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "demo-set", OnClickAsync: SetAsync)[
-                        I(Class: "bi bi-save me-1"), "Set"],
+                        BsIcon(Name: BsIconName.Save, Class: "me-1"), "Set"],
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "demo-read", OnClickAsync: ReadAsync)[
-                        I(Class: "bi bi-arrow-clockwise me-1"), "Read"],
+                        BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Read"],
                     BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "demo-remove", OnClickAsync: RemoveAsync)[
-                        I(Class: "bi bi-trash me-1"), "Remove"]
+                        BsIcon(Name: BsIconName.Trash, Class: "me-1"), "Remove"]
                 ],
                 Div(Class: "mb-2")[
                     Span(Class: "text-secondary small text-uppercase")["Last read"],

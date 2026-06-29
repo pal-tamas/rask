@@ -22,7 +22,7 @@ public sealed class DownloadDemo(Navigator nav) : Component
     protected override RenderResult Render() =>
         Div()[
             BsButton(Color: BsColor.Primary, Id: "download-report", OnClick: DownloadReport)[
-                I(Class: "bi bi-file-earmark-text me-2"),
+                BsIcon(Name: BsIconName.FileEarmarkText, Class: "me-2"),
                 "Download report"
             ],
             Div(Class: "small text-secondary mt-2",

@@ -26,7 +26,7 @@ public sealed class HttpPage : Component
             "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a re-render when the awaited task completes. Component.CancellationToken cancels on unmount — navigate away mid-fetch and the in-flight request aborts.",
             Result: HttpFetchDemo()),
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-4")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Same demo, two hosts."],
                 " Under ", Code()["Rask.Example.Server"],

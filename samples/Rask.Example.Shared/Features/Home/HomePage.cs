@@ -84,11 +84,11 @@ public sealed class HomePage(Navigator nav) : Component
                     "every example below renders live in your browser."
                 ],
                 Div(Class: "d-flex flex-wrap gap-2")[
-                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[BsIcon(Name: BsIconName.ArrowRight, Class: "me-2"),
                         "Start with Tags"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
-                        Class: "btn btn-outline-light btn-lg")[I(Class: "bi bi-github me-2"),
+                        Class: "btn btn-outline-light btn-lg")[BsIcon(Name: BsIconName.Github, Class: "me-2"),
                         "Source on GitHub"]
                 ]
             ]
@@ -105,7 +105,7 @@ public sealed class HomePage(Navigator nav) : Component
         ],
         Div()[FeatureIndex()],
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Tip:"],
                 " copy/paste any demo and its source into a fresh Rask project to follow along."
@@ -138,7 +138,7 @@ public sealed class HomePage(Navigator nav) : Component
                     Div(Class: "feature-icon mb-3")[I(Class: $"bi {icon}")],
                     H3(Class: "h6 fw-semibold mb-2")[title],
                     P(Class: "text-secondary small mb-3")[body],
-                    BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", OnClick: () => nav.NavigateTo(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
+                    BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", OnClick: () => nav.NavigateTo(path))["Explore ", BsIcon(Name: BsIconName.ArrowRight, Class: "ms-1")]
                 ]
             ]
         ];

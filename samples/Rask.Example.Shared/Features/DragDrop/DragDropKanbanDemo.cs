@@ -56,7 +56,7 @@ public sealed class DragDropKanbanDemo : Component
                     OnDragEnd: ctx.DragEnd,
                     Data: new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
                     BsCardBody(Class: "p-2 d-flex align-items-center gap-2")[
-                        I(Class: "bi bi-grip-vertical text-secondary"),
+                        BsIcon(Name: BsIconName.GripVertical, Class: "text-secondary"),
                         Span()[card.Title]
                     ]
                 ]);
@@ -77,7 +77,7 @@ public sealed class DragDropKanbanDemo : Component
                 Div(Class: "dd-column h-100")[
                     Div(Class: "dd-column-header d-flex justify-content-between align-items-center")[
                         Span(Class: "fw-semibold")[_columnLabels[zone]],
-                        Span(Class: "badge bg-secondary rounded-pill")[cards.Count.ToString()]
+                        BsBadge(Color: BsColor.Secondary, Pill: true)[cards.Count.ToString()]
                     ],
                     Div(
                         Class: bodyCls,

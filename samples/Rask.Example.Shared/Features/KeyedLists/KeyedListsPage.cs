@@ -28,7 +28,7 @@ public sealed class KeyedListsPage : Component
             "Give each list item a stable Key: and the diff codec reconciles by identity — inserts, removals, and reorders ship as trusted structural ops that preserve the survivors' DOM state (focus, selection, uncommitted input text) instead of rewriting rows by position."),
 
         BsAlert(Color: BsColor.Primary, Class: "d-flex align-items-start")[
-            I(Class: "bi bi-lightbulb-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.LightbulbFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Try it:"],
                 " type something into a couple of the inputs below, then press ", Strong()["Rotate"],
@@ -51,16 +51,16 @@ public sealed class KeyedListsPage : Component
                     ],
                     Span(Class: "vr mx-1"),
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-rotate", OnClick: Rotate)[
-                        I(Class: "bi bi-arrow-down-up me-1"), "Rotate"
+                        BsIcon(Name: BsIconName.ArrowDownUp, Class: "me-1"), "Rotate"
                     ],
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-reverse", OnClick: Reverse)[
-                        I(Class: "bi bi-arrow-repeat me-1"), "Reverse"
+                        BsIcon(Name: BsIconName.ArrowRepeat, Class: "me-1"), "Reverse"
                     ],
                     BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-add", OnClick: AddTop)[
-                        I(Class: "bi bi-plus-lg me-1"), "Add to top"
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add to top"
                     ],
                     BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "kl-remove", Disabled: _items.Count == 0, OnClick: RemoveTop)[
-                        I(Class: "bi bi-dash-lg me-1"), "Remove top"
+                        BsIcon(Name: BsIconName.DashLg, Class: "me-1"), "Remove top"
                     ]
                 ],
                 Ul(Class: "list-group", Id: "kl-list")[BuildRows()]
@@ -73,7 +73,7 @@ public sealed class KeyedListsPage : Component
             "Key is an identity, not a reactive prop: a Key change mounts a fresh instance and never fires OnPropsChanged. On an element Key emits data-rask-key; on a transparent component or Fragment it auto-forwards onto the first rendered element. RASK022 warns when a projected/looped list item is missing a Key."),
 
         BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
-            I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.ExclamationTriangleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["RASK022:"],
                 " a list item produced by ", Code()["Select(...)"], " / ", Code()["SelectMany(...)"],
@@ -105,7 +105,7 @@ public sealed class KeyedListsPage : Component
 
     private static List<Child> Row(Fruit f, int index) =>
     [
-        Span(Class: "badge bg-secondary rounded-pill")[index + 1],
+        BsBadge(Color: BsColor.Secondary, Pill: true)[index + 1],
         Span(Class: "fw-semibold", Style: "min-width: 7rem;")[f.Name],
         Input<string>(
             InputType.Text,

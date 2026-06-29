@@ -32,7 +32,7 @@ public sealed class NestedFluentValidationDemo : Component
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Lines.Remove(captured))[I(Class: "bi bi-x-lg")]
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Lines.Remove(captured))[BsIcon(Name: BsIconName.XLg)]
                 ]
             ]);
         }
@@ -68,9 +68,9 @@ public sealed class NestedFluentValidationDemo : Component
                 ],
                 Div(Class: "d-flex gap-2")[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-fv-add", OnClick: () => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                        I(Class: "bi bi-plus-lg me-1"), "Add line"],
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add line"],
                     BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-fv-submit")[
-                        I(Class: "bi bi-check2-circle me-1"), "Place"]
+                        BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Place"]
                 ]
             ],
             _submission is null

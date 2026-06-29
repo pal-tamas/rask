@@ -53,12 +53,12 @@ public sealed class InlineValidateDemo : Component
             ],
             ValidationSummary(SummaryAlert),
             Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign in"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

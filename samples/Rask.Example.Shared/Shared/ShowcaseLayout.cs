@@ -121,14 +121,14 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
                     })[
                     RaskLogo.Mark(24, "brandBolt"),
                     Span()["Rask"],
-                    Span(Class: "badge rounded-pill rask-badge")["showcase"],
-                    Span(Class: "badge rounded-pill text-bg-secondary")[$"v{RaskVersion.Current}"]
+                    BsBadge(Pill: true, Class: "rask-badge")["showcase"],
+                    BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]
                 ],
                 Div(Class: "d-flex align-items-center gap-2 ms-auto")[
                     PathDisplay(),
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
-                        Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
+                        Class: "btn btn-outline-light btn-sm")[BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"]
                 ]
             ]
         ],

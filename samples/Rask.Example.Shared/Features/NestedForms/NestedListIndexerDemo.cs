@@ -34,8 +34,8 @@ public sealed class NestedListIndexerDemo : Component
                 ],
                 Td(Style: "width: 5rem;")[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Class: "me-1", Disabled: i == 0, OnClick: () => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        I(Class: "bi bi-arrow-up")],
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Skus.RemoveAt(i))[I(Class: "bi bi-x-lg")]
+                        BsIcon(Name: BsIconName.ArrowUp)],
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Skus.RemoveAt(i))[BsIcon(Name: BsIconName.XLg)]
                 ]
             ]);
         }
@@ -54,9 +54,9 @@ public sealed class NestedListIndexerDemo : Component
                 ],
                 Div(Class: "d-flex gap-2")[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-idx-add", OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        I(Class: "bi bi-plus-lg me-1"), "Add row"],
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add row"],
                     BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-idx-submit")[
-                        I(Class: "bi bi-check2-circle me-1"), "Submit"]
+                        BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Submit"]
                 ]
             ],
             _submission is null

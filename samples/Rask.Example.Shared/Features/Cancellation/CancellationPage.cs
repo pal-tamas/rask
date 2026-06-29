@@ -27,8 +27,8 @@ public sealed class CancellationPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "cancel-mount", Disabled: _mounted, OnClick: Mount)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
-                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "cancel-unmount", Disabled: !_mounted, OnClick: Unmount)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "cancel-mount", Disabled: _mounted, OnClick: Mount)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "cancel-unmount", Disabled: !_mounted, OnClick: Unmount)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount probe"]
                 ],
                 _mounted
                     ? CancellationProbe(AppendLog, _nextInstance)
@@ -48,7 +48,7 @@ public sealed class CancellationPage : Component
             Notes:
             "Component.CancellationToken is allocated lazily — components that don't read it never pay the CTS cost. The framework cancels the token before disposing the subtree, so awaits unwind via OperationCanceledException before Dispose runs."),
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-3")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Cooperation required:"],
                 " the framework does not abort blocking calls — it only signals the token. Pass it into ",

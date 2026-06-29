@@ -129,7 +129,7 @@ public sealed class CodeSample : Component
                 Class: "sample-copy",
                 Ref: _copyButton,
                 OnClickAsync: CopyAsync)[
-                    I(Class: "bi bi-clipboard me-1"),
+                    BsIcon(Name: BsIconName.Clipboard, Class: "me-1"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.
                     Span(Class: "sample-copy-text")["Copy"]
@@ -164,7 +164,7 @@ public sealed class CodeSample : Component
                 ],
                 Div(Class: "col-md-5 sample-result-col p-4")[
                     Div(Class: "sample-result-label")[
-                        I(Class: "bi bi-eye me-1"),
+                        BsIcon(Name: BsIconName.Eye, Class: "me-1"),
                         "Live result"
                     ],
                     Div(Class: "sample-result-body")[Result ?? Fragment()]

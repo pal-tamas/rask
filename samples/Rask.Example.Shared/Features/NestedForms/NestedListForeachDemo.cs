@@ -31,7 +31,7 @@ public sealed class NestedListForeachDemo : Component
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
-                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Items.Remove(captured))[I(Class: "bi bi-x-lg")]
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Items.Remove(captured))[BsIcon(Name: BsIconName.XLg)]
                 ]
             ]);
         }
@@ -50,9 +50,9 @@ public sealed class NestedListForeachDemo : Component
                 Div(Class: "d-flex gap-2")[
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-list-add", OnClick: () =>
                             _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[
-                        I(Class: "bi bi-plus-lg me-1"), "Add row"],
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add row"],
                     BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-list-submit")[
-                        I(Class: "bi bi-check2-circle me-1"), "Submit"]
+                        BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Submit"]
                 ]
             ],
             _submission is null

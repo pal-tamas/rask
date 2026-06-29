@@ -69,7 +69,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
                 BsButton(Color: BsColor.Primary, OnClick: OpenAdd)[
-                    I(Class: "bi bi-plus-lg me-1"), "New todo"
+                    BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "New todo"
                 ]
             ],
             _todos.Count == 0
@@ -82,10 +82,10 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                             Class: "form-check-input mt-0"),
                         Span(Class: item.Completed ? "todo-title completed" : "todo-title")[item.Title],
                         BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => OpenEdit(item))[
-                            I(Class: "bi bi-pencil")
+                            BsIcon(Name: BsIconName.Pencil)
                         ],
                         BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => Delete(item))[
-                            I(Class: "bi bi-trash")
+                            BsIcon(Name: BsIconName.Trash)
                         ]
                     ])
                 ],
@@ -177,7 +177,7 @@ public sealed class TodoFormDialog : Component
                     Div(Class: "d-flex justify-content-end gap-2")[
                         BsButton(Color: BsColor.Secondary, Outline: true, OnClick: OnCancel)["Cancel"],
                         BsButton(Type: "submit", Color: BsColor.Primary)[
-                            I(Class: "bi bi-check2-circle me-1"),
+                            BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"),
                             IsAdding ? "Add" : "Save"
                         ]
                     ]

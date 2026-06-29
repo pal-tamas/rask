@@ -31,7 +31,7 @@ public sealed class MetricsGauge(IMetricsFeed feed) : Component
             BsCardBody()[
                 Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
                     H3(Class: "h6 text-secondary text-uppercase small mb-0")["System metrics"],
-                    Span(Class: "badge rounded-pill text-bg-secondary", Id: "metrics-tick")[
+                    BsBadge(Color: BsColor.Secondary, Pill: true, Id: "metrics-tick")[
                         $"tick {s.Tick.ToString(Inv)}"]
                 ],
                 Div(Class: "row text-center g-3")[

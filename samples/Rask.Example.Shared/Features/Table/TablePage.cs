@@ -125,7 +125,7 @@ public sealed class TablePage(Navigator nav) : Component
             BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
                 BsCardHeader(Class: "bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between")[
                     Div(Class: "input-group input-group-sm", Style: "max-width:320px;")[
-                        Span(Class: "input-group-text bg-white")[I(Class: "bi bi-search")],
+                        Span(Class: "input-group-text bg-white")[BsIcon(Name: BsIconName.Search)],
                         Input(
                             InputType.Search,
                             Class: "form-control",
@@ -159,7 +159,7 @@ public sealed class TablePage(Navigator nav) : Component
                             visible.Length == 0
                                 ? Tr()[
                                     Td(6, Class: "text-center text-secondary py-4")[
-                                        I(Class: "bi bi-search me-2"),
+                                        BsIcon(Name: BsIconName.Search, Class: "me-2"),
                                         "No people match your search."
                                     ]
                                 ]

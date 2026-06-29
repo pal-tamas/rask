@@ -17,7 +17,7 @@ public sealed class AsyncValidationDemo : Component
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
-            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
+            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking availability..."
         ];
 
     protected override RenderResult Render() =>
@@ -36,12 +36,12 @@ public sealed class AsyncValidationDemo : Component
                     msgs => Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
             ],
             Div()[
-                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign up"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

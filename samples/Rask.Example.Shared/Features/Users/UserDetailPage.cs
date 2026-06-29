@@ -21,11 +21,11 @@ public sealed class UserDetailPage(Navigator nav) : Component
             BsCardBody()[
                 Ul(Class: "list-unstyled mb-0")[
                     Li(Class: "mb-2")[
-                        Span(Class: "badge text-bg-primary me-2")["RouteParam"],
+                        BsBadge(Color: BsColor.Primary, Class: "me-2")["RouteParam"],
                         Code()["Id"], " = ", Strong()[Id]
                     ],
                     Li()[
-                        Span(Class: "badge text-bg-secondary me-2")["QueryParam"],
+                        BsBadge(Color: BsColor.Secondary, Class: "me-2")["QueryParam"],
                         Code()["Tab"], " = ", Strong()[Tab ?? "(none)"]
                     ]
                 ]
@@ -43,7 +43,7 @@ public sealed class UserDetailPage(Navigator nav) : Component
         ],
         Div()[
             BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => nav.SetQuery("tab", Tab == "profile" ? "activity" : "profile"))[
-                I(Class: "bi bi-toggle-on me-1"),
+                BsIcon(Name: BsIconName.ToggleOn, Class: "me-1"),
                 "Toggle ?tab=", Tab == "profile" ? "activity" : "profile"
             ]
         ]

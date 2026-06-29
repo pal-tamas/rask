@@ -33,7 +33,7 @@ public sealed class JsRuntimePage : Component
             "awaiting ValueTask<T>. OnRenderedAsync seeds the field from storage on first mount.",
             Result: JsRuntimeDemo()),
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["What's happening:"],
                 " On Server each call queues a global-JS invoke onto the next outbound WS frame; on WASM the call goes through the in-process JS bridge. ",

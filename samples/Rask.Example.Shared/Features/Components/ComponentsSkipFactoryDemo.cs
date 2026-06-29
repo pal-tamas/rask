@@ -12,7 +12,7 @@ public sealed class SkipFactoryCounter : Component
     protected override void OnMount() => _count = Initial;
 
     protected override RenderResult Render() =>
-        BsButton(Color: BsColor.Primary, Outline: true, Id: "skipfactory-counter", OnClick: () => _count++)[I(Class: "bi bi-hand-index me-2"), $"Clicks: {_count}"];
+        BsButton(Color: BsColor.Primary, Outline: true, Id: "skipfactory-counter", OnClick: () => _count++)[BsIcon(Name: BsIconName.HandIndex, Class: "me-2"), $"Clicks: {_count}"];
 }
 
 // The generated factory has NO Initial parameter — the call site stays clean.

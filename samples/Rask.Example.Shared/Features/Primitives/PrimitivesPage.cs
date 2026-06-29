@@ -26,7 +26,7 @@ public sealed class PrimitivesPage : Component
             "Raw is the escape hatch. Use when you control the source (markdown output, sanitized snippets); never on user input.",
             Result: PrimitivesRawDemo()),
         BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
-            I(Class: "bi bi-shield-exclamation me-3 fs-4"),
+            BsIcon(Name: BsIconName.ShieldExclamation, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Security:"],
                 " ", Code()["Raw"],
