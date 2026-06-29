@@ -457,7 +457,7 @@ see **[`docs/`](docs/)**:
 - **[Best practices](docs/best-practices.md)** — the patterns and pitfalls that keep an app correct, secure, and fast.
 - **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** · **[Lifecycle](docs/lifecycle.md)** · *
   *[Authentication](docs/authentication.md)**
-- **[Browser APIs](docs/browser-apis.md)** — 32 typed wrappers over Web APIs (storage, clipboard, geolocation, network, observers, media session, device sensors, crypto, IndexedDB, share/push/badge/install…), shared or WASM-only.
+- **[Browser APIs](docs/browser-apis.md)** — 40 typed wrappers over Web APIs (storage, clipboard, geolocation, network, observers, media session, device sensors, crypto, IndexedDB, camera/mic, serial, share/push/badge/install…), shared or WASM-only.
 - **[Accessibility](docs/accessibility.md)** · **[Observability](docs/observability.md)** · **[Configuration](docs/configuration.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
 - **[Diagnostics (RASK001–024)](docs/diagnostics.md)** — every build error/warning and its fix.
 - **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.

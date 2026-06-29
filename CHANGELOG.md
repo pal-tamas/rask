@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Web Serial (`ISerial`, `Rask.Wasm.Browser`)** — talk to a serial device (Arduino / microcontroller,
+  GPS, USB-to-serial adapter) straight from C# in the browser. `RequestPortAsync(SerialOptions, onData,
+  onClosed?)` shows the port chooser, opens the chosen port (baud rate, data/stop bits, parity, flow
+  control, optional USB vendor/product `SerialPortFilter`s), starts a read loop, and returns a disposable
+  `ISerialPort` — `null` if the user dismisses the chooser. Inbound bytes are **pushed** to the `onData`
+  callback (via a static `[JSInvokable]`, rooted for the WASM trimmer); `onClosed` fires if the device is
+  unplugged; `WriteAsync(byte[])` sends (concurrent writes are serialized); dispose the port to stop reading
+  and release it. `IsSupportedAsync` gates the UI. **WASM-only** — `requestPort` needs transient
+  user activation and the live port stream (and a secure context); Chromium-family only at the time of
+  writing. New `/serial` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Passkeys / WebAuthn (`IWebAuthn`, `Rask.Core.Browser`)** — register and sign in with a passkey (a
   platform biometric or roaming security key) instead of a password. `CreateAsync(options)` runs the
   registration ceremony and returns an `AttestationResult`; `GetAsync(options)` runs the authentication

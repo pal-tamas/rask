@@ -52,4 +52,5 @@ host.Services.AddSingleton(new ShowcaseNavEntry("/picture-in-picture", "Picture-
 host.Services.AddSingleton(new ShowcaseNavEntry("/eyedropper", "EyeDropper", "bi-eyedropper", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/idle", "Idle detection", "bi-hourglass-split", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic", "bi-camera-video", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/serial", "Serial port", "bi-usb-symbol", "PWA"));
 await host.RunAsync<App>();
