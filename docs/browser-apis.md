@@ -69,6 +69,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IPerformance` | `performance` | High-res clock + navigation timing (TTFB / DCL / load) | one-shot |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IFileSystemAccess` | File System Access API | Open/save a file *back to disk* + directory access (editors) | one-shot |
+| `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |

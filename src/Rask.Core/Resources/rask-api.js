@@ -778,3 +778,113 @@ window.__raskFs = window.__raskFs || (() => {
         }
     };
 })();
+
+// Web Authentication / passkeys (driven by IWebAuthn). The credential shapes are ArrayBuffer-heavy, so this
+// helper base64url-(de)codes the binary fields at the seam — challenge / user.id / credential ids go in as
+// base64url, and rawId / clientDataJSON / attestationObject / authenticatorData / signature / userHandle come
+// back as base64url, ready to POST to a relying-party backend. A user cancellation / timeout
+// (NotAllowedError / AbortError) resolves to null rather than throwing.
+window.__raskWebAuthn = window.__raskWebAuthn || (() => {
+    // base64url <-> ArrayBuffer. Uses split/join rather than regex literals: the framework's JS minifier
+    // mis-parses regex literals (a bare /.../ reads as division), which would break the spliced bundle.
+    const b64urlToBuf = (s) => {
+        let pad = "";
+        if (s.length % 4 !== 0) {
+            for (let i = 0; i < 4 - (s.length % 4); i++) {
+                pad += "=";
+            }
+        }
+        const bin = atob(s.split("-").join("+").split("_").join("/") + pad);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) {
+            bytes[i] = bin.charCodeAt(i);
+        }
+        return bytes.buffer;
+    };
+    const bufToB64url = (buf) => {
+        const bytes = new Uint8Array(buf);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i++) {
+            bin += String.fromCharCode(bytes[i]);
+        }
+        // Strip "=" padding (base64 only uses it as trailing padding), then make it URL-safe.
+        return btoa(bin).split("=").join("").split("+").join("-").split("/").join("_");
+    };
+    const descriptors = (list) => (list || []).map((d) => ({
+        type: d.type || "public-key",
+        id: b64urlToBuf(d.id),
+        transports: d.transports || undefined
+    }));
+    const isCancel = (e) => e && (e.name === "NotAllowedError" || e.name === "AbortError");
+    return {
+        isSupported: () => !!(window.PublicKeyCredential && navigator.credentials),
+        platformAuthenticatorAvailable: () =>
+            (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
+                ? PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                : Promise.resolve(false),
+        create: async (o) => {
+            const publicKey = {
+                challenge: b64urlToBuf(o.challenge),
+                rp: o.rp,
+                user: {id: b64urlToBuf(o.user.id), name: o.user.name, displayName: o.user.displayName},
+                pubKeyCredParams: (o.pubKeyCredParams && o.pubKeyCredParams.length)
+                    ? o.pubKeyCredParams
+                    : [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                timeout: o.timeoutMs || undefined,
+                attestation: o.attestation || undefined,
+                authenticatorSelection: o.authenticatorSelection || undefined,
+                excludeCredentials: o.excludeCredentials ? descriptors(o.excludeCredentials) : undefined
+            };
+            let cred;
+            try {
+                cred = await navigator.credentials.create({publicKey: publicKey});
+            } catch (e) {
+                if (isCancel(e)) {
+                    return null;
+                }
+                throw e;
+            }
+            if (!cred) {
+                return null;
+            }
+            return {
+                id: cred.id,
+                rawId: bufToB64url(cred.rawId),
+                type: cred.type,
+                clientDataJson: bufToB64url(cred.response.clientDataJSON),
+                attestationObject: bufToB64url(cred.response.attestationObject),
+                transports: cred.response.getTransports ? cred.response.getTransports() : null
+            };
+        },
+        get: async (o) => {
+            const publicKey = {
+                challenge: b64urlToBuf(o.challenge),
+                timeout: o.timeoutMs || undefined,
+                rpId: o.rpId || undefined,
+                allowCredentials: o.allowCredentials ? descriptors(o.allowCredentials) : undefined,
+                userVerification: o.userVerification || undefined
+            };
+            let cred;
+            try {
+                cred = await navigator.credentials.get({publicKey: publicKey});
+            } catch (e) {
+                if (isCancel(e)) {
+                    return null;
+                }
+                throw e;
+            }
+            if (!cred) {
+                return null;
+            }
+            return {
+                id: cred.id,
+                rawId: bufToB64url(cred.rawId),
+                type: cred.type,
+                clientDataJson: bufToB64url(cred.response.clientDataJSON),
+                authenticatorData: bufToB64url(cred.response.authenticatorData),
+                signature: bufToB64url(cred.response.signature),
+                userHandle: cred.response.userHandle ? bufToB64url(cred.response.userHandle) : null
+            };
+        }
+    };
+})();

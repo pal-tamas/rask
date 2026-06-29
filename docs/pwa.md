@@ -199,6 +199,7 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Storage / Cookies** | `IBrowserStorage` / `ICookies` | Persist state on-device |
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Files on disk** | `IFileSystemAccess` | Open/save a file back to disk + directory access (editors, file managers) |
+| **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
