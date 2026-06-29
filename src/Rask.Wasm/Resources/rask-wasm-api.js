@@ -251,6 +251,53 @@ window.__raskFullscreen = window.__raskFullscreen || {
     exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
 };
 
+// Media Capture / getUserMedia (driven by IMediaDevices). getUserMedia needs transient activation + a
+// secure context, so this is WASM-only. The live MediaStream can't cross interop, so each is held here
+// under a C#-minted id; the video element is resolved from an ElementRef by the JSON reviver. Stopping a
+// stream stops every track, which releases the camera/mic (and turns off the hardware indicator).
+window.__raskMedia = window.__raskMedia || (() => {
+    const streams = new Map();
+    let nextId = 0;
+    const put = (stream) => {
+        const id = ++nextId;
+        streams.set(id, stream);
+        return id;
+    };
+    const stop = (id) => {
+        const stream = streams.get(id);
+        if (!stream) {
+            return;
+        }
+        stream.getTracks().forEach((t) => t.stop());
+        streams.delete(id);
+    };
+    return {
+        isSupported: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        enumerate: async () => {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.map((d) => ({deviceId: d.deviceId, kind: d.kind, label: d.label, groupId: d.groupId}));
+        },
+        getUserMedia: async (c) => {
+            const video = c.video
+                ? (c.facingMode ? {facingMode: c.facingMode} : true)
+                : false;
+            const stream = await navigator.mediaDevices.getUserMedia({audio: !!c.audio, video: video});
+            return put(stream);
+        },
+        getDisplayMedia: async () => put(await navigator.mediaDevices.getDisplayMedia({video: true})),
+        attach: (id, video) => {
+            const stream = streams.get(id);
+            if (!stream || !video) {
+                return Promise.resolve();
+            }
+            video.srcObject = stream;
+            video.muted = true;
+            return video.play();
+        },
+        stop: (id) => stop(id)
+    };
+})();
+
 // EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
 // rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
 window.__raskEyeDropper = window.__raskEyeDropper || {
