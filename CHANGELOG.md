@@ -100,6 +100,13 @@ them until tagged releases begin.
   `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
   Server and WASM. New `/browser/mutation` showcase page.
 
+### Fixed
+- **Web Serial (`ISerial`) byte marshalling** — `WriteAsync` and the inbound read loop sent raw `byte[]`
+  across the WASM JS bridge, which doesn't carry byte arrays (the base `JSRuntime`'s `ByteArrayJsonConverter`
+  expects Blazor's byte-array side-channel that the bridge doesn't implement), so writes shipped no usable
+  data. Bytes now ride the boundary base64-encoded (`Convert.To/FromBase64String` in C#, `btoa`/`atob` in JS),
+  matching `IFileSystemAccess`. The public `ISerialPort` API (`byte[]` in/out) is unchanged.
+
 ## [0.11.0] - 2026-06-29
 
 ### Added
