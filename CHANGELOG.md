@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **WebUSB (`IUsb`, `Rask.Wasm.Browser`)** — pair with and drive a USB device (custom hardware, dev boards,
+  instruments) straight from C# in the browser. `RequestDeviceAsync(filters)` shows the device chooser and
+  returns a disposable `IUsbDevice` (or `null` if dismissed); `GetDevicesAsync()` returns already-granted
+  devices without a prompt. The device exposes its descriptor (`Info`: vendor/product id, manufacturer,
+  product, serial) and the full I/O lifecycle — `OpenAsync`, `SelectConfigurationAsync`, `ClaimInterfaceAsync`
+  / `ReleaseInterfaceAsync`, `TransferInAsync` / `TransferOutAsync` (bulk/interrupt) and
+  `ControlTransferInAsync` / `ControlTransferOutAsync`, `CloseAsync`. The live `USBDevice` stays JS-side under
+  a framework-minted id; transfer payloads cross base64-encoded. `IsSupportedAsync` gates the UI.
+  **WASM-only** — `requestDevice` needs transient user activation, the live device handle, and a secure
+  context; Chromium-family only at the time of writing. New `/usb` showcase page in the WASM sample;
+  documented in the [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Web Serial (`ISerial`, `Rask.Wasm.Browser`)** — talk to a serial device (Arduino / microcontroller,
   GPS, USB-to-serial adapter) straight from C# in the browser. `RequestPortAsync(SerialOptions, onData,
   onClosed?)` shows the port chooser, opens the chosen port (baud rate, data/stop bits, parity, flow

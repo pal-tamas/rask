@@ -451,3 +451,121 @@ window.__raskSerial = window.__raskSerial || (() => {
         }
     };
 })();
+
+// WebUSB (driven by IUsb). requestDevice() needs transient activation and the live device handle, so this is
+// WASM-only. Each paired device is held under a framework-minted id (allocated JS-side); the same physical
+// device reuses its id (idByDevice) so repeated getDevices() calls don't leak handles. Transfer payloads ride
+// the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't marshal across the JS
+// bridge. requestDevice maps only the NotFoundError dismissal to null (real errors propagate). A global
+// disconnect listener evicts an unplugged device and signals RaskUsbDisconnected (static [JSInvokable]
+// UsbInterop.Disconnected in Rask.Wasm) so the app can reset.
+window.__raskUsb = window.__raskUsb || (() => {
+    const byId = new Map();        // id -> USBDevice
+    const idByDevice = new Map();  // USBDevice -> id (dedup + reverse lookup for disconnect)
+    let nextId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({
+        vendorId: d.vendorId,
+        productId: d.productId,
+        manufacturerName: d.manufacturerName || null,
+        productName: d.productName || null,
+        serialNumber: d.serialNumber || null
+    });
+    const put = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+        }
+        return {id: id, info: info(device)};
+    };
+    const evict = (id) => {
+        const device = byId.get(id);
+        if (device) {
+            byId.delete(id);
+            idByDevice.delete(device);
+        }
+    };
+    // A stale/closed id throws a clear error rather than an opaque "reading 'open' of undefined" TypeError.
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("USB device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    if ("usb" in navigator && navigator.usb.addEventListener) {
+        navigator.usb.addEventListener("disconnect", (e) => {
+            const id = idByDevice.get(e.device);
+            if (id !== undefined) {
+                evict(id);
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskUsbDisconnected", id);
+            }
+        });
+    }
+    return {
+        isSupported: () => "usb" in navigator,
+        requestDevice: async (filters) => {
+            let device;
+            try {
+                device = await navigator.usb.requestDevice({filters: filters || []});
+            } catch (e) {
+                if (e && e.name === "NotFoundError") {
+                    return null; // user dismissed the chooser — not an error
+                }
+                throw e; // SecurityError, malformed filter, etc. — surface it
+            }
+            return put(device);
+        },
+        getDevices: async () => {
+            if (!("usb" in navigator)) {
+                return [];
+            }
+            return (await navigator.usb.getDevices()).map((d) => put(d));
+        },
+        open: (id) => dev(id).open(),
+        selectConfiguration: (id, configurationValue) => dev(id).selectConfiguration(configurationValue),
+        claimInterface: (id, interfaceNumber) => dev(id).claimInterface(interfaceNumber),
+        releaseInterface: (id, interfaceNumber) => dev(id).releaseInterface(interfaceNumber),
+        transferIn: async (id, endpointNumber, length) => {
+            const r = await dev(id).transferIn(endpointNumber, length);
+            return {status: r.status, data: dataB64(r.data)};
+        },
+        transferOut: async (id, endpointNumber, base64) => {
+            const r = await dev(id).transferOut(endpointNumber, fromB64(base64));
+            return {status: r.status, bytesWritten: r.bytesWritten};
+        },
+        controlTransferIn: async (id, setup, length) => {
+            const r = await dev(id).controlTransferIn(setup, length);
+            return {status: r.status, data: dataB64(r.data)};
+        },
+        controlTransferOut: async (id, setup, base64) => {
+            const r = await dev(id).controlTransferOut(setup, fromB64(base64));
+            return {status: r.status, bytesWritten: r.bytesWritten};
+        },
+        close: async (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            evict(id);
+            try { await device.close(); } catch (e) { /* already closed */ }
+        }
+    };
+})();
