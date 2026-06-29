@@ -712,8 +712,17 @@ public abstract class Component
         // serializer still walks Live.CachedRenderResult, so any descendant whose own
         // Live.StateDirty or Live.PropsDirty IS set will re-render itself — ancestors don't need to
         // re-execute to permit that.
+        //
+        // A non-Element component that has children cannot reuse its cache: its children arrive via
+        // the `[...]` indexer (not a factory param, so absent from the prop-change check) and are
+        // BAKED INTO its Render() output, so a changed child set — e.g. a conditional alert appearing
+        // — would be silently dropped. Elements are exempt: their children are walked at serialization
+        // time (RenderChildren), never embedded in the cached result, so the cache stays valid. This is
+        // what lets composite wrappers (a Bs* card around dynamic content) behave like the inline
+        // elements they replace without opting out of caching by hand.
         if (Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty
-            && !BypassRenderCache && !_consumesContext)
+            && !BypassRenderCache && !_consumesContext
+            && (Children is null || this is Element))
         {
             return Live.CachedRenderResult;
         }
