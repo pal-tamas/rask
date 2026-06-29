@@ -380,13 +380,24 @@ window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
         isSupported: () => "DeviceOrientationEvent" in window,
         requestPermission: () => {
             const evt = window.DeviceOrientationEvent;
-            if (evt && typeof evt.requestPermission === "function") {
+            if (!evt) {
+                return Promise.resolve("denied");
+            }
+            if (typeof evt.requestPermission === "function") {
                 return evt.requestPermission().catch(() => "denied");
             }
             return Promise.resolve("granted");
         },
         watch: (id) => {
+            // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
+            // device doesn't flood the Server WebSocket / re-render loop.
+            let last = 0;
             const handler = (e) => {
+                const now = Date.now();
+                if (now - last < 100) {
+                    return;
+                }
+                last = now;
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceOrientation", id, {
                     alpha: e.alpha,
                     beta: e.beta,
@@ -417,13 +428,24 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
         isSupported: () => "DeviceMotionEvent" in window,
         requestPermission: () => {
             const evt = window.DeviceMotionEvent;
-            if (evt && typeof evt.requestPermission === "function") {
+            if (!evt) {
+                return Promise.resolve("denied");
+            }
+            if (typeof evt.requestPermission === "function") {
                 return evt.requestPermission().catch(() => "denied");
             }
             return Promise.resolve("granted");
         },
         watch: (id) => {
+            // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
+            // device doesn't flood the Server WebSocket / re-render loop.
+            let last = 0;
             const handler = (e) => {
+                const now = Date.now();
+                if (now - last < 100) {
+                    return;
+                }
+                last = now;
                 const a = e.acceleration || {};
                 const r = e.rotationRate || {};
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceMotion", id, {
@@ -454,7 +476,8 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
 // handler is wired to a C#-minted id and pushed back via the shared window.DotNet.invokeMethodAsync shim
 // (static [JSInvokable] MediaSessionInterop.Invoke in Rask.Core), so one wiring serves both transports.
 window.__raskMediaSession = window.__raskMediaSession || (() => {
-    const actions = new Map();
+    const actions = new Map();   // id -> action
+    const owners = new Map();    // action -> id of the registration the browser currently holds
     return {
         isSupported: () => "mediaSession" in navigator,
         setMetadata: (m) => {
@@ -473,6 +496,7 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id);
             });
             actions.set(id, action);
+            owners.set(action, id);
         },
         removeActionHandler: (id) => {
             const action = actions.get(id);
@@ -480,7 +504,12 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
                 return;
             }
             actions.delete(id);
-            navigator.mediaSession.setActionHandler(action, null);
+            // Only clear the browser handler if this id still owns the action — a newer registration for
+            // the same action must not be clobbered when an older disposable is disposed.
+            if (owners.get(action) === id) {
+                owners.delete(action);
+                navigator.mediaSession.setActionHandler(action, null);
+            }
         },
         clear: () => {
             navigator.mediaSession.metadata = null;
@@ -507,7 +536,10 @@ window.__raskMutation = window.__raskMutation || (() => {
                 subtree: !!subtree
             };
             if (attributeFilter && attributeFilter.length) {
+                // An attributeFilter requires attributes:true, so honour the "implies Attributes" contract
+                // instead of letting MutationObserver.observe throw.
                 opts.attributeFilter = attributeFilter;
+                opts.attributes = true;
             }
             const mo = new MutationObserver((records) => {
                 for (let i = 0; i < records.length; i++) {

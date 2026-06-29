@@ -82,11 +82,28 @@ window.__raskPwa = window.__raskPwa || {
                 return u;
             }
         };
+        const absIcons = (icons) => {
+            if (!Array.isArray(icons)) return;
+            for (let i = 0; i < icons.length; i++) {
+                if (icons[i] && icons[i].src) icons[i].src = abs(icons[i].src);
+            }
+        };
         if (m.start_url) m.start_url = abs(m.start_url);
         if (m.scope) m.scope = abs(m.scope);
-        if (Array.isArray(m.icons)) {
-            for (let i = 0; i < m.icons.length; i++) {
-                if (m.icons[i] && m.icons[i].src) m.icons[i].src = abs(m.icons[i].src);
+        absIcons(m.icons);
+        absIcons(m.screenshots);
+        if (Array.isArray(m.shortcuts)) {
+            for (let i = 0; i < m.shortcuts.length; i++) {
+                const s = m.shortcuts[i];
+                if (s && s.url) s.url = abs(s.url);
+                if (s) absIcons(s.icons);
+            }
+        }
+        if (m.share_target && m.share_target.action) m.share_target.action = abs(m.share_target.action);
+        if (Array.isArray(m.file_handlers)) {
+            for (let i = 0; i < m.file_handlers.length; i++) {
+                const f = m.file_handlers[i];
+                if (f && f.action) f.action = abs(f.action);
             }
         }
         let link = document.querySelector('link[rel="manifest"]');
