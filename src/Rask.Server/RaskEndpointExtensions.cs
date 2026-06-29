@@ -205,6 +205,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<IIntersectionObserver, IntersectionObserverService>();
         services.AddScoped<IResizeObserver, ResizeObserverService>();
         services.AddScoped<ICrypto, Crypto>();
+        services.AddScoped<IPerformance, Performance>();
         services.AddScoped<ICookies, Cookies>();
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();

@@ -34,7 +34,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - Lifecycle hooks: `OnMount`/`OnMountAsync` (once), `OnPropsChanged*` (on bound-prop/route change),
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
 - **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, the typed browser APIs
-  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`INetworkInfo`/`IMediaQuery`/`ISpeechSynthesis`/`IScreenInfo`/`IStorageEstimator`/`IVisualViewport`/`IBroadcastChannel`/`IIntersectionObserver`/`IResizeObserver`/`ICrypto`, your own) through the constructor**,
+  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`INetworkInfo`/`IMediaQuery`/`ISpeechSynthesis`/`IScreenInfo`/`IStorageEstimator`/`IVisualViewport`/`IBroadcastChannel`/`IIntersectionObserver`/`IResizeObserver`/`ICrypto`/`IPerformance`, your own) through the constructor**,
   not as settable properties (a non-nullable settable property becomes a required factory param).
 - **Async cancellation:** pass `CancellationToken` into the cancellable work a handler or lifecycle hook
   starts, e.g. `await http.GetFromJsonAsync<T>(url, CancellationToken)`. It cancels on unmount, and —
