@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-// RadioGroup<TValue> — the single-value sibling of CheckboxGroup, here in controlled mode (Value + OnChange).
+// BsRadioGroup<TValue> — the single-value sibling of BsCheckboxGroup, here in controlled mode (Value + OnChange).
 // Selecting an option calls OnChange (auto-wrapped), which re-renders this demo so the readout stays live.
 public sealed class MultiSelectRadioDemo : Component
 {
@@ -12,7 +12,7 @@ public sealed class MultiSelectRadioDemo : Component
         Div(Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold d-block")["Plan"],
-                RadioGroup(
+                BsRadioGroup(
                     AllTiers,
                     Value: _plan,
                     OnChange: v => _plan = v,

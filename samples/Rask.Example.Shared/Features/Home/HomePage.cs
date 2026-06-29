@@ -43,7 +43,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("Forms", "bi-shield-check", "Validation", "Inline, DataAnnotations, FluentValidation.", "/validation"),
         ("Forms", "bi-input-cursor-text", "Floating labels", "Bootstrap floating labels + validation.", "/floating-labels"),
         ("Forms", "bi-diagram-3", "Complex models", "Nested objects and collections.", "/nested-forms"),
-        ("Forms", "bi-ui-radios", "Radio & checkbox", "RadioGroup and CheckboxGroup.", "/form-groups"),
+        ("Forms", "bi-ui-radios", "Radio & checkbox", "BsRadioGroup and BsCheckboxGroup.", "/form-groups"),
 
         ("Styling", "bi-palette", "Scoped CSS", "Co-located, isolated component styles.", "/scoped-css"),
         ("Styling", "bi-link-45deg", "Asset loading", "Content-addressed scoped assets.", "/asset-loading"),

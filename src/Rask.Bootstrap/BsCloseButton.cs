@@ -11,13 +11,15 @@ public sealed class BsCloseButton : BsBlock
     // Accessible label; defaults to "Close".
     public string? AriaLabel { get; set; }
 
+    public bool? Disabled { get; set; }
+
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
     protected override RenderResult Render()
     {
         var aria = new Dictionary<string, string?> { ["label"] = AriaLabel ?? "Close" };
-        return Button(Id: Id, Type: "button",
+        return Button(Id: Id, Type: "button", Disabled: Disabled,
             Class: BsClass.Join("btn-close", White is true ? "btn-close-white" : null, Class),
             Aria: aria, OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
     }

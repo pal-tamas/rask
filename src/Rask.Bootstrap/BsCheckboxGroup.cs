@@ -1,20 +1,13 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Example.Shared;
+namespace Rask.Bootstrap;
 
-// Example generic form control: a set of Bootstrap 5.3 checkboxes
-// (https://getbootstrap.com/docs/5.3/forms/checks-radios/) selecting many values into an ICollection<TItem>.
-// Structured like MultiSelect<TItem> — a Component with two usage shapes:
-//   • Bound      — CheckboxGroup<string>(() => model.Tags, options, Validate: …) two-way binds the model
-//                  collection, runs the per-field Validate rule, and surfaces it via the embedded
-//                  ValidationMessage. AfterBind/AfterBindAsync are post-bind hooks (the bound value passed in).
-//   • Controlled — CheckboxGroup<string>(options, Value: selection, OnChange: next => …) the parent owns the
-//                  collection; OnChange/OnChangeAsync (auto-wrapped) deliver the new selection and re-render
-//                  the host. No EditContext, so no Validate in this mode.
-// Each item is a <div class="form-check"> wrapping a .form-check-input + .form-check-label tied by id/for;
-// ItemClass adds extra wrapper classes (e.g. "form-check-inline").
-public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
+// A set of Bootstrap checkboxes selecting many values into an ICollection<TItem>. Implements
+// IFormControl<ICollection<TItem>> for both the bound (BsCheckboxGroup(() => model.Tags, options)) and
+// controlled (Value:/OnChange:) shapes. Each item is a <div class="form-check"> with a .form-check-input
+// + .form-check-label; the embedded ValidationMessage surfaces the per-field rule.
+public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection<TItem>>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
@@ -23,8 +16,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
     public Callback<ICollection<TItem>>? OnChange { get; set; }
     public CallbackAsync<ICollection<TItem>>? OnChangeAsync { get; set; }
 
-    // Bound mode (IFormControl members) — the generator synthesizes the Bind-first factory (validator
-    // fanned into none/sync/async) and excludes these from the controlled factory.
+    // Bound mode (IFormControl members).
     public Expression<Func<ICollection<TItem>>>? Bind { get; set; }
     public Validate<ICollection<TItem>>? Validate { get; set; }
     public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
@@ -44,7 +36,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
         if (bound == Value is not null)
         {
             throw new InvalidOperationException(
-                "CheckboxGroup requires exactly one of Bind (bound mode) or Value (controlled mode).");
+                "BsCheckboxGroup requires exactly one of Bind (bound mode) or Value (controlled mode).");
         }
 
         var comparer = EqualityComparer<TItem>.Default;
@@ -67,7 +59,7 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
 
         var disabled = Disabled == true;
         var groupName = Name ?? acc?.PropertyName ?? "checkbox-group";
-        var wrapperClass = ItemClass is null ? "form-check" : $"form-check {ItemClass}";
+        var wrapperClass = BsClass.Join("form-check", ItemClass);
 
         var children = new List<Child>();
         var index = 0;
@@ -80,18 +72,12 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Input<string>(
-                    InputType.Checkbox,
-                    groupName,
-                    BindingHelpers.FormatValue(option),
-                    Checked: isChecked,
-                    Disabled: Disabled,
-                    Class: "form-check-input",
-                    Id: optionId,
-                    // The checkbox change payload carries the new checked state as a bool string.
+                    InputType.Checkbox, groupName, BindingHelpers.FormatValue(option),
+                    Checked: isChecked, Disabled: Disabled, Class: "form-check-input", Id: optionId,
                     OnChangeAsync: disabled
                         ? null
                         : value => ToggleAsync(acc, ctx, fid, optionValue, comparer, bool.TryParse(value, out var b) && b)),
-                Label(Class: "form-check-label", For: optionId)[label]
+                Rask.Core.Components.Generated.Label(Class: "form-check-label", For: optionId)[label]
             ]);
             index++;
         }
@@ -105,12 +91,8 @@ public sealed class CheckboxGroup<TItem> : Component, IFormControl<ICollection<T
     }
 
     private async Task ToggleAsync(
-        ExpressionAccessor.Accessor? acc,
-        EditContext? ctx,
-        FieldIdentifier fid,
-        TItem item,
-        IEqualityComparer<TItem> comparer,
-        bool include)
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
+        TItem item, IEqualityComparer<TItem> comparer, bool include)
     {
         if (acc is not null)
         {

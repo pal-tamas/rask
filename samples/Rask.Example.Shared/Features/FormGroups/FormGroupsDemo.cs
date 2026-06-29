@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-// RadioGroup (single value) + CheckboxGroup (collection) in controlled mode (Value + OnChange), with a live
+// BsRadioGroup (single value) + BsCheckboxGroup (collection) in controlled mode (Value + OnChange), with a live
 // readout. The controls are Components; their OnChange callbacks are auto-wrapped (AutoCallback), so
 // selecting an option re-renders this demo and the summary line updates immediately — no StateHasChanged.
 public sealed class FormGroupsDemo : Component
@@ -15,7 +15,7 @@ public sealed class FormGroupsDemo : Component
         Div(Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold d-block")["Plan"],
-                RadioGroup(
+                BsRadioGroup(
                     AllPlans,
                     Value: _plan,
                     OnChange: v => _plan = v,
@@ -23,7 +23,7 @@ public sealed class FormGroupsDemo : Component
             ],
             Div()[
                 Label(Class: "form-label fw-semibold d-block")["Interests"],
-                CheckboxGroup<string>(
+                BsCheckboxGroup<string>(
                     AllInterests,
                     Value: _interests.ToList(),
                     OnChange: next => _interests = next,

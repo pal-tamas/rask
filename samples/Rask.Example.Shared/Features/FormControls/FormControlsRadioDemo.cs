@@ -1,9 +1,9 @@
 namespace Rask.Example.Shared.Features;
 
-// RadioGroup<TValue> (example control, single value) in both shapes side by side.
+// BsRadioGroup<TValue> (example control, single value) in both shapes side by side.
 //   • Controlled — Options + Value + OnChange: the parent owns the value; OnChange (auto-wrapped) re-renders
 //     this consumer so the "Plan:" readout updates immediately.
-//   • Bound — RadioGroup(() => model.X, options): two-way binds the scalar through the EditContext.
+//   • Bound — BsRadioGroup(() => model.X, options): two-way binds the scalar through the EditContext.
 public sealed class FormControlsRadioDemo : Component
 {
     private static readonly Plan[] AllPlans = [Plan.Free, Plan.Pro, Plan.Team];
@@ -15,7 +15,7 @@ public sealed class FormControlsRadioDemo : Component
         Div(Class: "row g-4")[
             Div(Class: "col-md-6", Id: "fc-radio-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
-                RadioGroup(
+                BsRadioGroup(
                     AllPlans,
                     Value: _controlled,
                     OnChange: v => _controlled = v,
@@ -28,7 +28,7 @@ public sealed class FormControlsRadioDemo : Component
             Div(Class: "col-md-6", Id: "fc-radio-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
-                    RadioGroup(() => _model.Plan, AllPlans, Name: "fc-radio-b", ItemClass: "form-check-inline")
+                    BsRadioGroup(() => _model.Plan, AllPlans, Name: "fc-radio-b", ItemClass: "form-check-inline")
                 ],
                 P(Class: "small text-secondary mb-0", Id: "fc-radio-bound-out")[
                     "Plan: ", Strong()[_model.Plan.ToString()]

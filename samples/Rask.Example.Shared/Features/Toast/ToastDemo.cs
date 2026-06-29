@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // toast-container. Each Toast carries Key so the keyed-list diff tracks identity as toasts come and go.
 public sealed class ToastDemo : Component
 {
-    private readonly record struct ToastModel(int Id, string Title, string Message, string? Variant, string? Icon);
+    private readonly record struct ToastModel(int Id, string Title, string Message, BsColor? Color, BsIconName? Icon);
 
     // Available corner/edge placements, mapped to the Bootstrap utility classes that position the
     // toast-container. In a real app the container is position-fixed over the viewport; here it's
@@ -28,11 +28,11 @@ public sealed class ToastDemo : Component
     private bool _autoHide;
     private string _placement = "top-0 end-0";
 
-    private void Add(string title, string message, string? variant, string? icon)
+    private void Add(string title, string message, BsColor? color, BsIconName? icon)
     {
         lock (_gate)
         {
-            _toasts.Add(new ToastModel(_nextId++, title, message, variant, icon));
+            _toasts.Add(new ToastModel(_nextId++, title, message, color, icon));
         }
     }
 
@@ -68,18 +68,18 @@ public sealed class ToastDemo : Component
         return Div()[
             // Trigger buttons — each pushes a toast onto the stack.
             Div(Class: "d-flex flex-wrap gap-2")[
-                Button(Class: "btn btn-primary", OnClick: () =>
+                BsButton(Color: BsColor.Primary, OnClick: () =>
                     Add("Rask", "Hello, world! This is a toast message.", null, null))[
-                    I(Class: "bi bi-bell me-1"), "Show toast"],
-                Button(Class: "btn btn-success", OnClick: () =>
-                    Add("Saved", "Your changes were saved.", "text-bg-success", "bi-check-circle-fill"))["Success"],
-                Button(Class: "btn btn-danger", OnClick: () =>
-                    Add("Error", "Something went wrong.", "text-bg-danger", "bi-exclamation-triangle-fill"))["Danger"],
-                Button(Class: "btn btn-warning", OnClick: () =>
-                    Add("Heads up", "Double-check your input.", "text-bg-warning", "bi-exclamation-circle-fill"))[
+                    BsIcon(Name: BsIconName.Bell, Class: "me-1"), "Show toast"],
+                BsButton(Color: BsColor.Success, OnClick: () =>
+                    Add("Saved", "Your changes were saved.", BsColor.Success, BsIconName.CheckCircleFill))["Success"],
+                BsButton(Color: BsColor.Danger, OnClick: () =>
+                    Add("Error", "Something went wrong.", BsColor.Danger, BsIconName.ExclamationTriangleFill))["Danger"],
+                BsButton(Color: BsColor.Warning, OnClick: () =>
+                    Add("Heads up", "Double-check your input.", BsColor.Warning, BsIconName.ExclamationCircleFill))[
                     "Warning"],
-                Button(Class: "btn btn-outline-secondary ms-auto", OnClick: () => Clear())[
-                    I(Class: "bi bi-trash me-1"), "Clear all"]
+                BsButton(Color: BsColor.Secondary, Outline: true, Class: "ms-auto", OnClick: () => Clear())[
+                    BsIcon(Name: BsIconName.Trash, Class: "me-1"), "Clear all"]
             ],
 
             // Options — auto-hide toggle + placement picker.
@@ -104,11 +104,11 @@ public sealed class ToastDemo : Component
                         "No toasts — click a button above."]
                     : (Child)Fragment(),
                 Div(Class: $"toast-container position-absolute {_placement} p-3")[
-                    toasts.Select(t => (Child)Toast(
+                    toasts.Select(t => (Child)BsToast(
                         Id: t.Id,
                         Title: t.Title,
                         Message: t.Message,
-                        Variant: t.Variant,
+                        Color: t.Color,
                         Icon: t.Icon,
                         Timestamp: "just now",
                         AutoHideMs: _autoHide ? 5000 : null,
