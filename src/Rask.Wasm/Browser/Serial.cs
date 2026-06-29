@@ -110,10 +110,13 @@ public static class SerialInterop
 
     internal static void Unregister(int id) => Registry.TryRemove(id, out _);
 
-    /// <summary>Infrastructure. Invoked by the JS bridge when bytes arrive on a port; do not call.</summary>
+    /// <summary>
+    ///     Infrastructure. Invoked by the JS bridge when bytes arrive on a port; do not call. Bytes ride the
+    ///     boundary base64-encoded (raw <c>byte[]</c> args don't marshal across the JS bridge).
+    /// </summary>
     [JSInvokable("RaskSerialData")]
-    public static Task Data(int id, byte[] data) =>
-        Registry.TryGetValue(id, out var cb) ? cb.OnData(data) : Task.CompletedTask;
+    public static Task Data(int id, string base64) =>
+        Registry.TryGetValue(id, out var cb) ? cb.OnData(Convert.FromBase64String(base64)) : Task.CompletedTask;
 
     /// <summary>Infrastructure. Invoked by the JS bridge when a port closes on its own; do not call.</summary>
     [JSInvokable("RaskSerialClosed")]
@@ -178,7 +181,8 @@ public sealed class Serial : ISerial
         public ValueTask WriteAsync(byte[] data)
         {
             ArgumentNullException.ThrowIfNull(data);
-            return js.InvokeVoidAsync("__raskSerial.write", id, data);
+            // Bytes ride the boundary base64-encoded — raw byte[] args don't marshal across the JS bridge.
+            return js.InvokeVoidAsync("__raskSerial.write", id, Convert.ToBase64String(data));
         }
 
         public async ValueTask CloseAsync()

@@ -44,7 +44,7 @@ public class SerialTests
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
 
         Assert.Null(port);
-        await SerialInterop.Data(id, [1]); // handler was unregistered on cancel
+        await SerialInterop.Data(id, Convert.ToBase64String([1])); // handler was unregistered on cancel
         Assert.Equal(0, fired);
     }
 
@@ -62,9 +62,9 @@ public class SerialTests
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
 
         var payload = new byte[] { 1, 2, 3 };
-        await SerialInterop.Data(id, payload);
+        await SerialInterop.Data(id, Convert.ToBase64String(payload)); // bytes ride the boundary base64-encoded
 
-        Assert.Same(payload, got);
+        Assert.Equal(payload, got);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class SerialTests
         await SerialInterop.Closed(id);
         Assert.Equal(1, closed);
 
-        await SerialInterop.Data(id, [0]); // routing stopped after close
+        await SerialInterop.Data(id, Convert.ToBase64String([0])); // routing stopped after close
         Assert.Equal(0, dataFired);
     }
 
@@ -100,7 +100,7 @@ public class SerialTests
 
         var args = js.ArgsFor("__raskSerial.write");
         Assert.Equal(id, args![0]);
-        Assert.Same(data, args[1]);
+        Assert.Equal(Convert.ToBase64String(data), args[1]); // bytes ride the boundary base64-encoded
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class SerialTests
         await port!.DisposeAsync();
         Assert.Equal([id], js.ArgsFor("__raskSerial.close"));
 
-        await SerialInterop.Data(id, [0]);
+        await SerialInterop.Data(id, Convert.ToBase64String([0]));
         Assert.Equal(0, fired);
     }
 
