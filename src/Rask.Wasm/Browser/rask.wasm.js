@@ -677,6 +677,118 @@ window.__raskGamepad = window.__raskGamepad || (() => {
     };
 })();
 
+// File System Access (driven by IFileSystemAccess). The opaque FileSystemFileHandle / DirectoryHandle
+// objects can't cross the interop boundary, so each is held here under a C#-minted id and operated on by
+// id. Pickers reject with AbortError when the user cancels — map that to null / [] rather than an error.
+// Bytes ride the boundary base64-encoded.
+window.__raskFs = window.__raskFs || (() => {
+    const handles = new Map();
+    let nextId = 0;
+    const put = (handle) => {
+        const id = ++nextId;
+        handles.set(id, handle);
+        return {id: id, name: handle.name};
+    };
+    const types = (opts) => {
+        if (!opts || !opts.accept) {
+            return undefined;
+        }
+        return [{description: opts.description || "", accept: opts.accept}];
+    };
+    const isAbort = (e) => e && e.name === "AbortError";
+    return {
+        isSupported: () => "showOpenFilePicker" in window,
+        openFile: async (opts) => {
+            try {
+                const picked = await window.showOpenFilePicker({multiple: false, types: types(opts)});
+                return put(picked[0]);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        openFiles: async (opts) => {
+            try {
+                const picked = await window.showOpenFilePicker({multiple: true, types: types(opts)});
+                return picked.map(put);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return [];
+                }
+                throw e;
+            }
+        },
+        saveFile: async (opts) => {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: (opts && opts.suggestedName) || undefined,
+                    types: types(opts)
+                });
+                return put(handle);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        openDirectory: async () => {
+            try {
+                return put(await window.showDirectoryPicker());
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        readText: async (id) => {
+            const file = await handles.get(id).getFile();
+            return await file.text();
+        },
+        readBytes: async (id) => {
+            const file = await handles.get(id).getFile();
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        },
+        writeText: async (id, text) => {
+            const writable = await handles.get(id).createWritable();
+            await writable.write(text);
+            await writable.close();
+        },
+        writeBytes: async (id, base64) => {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const writable = await handles.get(id).createWritable();
+            await writable.write(bytes);
+            await writable.close();
+        },
+        list: async (id) => {
+            const names = [];
+            for await (const name of handles.get(id).keys()) {
+                names.push(name);
+            }
+            return names;
+        },
+        getFile: async (id, name, create) => {
+            const handle = await handles.get(id).getFileHandle(name, {create: !!create});
+            return put(handle);
+        },
+        release: (id) => {
+            handles.delete(id);
+        }
+    };
+})();
+
 
 // WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
 // in the Server client, since these back APIs that can't work over the WebSocket round-trip.

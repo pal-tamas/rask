@@ -26,5 +26,10 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(OrientationReading))]
 [JsonSerializable(typeof(MotionReading))]
 [JsonSerializable(typeof(NavigationTiming))]
+[JsonSerializable(typeof(FilePickerOptions))]
+[JsonSerializable(typeof(SaveFilePickerOptions))]
+[JsonSerializable(typeof(FileSystemHandleInfo))]
+[JsonSerializable(typeof(FileSystemHandleInfo[]))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(Dictionary<string, string[]>))]
 internal sealed partial class RaskBrowserJsonContext : JsonSerializerContext;

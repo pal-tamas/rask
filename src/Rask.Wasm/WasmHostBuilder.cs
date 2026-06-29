@@ -52,6 +52,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<ICrypto, Crypto>();
         Services.AddSingleton<IPerformance, Performance>();
         Services.AddSingleton<IIndexedDb, IndexedDb>();
+        Services.AddSingleton<IFileSystemAccess, FileSystemAccess>();
         Services.AddSingleton<ICookies, Cookies>();
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IShare, Share>();
