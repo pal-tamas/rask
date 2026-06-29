@@ -88,7 +88,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.BsIconsPage(), "Icons", "bi-emoji-smile", "Content", null),
         (Features.Routes.BsModalPage(), "Modal", "bi-window-stack", "Interactive", null),
         (Features.Routes.BsTabsPage(), "Tabs & accordion", "bi-segmented-nav", "Interactive", null),
-        (Features.Routes.BsFormsPage(), "Forms", "bi-input-cursor-text", "Forms", null)
+        (Features.Routes.BsFormsPage(), "Forms", "bi-input-cursor-text", "Forms", null),
+        (Features.Routes.BsUtilitiesPage(), "Utility classes", "bi-magic", "Utilities", null)
     ];
 
     private bool _drawerOpen;

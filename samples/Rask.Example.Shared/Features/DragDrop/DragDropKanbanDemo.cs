@@ -55,7 +55,7 @@ public sealed class DragDropKanbanDemo : Component
                     OnDropAsync: ctx.Drop(zone, index),
                     OnDragEnd: ctx.DragEnd,
                     Data: new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
-                    Div(Class: "card-body p-2 d-flex align-items-center gap-2")[
+                    BsCardBody(Class: "p-2 d-flex align-items-center gap-2")[
                         I(Class: "bi bi-grip-vertical text-secondary"),
                         Span()[card.Title]
                     ]

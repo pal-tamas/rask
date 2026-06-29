@@ -28,8 +28,8 @@ public sealed class DisposalPage : Component
             "Mount, then unmount. The probe's ", Code()["Dispose()"],
             " runs synchronously as the parent's diff removes it from the tree."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
                     Button(
                         Class: "btn btn-primary btn-sm",
@@ -57,8 +57,8 @@ public sealed class DisposalPage : Component
             "The async variant: the framework awaits ", Code()["DisposeAsync()"],
             " on its own dispatch path. The log entry shows up after the next render cycle resolves the continuation."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
                     Button(
                         Class: "btn btn-primary btn-sm",
@@ -97,8 +97,8 @@ public sealed class DisposalPage : Component
             ") and reserve ", Code()["IDisposable"],
             " for things you would dispose anyway in non-Rask code (file handles, HTTP responses, DB connections)."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
                     Button(
                         Class: "btn btn-primary btn-sm",

@@ -17,8 +17,8 @@ public sealed class UserDetailPage(Navigator nav) : Component
             $"User #{Id}",
             "This page lives at /users/{id}. The Id property is bound from the URL segment and Tab from the ?tab= query string."),
         H2(Class: "h4 mt-4 mb-3")["Current binding"],
-        Div(Class: "card mb-3 shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Margin.Bottom(3), Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Ul(Class: "list-unstyled mb-0")[
                     Li(Class: "mb-2")[
                         Span(Class: "badge text-bg-primary me-2")["RouteParam"],

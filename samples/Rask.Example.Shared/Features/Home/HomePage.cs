@@ -135,8 +135,8 @@ public sealed class HomePage(Navigator nav) : Component
 
     private Component FeatureCard(string icon, string title, string body, string path) =>
         Div(Class: "col-md-6 col-lg-4", Key: path)[
-            Div(Class: "card h-100 border-0 shadow-sm feature-card")[
-                Div(Class: "card-body p-4")[
+            BsCard(Class: Bs.Join(Sizing.H(100), Border.None, Shadow.Sm, "feature-card"))[
+                BsCardBody(Class: "p-4")[
                     Div(Class: "feature-icon mb-3")[I(Class: $"bi {icon}")],
                     H3(Class: "h6 fw-semibold mb-2")[title],
                     P(Class: "text-secondary small mb-3")[body],

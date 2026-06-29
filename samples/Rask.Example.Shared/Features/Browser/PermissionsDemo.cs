@@ -13,8 +13,8 @@ public sealed class PermissionsDemo(IPermissions permissions) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
                     Button(Class: "btn btn-outline-primary btn-sm", Id: "perm-geo", OnClickAsync: QueryGeo)[
                         "Query geolocation"],

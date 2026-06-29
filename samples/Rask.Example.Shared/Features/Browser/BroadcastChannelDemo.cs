@@ -36,8 +36,8 @@ public sealed class BroadcastChannelDemo(IBroadcastChannel bus) : Component, IAs
     }
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Button(Class: "btn btn-primary btn-sm mb-2", Id: "bc-send", OnClickAsync: Send)["Broadcast a message"],
                 Div(Class: "small text-secondary mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0

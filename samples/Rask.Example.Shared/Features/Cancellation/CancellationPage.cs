@@ -24,8 +24,8 @@ public sealed class CancellationPage : Component
             " inside ", Code()["OnMountAsync"],
             ". Click Unmount before it settles to cancel — the probe records what happened into the log below."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
                     Button(
                         Class: "btn btn-primary btn-sm",

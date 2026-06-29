@@ -21,16 +21,16 @@ public sealed class LifecyclePage : Component
         P(Class: "text-secondary")[
             "The component below records every hook invocation into a list and re-renders so you can watch the order."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[LifecycleProbe()]
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[LifecycleProbe()]
         ],
         H2(Class: "h4 mt-5 mb-3")["Mount / unmount cycle"],
         P(Class: "text-secondary")[
             "Toggle the probe in and out of the tree to watch ", Code()["OnUnmount"],
             " and ", Code()["OnUnmountAsync"], " fire. The log is held by the parent so it survives the unmount."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
                     Button(
                         Class: "btn btn-primary btn-sm",

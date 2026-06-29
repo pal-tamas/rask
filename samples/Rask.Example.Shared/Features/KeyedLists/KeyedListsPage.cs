@@ -39,8 +39,8 @@ public sealed class KeyedListsPage : Component
             ]
         ],
 
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex flex-wrap align-items-center gap-2 mb-3")[
                     Button(
                         Class: _useKeys ? "btn btn-success btn-sm" : "btn btn-outline-secondary btn-sm",

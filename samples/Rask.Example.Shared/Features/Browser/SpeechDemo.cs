@@ -9,8 +9,8 @@ public sealed class SpeechDemo(ISpeechSynthesis speech) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Input(
                     Id: "speech-text",
                     Class: "form-control form-control-sm mb-2",

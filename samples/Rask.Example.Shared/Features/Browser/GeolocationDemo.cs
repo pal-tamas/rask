@@ -10,8 +10,8 @@ public sealed class GeolocationDemo(IGeolocation geolocation) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "geo-get", OnClickAsync: Get)[
                     "Get current position"],
                 Div(Class: "small text-secondary")["Position: ", Code(Id: "geo-value")[_location ?? "(not requested)"]],

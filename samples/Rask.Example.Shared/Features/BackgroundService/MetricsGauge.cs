@@ -27,8 +27,8 @@ public sealed class MetricsGauge(IMetricsFeed feed) : Component
     protected override RenderResult Render()
     {
         var s = feed.State.Current;
-        return Div(Class: "card shadow-sm border-0 h-100")[
-            Div(Class: "card-body")[
+        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
+            BsCardBody()[
                 Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
                     H3(Class: "h6 text-secondary text-uppercase small mb-0")["System metrics"],
                     Span(Class: "badge rounded-pill text-bg-secondary", Id: "metrics-tick")[

@@ -27,8 +27,8 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 LiveTicker(Symbol, Log: AppendLog)
             ],
             Div(Class: "col-lg-5")[
-                Div(Class: "card border-0 bg-light h-100")[
-                    Div(Class: "card-body")[
+                BsCard(Class: "border-0 bg-light h-100")[
+                    BsCardBody()[
                         Div(Class: "d-flex justify-content-between align-items-baseline mb-3")[
                             H3(Class: "h6 text-secondary text-uppercase small mb-0")["Hook activity"],
                             Button(

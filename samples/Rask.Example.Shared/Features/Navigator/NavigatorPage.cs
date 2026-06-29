@@ -14,8 +14,8 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
             "Navigator",
             "A scoped service that lets event-handler code change the route. It throws if you call it from Render() or during an initial GET — navigation belongs in event handlers."),
         H2(Class: "h4 mt-4 mb-3")["Current location"],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "row g-3")[
                     Div(Class: "col-md-6")[
                         Span(Class: "text-secondary small text-uppercase")["Path"],

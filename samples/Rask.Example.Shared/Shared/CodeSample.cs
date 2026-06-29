@@ -140,10 +140,10 @@ public sealed class CodeSample : Component
     protected override RenderResult Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        return Div(Class: "card shadow-sm border-0 mb-4 sample-card")[
+        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4), "sample-card"))[
             Title is null && Notes is null
                 ? Fragment()
-                : Div(Class: "card-header bg-white border-bottom")[
+                : BsCardHeader(Class: "bg-white border-bottom")[
                     Title is null ? Fragment() : H5(Class: "mb-0 fw-semibold")[Title],
                     Notes is null
                         ? Fragment()

@@ -33,8 +33,8 @@ public sealed class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Div(Class: "mb-3")[
                     Label(Class: "form-label", For: "demo-input")["sessionStorage value"],
                     Input(

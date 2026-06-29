@@ -196,8 +196,8 @@ public sealed class LiveTicker : Component
         var changeClass = change >= 0 ? "text-success" : "text-danger";
         var changeSign = change >= 0 ? "+" : string.Empty;
 
-        return Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
                     H3(Class: "h4 mb-0 fw-semibold", Id: "ticker-symbol")[Symbol],
                     Span(Class: "text-secondary small")[

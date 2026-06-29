@@ -9,8 +9,8 @@ public sealed class StorageEstimateDemo(IStorageEstimator storage) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "storage-est-read", OnClickAsync: Read)[
                     "Estimate storage"],
                 Div(Class: "small text-secondary")["Budget: ", Code(Id: "storage-est-value")[_value ?? "(not requested)"]],
