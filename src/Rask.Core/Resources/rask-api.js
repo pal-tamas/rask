@@ -174,6 +174,47 @@ window.__raskApi = window.__raskApi || {
     }
 };
 
+// IndexedDB key/value store (driven by IIndexedDb / IKeyValueStore). Each named store is its own IndexedDB
+// database with a single object store; the open connection is cached. Every op is wrapped in a
+// transaction-scoped Promise so IJSRuntime can await a plain value.
+window.__raskIdb = window.__raskIdb || (() => {
+    const STORE = "kv";
+    const dbs = new Map();
+
+    const open = (name) => {
+        if (dbs.has(name)) {
+            return dbs.get(name);
+        }
+        const p = new Promise((resolve, reject) => {
+            const req = indexedDB.open(name, 1);
+            req.onupgradeneeded = () => { req.result.createObjectStore(STORE); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+        dbs.set(name, p);
+        return p;
+    };
+
+    // Run fn(objectStore) in a transaction; resolve with the request's result once the transaction commits.
+    const run = (name, mode, fn) => open(name).then((db) => new Promise((resolve, reject) => {
+        const t = db.transaction(STORE, mode);
+        const req = fn(t.objectStore(STORE));
+        t.oncomplete = () => resolve(req && req.result !== undefined ? req.result : null);
+        t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error);
+    }));
+
+    return {
+        isSupported: () => "indexedDB" in window,
+        open: (name) => open(name).then(() => undefined),
+        set: (name, key, value) => run(name, "readwrite", (s) => s.put(value, key)).then(() => undefined),
+        get: (name, key) => run(name, "readonly", (s) => s.get(key)).then((v) => (v === undefined ? null : v)),
+        delete: (name, key) => run(name, "readwrite", (s) => s.delete(key)).then(() => undefined),
+        keys: (name) => run(name, "readonly", (s) => s.getAllKeys()),
+        clear: (name) => run(name, "readwrite", (s) => s.clear()).then(() => undefined)
+    };
+})();
+
 // Performance (driven by IPerformance): performance.now() through a helper (stable `this`), and the
 // navigation timing entry plucked into a plain object (mapped to NavigationTiming in C#), or null.
 window.__raskPerf = window.__raskPerf || {

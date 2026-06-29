@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **IndexedDB key/value store (`IIndexedDb`, `Rask.Core.Browser`)** — a persistent, asynchronous,
+  large-capacity store (far beyond localStorage's ~5 MB), for caching app data offline:
+  `IsSupportedAsync()` and `OpenStoreAsync(name)` → `IKeyValueStore` with `SetAsync`/`GetAsync`/
+  `DeleteAsync`/`KeysAsync`/`ClearAsync` (string values — serialize objects to JSON). Each store is its own
+  IndexedDB database (single object store, cached connection); each operation is transaction-wrapped. The
+  full IndexedDB API (indexes, cursors, schema migrations) is intentionally out of scope. **Shared** —
+  works on both Server and WASM. New `/browser/indexeddb` showcase page.
 - **Performance / Navigation Timing (`IPerformance`, `Rask.Core.Browser`)** — a high-resolution monotonic
   clock and page-load timing from C#: `NowAsync()` (`performance.now()`, sub-ms) and
   `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB, DOM interactive, `DOMContentLoaded`, load,
