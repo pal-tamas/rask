@@ -174,4 +174,23 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IIdleDetector",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
+
+    // The WASM-only Camera & microphone page (MediaDevicesDemo) — verify it routes and renders. getUserMedia
+    // opens a real capture permission prompt that can't be driven without fake-media flags, so this only
+    // checks the UI + CodeSample source; the call shapes are covered by unit tests.
+    [Fact]
+    public Task MediaDevicesExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Camera & mic");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Camera & microphone",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#media-start")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IMediaDevices",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
 }
