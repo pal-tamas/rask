@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Passkeys / WebAuthn (`IWebAuthn`, `Rask.Core.Browser`)** — register and sign in with a passkey (a
+  platform biometric or roaming security key) instead of a password. `CreateAsync(options)` runs the
+  registration ceremony and returns an `AttestationResult`; `GetAsync(options)` runs the authentication
+  ceremony and returns an `AssertionResult` — both `null` if the user cancels. Typed
+  `PublicKeyCredentialCreationOptions` / `PublicKeyCredentialRequestOptions` (relying party, user,
+  algorithms, authenticator selection, allow/exclude credentials); all binary fields (challenge, ids,
+  attestation/assertion buffers) cross the boundary as **base64url** strings, ready to POST to a
+  relying-party backend (which issues the challenge and verifies the result — the security-critical half).
+  `IsSupportedAsync` / `IsPlatformAuthenticatorAvailableAsync` gate the UI. **Shared** — works on both
+  transports. New `/browser/webauthn` showcase page; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Camera / microphone / screen capture (`IMediaDevices`, `Rask.Wasm.Browser`)** — capture the camera,
   microphone, or screen and show it in a `<video>`, for photo capture, video calls, QR scanning, or screen
   recording. `GetUserMediaAsync(MediaConstraints)` / `GetDisplayMediaAsync()` return a disposable
