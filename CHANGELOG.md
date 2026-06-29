@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **[Browser APIs overview](docs/browser-apis.md)** — a new guide mapping the whole typed browser-API
+  surface (20 shared in `Rask.Core.Browser` + 7 WASM-only in `Rask.Wasm.Browser`): what each wraps,
+  one-shot vs subscription, the inject-from-constructor pattern, and the shared `[JSInvokable]` push
+  mechanism behind the observer/broadcast/geolocation-watch subscriptions. Linked from the docs index,
+  README, `js-interop.md`, and `CLAUDE.md`.
 - **IndexedDB key/value store (`IIndexedDb`, `Rask.Core.Browser`)** — a persistent, asynchronous,
   large-capacity store (far beyond localStorage's ~5 MB), for caching app data offline:
   `IsSupportedAsync()` and `OpenStoreAsync(name)` → `IKeyValueStore` with `SetAsync`/`GetAsync`/

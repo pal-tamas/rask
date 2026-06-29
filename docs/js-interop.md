@@ -101,6 +101,9 @@ value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the t
 
 ## Typed browser APIs
 
+> For the **full map** of every wrapper (shared vs WASM-only, one-shot vs subscription), see the
+> [Browser APIs overview](browser-apis.md). This section covers the shared set and the transport "why".
+
 Rather than spelling out raw `IJSRuntime` identifiers (`"localStorage.getItem"`,
 `"navigator.clipboard.writeText"`) and getting the JSON shape right by hand, inject one of the
 built-in **typed wrappers** through a component constructor. Each is a thin, awaitable layer over

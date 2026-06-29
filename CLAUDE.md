@@ -56,7 +56,8 @@ dotnet run --project samples/Rask.Example.Server
   `Context.Get<T>`/`Required`/`Has`. Construct components via the **factory**, never `new` outside Core (RASK014).
 
 ## Subsystems → read `docs/`
-Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS (`docs/js-interop.md`), forms +
+Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/JS + typed browser APIs
+(`docs/js-interop.md`, `docs/browser-apis.md` — the 27-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
 diagnostics RASK001–026 (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `samples/Rask.Example.Wasm` must
