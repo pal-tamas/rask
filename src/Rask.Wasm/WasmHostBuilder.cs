@@ -44,6 +44,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBroadcastChannel, BroadcastChannelService>();
         Services.AddSingleton<IIntersectionObserver, IntersectionObserverService>();
         Services.AddSingleton<IResizeObserver, ResizeObserverService>();
+        Services.AddSingleton<IMutationObserver, MutationObserverService>();
         Services.AddSingleton<ICrypto, Crypto>();
         Services.AddSingleton<IPerformance, Performance>();
         Services.AddSingleton<IIndexedDb, IndexedDb>();

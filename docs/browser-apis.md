@@ -68,6 +68,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
+| `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
@@ -96,6 +97,7 @@ each change back into C#:
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)
 - **`IIntersectionObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IResizeObserver`** — `ObserveAsync(elementRef, onChange)` → `IAsyncDisposable`
+- **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via

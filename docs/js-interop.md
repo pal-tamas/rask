@@ -130,6 +130,7 @@ later step on the same pattern.
 | `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
 | `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
 | `IResizeObserver` | `ResizeObserver` | `ObserveAsync(ElementRef, Func<ResizeEntry,Task>)` → `IAsyncDisposable` — element's size changes |
+| `IMutationObserver` | `MutationObserver` | `ObserveAsync(ElementRef, Func<MutationEntry,Task>, MutationOptions?)` → `IAsyncDisposable` — element's children/attributes/text change |
 | `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
 | `IPerformance` | `performance` | `NowAsync()` (high-res clock), `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB / DCL / load) |
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`Delete`/`Keys`/`Clear`) — large async persistent storage |
@@ -179,7 +180,7 @@ transient activation has expired. The practical effect:
   transports.
 
 Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
-**`IResizeObserver`**, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
+**`IResizeObserver`**, **`IMutationObserver`**, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
 open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
 handler (via a static `[JSInvokable]`, so one wiring works on both transports — the observers additionally
 hand the observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a

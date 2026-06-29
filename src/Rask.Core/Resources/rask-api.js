@@ -371,6 +371,51 @@ window.__raskIntersect = window.__raskIntersect || (() => {
     };
 })();
 
+// Mutation Observer (driven by IMutationObserver). Each observation is a live MutationObserver held here
+// under the C#-minted id; each record is pushed back to C# via the shared window.DotNet.invokeMethodAsync
+// shim (static [JSInvokable] MutationInterop.Changed in Rask.Core). The element is resolved from an
+// ElementRef by the JSON reviver.
+window.__raskMutation = window.__raskMutation || (() => {
+    const observers = new Map();
+    return {
+        observe: (id, element, childList, attributes, characterData, subtree, attributeFilter) => {
+            if (!element) {
+                return;
+            }
+            const opts = {
+                childList: !!childList,
+                attributes: !!attributes,
+                characterData: !!characterData,
+                subtree: !!subtree
+            };
+            if (attributeFilter && attributeFilter.length) {
+                opts.attributeFilter = attributeFilter;
+            }
+            const mo = new MutationObserver((records) => {
+                for (let i = 0; i < records.length; i++) {
+                    const r = records[i];
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskMutationChanged", id, {
+                        type: r.type,
+                        addedCount: r.addedNodes ? r.addedNodes.length : 0,
+                        removedCount: r.removedNodes ? r.removedNodes.length : 0,
+                        attributeName: r.attributeName
+                    });
+                }
+            });
+            mo.observe(element, opts);
+            observers.set(id, mo);
+        },
+        unobserve: (id) => {
+            const mo = observers.get(id);
+            if (!mo) {
+                return;
+            }
+            observers.delete(id);
+            mo.disconnect();
+        }
+    };
+})();
+
 // Broadcast Channel (driven by IBroadcastChannel). Each connection is a live BroadcastChannel held here
 // under the C#-minted integer id; an incoming message is pushed back to C# via the shared
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] BroadcastInterop.Receive in Rask.Core),

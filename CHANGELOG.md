@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Mutation Observer (`IMutationObserver`, `Rask.Core.Browser`)** — be notified when an element's
+  children, attributes, or text content change, e.g. to react to DOM written by a third-party script or
+  a portal you don't own. `ObserveAsync(ElementRef, handler, MutationOptions?)` → `IAsyncDisposable`;
+  `MutationOptions` toggles `ChildList`/`Attributes`/`CharacterData`/`Subtree` + an optional
+  `AttributeFilter`, and each `MutationEntry` reports the record `Type`, added/removed counts, and the
+  changed attribute name. Completes the observer family alongside `IIntersectionObserver` and
+  `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
+  Server and WASM. New `/browser/mutation` showcase page.
+
 ## [0.11.0] - 2026-06-29
 
 ### Added

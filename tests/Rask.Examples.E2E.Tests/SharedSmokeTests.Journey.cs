@@ -940,6 +940,16 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Resize observer", "Resize observer");
         await Expect(Page.Locator("#resize-value")).ToContainTextAsync("px", contains);
 
+        // Mutation observer — another ElementRef + JS→C# push: mutate the watched box's DOM and the
+        // browser pushes each MutationRecord → static [JSInvokable] → handler. Adding a child bumps the
+        // childList tally; toggling the box's class bumps the attribute tally. Validates both record types.
+        await SideAsync("Mutation observer", "Mutation observer");
+        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("0", contains);
+        await Page.Locator("#mo-add").ClickAsync();
+        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("1", contains);
+        await Page.Locator("#mo-toggle").ClickAsync();
+        await Expect(Page.Locator("#mo-attr")).ToContainTextAsync("1", contains);
+
         // Live location — geolocation watch (push). The context grants permission + a fixed fix (51.5074),
         // so starting the watch pushes that position via watchPosition → static [JSInvokable] → handler.
         await SideAsync("Live location", "Live location");
