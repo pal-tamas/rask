@@ -95,7 +95,7 @@ covered separately in the [Mobile & PWA guide](pwa.md).
 
 ## Subscriptions — the push pattern
 
-Most wrappers are one-shot request/response. Four are **subscriptions**, where the browser *pushes*
+Most wrappers are one-shot request/response. Several are **subscriptions**, where the browser *pushes*
 each change back into C#:
 
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)

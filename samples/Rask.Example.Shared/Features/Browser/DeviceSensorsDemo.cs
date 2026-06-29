@@ -29,7 +29,13 @@ public sealed class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMot
                 return;
             }
 
-            if (await orientation.RequestPermissionAsync() == SensorPermission.Denied)
+            // Request both permissions up front, before any WatchAsync — iOS only honours
+            // requestPermission() while the click's user activation is still live, so the motion request
+            // must not wait behind the orientation watch.
+            var orientationGranted = await orientation.RequestPermissionAsync() == SensorPermission.Granted;
+            var motionGranted = await motion.RequestPermissionAsync() == SensorPermission.Granted;
+
+            if (!orientationGranted)
             {
                 _status = "Permission denied";
                 return;
@@ -42,7 +48,7 @@ public sealed class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMot
                 return Task.CompletedTask;
             });
 
-            if (await motion.RequestPermissionAsync() == SensorPermission.Granted)
+            if (motionGranted)
             {
                 _motionWatch ??= await motion.WatchAsync(r =>
                 {
