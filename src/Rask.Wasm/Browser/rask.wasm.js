@@ -390,13 +390,24 @@ window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
         isSupported: () => "DeviceOrientationEvent" in window,
         requestPermission: () => {
             const evt = window.DeviceOrientationEvent;
-            if (evt && typeof evt.requestPermission === "function") {
+            if (!evt) {
+                return Promise.resolve("denied");
+            }
+            if (typeof evt.requestPermission === "function") {
                 return evt.requestPermission().catch(() => "denied");
             }
             return Promise.resolve("granted");
         },
         watch: (id) => {
+            // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
+            // device doesn't flood the Server WebSocket / re-render loop.
+            let last = 0;
             const handler = (e) => {
+                const now = Date.now();
+                if (now - last < 100) {
+                    return;
+                }
+                last = now;
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceOrientation", id, {
                     alpha: e.alpha,
                     beta: e.beta,
@@ -427,13 +438,24 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
         isSupported: () => "DeviceMotionEvent" in window,
         requestPermission: () => {
             const evt = window.DeviceMotionEvent;
-            if (evt && typeof evt.requestPermission === "function") {
+            if (!evt) {
+                return Promise.resolve("denied");
+            }
+            if (typeof evt.requestPermission === "function") {
                 return evt.requestPermission().catch(() => "denied");
             }
             return Promise.resolve("granted");
         },
         watch: (id) => {
+            // Sensors fire ~60 Hz; throttle to ~10 Hz before crossing the interop boundary so a moving
+            // device doesn't flood the Server WebSocket / re-render loop.
+            let last = 0;
             const handler = (e) => {
+                const now = Date.now();
+                if (now - last < 100) {
+                    return;
+                }
+                last = now;
                 const a = e.acceleration || {};
                 const r = e.rotationRate || {};
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceMotion", id, {
@@ -464,7 +486,8 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
 // handler is wired to a C#-minted id and pushed back via the shared window.DotNet.invokeMethodAsync shim
 // (static [JSInvokable] MediaSessionInterop.Invoke in Rask.Core), so one wiring serves both transports.
 window.__raskMediaSession = window.__raskMediaSession || (() => {
-    const actions = new Map();
+    const actions = new Map();   // id -> action
+    const owners = new Map();    // action -> id of the registration the browser currently holds
     return {
         isSupported: () => "mediaSession" in navigator,
         setMetadata: (m) => {
@@ -483,6 +506,7 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
                 window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id);
             });
             actions.set(id, action);
+            owners.set(action, id);
         },
         removeActionHandler: (id) => {
             const action = actions.get(id);
@@ -490,7 +514,12 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
                 return;
             }
             actions.delete(id);
-            navigator.mediaSession.setActionHandler(action, null);
+            // Only clear the browser handler if this id still owns the action — a newer registration for
+            // the same action must not be clobbered when an older disposable is disposed.
+            if (owners.get(action) === id) {
+                owners.delete(action);
+                navigator.mediaSession.setActionHandler(action, null);
+            }
         },
         clear: () => {
             navigator.mediaSession.metadata = null;
@@ -517,7 +546,10 @@ window.__raskMutation = window.__raskMutation || (() => {
                 subtree: !!subtree
             };
             if (attributeFilter && attributeFilter.length) {
+                // An attributeFilter requires attributes:true, so honour the "implies Attributes" contract
+                // instead of letting MutationObserver.observe throw.
                 opts.attributeFilter = attributeFilter;
+                opts.attributes = true;
             }
             const mo = new MutationObserver((records) => {
                 for (let i = 0; i < records.length; i++) {
@@ -663,11 +695,28 @@ window.__raskPwa = window.__raskPwa || {
                 return u;
             }
         };
+        const absIcons = (icons) => {
+            if (!Array.isArray(icons)) return;
+            for (let i = 0; i < icons.length; i++) {
+                if (icons[i] && icons[i].src) icons[i].src = abs(icons[i].src);
+            }
+        };
         if (m.start_url) m.start_url = abs(m.start_url);
         if (m.scope) m.scope = abs(m.scope);
-        if (Array.isArray(m.icons)) {
-            for (let i = 0; i < m.icons.length; i++) {
-                if (m.icons[i] && m.icons[i].src) m.icons[i].src = abs(m.icons[i].src);
+        absIcons(m.icons);
+        absIcons(m.screenshots);
+        if (Array.isArray(m.shortcuts)) {
+            for (let i = 0; i < m.shortcuts.length; i++) {
+                const s = m.shortcuts[i];
+                if (s && s.url) s.url = abs(s.url);
+                if (s) absIcons(s.icons);
+            }
+        }
+        if (m.share_target && m.share_target.action) m.share_target.action = abs(m.share_target.action);
+        if (Array.isArray(m.file_handlers)) {
+            for (let i = 0; i < m.file_handlers.length; i++) {
+                const f = m.file_handlers[i];
+                if (f && f.action) f.action = abs(f.action);
             }
         }
         let link = document.querySelector('link[rel="manifest"]');
