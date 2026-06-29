@@ -86,7 +86,8 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.GeolocationWatchPage(), "Live location", "bi-geo", "Browser APIs", null),
         (Features.Routes.CryptoPage(), "Web Crypto", "bi-shield-shaded", "Browser APIs", null),
         (Features.Routes.PerformancePage(), "Performance", "bi-stopwatch", "Browser APIs", null),
-        (Features.Routes.IndexedDbPage(), "IndexedDB", "bi-database-fill", "Browser APIs", null)
+        (Features.Routes.IndexedDbPage(), "IndexedDB", "bi-database-fill", "Browser APIs", null),
+        (Features.Routes.FileSystemAccessPage(), "File system access", "bi-folder2-open", "Browser APIs", null)
     ];
 
     private bool _drawerOpen;

@@ -995,6 +995,13 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#idb-set").ClickAsync();
         await Page.Locator("#idb-get").ClickAsync();
         await Expect(Page.Locator("#idb-read")).ToContainTextAsync("hello from IndexedDB", contains);
+
+        // File system access — the open/save pickers are native OS dialogs that can't be driven headless,
+        // so this only verifies the editor page routes and renders (the open button + idle status); the
+        // handle read/write/list round-trips are covered by unit tests.
+        await SideAsync("File system access", "File system access");
+        await Expect(Page.Locator("#fs-open")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#fs-status")).ToContainTextAsync("idle", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
