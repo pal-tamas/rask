@@ -82,12 +82,14 @@ public abstract partial class SharedSmokeTests
         await AssertNoGlobalCrashAsync();
     }
 
-    // The framework's root error boundary renders a "Something went wrong" shell when an error
-    // escapes every user boundary. Outside the deliberate /boom demos it must never appear.
+    // The framework's root error boundary renders its "Something went wrong" shell — a div with the
+    // distinctive .rask-error-boundary class (DefaultErrorPage) — when an error escapes every user
+    // boundary. Outside the deliberate /boom demos it must never appear. Match that class precisely:
+    // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
+    // merely contains the phrase — e.g. the Toast demo's CodeSample shows ToastDemo.cs source whose
+    // "Danger" toast message is literally "Something went wrong.".
     private async Task AssertNoGlobalCrashAsync() =>
-        Assert.Equal(0, await Page.Locator(
-            ".rask-error-boundary:has-text(\"Something went wrong\"), main:has-text(\"Something went wrong\")")
-            .CountAsync());
+        Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
     // ---- page walk -----------------------------------------------------------------------------
 
