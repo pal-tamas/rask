@@ -108,6 +108,44 @@ window.__raskPwa = window.__raskPwa || {
     }
 };
 
+// PWA install prompt (driven by IInstallPrompt). The browser fires beforeinstallprompt once when the app
+// becomes installable; we preventDefault() and stash the event so C# can replay it from a user gesture
+// (showing a custom "Install" button) instead of the browser's default mini-infobar. Listeners are
+// attached when this helper is first created at boot, so the event isn't missed.
+window.__raskInstall = window.__raskInstall || (() => {
+    let deferred = null;
+    let installed = false;
+    window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferred = e;
+    });
+    window.addEventListener("appinstalled", () => {
+        installed = true;
+        deferred = null;
+    });
+    return {
+        canInstall: () => deferred != null,
+        isInstalled: () => installed
+            || !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+            || window.navigator.standalone === true,
+        prompt: async () => {
+            if (!deferred) {
+                return "unavailable";
+            }
+            deferred.prompt();
+            let outcome = "dismissed";
+            try {
+                const choice = await deferred.userChoice;
+                outcome = (choice && choice.outcome === "accepted") ? "accepted" : "dismissed";
+            } catch (_) {
+                outcome = "dismissed";
+            }
+            deferred = null;
+            return outcome;
+        }
+    };
+})();
+
 // Local notifications (driven by INotifications). `new Notification(...)` is a constructor IJSRuntime
 // can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
 window.__raskNotify = window.__raskNotify || {

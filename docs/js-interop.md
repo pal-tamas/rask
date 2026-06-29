@@ -131,6 +131,9 @@ later step on the same pattern.
 | `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
 | `IResizeObserver` | `ResizeObserver` | `ObserveAsync(ElementRef, Func<ResizeEntry,Task>)` → `IAsyncDisposable` — element's size changes |
 | `IMutationObserver` | `MutationObserver` | `ObserveAsync(ElementRef, Func<MutationEntry,Task>, MutationOptions?)` → `IAsyncDisposable` — element's children/attributes/text change |
+| `IMediaSession` | `navigator.mediaSession` | `SetMetadataAsync`/`SetPlaybackStateAsync` + `SetActionHandlerAsync(MediaSessionAction, Func<Task>)` → `IAsyncDisposable` — now-playing metadata + media keys |
+| `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
+| `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
 | `ICrypto` | `crypto` / `crypto.subtle` | `RandomUuidAsync`, `RandomBytesAsync(length)`, `DigestHexAsync(HashAlgorithm, text)` |
 | `IPerformance` | `performance` | `NowAsync()` (high-res clock), `GetNavigationTimingAsync()` → `NavigationTiming?` (TTFB / DCL / load) |
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`Delete`/`Keys`/`Clear`) — large async persistent storage |
@@ -166,8 +169,9 @@ transient activation has expired. The practical effect:
   `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
   would reject with "Must be handling a user gesture," so it isn't offered there.
 - **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
-  (read/lock orientation), and **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
-  `requestFullscreen` needs transient activation) are likewise **WASM-only** in `Rask.Wasm.Browser` —
+  (read/lock orientation), **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
+  `requestFullscreen` needs transient activation), and **`IInstallPrompt`** (capture/replay the deferred
+  `beforeinstallprompt` for a custom install button) are likewise **WASM-only** in `Rask.Wasm.Browser` —
   they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
   the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IClipboard.WriteTextAsync`** needs transient activation *or* a granted `clipboard-write`
@@ -180,7 +184,8 @@ transient activation has expired. The practical effect:
   transports.
 
 Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
-**`IResizeObserver`**, **`IMutationObserver`**, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
+**`IResizeObserver`**, **`IMutationObserver`**, **`IDeviceOrientation`**, **`IDeviceMotion`**, **`IMediaSession`**'s
+action handlers, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
 open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
 handler (via a static `[JSInvokable]`, so one wiring works on both transports — the observers additionally
 hand the observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a
