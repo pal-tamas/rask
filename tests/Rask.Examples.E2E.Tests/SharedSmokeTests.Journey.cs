@@ -940,6 +940,30 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Resize observer", "Resize observer");
         await Expect(Page.Locator("#resize-value")).ToContainTextAsync("px", contains);
 
+        // Mutation observer — another ElementRef + JS→C# push: mutate the watched box's DOM and the
+        // browser pushes each MutationRecord → static [JSInvokable] → handler. Adding a child bumps the
+        // childList tally; toggling the box's class bumps the attribute tally. Validates both record types.
+        await SideAsync("Mutation observer", "Mutation observer");
+        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("0", contains);
+        await Page.Locator("#mo-add").ClickAsync();
+        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("1", contains);
+        await Page.Locator("#mo-toggle").ClickAsync();
+        await Expect(Page.Locator("#mo-attr")).ToContainTextAsync("1", contains);
+
+        // Media session — publish now-playing metadata to navigator.mediaSession (chromium supports the
+        // setter headless). Proves the one-shot IMediaSession round-trip; the media-key action handlers
+        // can't be exercised without OS media keys, so they're covered by unit tests.
+        await SideAsync("Media session", "Media session");
+        await Page.Locator("#ms-publish").ClickAsync();
+        await Expect(Page.Locator("#ms-status")).ToContainTextAsync("published", contains);
+
+        // Device sensors — chromium exposes DeviceOrientationEvent (no iOS prompt), so Start grants and
+        // begins watching on both hosts; the status flips to "listening" even though no sensor data flows
+        // headless. Proves the IsSupported/RequestPermission/WatchAsync round-trip; readings are unit-tested.
+        await SideAsync("Device sensors", "Device sensors");
+        await Page.Locator("#sensor-start").ClickAsync();
+        await Expect(Page.Locator("#sensor-status")).ToContainTextAsync("listening", contains);
+
         // Live location — geolocation watch (push). The context grants permission + a fixed fix (51.5074),
         // so starting the watch pushes that position via watchPosition → static [JSInvokable] → handler.
         await SideAsync("Live location", "Live location");

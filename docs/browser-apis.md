@@ -59,6 +59,9 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `INetworkInfo` | `navigator.connection` | Effective type / downlink / RTT / Data Saver — adapt loading | one-shot |
 | `IMediaQuery` | `window.matchMedia` | Evaluate a query; `PrefersDarkAsync` / `PrefersReducedMotionAsync` | one-shot |
 | `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
+| `IMediaSession` | `navigator.mediaSession` | Now-playing metadata + hardware media-key handlers (native-feel player) | one-shot + subscription |
+| `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
+| `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
 | `IScreenInfo` | `window.screen` | Size, color depth, device pixel ratio (retina) | one-shot |
 | `IStorageEstimator` | `navigator.storage.estimate` | Quota / usage, to budget caches | one-shot |
 | `IVisualViewport` | `window.visualViewport` | Visible size/offset/zoom after the soft keyboard | one-shot |
@@ -68,6 +71,7 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
+| `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
@@ -84,6 +88,7 @@ which happens in-process on WASM), or the installed-PWA instance / live document
 | `IBadge` | Badging API | Set/clear a count on the installed app icon | installed-PWA instance |
 | `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |
 | `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
+| `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
 covered separately in the [Mobile & PWA guide](pwa.md).
@@ -96,6 +101,9 @@ each change back into C#:
 - **`IBroadcastChannel`** — `OpenAsync(name, onMessage)` → connection (`PostAsync`, `IAsyncDisposable`)
 - **`IIntersectionObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IResizeObserver`** — `ObserveAsync(elementRef, onChange)` → `IAsyncDisposable`
+- **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
+- **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
+- **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
 - **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via

@@ -7,6 +7,45 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Expanded `WebAppManifest` (`Rask.Wasm.Browser`)** — typed support for the richer manifest members,
+  all optional and omitted when unset: `Categories`, `Orientation` (`ManifestOrientation`),
+  `DisplayOverride` (`DisplayOverrideMode`, incl. `window-controls-overlay`), `Shortcuts`
+  (`ManifestShortcut`), `Screenshots` (`ManifestScreenshot`), `ShareTarget` (`ShareTarget`/
+  `ShareTargetParams`), and `FileHandlers` (`FileHandler`). Existing manifests are unaffected. The WASM
+  sample now ships `categories` + a `shortcuts` entry; documented in the
+  [manifest guide](docs/pwa.md#installable--the-web-app-manifest).
+- **PWA install prompt (`IInstallPrompt`, `Rask.Wasm.Browser`)** — show a custom "Install app" button
+  instead of the browser's default mini-infobar. The framework captures and defers the
+  `beforeinstallprompt` event at boot; `CanInstallAsync()` reports when a deferred prompt is available,
+  `PromptAsync()` replays it and returns the user's `InstallOutcome` (Accepted/Dismissed/Unavailable),
+  and `IsInstalledAsync()` reports whether the app is running standalone. **WASM-only** — the install
+  flow needs the live document and transient activation. New `/install` showcase page in the WASM sample
+  and a [Custom install button](docs/pwa.md#custom-install-button-iinstallprompt) guide section.
+- **Device sensors (`IDeviceOrientation` + `IDeviceMotion`, `Rask.Core.Browser`)** — read the
+  gyroscope/compass tilt and the accelerometer/rotation rate, e.g. for tilt-controlled UIs, an AR
+  overlay, a compass, or shake gestures. `IsSupportedAsync()`, `RequestPermissionAsync()` (the iOS
+  user-gesture gate; returns `Granted` where no prompt is required), and `WatchAsync(handler)` →
+  `IAsyncDisposable` delivering `OrientationReading` (`Alpha`/`Beta`/`Gamma`/`Absolute`) or
+  `MotionReading` (acceleration X/Y/Z, rotation rate, interval) pushed from JS via the shared static
+  `[JSInvokable]` wiring. **Shared** — works on both Server and WASM. New `/browser/device-sensors`
+  showcase page.
+- **Media Session (`IMediaSession`, `Rask.Core.Browser`)** — publish now-playing metadata to the OS
+  (lock screen, media hub) and handle hardware media keys / lock-screen controls, so in-page audio or
+  video feels like a native player. `SetMetadataAsync(MediaMetadata)` and
+  `SetPlaybackStateAsync(PlaybackState)` are one-shot setters; `SetActionHandlerAsync(MediaSessionAction,
+  handler)` → `IAsyncDisposable` is a subscription pushed from JS via the shared static `[JSInvokable]`
+  wiring; `ClearAsync()` resets it. **Shared** — works on both Server and WASM. New
+  `/browser/media-session` showcase page.
+- **Mutation Observer (`IMutationObserver`, `Rask.Core.Browser`)** — be notified when an element's
+  children, attributes, or text content change, e.g. to react to DOM written by a third-party script or
+  a portal you don't own. `ObserveAsync(ElementRef, handler, MutationOptions?)` → `IAsyncDisposable`;
+  `MutationOptions` toggles `ChildList`/`Attributes`/`CharacterData`/`Subtree` + an optional
+  `AttributeFilter`, and each `MutationEntry` reports the record `Type`, added/removed counts, and the
+  changed attribute name. Completes the observer family alongside `IIntersectionObserver` and
+  `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
+  Server and WASM. New `/browser/mutation` showcase page.
+
 ## [0.11.0] - 2026-06-29
 
 ### Added
