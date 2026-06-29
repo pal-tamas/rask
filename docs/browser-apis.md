@@ -97,6 +97,7 @@ which happens in-process on WASM), or the installed-PWA instance / live document
 | `IPictureInPicture` | Picture-in-Picture API | Float a `<video>` into an always-on-top miniplayer | transient activation |
 | `IIdleDetector` | Idle Detection API | Notice when the user goes idle / the screen locks (auto-lock, presence) | activation + live document |
 | `ISerial` | Web Serial API | Talk to a serial device (Arduino / microcontroller, GPS, USB-to-serial) — open, write, read | transient activation + secure context |
+| `IUsb` | WebUSB API | Pair with and drive a USB device — open, claim an interface, bulk/interrupt/control transfers | transient activation + secure context |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
 covered separately in the [Mobile & PWA guide](pwa.md).

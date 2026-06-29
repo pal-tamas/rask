@@ -68,6 +68,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IIdleDetector, IdleDetectorService>();
         Services.AddSingleton<IMediaDevices, MediaDevices>();
         Services.AddSingleton<ISerial, Serial>();
+        Services.AddSingleton<IUsb, Usb>();
         Services.AddSingleton<IInstallPrompt, InstallPrompt>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();

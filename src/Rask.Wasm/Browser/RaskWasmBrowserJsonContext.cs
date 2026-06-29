@@ -22,4 +22,12 @@ namespace Rask.Wasm.Browser;
 [JsonSerializable(typeof(SerialOptions))]
 [JsonSerializable(typeof(SerialPortFilter))]
 [JsonSerializable(typeof(SerialPortFilter[]))]
+[JsonSerializable(typeof(UsbDeviceFilter))]
+[JsonSerializable(typeof(UsbDeviceFilter[]))]
+[JsonSerializable(typeof(UsbDeviceInfo))]
+[JsonSerializable(typeof(UsbDeviceHandshake))]
+[JsonSerializable(typeof(UsbDeviceHandshake[]))]
+[JsonSerializable(typeof(UsbControlTransferParams))]
+[JsonSerializable(typeof(UsbInTransferWire))]
+[JsonSerializable(typeof(UsbOutTransferResult))]
 internal sealed partial class RaskWasmBrowserJsonContext : JsonSerializerContext;
