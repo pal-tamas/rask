@@ -24,9 +24,9 @@ public sealed class CookiesDemo(ICookies cookies) : Component
                         Value: _input,
                         Placeholder: "Cookie value",
                         OnInput: v => _input = v),
-                    Button(Class: "btn btn-primary", Id: "cookie-set", OnClickAsync: Set)["Set"],
-                    Button(Class: "btn btn-outline-primary", Id: "cookie-get", OnClickAsync: Get)["Get"],
-                    Button(Class: "btn btn-outline-danger", Id: "cookie-delete", OnClickAsync: Delete)["Delete"]
+                    BsButton(Color: BsColor.Primary, Id: "cookie-set", OnClickAsync: Set)["Set"],
+                    BsButton(Color: BsColor.Primary, Outline: true, Id: "cookie-get", OnClickAsync: Get)["Get"],
+                    BsButton(Color: BsColor.Danger, Outline: true, Id: "cookie-delete", OnClickAsync: Delete)["Delete"]
                 ],
                 Div(Class: "small text-secondary")["Value: ", Code(Id: "cookie-read-value")[_read ?? "(null)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "cookie-status")[_status ?? "(idle)"]]

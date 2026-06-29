@@ -11,7 +11,7 @@ public sealed class ScreenInfoDemo(IScreenInfo screen) : Component
     protected override RenderResult Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "screen-read", OnClickAsync: Read)[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "screen-read", OnClickAsync: Read)[
                     "Read screen info"],
                 Div(Class: "small text-secondary")["Display: ", Code(Id: "screen-value")[_value ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "screen-status")[_status ?? "(idle)"]]

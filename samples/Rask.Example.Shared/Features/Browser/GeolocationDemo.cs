@@ -12,7 +12,7 @@ public sealed class GeolocationDemo(IGeolocation geolocation) : Component
     protected override RenderResult Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "geo-get", OnClickAsync: Get)[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "geo-get", OnClickAsync: Get)[
                     "Get current position"],
                 Div(Class: "small text-secondary")["Position: ", Code(Id: "geo-value")[_location ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "geo-status")[_status ?? "(idle)"]]

@@ -31,7 +31,7 @@ public sealed class MultiSelectDemo : Component
                     Placeholder: "Pick a few…")
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Save"]
             ]
         ],
         _submission is null

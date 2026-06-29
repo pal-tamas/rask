@@ -102,11 +102,7 @@ public sealed class OrdersPage : Component
 
             rows.Add(Tr(Key: order.Id, Class: "md-row")[
                 Td(Style: "width:44px;")[
-                    Button(
-                        "button",
-                        Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                        Data: new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" },
-                        OnClick: () => Toggle(order.Id))[
+                    Button(Class: "btn btn-sm btn-link p-0 text-decoration-none", Data: new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" }, OnClick: () => Toggle(order.Id))[
                         I(Class: open ? "bi bi-chevron-down" : "bi bi-chevron-right")
                     ]
                 ],

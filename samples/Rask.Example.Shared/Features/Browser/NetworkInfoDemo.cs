@@ -11,7 +11,7 @@ public sealed class NetworkInfoDemo(INetworkInfo network) : Component
     protected override RenderResult Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "net-read", OnClickAsync: Read)[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "net-read", OnClickAsync: Read)[
                     "Read network status"],
                 Div(Class: "small text-secondary")["Connection: ", Code(Id: "net-value")[_value ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "net-status")[_status ?? "(idle)"]]

@@ -31,16 +31,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "dispose-sync-mount",
-                        Disabled: _syncMounted,
-                        OnClick: MountSync)[I(Class: "bi bi-play-circle me-1"), "Mount sync probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "dispose-sync-unmount",
-                        Disabled: !_syncMounted,
-                        OnClick: UnmountSync)[I(Class: "bi bi-stop-circle me-1"), "Unmount sync probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[I(Class: "bi bi-play-circle me-1"), "Mount sync probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-sync-unmount", Disabled: !_syncMounted, OnClick: UnmountSync)[I(Class: "bi bi-stop-circle me-1"), "Unmount sync probe"]
                 ],
                 _syncMounted
                     ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
@@ -60,16 +52,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "dispose-async-mount",
-                        Disabled: _asyncMounted,
-                        OnClick: MountAsync)[I(Class: "bi bi-play-circle me-1"), "Mount async probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "dispose-async-unmount",
-                        Disabled: !_asyncMounted,
-                        OnClick: UnmountAsync)[I(Class: "bi bi-stop-circle me-1"), "Unmount async probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[I(Class: "bi bi-play-circle me-1"), "Mount async probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[I(Class: "bi bi-stop-circle me-1"), "Unmount async probe"]
                 ],
                 _asyncMounted
                     ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
@@ -100,16 +84,8 @@ public sealed class DisposalPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "unmount-hook-mount",
-                        Disabled: _hookMounted,
-                        OnClick: MountHook)[I(Class: "bi bi-play-circle me-1"), "Start ticker"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "unmount-hook-unmount",
-                        Disabled: !_hookMounted,
-                        OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[I(Class: "bi bi-play-circle me-1"), "Start ticker"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "unmount-hook-unmount", Disabled: !_hookMounted, OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
                 ],
                 _hookMounted
                     ? UnmountTimerProbe(AppendHookLog, _nextHookId)

@@ -22,13 +22,13 @@ public sealed class UserGateDemo : Component
                     _auth.Current.IsInRole("admin")
                         ? BsAlert(Color: BsColor.Warning, Class: "py-2")["🔑 Admin-only panel"]
                         : (Child)Fragment(),
-                    Button(Class: "btn btn-sm btn-outline-secondary", OnClick: _auth.SignOut)["Sign out"]]
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]]
                 : Fragment()[
                     P(Class: "text-secondary")["You are signed out."],
                     Div(Class: "d-flex gap-2")[
-                        Button(Class: "btn btn-sm btn-primary", OnClick: () => _auth.SignIn("alice", "user"))[
+                        BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
                             "Sign in as user"],
-                        Button(Class: "btn btn-sm btn-warning", OnClick: () => _auth.SignIn("rootadmin", "admin"))[
+                        BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[
                             "Sign in as admin"]
                     ]]
         ];

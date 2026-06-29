@@ -50,20 +50,16 @@ public sealed class KeyedListsPage : Component
                         _useKeys ? "Keys: ON" : "Keys: OFF"
                     ],
                     Span(Class: "vr mx-1"),
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-rotate", OnClick: Rotate)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-rotate", OnClick: Rotate)[
                         I(Class: "bi bi-arrow-down-up me-1"), "Rotate"
                     ],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-reverse", OnClick: Reverse)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-reverse", OnClick: Reverse)[
                         I(Class: "bi bi-arrow-repeat me-1"), "Reverse"
                     ],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-add", OnClick: AddTop)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-add", OnClick: AddTop)[
                         I(Class: "bi bi-plus-lg me-1"), "Add to top"
                     ],
-                    Button(
-                        Class: "btn btn-outline-danger btn-sm",
-                        Id: "kl-remove",
-                        Disabled: _items.Count == 0,
-                        OnClick: RemoveTop)[
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "kl-remove", Disabled: _items.Count == 0, OnClick: RemoveTop)[
                         I(Class: "bi bi-dash-lg me-1"), "Remove top"
                     ]
                 ],

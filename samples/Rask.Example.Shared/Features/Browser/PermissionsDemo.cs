@@ -16,9 +16,9 @@ public sealed class PermissionsDemo(IPermissions permissions) : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "perm-geo", OnClickAsync: QueryGeo)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-geo", OnClickAsync: QueryGeo)[
                         "Query geolocation"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "perm-clip", OnClickAsync: QueryClipboard)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "perm-clip", OnClickAsync: QueryClipboard)[
                         "Query clipboard-read"]
                 ],
                 Div(Class: "small text-secondary")["geolocation: ", Code(Id: "perm-geo-value")[_geo ?? "(unknown)"]],

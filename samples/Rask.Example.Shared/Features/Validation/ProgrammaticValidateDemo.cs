@@ -39,18 +39,10 @@ public sealed class ProgrammaticValidateDemo : Component
                 ValidationMessage(() => _model.Title, FieldError)
             ],
             Div(Class: "d-flex gap-2")[
-                Button(
-                    "button",
-                    Id: "v6-validate-now",
-                    Class: "btn btn-outline-secondary",
-                    OnClickAsync: ValidateNowAsync)[
+                BsButton(Color: BsColor.Secondary, Outline: true, Id: "v6-validate-now", OnClickAsync: ValidateNowAsync)[
                     I(Class: "bi bi-search me-1"), "Validate now"
                 ],
-                Button(
-                    "submit",
-                    Id: "v6-submit",
-                    Disabled: _ctx.IsValidatingAny,
-                    Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                BsButton(Type: "submit", Color: BsColor.Primary, Id: "v6-submit", Disabled: _ctx.IsValidatingAny)[I(Class: "bi bi-check2-circle me-1"), "Save"]
             ]
         ],
         _submission is null

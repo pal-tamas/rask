@@ -53,7 +53,7 @@ public sealed class ValidatableObjectDemo : Component
                 ValidationMessage(() => _model.Arrival, FieldError)
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-calendar-check me-1"), "Book"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-calendar-check me-1"), "Book"]
             ]
         ],
         _submission is null

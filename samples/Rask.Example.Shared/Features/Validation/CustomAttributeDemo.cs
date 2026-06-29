@@ -42,7 +42,7 @@ public sealed class CustomAttributeDemo : Component
                 ValidationMessage(() => _model.ConfirmPassword, FieldError)
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-shield-check me-1"), "Create account"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-shield-check me-1"), "Create account"]
             ]
         ],
         _submission is null

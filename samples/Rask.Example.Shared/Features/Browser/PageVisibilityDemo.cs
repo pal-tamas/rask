@@ -14,7 +14,7 @@ public sealed class PageVisibilityDemo(IPageVisibility visibility) : Component
     protected override RenderResult Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "vis-read", OnClickAsync: Read)[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "vis-read", OnClickAsync: Read)[
                     "Read visibility"],
                 Div(Class: "small text-secondary")["State: ", Code(Id: "vis-value")[_state ?? "(not read)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "vis-status")[_status ?? "(idle)"]]

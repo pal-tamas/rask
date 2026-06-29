@@ -33,7 +33,7 @@ public sealed class FluentValidationAsyncDemo : Component
                 ValidationMessage(() => _model.Code, FieldError)
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
             ]
         ],
         _submission is null

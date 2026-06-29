@@ -160,7 +160,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-credit-card me-1"), "Pay"]
+                    BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-credit-card me-1"), "Pay"]
                 ]
             ],
             _submission is null

@@ -11,10 +11,7 @@ public sealed class BoomHandlerDemo : Component
             BoundaryFallback)[
             Div(Class: "p-3 border rounded bg-white", Id: "boom-handler-host")[
                 P(Class: "text-secondary small mb-2")["Healthy subtree — click to throw."],
-                Button(
-                    Class: "btn btn-danger",
-                    Id: "boom-throw",
-                    OnClick: ThrowFromHandler)[I(Class: "bi bi-exclamation-triangle me-2"),
+                BsButton(Color: BsColor.Danger, Id: "boom-throw", OnClick: ThrowFromHandler)[I(Class: "bi bi-exclamation-triangle me-2"),
                     "Throw a handler exception"]
             ]
         ];
@@ -26,10 +23,7 @@ public sealed class BoomHandlerDemo : Component
                 Strong()["Boundary caught: "],
                 Code(Class: "ms-1")[ex.GetType().Name],
                 P(Class: "mb-2 mt-1 small")[ex.Message],
-                Button(
-                    Class: "btn btn-sm btn-outline-secondary",
-                    Id: "boom-recover",
-                    OnClick: recover)[I(Class: "bi bi-arrow-counterclockwise me-1"), "Recover"]
+                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "boom-recover", OnClick: recover)[I(Class: "bi bi-arrow-counterclockwise me-1"), "Recover"]
             ]
         ];
 

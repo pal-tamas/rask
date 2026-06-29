@@ -15,11 +15,11 @@ public sealed class AuthorizeDemo : Component
     protected override RenderResult Render() =>
         Div(Id: "authorize-demo")[
             Div(Class: "d-flex gap-2 mb-3")[
-                Button(Class: "btn btn-sm btn-primary", OnClick: () => _auth.SignIn("alice", "user"))[
+                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[
                     "Sign in as user"],
-                Button(Class: "btn btn-sm btn-warning", OnClick: () => _auth.SignIn("rootadmin", "admin"))[
+                BsButton(Color: BsColor.Warning, Size: BsSize.Sm, OnClick: () => _auth.SignIn("rootadmin", "admin"))[
                     "Sign in as admin"],
-                Button(Class: "btn btn-sm btn-outline-secondary", OnClick: _auth.SignOut)["Sign out"]
+                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.

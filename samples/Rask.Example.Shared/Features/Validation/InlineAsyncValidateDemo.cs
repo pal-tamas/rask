@@ -70,7 +70,7 @@ public sealed class InlineAsyncValidateDemo : Component
             ],
             ValidationSummary(SummaryAlert),
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-gift me-1"), "Redeem"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-gift me-1"), "Redeem"]
             ]
         ],
         _submission is null

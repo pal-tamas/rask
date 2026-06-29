@@ -31,7 +31,7 @@ public sealed class FloatingLabelsDemo : Component
             ],
             FloatingTextarea(() => _model.Bio),
             Div(Class: "mt-1")[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-person-plus me-1"), "Create account"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-person-plus me-1"), "Create account"]
             ]
         ],
         _submission is null

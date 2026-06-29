@@ -36,8 +36,7 @@ public sealed class EventsDemo : Component
             ],
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
             Div(Class: "col-md-6")[
-                Button(Class: "btn btn-outline-primary w-100 py-4",
-                    OnDoubleClick: _ => _doubleClicks++,
+                Button(Class: "btn btn-outline-primary w-100 py-4", OnDoubleClick: _ => _doubleClicks++,
                     OnContextMenu: _ => _contextMenu = !_contextMenu)[
                     "Double-click or right-click me"],
                 Div(Class: "text-secondary mt-2")[

@@ -31,7 +31,7 @@ public sealed class FirstErrorWinsDemo : Component
                 ValidationMessage(() => _model.Code, FieldError)
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-unlock me-1"), "Activate"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-unlock me-1"), "Activate"]
             ]
         ],
         _submission is null

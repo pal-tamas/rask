@@ -68,7 +68,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                 Span(Class: "text-muted small")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                Button("button", Class: "btn btn-primary", OnClick: OpenAdd)[
+                BsButton(Color: BsColor.Primary, OnClick: OpenAdd)[
                     I(Class: "bi bi-plus-lg me-1"), "New todo"
                 ]
             ],
@@ -81,16 +81,10 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
                             Id: $"todo-done-{item.Id}",
                             Class: "form-check-input mt-0"),
                         Span(Class: item.Completed ? "todo-title completed" : "todo-title")[item.Title],
-                        Button(
-                            "button",
-                            Class: "btn btn-outline-secondary btn-sm",
-                            OnClick: () => OpenEdit(item))[
+                        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => OpenEdit(item))[
                             I(Class: "bi bi-pencil")
                         ],
-                        Button(
-                            "button",
-                            Class: "btn btn-outline-danger btn-sm",
-                            OnClick: () => Delete(item))[
+                        BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => Delete(item))[
                             I(Class: "bi bi-trash")
                         ]
                     ])
@@ -181,8 +175,8 @@ public sealed class TodoFormDialog : Component
                         ValidationMessage(() => Model.Title, FieldError)
                     ],
                     Div(Class: "d-flex justify-content-end gap-2")[
-                        Button("button", Class: "btn btn-outline-secondary", OnClick: OnCancel)["Cancel"],
-                        Button("submit", Class: "btn btn-primary")[
+                        BsButton(Color: BsColor.Secondary, Outline: true, OnClick: OnCancel)["Cancel"],
+                        BsButton(Type: "submit", Color: BsColor.Primary)[
                             I(Class: "bi bi-check2-circle me-1"),
                             IsAdding ? "Add" : "Save"
                         ]

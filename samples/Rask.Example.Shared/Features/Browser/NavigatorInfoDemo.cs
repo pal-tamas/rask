@@ -11,7 +11,7 @@ public sealed class NavigatorInfoDemo(INavigatorInfo navigator) : Component
     protected override RenderResult Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "nav-read", OnClickAsync: Read)[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "nav-read", OnClickAsync: Read)[
                     "Read navigator info"],
                 Div(Class: "small text-secondary")["Info: ", Code(Id: "nav-value")[_value ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "nav-status")[_status ?? "(idle)"]]

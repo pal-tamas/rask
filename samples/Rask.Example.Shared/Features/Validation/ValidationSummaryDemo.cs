@@ -53,7 +53,7 @@ public sealed class ValidationSummaryDemo : Component
                 ]
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Register"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Register"]
             ]
         ],
         _submission is null

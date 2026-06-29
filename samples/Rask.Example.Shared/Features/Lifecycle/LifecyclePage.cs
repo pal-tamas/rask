@@ -32,16 +32,8 @@ public sealed class LifecyclePage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "lifecycle-cycle-mount",
-                        Disabled: _cycleMounted,
-                        OnClick: MountCycle)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "lifecycle-cycle-unmount",
-                        Disabled: !_cycleMounted,
-                        OnClick: UnmountCycle)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "lifecycle-cycle-mount", Disabled: _cycleMounted, OnClick: MountCycle)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "lifecycle-cycle-unmount", Disabled: !_cycleMounted, OnClick: UnmountCycle)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
                 ],
                 _cycleMounted
                     ? LifecycleCycleProbe(AppendCycleLog, _nextCycleId)

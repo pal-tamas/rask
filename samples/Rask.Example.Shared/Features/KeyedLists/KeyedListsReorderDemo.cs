@@ -22,7 +22,7 @@ public sealed class KeyedListsReorderDemo : Component
                     Input<string>(InputType.Text) // unbound — its value lives only in the DOM
                 ])
             ],
-            Button(Class: "btn btn-sm btn-outline-primary mt-2", OnClick: Rotate)["Rotate"]
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mt-2", OnClick: Rotate)["Rotate"]
         ];
 
     private void Rotate()

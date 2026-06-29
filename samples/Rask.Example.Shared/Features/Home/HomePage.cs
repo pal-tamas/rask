@@ -84,9 +84,7 @@ public sealed class HomePage(Navigator nav) : Component
                     "every example below renders live in your browser."
                 ],
                 Div(Class: "d-flex flex-wrap gap-2")[
-                    Button(
-                        Class: "btn btn-light btn-lg fw-semibold",
-                        OnClick: () => nav.NavigateTo("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[I(Class: "bi bi-arrow-right me-2"),
                         "Start with Tags"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
@@ -140,9 +138,7 @@ public sealed class HomePage(Navigator nav) : Component
                     Div(Class: "feature-icon mb-3")[I(Class: $"bi {icon}")],
                     H3(Class: "h6 fw-semibold mb-2")[title],
                     P(Class: "text-secondary small mb-3")[body],
-                    Button(
-                        Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                        OnClick: () => nav.NavigateTo(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
+                    BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", OnClick: () => nav.NavigateTo(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
                 ]
             ]
         ];

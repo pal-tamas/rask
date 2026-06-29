@@ -7,6 +7,6 @@ public sealed class TagsFormDemo : Component
             Label("n", Class: "form-label small mb-1")["Name"],
             Input<string>(InputType.Text, Id: "n", Class: "form-control form-control-sm", Placeholder: "Jane Doe")
         ],
-        Button("submit", Class: "btn btn-primary btn-sm")["Submit"]
+        BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm)["Submit"]
     ];
 }

@@ -37,25 +37,21 @@ public sealed class NavigatorPage(Navigator nav, RouteState route) : Component
             "Watch the URL bar — every button below mutates state and the page re-renders to reflect it."
         ],
         Div(Class: "btn-group flex-wrap mb-3")[
-            Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "1"))[
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.SetQuery("page", "1"))[
                 "SetQuery page=1"],
-            Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("page", "2"))[
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.SetQuery("page", "2"))[
                 "SetQuery page=2"],
-            Button(Class: "btn btn-outline-primary btn-sm", OnClick: () => nav.SetQuery("sort", "asc"))[
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.SetQuery("sort", "asc"))[
                 "SetQuery sort=asc"],
-            Button(Class: "btn btn-outline-secondary btn-sm", OnClick: () => nav.RemoveQuery("page"))[
+            BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.RemoveQuery("page"))[
                 "RemoveQuery page"],
-            Button(Class: "btn btn-outline-danger btn-sm", OnClick: () => nav.ClearQuery())["ClearQuery"]
+            BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => nav.ClearQuery())["ClearQuery"]
         ],
         H2(Class: "h4 mt-4 mb-3")["Path navigation"],
         Div(Class: "d-flex flex-wrap gap-2 mb-4")[
-            Button(
-                Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.NavigateTo("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.NavigateTo("/navigator"))[I(Class: "bi bi-arrow-counterclockwise me-1"),
                 "NavigateTo(\"/navigator\")"],
-            Button(
-                Class: "btn btn-outline-primary btn-sm",
-                OnClick: () =>
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () =>
                     nav.NavigateTo("/navigator", new[] { KeyValuePair.Create<string, string?>("from", "button") }))[
                 I(Class: "bi bi-arrow-up-right me-1"), "NavigateTo(path, query)"]
         ],

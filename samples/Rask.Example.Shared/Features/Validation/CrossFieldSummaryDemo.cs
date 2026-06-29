@@ -40,7 +40,7 @@ public sealed class CrossFieldSummaryDemo : Component
                 Input(() => _model.Return, Id: "v5-return", Class: "form-control")
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-airplane me-1"), "Book"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-airplane me-1"), "Book"]
             ]
         ],
         _submission is null

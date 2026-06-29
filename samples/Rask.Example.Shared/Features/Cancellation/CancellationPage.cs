@@ -27,16 +27,8 @@ public sealed class CancellationPage : Component
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "cancel-mount",
-                        Disabled: _mounted,
-                        OnClick: Mount)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "cancel-unmount",
-                        Disabled: !_mounted,
-                        OnClick: Unmount)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "cancel-mount", Disabled: _mounted, OnClick: Mount)[I(Class: "bi bi-play-circle me-1"), "Mount probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "cancel-unmount", Disabled: !_mounted, OnClick: Unmount)[I(Class: "bi bi-stop-circle me-1"), "Unmount probe"]
                 ],
                 _mounted
                     ? CancellationProbe(AppendLog, _nextInstance)

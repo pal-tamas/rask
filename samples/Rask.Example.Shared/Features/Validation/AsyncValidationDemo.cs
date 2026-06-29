@@ -36,7 +36,7 @@ public sealed class AsyncValidationDemo : Component
                     msgs => Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Sign up"]
             ]
         ],
         _submission is null

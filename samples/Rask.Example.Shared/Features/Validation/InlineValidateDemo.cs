@@ -53,7 +53,7 @@ public sealed class InlineValidateDemo : Component
             ],
             ValidationSummary(SummaryAlert),
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
             ]
         ],
         _submission is null

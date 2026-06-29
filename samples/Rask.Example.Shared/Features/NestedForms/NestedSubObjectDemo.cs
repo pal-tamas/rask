@@ -55,7 +55,7 @@ public sealed class NestedSubObjectDemo : Component
                 ]
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary", Id: "nf-submit")[
+                BsButton(Type: "submit", Color: BsColor.Primary, Id: "nf-submit")[
                     I(Class: "bi bi-check2-circle me-1"), "Place order"]
             ]
         ],

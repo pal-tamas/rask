@@ -31,10 +31,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                     BsCardBody()[
                         Div(Class: "d-flex justify-content-between align-items-baseline mb-3")[
                             H3(Class: "h6 text-secondary text-uppercase small mb-0")["Hook activity"],
-                            Button(
-                                Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                                Id: "ticker-clear-log",
-                                OnClick: ClearLog)["clear"]
+                            BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", Id: "ticker-clear-log", OnClick: ClearLog)["clear"]
                         ],
                         _log.Count == 0
                             ? P(Class: "text-secondary fst-italic small mb-0")[
