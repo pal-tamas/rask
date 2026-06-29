@@ -957,6 +957,13 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Performance", "Performance");
         await Page.Locator("#perf-read").ClickAsync();
         await Expect(Page.Locator("#perf-value")).ToContainTextAsync("ms", contains);
+
+        // IndexedDB — a real async set→get round-trip through the transaction-wrapped helper. Set the
+        // default value, read it back, and assert it returns (validates IndexedDB on every host).
+        await SideAsync("IndexedDB", "IndexedDB");
+        await Page.Locator("#idb-set").ClickAsync();
+        await Page.Locator("#idb-get").ClickAsync();
+        await Expect(Page.Locator("#idb-read")).ToContainTextAsync("hello from IndexedDB", contains);
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
