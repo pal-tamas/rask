@@ -371,6 +371,169 @@ window.__raskIntersect = window.__raskIntersect || (() => {
     };
 })();
 
+// Device Orientation (driven by IDeviceOrientation). Each watch adds a window "deviceorientation"
+// listener under the C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync
+// shim (static [JSInvokable] DeviceOrientationInterop.Reading in Rask.Core).
+window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
+    const listeners = new Map();
+    return {
+        isSupported: () => "DeviceOrientationEvent" in window,
+        requestPermission: () => {
+            const evt = window.DeviceOrientationEvent;
+            if (evt && typeof evt.requestPermission === "function") {
+                return evt.requestPermission().catch(() => "denied");
+            }
+            return Promise.resolve("granted");
+        },
+        watch: (id) => {
+            const handler = (e) => {
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceOrientation", id, {
+                    alpha: e.alpha,
+                    beta: e.beta,
+                    gamma: e.gamma,
+                    absolute: !!e.absolute
+                });
+            };
+            window.addEventListener("deviceorientation", handler);
+            listeners.set(id, handler);
+        },
+        clear: (id) => {
+            const handler = listeners.get(id);
+            if (!handler) {
+                return;
+            }
+            listeners.delete(id);
+            window.removeEventListener("deviceorientation", handler);
+        }
+    };
+})();
+
+// Device Motion (driven by IDeviceMotion). Each watch adds a window "devicemotion" listener under the
+// C#-minted id; each reading is pushed back via the shared window.DotNet.invokeMethodAsync shim (static
+// [JSInvokable] DeviceMotionInterop.Reading in Rask.Core).
+window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
+    const listeners = new Map();
+    return {
+        isSupported: () => "DeviceMotionEvent" in window,
+        requestPermission: () => {
+            const evt = window.DeviceMotionEvent;
+            if (evt && typeof evt.requestPermission === "function") {
+                return evt.requestPermission().catch(() => "denied");
+            }
+            return Promise.resolve("granted");
+        },
+        watch: (id) => {
+            const handler = (e) => {
+                const a = e.acceleration || {};
+                const r = e.rotationRate || {};
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceMotion", id, {
+                    accelerationX: a.x,
+                    accelerationY: a.y,
+                    accelerationZ: a.z,
+                    rotationAlpha: r.alpha,
+                    rotationBeta: r.beta,
+                    rotationGamma: r.gamma,
+                    interval: e.interval
+                });
+            };
+            window.addEventListener("devicemotion", handler);
+            listeners.set(id, handler);
+        },
+        clear: (id) => {
+            const handler = listeners.get(id);
+            if (!handler) {
+                return;
+            }
+            listeners.delete(id);
+            window.removeEventListener("devicemotion", handler);
+        }
+    };
+})();
+
+// Media Session (driven by IMediaSession). Metadata/playback state are one-shot setters; each action
+// handler is wired to a C#-minted id and pushed back via the shared window.DotNet.invokeMethodAsync shim
+// (static [JSInvokable] MediaSessionInterop.Invoke in Rask.Core), so one wiring serves both transports.
+window.__raskMediaSession = window.__raskMediaSession || (() => {
+    const actions = new Map();
+    return {
+        isSupported: () => "mediaSession" in navigator,
+        setMetadata: (m) => {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: m.title || "",
+                artist: m.artist || "",
+                album: m.album || "",
+                artwork: m.artwork || []
+            });
+        },
+        setPlaybackState: (state) => {
+            navigator.mediaSession.playbackState = state;
+        },
+        setActionHandler: (id, action) => {
+            navigator.mediaSession.setActionHandler(action, () => {
+                window.DotNet.invokeMethodAsync("Rask.Core", "RaskMediaSessionAction", id);
+            });
+            actions.set(id, action);
+        },
+        removeActionHandler: (id) => {
+            const action = actions.get(id);
+            if (action === undefined) {
+                return;
+            }
+            actions.delete(id);
+            navigator.mediaSession.setActionHandler(action, null);
+        },
+        clear: () => {
+            navigator.mediaSession.metadata = null;
+            navigator.mediaSession.playbackState = "none";
+        }
+    };
+})();
+
+// Mutation Observer (driven by IMutationObserver). Each observation is a live MutationObserver held here
+// under the C#-minted id; each record is pushed back to C# via the shared window.DotNet.invokeMethodAsync
+// shim (static [JSInvokable] MutationInterop.Changed in Rask.Core). The element is resolved from an
+// ElementRef by the JSON reviver.
+window.__raskMutation = window.__raskMutation || (() => {
+    const observers = new Map();
+    return {
+        observe: (id, element, childList, attributes, characterData, subtree, attributeFilter) => {
+            if (!element) {
+                return;
+            }
+            const opts = {
+                childList: !!childList,
+                attributes: !!attributes,
+                characterData: !!characterData,
+                subtree: !!subtree
+            };
+            if (attributeFilter && attributeFilter.length) {
+                opts.attributeFilter = attributeFilter;
+            }
+            const mo = new MutationObserver((records) => {
+                for (let i = 0; i < records.length; i++) {
+                    const r = records[i];
+                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskMutationChanged", id, {
+                        type: r.type,
+                        addedCount: r.addedNodes ? r.addedNodes.length : 0,
+                        removedCount: r.removedNodes ? r.removedNodes.length : 0,
+                        attributeName: r.attributeName
+                    });
+                }
+            });
+            mo.observe(element, opts);
+            observers.set(id, mo);
+        },
+        unobserve: (id) => {
+            const mo = observers.get(id);
+            if (!mo) {
+                return;
+            }
+            observers.delete(id);
+            mo.disconnect();
+        }
+    };
+})();
+
 // Broadcast Channel (driven by IBroadcastChannel). Each connection is a live BroadcastChannel held here
 // under the C#-minted integer id; an incoming message is pushed back to C# via the shared
 // window.DotNet.invokeMethodAsync shim (static [JSInvokable] BroadcastInterop.Receive in Rask.Core),
