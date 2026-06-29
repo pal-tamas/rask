@@ -16,7 +16,7 @@ builder.Services.AddRask();
 
 var app = builder.Build();
 
-app.UseStaticFiles();
+app.MapStaticAssets();
 app.UseRouting();
 app.UseRask<App>();
 

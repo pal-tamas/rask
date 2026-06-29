@@ -63,7 +63,13 @@ them until tagged releases begin.
   `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
   Server and WASM. New `/browser/mutation` showcase page.
 
-### Fixed
+### Changed
+- **Server hosts and the `rask-server` template serve static assets via `app.MapStaticAssets()`.** The
+  .NET 9/10 static-asset pipeline replaces `app.UseStaticFiles()` for the showcase server hosts and the
+  template, bringing build-time fingerprinting, brotli/gzip and immutable caching — including for package
+  `_content/*` assets such as Rask.Bootstrap's bundled CSS linked via `BootstrapStyles()`. The Server E2E
+  fixture now runs the host **published** so the slow-network journey exercises production asset serving
+  (compressed + revalidation-aware) rather than the dev static-asset handler.
 - **Render cache is now children-aware for composite components.** A non-`Element` component's children
   arrive via the `[...]` indexer (not a factory parameter, so absent from the prop-change check) and are
   baked into its `Render()` output, so when the child set changed but its props didn't — e.g. a

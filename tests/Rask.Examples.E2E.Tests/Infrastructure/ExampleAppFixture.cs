@@ -20,6 +20,16 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     protected abstract int Port { get; }
     protected virtual TimeSpan ReadyTimeout => TimeSpan.FromSeconds(120);
 
+    // When true the host is `dotnet publish`-ed and the published DLL is run from its own folder,
+    // instead of `dotnet run --no-build`. Publishing gives the app production static-asset serving via
+    // MapStaticAssets — package _content/* assets (e.g. Rask.Bootstrap's CSS) are fingerprinted,
+    // brotli-pre-compressed and ETag/304-revalidated. `dotnet run` instead uses the dev static-asset
+    // handler, which serves those assets uncompressed and `no-cache` without honouring conditional
+    // requests, so on a throttled link the full Bootstrap CSS re-downloads on every navigation and
+    // blows the slow-3G timeout. Hosts that exercise the slow-network journey opt in so the E2E
+    // mirrors a real deployment.
+    protected virtual bool RunPublished => false;
+
     // Extra environment variables for the spawned host process (e.g. config that production-mode
     // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "Jwt__Key").
     protected virtual IReadOnlyDictionary<string, string>? ExtraEnvironment => null;
@@ -42,26 +52,28 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         var repoRoot = LocateRepoRoot();
         var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
 
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            ArgumentList =
+        var psi = RunPublished
+            ? PublishAndBuildStartInfo(repoRoot, projectPath)
+            : new ProcessStartInfo("dotnet")
             {
-                "run",
-                "--project",
-                projectPath,
-                "--no-launch-profile",
-                "--no-build",
-                "-c",
-                Configuration,
-                "--",
-                "--urls",
-                BaseUrl
-            },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = repoRoot
-        };
+                ArgumentList =
+                {
+                    "run",
+                    "--project",
+                    projectPath,
+                    "--no-launch-profile",
+                    "--no-build",
+                    "-c",
+                    Configuration,
+                    "--",
+                    "--urls",
+                    BaseUrl
+                },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                WorkingDirectory = repoRoot
+            };
         psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
         psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
 
@@ -157,6 +169,48 @@ public abstract class ExampleAppFixture : IAsyncLifetime
                 buffer.AppendLine(line);
             }
         }
+    }
+
+    // Publishes the host once into a temp folder and returns a ProcessStartInfo that runs the published
+    // DLL *from that folder* — the working directory becomes the content root, so MapStaticAssets
+    // resolves the published wwwroot/_content assets. Running the DLL from anywhere else would point the
+    // content root at the wrong place and the asset endpoints would serve empty bodies.
+    private ProcessStartInfo PublishAndBuildStartInfo(string repoRoot, string projectPath)
+    {
+        var appName = Path.GetFileName(ProjectRelativePath.TrimEnd('/', '\\'));
+        var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", $"{appName}-{Port}");
+        Directory.CreateDirectory(publishDir);
+
+        var publish = new ProcessStartInfo("dotnet")
+        {
+            ArgumentList = { "publish", projectPath, "-c", Configuration, "-o", publishDir, "--nologo" },
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            WorkingDirectory = repoRoot
+        };
+
+        using (var p = Process.Start(publish)
+                       ?? throw new InvalidOperationException($"Failed to start `dotnet publish` for {ProjectRelativePath}"))
+        {
+            var stdout = p.StandardOutput.ReadToEnd();
+            var stderr = p.StandardError.ReadToEnd();
+            p.WaitForExit();
+            if (p.ExitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"`dotnet publish` failed for {ProjectRelativePath} (exit {p.ExitCode}).\n{stdout}\n{stderr}");
+            }
+        }
+
+        return new ProcessStartInfo("dotnet")
+        {
+            ArgumentList = { Path.Combine(publishDir, $"{appName}.dll"), "--urls", BaseUrl },
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            WorkingDirectory = publishDir
+        };
     }
 
     private static string LocateRepoRoot()

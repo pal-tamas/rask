@@ -19,7 +19,7 @@ builder.Services.AddRask();
 
 var app = builder.Build();
 
-app.UseStaticFiles();
+app.MapStaticAssets();
 app.UseRouting();
 // Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.
 app.UseAuthentication();

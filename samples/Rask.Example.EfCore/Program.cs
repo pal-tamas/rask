@@ -20,8 +20,8 @@ var app = builder.Build();
 // Create the schema and seed sample data once at startup.
 await CatalogSeeder.SeedAsync(app.Services.GetRequiredService<IDbContextFactory<CatalogDbContext>>());
 
-// UseStaticFiles before UseRouting so static files win over Rask's catch-all route.
-app.UseStaticFiles();
+// MapStaticAssets serves wwwroot + package _content as routed endpoints (outrank the SPA catch-all).
+app.MapStaticAssets();
 app.UseRouting();
 app.UseRask<App>();
 
