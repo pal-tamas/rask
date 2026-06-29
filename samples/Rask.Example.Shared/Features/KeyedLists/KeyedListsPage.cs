@@ -27,7 +27,7 @@ public sealed class KeyedListsPage : Component
             "Keyed lists & reconciliation",
             "Give each list item a stable Key: and the diff codec reconciles by identity — inserts, removals, and reorders ship as trusted structural ops that preserve the survivors' DOM state (focus, selection, uncommitted input text) instead of rewriting rows by position."),
 
-        Div(Class: "alert alert-primary d-flex align-items-start")[
+        BsAlert(Color: BsColor.Primary, Class: "d-flex align-items-start")[
             I(Class: "bi bi-lightbulb-fill me-3 fs-4"),
             Div()[
                 Strong()["Try it:"],
@@ -76,7 +76,7 @@ public sealed class KeyedListsPage : Component
             Notes:
             "Key is an identity, not a reactive prop: a Key change mounts a fresh instance and never fires OnPropsChanged. On an element Key emits data-rask-key; on a transparent component or Fragment it auto-forwards onto the first rendered element. RASK022 warns when a projected/looped list item is missing a Key."),
 
-        Div(Class: "alert alert-warning d-flex align-items-start mt-3")[
+        BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
             I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
             Div()[
                 Strong()["RASK022:"],

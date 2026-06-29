@@ -25,11 +25,11 @@ public sealed class AuthorizeDemo : Component
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize(
                 ["admin"],
-                Authorized: user => Div(Class: "alert alert-warning py-2 mb-0")[
+                Authorized: user => BsAlert(Color: BsColor.Warning, Class: "py-2 mb-0")[
                     $"🔑 Admin-only content — welcome, {user.Identity!.Name}."],
                 NotAuthorized: Authorize(
-                    Authorized: user => Div(Class: "alert alert-success py-2 mb-0")[
+                    Authorized: user => BsAlert(Color: BsColor.Success, Class: "py-2 mb-0")[
                         $"✅ Signed in as {user.Identity!.Name} — standard access."],
-                    NotAuthorized: Div(Class: "alert alert-secondary py-2 mb-0")["🔒 Sign in to see member content."]))
+                    NotAuthorized: BsAlert(Color: BsColor.Secondary, Class: "py-2 mb-0")["🔒 Sign in to see member content."]))
         ];
 }

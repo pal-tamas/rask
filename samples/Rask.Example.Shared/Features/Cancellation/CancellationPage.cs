@@ -55,7 +55,7 @@ public sealed class CancellationPage : Component
             ["CancellationProbe.cs"],
             Notes:
             "Component.CancellationToken is allocated lazily — components that don't read it never pay the CTS cost. The framework cancels the token before disposing the subtree, so awaits unwind via OperationCanceledException before Dispose runs."),
-        Div(Class: "alert alert-info d-flex align-items-start mt-3")[
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-3")[
             I(Class: "bi bi-info-circle-fill me-3 fs-4"),
             Div()[
                 Strong()["Cooperation required:"],

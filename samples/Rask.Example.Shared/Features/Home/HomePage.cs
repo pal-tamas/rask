@@ -106,7 +106,7 @@ public sealed class HomePage(Navigator nav) : Component
             "Every page on the left has a runnable demo and the C# source that produced it."
         ],
         Div()[FeatureIndex()],
-        Div(Class: "alert alert-info d-flex align-items-start")[
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
             I(Class: "bi bi-info-circle-fill me-3 fs-4"),
             Div()[
                 Strong()["Tip:"],

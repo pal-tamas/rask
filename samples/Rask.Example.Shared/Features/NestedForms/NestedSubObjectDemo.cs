@@ -61,7 +61,7 @@ public sealed class NestedSubObjectDemo : Component
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-result")[
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-result")[
                 I(Class: "bi bi-check-circle me-2"), _submission]
     ];
 }

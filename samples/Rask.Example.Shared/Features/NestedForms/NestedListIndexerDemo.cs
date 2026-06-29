@@ -69,7 +69,7 @@ public sealed class NestedListIndexerDemo : Component
             ],
             _submission is null
                 ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-idx-result")[_submission]
+                : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-idx-result")[_submission]
         ];
     }
 }

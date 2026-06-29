@@ -215,7 +215,7 @@ public sealed class LiveTicker : Component
                 ],
                 _error is null
                     ? Fragment()
-                    : Div(Class: "alert alert-warning py-2 px-3 small mb-3", Id: "ticker-error")[
+                    : BsAlert(Color: BsColor.Warning, Class: "py-2 px-3 small mb-3", Id: "ticker-error")[
                         I(Class: "bi bi-exclamation-triangle me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —

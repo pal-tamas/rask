@@ -63,7 +63,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
             ["LiveTicker.cs"],
             Notes:
             "OnMountAsync runs a long-lived poll loop. Every await uses ConfigureAwait(false) so the loop doesn't auto-render on each yield; instead it calls StateHasChanged() once per real data change — one render per tick. The inter-tick delay is interruptible: a Symbol switch cancels _wake so the new asset polls immediately. CancellationToken cancels on unmount, breaking the loop. There is no OnRenderedAsync: the chart is a server-rendered SVG (the Sparkline component) emitted straight from Render(), so the framework ships the updated <svg> over the same transport as the rest of the page — zero JavaScript."),
-        Div(Class: "alert alert-info d-flex align-items-start mt-3")[
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-3")[
             I(Class: "bi bi-info-circle-fill me-3 fs-4"),
             Div()[
                 Strong()["Synthetic feed."],

@@ -25,7 +25,7 @@ public sealed class BoomNestedDemo : Component
         ];
 
     private static Child InnerFallback(Exception ex, Callback recover) =>
-        Div(Class: "alert alert-warning d-flex align-items-start",
+        BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start",
             Id: "boom-nested-inner-fallback")[
             I(Class: "bi bi-shield-exclamation me-3 fs-4"),
             Div()[
@@ -40,7 +40,7 @@ public sealed class BoomNestedDemo : Component
         ];
 
     private static Child OuterFallback(Exception ex) =>
-        Div(Class: "alert alert-danger", Id: "boom-nested-outer-fallback")[
+        BsAlert(Color: BsColor.Danger, Id: "boom-nested-outer-fallback")[
             Strong()["Outer boundary caught: "], ex.Message
         ];
 

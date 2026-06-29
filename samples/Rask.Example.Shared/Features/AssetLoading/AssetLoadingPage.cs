@@ -57,7 +57,7 @@ public sealed class AssetLoadingPage : Component
                 "Toggle the button. On mount, the framework adds the child's <link> via the head morph; " +
                 "on unmount, the tag is removed. The browser keeps the CSS bytes cached, so re-mounting is instant.",
                 Result: LazyMount()),
-            Div(Class: "alert alert-info d-flex align-items-start mt-5")[
+            BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-5")[
                 I(Class: "bi bi-info-circle-fill me-3 fs-4"),
                 Div()[
                     Strong()["Verify in DevTools:"],

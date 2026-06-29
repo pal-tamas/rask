@@ -77,7 +77,7 @@ public sealed class DisposalPage : Component
                 LogList(_asyncLog, "dispose-async-log")
             ]
         ],
-        Div(Class: "alert alert-warning d-flex align-items-start mt-3")[
+        BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
             I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
             Div()[
                 Strong()["Order:"],

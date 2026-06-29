@@ -8,7 +8,7 @@ public sealed class ValidationSummaryDemo : Component
     private string? _submission;
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
-        Div(Class: "alert alert-danger small mb-0")[
+        BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
             Div(Class: "fw-semibold mb-1")[
                 I(Class: "bi bi-exclamation-triangle me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
@@ -58,6 +58,6 @@ public sealed class ValidationSummaryDemo : Component
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
     ];
 }

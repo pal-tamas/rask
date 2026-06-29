@@ -50,7 +50,7 @@ public sealed class HttpFetchDemo(HttpClient http) : Component
     {
         if (_error is not null)
         {
-            return Div(Class: "alert alert-danger mb-0")[
+            return BsAlert(Color: BsColor.Danger, Class: "mb-0")[
                 Strong()["Error: "], _error
             ];
         }

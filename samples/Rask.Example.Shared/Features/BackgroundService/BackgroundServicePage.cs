@@ -36,7 +36,7 @@ public sealed class BackgroundServicePage : Component
             ["MetricsFeed.cs", "MetricsGauge.cs", "MetricsChart.cs"],
             Notes:
             "The loop runs on a background thread, so StateHasChanged() crosses threads here — that's safe: it schedules a render under the subscriber's own session lock and is a no-op once the component unmounts (so a tick racing an unsubscribe is harmless). State is an immutable snapshot swapped by reference, so a render walking it on the UI thread never sees a half-built value. The feed is registered as a singleton (app-wide, shared) — deliberately unlike the scoped DemoUserProvider, because a metric stream is public but a user's principal must never be shared across sessions."),
-        Div(Class: "alert alert-info d-flex align-items-start mt-3")[
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-3")[
             I(Class: "bi bi-info-circle-fill me-3 fs-4"),
             Div()[
                 Strong()["Decoupled lifetime."],
