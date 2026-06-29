@@ -206,6 +206,7 @@ public static class RaskEndpointExtensions
         services.AddScoped<IResizeObserver, ResizeObserverService>();
         services.AddScoped<IMutationObserver, MutationObserverService>();
         services.AddScoped<IMediaSession, MediaSession>();
+        services.AddScoped<IGamepad, Gamepad>();
         services.AddScoped<IDeviceOrientation, DeviceOrientation>();
         services.AddScoped<IDeviceMotion, DeviceMotion>();
         services.AddScoped<ICrypto, Crypto>();

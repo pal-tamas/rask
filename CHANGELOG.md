@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Browser-API quick-win batch — `IGamepad` (shared) + `IEyeDropper` / `IPictureInPicture` /
+  `IIdleDetector` (WASM-only)** — four more typed Web-API wrappers, injected through the constructor like
+  the rest. `IGamepad` (`Rask.Core.Browser`, **both transports**) reads connected controllers — sticks,
+  triggers, buttons — via a `requestAnimationFrame` poll the framework runs, pushing a `GamepadReading`
+  through the shared static `[JSInvokable]` only when a pad's state changes. The other three live in
+  `Rask.Wasm.Browser` because they need *transient* user activation: `IEyeDropper.OpenAsync()` picks a
+  color from anywhere on screen (sRGB hex, or `null` on cancel); `IPictureInPicture` floats a
+  `<video>` into an always-on-top miniplayer (`RequestAsync(ElementRef)` / `ExitAsync` / `IsActiveAsync`);
+  `IIdleDetector` watches for the user going idle or the screen locking (`RequestPermissionAsync` then
+  `WatchAsync(onChange, thresholdSeconds)`, pushed via a static `[JSInvokable]` in the `Rask.Wasm`
+  assembly). New `/browser/gamepad` showcase page (shared sample) plus `/picture-in-picture`,
+  `/eyedropper`, and `/idle` pages in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Expanded `WebAppManifest` (`Rask.Wasm.Browser`)** — typed support for the richer manifest members,
   all optional and omitted when unset: `Categories`, `Orientation` (`ManifestOrientation`),
   `DisplayOverride` (`DisplayOverrideMode`, incl. `window-controls-overlay`), `Shortcuts`

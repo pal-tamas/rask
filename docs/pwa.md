@@ -213,6 +213,10 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
 | **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
+| **Picture-in-Picture** | `IPictureInPicture` *(WASM)* | Float a `<video>` into an always-on-top miniplayer |
+| **Gamepad** | `IGamepad` | Read connected controllers — sticks / triggers / buttons (`WatchAsync`) |
+| **Idle detection** | `IIdleDetector` *(WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
+| **EyeDropper** | `IEyeDropper` *(WASM)* | Pick a color from anywhere on screen (`OpenAsync`) |
 
 **App badge.** `IBadge` (`Rask.Wasm.Browser`) sets a count on the **installed** app's icon —
 `SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
