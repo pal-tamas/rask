@@ -1002,6 +1002,12 @@ public abstract partial class SharedSmokeTests
         await SideAsync("File system access", "File system access");
         await Expect(Page.Locator("#fs-open")).ToBeVisibleAsync();
         await Expect(Page.Locator("#fs-status")).ToContainTextAsync("idle", contains);
+
+        // Passkeys (WebAuthn) — the create/get ceremonies open a real authenticator UI that can't be driven
+        // without a virtual authenticator, so the round-trip is covered by unit tests; here we only confirm
+        // the page routes/renders (the support line is environment-dependent, so it's not asserted).
+        await SideAsync("Passkeys (WebAuthn)", "Passkeys (WebAuthn)");
+        await Expect(Page.Locator("#webauthn-create")).ToBeVisibleAsync();
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
