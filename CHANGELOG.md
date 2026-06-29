@@ -78,10 +78,12 @@ them until tagged releases begin.
   runtime fell back to the element's render-owner for such handlers, so when the element was nested inside
   a composite wrapper (a `Bs*` card/button around it) the wrapper re-rendered instead of the component that
   *defined* the handler — silently dropping the consumer's update (e.g. a `CodeSample` tab click, a parent
-  rating callback). Handler-owner resolution (and `AutoCallback`) now unwrap the closure's captured `this`,
-  so a handler always re-renders its defining component, however deeply it is wrapped. Allocation-neutral on
-  the render benchmarks (the common method-group / `this`-only handler path is unchanged; only closures pay
-  a one-time, cached field lookup).
+  rating callback). Handler-owner resolution (and `AutoCallback`) now unwrap the closure's captured `this`
+  when it is a user component, so a handler always re-renders its defining component however deeply it is
+  wrapped. The unwrap is scoped to non-`Element` components: a form control (`Input`/`Select`/`Textarea`)
+  closes over `this` too, but its consumer re-render is owned by the form machinery, so those fall back to
+  the element's render-owner as before. Allocation-neutral on the render benchmarks (the common
+  method-group / `this`-only handler path is unchanged; only closures pay a one-time, cached field lookup).
 
 ## [0.11.0] - 2026-06-29
 

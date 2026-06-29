@@ -52,8 +52,16 @@ internal static class DelegateOwner
             return direct; // method group or this-only lambda — no reflection on the hot path.
         }
 
+        // Closure case: unwrap the captured `this`, but ONLY when it is a user component — never an
+        // Element. A form control (Input/Select/Textarea, all Element-derived) registers handlers that
+        // close over `this` (the control); redirecting their owner to the control would steal the
+        // re-render from the consumer the framework already tracks via the binding owner / the explicit
+        // `consumer.StateHasChanged()` in IFormControl. Falling back to the element's render-owner
+        // (CurrentParent) for those preserves the pre-fix behaviour the forms machinery relies on, while
+        // still re-rendering the defining USER component for the case this fix targets (a handler that
+        // captures `this` + a local, nested in a composite — e.g. a CodeSample tab click).
         var field = ThisFieldByClosureType.GetOrAdd(target.GetType(), FindCapturedThisField);
-        return field?.GetValue(target) as Component;
+        return field?.GetValue(target) is Component captured and not Element ? captured : null;
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2070",
