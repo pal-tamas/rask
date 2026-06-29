@@ -29,9 +29,11 @@ public sealed class LifecycleProbe : Component
         [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 BsBadge(Color: BsColor.Primary, Class: "fs-6")[$"Render #{++_renderCount}"],
-                // A bare event handler is enough: Rask re-renders the component that owns the callback
-                // after it runs, so the click repaints this probe with no StateHasChanged (RASK026).
-                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => { })[BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Trigger re-render"]
+                // The handler just records the click; Rask re-renders the component that owns the
+                // callback (this probe — the lambda closes over its state) right after it runs, so the
+                // badge repaints with no StateHasChanged (RASK026). Works the same through BsButton,
+                // which forwards the callback down to the native <button>.
+                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _log.Add("Trigger re-render (button click)"))[BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Trigger re-render"]
             ],
             H3(Class: "h6 text-secondary text-uppercase small")["Hook log"],
             Ol(Class: "list-group list-group-numbered list-group-flush")[
