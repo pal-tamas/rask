@@ -19,4 +19,7 @@ namespace Rask.Wasm.Browser;
 [JsonSerializable(typeof(MediaDeviceInfo))]
 [JsonSerializable(typeof(MediaDeviceInfo[]))]
 [JsonSerializable(typeof(IdleReading))]
+[JsonSerializable(typeof(SerialOptions))]
+[JsonSerializable(typeof(SerialPortFilter))]
+[JsonSerializable(typeof(SerialPortFilter[]))]
 internal sealed partial class RaskWasmBrowserJsonContext : JsonSerializerContext;

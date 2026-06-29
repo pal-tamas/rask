@@ -348,3 +348,106 @@ window.__raskIdle = window.__raskIdle || (() => {
         }
     };
 })();
+
+// Web Serial (driven by ISerial). requestPort() needs transient activation and the live port stream, so
+// this is WASM-only. C# mints the id and registers its callbacks BEFORE calling in here, so a device's first
+// bytes can't race ahead of the handler. Each open port holds {port, reader, loop, closing, writeChain}
+// under that id; the read loop pushes each inbound chunk back via window.DotNet.invokeMethodAsync (static
+// [JSInvokable] SerialInterop.Data in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
+// Bytes are sent as a plain number array (Array.from) so they deserialize to a C# byte[]; a Uint8Array would
+// JSON-serialize as an object. If the loop ends on its own (device unplugged / stream error) and it wasn't an
+// explicit close(), we tear down and signal RaskSerialClosed so the UI can reset.
+window.__raskSerial = window.__raskSerial || (() => {
+    const ports = new Map();
+    const read = (id, port) => {
+        const entry = ports.get(id);
+        const reader = port.readable.getReader();
+        entry.reader = reader;
+        entry.loop = (async () => {
+            try {
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    if (value && value.length) {
+                        window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialData", id, Array.from(value));
+                    }
+                }
+            } catch (e) {
+                // Device unplugged or stream error — fall through to teardown below.
+            } finally {
+                try { reader.releaseLock(); } catch (e) { /* already released */ }
+            }
+            // Natural end (not an explicit close): release the port and notify C# so it can fire onClosed.
+            if (!entry.closing) {
+                ports.delete(id);
+                try { await port.close(); } catch (e) { /* already gone */ }
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialClosed", id);
+            }
+        })();
+    };
+    return {
+        isSupported: () => "serial" in navigator,
+        requestPort: async (id, o) => {
+            let port;
+            try {
+                // Drop null/absent ids so a vendor-only filter doesn't coerce to productId 0 (empty chooser).
+                const filters = (o.filters || [])
+                    .map((f) => {
+                        const x = {};
+                        if (f.usbVendorId != null) { x.usbVendorId = f.usbVendorId; }
+                        if (f.usbProductId != null) { x.usbProductId = f.usbProductId; }
+                        return x;
+                    })
+                    .filter((x) => Object.keys(x).length > 0);
+                port = await navigator.serial.requestPort(filters.length ? {filters: filters} : {});
+            } catch (e) {
+                return false; // user dismissed the chooser
+            }
+            await port.open({
+                baudRate: o.baudRate,
+                dataBits: o.dataBits,
+                stopBits: o.stopBits,
+                parity: o.parity,
+                bufferSize: o.bufferSize,
+                flowControl: o.flowControl
+            });
+            ports.set(id, {port: port, reader: null, loop: null, closing: false, writeChain: Promise.resolve()});
+            read(id, port);
+            return true;
+        },
+        write: (id, data) => {
+            const entry = ports.get(id);
+            if (!entry) {
+                return Promise.resolve();
+            }
+            // Serialize writes so concurrent sends don't collide on the single writable-stream lock.
+            entry.writeChain = entry.writeChain.then(async () => {
+                const writer = entry.port.writable.getWriter();
+                try {
+                    await writer.write(new Uint8Array(data));
+                } finally {
+                    writer.releaseLock();
+                }
+            });
+            return entry.writeChain;
+        },
+        close: async (id) => {
+            const entry = ports.get(id);
+            if (!entry) {
+                return;
+            }
+            entry.closing = true; // tell the read loop this end is deliberate (skip the teardown/notify path)
+            ports.delete(id);
+            if (entry.reader) {
+                try { await entry.reader.cancel(); } catch (e) { /* already cancelled */ }
+            }
+            // Wait for the read loop to release the readable lock before closing, or close() rejects.
+            if (entry.loop) {
+                try { await entry.loop; } catch (e) { /* loop already ended */ }
+            }
+            try { await entry.port.close(); } catch (e) { /* already closed */ }
+        }
+    };
+})();
