@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-29
+
 ### Added
 - **[Browser APIs overview](docs/browser-apis.md)** — a new guide mapping the whole typed browser-API
   surface (20 shared in `Rask.Core.Browser` + 7 WASM-only in `Rask.Wasm.Browser`): what each wraps,
