@@ -65,9 +65,14 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
                 "--project",
                 projectPath,
                 "--no-launch-profile",
-                "--no-build",
                 "-c",
-                Configuration
+                Configuration,
+                // Skip the WASM native relink and use the prebuilt .NET-WASM runtime (the relink is
+                // flaky in some build environments and, when it produces no dotnet.native.*, the
+                // runtime never boots — a blank page). Matches the `-p:WasmBuildNative=false` the CI
+                // gate uses. Built here (no --no-build) so the property applies to the build whose
+                // static-web-assets `dotnet run` then serves.
+                "-p:WasmBuildNative=false"
             },
             RedirectStandardOutput = true,
             RedirectStandardError = true,

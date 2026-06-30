@@ -5,5 +5,7 @@ public sealed class WasmCookieAuthAppFixture : ExampleAppFixture
 {
     protected override string ProjectRelativePath => "samples/Rask.Example.Auth.WasmCookie.Host";
     protected override int Port => 5104;
+
+    protected override bool SkipWasmNativeRelink => true;
     protected override TimeSpan ReadyTimeout => TimeSpan.FromSeconds(180);
 }

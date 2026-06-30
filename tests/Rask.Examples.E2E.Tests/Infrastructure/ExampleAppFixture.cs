@@ -30,6 +30,14 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     // mirrors a real deployment.
     protected virtual bool RunPublished => false;
 
+    // When true, build the host with -p:WasmBuildNative=false (and therefore NOT --no-build, so the
+    // property applies) instead of a plain `dotnet run --no-build`. This skips the WASM native relink
+    // and uses the prebuilt .NET-WASM runtime — the relink is flaky in some build environments and,
+    // when it produces no dotnet.native.*, the runtime never boots (a blank page). It matches the
+    // `-p:WasmBuildNative=false` the CI gate uses. Harmless on non-WASM hosts (the property is
+    // ignored), but only WASM-serving fixtures opt in.
+    protected virtual bool SkipWasmNativeRelink => false;
+
     // Extra environment variables for the spawned host process (e.g. config that production-mode
     // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "Jwt__Key").
     protected virtual IReadOnlyDictionary<string, string>? ExtraEnvironment => null;
@@ -54,26 +62,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
 
         var psi = RunPublished
             ? PublishAndBuildStartInfo(repoRoot, projectPath)
-            : new ProcessStartInfo("dotnet")
-            {
-                ArgumentList =
-                {
-                    "run",
-                    "--project",
-                    projectPath,
-                    "--no-launch-profile",
-                    "--no-build",
-                    "-c",
-                    Configuration,
-                    "--",
-                    "--urls",
-                    BaseUrl
-                },
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                WorkingDirectory = repoRoot
-            };
+            : DotnetRunStartInfo(repoRoot, projectPath);
         psi.Environment["ASPNETCORE_URLS"] = BaseUrl;
         psi.Environment["DOTNET_ENVIRONMENT"] = "Production";
 
@@ -211,6 +200,39 @@ public abstract class ExampleAppFixture : IAsyncLifetime
             UseShellExecute = false,
             WorkingDirectory = publishDir
         };
+    }
+
+    // Plain `dotnet run` launch. By default uses --no-build (serves a pre-built output); WASM-serving
+    // fixtures set SkipWasmNativeRelink so the host is (re)built with -p:WasmBuildNative=false instead.
+    private ProcessStartInfo DotnetRunStartInfo(string repoRoot, string projectPath)
+    {
+        var psi = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            WorkingDirectory = repoRoot
+        };
+
+        psi.ArgumentList.Add("run");
+        psi.ArgumentList.Add("--project");
+        psi.ArgumentList.Add(projectPath);
+        psi.ArgumentList.Add("--no-launch-profile");
+        psi.ArgumentList.Add("-c");
+        psi.ArgumentList.Add(Configuration);
+        if (SkipWasmNativeRelink)
+        {
+            psi.ArgumentList.Add("-p:WasmBuildNative=false");
+        }
+        else
+        {
+            psi.ArgumentList.Add("--no-build");
+        }
+
+        psi.ArgumentList.Add("--");
+        psi.ArgumentList.Add("--urls");
+        psi.ArgumentList.Add(BaseUrl);
+        return psi;
     }
 
     private static string LocateRepoRoot()
