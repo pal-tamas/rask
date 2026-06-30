@@ -59,6 +59,17 @@ internal static class Breakpoints
         Bp.Xxl => "xxl-",
         _ => "",
     };
+
+    // The bare breakpoint token ("md") for class names that suffix it without a trailing dash,
+    // e.g. navbar-expand-md / offcanvas-md.
+    internal static string Token(this Bp bp) => bp switch
+    {
+        Bp.Sm => "sm",
+        Bp.Lg => "lg",
+        Bp.Xl => "xl",
+        Bp.Xxl => "xxl",
+        _ => "md",
+    };
 }
 
 // shadow-* (no responsive variants in Bootstrap).

@@ -14,6 +14,11 @@ public sealed class NavLink : Element
 
     public RouteUrl? Href { get; set; }
 
+    // The path the active state is compared against, when it differs from Href. Use it for a link that
+    // should stay active across a whole section: Href the canonical landing route (e.g. /realtime/BTC)
+    // and Match the section root (/realtime) with ActiveMatch: Prefix. Null falls back to Href.
+    public RouteUrl? Match { get; set; }
+
     // null defaults to "active" at use site so the generated factory exposes ActiveClass
     // as a normal optional parameter — properties with initializers are excluded by the
     // factory generator. To opt out of active styling, pass an empty string.
@@ -71,7 +76,9 @@ public sealed class NavLink : Element
 
     private bool IsActive()
     {
-        if (Href is null)
+        // Match overrides Href for the active comparison (link one place, light up for a section).
+        var target = Match ?? Href;
+        if (target is null)
         {
             return false;
         }
@@ -84,8 +91,8 @@ public sealed class NavLink : Element
 
         return (ActiveMatch ?? NavLinkMatch.Exact) switch
         {
-            NavLinkMatch.Exact => MatchExact(route, Href.Value.Path, Href.Value.QueryString),
-            NavLinkMatch.Prefix => MatchPrefix(route.Path, Href.Value.Path),
+            NavLinkMatch.Exact => MatchExact(route, target.Value.Path, target.Value.QueryString),
+            NavLinkMatch.Prefix => MatchPrefix(route.Path, target.Value.Path),
             _ => false
         };
     }

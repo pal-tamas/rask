@@ -64,8 +64,22 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     // a SPA fallback; those must navigate via the home shell + sidebar instead.
     protected virtual Task NavigateToAsync(string path) => Page.GotoAsync(path);
 
-    protected Task ClickSidebar(string label) =>
-        Page.Locator("aside.side-nav button.nav-item-btn:has-text(\"" + label + "\")").ClickAsync();
+    // Sidebar groups are collapsed by default, and a collapsed link is display:none — which means
+    // Playwright's text engines can't even find it (they match visible text). So navigate the way a
+    // user would when the list is long: type the label into the filter, which narrows the sidebar to
+    // the matching link at the top. Wait for that link to render (the controlled-input morph) and
+    // settle before clicking. The filter is left set (the next nav's FillAsync replaces it) — clearing
+    // it here would fire an extra input event that can race with the page interaction that follows the
+    // navigation (on WASM the events coalesce and the later one wins, dropping e.g. a select change).
+    protected async Task ClickSidebar(string label)
+    {
+        var filter = Page.Locator(".side-nav .side-nav-filter");
+        await filter.FillAsync(label);
+        var link = Page.Locator(".side-nav a.side-nav-link:has-text(\"" + label + "\")").First;
+        await link.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
+        await Page.WaitForTimeoutAsync(200);
+        await link.ClickAsync();
+    }
 
     protected async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")
     {

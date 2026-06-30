@@ -94,4 +94,63 @@ public class BsComponentTests
         Assert.Equal("<div class=\"collapse\">x</div>", BsCollapse()["x"].ToHtml());
         Assert.Equal("<div class=\"collapse show\">x</div>", BsCollapse(Open: true)["x"].ToHtml());
     }
+
+    [Fact]
+    public void Navbar_Default_WrapsChildrenInContainer() =>
+        Assert.Equal(
+            "<nav class=\"navbar\"><div class=\"container-fluid\"><span>x</span></div></nav>",
+            BsNavbar()[Span()["x"]].ToHtml());
+
+    [Fact]
+    public void Navbar_ColorThemeStickyExpand_NoContainer_ComposesClasses() =>
+        Assert.Equal(
+            "<nav class=\"navbar navbar-expand-lg bg-dark sticky-top\" data-bs-theme=\"dark\">x</nav>",
+            BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true, Expand: Bp.Lg, Container: false)["x"]
+                .ToHtml());
+
+    [Fact]
+    public void Nav_Vertical_StacksWithFlexColumn() =>
+        Assert.Equal("<ul class=\"nav flex-column\"></ul>", BsNav(Vertical: true).ToHtml());
+
+    [Fact]
+    public void Nav_PillsFill_ComposesClasses() =>
+        Assert.Equal("<ul class=\"nav nav-pills nav-fill\"></ul>", BsNav(Pills: true, Fill: true).ToHtml());
+
+    [Fact]
+    public void NavItem_WithHref_RendersSpaRoutedNavLink() =>
+        Assert.Equal(
+            "<li class=\"nav-item\"><a class=\"nav-link\" href=\"/x\" data-rask-nav>Tags</a></li>",
+            BsNavItem(Href: "/x")["Tags"].ToHtml());
+
+    [Fact]
+    public void NavItem_WithoutHref_RendersPlainSpan() =>
+        Assert.Equal(
+            "<li class=\"nav-item\"><span class=\"nav-link disabled\">Soon</span></li>",
+            BsNavItem(Disabled: true)["Soon"].ToHtml());
+
+    [Fact]
+    public void Offcanvas_Default_IsAlwaysADrawer() =>
+        Assert.Equal(
+            "<div class=\"offcanvas offcanvas-start\" role=\"dialog\" tabindex=\"-1\">"
+            + "<div class=\"offcanvas-body\">x</div></div>",
+            BsOffcanvas(HideClose: true)["x"].ToHtml());
+
+    [Fact]
+    public void Offcanvas_Responsive_EmitsBreakpointBaseClass_AndHidesChromeAbove()
+    {
+        var html = BsOffcanvas(Responsive: Bp.Md, Title: "Menu")["x"].ToHtml();
+        // Drawer below md, static at/above md.
+        Assert.Contains("class=\"offcanvas-md offcanvas-start\"", html);
+        // The header carries d-md-none so the static desktop panel shows no drawer chrome.
+        Assert.Contains("class=\"offcanvas-header d-md-none\"", html);
+        Assert.Contains("class=\"offcanvas-body\"", html);
+    }
+
+    [Fact]
+    public void Offcanvas_Responsive_Open_HidesBackdropAboveBreakpoint()
+    {
+        var html = BsOffcanvas(Responsive: Bp.Md, Open: true, HideClose: true)["x"].ToHtml();
+        Assert.Contains("class=\"offcanvas-md offcanvas-start show\"", html);
+        Assert.Contains("class=\"offcanvas-backdrop fade show d-md-none\"", html);
+    }
 }

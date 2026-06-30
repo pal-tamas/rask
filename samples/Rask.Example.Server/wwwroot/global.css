@@ -90,11 +90,11 @@ button, a, [role="button"] {
     touch-action: manipulation;
 }
 
-/* From ShowcaseLayout: lock body scroll while the mobile nav drawer is open.
-   :has() reaches up from the drawer-open descendant; body is a shell tag so this
-   rule belongs in the global stylesheet (it could never be component-scoped). */
+/* From ShowcaseLayout: lock body scroll while the mobile nav drawer (the responsive offcanvas) is
+   shown. :has() reaches up from the .show descendant; body is a shell tag so this rule belongs in the
+   global stylesheet (it could never be component-scoped). */
 @media (max-width: 767.98px) {
-    body:has(.drawer-open) {
+    body:has(.side-nav.show) {
         overflow: hidden;
         height: 100vh;
     }
@@ -156,4 +156,210 @@ button, a, [role="button"] {
 
 .sample-code .cssPropertyValue {
     color: #c3e88d;
+}
+
+/* ShowcaseLayout: the app shell (navbar + responsive-offcanvas sidebar + main). These rules are
+   GLOBAL rather than a scoped {Component}.css because the sidebar is built from several nested
+   Rask.Bootstrap components (BsNavbar / BsOffcanvas / BsCollapse / BsNav / BsNavItem → NavLink), so
+   the elements they render (e.g. .offcanvas-body, the .side-nav-link anchors) sit several component
+   levels below ShowcaseLayout and never carry its scope id. Same rationale as the .sample-code rules
+   above — markup another component renders can't be component-scoped. The .side-nav* / .nav-group* /
+   .app-* class names are specific enough not to leak. */
+
+/* Sticky top bar — glassy translucent dark surface; the brand palette comes from :root above. */
+.app-navbar {
+    background: rgba(28, 30, 36, 0.82) !important;
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    padding-top: calc(0.5rem + env(safe-area-inset-top));
+    z-index: 1046;
+}
+
+/* Hamburger toggle — a transparent icon button shown only below md (the d-md-none utility hides it
+   at >=md, where the sidebar is static). */
+.hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    border-radius: 0.5rem;
+    margin-right: 0.25rem;
+    padding: 0;
+}
+
+.hamburger-btn:hover,
+.hamburger-btn:focus {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.hamburger-btn .bi {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+/* The shell row: sidebar + main, laid out with the Display.Flex utility on the wrapper. */
+.app-shell {
+    align-items: flex-start;
+}
+
+/* The sidebar is a responsive offcanvas (offcanvas-md): a slide-in drawer below md, a fixed-width
+   static column at >=md. */
+.side-nav {
+    --bs-offcanvas-width: min(82vw, 320px);
+}
+
+.side-nav .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Sticky filter box at the top of the scrolling list. */
+.side-nav-search {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-bottom: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+}
+
+.side-nav-filter {
+    border-radius: 0.5rem;
+}
+
+.side-nav-section {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--rask-accent);
+    padding: 0.75rem 0.5rem 0.25rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.side-nav-section:first-of-type {
+    margin-top: 0;
+    border-top: 0;
+}
+
+/* Group toggle: a full-width, borderless button revealing/hiding its items via BsCollapse. */
+.nav-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.5rem 0.5rem 0.35rem;
+    border-radius: 0.4rem;
+    text-align: left;
+}
+
+.nav-group-toggle:hover {
+    color: var(--rask-accent-strong);
+}
+
+.nav-group-chevron {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.nav-group-label {
+    flex: 1;
+}
+
+/* The BsNav list of links inside a group — strip the default list styling. */
+.nav-group-items {
+    margin: 0 0 0.35rem;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-group-items .nav-item {
+    margin: 0;
+}
+
+/* Each link row (a NavLink rendered as .nav-link.side-nav-link). */
+.side-nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.5rem;
+    color: #333;
+    font-size: 0.9rem;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.side-nav-link:hover {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent-strong);
+}
+
+.side-nav-link.active {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    font-weight: 600;
+}
+
+.side-nav-link .bi {
+    font-size: 1rem;
+    opacity: 0.85;
+}
+
+.side-nav-empty {
+    padding: 1rem 0.5rem;
+}
+
+/* Main content column. */
+.page-main {
+    min-width: 0; /* let long code blocks scroll instead of stretching the flex item */
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+.page-main-inner {
+    max-width: 1280px;
+}
+
+/* Desktop: pin the static sidebar under the navbar and let only its list scroll, so a long list
+   never stretches the page or hides its bottom entries below the fold. */
+@media (min-width: 768px) {
+    .side-nav.offcanvas-md {
+        flex: 0 0 280px;
+        width: 280px;
+        position: sticky;
+        top: var(--nav-h);
+        align-self: flex-start;
+    }
+
+    /* The body is the bounded scroll region: capped to the viewport minus the navbar so a long,
+       fully-expanded list scrolls inside itself instead of stretching the page. */
+    .side-nav.offcanvas-md .offcanvas-body {
+        max-height: calc(100vh - var(--nav-h));
+        overflow-y: auto;
+        padding: 1rem 0.75rem;
+    }
+}
+
+/* Mobile drawer: account for the fixed navbar and notch insets when the offcanvas slides in. */
+@media (max-width: 767.98px) {
+    .side-nav.offcanvas-md {
+        padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
+    }
+
+    .side-nav.offcanvas-md .offcanvas-body {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
 }

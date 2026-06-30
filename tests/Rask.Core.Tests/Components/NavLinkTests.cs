@@ -138,6 +138,25 @@ public class NavLinkTests
     }
 
     [Fact]
+    public void Render_Match_OverridesHrefForActive_AcrossSection()
+    {
+        // On a sibling sub-route (/realtime/ETH), a link to /realtime/BTC still lights up because
+        // Match points the active comparison at the section root with Prefix matching.
+        using var _ = BeginRoute("/realtime/ETH");
+        Assert.Equal(
+            "<a class=\"active\" href=\"/realtime/BTC\" data-rask-nav></a>",
+            NavLink("/realtime/BTC", Match: "/realtime", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+    }
+
+    [Fact]
+    public void Render_Match_OutsideSection_NotActive()
+    {
+        using var _ = BeginRoute("/other");
+        Assert.DoesNotContain("active",
+            NavLink("/realtime/BTC", Match: "/realtime", ActiveMatch: NavLinkMatch.Prefix).ToHtml());
+    }
+
+    [Fact]
     public void Render_NoLiveRenderContext_NoActiveClass()
     {
         Assert.Equal(
