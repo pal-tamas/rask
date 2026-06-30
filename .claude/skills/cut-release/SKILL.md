@@ -45,8 +45,9 @@ git tag vX.Y.Z
 git push origin vX.Y.Z                          # push ONLY the tag — main is already up to date
 ```
 `release.yml` (on `push: tags: v*`) runs the unit gate, the sharded E2E matrix, then packs the
-six NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations`,
-`Rask.Validation.FluentValidation`, `Rask.Templates`), pushes them to nuget.org, and creates the
+eight NuGets (`Rask.Server`, `Rask.Wasm`, `Rask.Wasm.Hosting`, `Rask.Validation.DataAnnotations`,
+`Rask.Validation.FluentValidation`, `Rask.Templates`, `Rask.Bootstrap`, `Rask.WebPush`), pushes them
+to nuget.org, and creates the
 GitHub release. Watch it (`run watch` on the bare run id, not a job, exits on the run's conclusion):
 ```bash
 gh run list --workflow=release.yml -L 1     # grab the run id
@@ -54,7 +55,7 @@ gh run watch <run-id> --exit-status
 ```
 
 ## 5. Verify
-- GitHub release created with the six `.nupkg` assets (`gh release view vX.Y.Z`).
+- GitHub release created with the eight `.nupkg` assets (`gh release view vX.Y.Z`).
 - Packages visible on nuget.org at version `X.Y.Z`.
 - To undo a mistaken tag **before** publish completes: `git push --delete origin vX.Y.Z`. Once
   `release.yml` has pushed to nuget.org, the version is permanent (nuget rejects a re-push of the
