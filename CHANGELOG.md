@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`AddRaskPwa(manifest)` — opt-in PWA for the Server host.** The server-side counterpart to the WASM
+  host's `UseManifest(...)`. It serves the installable manifest at `{PathBase}/rask/manifest.webmanifest`
+  (URLs rooted at the app base path), emits `<link rel="manifest">` + `<meta name="theme-color">` directly
+  into the server-rendered `<head>`, and serves a service worker at `{PathBase}/rask-sw.js` that handles
+  Web Push and serves a static `offline.html` on failed navigations. The Server service worker deliberately
+  does **not** cache the server-rendered shell (it carries a one-shot session id and is `no-store`), so a
+  Server PWA is installable + push-capable but **not** an offline app — there is no background sync and no
+  install-prompt replay (those stay WASM-only). The transport-neutral push/notificationclick service-worker
+  handlers are shared from `Rask.Core/Resources/rask-sw-shared.js` across both the WASM and Server SWs.
 - **PWA on the Server host.** The transport-agnostic PWA browser APIs — `IWebPush` (push subscribe),
   `INotifications`, `IBadge`, `IWakeLock` — and the typed `WebAppManifest` now live in
   `Rask.Core.Browser` and are registered on the Server host too, so a Server app can subscribe to push,

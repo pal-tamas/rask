@@ -122,6 +122,23 @@
   </Target>
 
   <!--
+    Assemble the served service worker the same way as rask.wasm.js: splice the Core shared push /
+    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the WASM SW template
+    (Resources/rask-sw.js, which holds the offline app-shell strategy) and write the result to the
+    tracked, served Browser/rask-sw.js. Edit Resources/rask-sw.js, not Browser/rask-sw.js.
+  -->
+  <Target Name="_RaskSpliceServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
+          Outputs="Browser\rask-sw.js">
+    <PropertyGroup>
+      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
+      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
+      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
+    </PropertyGroup>
+    <WriteLinesToFile File="Browser\rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+  </Target>
+
+  <!--
     Bundle Rask.Core.dll into each lib/{TFM}/ folder alongside Rask.Wasm.dll. NuGet's TFM
     folder convention writes net10.0-browser1.0 (with the explicit platform version) for
     the browser TFM, matching where it places Rask.Wasm.dll itself. PrivateAssets="all" on

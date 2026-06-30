@@ -44,6 +44,12 @@ public static class RaskEndpointExtensions
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
 
+    // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/;
+    // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
+    // the whole app — a SW under /rask/ could only intercept /rask/* requests.
+    internal const string ManifestPath = "/rask/manifest.webmanifest";
+    private const string ServiceWorkerPath = "/rask-sw.js";
+
     // Hard cap on a single reassembled inbound WS frame. Client→server messages (hello / event
     // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP
     // endpoint — never the socket — so this is generous headroom. It bounds a per-socket memory DoS
@@ -499,6 +505,21 @@ public static class RaskEndpointExtensions
 
         var script = LoadEmbeddedScript();
         endpoints.MapGet(pathBase + RuntimePath, () => Results.Text(script, "text/javascript; charset=utf-8"));
+
+        // PWA endpoints — wired only when AddRaskPwa registered a manifest (off by default). The manifest
+        // JSON is rooted at pathBase here (a manifest's members resolve relative to the manifest's own URL,
+        // so relative start_url/scope/icons must be made absolute or they'd resolve under /rask/). The SW
+        // is served at the app root for full control scope; it handles Web Push and an offline fallback.
+        if (endpoints.ServiceProvider.GetService<RaskPwaState>() is { } pwa)
+        {
+            var manifestJson = pwa.Manifest.ToJson(pathBase);
+            endpoints.MapGet(pathBase + ManifestPath,
+                () => Results.Text(manifestJson, "application/manifest+json; charset=utf-8"));
+
+            var serviceWorker = LoadEmbeddedServiceWorker();
+            endpoints.MapGet(pathBase + ServiceWorkerPath,
+                () => Results.Text(serviceWorker, "text/javascript; charset=utf-8"));
+        }
 
         // Per-component content-addressed asset endpoint. URL is immutable (hash is a
         // SHA-256 prefix of the bytes), so `Cache-Control: immutable` is safe and the
@@ -1635,6 +1656,17 @@ public static class RaskEndpointExtensions
         var name = asm.GetManifestResourceNames()
                        .FirstOrDefault(n => n.EndsWith("rask.js", StringComparison.Ordinal))
                    ?? throw new InvalidOperationException("rask.js embedded resource not found.");
+        using var stream = asm.GetManifestResourceStream(name)!;
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
+    private static string LoadEmbeddedServiceWorker()
+    {
+        var asm = typeof(RaskEndpointExtensions).Assembly;
+        var name = asm.GetManifestResourceNames()
+                       .FirstOrDefault(n => n.EndsWith("rask-sw.js", StringComparison.Ordinal))
+                   ?? throw new InvalidOperationException("rask-sw.js embedded resource not found.");
         using var stream = asm.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();

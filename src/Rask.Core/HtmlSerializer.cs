@@ -238,6 +238,16 @@ internal static class HtmlSerializer
                 if (tagName == "head" && live is not null)
                 {
                     sb.Append(HeadAssetRegistry.Sentinel);
+
+                    // Host-registered head markup (e.g. the Server PWA <link rel="manifest"> +
+                    // <meta name="theme-color">), emitted as real HTML so no post-boot JS injection is
+                    // needed. Serialized inline on every render and kept byte-stable, so — like the body
+                    // runtime <script> — it survives server live-updates and costs the diff codec nothing.
+                    // No provider registered (the default, and on WASM) → nothing extra is emitted.
+                    if (live.Services?.GetService<IRaskHeadContribution>()?.Render() is { } headExtra)
+                    {
+                        Serialize(headExtra, sb);
+                    }
                 }
 
                 // The <body> element is framework-managed for the live runtime <script>:
