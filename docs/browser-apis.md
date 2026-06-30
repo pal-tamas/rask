@@ -86,7 +86,7 @@ which happens in-process on WASM), or the installed-PWA instance / live document
 | --- | --- | --- | --- |
 | `IShare` | `navigator.share` | Hand a link/text to the OS share sheet | transient activation |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
-| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription` for your backend) | service worker + installed PWA |
+| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | service worker + installed PWA |
 | `INotifications` | Notifications API | Show a local notification from the page | permission needs a live gesture |
 | `IBadge` | Badging API | Set/clear a count on the installed app icon | installed-PWA instance |
 | `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |

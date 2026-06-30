@@ -40,6 +40,10 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pwa-push")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The "send a test push" button (drives the Rask.WebPush backend) renders, disabled until a
+        // subscription exists. Real delivery needs a push service, so we only assert the UI here.
+        await Expect(Page.Locator("#pwa-push-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // The badge section added alongside notifications/push.
         await Expect(Page.Locator("#pwa-badge-inc")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });

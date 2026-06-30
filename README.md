@@ -13,6 +13,7 @@
 [![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
 [![NuGet Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
 [![NuGet Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
+[![NuGet Rask.WebPush](https://img.shields.io/nuget/v/Rask.WebPush.svg?label=Rask.WebPush)](https://www.nuget.org/packages/Rask.WebPush)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -174,6 +175,7 @@ Pick one host package per project, then add validation packages as needed:
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
 | `Rask.Validation.DataAnnotations`  | any host (referenced from the project that hosts your forms)        | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
 | `Rask.Validation.FluentValidation` | any host (referenced from the project that hosts your forms)        | drop `FluentValidationValidator(new MyValidator())` inside  |
+| `Rask.WebPush`                     | any backend (a `Rask.Server` app or a WASM PWA's ASP.NET host)      | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 
 ```bash
 dotnet add package Rask.Server                       # server live host
@@ -181,6 +183,7 @@ dotnet add package Rask.Wasm                         # browser WASM client
 dotnet add package Rask.Wasm.Hosting                 # ASP.NET host serving a WASM bundle
 dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentModel.DataAnnotations
 dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
+dotnet add package Rask.WebPush                       # opt-in: send Web Push from the backend (VAPID + RFC 8291)
 ```
 
 `Rask.Server` and `Rask.Wasm` each pull in `Rask.Core` and the source generators transitively; `Rask.Wasm.Hosting`

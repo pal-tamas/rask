@@ -44,6 +44,7 @@ Or add to an existing project:
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
+dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 ```
 
 ## Why Rask
