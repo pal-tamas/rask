@@ -479,6 +479,7 @@ window.__raskSerial = window.__raskSerial || (() => {
 window.__raskUsb = window.__raskUsb || (() => {
     const byId = new Map();        // id -> USBDevice
     const idByDevice = new Map();  // USBDevice -> id (dedup + reverse lookup for disconnect)
+    const refs = new Map();        // id -> open-handle refcount (the same device can back several C# handles)
     let nextId = 0;
     const toB64 = (bytes) => {
         let binary = "";
@@ -503,12 +504,17 @@ window.__raskUsb = window.__raskUsb || (() => {
         productName: d.productName || null,
         serialNumber: d.serialNumber || null
     });
+    // The browser hands back the same USBDevice object from requestDevice/getDevices, so dedup to one id and
+    // refcount it — a handle's close() only tears the device down once every C# handle to it has closed.
     const put = (device) => {
         let id = idByDevice.get(device);
         if (id === undefined) {
             id = ++nextId;
             byId.set(id, device);
             idByDevice.set(device, id);
+            refs.set(id, 1);
+        } else {
+            refs.set(id, (refs.get(id) || 0) + 1);
         }
         return {id: id, info: info(device)};
     };
@@ -518,6 +524,7 @@ window.__raskUsb = window.__raskUsb || (() => {
             byId.delete(id);
             idByDevice.delete(device);
         }
+        refs.delete(id);
     };
     // A stale/closed id throws a clear error rather than an opaque "reading 'open' of undefined" TypeError.
     const dev = (id) => {
@@ -579,6 +586,11 @@ window.__raskUsb = window.__raskUsb || (() => {
         close: async (id) => {
             const device = byId.get(id);
             if (!device) {
+                return;
+            }
+            const remaining = (refs.get(id) || 1) - 1;
+            if (remaining > 0) {
+                refs.set(id, remaining); // other C# handles still hold this device open
                 return;
             }
             evict(id);

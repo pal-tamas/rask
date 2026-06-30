@@ -117,6 +117,11 @@ them until tagged releases begin.
   expects Blazor's byte-array side-channel that the bridge doesn't implement), so writes shipped no usable
   data. Bytes now ride the boundary base64-encoded (`Convert.To/FromBase64String` in C#, `btoa`/`atob` in JS),
   matching `IFileSystemAccess`. The public `ISerialPort` API (`byte[]` in/out) is unchanged.
+- **WebUSB (`IUsb`) handle ref-counting** — the JS helper dedups the same physical `USBDevice` to one id
+  (`requestDevice`/`getDevices` return the same object), but `close()` evicted it immediately, so disposing
+  one `IUsbDevice` handle tore down a device a second handle still held (subsequent calls threw "device handle
+  is closed or unknown"). The shared device is now ref-counted — it closes only once every handle to it has
+  been disposed.
 
 ## [0.11.0] - 2026-06-29
 
