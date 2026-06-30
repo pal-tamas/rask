@@ -10,7 +10,9 @@ public sealed class App : Component
     protected override RenderResult Head => [
         Title()["Company.RaskWasm"],
         Meta("utf-8"),
-        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
+        Meta(Name: "viewport", Content: "width=device-width, initial-scale=1"),
+        // Bootstrap 5.3 + Icons via Rask.Bootstrap (served from _content/Rask.Bootstrap).
+        BootstrapStyles()
     ];
 
     protected override RenderResult Render() =>

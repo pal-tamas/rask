@@ -20,7 +20,7 @@ public sealed class ProgrammaticValidateDemo : Component
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
-            I(Class: "bi bi-arrow-clockwise me-1"), "Checking…"
+            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
         ];
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
@@ -39,23 +39,15 @@ public sealed class ProgrammaticValidateDemo : Component
                 ValidationMessage(() => _model.Title, FieldError)
             ],
             Div(Class: "d-flex gap-2")[
-                Button(
-                    "button",
-                    Id: "v6-validate-now",
-                    Class: "btn btn-outline-secondary",
-                    OnClickAsync: ValidateNowAsync)[
-                    I(Class: "bi bi-search me-1"), "Validate now"
+                BsButton(Color: BsColor.Secondary, Outline: true, Id: "v6-validate-now", OnClickAsync: ValidateNowAsync)[
+                    BsIcon(Name: BsIconName.Search, Class: "me-1"), "Validate now"
                 ],
-                Button(
-                    "submit",
-                    Id: "v6-submit",
-                    Disabled: _ctx.IsValidatingAny,
-                    Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                BsButton(Type: "submit", Color: BsColor.Primary, Id: "v6-submit", Disabled: _ctx.IsValidatingAny)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Save"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

@@ -28,15 +28,15 @@ public sealed class FormControlsPage : Component
             Result: FormControlsTextareaDemo()),
         H2(Class: "h4 mt-5 mb-3")["Radio group"],
         CodeSample(
-            ["FormControlsRadioDemo.cs", "RadioGroup.cs"],
+            ["FormControlsRadioDemo.cs", "BsRadioGroup.cs"],
             Result: FormControlsRadioDemo()),
         H2(Class: "h4 mt-5 mb-3")["Checkbox group"],
         CodeSample(
-            ["FormControlsCheckboxDemo.cs", "CheckboxGroup.cs"],
+            ["FormControlsCheckboxDemo.cs", "BsCheckboxGroup.cs"],
             Result: FormControlsCheckboxDemo()),
         H2(Class: "h4 mt-5 mb-3")["Multi-select"],
         CodeSample(
-            ["FormControlsMultiSelectDemo.cs", "MultiSelect.cs"],
+            ["FormControlsMultiSelectDemo.cs", "BsMultiSelect.cs"],
             Result: FormControlsMultiSelectDemo())
     ];
 }

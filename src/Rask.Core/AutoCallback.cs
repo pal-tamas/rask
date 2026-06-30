@@ -18,9 +18,9 @@ namespace Rask.Core;
 ///     <para>
 ///         The receiver is captured once at wrap time from <c>original.Target as Component</c> — the
 ///         same heuristic the DOM handler-owner resolution uses. When the target is not a
-///         <see cref="Component" /> (a static method, or a lambda closing over a <em>local</em> rather
+///         <see cref="Component" /> (a static method, or a lambda closing over <em>only</em> locals rather
 ///         than <c>this</c>), <c>Wrap</c> returns the original delegate unchanged: no extra allocation,
-///         and no re-render fires (same limitation the old <c>Callback</c> had — write the lambda
+///         and no re-render fires (only a static lambda or one closing over locals-only stays unwrapped — write the lambda
 ///         inside the component so it captures <c>this</c>).
 ///     </para>
 ///     <para>
@@ -40,7 +40,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -60,7 +60,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -80,7 +80,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -100,7 +100,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -124,7 +124,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -144,7 +144,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -164,7 +164,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }
@@ -184,7 +184,7 @@ public static class AutoCallback
             return null;
         }
 
-        if (d.Target is not Component r)
+        if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
         }

@@ -83,6 +83,10 @@
     -->
     <_RaskExampleValidationUsings>$(_RaskInRepoImplicitUsings)</_RaskExampleValidationUsings>
     <_RaskExampleValidationUsings Condition=" $(MSBuildProjectName.StartsWith('Rask.Example.Auth')) OR $(MSBuildProjectName.StartsWith('Rask.Example.EfCore')) ">false</_RaskExampleValidationUsings>
+    <!-- The showcase trio (Rask.Example.Shared + the Server/Wasm hosts that reference it) pulls in
+         Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
+         its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
+    <_RaskExampleBootstrapUsings>$(_RaskExampleValidationUsings)</_RaskExampleBootstrapUsings>
   </PropertyGroup>
 
   <!--
@@ -106,5 +110,7 @@
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.DataAnnotations\build\Rask.Validation.DataAnnotations.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props"
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props"
+          Condition=" '$(_RaskExampleBootstrapUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props') "/>
 
 </Project>

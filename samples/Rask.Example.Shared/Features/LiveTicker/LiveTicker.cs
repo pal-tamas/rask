@@ -196,8 +196,8 @@ public sealed class LiveTicker : Component
         var changeClass = change >= 0 ? "text-success" : "text-danger";
         var changeSign = change >= 0 ? "+" : string.Empty;
 
-        return Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Div(Class: "d-flex align-items-baseline justify-content-between mb-3")[
                     H3(Class: "h4 mb-0 fw-semibold", Id: "ticker-symbol")[Symbol],
                     Span(Class: "text-secondary small")[
@@ -215,8 +215,8 @@ public sealed class LiveTicker : Component
                 ],
                 _error is null
                     ? Fragment()
-                    : Div(Class: "alert alert-warning py-2 px-3 small mb-3", Id: "ticker-error")[
-                        I(Class: "bi bi-exclamation-triangle me-2"), $"Feed error: {_error}"
+                    : BsAlert(Color: BsColor.Warning, Class: "py-2 px-3 small mb-3", Id: "ticker-error")[
+                        BsIcon(Name: BsIconName.ExclamationTriangle, Class: "me-2"), $"Feed error: {_error}"
                     ],
                 // The chart is a server-rendered SVG drawn straight from the rolling buffer —
                 // no canvas, no Chart.js, no JS. The fixed-height container gives the stretchy

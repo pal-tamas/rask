@@ -7,10 +7,11 @@ using Rask.Core.ScopedAssets;
 namespace Rask.Core.Tests.HeadAssets;
 
 /// <summary>
-///     Covers <see cref="HeadAssetRegistry.EmitMountedAssets" /> — the per-component
-///     content-addressed <c>&lt;link&gt;</c>/<c>&lt;script&gt;</c> emission path. Tests
-///     drive the method directly (it is not yet wired into
-///     <see cref="HeadAssetRegistry.ApplyTo" />; integration lands in a later task).
+///     Covers <see cref="HeadAssetRegistry.EmitScopedBundles" /> — the single scoped-CSS-bundle /
+///     scoped-JS-bundle <c>&lt;link&gt;</c>/<c>&lt;script&gt;</c> emission — and its integration into
+///     <see cref="HeadAssetRegistry.ApplyTo" /> alongside user <c>Head</c> contributions. Every
+///     registered scoped asset of a kind is concatenated by <see cref="ScopedAssetRegistry" /> into a
+///     single content-hashed bundle, so the head carries exactly one tag per kind.
 /// </summary>
 [Collection("ScopedAssets")]
 public class HeadAssetEmissionTests
@@ -18,64 +19,55 @@ public class HeadAssetEmissionTests
     public HeadAssetEmissionTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void EmptyMountedTypes_EmitsNothing()
+    public void NoRegisteredAssets_EmitsNothing()
     {
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, Array.Empty<Type>());
+        HeadAssetRegistry.EmitScopedBundles(sb);
         Assert.Equal(0, sb.Length);
     }
 
     [Fact]
-    public void MountedTypeWithNoRegisteredAssets_EmitsNothing()
-    {
-        // Type is in the mounted set but registry has no entries for it → no tags.
-        var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(NoAssets) });
-        Assert.Equal(0, sb.Length);
-    }
-
-    [Fact]
-    public void CssOnlyComponent_EmitsExactlyOneLinkTag()
+    public void CssOnly_EmitsExactlyOneLinkTag_AtBundleHash()
     {
         ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(CssOnly), out var hash);
+        var bundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(CssOnly) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Equal(1, CountOccurrences(html, "<link "));
         Assert.Equal(0, CountOccurrences(html, "<script "));
-        Assert.Contains($"href=\"/_rask/a/{hash}.css\"", html);
-        Assert.Contains($"data-rask-key=\"rsk-css-{hash}\"", html);
+        Assert.Contains($"href=\"/_rask/a/{bundleHash}.css\"", html);
+        Assert.Contains("data-rask-key=\"rsk-css\"", html);
         Assert.Contains("rel=\"stylesheet\"", html);
     }
 
     [Fact]
-    public void JsOnlyComponent_EmitsExactlyOneScriptTag_WithDefer()
+    public void JsOnly_EmitsExactlyOneScriptTag_WithDefer_AtBundleHash()
     {
         ScopedAssetRegistry.RegisterJs(typeof(JsOnly), "export function f() {}");
-        ScopedAssetRegistry.TryGetJs(typeof(JsOnly), out var hash);
+        var bundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(JsOnly) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Equal(0, CountOccurrences(html, "<link "));
         Assert.Equal(1, CountOccurrences(html, "<script "));
-        Assert.Contains($"src=\"/_rask/a/{hash}.js\"", html);
-        Assert.Contains($"data-rask-key=\"rsk-js-{hash}\"", html);
+        Assert.Contains($"src=\"/_rask/a/{bundleHash}.js\"", html);
+        Assert.Contains("data-rask-key=\"rsk-js\"", html);
         Assert.Contains(" defer ", html);
     }
 
     [Fact]
-    public void BothAssets_EmitsLinkBeforeScript()
+    public void BothKinds_EmitsLinkBeforeScript()
     {
         ScopedAssetRegistry.RegisterCss(typeof(BothAssets), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(BothAssets), "export function f() {}");
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(BothAssets) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         var linkPos = html.IndexOf("<link ", StringComparison.Ordinal);
@@ -85,120 +77,87 @@ public class HeadAssetEmissionTests
     }
 
     [Fact]
-    public void TwoComponentsDistinctContent_EmitsTwoDistinctLinks_InIterationOrder()
+    public void ManyCssComponents_CollapseToOneBundleLink()
+    {
+        // Every registered scoped CSS goes into ONE bundle, so no matter how many components
+        // contribute, the head carries a single <link> at the bundle hash.
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
+        ScopedAssetRegistry.RegisterCss(typeof(BothAssets), ".c { color: green; }");
+
+        var sb = new StringBuilder();
+        HeadAssetRegistry.EmitScopedBundles(sb);
+        var html = sb.ToString();
+
+        Assert.Equal(1, CountOccurrences(html, "<link "));
+        Assert.Contains($"/_rask/a/{ScopedAssetRegistry.GetBundleHash(AssetKind.Css)}.css", html);
+    }
+
+    [Fact]
+    public void BundleHash_IsStable_RegardlessOfRegistrationOrder()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
-        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hashA);
-        ScopedAssetRegistry.TryGetCss(typeof(WidgetB), out var hashB);
+        var hash1 = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
 
-        var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(WidgetA), typeof(WidgetB) });
-        var html = sb.ToString();
+        ScopedAssetRegistry.InvalidateAll();
+        // Register in the opposite order — the bundle is hash-sorted, so the bytes (and URL) match.
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
+        var hash2 = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
 
-        Assert.Equal(2, CountOccurrences(html, "<link "));
-        var posA = html.IndexOf($"/_rask/a/{hashA}", StringComparison.Ordinal);
-        var posB = html.IndexOf($"/_rask/a/{hashB}", StringComparison.Ordinal);
-        Assert.True(posA >= 0 && posB >= 0);
-        Assert.True(posA < posB, "iteration order should be preserved");
-    }
-
-    [Fact]
-    public void TwoComponentsHashCollapse_EmitsSingleLink_DedupByHash()
-    {
-        // CSS that produces byte-equal rewritten output across two types: @font-face is
-        // passed through unchanged by CssScoper, so both rewritten payloads match and the
-        // content hash is shared.
-        const string fontFaceCss = "@font-face { font-family: 'X'; src: url('a.woff2'); }";
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), fontFaceCss);
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), fontFaceCss);
-
-        var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(WidgetA), typeof(WidgetB) });
-        var html = sb.ToString();
-
-        Assert.Equal(1, CountOccurrences(html, "<link "));
-    }
-
-    [Fact]
-    public void ThreeComponentsOneHasAssets_EmitsOneTagPair()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: red; }");
-        ScopedAssetRegistry.RegisterJs(typeof(WidgetB), "export function f() {}");
-
-        var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(
-            sb, new[] { typeof(WidgetA), typeof(WidgetB), typeof(WidgetC) });
-        var html = sb.ToString();
-
-        Assert.Equal(1, CountOccurrences(html, "<link "));
-        Assert.Equal(1, CountOccurrences(html, "<script "));
+        Assert.Equal(hash1, hash2);
     }
 
     [Fact]
     public void FrameworkAssetKeyPrefix_IsRskHyphen()
     {
-        // The morph-key prefix is documented as "rsk-" — kept stable so user code can
-        // safely allocate `data-rask-key` values that don't collide (anything not starting
-        // with "rsk-" is in the user namespace).
         Assert.Equal("rsk-", HeadAssetRegistry.FrameworkAssetKeyPrefix);
     }
 
     [Fact]
-    public void AssetUrl_UsesContentAddressedPath_WithLowercaseHexOnly()
+    public void BundleUrl_UsesContentAddressedPath_WithLowercaseHexOnly()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(WidgetA) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
-        // Pattern: href="/_rask/a/{lowercase-hex}.css"
         Assert.Matches("href=\"/_rask/a/[0-9a-f]{12}\\.css\"", html);
-        Assert.Contains(hash, html);
     }
 
     [Fact]
-    public void NullArguments_Throw()
+    public void NullArgument_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitMountedAssets(null!, Array.Empty<Type>()));
-        Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitMountedAssets(new StringBuilder(), null!));
+        Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitScopedBundles(null!));
     }
 
-    // ─── User Head × per-component asset coexistence ─────────────────────
-    //
-    // These tests assert the COMPOSED behavior of the existing user-Head emission
-    // (HeadAssetRegistry.ApplyTo) combined with the new per-component emission. Since the
-    // two paths are not yet integrated, the tests construct the composition manually:
-    // user Head first, then EmitMountedAssets appended. Verifies the contract holds in
-    // isolation — full pipeline integration follows in a later task.
+    // ─── User Head × scoped-bundle coexistence (via the integrated ApplyTo) ──────────────
 
     [Fact]
-    public void UserCdnLink_AppearsBeforePerComponentLink_InCascadeOrder()
+    public void UserCdnLink_AppearsBeforeScopedBundleLink_InCascadeOrder()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/bootstrap.css"));
-
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
-        var html = ComposeUserPlusAssets(registry, new[] { typeof(WidgetA) });
+        var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
 
         var cdnPos = html.IndexOf("bootstrap.css", StringComparison.Ordinal);
         var scopedPos = html.IndexOf("/_rask/a/", StringComparison.Ordinal);
         Assert.True(cdnPos >= 0 && scopedPos >= 0);
-        Assert.True(cdnPos < scopedPos, "user CDN link must come before scoped link in cascade order");
+        Assert.True(cdnPos < scopedPos, "user CDN link must come before the scoped bundle link");
     }
 
     [Fact]
-    public void UserCdnScript_AppearsBeforePerComponentScript()
+    public void UserCdnScript_AppearsBeforeScopedBundleScript()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Script("https://cdn.example/chartjs.js"));
-
         ScopedAssetRegistry.RegisterJs(typeof(JsOnly), "export function f() {}");
 
-        var html = ComposeUserPlusAssets(registry, new[] { typeof(JsOnly) });
+        var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
 
         var cdnPos = html.IndexOf("chartjs.js", StringComparison.Ordinal);
         var scopedPos = html.IndexOf("/_rask/a/", StringComparison.Ordinal);
@@ -209,15 +168,11 @@ public class HeadAssetEmissionTests
     [Fact]
     public void UserInlineStyle_PreservedVerbatim_NoScopeRewriting()
     {
-        // User inline <style> blocks are NOT transformed by CssScoper. The framework only
-        // applies scope rewriting to registered scoped-css sibling files, not to inline
-        // user content in Head.
         var registry = new HeadAssetRegistry();
         registry.Add(Style()[":root { --accent: hotpink; }"]);
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains(":root { --accent: hotpink; }", html);
-        // No scope suffix should be appended (would look like `[data-r-xxxx]`).
         Assert.DoesNotContain("[data-r-", html);
     }
 
@@ -229,12 +184,11 @@ public class HeadAssetEmissionTests
 
         var html = registry.ApplyTo("<head><!--__rask_head_assets__--></head>");
         Assert.Contains("window.__inlineRan = true;", html);
-        // We do not auto-inject defer on user inline scripts.
         Assert.DoesNotContain(" defer ", html);
     }
 
     [Fact]
-    public void SameCdnLink_DeclaredInTwoComponents_DedupedToSingleEmission()
+    public void SameCdnLink_DeclaredTwice_DedupedToSingleEmission()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/bootstrap.css"));
@@ -245,10 +199,8 @@ public class HeadAssetEmissionTests
     }
 
     [Fact]
-    public void SameCdnUrlDifferentMedia_BothEmitted_ContentHashDifferent()
+    public void SameCdnUrlDifferentMedia_BothEmitted()
     {
-        // Two <link>s to the same href but with different media queries are semantically
-        // distinct (responsive stylesheets). Content hash differs → no dedup.
         var registry = new HeadAssetRegistry();
         registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/x.css", Media: "screen"));
         registry.Add(Link(Rel: "stylesheet", Href: "https://cdn.example/x.css", Media: "print"));
@@ -258,30 +210,8 @@ public class HeadAssetEmissionTests
     }
 
     [Fact]
-    public void PreloadAndStylesheetSameHref_BothEmitted_DifferentRelDoNotDedup()
-    {
-        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
-
-        var registry = new HeadAssetRegistry();
-        registry.Add(Link(Rel: "preload", As: "style", Href: $"/_rask/a/{hash}.css"));
-
-        var combined = ComposeUserPlusAssets(registry, new[] { typeof(WidgetA) });
-
-        // Preload link and scoped stylesheet link with the same href are both present
-        // (different `rel` attributes → different content hashes → no dedup).
-        Assert.Contains("rel=\"preload\"", combined);
-        Assert.Contains("rel=\"stylesheet\"", combined);
-        // Preload appears before stylesheet (user Head first, scoped emission after).
-        var preloadPos = combined.IndexOf("rel=\"preload\"", StringComparison.Ordinal);
-        var sheetPos = combined.IndexOf("rel=\"stylesheet\"", StringComparison.Ordinal);
-        Assert.True(preloadPos < sheetPos);
-    }
-
-    [Fact]
     public void UserSuppliedDataRaskKey_PreservesUserKey()
     {
-        // User supplies an explicit data-rask-key; WithRaskKey leaves it alone.
         var registry = new HeadAssetRegistry();
         registry.Add(Link(Rel: "stylesheet",
             Href: "https://cdn.example/x.css",
@@ -309,22 +239,6 @@ public class HeadAssetEmissionTests
 
     // ─── Helpers and fixtures ────────────────────────────────────────────
 
-    /// <summary>
-    ///     Composes user-Head emission via <see cref="HeadAssetRegistry.ApplyTo" /> with
-    ///     the new per-component asset emission, in cascade order: user assets first,
-    ///     scoped assets after. Simulates the final integrated head layout for tests that
-    ///     assert composed behavior before the production pipeline wires both paths.
-    /// </summary>
-    private static string ComposeUserPlusAssets(
-        HeadAssetRegistry userRegistry, IEnumerable<Type> mountedTypes)
-    {
-        var userHtml = userRegistry.ApplyTo("<head><!--__rask_head_assets__--></head>");
-        var scopedSb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(scopedSb, mountedTypes);
-        var closeHead = userHtml.IndexOf("</head>", StringComparison.Ordinal);
-        return userHtml.Insert(closeHead, scopedSb.ToString());
-    }
-
     private static int CountOccurrences(string haystack, string needle)
     {
         var count = 0;
@@ -336,11 +250,6 @@ public class HeadAssetEmissionTests
         }
 
         return count;
-    }
-
-    private sealed class NoAssets : Component
-    {
-        protected override RenderResult Render() => this;
     }
 
     private sealed class CssOnly : Component
@@ -364,11 +273,6 @@ public class HeadAssetEmissionTests
     }
 
     private sealed class WidgetB : Component
-    {
-        protected override RenderResult Render() => this;
-    }
-
-    private sealed class WidgetC : Component
     {
         protected override RenderResult Render() => this;
     }

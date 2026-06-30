@@ -6,12 +6,14 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Examples.E2E.Tests;
 
 /// <summary>
-///     The standalone <c>Rask.Example.Wasm</c> example served by WasmAppHost (the dev launcher used
-///     by <c>dotnet run</c>). WasmAppHost has no SPA fallback for unknown paths, so the journey
-///     reaches every page by loading <c>/index.html</c> once and clicking the sidebar; deep-link,
-///     refresh-on-deep-route, slow-3G, and WebSocket reconnect steps are off. The shell-reload step
-///     stands in for the deep-route refresh, and the live-ticker sidebar nav inside the journey
-///     covers the publish-render history regression specific to WasmLiveSession's coalescing path.
+///     The standalone <c>Rask.Example.Wasm</c> example, published and served from a plain static-file
+///     host (<see cref="StandaloneWasmAppFixture" />) — the "any static host" / GitHub Pages scenario,
+///     with no Rask runtime in front of it. The journey reaches every page by loading
+///     <c>/index.html</c> once and clicking the sidebar; deep-link, slow-3G, and WebSocket reconnect
+///     steps are off (a static host just serves the published bundle — there's no live WS). The
+///     shell-reload step stands in for the deep-route refresh, and the live-ticker sidebar nav inside
+///     the journey covers the publish-render history regression specific to WasmLiveSession's
+///     coalescing path.
 /// </summary>
 [Collection(StandaloneWasmExampleCollection.Name)]
 public sealed class StandaloneWasmExampleTests : SharedSmokeTests
@@ -32,9 +34,9 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
     protected override string FixtureName => "StandaloneWasm";
     protected override string ServerLog => _app.ServerLog;
 
-    // The first NavigateToAsync loads /index.html and waits for the home hero (the only real GET
-    // WasmAppHost responds to). The journey only ever navigates to "/" through here; all other
-    // page transitions go through ClickSidebar (in-page SPA navigation).
+    // The first NavigateToAsync loads /index.html and waits for the home hero. The journey only ever
+    // navigates to "/" through here; all other page transitions go through ClickSidebar (in-page SPA
+    // navigation).
     protected override async Task NavigateToAsync(string path)
     {
         if (!SidebarLabels.TryGetValue(path, out var label))

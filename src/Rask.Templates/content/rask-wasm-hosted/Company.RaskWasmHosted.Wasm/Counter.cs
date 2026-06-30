@@ -11,7 +11,7 @@ public sealed class Counter : Component
         [
             H1()["Counter"],
             P()[$"Current count: {_count}"],
-            Button(
+            BsButton(Color: BsColor.Primary,
                 OnClick: () => _count++)["Click me"]
         ];
 }

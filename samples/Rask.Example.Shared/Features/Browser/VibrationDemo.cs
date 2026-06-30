@@ -8,13 +8,13 @@ public sealed class VibrationDemo(IVibration vibration) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "vibrate-buzz", OnClickAsync: Buzz)["Buzz"],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "vibrate-pattern", OnClickAsync: Pattern)[
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "vibrate-buzz", OnClickAsync: Buzz)["Buzz"],
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "vibrate-pattern", OnClickAsync: Pattern)[
                         "Pattern"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "vibrate-cancel", OnClickAsync: Cancel)["Cancel"]
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "vibrate-cancel", OnClickAsync: Cancel)["Cancel"]
                 ],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "vibrate-status")[_status ?? "(idle)"]]
             ]

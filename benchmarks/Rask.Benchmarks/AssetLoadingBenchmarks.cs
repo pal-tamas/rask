@@ -46,13 +46,6 @@ public class AssetLoadingBenchmarks
         typeof(AssetRow016), typeof(AssetRow017), typeof(AssetRow018), typeof(AssetRow019)
     ];
 
-    private readonly HashSet<Type> _mounted200 = new();
-
-    // Pre-built mounted-type sets at two scales. EmitMountedAssets allocates a
-    // StringBuilder each call — the bench captures both the alloc and the per-entry
-    // append cost.
-    private readonly HashSet<Type> _mounted50 = new();
-
     private string[] _cssHashes = null!;
     private string[] _jsHashes = null!;
 
@@ -70,22 +63,10 @@ public class AssetLoadingBenchmarks
             ScopedAssetRegistry.TryGetJs(_types[i], out _jsHashes[i]);
         }
 
-        // 50 unique types → 20 distinct types cycled (since _types has 20). Mounted
-        // sets are HashSet<Type>, so duplicates collapse — the iteration is over the
-        // distinct surviving types either way. The "50" and "200" labels reflect the
-        // SOURCE-COMPONENT-COUNT a typical page might have, with the resulting
-        // mounted-type-set size capped at 20 (page reuses component types heavily).
-        // EmitMountedAssets iterates the HashSet directly, so the cost is bounded by
-        // distinct types, not source instances.
-        for (var i = 0; i < 50; i++)
-        {
-            _mounted50.Add(_types[i % _types.Length]);
-        }
-
-        for (var i = 0; i < 200; i++)
-        {
-            _mounted200.Add(_types[i % _types.Length]);
-        }
+        // Warm the bundle caches so EmitScopedBundles_Warm measures the steady-state emission
+        // (two cached-hash reads + two appends), not the one-time concatenation.
+        ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
+        ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -182,48 +163,16 @@ public class AssetLoadingBenchmarks
     // matter — a "form page" with ~50 source components reusing ~20 distinct
     // types, and a "showcase page" with ~200 source components.
     // ──────────────────────────────────────────────────────────────────────
+    // EmitScopedBundles: the per-render <head> emission under the bundle model — reads the two
+    // cached bundle hashes off the registry and appends one <link> + one <script>. Constant cost
+    // regardless of how many component types are mounted (the old per-component pass scaled with the
+    // mounted-type count). Runs once per render of any live root; the bundle bytes themselves are
+    // built lazily and cached by registry version, so this warm path never re-concatenates.
     [Benchmark]
-    public int EmitMountedAssets_50()
+    public int EmitScopedBundles_Warm()
     {
-        var sb = new StringBuilder(2048);
-        HeadAssetRegistry.EmitMountedAssets(sb, _mounted50);
-        return sb.Length;
-    }
-
-    [Benchmark]
-    public int EmitMountedAssets_200()
-    {
-        var sb = new StringBuilder(8192);
-        HeadAssetRegistry.EmitMountedAssets(sb, _mounted200);
-        return sb.Length;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────
-    // EmitScopedPreloads: the eager-prefetch pass ApplyTo runs after
-    // EmitMountedAssets. The <link rel="prefetch"> block is render-independent
-    // and cached (rebuilt only when the registry mutates), so the steady-state
-    // per-render cost is a single Append of the cached string — no rebuild, no
-    // per-render registry snapshot. This warm-cache bench captures that cost.
-    // ──────────────────────────────────────────────────────────────────────
-    [Benchmark]
-    public int EmitScopedPreloads_Warm()
-    {
-        var sb = new StringBuilder(8192);
-        HeadAssetRegistry.EmitScopedPreloads(sb);
-        return sb.Length;
-    }
-
-    // Mirrors what ApplyTo emits per render with the feature on: mounted,
-    // render-blocking assets followed by the cached preload block. Compare its
-    // Allocated against EmitMountedAssets_200 — the delta is the feature's
-    // marginal per-render cost (a single cached-string append; the cache build
-    // is amortised to zero after the first render).
-    [Benchmark]
-    public int EmitMountedAssetsWithPreloads_200()
-    {
-        var sb = new StringBuilder(8192);
-        HeadAssetRegistry.EmitMountedAssets(sb, _mounted200);
-        HeadAssetRegistry.EmitScopedPreloads(sb);
+        var sb = new StringBuilder(256);
+        HeadAssetRegistry.EmitScopedBundles(sb);
         return sb.Length;
     }
 

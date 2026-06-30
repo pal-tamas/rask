@@ -46,7 +46,6 @@ Applied to both the Server and WASM runtimes.
 | --- | --- | --- |
 | `DiffMode` | `Auto` | Wire payload shape — `Auto` ships a diff when smaller, `DisabledFull` always full HTML, `Forced` always a diff. |
 | `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). |
-| `PreloadScopedAssets` | `true` | Warm every scoped CSS/JS asset into `<head>` up front (vs. on first mount). |
 | `MaxSessions` | `0` (uncapped) | Hard cap on concurrent live sessions; a GET past the cap gets `503` + `Retry-After`. Pairs with the [health check](observability.md#health-checks). |
 
 ## Server-host-only options — `RaskServerOptions` (`configureServer`)

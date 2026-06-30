@@ -21,7 +21,7 @@ public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
 
     protected override RenderResult Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
-            Span(Class: "badge text-bg-info dispose-async-pill")[$"#{InstanceId} alive"],
+            BsBadge(Color: BsColor.Info, Class: "dispose-async-pill")[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")[
                 $"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire DisposeAsync()."]
         ];

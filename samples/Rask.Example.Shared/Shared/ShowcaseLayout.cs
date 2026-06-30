@@ -91,6 +91,19 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.WebAuthnPage(), "Passkeys (WebAuthn)", "bi-fingerprint", "Browser APIs", null)
     ];
 
+    // The Bootstrap section: components from the Rask.Bootstrap package.
+    private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] BootstrapLinks =
+    [
+        (Features.Routes.BsButtonsPage(), "Buttons & badges", "bi-hand-index-thumb", "Content", null),
+        (Features.Routes.BsCardsPage(), "Cards", "bi-window", "Content", null),
+        (Features.Routes.BsAlertsPage(), "Alerts", "bi-exclamation-triangle", "Content", null),
+        (Features.Routes.BsIconsPage(), "Icons", "bi-emoji-smile", "Content", null),
+        (Features.Routes.BsModalPage(), "Modal", "bi-window-stack", "Interactive", null),
+        (Features.Routes.BsTabsPage(), "Tabs & accordion", "bi-segmented-nav", "Interactive", null),
+        (Features.Routes.BsFormsPage(), "Forms", "bi-input-cursor-text", "Forms", null),
+        (Features.Routes.BsUtilitiesPage(), "Utility classes", "bi-magic", "Utilities", null)
+    ];
+
     private bool _drawerOpen;
 
     // Subscribe to RouteState.Changed so the sidebar's active-class computation refreshes
@@ -120,14 +133,14 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
                     })[
                     RaskLogo.Mark(24, "brandBolt"),
                     Span()["Rask"],
-                    Span(Class: "badge rounded-pill rask-badge")["showcase"],
-                    Span(Class: "badge rounded-pill text-bg-secondary")[$"v{RaskVersion.Current}"]
+                    BsBadge(Pill: true, Class: "rask-badge")["showcase"],
+                    BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]
                 ],
                 Div(Class: "d-flex align-items-center gap-2 ms-auto")[
                     PathDisplay(),
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
-                        Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
+                        Class: "btn btn-outline-light btn-sm")[BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"]
                 ]
             ]
         ],
@@ -152,11 +165,21 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
     private List<Child> BuildGroups()
     {
         var children = new List<Child>();
+        // Two top-level sections: the framework/core showcase (plus any host-contributed entries,
+        // e.g. the WASM PWA example) and the Bootstrap-component showcase from Rask.Bootstrap.
+        AppendSection(children, "Framework",
+            Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
+        AppendSection(children, "Bootstrap", BootstrapLinks);
+        return children;
+    }
+
+    private void AppendSection(
+        List<Child> children, string section,
+        IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> links)
+    {
+        children.Add(Div(Class: "nav-section text-uppercase fw-bold small text-primary mt-4 mb-1 px-2 pt-3 border-top")[section]);
         string? currentGroup = null;
-        // Static showcase links, then any host-contributed entries (e.g. the WASM PWA example).
-        var all = Links.Concat(
-            extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix)));
-        foreach (var (path, label, icon, group, matchPrefix) in all)
+        foreach (var (path, label, icon, group, matchPrefix) in links)
         {
             if (group != currentGroup)
             {
@@ -166,9 +189,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
 
             var active = IsActive(path, matchPrefix);
             children.Add(Button(
-                Class: active
-                    ? "nav-item-btn nav-item-btn-active"
-                    : "nav-item-btn",
+                Class: active ? "nav-item-btn nav-item-btn-active" : "nav-item-btn",
                 OnClick: () =>
                 {
                     _drawerOpen = false;
@@ -178,8 +199,6 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
                 Span()[label]
             ]);
         }
-
-        return children;
     }
 
     private bool IsActive(string href, string? matchPrefix = null)

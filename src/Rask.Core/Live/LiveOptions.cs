@@ -85,23 +85,6 @@ public sealed class RaskLiveOptions
         get => _pathBase;
         set => _pathBase = RaskPath.Normalize(value);
     }
-
-    /// <summary>
-    ///     Whether the framework eagerly warms <em>every</em> registered scoped CSS and JS asset
-    ///     into the page <c>&lt;head&gt;</c> on first render via low-priority
-    ///     <c>&lt;link rel="prefetch"&gt;</c> hints — not just the assets of components mounted on
-    ///     the current route. <c>true</c> (default) warms the HTTP cache up front so a later mount
-    ///     (client-side navigation, a conditional section) finds its scoped stylesheet/script
-    ///     already loaded: the body swaps with no flash of unstyled content and no first-interaction
-    ///     wait for the scoped JS namespace. <c>prefetch</c> keeps these hints below the current
-    ///     route's critical resources and avoids a <c>"resource preloaded but not used"</c> console
-    ///     warning for off-route assets. Scoped CSS is selector-rewritten to <c>[data-r-xxxx]</c>,
-    ///     so prefetching an unmounted component's styles has no visual effect until its elements
-    ///     exist. Set <c>false</c> to fetch each scoped asset only when its component first mounts
-    ///     (smaller first-load payload, at the cost of a brief navigation FOUC the first time each
-    ///     new component type appears).
-    /// </summary>
-    public bool PreloadScopedAssets { get; set; } = true;
 }
 
 /// <summary>
@@ -126,13 +109,6 @@ public static class LiveOptions
         get => _pathBase;
         set => _pathBase = RaskPath.Normalize(value);
     }
-
-    /// <summary>
-    ///     Active eager-preload flag (see <see cref="RaskLiveOptions.PreloadScopedAssets" />).
-    ///     Read by <c>HeadAssetRegistry.EmitMountedAssets</c> on every render. Defaults to
-    ///     <c>true</c>.
-    /// </summary>
-    public static bool PreloadScopedAssets { get; set; } = true;
 }
 
 /// <summary>

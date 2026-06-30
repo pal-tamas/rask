@@ -249,41 +249,27 @@ Runnable demo:
 
 ## Delivery & caching
 
-Both scoped CSS and JS are **content-addressed**. The generator registers each asset; it
-is served at `/_rask/a/{hash}.{ext}` with `Cache-Control: immutable`, an `ETag`,
-`nosniff`, and `.AllowAnonymous()`. The page `<head>` emits exactly one `<link>` /
-`<script defer>` per mounted component type that has a registered asset. Static-file and
-WASM hosts get the same files baked to disk by the `BakeScopedAssetsTask` MSBuild task.
+Scoped CSS and JS each ship as **one content-addressed bundle**. The generator registers
+every component's scoped asset; the framework concatenates all registered scoped CSS into a
+single bundle and all registered scoped JS into another (hash-sorted, so the bytes — and the
+URL — are deterministic across builds). Each bundle is served at `/_rask/a/{hash}.{ext}` with
+`Cache-Control: immutable`, an `ETag`, `nosniff`, and `.AllowAnonymous()` — and **brotli/gzip
+compressed** when the client advertises it (negotiated per request, with each compressed
+representation built once and cached by content hash since the bytes never change). The page `<head>`
+emits exactly **one** `<link rel="stylesheet">` and **one** `<script defer>` — the two
+bundles — keyed `rsk-css` / `rsk-js` so the client morph updates them in place when the hash
+changes (hot reload). Static-file and WASM hosts get the same two files baked to disk by the
+`BakeScopedAssetsTask` MSBuild task, so any static-asset host (`MapStaticAssets`, a CDN)
+serves them.
 
-### Eager prefetch
+### No navigation FOUC
 
-By default the `<head>` *also* emits a low-priority `<link rel="prefetch">` for **every**
-registered scoped asset — not just the components on the current route. This warms the
-browser's HTTP cache up front, so when a component first mounts later (client-side
-navigation, a conditionally rendered section) its stylesheet/script is already downloaded.
-Cache-warming alone is not enough to avoid a flash, though — cached *bytes* are not an
-*applied* stylesheet. So the live runtime also gates the swap: when a render adds a new
-scoped stylesheet it inserts the `<link>` first and holds the body paint until that
-`<link>`'s `.sheet` is non-null (the CSSOM stylesheet has parsed and applied), bounded by a
-500 ms cap. Together — prefetch (the sheet is warm, so it applies almost instantly) plus the
-apply-gate (the body never paints ahead of it) — the body swaps with **no flash of unstyled
-content** and the scoped-JS namespace is ready on first interaction. `prefetch` (rather than `preload`) is the future-navigation hint — it
-sits at the lowest priority so it never competes with the current route's critical
-resources, and it raises no *"resource preloaded but not used"* console warning for the
-off-route assets a visitor may never reach. The links are inert (`rel="prefetch"`, neither
-a render-blocking stylesheet nor an executable script), and the markup is cached so it
-costs a single append per render. Scoped CSS is selector-rewritten to `[data-r-xxxx]`, so
-prefetching an unmounted component's styles has no visual effect until its elements exist.
-
-Opt out — to fetch each scoped asset only when its component first mounts (smaller
-first-load payload, at the cost of a brief navigation FOUC the first time each new
-component type appears) — via `AddRask` / the WASM host builder:
-
-```csharp
-builder.Services.AddRask(o => o.PreloadScopedAssets = false); // Server
-// or
-WasmHostBuilder.CreateDefault(o => o.PreloadScopedAssets = false); // WASM
-```
+Because the whole bundle ships up front, a component that mounts *later* — client-side
+navigation, a conditionally rendered section — is styled the instant its node is inserted:
+its rule is already in the applied CSSOM, so there is no per-component lazy fetch and no flash
+of unstyled content, and the scoped-JS namespace (`window.Rask[...]`) is ready on first
+interaction. Scoped CSS is selector-rewritten to `[data-r-xxxx]`, so a bundle rule for an
+unmounted component has no visual effect until its elements exist.
 
 ---
 

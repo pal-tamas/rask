@@ -187,31 +187,24 @@ internal sealed class HeadAssetRegistry
             return html;
         }
 
-        // Per-component asset emission. Reads LiveRenderContext.Current.MountedTypes —
-        // populated unconditionally during the render walk by every user component entry —
-        // and emits one keyed <link>/<script> per mounted type that has a registered
-        // asset. Null when the current call is outside a live render (unit tests calling
-        // ApplyTo directly) or when no mounted component has an asset. Built through a pooled
-        // StringBuilder so the steady-state diff path stays allocation-light.
-        string? perComponentHtml = null;
-        var liveCtx = LiveRenderContext.Current;
-        if (liveCtx is not null && liveCtx.MountedTypes.Count > 0)
+        // Scoped-asset emission: one <link> for the whole scoped-CSS bundle and one <script defer>
+        // for the whole scoped-JS bundle (ScopedAssetRegistry concatenates every registered entry
+        // into a single content-hashed asset). Emitting the entire bundle up front means a later
+        // client-side mount finds its styles/script already present — no navigation FOUC — so the
+        // previous per-component <link>s + the rel="prefetch" pre-warming block are both gone.
+        // Bundle hashes read straight off the registry (no LiveRenderContext needed); empty when no
+        // scoped asset of that kind is registered. Built through a pooled StringBuilder.
+        string? scopedHtml = null;
+        var scopedSb = RaskStringBuilderPool.Shared.Get();
+        EmitScopedBundles(scopedSb);
+        if (scopedSb.Length > 0)
         {
-            var perComponentSb = RaskStringBuilderPool.Shared.Get();
-            EmitMountedAssets(perComponentSb, liveCtx.MountedTypes);
-            // Eager prefetch of every registered scoped asset (not just the mounted ones) so a
-            // later mount finds its stylesheet/script already cached — no navigation FOUC.
-            // Appended after the mounted, render-blocking assets so those keep discovery priority.
-            EmitScopedPreloads(perComponentSb);
-            if (perComponentSb.Length > 0)
-            {
-                perComponentHtml = perComponentSb.ToString();
-            }
-
-            RaskStringBuilderPool.Shared.Return(perComponentSb);
+            scopedHtml = scopedSb.ToString();
         }
 
-        if (_orderedHtml.Count == 0 && perComponentHtml is null)
+        RaskStringBuilderPool.Shared.Return(scopedSb);
+
+        if (_orderedHtml.Count == 0 && scopedHtml is null)
         {
             return html.Remove(sentinelIdx, Sentinel.Length);
         }
@@ -233,11 +226,11 @@ internal sealed class HeadAssetRegistry
             AppendWithRaskKey(sb, raw, morphKey);
         }
 
-        // Per-component tags emit AFTER user Head contributions so scoped CSS overrides
+        // The scoped bundle emits AFTER user Head contributions so scoped CSS overrides
         // global CDN imports declared via Component.Head.
-        if (perComponentHtml is not null)
+        if (scopedHtml is not null)
         {
-            sb.Append(perComponentHtml);
+            sb.Append(scopedHtml);
         }
 
         sb.Append(html, sentinelIdx + Sentinel.Length, html.Length - sentinelIdx - Sentinel.Length);
@@ -290,175 +283,49 @@ internal sealed class HeadAssetRegistry
     }
 
     /// <summary>
-    ///     Emits one <c>&lt;link href="/_rask/a/{hash}.css"&gt;</c> per mounted component
-    ///     with registered CSS, and one <c>&lt;script src="/_rask/a/{hash}.js" defer&gt;</c>
-    ///     per mounted component with registered JS. Each tag is keyed with
-    ///     <c>data-rask-key="rsk-css-{hash}"</c> / <c>rsk-js-{hash}"</c> so the client morph
-    ///     reconciles by identity. Two component types whose rewritten content shares a
-    ///     hash collapse to a single tag (the second emission is skipped — the by-hash
-    ///     dedup is local to this call, since two types referencing the same hash both
-    ///     appear in <paramref name="mountedTypes" />).
+    ///     Emits the two scoped-asset bundle tags: one <c>&lt;link rel="stylesheet"&gt;</c> for the
+    ///     concatenated scoped-CSS bundle and one <c>&lt;script defer&gt;</c> for the concatenated
+    ///     scoped-JS bundle, each at its content-hash URL (<c>{PathBase}/_rask/a/{bundleHash}.{ext}</c>).
+    ///     Either tag is omitted when no asset of that kind is registered. CSS is emitted first
+    ///     (render-blocking); JS uses <c>defer</c> and waits for parse.
     ///     <para>
-    ///         Emission order: CSS for every type first (in <paramref name="mountedTypes" />
-    ///         iteration order), then JS. This matches the cascade contract — CSS is
-    ///         render-blocking; JS uses <c>defer</c> and waits for parse.
-    ///     </para>
-    ///     <para>
-    ///         Eager preload of <em>every</em> registered scoped asset (not just the mounted
-    ///         ones) is emitted separately by <see cref="EmitScopedPreloads" />.
+    ///         Each tag carries a stable <c>data-rask-key</c> (<c>rsk-css</c> / <c>rsk-js</c>) — there
+    ///         is one bundle per kind, so the key is constant across renders and the client morph
+    ///         updates the href/src in place when the bundle hash changes (hot reload) rather than
+    ///         tearing the tag down. Shipping the whole bundle up front means a later client-side
+    ///         mount already has its styles + script, so the old per-component <c>rel="prefetch"</c>
+    ///         pre-warming block is no longer needed.
     ///     </para>
     /// </summary>
-    internal static void EmitMountedAssets(StringBuilder sb, IEnumerable<Type> mountedTypes)
+    internal static void EmitScopedBundles(StringBuilder sb)
     {
         ArgumentNullException.ThrowIfNull(sb);
-        ArgumentNullException.ThrowIfNull(mountedTypes);
 
-        var seenCssHashes = new HashSet<string>(StringComparer.Ordinal);
-        var seenJsHashes = new HashSet<string>(StringComparer.Ordinal);
-
-        // Materialise once to allow two passes (CSS then JS) without iterating a transient
-        // sequence twice. Small allocation, but mounted-types sets are bounded by the live
-        // render's user-component count (typically dozens, not thousands).
-        var types = mountedTypes as IReadOnlyCollection<Type> ?? mountedTypes.ToArray();
-
-        foreach (var type in types)
+        var cssHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
+        if (cssHash.Length != 0)
         {
-            if (!ScopedAssetRegistry.TryGetCss(type, out var hash))
-            {
-                continue;
-            }
-
-            if (!seenCssHashes.Add(hash))
-            {
-                continue;
-            }
-
-            // <link rel="stylesheet" href="{PathBase}/_rask/a/{hash}.css" data-rask-key="rsk-css-{hash}">
+            // <link rel="stylesheet" href="{PathBase}/_rask/a/{cssHash}.css" data-rask-key="rsk-css">
             sb.Append("<link rel=\"stylesheet\" href=\"");
             sb.Append(LiveOptions.PathBase);
             sb.Append("/_rask/a/");
-            sb.Append(hash);
+            sb.Append(cssHash);
             sb.Append(".css\" data-rask-key=\"");
             sb.Append(FrameworkAssetKeyPrefix);
-            sb.Append("css-");
-            sb.Append(hash);
-            sb.Append("\">");
+            sb.Append("css\">");
         }
 
-        foreach (var type in types)
+        var jsHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
+        if (jsHash.Length != 0)
         {
-            if (!ScopedAssetRegistry.TryGetJs(type, out var hash))
-            {
-                continue;
-            }
-
-            if (!seenJsHashes.Add(hash))
-            {
-                continue;
-            }
-
-            // <script src="{PathBase}/_rask/a/{hash}.js" defer data-rask-key="rsk-js-{hash}"></script>
+            // <script src="{PathBase}/_rask/a/{jsHash}.js" defer data-rask-key="rsk-js"></script>
             sb.Append("<script src=\"");
             sb.Append(LiveOptions.PathBase);
             sb.Append("/_rask/a/");
-            sb.Append(hash);
+            sb.Append(jsHash);
             sb.Append(".js\" defer data-rask-key=\"");
             sb.Append(FrameworkAssetKeyPrefix);
-            sb.Append("js-");
-            sb.Append(hash);
-            sb.Append("\"></script>");
+            sb.Append("js\"></script>");
         }
-    }
-
-    /// <summary>
-    ///     Appends a block of low-priority <c>&lt;link rel="prefetch"&gt;</c> hints for
-    ///     <em>every</em> registered scoped asset — not just the mounted ones — so a later mount
-    ///     (client-side navigation, a conditionally rendered section) finds its stylesheet/script
-    ///     already in the HTTP cache: the body swaps with no flash of unstyled content and the
-    ///     scoped-JS namespace is ready on first interaction. <c>prefetch</c> (rather than
-    ///     <c>preload</c>) is the future-navigation hint — it never competes with the current
-    ///     route's critical resources and raises no "resource preloaded but not used" console
-    ///     warning for assets the visitor never navigates to. No-op when
-    ///     <see cref="LiveOptions.PreloadScopedAssets" /> is <c>false</c>. The markup is
-    ///     render-independent and cached (rebuilt only when the asset set changes via hot
-    ///     reload), so the steady-state cost is a single <see cref="StringBuilder.Append(string)" />.
-    ///     Emitted after <see cref="EmitMountedAssets" />; the prefetch links are inert to the
-    ///     client invoke gate and FOUC guard (they are <c>rel="prefetch"</c>, neither a
-    ///     <c>&lt;script&gt;</c> nor a <c>rel="stylesheet"</c> link).
-    /// </summary>
-    internal static void EmitScopedPreloads(StringBuilder sb)
-    {
-        ArgumentNullException.ThrowIfNull(sb);
-        if (!LiveOptions.PreloadScopedAssets)
-        {
-            return;
-        }
-
-        sb.Append(GetScopedPreloadBlock());
-    }
-
-    // Cached <link rel="prefetch"> markup for every registered scoped asset. Built lazily and
-    // reused across renders; rebuilt only when the registry mutates (tracked by
-    // ScopedAssetRegistry.Version) or the URL prefix changes (PathBase). The record is published
-    // atomically (single volatile reference), so readers never see a torn field tuple.
-    private sealed record PreloadCacheEntry(string PathBase, long Version, string Block);
-
-    private static volatile PreloadCacheEntry? _preloadCache;
-
-    private static string GetScopedPreloadBlock()
-    {
-        var pathBase = LiveOptions.PathBase;
-        var version = ScopedAssetRegistry.Version;
-
-        var cache = _preloadCache;
-        if (cache is not null && cache.Version == version
-            && string.Equals(cache.PathBase, pathBase, StringComparison.Ordinal))
-        {
-            return cache.Block;
-        }
-
-        // Build lock-free (EnumerateAll takes the registry lock internally; we hold none). A
-        // benign race may build the string twice — both yield identical bytes. The entry is
-        // tagged with the version read BEFORE the build: if the registry mutated mid-build the
-        // tag is stale, and the next call simply rebuilds — never serves stale markup.
-        var block = BuildScopedPreloadBlock(pathBase);
-        _preloadCache = new PreloadCacheEntry(pathBase, version, block);
-        return block;
-    }
-
-    private static string BuildScopedPreloadBlock(string pathBase)
-    {
-        var sb = new StringBuilder();
-        foreach (var entry in ScopedAssetRegistry.EnumerateAll())
-        {
-            var isCss = entry.Kind == AssetKind.Css;
-
-            // rel="prefetch" (not "preload"): this block covers every registered asset, most of
-            // which are off-route and may not be used at all this session. "prefetch" is the
-            // future-navigation hint — lowest priority (never competes with the current route's
-            // critical resources) and, unlike "preload", it raises no "resource preloaded but not
-            // used within a few seconds" console warning for assets the visitor never navigates to.
-            // `as` is kept so the browser sets the right Accept header and cache partition. The
-            // current route's mounted assets already ship as a render-blocking <link>/<script>
-            // (EmitMountedAssets); a coincident low-priority prefetch for the same href coalesces.
-            //
-            // <link rel="prefetch" as="style|script" href="{PathBase}/_rask/a/{hash}.{ext}"
-            //       data-rask-key="rsk-prefetch-{css|js}-{hash}">
-            sb.Append("<link rel=\"prefetch\" as=\"");
-            sb.Append(isCss ? "style" : "script");
-            sb.Append("\" href=\"");
-            sb.Append(pathBase);
-            sb.Append("/_rask/a/");
-            sb.Append(entry.Hash);
-            sb.Append(isCss ? ".css" : ".js");
-            sb.Append("\" data-rask-key=\"");
-            sb.Append(FrameworkAssetKeyPrefix);
-            sb.Append(isCss ? "prefetch-css-" : "prefetch-js-");
-            sb.Append(entry.Hash);
-            sb.Append("\">");
-        }
-
-        return sb.ToString();
     }
 
     // FNV-1a 32-bit content hash. Stable for a given string within the process so

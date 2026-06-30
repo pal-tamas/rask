@@ -31,12 +31,12 @@ public sealed class FloatingLabelsDemo : Component
             ],
             FloatingTextarea(() => _model.Bio),
             Div(Class: "mt-1")[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-person-plus me-1"), "Create account"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.PersonPlus, Class: "me-1"), "Create account"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

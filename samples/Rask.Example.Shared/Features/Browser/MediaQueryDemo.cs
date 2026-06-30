@@ -9,9 +9,9 @@ public sealed class MediaQueryDemo(IMediaQuery media) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "media-read", OnClickAsync: Read)[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "media-read", OnClickAsync: Read)[
                     "Evaluate media queries"],
                 Div(Class: "small text-secondary")["Result: ", Code(Id: "media-value")[_value ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "media-status")[_status ?? "(idle)"]]

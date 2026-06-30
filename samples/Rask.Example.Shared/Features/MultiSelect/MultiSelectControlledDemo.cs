@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-// Controlled MultiSelect<TItem>: no Bind / EditContext. The parent owns the selection in its own field and
+// Controlled BsMultiSelect<TItem>: no Bind / EditContext. The parent owns the selection in its own field and
 // the control reports each change through OnChange (an OnChangeAsync variant also exists). Passing Value +
 // OnChange instead of Bind is the React-style controlled shape — useful when the selection is not a form
 // model property. The control still re-renders its host automatically, so the "Selected:" summary updates
@@ -16,7 +16,7 @@ public sealed class MultiSelectControlledDemo : Component
         Div(Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold")["Topics"],
-                MultiSelect<string>(
+                BsMultiSelect<string>(
                     AllTopics,
                     Value: _topics.ToList(),
                     OnChange: next => _topics = next,

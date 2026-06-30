@@ -36,14 +36,12 @@ builder.Services.AddExampleServices(sp =>
 
 var app = builder.Build();
 
-// UseStaticFiles must run before routing selects an endpoint: StaticFileMiddleware
-// skips serving once context.GetEndpoint() is non-null, and Rask's catch-all
-// "/{**path}" matches every request. WebApplication otherwise auto-inserts
-// UseRouting at the very start of the pipeline (ahead of this middleware), so the
-// catch-all would win and vendored assets under wwwroot/ would fall through to the
-// NotFound page. Calling UseRouting explicitly after UseStaticFiles suppresses that
-// auto-insert and lets real files (wwwroot/lib, /img, /data) serve first.
-app.UseStaticFiles();
+// Serve build-time static web assets — wwwroot/** AND package _content/* (e.g. Rask.Bootstrap's
+// bundled CSS) — via MapStaticAssets, the .NET 9/10 static-asset pipeline: fingerprinting, build-time
+// brotli/gzip, and immutable caching. The SDK auto-loads the static-web-assets manifest in Development;
+// a published app carries the manifest plus the physical assets, so no extra wiring is needed there.
+// (The E2E runs this host *published* so the slow-network journey exercises that production serving.)
+app.MapStaticAssets();
 app.UseRouting();
 
 // Live-session capacity probe (see docs/observability.md). Returns 200 Healthy / Degraded and

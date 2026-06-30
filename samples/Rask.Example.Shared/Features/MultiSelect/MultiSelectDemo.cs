@@ -1,6 +1,6 @@
 namespace Rask.Example.Shared.Features;
 
-// The generic MultiSelect<TItem> bound to a model collection inside a Form. A per-field Validate rule —
+// The generic BsMultiSelect<TItem> bound to a model collection inside a Form. A per-field Validate rule —
 // the same shape as Input's Validate — rejects fewer than two picks and surfaces its message inline through
 // the control's own ValidationMessage. Live feedback (the chips and the validation message) lives inside the
 // control, so it refreshes as you select without any StateHasChanged. (An inline Validate is used rather
@@ -21,7 +21,7 @@ public sealed class MultiSelectDemo : Component
             Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold")["Interests"],
-                MultiSelect<string>(
+                BsMultiSelect<string>(
                     () => _prefs.Interests,
                     AllInterests,
                     Validate: interests => interests.Count >= 2
@@ -31,12 +31,12 @@ public sealed class MultiSelectDemo : Component
                     Placeholder: "Pick a few…")
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Save"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Save"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 
     private sealed class Prefs

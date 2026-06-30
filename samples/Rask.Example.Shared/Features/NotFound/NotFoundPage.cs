@@ -14,9 +14,7 @@ public sealed class NotFoundPage(Navigator nav, RouteState route) : Component
             "Page not found",
             $"No route is registered for {route.Path}. Pick a section from the sidebar — every showcase page is reachable from there."),
         Div(Class: "d-flex gap-2 mt-3")[
-            Button(
-                Class: "btn btn-primary",
-                OnClick: () => nav.NavigateTo("/"))[I(Class: "bi bi-house me-2"), "Back to welcome"]
+            BsButton(Color: BsColor.Primary, OnClick: () => nav.NavigateTo("/"))[BsIcon(Name: BsIconName.House, Class: "me-2"), "Back to welcome"]
         ]
     ];
 }

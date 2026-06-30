@@ -6,7 +6,7 @@ using static Rask.Example.Shared.Generated;
 
 namespace Rask.Example.Shared.Tests.Demos;
 
-// The reusable MultiSelect<TItem> example component: a custom dropdown bound to an ICollection (bound mode)
+// The reusable BsMultiSelect<TItem> example component: a custom dropdown bound to an ICollection (bound mode)
 // or driven by Value + OnChange (controlled mode). These drive the live handlers directly (open, select,
 // deselect, Esc, click-outside) and assert the bound collection / emitted selection / rendered chips. The
 // full browser flow is covered in SharedSmokeTests (Multi-select branch).
@@ -18,7 +18,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var host = new LiveHost(
-            () => Form(model)[MultiSelect<string>(() => model.Tags, Options)],
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options)],
             TestServices.Default());
         return (host, model);
     }
@@ -131,7 +131,7 @@ public sealed class MultiSelectTests
         var model = new Bag();
         var host = new LiveHost(
             () => Form(model)[
-                MultiSelect<string>(
+                BsMultiSelect<string>(
                     () => model.Tags,
                     Options,
                     Validate: tags => tags.Count >= 2 ? Array.Empty<string>() : ["Pick at least two."])],
@@ -152,7 +152,7 @@ public sealed class MultiSelectTests
         var model = new Bag();
         ICollection<string>? seen = null;
         var host = new LiveHost(
-            () => Form(model)[MultiSelect<string>(() => model.Tags, Options, AfterBind: c => seen = c)],
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, AfterBind: c => seen = c)],
             TestServices.Default());
 
         var ids = ClickIds(host.RenderAsLiveRoot());
@@ -169,7 +169,7 @@ public sealed class MultiSelectTests
         var model = new Bag();
         var fired = false;
         var host = new LiveHost(
-            () => Form(model)[MultiSelect<string>(
+            () => Form(model)[BsMultiSelect<string>(
                 () => model.Tags, Options, AfterBindAsync: _ =>
                 {
                     fired = true;
@@ -188,7 +188,7 @@ public sealed class MultiSelectTests
         var value = new List<string> { "a" };
         ICollection<string>? emitted = null;
         var host = new LiveHost(
-            () => MultiSelect<string>(Options, Value: value, OnChange: next => emitted = next),
+            () => BsMultiSelect<string>(Options, Value: value, OnChange: next => emitted = next),
             TestServices.Default());
 
         var ids = ClickIds(host.RenderAsLiveRoot()); // [box, chip-remove-a, opt-a, opt-b, opt-c]
@@ -205,7 +205,7 @@ public sealed class MultiSelectTests
         var value = new List<string>();
         ICollection<string>? emitted = null;
         var host = new LiveHost(
-            () => MultiSelect<string>(Options, Value: value, OnChangeAsync: next =>
+            () => BsMultiSelect<string>(Options, Value: value, OnChangeAsync: next =>
             {
                 emitted = next;
                 return Task.CompletedTask;
@@ -221,7 +221,7 @@ public sealed class MultiSelectTests
     public void Controlled_NoValidationMessage_NoEditContext()
     {
         var host = new LiveHost(
-            () => MultiSelect<string>(Options, Value: new List<string>(), OnChange: _ => { }),
+            () => BsMultiSelect<string>(Options, Value: new List<string>(), OnChange: _ => { }),
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -234,7 +234,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var host = new LiveHost(
-            () => Form(model)[MultiSelect<string>(() => model.Tags, Options, Disabled: true)],
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, Options, Disabled: true)],
             TestServices.Default());
 
         var html = host.RenderAsLiveRoot();
@@ -249,7 +249,7 @@ public sealed class MultiSelectTests
     {
         var model = new Bag();
         var host = new LiveHost(
-            () => Form(model)[MultiSelect<string>(() => model.Tags, null!)],
+            () => Form(model)[BsMultiSelect<string>(() => model.Tags, null!)],
             TestServices.Default());
 
         Assert.Throws<ArgumentNullException>(() => host.RenderAsLiveRoot());
@@ -259,7 +259,7 @@ public sealed class MultiSelectTests
     public void NeitherBindNorValue_Throws()
     {
         var host = new LiveHost(
-            () => MultiSelect<string>(Options),
+            () => BsMultiSelect<string>(Options),
             TestServices.Default());
 
         Assert.Throws<InvalidOperationException>(() => host.RenderAsLiveRoot());

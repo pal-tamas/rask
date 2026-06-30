@@ -9,16 +9,16 @@ public sealed class SpeechDemo(ISpeechSynthesis speech) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
                 Input(
                     Id: "speech-text",
                     Class: "form-control form-control-sm mb-2",
                     Value: _text,
                     OnInput: v => _text = v),
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
-                    Button(Class: "btn btn-primary btn-sm", Id: "speech-speak", OnClickAsync: Speak)["Speak"],
-                    Button(Class: "btn btn-outline-danger btn-sm", Id: "speech-cancel", OnClickAsync: Cancel)["Stop"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "speech-speak", OnClickAsync: Speak)["Speak"],
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "speech-cancel", OnClickAsync: Cancel)["Stop"]
                 ],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "speech-status")[_status ?? "(idle)"]]
             ]

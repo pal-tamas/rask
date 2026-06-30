@@ -2483,6 +2483,13 @@ function morph(from, to) {
                 _raskInsertBefore(from, reviveScript(dst), anchor);
             } else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) {
                 _raskInsertBefore(from, reviveScript(dst), anchor);
+                // If the from-node we're about to remove IS the anchor, advance the anchor past it
+                // first — otherwise the next insert/move would pass a reference node no longer in
+                // `from` and insertBefore throws "reference node is not a child". This happens when a
+                // keyed sibling promotes the container to keyed reconciliation but some from-side
+                // children don't match the new tree by node name (e.g. the SDK-injected <head>
+                // importmap / <base> a WASM app hydrates against on a static host).
+                if (src === anchor) anchor = anchor.nextSibling;
                 _raskRemoveChild(from, src);
             } else {
                 if (src !== anchor) _raskMoveBefore(from, src, anchor);

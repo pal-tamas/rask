@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
@@ -190,13 +191,79 @@ public class AssetEndpointParityTests
         var response = await host.Http.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        // No response-compression registered here, so the endpoint ships plain — and crucially
-        // with NO Content-Encoding (pre-fix this contained "br").
-        Assert.Empty(response.Content.Headers.ContentEncoding);
-        // The body is the real registry asset, not the bogus .br sibling.
-        var body = await response.Content.ReadAsByteArrayAsync();
+        // The endpoint now compresses its OWN immutable bytes (Content-Encoding: br). Whatever
+        // representation arrives must DECODE to the real registry asset — never the bogus on-disk
+        // .br sibling: the precompressed-file middleware must not engage for an endpoint-matched
+        // request and overwrite the body with that 4-byte garbage.
+        var raw = await response.Content.ReadAsByteArrayAsync();
+        byte[] decoded;
+        if (response.Content.Headers.ContentEncoding.Contains("br"))
+        {
+            using var dst = new MemoryStream();
+            await using (var br = new BrotliStream(new MemoryStream(raw), CompressionMode.Decompress))
+            {
+                await br.CopyToAsync(dst);
+            }
+
+            decoded = dst.ToArray();
+        }
+        else
+        {
+            decoded = raw; // identity (or the client already decoded)
+        }
+
         var expected = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
-        Assert.Equal(expected, body);
+        Assert.Equal(expected, decoded);
+        Assert.NotEqual(new byte[] { 0x42, 0x52, 0x09, 0x09 }, decoded);
+    }
+
+    [Fact]
+    public async Task RegistryMiss_FallsBackToBakedBundleFile()
+    {
+        // A published WASM host's in-process registry can be a strict subset of the in-WASM-runtime
+        // set (only assemblies this host touched register), so its hash for the single concatenated
+        // CSS/JS bundle won't match the browser's request. The baked /_rask/a/{hash}.{ext} the publish
+        // wrote is authoritative — the endpoint must serve it, not 404-shadow it. (UseStaticFiles can't
+        // serve it: routing matched this endpoint.) Registry is empty here, so the hash only resolves
+        // via the baked-file fallback.
+        using var bundle = new FakeBundleDirectory();
+        var scopedDir = Path.Combine(bundle.Path, "_rask", "a");
+        Directory.CreateDirectory(scopedDir);
+        const string hash = "0123456789ab";
+        File.WriteAllText(Path.Combine(scopedDir, $"{hash}.js"), "window.Rask=window.Rask||{};");
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
+        var ccRaw = response.Headers.GetValues("Cache-Control").First();
+        Assert.Contains("immutable", ccRaw);
+        Assert.Equal($"\"{hash}\"", response.Headers.ETag?.ToString());
+        Assert.Contains("window.Rask", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task RegistryMiss_BakedBundleFile_NegotiatesPrecompressedSibling()
+    {
+        // The baked-file fallback honours a precompressed .br sibling (the WASM publish bakes them),
+        // serving it verbatim with Content-Encoding: br — zero request-time CPU.
+        using var bundle = new FakeBundleDirectory();
+        var scopedDir = Path.Combine(bundle.Path, "_rask", "a");
+        Directory.CreateDirectory(scopedDir);
+        const string hash = "0123456789ab";
+        File.WriteAllText(Path.Combine(scopedDir, $"{hash}.js"), "window.Rask=window.Rask||{};");
+        var brBytes = new byte[] { 0x42, 0x52, 0x07, 0x08 };
+        File.WriteAllBytes(Path.Combine(scopedDir, $"{hash}.js.br"), brBytes);
+        await using var host = await WasmHostingTestServer.CreateAsync(bundle.Path);
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.js");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("br", response.Content.Headers.ContentEncoding);
+        Assert.Equal(brBytes, await response.Content.ReadAsByteArrayAsync());
     }
 
     private sealed class WidgetA : Component

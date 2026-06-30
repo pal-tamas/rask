@@ -55,14 +55,14 @@ public sealed class NestedSubObjectDemo : Component
                 ]
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary", Id: "nf-submit")[
-                    I(Class: "bi bi-check2-circle me-1"), "Place order"]
+                BsButton(Type: "submit", Color: BsColor.Primary, Id: "nf-submit")[
+                    BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Place order"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-result")[
-                I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-result")[
+                BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

@@ -33,7 +33,7 @@ public sealed class ComponentsPage : Component
         H2(Class: "h4 mt-5 mb-3")["Diagnostics"],
         Div(Class: "list-group mb-3")[
             Div(Class: "list-group-item d-flex align-items-start")[
-                Span(Class: "badge text-bg-secondary me-3")["RASK001"],
+                BsBadge(Color: BsColor.Secondary, Class: "me-3")["RASK001"],
                 Div()[
                     Strong()["Hidden suggestion."],
                     " A property is treated as a required factory parameter — consider also marking it ",
@@ -42,7 +42,7 @@ public sealed class ComponentsPage : Component
                 ]
             ],
             Div(Class: "list-group-item d-flex align-items-start")[
-                Span(Class: "badge text-bg-warning me-3")["RASK002"],
+                BsBadge(Color: BsColor.Warning, Class: "me-3")["RASK002"],
                 Div()[
                     Strong()["Warning."],
                     " ", Code()["required"],
