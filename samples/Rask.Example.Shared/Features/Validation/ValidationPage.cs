@@ -90,6 +90,7 @@ public sealed class ValidationPage : Component
             ["CustomAttributeDemo.cs"],
             Notes:
             "Custom ValidationAttribute subclasses flow through DataAnnotationsValidator with no extra opt-in — System.ComponentModel.DataAnnotations.Validator walks every attribute on the property at validation time. ValidationContext is constructed with the render-scoped IServiceProvider, so attributes can resolve services via ctx.GetService<T>() the same way ASP.NET Core / Blazor's DataAnnotationsValidator do it. Try \"admin\" (NotBanned, DI-resolved), a weak password (StrongPassword.IsValid), or mismatched confirm (MatchesProperty reads ObjectInstance).",
-            Result: CustomAttributeDemo())
+            Result: CustomAttributeDemo()),
+        SeeAlso.Guides(("forms", "Forms & validation"))
     ];
 }

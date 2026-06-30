@@ -35,6 +35,7 @@ public sealed class TagsPage : Component
             ["TagsVoidDemo.cs"],
             Notes:
             "Void elements (Br, Hr, Img, Meta, Link, Input, …) have SelfClosing => true and never accept children.",
-            Result: TagsVoidDemo())
+            Result: TagsVoidDemo()),
+        SeeAlso.Guides(("getting-started", "Getting started"), ("best-practices", "Best practices"))
     ];
 }

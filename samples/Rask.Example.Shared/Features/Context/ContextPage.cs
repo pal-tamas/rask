@@ -29,6 +29,7 @@ public sealed class ContextPage : Component
                 "Reading is explicit (like React's useContext) rather than an attribute, so it composes anywhere a component renders — even outside a form or route."],
             Li()[
                 "Change detection rides the normal render walk: when the value changes the providing component re-renders, and consumers (which bypass the cache) re-read on the way down."]
-        ]
+        ],
+        SeeAlso.Guides(("composition", "Composition"))
     ];
 }

@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
+  **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
+  component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
+  `/guides/{slug}` renders one; the guides' relative `*.md` cross-links are rewritten to SPA-routed
+  `/guides/{slug}` anchors, and links up to the repo root point at GitHub. High-traffic demo pages gain
+  a "See also" row linking to the matching guide. The guides are embedded from `docs/`, so they never
+  drift from the repo. (Markdig renders at build/runtime on the host; the WASM showcase still publishes
+  trim-clean.)
 - **Rask.Bootstrap navigation primitives — `BsNavbar`, `BsNav`, `BsNavItem`.** Typed navbar/nav
   containers; each `BsNavItem` with an `Href` renders a core `NavLink`, so links are SPA-routed
   (`data-rask-nav`) and light up their `.active` class by matching the current route — no client JS,

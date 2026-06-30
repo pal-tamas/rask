@@ -53,6 +53,7 @@ public sealed class RoutingPage(Navigator nav) : Component
         CodeSample(
             ["PathDisplay.cs"],
             Notes:
-            "The handler is just StateHasChanged — the framework already knows how to coalesce the resulting render with whatever else the dispatcher is processing. Always pair the subscribe with the unsubscribe in OnUnmount; otherwise the RouteState keeps a strong reference to the (already-unmounted) component.")
+            "The handler is just StateHasChanged — the framework already knows how to coalesce the resulting render with whatever else the dispatcher is processing. Always pair the subscribe with the unsubscribe in OnUnmount; otherwise the RouteState keeps a strong reference to the (already-unmounted) component."),
+        SeeAlso.Guides(("routing", "Routing"))
     ];
 }
