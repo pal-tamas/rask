@@ -68,10 +68,13 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `ICrypto` | `crypto` / `crypto.subtle` | Random UUID / bytes, SHA digest (hex) | one-shot |
 | `IPerformance` | `performance` | High-res clock + navigation timing (TTFB / DCL / load) | one-shot |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
+| `IFileSystemAccess` | File System Access API | Open/save a file *back to disk* + directory access (editors) | one-shot |
+| `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
 | `IBroadcastChannel` | `BroadcastChannel` | Cross-tab messaging | **subscription** |
 | `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
 | `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
+| `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
@@ -83,12 +86,20 @@ which happens in-process on WASM), or the installed-PWA instance / live document
 | --- | --- | --- | --- |
 | `IShare` | `navigator.share` | Hand a link/text to the OS share sheet | transient activation |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
-| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription` for your backend) | service worker + installed PWA |
+| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | service worker + installed PWA |
 | `INotifications` | Notifications API | Show a local notification from the page | permission needs a live gesture |
 | `IBadge` | Badging API | Set/clear a count on the installed app icon | installed-PWA instance |
 | `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | tied to the live document |
 | `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
+| `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |
+| `IEyeDropper` | EyeDropper API | Pick a color from anywhere on screen (design tools) | transient activation |
+| `IPictureInPicture` | Picture-in-Picture API | Float a `<video>` into an always-on-top miniplayer | transient activation |
+| `IIdleDetector` | Idle Detection API | Notice when the user goes idle / the screen locks (auto-lock, presence) | activation + live document |
+| `ISerial` | Web Serial API | Talk to a serial device (Arduino / microcontroller, GPS, USB-to-serial) — open, write, read | transient activation + secure context |
+| `IUsb` | WebUSB API | Pair with and drive a USB device — open, claim an interface, bulk/interrupt/control transfers | transient activation + secure context |
+| `IHid` | WebHID API | Talk to a HID device (custom gamepads, sim controls, POS) — output/feature reports + pushed input reports | transient activation + secure context |
+| `IBluetooth` | Web Bluetooth API | Pair with a BLE device — connect GATT, read/write characteristics, subscribe to notifications | transient activation + secure context |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
 covered separately in the [Mobile & PWA guide](pwa.md).
@@ -105,6 +116,11 @@ each change back into C#:
 - **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
 - **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
 - **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
+- **`IGamepad`** — `WatchAsync(onReading)` → `IAsyncDisposable` (a `requestAnimationFrame` poll pushed on change)
+- **`IIdleDetector`** *(WASM)* — `WatchAsync(onChange, thresholdSeconds?)` → `IAsyncDisposable`
+- **`ISerial`** *(WASM)* — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` (the read loop pushes inbound bytes to `onData`; `onClosed` fires if the device is unplugged; dispose the port to stop)
+- **`IHid`** *(WASM)* — `IHidDevice.WatchInputReportsAsync(onReport, onDisconnect?)` → `IAsyncDisposable` (each input report is pushed to `onReport`; `onDisconnect` fires if the device is unplugged; dispose to stop)
+- **`IBluetooth`** *(WASM)* — `IBluetoothCharacteristic.WatchAsync(onValue)` pushes each notified value; `IBluetoothDevice.WatchDisconnectAsync(onDisconnect)` fires on GATT disconnect — both return `IAsyncDisposable`
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via
 `window.DotNet.invokeMethodAsync` (which Rask implements on **both** transports), routed back to your

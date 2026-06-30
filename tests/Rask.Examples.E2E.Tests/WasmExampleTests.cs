@@ -40,6 +40,10 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pwa-push")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The "send a test push" button (drives the Rask.WebPush backend) renders, disabled until a
+        // subscription exists. Real delivery needs a push service, so we only assert the UI here.
+        await Expect(Page.Locator("#pwa-push-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // The badge section added alongside notifications/push.
         await Expect(Page.Locator("#pwa-badge-inc")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -117,6 +121,80 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // CodeSample shows the demo's real source beside the live result.
         await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IInstallPrompt",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only Picture-in-Picture page (PictureInPictureDemo) — verify it routes and renders. The
+    // sibling scoped JS synthesizes a canvas-stream video; entering the real miniplayer needs a gesture and
+    // is unreliable headlessly, so this only checks the UI + CodeSample source.
+    [Fact]
+    public Task PictureInPictureExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Picture-in-Picture");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Picture-in-Picture",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#pip-enter")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IPictureInPicture",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only EyeDropper page (EyeDropperDemo) — verify it routes and renders. open() needs a gesture
+    // and the picker can't be driven headlessly, so this only checks the UI + CodeSample source.
+    [Fact]
+    public Task EyeDropperExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("EyeDropper");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("EyeDropper",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#eyedropper-pick")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IEyeDropper",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only Idle detection page (IdleDetectorDemo) — verify it routes and renders. The permission
+    // needs a gesture and idle can't be simulated headlessly, so this only checks the UI + CodeSample source.
+    [Fact]
+    public Task IdleDetectionExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Idle detection");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Idle detection",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#idle-start")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IIdleDetector",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    // The WASM-only Camera & microphone page (MediaDevicesDemo) — verify it routes and renders. getUserMedia
+    // opens a real capture permission prompt that can't be driven without fake-media flags, so this only
+    // checks the UI + CodeSample source; the call shapes are covered by unit tests.
+    [Fact]
+    public Task MediaDevicesExample_RoutesAndRenders() => RunAsync(async () =>
+    {
+        await Page.GotoAsync(BaseUrl);
+        await Expect(Page.Locator("aside.side-nav button.nav-item-btn").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        await ClickSidebar("Camera & mic");
+        await Expect(Page.Locator("main h1.h2")).ToContainTextAsync("Camera & microphone",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#media-start")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".sample-code")).ToContainTextAsync("IMediaDevices",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 }

@@ -14,6 +14,7 @@
 [![NuGet Rask.Validation.DataAnnotations](https://img.shields.io/nuget/v/Rask.Validation.DataAnnotations.svg?label=Rask.Validation.DataAnnotations)](https://www.nuget.org/packages/Rask.Validation.DataAnnotations)
 [![NuGet Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
 [![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
+[![NuGet Rask.WebPush](https://img.shields.io/nuget/v/Rask.WebPush.svg?label=Rask.WebPush)](https://www.nuget.org/packages/Rask.WebPush)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -177,6 +178,7 @@ Pick one host package per project, then add validation packages as needed:
 | `Rask.Validation.DataAnnotations`  | any host (referenced from the project that hosts your forms)        | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
 | `Rask.Validation.FluentValidation` | any host (referenced from the project that hosts your forms)        | drop `FluentValidationValidator(new MyValidator())` inside  |
 | `Rask.Bootstrap`                   | any host (referenced from the project with your components)         | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
+| `Rask.WebPush`                     | any backend (a `Rask.Server` app or a WASM PWA's ASP.NET host)      | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 
 ```bash
 dotnet add package Rask.Server                       # server live host
@@ -185,6 +187,7 @@ dotnet add package Rask.Wasm.Hosting                 # ASP.NET host serving a WA
 dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentModel.DataAnnotations
 dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
 dotnet add package Rask.Bootstrap                     # opt-in: typed Bootstrap 5.3 components
+dotnet add package Rask.WebPush                       # opt-in: send Web Push from the backend (VAPID + RFC 8291)
 ```
 
 `Rask.Server` and `Rask.Wasm` each pull in `Rask.Core` and the source generators transitively; `Rask.Wasm.Hosting`
@@ -479,6 +482,7 @@ see **[`docs/`](docs/)**:
   *[Authentication](docs/authentication.md)**
 - **[Bootstrap (Rask.Bootstrap)](docs/bootstrap.md)** — typed Bootstrap 5.3 components, zero-JS interactivity, and typed utility classes.
 - **[Browser APIs](docs/browser-apis.md)** — 32 typed wrappers over Web APIs (storage, clipboard, geolocation, network, observers, media session, device sensors, crypto, IndexedDB, share/push/badge/install…), shared or WASM-only.
+- **[Browser APIs](docs/browser-apis.md)** — 43 typed wrappers over Web APIs (storage, clipboard, geolocation, network, observers, media session, device sensors, crypto, IndexedDB, camera/mic, serial, USB, HID, Bluetooth, share/push/badge/install…), shared or WASM-only.
 - **[Accessibility](docs/accessibility.md)** · **[Observability](docs/observability.md)** · **[Configuration](docs/configuration.md)** · **[Testing](docs/testing.md)** · **[Migrating from Blazor](docs/migration-from-blazor.md)**
 - **[Diagnostics (RASK001–024)](docs/diagnostics.md)** — every build error/warning and its fix.
 - **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** — how the runtime works under the hood.

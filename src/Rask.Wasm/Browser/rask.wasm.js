@@ -608,6 +608,297 @@ window.__raskBroadcast = window.__raskBroadcast || (() => {
     };
 })();
 
+// Gamepad (driven by IGamepad). The Gamepad API has no input event, so each watch runs a
+// requestAnimationFrame poll of navigator.getGamepads() under the C#-minted id and pushes a reading back
+// via the shared window.DotNet.invokeMethodAsync shim (static [JSInvokable] GamepadInterop.Reading in
+// Rask.Core) ONLY when a pad's state changes — throttled to ~12 Hz so a held stick doesn't flood the
+// transport. rAF is paused by the browser while the tab is hidden, which also pauses the poll.
+window.__raskGamepad = window.__raskGamepad || (() => {
+    const watchers = new Map();
+    return {
+        isSupported: () => "getGamepads" in navigator,
+        watch: (id) => {
+            let last = 0;
+            let raf = 0;
+            const prev = new Map(); // pad index -> last serialized snapshot
+            const tick = () => {
+                const now = Date.now();
+                if (now - last >= 80) {
+                    last = now;
+                    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+                    const live = new Set();
+                    for (let i = 0; i < pads.length; i++) {
+                        const p = pads[i];
+                        if (!p) {
+                            continue;
+                        }
+                        live.add(p.index);
+                        const axes = Array.prototype.map.call(p.axes, (a) => Math.round(a * 1000) / 1000);
+                        const buttons = Array.prototype.map.call(p.buttons, (b) => b.value);
+                        const snap = axes.join(",") + "|" + buttons.join(",") + "|" + p.connected;
+                        if (prev.get(p.index) !== snap) {
+                            prev.set(p.index, snap);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: p.index,
+                                id: p.id,
+                                connected: p.connected,
+                                axes: axes,
+                                buttons: buttons
+                            });
+                        }
+                    }
+                    // Emit a final disconnect reading for pads that vanished since the last poll.
+                    prev.forEach((_, index) => {
+                        if (!live.has(index)) {
+                            prev.delete(index);
+                            window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, {
+                                index: index,
+                                id: "",
+                                connected: false,
+                                axes: [],
+                                buttons: []
+                            });
+                        }
+                    });
+                }
+                raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+            watchers.set(id, () => cancelAnimationFrame(raf));
+        },
+        unwatch: (id) => {
+            const stop = watchers.get(id);
+            if (!stop) {
+                return;
+            }
+            watchers.delete(id);
+            stop();
+        }
+    };
+})();
+
+// File System Access (driven by IFileSystemAccess). The opaque FileSystemFileHandle / DirectoryHandle
+// objects can't cross the interop boundary, so each is held here under a C#-minted id and operated on by
+// id. Pickers reject with AbortError when the user cancels — map that to null / [] rather than an error.
+// Bytes ride the boundary base64-encoded.
+window.__raskFs = window.__raskFs || (() => {
+    const handles = new Map();
+    let nextId = 0;
+    const put = (handle) => {
+        const id = ++nextId;
+        handles.set(id, handle);
+        return {id: id, name: handle.name};
+    };
+    const types = (opts) => {
+        if (!opts || !opts.accept) {
+            return undefined;
+        }
+        return [{description: opts.description || "", accept: opts.accept}];
+    };
+    const isAbort = (e) => e && e.name === "AbortError";
+    return {
+        isSupported: () => "showOpenFilePicker" in window,
+        openFile: async (opts) => {
+            try {
+                const picked = await window.showOpenFilePicker({multiple: false, types: types(opts)});
+                return put(picked[0]);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        openFiles: async (opts) => {
+            try {
+                const picked = await window.showOpenFilePicker({multiple: true, types: types(opts)});
+                return picked.map(put);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return [];
+                }
+                throw e;
+            }
+        },
+        saveFile: async (opts) => {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: (opts && opts.suggestedName) || undefined,
+                    types: types(opts)
+                });
+                return put(handle);
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        openDirectory: async () => {
+            try {
+                return put(await window.showDirectoryPicker());
+            } catch (e) {
+                if (isAbort(e)) {
+                    return null;
+                }
+                throw e;
+            }
+        },
+        readText: async (id) => {
+            const file = await handles.get(id).getFile();
+            return await file.text();
+        },
+        readBytes: async (id) => {
+            const file = await handles.get(id).getFile();
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        },
+        writeText: async (id, text) => {
+            const writable = await handles.get(id).createWritable();
+            await writable.write(text);
+            await writable.close();
+        },
+        writeBytes: async (id, base64) => {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const writable = await handles.get(id).createWritable();
+            await writable.write(bytes);
+            await writable.close();
+        },
+        list: async (id) => {
+            const names = [];
+            for await (const name of handles.get(id).keys()) {
+                names.push(name);
+            }
+            return names;
+        },
+        getFile: async (id, name, create) => {
+            const handle = await handles.get(id).getFileHandle(name, {create: !!create});
+            return put(handle);
+        },
+        release: (id) => {
+            handles.delete(id);
+        }
+    };
+})();
+
+// Web Authentication / passkeys (driven by IWebAuthn). The credential shapes are ArrayBuffer-heavy, so this
+// helper base64url-(de)codes the binary fields at the seam — challenge / user.id / credential ids go in as
+// base64url, and rawId / clientDataJSON / attestationObject / authenticatorData / signature / userHandle come
+// back as base64url, ready to POST to a relying-party backend. A user cancellation / timeout
+// (NotAllowedError / AbortError) resolves to null rather than throwing.
+window.__raskWebAuthn = window.__raskWebAuthn || (() => {
+    // base64url <-> ArrayBuffer. Uses split/join rather than regex literals: the framework's JS minifier
+    // mis-parses regex literals (a bare /.../ reads as division), which would break the spliced bundle.
+    const b64urlToBuf = (s) => {
+        let pad = "";
+        if (s.length % 4 !== 0) {
+            for (let i = 0; i < 4 - (s.length % 4); i++) {
+                pad += "=";
+            }
+        }
+        const bin = atob(s.split("-").join("+").split("_").join("/") + pad);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) {
+            bytes[i] = bin.charCodeAt(i);
+        }
+        return bytes.buffer;
+    };
+    const bufToB64url = (buf) => {
+        const bytes = new Uint8Array(buf);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i++) {
+            bin += String.fromCharCode(bytes[i]);
+        }
+        // Strip "=" padding (base64 only uses it as trailing padding), then make it URL-safe.
+        return btoa(bin).split("=").join("").split("+").join("-").split("/").join("_");
+    };
+    const descriptors = (list) => (list || []).map((d) => ({
+        type: d.type || "public-key",
+        id: b64urlToBuf(d.id),
+        transports: d.transports || undefined
+    }));
+    const isCancel = (e) => e && (e.name === "NotAllowedError" || e.name === "AbortError");
+    return {
+        isSupported: () => !!(window.PublicKeyCredential && navigator.credentials),
+        platformAuthenticatorAvailable: () =>
+            (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
+                ? PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                : Promise.resolve(false),
+        create: async (o) => {
+            const publicKey = {
+                challenge: b64urlToBuf(o.challenge),
+                rp: o.rp,
+                user: {id: b64urlToBuf(o.user.id), name: o.user.name, displayName: o.user.displayName},
+                pubKeyCredParams: (o.pubKeyCredParams && o.pubKeyCredParams.length)
+                    ? o.pubKeyCredParams
+                    : [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                timeout: o.timeoutMs || undefined,
+                attestation: o.attestation || undefined,
+                authenticatorSelection: o.authenticatorSelection || undefined,
+                excludeCredentials: o.excludeCredentials ? descriptors(o.excludeCredentials) : undefined
+            };
+            let cred;
+            try {
+                cred = await navigator.credentials.create({publicKey: publicKey});
+            } catch (e) {
+                if (isCancel(e)) {
+                    return null;
+                }
+                throw e;
+            }
+            if (!cred) {
+                return null;
+            }
+            return {
+                id: cred.id,
+                rawId: bufToB64url(cred.rawId),
+                type: cred.type,
+                clientDataJson: bufToB64url(cred.response.clientDataJSON),
+                attestationObject: bufToB64url(cred.response.attestationObject),
+                transports: cred.response.getTransports ? cred.response.getTransports() : null
+            };
+        },
+        get: async (o) => {
+            const publicKey = {
+                challenge: b64urlToBuf(o.challenge),
+                timeout: o.timeoutMs || undefined,
+                rpId: o.rpId || undefined,
+                allowCredentials: o.allowCredentials ? descriptors(o.allowCredentials) : undefined,
+                userVerification: o.userVerification || undefined
+            };
+            let cred;
+            try {
+                cred = await navigator.credentials.get({publicKey: publicKey});
+            } catch (e) {
+                if (isCancel(e)) {
+                    return null;
+                }
+                throw e;
+            }
+            if (!cred) {
+                return null;
+            }
+            return {
+                id: cred.id,
+                rawId: bufToB64url(cred.rawId),
+                type: cred.type,
+                clientDataJson: bufToB64url(cred.response.clientDataJSON),
+                authenticatorData: bufToB64url(cred.response.authenticatorData),
+                signature: bufToB64url(cred.response.signature),
+                userHandle: cred.response.userHandle ? bufToB64url(cred.response.userHandle) : null
+            };
+        }
+    };
+})();
+
 
 // WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
 // in the Server client, since these back APIs that can't work over the WebSocket round-trip.
@@ -863,6 +1154,693 @@ window.__raskFullscreen = window.__raskFullscreen || {
     request: (el) => (el || document.documentElement).requestFullscreen(),
     exit: () => document.fullscreenElement ? document.exitFullscreen() : Promise.resolve()
 };
+
+// Media Capture / getUserMedia (driven by IMediaDevices). getUserMedia needs transient activation + a
+// secure context, so this is WASM-only. The live MediaStream can't cross interop, so each is held here
+// under a C#-minted id; the video element is resolved from an ElementRef by the JSON reviver. Stopping a
+// stream stops every track, which releases the camera/mic (and turns off the hardware indicator).
+window.__raskMedia = window.__raskMedia || (() => {
+    const streams = new Map();
+    let nextId = 0;
+    const put = (stream) => {
+        const id = ++nextId;
+        streams.set(id, stream);
+        return id;
+    };
+    const stop = (id) => {
+        const stream = streams.get(id);
+        if (!stream) {
+            return;
+        }
+        stream.getTracks().forEach((t) => t.stop());
+        streams.delete(id);
+    };
+    return {
+        isSupported: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        enumerate: async () => {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.map((d) => ({deviceId: d.deviceId, kind: d.kind, label: d.label, groupId: d.groupId}));
+        },
+        getUserMedia: async (c) => {
+            const video = c.video
+                ? (c.facingMode ? {facingMode: c.facingMode} : true)
+                : false;
+            const stream = await navigator.mediaDevices.getUserMedia({audio: !!c.audio, video: video});
+            return put(stream);
+        },
+        getDisplayMedia: async () => put(await navigator.mediaDevices.getDisplayMedia({video: true})),
+        attach: (id, video) => {
+            const stream = streams.get(id);
+            if (!stream || !video) {
+                return Promise.resolve();
+            }
+            video.srcObject = stream;
+            video.muted = true;
+            return video.play();
+        },
+        stop: (id) => stop(id)
+    };
+})();
+
+// EyeDropper (driven by IEyeDropper). open() needs transient activation, so this is WASM-only. The picker
+// rejects with AbortError when the user cancels (Escape) — map that to null rather than surfacing an error.
+window.__raskEyeDropper = window.__raskEyeDropper || {
+    isSupported: () => "EyeDropper" in window,
+    open: () => new EyeDropper().open().then((r) => r.sRGBHex, () => null)
+};
+
+// Picture-in-Picture (driven by IPictureInPicture). requestPictureInPicture needs transient activation, so
+// this is WASM-only. The element arg is resolved from an ElementRef by the JSON reviver; exit is a no-op
+// when no miniplayer is open.
+window.__raskPip = window.__raskPip || {
+    isSupported: () => !!document.pictureInPictureEnabled,
+    isActive: () => document.pictureInPictureElement != null,
+    request: (el) => el ? el.requestPictureInPicture() : Promise.reject(new Error("no video element")),
+    exit: () => document.pictureInPictureElement ? document.exitPictureInPicture() : Promise.resolve()
+};
+
+// Idle Detection (driven by IIdleDetector). Permission needs transient activation and the detector needs
+// the live document, so this is WASM-only. Each watch holds a live IdleDetector + AbortController under the
+// C#-minted id and pushes each change back via window.DotNet.invokeMethodAsync (static [JSInvokable]
+// IdleDetectorInterop.Changed in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
+window.__raskIdle = window.__raskIdle || (() => {
+    const detectors = new Map();
+    return {
+        isSupported: () => "IdleDetector" in window,
+        requestPermission: () =>
+            window.IdleDetector ? IdleDetector.requestPermission().catch(() => "denied") : Promise.resolve("denied"),
+        watch: async (id, thresholdSeconds) => {
+            const controller = new AbortController();
+            const detector = new IdleDetector();
+            detector.addEventListener("change", () => {
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskIdleChanged", id, {
+                    userIdle: detector.userState === "idle",
+                    screenLocked: detector.screenState === "locked"
+                });
+            });
+            // The spec enforces a 60-second floor; clamp here so a smaller value doesn't reject.
+            await detector.start({threshold: Math.max(60, thresholdSeconds) * 1000, signal: controller.signal});
+            detectors.set(id, controller);
+        },
+        unwatch: (id) => {
+            const controller = detectors.get(id);
+            if (!controller) {
+                return;
+            }
+            detectors.delete(id);
+            controller.abort();
+        }
+    };
+})();
+
+// Web Serial (driven by ISerial). requestPort() needs transient activation and the live port stream, so
+// this is WASM-only. C# mints the id and registers its callbacks BEFORE calling in here, so a device's first
+// bytes can't race ahead of the handler. Each open port holds {port, reader, loop, closing, writeChain}
+// under that id; the read loop pushes each inbound chunk back via window.DotNet.invokeMethodAsync (static
+// [JSInvokable] SerialInterop.Data in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
+// Bytes ride the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't marshal across
+// the JS bridge. If the loop ends on its own (device unplugged / stream error) and it wasn't an explicit
+// close(), we tear down and signal RaskSerialClosed so the UI can reset.
+window.__raskSerial = window.__raskSerial || (() => {
+    const ports = new Map();
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const read = (id, port) => {
+        const entry = ports.get(id);
+        const reader = port.readable.getReader();
+        entry.reader = reader;
+        entry.loop = (async () => {
+            try {
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    if (value && value.length) {
+                        window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialData", id, toB64(value));
+                    }
+                }
+            } catch (e) {
+                // Device unplugged or stream error — fall through to teardown below.
+            } finally {
+                try { reader.releaseLock(); } catch (e) { /* already released */ }
+            }
+            // Natural end (not an explicit close): release the port and notify C# so it can fire onClosed.
+            if (!entry.closing) {
+                ports.delete(id);
+                try { await port.close(); } catch (e) { /* already gone */ }
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialClosed", id);
+            }
+        })();
+    };
+    return {
+        isSupported: () => "serial" in navigator,
+        requestPort: async (id, o) => {
+            let port;
+            try {
+                // Drop null/absent ids so a vendor-only filter doesn't coerce to productId 0 (empty chooser).
+                const filters = (o.filters || [])
+                    .map((f) => {
+                        const x = {};
+                        if (f.usbVendorId != null) { x.usbVendorId = f.usbVendorId; }
+                        if (f.usbProductId != null) { x.usbProductId = f.usbProductId; }
+                        return x;
+                    })
+                    .filter((x) => Object.keys(x).length > 0);
+                port = await navigator.serial.requestPort(filters.length ? {filters: filters} : {});
+            } catch (e) {
+                return false; // user dismissed the chooser
+            }
+            await port.open({
+                baudRate: o.baudRate,
+                dataBits: o.dataBits,
+                stopBits: o.stopBits,
+                parity: o.parity,
+                bufferSize: o.bufferSize,
+                flowControl: o.flowControl
+            });
+            ports.set(id, {port: port, reader: null, loop: null, closing: false, writeChain: Promise.resolve()});
+            read(id, port);
+            return true;
+        },
+        write: (id, data) => {
+            const entry = ports.get(id);
+            if (!entry) {
+                return Promise.resolve();
+            }
+            // data is base64 (raw byte[] doesn't marshal); serialize writes so concurrent sends don't collide
+            // on the single writable-stream lock.
+            const bytes = fromB64(data);
+            entry.writeChain = entry.writeChain.then(async () => {
+                const writer = entry.port.writable.getWriter();
+                try {
+                    await writer.write(bytes);
+                } finally {
+                    writer.releaseLock();
+                }
+            });
+            return entry.writeChain;
+        },
+        close: async (id) => {
+            const entry = ports.get(id);
+            if (!entry) {
+                return;
+            }
+            entry.closing = true; // tell the read loop this end is deliberate (skip the teardown/notify path)
+            ports.delete(id);
+            if (entry.reader) {
+                try { await entry.reader.cancel(); } catch (e) { /* already cancelled */ }
+            }
+            // Wait for the read loop to release the readable lock before closing, or close() rejects.
+            if (entry.loop) {
+                try { await entry.loop; } catch (e) { /* loop already ended */ }
+            }
+            try { await entry.port.close(); } catch (e) { /* already closed */ }
+        }
+    };
+})();
+
+// WebUSB (driven by IUsb). requestDevice() needs transient activation and the live device handle, so this is
+// WASM-only. Each paired device is held under a framework-minted id (allocated JS-side); the same physical
+// device reuses its id (idByDevice) so repeated getDevices() calls don't leak handles. Transfer payloads ride
+// the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't marshal across the JS
+// bridge. requestDevice maps only the NotFoundError dismissal to null (real errors propagate). A global
+// disconnect listener evicts an unplugged device and signals RaskUsbDisconnected (static [JSInvokable]
+// UsbInterop.Disconnected in Rask.Wasm) so the app can reset.
+window.__raskUsb = window.__raskUsb || (() => {
+    const byId = new Map();        // id -> USBDevice
+    const idByDevice = new Map();  // USBDevice -> id (dedup + reverse lookup for disconnect)
+    const refs = new Map();        // id -> open-handle refcount (the same device can back several C# handles)
+    let nextId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({
+        vendorId: d.vendorId,
+        productId: d.productId,
+        manufacturerName: d.manufacturerName || null,
+        productName: d.productName || null,
+        serialNumber: d.serialNumber || null
+    });
+    // The browser hands back the same USBDevice object from requestDevice/getDevices, so dedup to one id and
+    // refcount it — a handle's close() only tears the device down once every C# handle to it has closed.
+    const put = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+            refs.set(id, 1);
+        } else {
+            refs.set(id, (refs.get(id) || 0) + 1);
+        }
+        return {id: id, info: info(device)};
+    };
+    const evict = (id) => {
+        const device = byId.get(id);
+        if (device) {
+            byId.delete(id);
+            idByDevice.delete(device);
+        }
+        refs.delete(id);
+    };
+    // A stale/closed id throws a clear error rather than an opaque "reading 'open' of undefined" TypeError.
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("USB device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    if ("usb" in navigator && navigator.usb.addEventListener) {
+        navigator.usb.addEventListener("disconnect", (e) => {
+            const id = idByDevice.get(e.device);
+            if (id !== undefined) {
+                evict(id);
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskUsbDisconnected", id);
+            }
+        });
+    }
+    return {
+        isSupported: () => "usb" in navigator,
+        requestDevice: async (filters) => {
+            let device;
+            try {
+                device = await navigator.usb.requestDevice({filters: filters || []});
+            } catch (e) {
+                if (e && e.name === "NotFoundError") {
+                    return null; // user dismissed the chooser — not an error
+                }
+                throw e; // SecurityError, malformed filter, etc. — surface it
+            }
+            return put(device);
+        },
+        getDevices: async () => {
+            if (!("usb" in navigator)) {
+                return [];
+            }
+            return (await navigator.usb.getDevices()).map((d) => put(d));
+        },
+        open: (id) => dev(id).open(),
+        selectConfiguration: (id, configurationValue) => dev(id).selectConfiguration(configurationValue),
+        claimInterface: (id, interfaceNumber) => dev(id).claimInterface(interfaceNumber),
+        releaseInterface: (id, interfaceNumber) => dev(id).releaseInterface(interfaceNumber),
+        transferIn: async (id, endpointNumber, length) => {
+            const r = await dev(id).transferIn(endpointNumber, length);
+            return {status: r.status, data: dataB64(r.data)};
+        },
+        transferOut: async (id, endpointNumber, base64) => {
+            const r = await dev(id).transferOut(endpointNumber, fromB64(base64));
+            return {status: r.status, bytesWritten: r.bytesWritten};
+        },
+        controlTransferIn: async (id, setup, length) => {
+            const r = await dev(id).controlTransferIn(setup, length);
+            return {status: r.status, data: dataB64(r.data)};
+        },
+        controlTransferOut: async (id, setup, base64) => {
+            const r = await dev(id).controlTransferOut(setup, fromB64(base64));
+            return {status: r.status, bytesWritten: r.bytesWritten};
+        },
+        close: async (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            const remaining = (refs.get(id) || 1) - 1;
+            if (remaining > 0) {
+                refs.set(id, remaining); // other C# handles still hold this device open
+                return;
+            }
+            evict(id);
+            try { await device.close(); } catch (e) { /* already closed */ }
+        }
+    };
+})();
+
+// WebHID (driven by IHid). requestDevice() needs transient activation and the live device handle, so this is
+// WASM-only. Each paired device is held under a framework-minted id (deduped per physical device via
+// idByDevice). Input reports are pushed via an inputreport listener that calls RaskHidInputReport (static
+// [JSInvokable] HidInterop.Input in Rask.Wasm); a global disconnect listener evicts an unplugged device and
+// calls RaskHidDisconnected. Report payloads ride the boundary base64-encoded (btoa/atob, same as __raskFs):
+// raw byte[] args don't marshal across the JS bridge.
+window.__raskHid = window.__raskHid || (() => {
+    const byId = new Map();        // id -> HIDDevice
+    const idByDevice = new Map();  // HIDDevice -> id (dedup + reverse lookup)
+    const listeners = new Map();   // id -> inputreport listener (for removal)
+    const refs = new Map();        // id -> open-handle refcount (the same device can back several C# handles)
+    const watchCounts = new Map(); // id -> active watch count (one shared inputreport listener per device)
+    let nextId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({vendorId: d.vendorId, productId: d.productId, productName: d.productName || null});
+    // The browser hands back the same HIDDevice object from requestDevice/getDevices, so dedup to one id and
+    // refcount it — a handle's close() only tears the device down once every C# handle to it has closed.
+    const put = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+            refs.set(id, 1);
+        } else {
+            refs.set(id, (refs.get(id) || 0) + 1);
+        }
+        return {id: id, info: info(device)};
+    };
+    const detach = (id) => {
+        const device = byId.get(id);
+        const listener = listeners.get(id);
+        if (device && listener) {
+            try { device.removeEventListener("inputreport", listener); } catch (e) { /* gone */ }
+        }
+        listeners.delete(id);
+        watchCounts.delete(id);
+    };
+    const evict = (id) => {
+        detach(id);
+        const device = byId.get(id);
+        if (device) {
+            byId.delete(id);
+            idByDevice.delete(device);
+        }
+        refs.delete(id);
+    };
+    // A stale/closed id throws a clear error rather than an opaque "reading 'open' of undefined" TypeError.
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("HID device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    if ("hid" in navigator && navigator.hid.addEventListener) {
+        navigator.hid.addEventListener("disconnect", (e) => {
+            const id = idByDevice.get(e.device);
+            if (id !== undefined) {
+                evict(id);
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskHidDisconnected", id);
+            }
+        });
+    }
+    return {
+        isSupported: () => "hid" in navigator,
+        // navigator.hid.requestDevice resolves with [] on cancel (no rejection); real errors propagate.
+        requestDevices: async (filters) => {
+            if (!("hid" in navigator)) {
+                return [];
+            }
+            return (await navigator.hid.requestDevice({filters: filters || []})).map((d) => put(d));
+        },
+        getDevices: async () => {
+            if (!("hid" in navigator)) {
+                return [];
+            }
+            return (await navigator.hid.getDevices()).map((d) => put(d));
+        },
+        open: (id) => dev(id).open(),
+        close: async (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            const remaining = (refs.get(id) || 1) - 1;
+            if (remaining > 0) {
+                refs.set(id, remaining); // other C# handles still hold this device open
+                return;
+            }
+            evict(id);
+            try { await device.close(); } catch (e) { /* already closed */ }
+        },
+        sendReport: (id, reportId, base64) => dev(id).sendReport(reportId, fromB64(base64)),
+        sendFeatureReport: (id, reportId, base64) => dev(id).sendFeatureReport(reportId, fromB64(base64)),
+        receiveFeatureReport: async (id, reportId) => dataB64(await dev(id).receiveFeatureReport(reportId)),
+        watch: (id) => {
+            const device = dev(id);
+            const count = watchCounts.get(id) || 0;
+            if (count === 0) {
+                const listener = (e) => {
+                    window.DotNet.invokeMethodAsync(
+                        "Rask.Wasm", "RaskHidInputReport", id, e.reportId, dataB64(e.data));
+                };
+                listeners.set(id, listener);
+                device.addEventListener("inputreport", listener);
+            }
+            watchCounts.set(id, count + 1);
+        },
+        unwatch: (id) => {
+            const remaining = (watchCounts.get(id) || 0) - 1;
+            if (remaining > 0) {
+                watchCounts.set(id, remaining);
+                return;
+            }
+            detach(id); // last watch — drop the shared inputreport listener
+        }
+    };
+})();
+
+// Web Bluetooth / GATT (driven by IBluetooth). requestDevice() needs transient activation and the live device
+// handle, so this is WASM-only. Devices and resolved characteristics are deduped to one stable id each (the
+// browser hands back the same object), so C# keeps one wrapper per physical handle — disconnect is reusable
+// (gatt.disconnect), release() evicts. Notifications push RaskBluetoothValue (per characteristic id) and
+// gattserverdisconnected pushes RaskBluetoothDisconnected (per device id) — both static [JSInvokable]s in
+// Rask.Wasm. Values ride the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't
+// marshal across the JS bridge. requestDevice rejects with NotFoundError on cancel.
+window.__raskBluetooth = window.__raskBluetooth || (() => {
+    const byId = new Map();          // deviceId -> BluetoothDevice
+    const idByDevice = new Map();    // BluetoothDevice -> deviceId
+    const chars = new Map();         // charId -> BluetoothRemoteGATTCharacteristic
+    const charIdByObject = new Map();   // characteristic object -> charId (dedup so one id per physical char)
+    const valueListeners = new Map();   // charId -> characteristicvaluechanged listener
+    const notifyCounts = new Map();     // charId -> active notification-watch count
+    const discListeners = new Map();    // deviceId -> gattserverdisconnected listener
+    const discCounts = new Map();       // deviceId -> active disconnect-watch count
+    let nextDeviceId = 0;
+    let nextCharId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({id: d.id, name: d.name || null});
+    const putDevice = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextDeviceId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+        }
+        return {id: id, info: info(device)};
+    };
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("Bluetooth device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    const ch = (id) => {
+        const characteristic = chars.get(id);
+        if (!characteristic) {
+            throw new Error("Bluetooth characteristic handle is unknown (id " + id + ")");
+        }
+        return characteristic;
+    };
+    const detachDisconnect = (deviceId) => {
+        const device = byId.get(deviceId);
+        const listener = discListeners.get(deviceId);
+        if (device && listener) {
+            try { device.removeEventListener("gattserverdisconnected", listener); } catch (e) { /* gone */ }
+        }
+        discListeners.delete(deviceId);
+        discCounts.delete(deviceId);
+    };
+    return {
+        isSupported: () => !!navigator.bluetooth,
+        requestDevice: async (o) => {
+            const opts = o.acceptAllDevices
+                ? {acceptAllDevices: true}
+                : {filters: o.filters || []};
+            if (o.optionalServices && o.optionalServices.length) {
+                opts.optionalServices = o.optionalServices;
+            }
+            let device;
+            try {
+                device = await navigator.bluetooth.requestDevice(opts);
+            } catch (e) {
+                if (e && e.name === "NotFoundError") {
+                    return null; // user dismissed the chooser
+                }
+                throw e;
+            }
+            return putDevice(device);
+        },
+        getDevices: async () => {
+            if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+                return [];
+            }
+            return (await navigator.bluetooth.getDevices()).map((d) => putDevice(d));
+        },
+        connect: async (id) => { await dev(id).gatt.connect(); },
+        // Reusable: drops the GATT link but keeps the handle (reconnect with connect()). release() evicts.
+        disconnect: (id) => {
+            const device = byId.get(id);
+            if (device) {
+                try { device.gatt.disconnect(); } catch (e) { /* already disconnected */ }
+            }
+        },
+        release: (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            detachDisconnect(id);
+            byId.delete(id);
+            idByDevice.delete(device);
+            try { device.gatt.disconnect(); } catch (e) { /* already disconnected */ }
+        },
+        isConnected: (id) => !!dev(id).gatt.connected,
+        getCharacteristic: async (id, serviceUuid, characteristicUuid) => {
+            const service = await dev(id).gatt.getPrimaryService(serviceUuid);
+            const characteristic = await service.getCharacteristic(characteristicUuid);
+            // Dedup to one id per physical characteristic so the notification refcount governs the shared
+            // GATT subscription correctly (two handles can't silence each other).
+            let charId = charIdByObject.get(characteristic);
+            if (charId === undefined) {
+                charId = ++nextCharId;
+                chars.set(charId, characteristic);
+                charIdByObject.set(characteristic, charId);
+            }
+            return charId;
+        },
+        readValue: async (charId) => dataB64(await ch(charId).readValue()),
+        writeValue: async (charId, base64, withResponse) => {
+            const characteristic = ch(charId);
+            const bytes = fromB64(base64);
+            if (withResponse && characteristic.writeValueWithResponse) {
+                await characteristic.writeValueWithResponse(bytes);
+            } else if (!withResponse && characteristic.writeValueWithoutResponse) {
+                await characteristic.writeValueWithoutResponse(bytes);
+            } else {
+                await characteristic.writeValue(bytes); // older browsers
+            }
+        },
+        startNotifications: async (charId) => {
+            const characteristic = ch(charId);
+            const count = notifyCounts.get(charId) || 0;
+            if (count === 0) {
+                const listener = (e) => {
+                    window.DotNet.invokeMethodAsync(
+                        "Rask.Wasm", "RaskBluetoothValue", charId, dataB64(e.target.value));
+                };
+                valueListeners.set(charId, listener);
+                characteristic.addEventListener("characteristicvaluechanged", listener);
+                await characteristic.startNotifications();
+            }
+            notifyCounts.set(charId, count + 1);
+        },
+        stopNotifications: async (charId) => {
+            const remaining = (notifyCounts.get(charId) || 0) - 1;
+            if (remaining > 0) {
+                notifyCounts.set(charId, remaining);
+                return;
+            }
+            notifyCounts.delete(charId);
+            const characteristic = chars.get(charId);
+            const listener = valueListeners.get(charId);
+            valueListeners.delete(charId);
+            if (characteristic && listener) {
+                characteristic.removeEventListener("characteristicvaluechanged", listener);
+                try { await characteristic.stopNotifications(); } catch (e) { /* already stopped / gone */ }
+            }
+        },
+        releaseCharacteristic: (charId) => {
+            // Drop the characteristic's id mapping (called when its C# handle is disposed); any live listener
+            // is cleared too in case notifications weren't stopped first.
+            const characteristic = chars.get(charId);
+            const listener = valueListeners.get(charId);
+            if (characteristic && listener) {
+                try { characteristic.removeEventListener("characteristicvaluechanged", listener); } catch (e) { /* gone */ }
+            }
+            valueListeners.delete(charId);
+            notifyCounts.delete(charId);
+            chars.delete(charId);
+            if (characteristic) {
+                charIdByObject.delete(characteristic);
+            }
+        },
+        watchDisconnect: (deviceId) => {
+            const device = dev(deviceId);
+            const count = discCounts.get(deviceId) || 0;
+            if (count === 0) {
+                const listener = () => {
+                    window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskBluetoothDisconnected", deviceId);
+                };
+                discListeners.set(deviceId, listener);
+                device.addEventListener("gattserverdisconnected", listener);
+            }
+            discCounts.set(deviceId, count + 1);
+        },
+        unwatchDisconnect: (deviceId) => {
+            const remaining = (discCounts.get(deviceId) || 0) - 1;
+            if (remaining > 0) {
+                discCounts.set(deviceId, remaining);
+                return;
+            }
+            detachDisconnect(deviceId);
+        }
+    };
+})();
 
 
 // Serializes render application across payloads. A navigation diff/full reply may defer

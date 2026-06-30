@@ -30,7 +30,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - Lifecycle hooks: `OnMount`/`OnMountAsync` (once), `OnPropsChanged*` (on bound-prop/route change),
   `OnRendered(bool firstRender)`, `OnUnmount*`. Navigate only from event handlers via injected `Navigator`.
 - **Inject services (`HttpClient`, `Navigator`, `IJSRuntime`, the typed browser APIs
-  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IShare`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`INetworkInfo`/`IMediaQuery`/`ISpeechSynthesis`/`IScreenInfo`/`IStorageEstimator`/`IVisualViewport`/`IBroadcastChannel`/`IIntersectionObserver`/`IResizeObserver`/`IMutationObserver`/`IMediaSession`/`IDeviceOrientation`/`IDeviceMotion`/`ICrypto`/`IPerformance`/`IIndexedDb`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`/`IInstallPrompt`, your own) through the constructor**,
+  `IBrowserStorage`/`ICookies`/`IClipboard`/`IGeolocation`/`IPermissions`/`IShare`/`IVibration`/`IPageVisibility`/`INavigatorInfo`/`INetworkInfo`/`IMediaQuery`/`ISpeechSynthesis`/`IScreenInfo`/`IStorageEstimator`/`IVisualViewport`/`IBroadcastChannel`/`IIntersectionObserver`/`IResizeObserver`/`IMutationObserver`/`IMediaSession`/`IGamepad`/`IDeviceOrientation`/`IDeviceMotion`/`ICrypto`/`IPerformance`/`IIndexedDb`/`IFileSystemAccess`/`IWebAuthn`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`/`IMediaDevices`/`ISerial`/`IUsb`/`IHid`/`IBluetooth`/`IEyeDropper`/`IPictureInPicture`/`IIdleDetector`/`IInstallPrompt`, your own) through the constructor**,
   not as settable properties (a non-nullable settable property becomes a required factory param).
 
 ## Events, scoped CSS/JS, forms, auth
@@ -41,6 +41,9 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Bootstrap (Rask.Bootstrap):** typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/`BsAlert`/…); interactive ones (modal/dropdown/accordion/tabs) run with **zero JS** via the live runtime. Link the CSS with `BootstrapStyles()` in `App.Head`; typed utility classes via `Bs.Join(Shadow.Sm, Margin.Bottom(4))`.
 - **Auth:** gate by injecting `IUserProvider` and reading `.Current` (a never-null `ClaimsPrincipal`), or the `Authorize(...)` component (its `Authorized: user => …` slot is handed the principal; static content uses the `[ … ]` indexer);
   `[Authorize]`/`[AllowAnonymous]` on a page. Configure on ASP.NET's own `AddCookie`/`AddJwtBearer`.
+- **Web Push:** subscribe in the WASM client with `IWebPush`; **send** from this ASP.NET host with the opt-in
+  `Rask.WebPush` package — `services.AddRaskWebPush(o => { o.VapidKeys = …; o.Subject = "mailto:…"; })`, then
+  inject `IWebPushSender` and `SendAsync(subscription, WebPushMessage.Text(title, body, url))`. See `docs/pwa.md`.
 
 ## Build & run
 ```bash

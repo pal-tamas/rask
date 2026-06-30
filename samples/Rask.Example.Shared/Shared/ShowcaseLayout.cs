@@ -81,11 +81,14 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.ResizeObserverPage(), "Resize observer", "bi-arrows-angle-expand", "Browser APIs", null),
         (Features.Routes.MutationObserverPage(), "Mutation observer", "bi-diagram-3", "Browser APIs", null),
         (Features.Routes.MediaSessionPage(), "Media session", "bi-music-note-beamed", "Browser APIs", null),
+        (Features.Routes.GamepadPage(), "Gamepad", "bi-controller", "Browser APIs", null),
         (Features.Routes.DeviceSensorsPage(), "Device sensors", "bi-phone-flip", "Browser APIs", null),
         (Features.Routes.GeolocationWatchPage(), "Live location", "bi-geo", "Browser APIs", null),
         (Features.Routes.CryptoPage(), "Web Crypto", "bi-shield-shaded", "Browser APIs", null),
         (Features.Routes.PerformancePage(), "Performance", "bi-stopwatch", "Browser APIs", null),
-        (Features.Routes.IndexedDbPage(), "IndexedDB", "bi-database-fill", "Browser APIs", null)
+        (Features.Routes.IndexedDbPage(), "IndexedDB", "bi-database-fill", "Browser APIs", null),
+        (Features.Routes.FileSystemAccessPage(), "File system access", "bi-folder2-open", "Browser APIs", null),
+        (Features.Routes.WebAuthnPage(), "Passkeys (WebAuthn)", "bi-fingerprint", "Browser APIs", null)
     ];
 
     // The Bootstrap section: components from the Rask.Bootstrap package.

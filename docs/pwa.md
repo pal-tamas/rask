@@ -177,10 +177,55 @@ public sealed class PushButton(IWebPush push) : Component
 }
 ```
 
-**Sending** a push is a backend concern (the Web Push Protocol — VAPID signing + payload
-encryption), outside Rask: store the `PushSubscription` and send with any web-push library. The
-default `rask-sw.js` receives it and shows a notification from the JSON payload
-(`{ title, body, icon, tag, data: { url } }`).
+**Sending** a push is the backend half of the Web Push Protocol — sign the request with VAPID and
+encrypt the payload (RFC 8291). The opt-in **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**
+package does exactly that with zero external dependencies. The default `rask-sw.js` receives the push
+and shows a notification from the JSON payload (`{ title, body, icon, tag, data: { url } }`).
+
+### Sending from your backend (`Rask.WebPush`)
+
+`Rask.WebPush` is a small, server-side package (it has no UI and no transport dependency, so it works
+from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it and register a sender:
+
+```bash
+dotnet add package Rask.WebPush
+```
+
+```csharp
+using Rask.WebPush;
+
+// Generate ONE VAPID key pair, then load it from configuration/secrets — never regenerate per run
+// (that invalidates every existing subscription) and never ship the private key.
+builder.Services.AddRaskWebPush(o =>
+{
+    o.VapidKeys = new VapidKeys(config["WebPush:PublicKey"]!, config["WebPush:PrivateKey"]!);
+    o.Subject   = "mailto:admin@example.com";   // a contact the push service can reach
+});
+```
+
+Hand the **same** `VapidKeys.PublicKey` to the client's `IWebPush.SubscribeAsync`. Store the
+`PushSubscription` your client posts up, then deliver a notification with `IWebPushSender`:
+
+```csharp
+public sealed class Notifier(IWebPushSender sender, ISubscriptionStore store)
+{
+    public async Task PingAsync()
+    {
+        foreach (var sub in store.All)
+        {
+            var result = await sender.SendAsync(sub, WebPushMessage.Text(
+                "New message", "You have one unread item.", url: "/inbox"));
+
+            if (result.ShouldDelete) store.Remove(sub);   // 404/410 — the subscription is gone
+            else if (result.ShouldRetry) { /* 429/5xx — retry later */ }
+        }
+    }
+}
+```
+
+`VapidKeys.Generate()` mints a fresh pair (base64url) for first-time setup. The sender is transport-
+neutral and stores nothing — persisting `PushSubscription`s is your app's job. See the full
+subscribe → send → notify loop wired up in `samples/Rask.Example.Wasm.Host`.
 
 ---
 
@@ -198,6 +243,8 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Clipboard** | `IClipboard` | Copy/paste |
 | **Storage / Cookies** | `IBrowserStorage` / `ICookies` | Persist state on-device |
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
+| **Files on disk** | `IFileSystemAccess` | Open/save a file back to disk + directory access (editors, file managers) |
+| **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |
 | **Permissions** | `IPermissions` | Check before prompting |
 | **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
 | **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
@@ -213,6 +260,15 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
 | **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
+| **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
+| **Picture-in-Picture** | `IPictureInPicture` *(WASM)* | Float a `<video>` into an always-on-top miniplayer |
+| **Gamepad** | `IGamepad` | Read connected controllers — sticks / triggers / buttons (`WatchAsync`) |
+| **Idle detection** | `IIdleDetector` *(WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
+| **EyeDropper** | `IEyeDropper` *(WASM)* | Pick a color from anywhere on screen (`OpenAsync`) |
+| **Serial device** | `ISerial` *(WASM)* | Talk to an Arduino / serial device — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` |
+| **USB device** | `IUsb` *(WASM)* | Pair with and drive a USB device — `RequestDeviceAsync(filters)` → `IUsbDevice?` (open, claim, transfer) |
+| **HID device** | `IHid` *(WASM)* | Talk to a HID device — `RequestDevicesAsync(filters)` → devices (output/feature reports + pushed input reports) |
+| **Bluetooth (BLE)** | `IBluetooth` *(WASM)* | Pair with a BLE device — `RequestDeviceAsync(options)` → connect GATT, read/write/notify characteristics |
 
 **App badge.** `IBadge` (`Rask.Wasm.Browser`) sets a count on the **installed** app's icon —
 `SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal

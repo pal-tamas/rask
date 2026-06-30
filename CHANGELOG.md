@@ -25,6 +25,107 @@ them until tagged releases begin.
   **Bootstrap** showcase section (`/bootstrap/*`). See `docs/bootstrap.md`. The sample apps now dogfood
   the `Bs*` primitives throughout, and `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect`/`BsToast` are
   promoted from the samples into the package.
+- **Server-side Web Push (`Rask.WebPush`)** — a new opt-in package that sends Web Push notifications from
+  your backend, completing the loop with the WASM-only `IWebPush` client. Register with
+  `services.AddRaskWebPush(o => { o.VapidKeys = …; o.Subject = "mailto:…"; })`, then inject `IWebPushSender`
+  and call `SendAsync(subscription, WebPushMessage.Text(title, body, url))`. It signs the request with VAPID
+  (ES256 JWT, RFC 8292) and encrypts the payload with `aes128gcm` (ECDH P-256 + HKDF + AES-128-GCM,
+  RFC 8291), POSTing to the subscription endpoint; the typed message serializes to the exact JSON the default
+  `rask-sw.js` shows. `WebPushResult` classifies the outcome (`ShouldDelete` on 404/410, `ShouldRetry` on
+  429/5xx). `VapidKeys.Generate()` mints a key pair. **Transport-neutral and zero external dependencies** —
+  all crypto is in-box `System.Security.Cryptography`. The hosted WASM sample (`Rask.Example.Wasm.Host`) wires
+  up the full subscribe → send → notify loop; documented in the [Mobile & PWA](docs/pwa.md) guide.
+- **Web Bluetooth (`IBluetooth`, `Rask.Wasm.Browser`)** — pair with a Bluetooth Low Energy device and talk to
+  its GATT services from C# in the browser (heart-rate monitors, thermometers, fitness sensors, custom
+  hardware). `RequestDeviceAsync(BluetoothRequestOptions)` shows the chooser (filters / `AcceptAllDevices` +
+  `OptionalServices`) and returns a disposable `IBluetoothDevice` (or `null` if dismissed);
+  `GetDevicesAsync()` returns already-granted devices. A device exposes `Info`, `ConnectAsync`/
+  `DisconnectAsync`/`IsConnectedAsync`, `GetCharacteristicAsync(service, characteristic)`, and
+  `WatchDisconnectAsync(onDisconnect)`; an `IBluetoothCharacteristic` does `ReadAsync`, `WriteAsync(data,
+  withResponse)`, and `WatchAsync(onValue)` for notifications. Notifications and GATT-disconnect are
+  **pushed** to your callbacks (static `[JSInvokable]`s, rooted for the WASM trimmer); the live GATT objects
+  stay JS-side under framework-minted ids (one cached wrapper per physical device / characteristic); values
+  cross base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs transient user
+  activation, the live device handle, and a secure context; Chromium-family only at the time of writing. New
+  `/bluetooth` showcase page in the WASM sample; documented in the [Browser APIs](docs/browser-apis.md) and
+  [Mobile & PWA](docs/pwa.md) guides.
+- **WebHID (`IHid`, `Rask.Wasm.Browser`)** — talk to a human-interface device no higher-level API covers
+  (custom gamepads, sim controls, keyboards with extra keys, point-of-sale hardware) straight from C# in the
+  browser. `RequestDevicesAsync(filters)` shows the chooser and returns the granted devices (empty if
+  dismissed); `GetDevicesAsync()` returns already-granted devices without a prompt. Each `IHidDevice` exposes
+  its descriptor (`Info`), `OpenAsync`/`CloseAsync`, `SendReportAsync`, `SendFeatureReportAsync` /
+  `ReceiveFeatureReportAsync`, and `WatchInputReportsAsync(onReport, onDisconnect?)` — input reports are
+  **pushed** to your callback (via a static `[JSInvokable]`, rooted for the WASM trimmer) with an optional
+  unplug signal. The live `HIDDevice` stays JS-side under a framework-minted id (deduped per physical device);
+  report payloads cross base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs
+  transient user activation, the live device handle, and a secure context; Chromium-family only at the time of
+  writing. New `/hid` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **WebUSB (`IUsb`, `Rask.Wasm.Browser`)** — pair with and drive a USB device (custom hardware, dev boards,
+  instruments) straight from C# in the browser. `RequestDeviceAsync(filters)` shows the device chooser and
+  returns a disposable `IUsbDevice` (or `null` if dismissed); `GetDevicesAsync()` returns already-granted
+  devices without a prompt. The device exposes its descriptor (`Info`: vendor/product id, manufacturer,
+  product, serial) and the full I/O lifecycle — `OpenAsync`, `SelectConfigurationAsync`, `ClaimInterfaceAsync`
+  / `ReleaseInterfaceAsync`, `TransferInAsync` / `TransferOutAsync` (bulk/interrupt) and
+  `ControlTransferInAsync` / `ControlTransferOutAsync`, `CloseAsync`. The live `USBDevice` stays JS-side under
+  a framework-minted id; transfer payloads cross base64-encoded. `IsSupportedAsync` gates the UI.
+  **WASM-only** — `requestDevice` needs transient user activation, the live device handle, and a secure
+  context; Chromium-family only at the time of writing. New `/usb` showcase page in the WASM sample;
+  documented in the [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **Web Serial (`ISerial`, `Rask.Wasm.Browser`)** — talk to a serial device (Arduino / microcontroller,
+  GPS, USB-to-serial adapter) straight from C# in the browser. `RequestPortAsync(SerialOptions, onData,
+  onClosed?)` shows the port chooser, opens the chosen port (baud rate, data/stop bits, parity, flow
+  control, optional USB vendor/product `SerialPortFilter`s), starts a read loop, and returns a disposable
+  `ISerialPort` — `null` if the user dismisses the chooser. Inbound bytes are **pushed** to the `onData`
+  callback (via a static `[JSInvokable]`, rooted for the WASM trimmer); `onClosed` fires if the device is
+  unplugged; `WriteAsync(byte[])` sends (concurrent writes are serialized); dispose the port to stop reading
+  and release it. `IsSupportedAsync` gates the UI. **WASM-only** — `requestPort` needs transient
+  user activation and the live port stream (and a secure context); Chromium-family only at the time of
+  writing. New `/serial` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **Passkeys / WebAuthn (`IWebAuthn`, `Rask.Core.Browser`)** — register and sign in with a passkey (a
+  platform biometric or roaming security key) instead of a password. `CreateAsync(options)` runs the
+  registration ceremony and returns an `AttestationResult`; `GetAsync(options)` runs the authentication
+  ceremony and returns an `AssertionResult` — both `null` if the user cancels. Typed
+  `PublicKeyCredentialCreationOptions` / `PublicKeyCredentialRequestOptions` (relying party, user,
+  algorithms, authenticator selection, allow/exclude credentials); all binary fields (challenge, ids,
+  attestation/assertion buffers) cross the boundary as **base64url** strings, ready to POST to a
+  relying-party backend (which issues the challenge and verifies the result — the security-critical half).
+  `IsSupportedAsync` / `IsPlatformAuthenticatorAvailableAsync` gate the UI. **Shared** — works on both
+  transports. New `/browser/webauthn` showcase page; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **Camera / microphone / screen capture (`IMediaDevices`, `Rask.Wasm.Browser`)** — capture the camera,
+  microphone, or screen and show it in a `<video>`, for photo capture, video calls, QR scanning, or screen
+  recording. `GetUserMediaAsync(MediaConstraints)` / `GetDisplayMediaAsync()` return a disposable
+  `IMediaStreamHandle` with `AttachToAsync(ElementRef video)` and `StopAsync()`; `EnumerateDevicesAsync()`
+  lists cameras/mics/speakers. The live `MediaStream` stays JS-side under a framework-minted id — dispose
+  the handle to stop every track and release the hardware (the camera indicator turns off). **WASM-only** —
+  `getUserMedia` needs transient user activation, the live document, and a secure context. New
+  `/media-devices` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **Browser-API quick-win batch — `IGamepad` (shared) + `IEyeDropper` / `IPictureInPicture` /
+  `IIdleDetector` (WASM-only)** — four more typed Web-API wrappers, injected through the constructor like
+  the rest. `IGamepad` (`Rask.Core.Browser`, **both transports**) reads connected controllers — sticks,
+  triggers, buttons — via a `requestAnimationFrame` poll the framework runs, pushing a `GamepadReading`
+  through the shared static `[JSInvokable]` only when a pad's state changes. The other three live in
+  `Rask.Wasm.Browser` because they need *transient* user activation: `IEyeDropper.OpenAsync()` picks a
+  color from anywhere on screen (sRGB hex, or `null` on cancel); `IPictureInPicture` floats a
+  `<video>` into an always-on-top miniplayer (`RequestAsync(ElementRef)` / `ExitAsync` / `IsActiveAsync`);
+  `IIdleDetector` watches for the user going idle or the screen locking (`RequestPermissionAsync` then
+  `WatchAsync(onChange, thresholdSeconds)`, pushed via a static `[JSInvokable]` in the `Rask.Wasm`
+  assembly). New `/browser/gamepad` showcase page (shared sample) plus `/picture-in-picture`,
+  `/eyedropper`, and `/idle` pages in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
+- **File System Access (`IFileSystemAccess`, `Rask.Core.Browser`)** — open a file from disk, edit it, and
+  save it *back to the same file* (not just download a copy), or work against a whole directory — for
+  in-browser editors and file managers. `OpenFileAsync` / `OpenFilesAsync` / `SaveFileAsync` (typed
+  `FilePickerOptions` / `SaveFilePickerOptions`) and `OpenDirectoryAsync` return disposable `IFileHandle` /
+  `IDirectoryHandle` wrappers with `ReadTextAsync` / `WriteTextAsync` (and bytes, base64 over the wire) and
+  `ListAsync` / `GetFileAsync`; cancelling a picker returns `null` rather than throwing. The opaque browser
+  handles live JS-side under a framework-minted id (dispose the wrapper to release). **Shared** — works on
+  both transports, Chromium-family only (gate on `IsSupportedAsync` and fall back to upload/download). New
+  `/browser/file-system` showcase page (a tiny open→edit→save editor); documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **Expanded `WebAppManifest` (`Rask.Wasm.Browser`)** — typed support for the richer manifest members,
   all optional and omitted when unset: `Categories`, `Orientation` (`ManifestOrientation`),
   `DisplayOverride` (`DisplayOverrideMode`, incl. `window-controls-overlay`), `Shortcuts`
@@ -125,6 +226,22 @@ them until tagged releases begin.
   the published bundle on a registry miss (honouring a precompressed `.br`/`.gz` sibling), so scoped
   styles and component JS load under `Rask.Wasm.Hosting`. A static-file-only host (e.g. GitHub Pages) was
   always fine — it serves the baked files directly.
+- **Device notification fan-out hardening (`IHid` / `IBluetooth`)** — when several watchers subscribe to one
+  HID device / BLE characteristic, each pushed value/report is now delivered as its own `byte[]` copy (a
+  mutating callback can no longer corrupt another subscriber's bytes), and each callback is isolated so one
+  that throws no longer starves the rest of the fan-out. Documented that a Bluetooth device handle is shared
+  per physical device (`RequestDeviceAsync`/`GetDevicesAsync` return the same instance — dispose from a single
+  owner).
+- **Web Serial (`ISerial`) byte marshalling** — `WriteAsync` and the inbound read loop sent raw `byte[]`
+  across the WASM JS bridge, which doesn't carry byte arrays (the base `JSRuntime`'s `ByteArrayJsonConverter`
+  expects Blazor's byte-array side-channel that the bridge doesn't implement), so writes shipped no usable
+  data. Bytes now ride the boundary base64-encoded (`Convert.To/FromBase64String` in C#, `btoa`/`atob` in JS),
+  matching `IFileSystemAccess`. The public `ISerialPort` API (`byte[]` in/out) is unchanged.
+- **WebUSB (`IUsb`) handle ref-counting** — the JS helper dedups the same physical `USBDevice` to one id
+  (`requestDevice`/`getDevices` return the same object), but `close()` evicted it immediately, so disposing
+  one `IUsbDevice` handle tore down a device a second handle still held (subsequent calls threw "device handle
+  is closed or unknown"). The shared device is now ref-counted — it closes only once every handle to it has
+  been disposed.
 
 ## [0.11.0] - 2026-06-29
 

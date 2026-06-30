@@ -956,6 +956,13 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#ms-publish").ClickAsync();
         await Expect(Page.Locator("#ms-status")).ToContainTextAsync("published", contains);
 
+        // Gamepad — chromium exposes navigator.getGamepads, so IsSupported resolves true on both hosts and
+        // the watch starts (status flips to "Ready"). No virtual pad is connected headless, so the count
+        // stays 0; the per-pad readings are covered by unit tests.
+        await SideAsync("Gamepad", "Gamepad");
+        await Expect(Page.Locator("#gamepad-status")).ToContainTextAsync("Ready", contains);
+        await Expect(Page.Locator("#gamepad-count")).ToContainTextAsync("0", contains);
+
         // Device sensors — chromium exposes DeviceOrientationEvent (no iOS prompt), so Start grants and
         // begins watching on both hosts; the status flips to "listening" even though no sensor data flows
         // headless. Proves the IsSupported/RequestPermission/WatchAsync round-trip; readings are unit-tested.
@@ -987,6 +994,19 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#idb-set").ClickAsync();
         await Page.Locator("#idb-get").ClickAsync();
         await Expect(Page.Locator("#idb-read")).ToContainTextAsync("hello from IndexedDB", contains);
+
+        // File system access — the open/save pickers are native OS dialogs that can't be driven headless,
+        // so this only verifies the editor page routes and renders (the open button + idle status); the
+        // handle read/write/list round-trips are covered by unit tests.
+        await SideAsync("File system access", "File system access");
+        await Expect(Page.Locator("#fs-open")).ToBeVisibleAsync();
+        await Expect(Page.Locator("#fs-status")).ToContainTextAsync("idle", contains);
+
+        // Passkeys (WebAuthn) — the create/get ceremonies open a real authenticator UI that can't be driven
+        // without a virtual authenticator, so the round-trip is covered by unit tests; here we only confirm
+        // the page routes/renders (the support line is environment-dependent, so it's not asserted).
+        await SideAsync("Passkeys (WebAuthn)", "Passkeys (WebAuthn)");
+        await Expect(Page.Locator("#webauthn-create")).ToBeVisibleAsync();
     }
 
     // In-session navigation to an unknown route (client pushState + popstate — the same signal
