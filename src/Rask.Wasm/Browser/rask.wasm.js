@@ -1638,6 +1638,210 @@ window.__raskHid = window.__raskHid || (() => {
     };
 })();
 
+// Web Bluetooth / GATT (driven by IBluetooth). requestDevice() needs transient activation and the live device
+// handle, so this is WASM-only. Devices and resolved characteristics are deduped to one stable id each (the
+// browser hands back the same object), so C# keeps one wrapper per physical handle — disconnect is reusable
+// (gatt.disconnect), release() evicts. Notifications push RaskBluetoothValue (per characteristic id) and
+// gattserverdisconnected pushes RaskBluetoothDisconnected (per device id) — both static [JSInvokable]s in
+// Rask.Wasm. Values ride the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't
+// marshal across the JS bridge. requestDevice rejects with NotFoundError on cancel.
+window.__raskBluetooth = window.__raskBluetooth || (() => {
+    const byId = new Map();          // deviceId -> BluetoothDevice
+    const idByDevice = new Map();    // BluetoothDevice -> deviceId
+    const chars = new Map();         // charId -> BluetoothRemoteGATTCharacteristic
+    const charIdByObject = new Map();   // characteristic object -> charId (dedup so one id per physical char)
+    const valueListeners = new Map();   // charId -> characteristicvaluechanged listener
+    const notifyCounts = new Map();     // charId -> active notification-watch count
+    const discListeners = new Map();    // deviceId -> gattserverdisconnected listener
+    const discCounts = new Map();       // deviceId -> active disconnect-watch count
+    let nextDeviceId = 0;
+    let nextCharId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({id: d.id, name: d.name || null});
+    const putDevice = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextDeviceId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+        }
+        return {id: id, info: info(device)};
+    };
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("Bluetooth device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    const ch = (id) => {
+        const characteristic = chars.get(id);
+        if (!characteristic) {
+            throw new Error("Bluetooth characteristic handle is unknown (id " + id + ")");
+        }
+        return characteristic;
+    };
+    const detachDisconnect = (deviceId) => {
+        const device = byId.get(deviceId);
+        const listener = discListeners.get(deviceId);
+        if (device && listener) {
+            try { device.removeEventListener("gattserverdisconnected", listener); } catch (e) { /* gone */ }
+        }
+        discListeners.delete(deviceId);
+        discCounts.delete(deviceId);
+    };
+    return {
+        isSupported: () => !!navigator.bluetooth,
+        requestDevice: async (o) => {
+            const opts = o.acceptAllDevices
+                ? {acceptAllDevices: true}
+                : {filters: o.filters || []};
+            if (o.optionalServices && o.optionalServices.length) {
+                opts.optionalServices = o.optionalServices;
+            }
+            let device;
+            try {
+                device = await navigator.bluetooth.requestDevice(opts);
+            } catch (e) {
+                if (e && e.name === "NotFoundError") {
+                    return null; // user dismissed the chooser
+                }
+                throw e;
+            }
+            return putDevice(device);
+        },
+        getDevices: async () => {
+            if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+                return [];
+            }
+            return (await navigator.bluetooth.getDevices()).map((d) => putDevice(d));
+        },
+        connect: async (id) => { await dev(id).gatt.connect(); },
+        // Reusable: drops the GATT link but keeps the handle (reconnect with connect()). release() evicts.
+        disconnect: (id) => {
+            const device = byId.get(id);
+            if (device) {
+                try { device.gatt.disconnect(); } catch (e) { /* already disconnected */ }
+            }
+        },
+        release: (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            detachDisconnect(id);
+            byId.delete(id);
+            idByDevice.delete(device);
+            try { device.gatt.disconnect(); } catch (e) { /* already disconnected */ }
+        },
+        isConnected: (id) => !!dev(id).gatt.connected,
+        getCharacteristic: async (id, serviceUuid, characteristicUuid) => {
+            const service = await dev(id).gatt.getPrimaryService(serviceUuid);
+            const characteristic = await service.getCharacteristic(characteristicUuid);
+            // Dedup to one id per physical characteristic so the notification refcount governs the shared
+            // GATT subscription correctly (two handles can't silence each other).
+            let charId = charIdByObject.get(characteristic);
+            if (charId === undefined) {
+                charId = ++nextCharId;
+                chars.set(charId, characteristic);
+                charIdByObject.set(characteristic, charId);
+            }
+            return charId;
+        },
+        readValue: async (charId) => dataB64(await ch(charId).readValue()),
+        writeValue: async (charId, base64, withResponse) => {
+            const characteristic = ch(charId);
+            const bytes = fromB64(base64);
+            if (withResponse && characteristic.writeValueWithResponse) {
+                await characteristic.writeValueWithResponse(bytes);
+            } else if (!withResponse && characteristic.writeValueWithoutResponse) {
+                await characteristic.writeValueWithoutResponse(bytes);
+            } else {
+                await characteristic.writeValue(bytes); // older browsers
+            }
+        },
+        startNotifications: async (charId) => {
+            const characteristic = ch(charId);
+            const count = notifyCounts.get(charId) || 0;
+            if (count === 0) {
+                const listener = (e) => {
+                    window.DotNet.invokeMethodAsync(
+                        "Rask.Wasm", "RaskBluetoothValue", charId, dataB64(e.target.value));
+                };
+                valueListeners.set(charId, listener);
+                characteristic.addEventListener("characteristicvaluechanged", listener);
+                await characteristic.startNotifications();
+            }
+            notifyCounts.set(charId, count + 1);
+        },
+        stopNotifications: async (charId) => {
+            const remaining = (notifyCounts.get(charId) || 0) - 1;
+            if (remaining > 0) {
+                notifyCounts.set(charId, remaining);
+                return;
+            }
+            notifyCounts.delete(charId);
+            const characteristic = chars.get(charId);
+            const listener = valueListeners.get(charId);
+            valueListeners.delete(charId);
+            if (characteristic && listener) {
+                characteristic.removeEventListener("characteristicvaluechanged", listener);
+                try { await characteristic.stopNotifications(); } catch (e) { /* already stopped / gone */ }
+            }
+        },
+        releaseCharacteristic: (charId) => {
+            // Drop the characteristic's id mapping (called when its C# handle is disposed); any live listener
+            // is cleared too in case notifications weren't stopped first.
+            const characteristic = chars.get(charId);
+            const listener = valueListeners.get(charId);
+            if (characteristic && listener) {
+                try { characteristic.removeEventListener("characteristicvaluechanged", listener); } catch (e) { /* gone */ }
+            }
+            valueListeners.delete(charId);
+            notifyCounts.delete(charId);
+            chars.delete(charId);
+            if (characteristic) {
+                charIdByObject.delete(characteristic);
+            }
+        },
+        watchDisconnect: (deviceId) => {
+            const device = dev(deviceId);
+            const count = discCounts.get(deviceId) || 0;
+            if (count === 0) {
+                const listener = () => {
+                    window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskBluetoothDisconnected", deviceId);
+                };
+                discListeners.set(deviceId, listener);
+                device.addEventListener("gattserverdisconnected", listener);
+            }
+            discCounts.set(deviceId, count + 1);
+        },
+        unwatchDisconnect: (deviceId) => {
+            const remaining = (discCounts.get(deviceId) || 0) - 1;
+            if (remaining > 0) {
+                discCounts.set(deviceId, remaining);
+                return;
+            }
+            detachDisconnect(deviceId);
+        }
+    };
+})();
+
 
 // Serializes render application across payloads. A navigation diff/full reply may defer
 // its body swap until the new page's scoped CSS applies (waitForUnappliedHeadCss /
