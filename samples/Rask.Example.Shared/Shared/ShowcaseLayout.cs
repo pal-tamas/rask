@@ -180,6 +180,17 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         yield return ("Framework",
             Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
         yield return ("Bootstrap", BootstrapLinks);
+        yield return ("Guides", GuidesNav());
+    }
+
+    // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
+    private static IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> GuidesNav()
+    {
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", "bi-book", "Overview", null);
+        foreach (var g in Features.GuideCatalog.All)
+        {
+            yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
+        }
     }
 
     private List<Child> BuildSections()

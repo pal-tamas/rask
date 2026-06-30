@@ -363,3 +363,135 @@ button, a, [role="button"] {
         overscroll-behavior: contain;
     }
 }
+
+/* GuidePage: the Markdig-rendered guide HTML (docs/*.md) is injected verbatim via Raw(), so it carries
+   no scope id — these rules live here (global) and are anchored under .markdown-body so they never leak
+   into the rest of the app. Readable defaults; the broader visual pass refines them. */
+.markdown-body {
+    max-width: 52rem;
+    line-height: 1.7;
+    color: #24232b;
+}
+
+.markdown-body h1 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.markdown-body h2 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.markdown-body h3 {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol {
+    margin-bottom: 1rem;
+}
+
+.markdown-body li {
+    margin-bottom: 0.25rem;
+}
+
+.markdown-body a {
+    color: var(--rask-accent);
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body pre {
+    background: #1f1d2b;
+    color: #e7e3ff;
+    padding: 1rem 1.2rem;
+    border-radius: 0.6rem;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+.markdown-body pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+}
+
+.markdown-body :not(pre) > code {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    padding: 0.08rem 0.34rem;
+    border-radius: 4px;
+    font-size: 0.86em;
+}
+
+.markdown-body blockquote {
+    border-left: 4px solid var(--rask-accent);
+    background: var(--rask-accent-soft);
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.markdown-body blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-body table {
+    width: 100%;
+    margin-bottom: 1.25rem;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.markdown-body th {
+    background: var(--bs-body-tertiary, #f6f4fb);
+    font-weight: 600;
+}
+
+.markdown-body img {
+    max-width: 100%;
+}
+
+.markdown-body hr {
+    margin: 2rem 0;
+    border: 0;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+/* SeeAlso: small accent pills linking a demo page to its guide(s). A dedicated class (not Bootstrap's
+   .badge) so it never collides with demo markup that the page itself renders. */
+.see-also-link {
+    display: inline-block;
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.see-also-link:hover {
+    background: var(--rask-accent);
+    color: #fff;
+}

@@ -61,7 +61,8 @@ public sealed class LifecyclePage : Component
                 Code()["Console.Error"],
                 " and does NOT trigger a re-render — so a component stuck on a loading placeholder is usually a hook that threw."
             ]
-        ]
+        ],
+        SeeAlso.Guides(("lifecycle", "Lifecycle"))
     ];
 
     private void MountCycle()

@@ -59,6 +59,7 @@ public abstract partial class SharedSmokeTests
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
         await WalkBootstrapPagesAsync();
+        await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();
 
@@ -140,6 +141,21 @@ public abstract partial class SharedSmokeTests
     // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
     // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
     // the modal opens and closes purely through Rask's live runtime.
+    // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component. Verify the
+    // index lists guides, a guide renders to a .markdown-body, and cross-links are SPA-routed.
+    private async Task TestGuidesAsync()
+    {
+        await SideAsync("All guides", "Guides");
+        // A guide card links to /guides/{slug}; open the Routing guide.
+        await Page.Locator("main a[href$='/guides/routing']").First.ClickAsync();
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Routing",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.
+        Assert.True(await Page.Locator(".markdown-body a[data-rask-nav][href^='/guides/']").CountAsync() > 0,
+            "expected the rendered guide to carry SPA-routed cross-links");
+        await AssertNoGlobalCrashAsync();
+    }
+
     private async Task WalkBootstrapPagesAsync()
     {
         // Navbar & nav — the typed navigation primitives. The demo's nav links render as SPA-routed
