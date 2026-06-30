@@ -215,6 +215,31 @@ public class BluetoothTests
     }
 
     [Fact]
+    public async Task NotificationFanout_GivesEachSubscriberOwnCopy_AndIsolatesExceptions()
+    {
+        var js = new FakeJsRuntime();
+        js.SetResponse("__raskBluetooth.getCharacteristic", 8);
+        var device = await RequestDeviceAsync(js);
+        var ch = await device.GetCharacteristicAsync("svc", "chr");
+        byte[]? survivor = null;
+        // First subscriber mutates its copy and throws — must not corrupt or starve the second.
+        await ch.WatchAsync(v =>
+        {
+            v[0] = 0xFF;
+            throw new InvalidOperationException("boom");
+        });
+        await ch.WatchAsync(v =>
+        {
+            survivor = v;
+            return Task.CompletedTask;
+        });
+
+        await BluetoothInterop.Value(8, Convert.ToBase64String([1, 2, 3]));
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, survivor);
+    }
+
+    [Fact]
     public async Task NullArgs_Throw()
     {
         var js = new FakeJsRuntime();

@@ -186,6 +186,30 @@ public class HidTests
     }
 
     [Fact]
+    public async Task InputFanout_GivesEachWatcherOwnCopy_AndIsolatesExceptions()
+    {
+        var js = new FakeJsRuntime();
+        js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(6, SampleInfo) });
+        var device = (await new Hid(js).RequestDevicesAsync())[0];
+        byte[]? survivor = null;
+        // First watcher mutates its copy and throws — must not corrupt or starve the second.
+        await device.WatchInputReportsAsync(r =>
+        {
+            r.Data[0] = 0xFF;
+            throw new InvalidOperationException("boom");
+        });
+        await device.WatchInputReportsAsync(r =>
+        {
+            survivor = r.Data;
+            return Task.CompletedTask;
+        });
+
+        await HidInterop.Input(6, 1, Convert.ToBase64String([1, 2, 3]));
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, survivor); // own copy, untouched by the other's mutation/throw
+    }
+
+    [Fact]
     public async Task NullArgs_Throw()
     {
         var js = new FakeJsRuntime();
