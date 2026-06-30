@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **WebHID (`IHid`, `Rask.Wasm.Browser`)** — talk to a human-interface device no higher-level API covers
+  (custom gamepads, sim controls, keyboards with extra keys, point-of-sale hardware) straight from C# in the
+  browser. `RequestDevicesAsync(filters)` shows the chooser and returns the granted devices (empty if
+  dismissed); `GetDevicesAsync()` returns already-granted devices without a prompt. Each `IHidDevice` exposes
+  its descriptor (`Info`), `OpenAsync`/`CloseAsync`, `SendReportAsync`, `SendFeatureReportAsync` /
+  `ReceiveFeatureReportAsync`, and `WatchInputReportsAsync(onReport, onDisconnect?)` — input reports are
+  **pushed** to your callback (via a static `[JSInvokable]`, rooted for the WASM trimmer) with an optional
+  unplug signal. The live `HIDDevice` stays JS-side under a framework-minted id (deduped per physical device);
+  report payloads cross base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs
+  transient user activation, the live device handle, and a secure context; Chromium-family only at the time of
+  writing. New `/hid` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **WebUSB (`IUsb`, `Rask.Wasm.Browser`)** — pair with and drive a USB device (custom hardware, dev boards,
   instruments) straight from C# in the browser. `RequestDeviceAsync(filters)` shows the device chooser and
   returns a disposable `IUsbDevice` (or `null` if dismissed); `GetDevicesAsync()` returns already-granted
