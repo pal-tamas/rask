@@ -163,9 +163,20 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
                 rel = "index.html";
             }
 
-            var path = Path.GetFullPath(Path.Combine(wwwroot, rel));
-            var rooted = path.StartsWith(wwwroot + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                         || path.Equals(wwwroot, StringComparison.Ordinal);
+            // Defense-in-depth before any filesystem access: reject an absolute path or any '..' segment
+            // so a crafted request URL can't escape the served wwwroot (CodeQL: uncontrolled data used
+            // in path expression). The canonicalized-prefix check below is the second barrier.
+            if (Path.IsPathRooted(rel) || rel.Contains("..", StringComparison.Ordinal))
+            {
+                ctx.Response.StatusCode = 404;
+                ctx.Response.Close();
+                return;
+            }
+
+            var root = Path.GetFullPath(wwwroot);
+            var path = Path.GetFullPath(Path.Combine(root, rel));
+            var rooted = path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                         || path.Equals(root, StringComparison.Ordinal);
 
             if (!rooted || !File.Exists(path))
             {
