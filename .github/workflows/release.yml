@@ -171,6 +171,12 @@ jobs:
       - name: Pack Rask.Templates
         run: dotnet pack src/Rask.Templates/Rask.Templates.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Bootstrap
+        run: dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release --no-build -o ./artifacts
+
+      - name: Pack Rask.WebPush
+        run: dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release --no-build -o ./artifacts
+
       - name: Upload packages
         uses: actions/upload-artifact@v7
         with:
