@@ -17,11 +17,23 @@ them until tagged releases begin.
   `WatchDisconnectAsync(onDisconnect)`; an `IBluetoothCharacteristic` does `ReadAsync`, `WriteAsync(data,
   withResponse)`, and `WatchAsync(onValue)` for notifications. Notifications and GATT-disconnect are
   **pushed** to your callbacks (static `[JSInvokable]`s, rooted for the WASM trimmer); the live GATT objects
-  stay JS-side under framework-minted ids (devices deduped + refcounted per physical device); values cross
-  base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs transient user
+  stay JS-side under framework-minted ids (one cached wrapper per physical device / characteristic); values
+  cross base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs transient user
   activation, the live device handle, and a secure context; Chromium-family only at the time of writing. New
   `/bluetooth` showcase page in the WASM sample; documented in the [Browser APIs](docs/browser-apis.md) and
   [Mobile & PWA](docs/pwa.md) guides.
+- **WebHID (`IHid`, `Rask.Wasm.Browser`)** — talk to a human-interface device no higher-level API covers
+  (custom gamepads, sim controls, keyboards with extra keys, point-of-sale hardware) straight from C# in the
+  browser. `RequestDevicesAsync(filters)` shows the chooser and returns the granted devices (empty if
+  dismissed); `GetDevicesAsync()` returns already-granted devices without a prompt. Each `IHidDevice` exposes
+  its descriptor (`Info`), `OpenAsync`/`CloseAsync`, `SendReportAsync`, `SendFeatureReportAsync` /
+  `ReceiveFeatureReportAsync`, and `WatchInputReportsAsync(onReport, onDisconnect?)` — input reports are
+  **pushed** to your callback (via a static `[JSInvokable]`, rooted for the WASM trimmer) with an optional
+  unplug signal. The live `HIDDevice` stays JS-side under a framework-minted id (deduped per physical device);
+  report payloads cross base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs
+  transient user activation, the live device handle, and a secure context; Chromium-family only at the time of
+  writing. New `/hid` showcase page in the WASM sample; documented in the
+  [Browser APIs](docs/browser-apis.md) and [Mobile & PWA](docs/pwa.md) guides.
 - **WebUSB (`IUsb`, `Rask.Wasm.Browser`)** — pair with and drive a USB device (custom hardware, dev boards,
   instruments) straight from C# in the browser. `RequestDeviceAsync(filters)` shows the device chooser and
   returns a disposable `IUsbDevice` (or `null` if dismissed); `GetDevicesAsync()` returns already-granted
@@ -131,6 +143,11 @@ them until tagged releases begin.
   expects Blazor's byte-array side-channel that the bridge doesn't implement), so writes shipped no usable
   data. Bytes now ride the boundary base64-encoded (`Convert.To/FromBase64String` in C#, `btoa`/`atob` in JS),
   matching `IFileSystemAccess`. The public `ISerialPort` API (`byte[]` in/out) is unchanged.
+- **WebUSB (`IUsb`) handle ref-counting** — the JS helper dedups the same physical `USBDevice` to one id
+  (`requestDevice`/`getDevices` return the same object), but `close()` evicted it immediately, so disposing
+  one `IUsbDevice` handle tore down a device a second handle still held (subsequent calls threw "device handle
+  is closed or unknown"). The shared device is now ref-counted — it closes only once every handle to it has
+  been disposed.
 
 ## [0.11.0] - 2026-06-29
 

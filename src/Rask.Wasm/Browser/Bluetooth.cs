@@ -87,7 +87,10 @@ public interface IBluetoothDevice : IAsyncDisposable
 
     /// <summary>
     ///     Disconnects the GATT server but keeps the handle usable — call <see cref="ConnectAsync" /> to
-    ///     reconnect. Dispose the device to release it entirely.
+    ///     reconnect. Previously-resolved <see cref="IBluetoothCharacteristic" /> handles are invalidated (GATT
+    ///     disconnect drops them), so re-resolve via <see cref="GetCharacteristicAsync" /> after reconnecting.
+    ///     Any <see cref="WatchDisconnectAsync" /> callback also fires (the browser raises its disconnect
+    ///     event). Dispose the device to release it entirely.
     /// </summary>
     ValueTask DisconnectAsync();
 
@@ -325,23 +328,30 @@ public sealed class Bluetooth : IBluetooth
 
             _disposed = true;
 
-            await ReleaseCharacteristicsAsync();
-
-            int[] tokens;
-            lock (_disconnectTokens)
+            // Always evict + drop the GATT link, even if releasing characteristics/watches throws — otherwise
+            // the device would leak and the radio would stay connected.
+            try
             {
-                tokens = [.. _disconnectTokens];
-                _disconnectTokens.Clear();
-            }
+                await ReleaseCharacteristicsAsync();
 
-            foreach (var token in tokens)
+                int[] tokens;
+                lock (_disconnectTokens)
+                {
+                    tokens = [.. _disconnectTokens];
+                    _disconnectTokens.Clear();
+                }
+
+                foreach (var token in tokens)
+                {
+                    BluetoothInterop.UnregisterDisconnect(token);
+                    await js.InvokeVoidAsync("__raskBluetooth.unwatchDisconnect", id);
+                }
+            }
+            finally
             {
-                BluetoothInterop.UnregisterDisconnect(token);
-                await js.InvokeVoidAsync("__raskBluetooth.unwatchDisconnect", id);
+                owner.RemoveDevice(id);
+                await js.InvokeVoidAsync("__raskBluetooth.release", id);
             }
-
-            owner.RemoveDevice(id);
-            await js.InvokeVoidAsync("__raskBluetooth.release", id);
         }
 
         internal void ForgetCharacteristic(int charId) => _chars.TryRemove(charId, out _);
