@@ -17,6 +17,9 @@ them until tagged releases begin.
   Server PWA is installable + push-capable but **not** an offline app — there is no background sync and no
   install-prompt replay (those stay WASM-only). The transport-neutral push/notificationclick service-worker
   handlers are shared from `Rask.Core/Resources/rask-sw-shared.js` across both the WASM and Server SWs.
+  The transport-agnostic client helpers (`__raskPush`/`__raskNotify`/`__raskBadge`/`__raskWakeLock`) are
+  shared from `Rask.Core/Resources/rask-pwa.js` and spliced into both the Server and WASM clients; only the
+  manifest injector and install-prompt capture stay WASM-only.
 - **PWA on the Server host.** The transport-agnostic PWA browser APIs — `IWebPush` (push subscribe),
   `INotifications`, `IBadge`, `IWakeLock` — and the typed `WebAppManifest` now live in
   `Rask.Core.Browser` and are registered on the Server host too, so a Server app can subscribe to push,

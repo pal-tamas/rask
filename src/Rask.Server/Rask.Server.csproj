@@ -47,7 +47,7 @@
   <Import Project="..\..\build\Rask.MinifyJs.targets"/>
 
   <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js"
+          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js"
           Outputs="$(IntermediateOutputPath)rask.js">
     <PropertyGroup>
       <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
@@ -55,7 +55,8 @@
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
       <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
-      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)'))</_RaskClientJs>
+      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
+      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)'))</_RaskClientJs>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>

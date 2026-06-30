@@ -42,4 +42,34 @@ public class RuntimeScriptEndpointTests
         var prelude = body.Substring(dispatchIdx, Math.Min(600, body.Length - dispatchIdx));
         Assert.Contains("headAssetsReady", prelude);
     }
+
+    [Fact]
+    public async Task Get_RaskJs_IncludesTransportAgnosticPwaHelpers()
+    {
+        // The PWA helpers shared from Rask.Core/Resources/rask-pwa.js must be spliced into the Server
+        // client so IWebPush/INotifications/IBadge/IWakeLock can reach them.
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+
+        Assert.Contains("window.__raskPush =", body);
+        Assert.Contains("window.__raskNotify =", body);
+        Assert.Contains("window.__raskBadge =", body);
+        Assert.Contains("window.__raskWakeLock =", body);
+    }
+
+    [Fact]
+    public async Task Get_RaskJs_ExcludesWasmOnlyHelpers()
+    {
+        // WASM-only helpers (manifest injection, install-prompt replay, device APIs) must NOT ship in the
+        // Server client — they need transient activation / boot behaviour the WebSocket transport can't give.
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+
+        Assert.DoesNotContain("window.__raskInstall", body);
+        Assert.DoesNotContain("window.__raskPwa", body);
+        Assert.DoesNotContain("window.__raskSerial", body);
+        Assert.DoesNotContain("window.__raskBluetooth", body);
+    }
 }
