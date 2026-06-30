@@ -7,6 +7,28 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Rask.Bootstrap navigation primitives — `BsNavbar`, `BsNav`, `BsNavItem`.** Typed navbar/nav
+  containers; each `BsNavItem` with an `Href` renders a core `NavLink`, so links are SPA-routed
+  (`data-rask-nav`) and light up their `.active` class by matching the current route — no client JS,
+  no manual active tracking. New **Navbar & nav** Bootstrap showcase page (`/bootstrap/nav`); see
+  `docs/bootstrap.md`.
+- **`BsOffcanvas` responsive mode (`Responsive: Bp.Md`).** Renders `.offcanvas-{bp}` so the panel is a
+  slide-in drawer below the breakpoint and a static, in-layout column at/above it — the canonical
+  pattern for a sidebar that collapses to a hamburger on mobile. Drawer chrome (header, backdrop) is
+  hidden where the panel turns static.
+- **`NavLink.Match`.** An optional path the active-state comparison uses instead of `Href`, so a link
+  can point at one route yet stay active across a whole section (`Href: "/realtime/BTC"`,
+  `Match: "/realtime"`, `ActiveMatch: Prefix`).
+
+### Changed
+- **Examples site (GitHub Pages) — redesigned, mobile-first navigation.** The left sidebar is now a
+  fixed-width responsive offcanvas built from the `Bs*` navigation primitives: ~90 links are grouped
+  into collapsible sections (only the active route's group is open by default), with a search filter at
+  the top, replacing the always-expanded ~33%-wide column. On mobile it collapses to a hamburger-driven
+  drawer; on desktop the list scrolls inside a viewport-bounded region. The shell now dogfoods
+  `BsNavbar`/`BsNav`/`BsNavItem`/`BsOffcanvas`.
+
 ## [0.11.0] - 2026-06-30
 
 ### Added
