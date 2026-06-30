@@ -33,7 +33,8 @@ global `using static Rask.Bootstrap.Generated`, exactly like the validation pack
 | Area | Components |
 |---|---|
 | Content | `BsButton` `BsButtonGroup` `BsBadge` `BsAlert` `BsCard` (+`BsCardHeader/Body/Footer/Title/Subtitle/Text/Image`) `BsSpinner` `BsProgress` `BsListGroup`(+item) `BsPagination`(+`BsPageItem`) `BsBreadcrumb`(+item) `BsPlaceholder` `BsTable` `BsCloseButton` `BsIcon` |
-| Interactive (zero-JS, controlled) | `BsModal` `BsOffcanvas` `BsCollapse` `BsAccordion`(+item) `BsTabs`(+`BsTabItem`) `BsDropdown`(+item) `BsToast` |
+| Navigation | `BsNavbar` `BsNav` `BsNavItem` (each `BsNavItem` with `Href` renders a SPA-routed `NavLink` that auto-highlights the active route) |
+| Interactive (zero-JS, controlled) | `BsModal` `BsOffcanvas` (set `Responsive: Bp.Md` for a drawer-below / static-above sidebar) `BsCollapse` `BsAccordion`(+item) `BsTabs`(+`BsTabItem`) `BsDropdown`(+item) `BsToast` |
 | Forms (`IFormControl<T>`) | `BsInput<T>` `BsTextarea<T>` `BsSelect<T>` `BsCheck` `BsRadioGroup<T>` `BsCheckboxGroup<T>` `BsMultiSelect<T>` `BsFormGroup` `BsFormLabel` `BsInputGroup`(+`BsInputGroupText`) |
 
 Typed enums replace stringly-typed variants everywhere: `BsColor` (Primary…Dark), `BsSize` (Sm/Md/Lg),
@@ -47,6 +48,15 @@ BsButton(Color: BsColor.Primary, Size: BsSize.Lg)["Save"]
 BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]
 BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-invalid + .invalid-feedback built in
 BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
+
+// Navigation: a navbar shell + a vertical nav whose items SPA-route and self-highlight.
+BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true)[ /* brand, actions */ ]
+BsNav(Vertical: true, Pills: true)[
+    BsNavItem(Href: Routes.HomePage())["Home"],
+    BsNavItem(Href: Routes.OrdersPage(), Match: "/orders", ActiveMatch: NavLinkMatch.Prefix)["Orders"]
+]
+// A sidebar that is a drawer on mobile and a static column on desktop:
+BsOffcanvas(Responsive: Bp.Md, Open: _open, OnClose: () => _open = false)[ /* nav */ ]
 ```
 
 ## Utility classes
