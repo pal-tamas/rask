@@ -598,3 +598,138 @@ window.__raskUsb = window.__raskUsb || (() => {
         }
     };
 })();
+
+// WebHID (driven by IHid). requestDevice() needs transient activation and the live device handle, so this is
+// WASM-only. Each paired device is held under a framework-minted id (deduped per physical device via
+// idByDevice). Input reports are pushed via an inputreport listener that calls RaskHidInputReport (static
+// [JSInvokable] HidInterop.Input in Rask.Wasm); a global disconnect listener evicts an unplugged device and
+// calls RaskHidDisconnected. Report payloads ride the boundary base64-encoded (btoa/atob, same as __raskFs):
+// raw byte[] args don't marshal across the JS bridge.
+window.__raskHid = window.__raskHid || (() => {
+    const byId = new Map();        // id -> HIDDevice
+    const idByDevice = new Map();  // HIDDevice -> id (dedup + reverse lookup)
+    const listeners = new Map();   // id -> inputreport listener (for removal)
+    const refs = new Map();        // id -> open-handle refcount (the same device can back several C# handles)
+    const watchCounts = new Map(); // id -> active watch count (one shared inputreport listener per device)
+    let nextId = 0;
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+    const dataB64 = (view) => view ? toB64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) : "";
+    const info = (d) => ({vendorId: d.vendorId, productId: d.productId, productName: d.productName || null});
+    // The browser hands back the same HIDDevice object from requestDevice/getDevices, so dedup to one id and
+    // refcount it — a handle's close() only tears the device down once every C# handle to it has closed.
+    const put = (device) => {
+        let id = idByDevice.get(device);
+        if (id === undefined) {
+            id = ++nextId;
+            byId.set(id, device);
+            idByDevice.set(device, id);
+            refs.set(id, 1);
+        } else {
+            refs.set(id, (refs.get(id) || 0) + 1);
+        }
+        return {id: id, info: info(device)};
+    };
+    const detach = (id) => {
+        const device = byId.get(id);
+        const listener = listeners.get(id);
+        if (device && listener) {
+            try { device.removeEventListener("inputreport", listener); } catch (e) { /* gone */ }
+        }
+        listeners.delete(id);
+        watchCounts.delete(id);
+    };
+    const evict = (id) => {
+        detach(id);
+        const device = byId.get(id);
+        if (device) {
+            byId.delete(id);
+            idByDevice.delete(device);
+        }
+        refs.delete(id);
+    };
+    // A stale/closed id throws a clear error rather than an opaque "reading 'open' of undefined" TypeError.
+    const dev = (id) => {
+        const device = byId.get(id);
+        if (!device) {
+            throw new Error("HID device handle is closed or unknown (id " + id + ")");
+        }
+        return device;
+    };
+    if ("hid" in navigator && navigator.hid.addEventListener) {
+        navigator.hid.addEventListener("disconnect", (e) => {
+            const id = idByDevice.get(e.device);
+            if (id !== undefined) {
+                evict(id);
+                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskHidDisconnected", id);
+            }
+        });
+    }
+    return {
+        isSupported: () => "hid" in navigator,
+        // navigator.hid.requestDevice resolves with [] on cancel (no rejection); real errors propagate.
+        requestDevices: async (filters) => {
+            if (!("hid" in navigator)) {
+                return [];
+            }
+            return (await navigator.hid.requestDevice({filters: filters || []})).map((d) => put(d));
+        },
+        getDevices: async () => {
+            if (!("hid" in navigator)) {
+                return [];
+            }
+            return (await navigator.hid.getDevices()).map((d) => put(d));
+        },
+        open: (id) => dev(id).open(),
+        close: async (id) => {
+            const device = byId.get(id);
+            if (!device) {
+                return;
+            }
+            const remaining = (refs.get(id) || 1) - 1;
+            if (remaining > 0) {
+                refs.set(id, remaining); // other C# handles still hold this device open
+                return;
+            }
+            evict(id);
+            try { await device.close(); } catch (e) { /* already closed */ }
+        },
+        sendReport: (id, reportId, base64) => dev(id).sendReport(reportId, fromB64(base64)),
+        sendFeatureReport: (id, reportId, base64) => dev(id).sendFeatureReport(reportId, fromB64(base64)),
+        receiveFeatureReport: async (id, reportId) => dataB64(await dev(id).receiveFeatureReport(reportId)),
+        watch: (id) => {
+            const device = dev(id);
+            const count = watchCounts.get(id) || 0;
+            if (count === 0) {
+                const listener = (e) => {
+                    window.DotNet.invokeMethodAsync(
+                        "Rask.Wasm", "RaskHidInputReport", id, e.reportId, dataB64(e.data));
+                };
+                listeners.set(id, listener);
+                device.addEventListener("inputreport", listener);
+            }
+            watchCounts.set(id, count + 1);
+        },
+        unwatch: (id) => {
+            const remaining = (watchCounts.get(id) || 0) - 1;
+            if (remaining > 0) {
+                watchCounts.set(id, remaining);
+                return;
+            }
+            detach(id); // last watch — drop the shared inputreport listener
+        }
+    };
+})();
