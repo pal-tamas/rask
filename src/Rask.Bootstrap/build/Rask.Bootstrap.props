@@ -1,7 +1,20 @@
 <Project>
+
+  <!-- The Static Web Assets SDK normally auto-generates this build/$(PackageId).props to import the
+       static-web-asset wiring. We provide it ourselves (StaticWebAssetsDisableProjectBuildPropsFileGeneration
+       in the csproj) so we can ALSO contribute the global usings below — the SDK-documented extension
+       point. These imports must stay, or NuGet consumers won't get the bundled CSS/icons. They are
+       guarded by Exists() because Directory.Build.props imports THIS file in-repo (for the usings),
+       where the sibling SDK props live only in the packed layout, not on disk. -->
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssets.props')"/>
+  <Import Project="$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Microsoft.AspNetCore.StaticWebAssetEndpoints.props')"/>
+
   <ItemGroup>
     <Using Include="Rask.Bootstrap"/>
     <!-- Auto-generated Bs* component factories live in Rask.Bootstrap.Generated. -->
     <Using Include="Rask.Bootstrap.Generated" Static="true"/>
   </ItemGroup>
+
 </Project>

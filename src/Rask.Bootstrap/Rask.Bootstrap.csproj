@@ -19,6 +19,13 @@
     <!-- This library is consumed from WASM (net10.0-browser) too, so it must stay free of any
          ASP.NET Core framework reference — the Razor SDK does not add one unless Razor components
          are used, and none are. -->
+
+    <!-- Provide build/Rask.Bootstrap.props ourselves instead of letting the Static Web Assets SDK
+         auto-generate it, so the same file can carry our global usings AND import the static-web-asset
+         wiring. The SDK still emits build/Microsoft.AspNetCore.StaticWebAssets*.props (which our file
+         imports) plus the buildMultiTargeting/buildTransitive shims that import our build/ file.
+         Without this, both files claim build/Rask.Bootstrap.props and pack fails with NU5118. -->
+    <StaticWebAssetsDisableProjectBuildPropsFileGeneration>true</StaticWebAssetsDisableProjectBuildPropsFileGeneration>
   </PropertyGroup>
 
   <ItemGroup>

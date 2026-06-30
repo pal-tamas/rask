@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-06-30
+
 ### Added
 - **Rask.Bootstrap — typed Bootstrap 5.3 component library (new optional package).** Discoverable C#
   factories that emit correct Bootstrap markup, with typed enums replacing stringly-typed variants
@@ -242,8 +244,6 @@ them until tagged releases begin.
   one `IUsbDevice` handle tore down a device a second handle still held (subsequent calls threw "device handle
   is closed or unknown"). The shared device is now ref-counted — it closes only once every handle to it has
   been disposed.
-
-## [0.11.0] - 2026-06-29
 
 ### Added
 - **[Browser APIs overview](docs/browser-apis.md)** — a new guide mapping the whole typed browser-API
