@@ -138,6 +138,12 @@ them until tagged releases begin.
   Server and WASM. New `/browser/mutation` showcase page.
 
 ### Fixed
+- **Device notification fan-out hardening (`IHid` / `IBluetooth`)** — when several watchers subscribe to one
+  HID device / BLE characteristic, each pushed value/report is now delivered as its own `byte[]` copy (a
+  mutating callback can no longer corrupt another subscriber's bytes), and each callback is isolated so one
+  that throws no longer starves the rest of the fan-out. Documented that a Bluetooth device handle is shared
+  per physical device (`RequestDeviceAsync`/`GetDevicesAsync` return the same instance — dispose from a single
+  owner).
 - **Web Serial (`ISerial`) byte marshalling** — `WriteAsync` and the inbound read loop sent raw `byte[]`
   across the WASM JS bridge, which doesn't carry byte arrays (the base `JSRuntime`'s `ByteArrayJsonConverter`
   expects Blazor's byte-array side-channel that the bridge doesn't implement), so writes shipped no usable

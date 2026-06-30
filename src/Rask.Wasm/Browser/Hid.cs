@@ -133,7 +133,7 @@ public static class HidInterop
     [JSInvokable("RaskHidInputReport")]
     public static async Task Input(int deviceId, int reportId, string base64)
     {
-        HidInputReport? report = null;
+        byte[]? decoded = null;
         foreach (var w in Watchers.Values)
         {
             if (w.DeviceId != deviceId)
@@ -141,8 +141,12 @@ public static class HidInterop
                 continue;
             }
 
-            report ??= new HidInputReport(reportId, Convert.FromBase64String(base64));
-            await w.OnReport(report);
+            decoded ??= Convert.FromBase64String(base64);
+            // Each subscriber gets its own copy (a mutating callback must not corrupt the others' bytes), and
+            // one throwing callback must not starve the rest of the fan-out.
+            var report = new HidInputReport(reportId, (byte[])decoded.Clone());
+            try { await w.OnReport(report); }
+            catch { /* a subscriber's own failure is its concern */ }
         }
     }
 
@@ -155,7 +159,8 @@ public static class HidInterop
             // Remove on unplug (the device is gone) so the callback — and the component it captures — is released.
             if (entry.Value.DeviceId == deviceId && Watchers.TryRemove(entry.Key, out var w) && w.OnDisconnect is not null)
             {
-                await w.OnDisconnect();
+                try { await w.OnDisconnect(); }
+                catch { /* isolate subscribers */ }
             }
         }
     }
