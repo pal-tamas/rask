@@ -55,4 +55,5 @@ host.Services.AddSingleton(new ShowcaseNavEntry("/media-devices", "Camera & mic"
 host.Services.AddSingleton(new ShowcaseNavEntry("/serial", "Serial port", "bi-usb-symbol", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/usb", "USB device", "bi-usb-drive", "PWA"));
 host.Services.AddSingleton(new ShowcaseNavEntry("/hid", "HID device", "bi-controller", "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry("/bluetooth", "Bluetooth", "bi-bluetooth", "PWA"));
 await host.RunAsync<App>();

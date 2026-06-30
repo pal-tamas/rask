@@ -70,6 +70,7 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<ISerial, Serial>();
         Services.AddSingleton<IUsb, Usb>();
         Services.AddSingleton<IHid, Hid>();
+        Services.AddSingleton<IBluetooth, Bluetooth>();
         Services.AddSingleton<IInstallPrompt, InstallPrompt>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
