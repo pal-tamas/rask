@@ -28,19 +28,11 @@ public sealed class DisposalPage : Component
             "Mount, then unmount. The probe's ", Code()["Dispose()"],
             " runs synchronously as the parent's diff removes it from the tree."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "dispose-sync-mount",
-                        Disabled: _syncMounted,
-                        OnClick: MountSync)[I(Class: "bi bi-play-circle me-1"), "Mount sync probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "dispose-sync-unmount",
-                        Disabled: !_syncMounted,
-                        OnClick: UnmountSync)[I(Class: "bi bi-stop-circle me-1"), "Unmount sync probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount sync probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-sync-unmount", Disabled: !_syncMounted, OnClick: UnmountSync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount sync probe"]
                 ],
                 _syncMounted
                     ? DisposableTimerProbe(AppendSyncLog, _nextSyncId)
@@ -57,19 +49,11 @@ public sealed class DisposalPage : Component
             "The async variant: the framework awaits ", Code()["DisposeAsync()"],
             " on its own dispatch path. The log entry shows up after the next render cycle resolves the continuation."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "dispose-async-mount",
-                        Disabled: _asyncMounted,
-                        OnClick: MountAsync)[I(Class: "bi bi-play-circle me-1"), "Mount async probe"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "dispose-async-unmount",
-                        Disabled: !_asyncMounted,
-                        OnClick: UnmountAsync)[I(Class: "bi bi-stop-circle me-1"), "Unmount async probe"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount async probe"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "dispose-async-unmount", Disabled: !_asyncMounted, OnClick: UnmountAsync)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Unmount async probe"]
                 ],
                 _asyncMounted
                     ? DisposableAsyncProbe(AppendAsyncLog, _nextAsyncId)
@@ -77,8 +61,8 @@ public sealed class DisposalPage : Component
                 LogList(_asyncLog, "dispose-async-log")
             ]
         ],
-        Div(Class: "alert alert-warning d-flex align-items-start mt-3")[
-            I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
+            BsIcon(Name: BsIconName.ExclamationTriangleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Order:"],
                 " disposal walks children depth-first, then cancels the parent's lifetime token, then invokes Dispose / DisposeAsync on the parent. ",
@@ -97,19 +81,11 @@ public sealed class DisposalPage : Component
             ") and reserve ", Code()["IDisposable"],
             " for things you would dispose anyway in non-Rask code (file handles, HTTP responses, DB connections)."
         ],
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex gap-2 mb-3")[
-                    Button(
-                        Class: "btn btn-primary btn-sm",
-                        Id: "unmount-hook-mount",
-                        Disabled: _hookMounted,
-                        OnClick: MountHook)[I(Class: "bi bi-play-circle me-1"), "Start ticker"],
-                    Button(
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "unmount-hook-unmount",
-                        Disabled: !_hookMounted,
-                        OnClick: UnmountHook)[I(Class: "bi bi-stop-circle me-1"), "Stop ticker"]
+                    BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Start ticker"],
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "unmount-hook-unmount", Disabled: !_hookMounted, OnClick: UnmountHook)[BsIcon(Name: BsIconName.StopCircle, Class: "me-1"), "Stop ticker"]
                 ],
                 _hookMounted
                     ? UnmountTimerProbe(AppendHookLog, _nextHookId)

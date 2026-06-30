@@ -157,7 +157,6 @@ public static class RaskEndpointExtensions
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
             LiveOptions.PathBase = liveOptions.PathBase;
-            LiveOptions.PreloadScopedAssets = liveOptions.PreloadScopedAssets;
             // Session cap is a per-store instance value (not a static) so concurrent
             // hosts/tests don't clobber each other through global state.
             maxSessions = liveOptions.MaxSessions;
@@ -1573,10 +1572,24 @@ public static class RaskEndpointExtensions
         // Set headers before invoking Results.Bytes so they are present on the response.
         ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
         ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        ctx.Response.Headers.Vary = "Accept-Encoding";
 
         var contentType = kind == AssetKind.Css
             ? "text/css; charset=utf-8"
             : "text/javascript; charset=utf-8";
+
+        // Negotiate br/gzip. The asset is immutable + content-addressed, so each compressed
+        // representation is built once and cached (ScopedAssetCompression). The compressed path sets
+        // Content-Encoding + an encoding-suffixed ETag; identity keeps Range support.
+        var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
+        if (encoding is not null
+            && ScopedAssetCompression.GetEncoded(hash, kind, encoding) is { } enc)
+        {
+            ctx.Response.Headers.ContentEncoding = encoding;
+            return Results.Bytes(enc.Bytes, contentType,
+                    entityTag: new EntityTagHeaderValue(enc.Etag))
+                .ExecuteAsync(ctx);
+        }
 
         // Results.Bytes wires ETag → If-None-Match (304), HEAD body suppression, and
         // Range request handling (206/416) when enableRangeProcessing is true.

@@ -40,8 +40,8 @@ public sealed class ElementsFormsDemo : Component
             ]
         ],
         Div()[
-            Button("submit", Class: "btn btn-primary btn-sm")["Submit"], " ",
-            Button("reset", Class: "btn btn-outline-secondary btn-sm")["Reset"]
+            BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm)["Submit"], " ",
+            BsButton(Type: "reset", Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm)["Reset"]
         ]
     ];
 }

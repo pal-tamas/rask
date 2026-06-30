@@ -223,10 +223,16 @@ public sealed class BakeScopedAssetsTask : Task
             }
         }
 
-        var enumerateAll = registryType.GetMethod("EnumerateAll", BindingFlags.Static | BindingFlags.Public);
-        if (enumerateAll is null)
+        // The runtime emits a single <link>/<script> per kind at the concatenated bundle's content
+        // hash, so the bake materialises exactly those two files — GetBundleHash + GetByHash are the
+        // same registry methods the runtime calls, so the on-disk file name matches the URL the
+        // browser requests byte-for-byte.
+        var assetKindType = registryType.Assembly.GetType("Rask.Core.ScopedAssets.AssetKind", false);
+        var getBundleHash = registryType.GetMethod("GetBundleHash", BindingFlags.Static | BindingFlags.Public);
+        var getByHash = registryType.GetMethod("GetByHash", BindingFlags.Static | BindingFlags.Public);
+        if (assetKindType is null || getBundleHash is null || getByHash is null)
         {
-            Log.LogWarning("Rask asset bake: ScopedAssetRegistry.EnumerateAll not found — registry API mismatch.");
+            Log.LogWarning("Rask asset bake: ScopedAssetRegistry bundle API not found — registry API mismatch.");
             return 0;
         }
 
@@ -234,21 +240,25 @@ public sealed class BakeScopedAssetsTask : Task
         Directory.CreateDirectory(outDir);
 
         var written = 0;
-        var entries = (IEnumerable)enumerateAll.Invoke(null, null)!;
-        foreach (var entry in entries)
+        foreach (var (kindName, ext) in new[] { ("Css", "css"), ("Js", "js") })
         {
-            var entryType = entry.GetType();
-            var hash = (string)entryType.GetProperty("Hash")!.GetValue(entry)!;
-            var kind = entryType.GetProperty("Kind")!.GetValue(entry)!.ToString()!;
-            var utf8 = entryType.GetProperty("Utf8")!.GetValue(entry)!;
-            // ReadOnlyMemory<byte> → byte[]
-            var toArray = utf8.GetType().GetMethod("ToArray")!;
-            var bytes = (byte[])toArray.Invoke(utf8, null)!;
+            var kind = Enum.Parse(assetKindType, kindName);
+            var hash = (string)getBundleHash.Invoke(null, new[] { kind })!;
+            if (string.IsNullOrEmpty(hash))
+            {
+                continue; // no registered asset of this kind — no bundle file.
+            }
 
-            // AssetKind enum: lowercase ext matching the existing endpoint route shape.
-            var ext = string.Equals(kind, "Css", StringComparison.OrdinalIgnoreCase) ? "css" : "js";
-            var path = Path.Combine(outDir, hash + "." + ext);
-            File.WriteAllBytes(path, bytes);
+            var assetBytes = getByHash.Invoke(null, new[] { hash, kind });
+            if (assetBytes is null)
+            {
+                continue;
+            }
+
+            var utf8 = assetBytes.GetType().GetProperty("Utf8")!.GetValue(assetBytes)!;
+            // ReadOnlyMemory<byte> → byte[]
+            var bytes = (byte[])utf8.GetType().GetMethod("ToArray")!.Invoke(utf8, null)!;
+            File.WriteAllBytes(Path.Combine(outDir, hash + "." + ext), bytes);
             written++;
         }
 

@@ -57,7 +57,7 @@ public sealed class OrdersPage : Component
                 "Collapsible rows with a nested datagrid. Click a row to reveal its line items in an inner, " +
                 "independently sortable table. Expand/collapse and both grids' sort are held in plain component " +
                 "fields — the deliberate contrast with the URL-driven Data table."),
-            Div(Class: "card shadow-sm border-0")[
+            BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
                 Div(Class: "table-responsive")[
                     Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
                         Thead(Class: "table-light")[
@@ -102,11 +102,7 @@ public sealed class OrdersPage : Component
 
             rows.Add(Tr(Key: order.Id, Class: "md-row")[
                 Td(Style: "width:44px;")[
-                    Button(
-                        "button",
-                        Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                        Data: new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" },
-                        OnClick: () => Toggle(order.Id))[
+                    Button(Class: "btn btn-sm btn-link p-0 text-decoration-none", Data: new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" }, OnClick: () => Toggle(order.Id))[
                         I(Class: open ? "bi bi-chevron-down" : "bi bi-chevron-right")
                     ]
                 ],

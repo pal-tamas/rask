@@ -19,7 +19,7 @@ public sealed class InlineValidateDemo : Component
             return Fragment();
         }
 
-        return Div(Class: "alert alert-danger small mb-0")[
+        return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
             Ul(Class: "mb-0 ps-3")[
                 formOnly.Select((e, i) => Li(Key: i)[e.Message])
             ]
@@ -53,12 +53,12 @@ public sealed class InlineValidateDemo : Component
             ],
             ValidationSummary(SummaryAlert),
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-check2-circle me-1"), "Sign in"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign in"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

@@ -27,14 +27,11 @@ public sealed class LiveTickerPage(Navigator nav) : Component
                 LiveTicker(Symbol, Log: AppendLog)
             ],
             Div(Class: "col-lg-5")[
-                Div(Class: "card border-0 bg-light h-100")[
-                    Div(Class: "card-body")[
+                BsCard(Class: "border-0 bg-light h-100")[
+                    BsCardBody()[
                         Div(Class: "d-flex justify-content-between align-items-baseline mb-3")[
                             H3(Class: "h6 text-secondary text-uppercase small mb-0")["Hook activity"],
-                            Button(
-                                Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                                Id: "ticker-clear-log",
-                                OnClick: ClearLog)["clear"]
+                            BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", Id: "ticker-clear-log", OnClick: ClearLog)["clear"]
                         ],
                         _log.Count == 0
                             ? P(Class: "text-secondary fst-italic small mb-0")[
@@ -63,8 +60,8 @@ public sealed class LiveTickerPage(Navigator nav) : Component
             ["LiveTicker.cs"],
             Notes:
             "OnMountAsync runs a long-lived poll loop. Every await uses ConfigureAwait(false) so the loop doesn't auto-render on each yield; instead it calls StateHasChanged() once per real data change — one render per tick. The inter-tick delay is interruptible: a Symbol switch cancels _wake so the new asset polls immediately. CancellationToken cancels on unmount, breaking the loop. There is no OnRenderedAsync: the chart is a server-rendered SVG (the Sparkline component) emitted straight from Render(), so the framework ships the updated <svg> over the same transport as the rest of the page — zero JavaScript."),
-        Div(Class: "alert alert-info d-flex align-items-start mt-3")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start mt-3")[
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Synthetic feed."],
                 " The poll loop generates a random-walk price locally (with a 50 ms ",

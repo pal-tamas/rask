@@ -43,7 +43,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("Forms", "bi-shield-check", "Validation", "Inline, DataAnnotations, FluentValidation.", "/validation"),
         ("Forms", "bi-input-cursor-text", "Floating labels", "Bootstrap floating labels + validation.", "/floating-labels"),
         ("Forms", "bi-diagram-3", "Complex models", "Nested objects and collections.", "/nested-forms"),
-        ("Forms", "bi-ui-radios", "Radio & checkbox", "RadioGroup and CheckboxGroup.", "/form-groups"),
+        ("Forms", "bi-ui-radios", "Radio & checkbox", "BsRadioGroup and BsCheckboxGroup.", "/form-groups"),
 
         ("Styling", "bi-palette", "Scoped CSS", "Co-located, isolated component styles.", "/scoped-css"),
         ("Styling", "bi-link-45deg", "Asset loading", "Content-addressed scoped assets.", "/asset-loading"),
@@ -84,13 +84,11 @@ public sealed class HomePage(Navigator nav) : Component
                     "every example below renders live in your browser."
                 ],
                 Div(Class: "d-flex flex-wrap gap-2")[
-                    Button(
-                        Class: "btn btn-light btn-lg fw-semibold",
-                        OnClick: () => nav.NavigateTo("/tags"))[I(Class: "bi bi-arrow-right me-2"),
+                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[BsIcon(Name: BsIconName.ArrowRight, Class: "me-2"),
                         "Start with Tags"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
-                        Class: "btn btn-outline-light btn-lg")[I(Class: "bi bi-github me-2"),
+                        Class: "btn btn-outline-light btn-lg")[BsIcon(Name: BsIconName.Github, Class: "me-2"),
                         "Source on GitHub"]
                 ]
             ]
@@ -106,8 +104,8 @@ public sealed class HomePage(Navigator nav) : Component
             "Every page on the left has a runnable demo and the C# source that produced it."
         ],
         Div()[FeatureIndex()],
-        Div(Class: "alert alert-info d-flex align-items-start")[
-            I(Class: "bi bi-info-circle-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
+            BsIcon(Name: BsIconName.InfoCircleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Tip:"],
                 " copy/paste any demo and its source into a fresh Rask project to follow along."
@@ -135,14 +133,12 @@ public sealed class HomePage(Navigator nav) : Component
 
     private Component FeatureCard(string icon, string title, string body, string path) =>
         Div(Class: "col-md-6 col-lg-4", Key: path)[
-            Div(Class: "card h-100 border-0 shadow-sm feature-card")[
-                Div(Class: "card-body p-4")[
+            BsCard(Class: Bs.Join(Sizing.H(100), Border.None, Shadow.Sm, "feature-card"))[
+                BsCardBody(Class: "p-4")[
                     Div(Class: "feature-icon mb-3")[I(Class: $"bi {icon}")],
                     H3(Class: "h6 fw-semibold mb-2")[title],
                     P(Class: "text-secondary small mb-3")[body],
-                    Button(
-                        Class: "btn btn-sm btn-link p-0 text-decoration-none",
-                        OnClick: () => nav.NavigateTo(path))["Explore ", I(Class: "bi bi-arrow-right ms-1")]
+                    BsButton(Size: BsSize.Sm, Class: "btn-link p-0 text-decoration-none", OnClick: () => nav.NavigateTo(path))["Explore ", BsIcon(Name: BsIconName.ArrowRight, Class: "ms-1")]
                 ]
             ]
         ];

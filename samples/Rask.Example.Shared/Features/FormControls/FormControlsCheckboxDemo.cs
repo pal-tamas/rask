@@ -1,9 +1,9 @@
 namespace Rask.Example.Shared.Features;
 
-// CheckboxGroup<TItem> (example control, collection) in both shapes side by side.
+// BsCheckboxGroup<TItem> (example control, collection) in both shapes side by side.
 //   • Controlled — Options + Value + OnChange: the parent owns the selection; OnChange (auto-wrapped)
 //     hands back a fresh collection and re-renders this consumer so the readout updates.
-//   • Bound — CheckboxGroup(() => model.X, options): two-way binds the model collection.
+//   • Bound — BsCheckboxGroup(() => model.X, options): two-way binds the model collection.
 public sealed class FormControlsCheckboxDemo : Component
 {
     private static readonly string[] AllInterests = ["Web", "Mobile", "AI", "Games"];
@@ -15,7 +15,7 @@ public sealed class FormControlsCheckboxDemo : Component
         Div(Class: "row g-4")[
             Div(Class: "col-md-6", Id: "fc-checkbox-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],
-                CheckboxGroup<string>(
+                BsCheckboxGroup<string>(
                     AllInterests,
                     Value: _controlled.ToList(),
                     OnChange: next => _controlled = next,
@@ -28,7 +28,7 @@ public sealed class FormControlsCheckboxDemo : Component
             Div(Class: "col-md-6", Id: "fc-checkbox-bound")[
                 Label(Class: "form-label fw-semibold d-block")["Bound (two-way)"],
                 Form(_model)[
-                    CheckboxGroup(() => _model.Interests, AllInterests, Name: "fc-checkbox-b",
+                    BsCheckboxGroup(() => _model.Interests, AllInterests, Name: "fc-checkbox-b",
                         ItemClass: "form-check-inline")
                 ],
                 P(Class: "small text-secondary mb-0", Id: "fc-checkbox-bound-out")[

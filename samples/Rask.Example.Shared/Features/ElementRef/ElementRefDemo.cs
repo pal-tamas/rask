@@ -22,8 +22,8 @@ public sealed class ElementRefDemo : Component
                 Placeholder: "Focus me from C#",
                 Ref: _input),
             Div(Class: "d-flex gap-2 mb-3")[
-                Button(Class: "btn btn-primary btn-sm", OnClickAsync: FocusInput)["Focus the input"],
-                Button(Class: "btn btn-outline-secondary btn-sm", OnClickAsync: MeasureBox)["Measure the box"]
+                BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClickAsync: FocusInput)["Focus the input"],
+                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClickAsync: MeasureBox)["Measure the box"]
             ],
             Div(Ref: _box, Class: "border rounded p-3 bg-light")[
                 "A box carrying an ElementRef — its width is read by passing the ref to JS."

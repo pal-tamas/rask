@@ -365,10 +365,11 @@ See `samples/Rask.Example.Shared/Features/NestedForms/NestedFormPage.cs` for all
 ## 8. Radio & checkbox groups (example components)
 
 `RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`. They are **example components that ship in the samples**
-(`samples/Rask.Example.Shared/Shared/`), not framework primitives — small, copyable controls built on the
-public binding API of §9, structured exactly like `MultiSelect<TItem>` with **bound** and **controlled**
-modes (so the generator emits their factories):
+`ICollection<TItem>`. Typed, production-ready versions ship in the optional **`Rask.Bootstrap`** package as
+`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect` (see [bootstrap.md](bootstrap.md)). The versions below are
+a **copyable worked example** of the binding API of §9 (`samples/Rask.Example.Shared/Shared/`) — `IFormControl<T>`
+is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
+`MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits their factories):
 
 ```csharp
 // Bound — two-way binds the model, with an optional per-field Validate rule.

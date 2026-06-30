@@ -12,18 +12,17 @@ public sealed class ToastPage : Component
     [
         PageHeader.Render(
             "Toast",
-            "Bootstrap toasts — show, stack, dismiss, place and auto-hide — driven entirely by Rask state. "
-            + "No bootstrap.bundle.js, no data-bs-dismiss, no setTimeout: the live runtime re-renders the markup."),
+            "Bootstrap toasts via Rask.Bootstrap's BsToast — show, stack, dismiss, place and auto-hide — "
+            + "driven entirely by Rask state. No bootstrap.bundle.js, no data-bs-dismiss, no setTimeout."),
         H2(Class: "h4 mt-4 mb-3")["Show, stack, dismiss & auto-hide"],
         CodeSample(
-            ["Toast.cs", "ToastDemo.cs"],
+            ["ToastDemo.cs"],
             Notes:
-            "Bootstrap's toast plugin normally adds the `.show` class, wires `data-bs-dismiss`, and runs a "
-            + "setTimeout for autohide. Here the showcase loads Bootstrap CSS only — Toast is a plain Rask "
-            + "component. It renders `class=\"toast show\"`, so a toast exists in the tree only while visible; "
-            + "the × is a Button whose OnClick fires the OnClose callback (auto-wrapped to re-render the host, "
-            + "which drops it from the list); auto-hide is a one-shot Timer started in OnMount and disposed in "
-            + "OnUnmount, firing the same OnClose. Each toast carries a Key so the keyed diff tracks identity.",
+            "BsToast (from Rask.Bootstrap) renders `class=\"toast show\"`, so a toast exists in the tree only "
+            + "while visible; the × fires OnClose(Id) — an Action<int> the host binds as a method group "
+            + "(OnClose: RemoveToast), so the framework wraps it to re-render the host, which drops it from "
+            + "the list. Auto-hide is a one-shot Timer in OnMount, disposed in OnUnmount. Each toast carries a "
+            + "Key so the keyed diff tracks identity.",
             Result: ToastDemo()),
         H2(Class: "h4 mt-5 mb-3")["How it works"],
         Ul(Class: "text-secondary")[

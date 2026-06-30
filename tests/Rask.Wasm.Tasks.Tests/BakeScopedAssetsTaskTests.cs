@@ -98,11 +98,14 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
         Assert.True(Directory.Exists(outDir), "_rask/a directory should exist after a successful bake");
 
-        var registeredCount = ScopedAssetRegistry.EnumerateAll().Count();
-        Assert.True(registeredCount > 0, "Rask.Example.Shared should register at least one scoped asset");
+        var cssBundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
+        var jsBundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
+        var expectedFiles = (cssBundleHash.Length > 0 ? 1 : 0) + (jsBundleHash.Length > 0 ? 1 : 0);
+        Assert.True(expectedFiles > 0, "Rask.Example.Shared should register at least one scoped asset kind");
 
+        // One concatenated bundle file per kind (css + js), not one per component.
         var bakedFiles = Directory.EnumerateFiles(outDir).ToArray();
-        Assert.Equal(registeredCount, bakedFiles.Length);
+        Assert.Equal(expectedFiles, bakedFiles.Length);
     }
 
     [Fact]
@@ -115,14 +118,19 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         task.Execute();
 
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
-        var entries = ScopedAssetRegistry.EnumerateAll().ToList();
-        foreach (var entry in entries)
+        foreach (var (kind, ext) in new[] { (AssetKind.Css, "css"), (AssetKind.Js, "js") })
         {
-            var ext = entry.Kind == AssetKind.Css ? "css" : "js";
-            var expected = Path.Combine(outDir, entry.Hash + "." + ext);
-            Assert.True(File.Exists(expected), $"missing baked file at {expected}");
-            var written = File.ReadAllBytes(expected);
-            Assert.Equal(entry.Utf8.ToArray(), written);
+            var hash = ScopedAssetRegistry.GetBundleHash(kind);
+            if (hash.Length == 0)
+            {
+                continue;
+            }
+
+            var expected = Path.Combine(outDir, hash + "." + ext);
+            Assert.True(File.Exists(expected), $"missing baked bundle at {expected}");
+            var bundle = ScopedAssetRegistry.GetByHash(hash, kind);
+            Assert.NotNull(bundle);
+            Assert.Equal(bundle!.Value.Utf8.ToArray(), File.ReadAllBytes(expected));
         }
     }
 

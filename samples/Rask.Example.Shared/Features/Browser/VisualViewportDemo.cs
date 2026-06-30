@@ -9,9 +9,9 @@ public sealed class VisualViewportDemo(IVisualViewport viewport) : Component
     private string? _status;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0")[
-            Div(Class: "card-body")[
-                Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "vv-read", OnClickAsync: Read)[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            BsCardBody()[
+                BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "vv-read", OnClickAsync: Read)[
                     "Read visual viewport"],
                 Div(Class: "small text-secondary")["Viewport: ", Code(Id: "vv-value")[_value ?? "(not requested)"]],
                 Div(Class: "small text-secondary")["Status: ", Code(Id: "vv-status")[_status ?? "(idle)"]]

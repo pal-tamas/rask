@@ -16,7 +16,7 @@ public sealed class FluentValidationAsyncDemo : Component
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
-            I(Class: "bi bi-arrow-clockwise me-1"), "Checking availability..."
+            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking availability..."
         ];
 
     protected override RenderResult Render() =>
@@ -33,12 +33,12 @@ public sealed class FluentValidationAsyncDemo : Component
                 ValidationMessage(() => _model.Code, FieldError)
             ],
             Div()[
-                Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-ticket-perforated me-1"), "Reserve"]
+                BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.TicketPerforated, Class: "me-1"), "Reserve"]
             ]
         ],
         _submission is null
             ? Fragment()
-            : Div(Class: "alert alert-success small mt-3 mb-0")[I(Class: "bi bi-check-circle me-2"), _submission]
+            : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }
 

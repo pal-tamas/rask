@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Features.Generated;
@@ -7,6 +8,74 @@ namespace Rask.Example.Shared.Tests.Demos;
 
 public sealed class FloatingLabelsDemoTests
 {
+    // A valid submit must re-render the consumer (FloatingLabelsDemo) so its success alert — which
+    // lives OUTSIDE the Form — appears. OnValidSubmit sets the demo's _submission; the Form must
+    // re-render the callback's owner. Regression guard for the submit-success-not-shown bug.
+    [Fact]
+    public async Task ValidSubmit_ShowsSuccessAlert()
+    {
+        var host = new LiveHost(() => FloatingLabelsDemo(), TestServices.Default());
+        var html = host.RenderAsLiveRoot();
+
+        // Populate the model through the live field handlers (the submit bridge validates/invokes
+        // against the live-bound model, not the event payload).
+        await Fill(host, html, "ff-FullName", "Ada Lovelace");
+        await Fill(host, html, "ff-Email", "ada@example.com");
+        await Fill(host, html, "ff-Age", "30");
+        await Fill(host, html, "ff-Plan", "pro");
+
+        await host.TryInvokeHandlerAsync(SubmitHandler(host.RenderAsLiveRoot()), Empty());
+
+        var final = host.RenderAsLiveRoot();
+        Assert.Contains("Created account for Ada Lovelace", final);
+        Assert.Contains("alert-success", final);
+    }
+
+    private static async Task Fill(LiveHost host, string html, string id, string value)
+    {
+        foreach (var attr in new[] { "data-rask-on-input", "data-rask-on-change" })
+        {
+            var hid = TryAttrOnTagWith(html, $"id=\"{id}\"", attr);
+            if (hid is not null)
+            {
+                using var v = JsonDocument.Parse($"{{\"value\":\"{value}\"}}");
+                await host.TryInvokeHandlerAsync(hid, v.RootElement);
+            }
+        }
+    }
+
+    private static JsonElement Empty()
+    {
+        using var doc = JsonDocument.Parse("{}");
+        return doc.RootElement.Clone();
+    }
+
+    private static string SubmitHandler(string html)
+    {
+        const string marker = "data-rask-on-submit=\"";
+        var i = html.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(i >= 0, "no form submit handler");
+        i += marker.Length;
+        return html[i..html.IndexOf('"', i)];
+    }
+
+    private static string? TryAttrOnTagWith(string html, string anchor, string attr)
+    {
+        var marker = attr + "=\"";
+        foreach (var tag in html.Split('<'))
+        {
+            if (!tag.Contains(anchor, StringComparison.Ordinal) || !tag.Contains(marker, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var s = tag.IndexOf(marker, StringComparison.Ordinal) + marker.Length;
+            return tag[s..tag.IndexOf('"', s)];
+        }
+
+        return null;
+    }
+
     [Fact]
     public void FloatingLabelsDemo_Render_EmitsFloatingFieldsAndLinkedLabels()
     {

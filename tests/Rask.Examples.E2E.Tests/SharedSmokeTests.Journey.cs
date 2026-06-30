@@ -57,6 +57,7 @@ public abstract partial class SharedSmokeTests
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
+        await WalkBootstrapPagesAsync();
 
         await TestInSessionNotFoundAsync();
 
@@ -81,14 +82,39 @@ public abstract partial class SharedSmokeTests
         await AssertNoGlobalCrashAsync();
     }
 
-    // The framework's root error boundary renders a "Something went wrong" shell when an error
-    // escapes every user boundary. Outside the deliberate /boom demos it must never appear.
+    // The framework's root error boundary renders its "Something went wrong" shell — a div with the
+    // distinctive .rask-error-boundary class (DefaultErrorPage) — when an error escapes every user
+    // boundary. Outside the deliberate /boom demos it must never appear. Match that class precisely:
+    // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
+    // merely contains the phrase — e.g. the Toast demo's CodeSample shows ToastDemo.cs source whose
+    // "Danger" toast message is literally "Something went wrong.".
     private async Task AssertNoGlobalCrashAsync() =>
-        Assert.Equal(0, await Page.Locator(
-            ".rask-error-boundary:has-text(\"Something went wrong\"), main:has-text(\"Something went wrong\")")
-            .CountAsync());
+        Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
     // ---- page walk -----------------------------------------------------------------------------
+
+    // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
+    // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
+    // the modal opens and closes purely through Rask's live runtime.
+    private async Task WalkBootstrapPagesAsync()
+    {
+        await SideAsync("Buttons & badges", "Buttons & badges");
+        // Bootstrap CSS applied: the .btn has Bootstrap's padding (non-zero), proving _content served.
+        var btn = Page.Locator(".sample-result-body button.btn.btn-primary").First;
+        await Expect(btn).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // Modal — open + close driven by Rask state, no bootstrap.js loaded.
+        await SideAsync("Modal", "Modal");
+        await Page.Locator(".sample-result-body button:has-text(\"Launch demo modal\")").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Page.Locator("div.modal .btn-close").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        await SideAsync("Tabs & accordion", "Tabs & accordion");
+        await SideAsync("Utility classes", "Utility classes");
+    }
 
     private async Task WalkDslAndComponentPagesAsync()
     {
@@ -544,7 +570,7 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Multi-select: the reusable MultiSelect<T> dropdown binds to an ICollection — open it (server
+        // Multi-select: the reusable BsMultiSelect<T> dropdown binds to an ICollection — open it (server
         // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
         // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
         await SideAsync("Multi-select", "Multi-select");
@@ -567,7 +593,7 @@ public abstract partial class SharedSmokeTests
         await multi.Locator(".position-fixed").ClickAsync();
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
-        // Controlled MultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
+        // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
         // and the parent's summary updates — again with no StateHasChanged.
         var controlled = Page.Locator("#ms-controlled");
         await controlled.Locator(".form-select").ClickAsync();
@@ -581,8 +607,8 @@ public abstract partial class SharedSmokeTests
 
         // Form controls page: every control in controlled (Value + OnChange) and bound (two-way) shape,
         // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
-        // with no StateHasChanged in the demo — including the Component-style controls (RadioGroup /
-        // CheckboxGroup / MultiSelect) whose bound writes re-render the host via the binding owner.
+        // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
+        // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
         await SideAsync("Form controls", "Form controls");
 
         // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
@@ -598,17 +624,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#fc-input-bound-out")).ToContainTextAsync("neo",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // RadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
+        // BsRadioGroup — bound (Component control): the derived readout sits OUTSIDE the Form yet updates.
         await Page.Locator("input[type=radio][name='fc-radio-b'][value='Team']").CheckAsync();
         await Expect(Page.Locator("#fc-radio-bound-out")).ToContainTextAsync("Team",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // CheckboxGroup — controlled.
+        // BsCheckboxGroup — controlled.
         await Page.Locator("input[type=checkbox][name='fc-checkbox-c'][value='AI']").CheckAsync();
         await Expect(Page.Locator("#fc-checkbox-controlled-out")).ToContainTextAsync("AI",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // MultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
+        // BsMultiSelect — bound: open, pick a topic, the readout outside the Form updates; then close so the
         // backdrop doesn't intercept later navigation.
         var fcMulti = Page.Locator("#fc-multiselect-bound");
         await fcMulti.Locator(".form-select").ClickAsync();
@@ -668,44 +694,20 @@ public abstract partial class SharedSmokeTests
         Assert.Contains("\"bounded\":true", navScroll);
         Assert.Contains("\"scrollable\":true", navScroll);
 
-        // Asset loading: per-component content-addressed <link>s, a JS-only <script>, and lazy
-        // mount adding/removing a link via the keyed head-morph.
+        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle (a single <link> +
+        // <script>), so every component's styles are present up front — a later mount is styled
+        // immediately, with no FOUC and no extra <link>.
         await SideAsync("Asset loading", "Asset loading", "main h1.h3");
         var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
-        Assert.True(await Page.Locator(cssLinkSel).CountAsync() >= 3, "expected >=3 per-component CSS links");
-        Assert.True(await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync() >= 1,
-            "expected >=1 JS-only script");
-        // Each section is now a CodeSample: source beside the live result. Assert all four cards mount
-        // (the scoped-asset live results above are the CodeSample Result panes).
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
+        // Each section is a CodeSample: source beside the live result.
         Assert.True(await Page.Locator("main .sample-card").CountAsync() >= 4,
             "expected >=4 CodeSample cards on the asset-loading page");
-        var beforeLazy = await Page.Locator(cssLinkSel).CountAsync();
-        // Warm-up toggle: LazyChild is never instantiated until shown, so its scoped stylesheet
-        // (.lazy-child → #fff4d6) is not among the page-load prefetches. Mount it once and unmount
-        // it to load + cache LazyChild.css, so the *measured* mount below hits a warm cache. The
-        // no-FOUC guard's contract is "no flash once the sheet is available" (it preloads the
-        // <link> and holds the body paint until .sheet applies, bounded by a 500ms cap so a
-        // pathologically slow sheet shows a brief flash rather than stalling navigation); warming
-        // first asserts the guard deterministically instead of racing that cap on a slow runner.
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
-        // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph must
-        // keep that one element (not duplicate it) and remove it on unmount. Assert the per-
-        // component link count returns to its pre-mount value — guards clone accumulation.
-        await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // Measured mount (warm cache): assert the fix's deterministic contract — the scoped
-        // stylesheet's rule is APPLIED in the CSSOM at the instant .lazy-child is inserted into
-        // the DOM. The runtime preloads the <link> and awaits its `.sheet` before the body morph,
-        // so the rule is live before the styled node exists and the browser paints it styled.
-        // (getComputedStyle is NOT used: a freshly recalc'd element can read its pre-application
-        // value for a frame even when the sheet is applied and no flash actually paints — that
-        // measurement artifact is unrelated to FOUC.) Without the fix the <link> would parse on a
-        // later task, so the rule would be absent at insertion (sheetAppliedAtInsert === false).
+        // LazyChild's scoped CSS already rides the bundle, so a measured mount adds no <link> and the
+        // rule (.lazy-child → #fff4d6) is APPLIED in the CSSOM at the instant the node is inserted —
+        // no flash. Observe the mutation rather than getComputedStyle: a freshly recalc'd element can
+        // read its pre-application value for a frame even when the sheet is applied.
         await Page.EvaluateAsync(@"() => {
             window.__raskLazyApplied = null;
             const obs = new MutationObserver(() => {
@@ -726,19 +728,16 @@ public abstract partial class SharedSmokeTests
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.True(await Page.Locator(cssLinkSel).CountAsync() > beforeLazy, "lazy mount should add a CSS link");
+        // No new scoped <link> — the bundle already carries LazyChild.css.
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
         await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
-        var lazySheetApplied = await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true");
-        Assert.True(lazySheetApplied,
-            "scoped stylesheet must be applied before .lazy-child is inserted (no FOUC)");
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
+            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
         await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
-        // The no-FOUC preload appends a clone of the new scoped <link>; the keyed head-morph
-        // must keep that one element (not duplicate it) and remove it on unmount. Assert the
-        // per-component link count returns to its pre-mount value — guards clone accumulation.
-        await Expect(Page.Locator(cssLinkSel)).ToHaveCountAsync(beforeLazy,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // The single bundle <link> stays one element across mount/unmount.
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
 
         // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.
         await SideAsync("HttpClient + DI", "HttpClient + DI");

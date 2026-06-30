@@ -50,7 +50,7 @@ public sealed class HttpFetchDemo(HttpClient http) : Component
     {
         if (_error is not null)
         {
-            return Div(Class: "alert alert-danger mb-0")[
+            return BsAlert(Color: BsColor.Danger, Class: "mb-0")[
                 Strong()["Error: "], _error
             ];
         }
@@ -64,7 +64,7 @@ public sealed class HttpFetchDemo(HttpClient http) : Component
         }
 
         return Article(Class: "card border-0 bg-light")[
-            Div(Class: "card-body")[
+            BsCardBody()[
                 Div(Class: "small text-secondary text-uppercase mb-1")[$"Post #{_post.Id}"],
                 H3(Class: "h6 fw-semibold")[_post.Title],
                 P(Class: "mb-0 small")[_post.Body]

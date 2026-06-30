@@ -35,10 +35,7 @@ public sealed class BoomRenderDemo : Component
             }))[
             Div(Class: "p-3 border rounded bg-white", Id: "boom-render-host")[
                 P(Class: "text-secondary small mb-2")["Healthy. Click below to make my next render throw."],
-                Button(
-                    Class: "btn btn-warning",
-                    Id: "boom-render-trigger",
-                    OnClick: () => _throwOnRender = true)[I(Class: "bi bi-bug me-2"), "Throw on next render"],
+                BsButton(Color: BsColor.Warning, Id: "boom-render-trigger", OnClick: () => _throwOnRender = true)[BsIcon(Name: BsIconName.Bug, Class: "me-2"), "Throw on next render"],
 #pragma warning disable RASK014
                 // Intentionally bypass the factory: RenderThrower is [SkipFactory] and
                 // exists only to demonstrate that a descendant whose Render() throws is
@@ -49,16 +46,13 @@ public sealed class BoomRenderDemo : Component
         ];
 
     private static Child BoundaryFallback(Exception ex, Callback recover) =>
-        Div(Class: "alert alert-danger d-flex align-items-start", Id: "boom-fallback")[
-            I(Class: "bi bi-exclamation-octagon-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Danger, Class: "d-flex align-items-start", Id: "boom-fallback")[
+            BsIcon(Name: BsIconName.ExclamationOctagonFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Boundary caught: "],
                 Code(Class: "ms-1")[ex.GetType().Name],
                 P(Class: "mb-2 mt-1 small")[ex.Message],
-                Button(
-                    Class: "btn btn-sm btn-outline-secondary",
-                    Id: "boom-recover",
-                    OnClick: recover)[I(Class: "bi bi-arrow-counterclockwise me-1"), "Recover"]
+                BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "boom-recover", OnClick: recover)[BsIcon(Name: BsIconName.ArrowCounterclockwise, Class: "me-1"), "Recover"]
             ]
         ];
 

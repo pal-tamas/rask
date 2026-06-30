@@ -19,14 +19,10 @@ public sealed class App : Component
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
         Link(Rel: "icon", Type: "image/svg+xml", Href: LiveOptions.PathBase + "/img/rask-mark.svg"),
-        // Vendored locally under wwwroot/lib and served from the app's own origin.
-        // LiveOptions.PathBase keeps the URLs correct under a reverse-proxy prefix
-        // (Server) or a sub-path deploy like GitHub Pages (WASM) — same prefix the
-        // framework prepends to its own /_rask/a/{hash} scoped-asset links.
-        Link(Rel: "stylesheet",
-            Href: LiveOptions.PathBase + "/lib/bootstrap/bootstrap.min.css"),
-        Link(Rel: "stylesheet",
-            Href: LiveOptions.PathBase + "/lib/bootstrap-icons/bootstrap-icons.min.css"),
+        // Bootstrap 5.3 + Bootstrap Icons, delivered by the Rask.Bootstrap package as static web
+        // assets under _content/Rask.Bootstrap (PathBase-aware). This dogfoods the package's own
+        // BootstrapStyles() helper instead of vendoring the CSS per app.
+        BootstrapStyles(),
         // Brand palette + global cascade. Plain wwwroot stylesheet (not a scoped {Component}.css)
         // because every rule targets :root, Bootstrap classes, or shell tags — things this
         // component never stamps a scope id on. Linked here so it loads before the scoped links.

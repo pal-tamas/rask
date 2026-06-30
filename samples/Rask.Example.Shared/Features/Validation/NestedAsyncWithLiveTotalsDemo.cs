@@ -38,7 +38,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
-            I(Class: "bi bi-arrow-clockwise me-1"), "Checking delivery zone…"
+            BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking delivery zone…"
         ];
 
     private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
@@ -160,13 +160,13 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div()[
-                    Button("submit", Class: "btn btn-primary")[I(Class: "bi bi-credit-card me-1"), "Pay"]
+                    BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.CreditCard, Class: "me-1"), "Pay"]
                 ]
             ],
             _submission is null
                 ? Fragment()
                 : Div(Id: "v-nlive-submission", Class: "alert alert-success small mt-3 mb-0")[
-                    I(Class: "bi bi-check-circle me-2"), _submission
+                    BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission
                 ]
         ];
     }

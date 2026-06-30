@@ -14,23 +14,23 @@ public sealed class TagsPage : Component
             "Tag factories",
             "Every standard HTML element has a generator-emitted factory in Rask.Core.Components.Generated. " +
             "Tag-specific attributes come first; the universal Id/Class/Style/Data trail at the end."),
-        H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-fonts text-accent me-2"), "Text & semantic"],
+        H2(Class: "h4 mt-5 mb-3")[BsIcon(Name: BsIconName.Fonts, Class: "text-accent me-2"), "Text & semantic"],
         CodeSample(
             ["TagsTextDemo.cs"],
             Result: TagsTextDemo()),
-        H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-input-cursor-text text-accent me-2"), "Forms"],
+        H2(Class: "h4 mt-5 mb-3")[BsIcon(Name: BsIconName.InputCursorText, Class: "text-accent me-2"), "Forms"],
         CodeSample(
             ["TagsFormDemo.cs"],
             Result: TagsFormDemo()),
-        H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-table text-accent me-2"), "Tables"],
+        H2(Class: "h4 mt-5 mb-3")[BsIcon(Name: BsIconName.Table, Class: "text-accent me-2"), "Tables"],
         CodeSample(
             ["TagsTableDemo.cs"],
             Result: TagsTableDemo()),
-        H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-image text-accent me-2"), "Media"],
+        H2(Class: "h4 mt-5 mb-3")[BsIcon(Name: BsIconName.Image, Class: "text-accent me-2"), "Media"],
         CodeSample(
             ["TagsMediaDemo.cs"],
             Result: TagsMediaDemo()),
-        H2(Class: "h4 mt-5 mb-3")[I(Class: "bi bi-dash-circle text-accent me-2"), "Void elements"],
+        H2(Class: "h4 mt-5 mb-3")[BsIcon(Name: BsIconName.DashCircle, Class: "text-accent me-2"), "Void elements"],
         CodeSample(
             ["TagsVoidDemo.cs"],
             Notes:

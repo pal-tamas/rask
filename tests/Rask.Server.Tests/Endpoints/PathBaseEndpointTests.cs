@@ -95,7 +95,7 @@ public sealed class PathBaseEndpointTests
         // not the legacy "/_rask/a/..." path. End-to-end check that LiveOptions.PathBase
         // assignment at UseRask time propagates into the head emission on first paint.
         ScopedAssetRegistry.RegisterCss(typeof(TestApp), ".test { color: blue; }");
-        ScopedAssetRegistry.TryGetCss(typeof(TestApp), out var hash);
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
         var response = await host.Http.GetAsync("/appA/");

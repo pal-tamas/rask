@@ -44,6 +44,7 @@ Or add to an existing project:
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
+dotnet add package Rask.Bootstrap          # optional: typed Bootstrap 5.3 components
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 ```
 
@@ -60,6 +61,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.
 - **Tiny live updates** — a minimal edit-op diff ships instead of the whole page.
 - **Slow-link aware** — WASM boot shows download progress; a slow Server round-trip surfaces a pending bar.
+- **Optional typed Bootstrap** — `Rask.Bootstrap` adds typed Bootstrap 5.3 factories (`BsButton`/`BsCard`/`BsModal`/…), `IFormControl<T>`-bound inputs, a typed `BsIcon`, and typed utility classes, with interactive components driven by the live runtime — no JavaScript. See [docs/bootstrap.md](https://github.com/pal-tamas/rask/blob/main/docs/bootstrap.md).
 
 ## Links
 

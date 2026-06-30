@@ -29,7 +29,7 @@ public sealed class UnmountTimerProbe : Component
 
     protected override RenderResult Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
-            Span(Class: "badge text-bg-warning")[$"#{InstanceId} tick {_ticks}"],
+            BsBadge(Color: BsColor.Warning)[$"#{InstanceId} tick {_ticks}"],
             Span(Class: "text-secondary small")["Stop me to fire OnUnmount and dispose the Timer."]
         ];
 }

@@ -22,8 +22,8 @@ public sealed class MetricsChart(IMetricsFeed feed) : Component
     protected override void OnUnmount() => feed.Updated -= StateHasChanged;
 
     protected override RenderResult Render() =>
-        Div(Class: "card shadow-sm border-0 h-100")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[
+            BsCardBody()[
                 H3(Class: "h6 text-secondary text-uppercase small mb-3")["CPU %, last minute"],
                 Div(Class: "metrics-chart-container", Id: "metrics-chart",
                     Style: "position: relative; height: 160px;")[

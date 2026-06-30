@@ -27,8 +27,8 @@ public sealed class AppTests
         Assert.Contains(">Welcome &#x2014; Rask</title>", html);
         Assert.Contains("charset=\"utf-8\"", html);
         Assert.Contains("viewport", html);
-        Assert.Contains("/lib/bootstrap/bootstrap.min.css", html);
-        Assert.Contains("/lib/bootstrap-icons/bootstrap-icons.min.css", html);
+        Assert.Contains("/_content/Rask.Bootstrap/css/bootstrap.min.css", html);
+        Assert.Contains("/_content/Rask.Bootstrap/icons/bootstrap-icons.min.css", html);
     }
 
     [Fact]

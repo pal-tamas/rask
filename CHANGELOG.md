@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Rask.Bootstrap — typed Bootstrap 5.3 component library (new optional package).** Discoverable C#
+  factories that emit correct Bootstrap markup, with typed enums replacing stringly-typed variants
+  (`BsColor`/`BsSize`/`BsTheme`; `BsIconName` covers every Bootstrap Icons glyph). Content components
+  (`BsButton`/`BsBadge`/`BsAlert`/`BsCard` + sections/`BsSpinner`/`BsProgress`/`BsListGroup`/
+  `BsPagination`/`BsBreadcrumb`/`BsPlaceholder`/`BsTable`/`BsCloseButton`/`BsIcon`); **interactive
+  components driven entirely by Rask's live runtime with zero JavaScript** — controlled state, no
+  `bootstrap.js` — (`BsModal`/`BsOffcanvas`/`BsCollapse`/`BsAccordion`/`BsTabs`/`BsDropdown`/`BsToast`);
+  and `IFormControl<T>`-bound form controls with `.is-invalid`/`.invalid-feedback` built in
+  (`BsInput<T>`/`BsTextarea<T>`/`BsSelect<T>`/`BsCheck`/`BsRadioGroup<T>`/`BsCheckboxGroup<T>`/
+  `BsMultiSelect<T>`/`BsFormGroup`/`BsFormLabel`/`BsInputGroup`). **Typed utility classes** —
+  `Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4, Bp.Md))` across the Shadow/Border/Margin/Padding/
+  Display/Flex/Rounded/Txt/Font/Sizing/Position/Bg families with responsive `Bp` breakpoints. Bootstrap
+  5.3.8 + Bootstrap Icons 1.13.1 ship as static web assets under `_content/Rask.Bootstrap`; link them
+  with `BootstrapStyles()`. Self-contained optional package (like the validation libraries). New
+  **Bootstrap** showcase section (`/bootstrap/*`). See `docs/bootstrap.md`. The sample apps now dogfood
+  the `Bs*` primitives throughout, and `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect`/`BsToast` are
+  promoted from the samples into the package.
 - **Server-side Web Push (`Rask.WebPush`)** — a new opt-in package that sends Web Push notifications from
   your backend, completing the loop with the WASM-only `IWebPush` client. Register with
   `services.AddRaskWebPush(o => { o.VapidKeys = …; o.Subject = "mailto:…"; })`, then inject `IWebPushSender`
@@ -147,7 +164,68 @@ them until tagged releases begin.
   `IResizeObserver`, sharing the same static `[JSInvokable]` push wiring. **Shared** — works on both
   Server and WASM. New `/browser/mutation` showcase page.
 
+### Changed
+- **The scoped-asset endpoint (`/_rask/a/{hash}.{ext}`) now serves brotli/gzip.** It negotiates the
+  client's `Accept-Encoding` and serves a compressed representation (brotli preferred) with a `Vary:
+  Accept-Encoding` header and an encoding-suffixed `ETag`; each compressed representation is built once
+  and cached by content hash (the bytes are immutable), so the scoped bundle ships small while keeping
+  the `immutable` zero-revalidation caching. Shared by the Server and the published-WASM host endpoints.
+- **Scoped CSS/JS now ship as one content-addressed bundle each, not one asset per component.** The
+  framework concatenates every registered scoped CSS into a single bundle (and every scoped JS into
+  another), hash-sorted so the bytes — and the immutable `/_rask/a/{hash}.{ext}` URL — are deterministic
+  across builds. The page `<head>` emits exactly one `<link rel="stylesheet">` and one `<script defer>`
+  (keyed `rsk-css` / `rsk-js`) instead of one tag per mounted component, and `BakeScopedAssetsTask` writes
+  the two bundle files so any static-asset host (`MapStaticAssets`, a CDN) serves them. Because the whole
+  bundle ships up front, a later mount (client-side navigation, a conditionally rendered section) is styled
+  the instant its node is inserted — so the per-component lazy fetch, the `rel="prefetch"` pre-warming, and
+  the navigation FOUC apply-gate are all gone. **Removed** the now-meaningless `PreloadScopedAssets`
+  option (`RaskLiveOptions.PreloadScopedAssets` / `LiveOptions.PreloadScopedAssets`).
+- **Server hosts and the `rask-server` template serve static assets via `app.MapStaticAssets()`.** The
+  .NET 9/10 static-asset pipeline replaces `app.UseStaticFiles()` for the showcase server hosts and the
+  template, bringing build-time fingerprinting, brotli/gzip and immutable caching — including for package
+  `_content/*` assets such as Rask.Bootstrap's bundled CSS linked via `BootstrapStyles()`. The Server E2E
+  fixture now runs the host **published** so the slow-network journey exercises production asset serving
+  (compressed + revalidation-aware) rather than the dev static-asset handler.
+- **Render cache is now children-aware for composite components.** A non-`Element` component's children
+  arrive via the `[...]` indexer (not a factory parameter, so absent from the prop-change check) and are
+  baked into its `Render()` output, so when the child set changed but its props didn't — e.g. a
+  conditional alert appearing inside a wrapper while the wrapper's own classes stayed fixed — the stale
+  cached render was reused and the update was dropped. `RenderForLive` no longer serves a non-`Element`
+  component that has children from the cache, so composite wrappers behave like the inline elements they
+  wrap. Allocation-neutral on the render benchmarks. (`Element`s were never affected — their children are
+  walked at serialization, not embedded in the cached result.)
+- **Event-handler re-render resolves through a captured closure.** A handler that closes over `this` *and*
+  a local — e.g. `() => _active = index` inside a `Select((item, index) => …)` loop — is lowered by the
+  compiler to a closure, so its delegate `Target` is the closure, not the component. Previously the live
+  runtime fell back to the element's render-owner for such handlers, so when the element was nested inside
+  a composite wrapper (a `Bs*` card/button around it) the wrapper re-rendered instead of the component that
+  *defined* the handler — silently dropping the consumer's update (e.g. a `CodeSample` tab click, a parent
+  rating callback). Handler-owner resolution (and `AutoCallback`) now unwrap the closure's captured `this`
+  when it is a user component, so a handler always re-renders its defining component however deeply it is
+  wrapped. The unwrap is scoped to non-`Element` components: a form control (`Input`/`Select`/`Textarea`)
+  closes over `this` too, but its consumer re-render is owned by the form machinery, so those fall back to
+  the element's render-owner as before. Allocation-neutral on the render benchmarks (the common
+  method-group / `this`-only handler path is unchanged; only closures pay a one-time, cached field lookup).
+
 ### Fixed
+- **WASM app on a plain static host could render blank** (keyed `<head>` reconciliation crash). A WASM
+  app served from a static file host (GitHub Pages and the like) hydrates against the SDK `index.html`,
+  whose `<head>` carries SDK-injected nodes the App doesn't render (`<base>`, the importmap `<script>`).
+  The App's scoped-bundle `<link data-rask-key="rsk-css">` promotes the whole `<head>` to keyed
+  reconciliation; when a non-matching SDK node was removed, the shared client morph (`rask-morph.js`)
+  left its `anchor` pointing at the removed node, so the next insert threw
+  `insertBefore … reference node is not a child` and the runtime never finished its first morph (blank
+  page). The keyed reconciliation now advances the anchor past a node before removing it. The Server is
+  unaffected (its `<head>` is fully framework-rendered, with no foreign nodes to skip).
+- **Scoped CSS/JS 404'd on a WASM-hosting ASP.NET app serving a published bundle.** The in-process
+  `/_rask/a/{hash}.{ext}` endpoint serves from the host's `ScopedAssetRegistry`, but a host that serves a
+  *published* bundle only registers assets from assemblies it actually loads — a strict subset of the
+  in-WASM-runtime set — so its hash for the single concatenated bundle didn't match the browser's request
+  and the endpoint returned 404, shadowing the correct baked file (`UseStaticFiles` is skipped once
+  routing matches the endpoint). The endpoint now falls back to the baked `/_rask/a/{hash}.{ext}` file in
+  the published bundle on a registry miss (honouring a precompressed `.br`/`.gz` sibling), so scoped
+  styles and component JS load under `Rask.Wasm.Hosting`. A static-file-only host (e.g. GitHub Pages) was
+  always fine — it serves the baked files directly.
 - **Device notification fan-out hardening (`IHid` / `IBluetooth`)** — when several watchers subscribe to one
   HID device / BLE characteristic, each pushed value/report is now delivered as its own `byte[]` copy (a
   mutating callback can no longer corrupt another subscriber's bytes), and each callback is isolated so one

@@ -12,17 +12,17 @@ public sealed class FormGroupsPage : Component
     [
         PageHeader.Render(
             "Radio & checkbox groups",
-            "Pick one value from a set of radios, or many into a collection of checkboxes — example Components built on the public binding API, with the same bound and controlled shapes as MultiSelect<T>."),
-        H2(Class: "h4 mt-4 mb-3")["RadioGroup + CheckboxGroup"],
+            "Pick one value from a set of radios, or many into a collection of checkboxes — example Components built on the public binding API, with the same bound and controlled shapes as BsMultiSelect<T>."),
+        H2(Class: "h4 mt-4 mb-3")["BsRadioGroup + BsCheckboxGroup"],
         CodeSample(
-            ["FormGroupsDemo.cs", "RadioGroup.cs", "CheckboxGroup.cs"],
+            ["FormGroupsDemo.cs", "BsRadioGroup.cs", "BsCheckboxGroup.cs"],
             Notes:
             "Shown in controlled mode (Value + OnChange): the parent owns the selection and OnChange (auto-wrapped) re-renders the demo, so the readout stays live. Each item is Bootstrap form-check markup; ItemClass adds wrapper classes like form-check-inline.",
             Result: FormGroupsDemo()),
         H2(Class: "h4 mt-5 mb-3")["Notes"],
         Ul(Class: "text-secondary")[
             Li()[
-                "Two modes, like MultiSelect: bound — RadioGroup(() => model.Plan, …) / CheckboxGroup<T>(() => model.Tags, …) — two-way binds the model and runs a per-field Validate rule; controlled — Value + OnChange — the parent owns the value (used above)."],
+                "Two modes, like BsMultiSelect: bound — BsRadioGroup(() => model.Plan, …) / BsCheckboxGroup<T>(() => model.Tags, …) — two-way binds the model and runs a per-field Validate rule; controlled — Value + OnChange — the parent owns the value (used above)."],
             Li()[
                 "They're Components, so their own checks/radios update on toggle; host-side derived UI (the summary) updates via the auto-wrapped controlled OnChange."],
             Li()[

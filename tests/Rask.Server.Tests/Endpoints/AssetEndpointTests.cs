@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -348,6 +349,41 @@ public class AssetEndpointTests
 
         var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
         Assert.Equal(expected, body);
+    }
+
+    [Fact]
+    public async Task AcceptBrotli_ServesValidBrotli_ThatDecodesToTheAsset()
+    {
+        // A payload big enough that brotli measurably shrinks it.
+        var css = string.Concat(Enumerable.Range(0, 200)
+            .Select(i => $".r{i} {{ color: rgb({i % 256},0,0); }}\n"));
+        ScopedAssetRegistry.RegisterCss(typeof(WidgetA), css);
+        ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
+        var expected = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
+        using var host = RaskTestHost.Create<TestApp>();
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
+        req.Headers.AcceptEncoding.ParseAdd("br");
+        var response = await host.Http.SendAsync(req);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Accept-Encoding", response.Headers.Vary);
+
+        var raw = await response.Content.ReadAsByteArrayAsync();
+        if (response.Content.Headers.ContentEncoding.Contains("br"))
+        {
+            // Encoding-suffixed ETag so a conditional request matches the exact representation.
+            Assert.Equal($"\"{hash}-br\"", response.Headers.ETag?.ToString());
+            Assert.True(raw.Length < expected.Length, "brotli should shrink the bundle");
+            using var dst = new MemoryStream();
+            await using var br = new BrotliStream(new MemoryStream(raw), CompressionMode.Decompress);
+            await br.CopyToAsync(dst);
+            Assert.Equal(expected, dst.ToArray());
+        }
+        else
+        {
+            Assert.Equal(expected, raw); // the test client auto-decompressed
+        }
     }
 
     // ─── Test fixtures ───────────────────────────────────────────────────

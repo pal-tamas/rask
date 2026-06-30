@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <Using Include="Rask.Bootstrap"/>
+    <!-- Auto-generated Bs* component factories live in Rask.Bootstrap.Generated. -->
+    <Using Include="Rask.Bootstrap.Generated" Static="true"/>
+  </ItemGroup>
+</Project>

@@ -334,6 +334,71 @@ public static class ScopedAssetRegistry
         return snapshot;
     }
 
+    // Single concatenated bundle per kind (all registered scoped CSS / JS), cached by registry
+    // Version. The framework emits ONE <link>/<script> at the bundle's content-hash URL instead of
+    // one tag per mounted component; the bundle is served like any other content-addressed asset
+    // (GetByHash resolves it), so its URL is immutable and a static-asset host can ship it as a
+    // single fingerprinted file. Rebuilt only when the registered set changes.
+    private sealed record BundleEntry(long Version, string Hash, AssetBytes Bytes);
+
+    private static volatile BundleEntry? _cssBundle;
+    private static volatile BundleEntry? _jsBundle;
+
+    /// <summary>
+    ///     Returns the content hash of the single concatenated bundle for <paramref name="kind" />,
+    ///     or empty when no asset of that kind is registered. The bundle is every registered scoped
+    ///     CSS (or JS) entry concatenated in a deterministic (hash-sorted) order with a newline
+    ///     separator; its bytes are addressable via <see cref="GetByHash" /> under the returned hash,
+    ///     so the existing <c>/_rask/a/{hash}.{ext}</c> serving path resolves it unchanged.
+    /// </summary>
+    public static string GetBundleHash(AssetKind kind)
+    {
+        var bundle = EnsureBundle(kind);
+        return bundle?.Hash ?? string.Empty;
+    }
+
+    private static BundleEntry? EnsureBundle(AssetKind kind)
+    {
+        var version = Version;
+        var cached = kind == AssetKind.Css ? _cssBundle : _jsBundle;
+        if (cached is not null && cached.Version == version)
+        {
+            return cached.Hash.Length == 0 ? null : cached;
+        }
+
+        // Snapshot + concatenate under the lock so the bundle is atomic w.r.t. the by-hash buckets.
+        // Hash-sorted order makes the bundle bytes (and therefore its hash + the emitted URL)
+        // deterministic regardless of registration order — two builds of the same component set
+        // produce byte-identical bundles, so the immutable URL stays stable across deployments.
+        var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;
+        byte[] bytes;
+        lock (_lock)
+        {
+            if (bucket.Count == 0)
+            {
+                var empty = new BundleEntry(version, string.Empty, default);
+                if (kind == AssetKind.Css) { _cssBundle = empty; } else { _jsBundle = empty; }
+                return null;
+            }
+
+            var ordered = new List<KeyValuePair<string, AssetEntry>>(bucket);
+            ordered.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            using var ms = new MemoryStream();
+            foreach (var kv in ordered)
+            {
+                ms.Write(kv.Value.Utf8, 0, kv.Value.Utf8.Length);
+                ms.WriteByte((byte)'\n');
+            }
+
+            bytes = ms.ToArray();
+        }
+
+        var hash = ComputeHash(bytes);
+        var entry = new BundleEntry(version, hash, new AssetBytes(bytes, "\"" + hash + "\""));
+        if (kind == AssetKind.Css) { _cssBundle = entry; } else { _jsBundle = entry; }
+        return entry;
+    }
+
     /// <summary>
     ///     Looks up the asset hash for a component's CSS. Returns false (with empty out)
     ///     when the type has no scoped CSS registered. Called by head emission to decide
@@ -396,6 +461,16 @@ public static class ScopedAssetRegistry
         if (string.IsNullOrEmpty(hash))
         {
             return null;
+        }
+
+        // The concatenated bundle is addressed by its own content hash, distinct from any single
+        // component's hash. Resolve it here so the one serving path (/_rask/a/{hash}.{ext}) handles
+        // both per-component assets and the bundle without a second endpoint.
+        var bundle = kind == AssetKind.Css ? _cssBundle : _jsBundle;
+        if (bundle is not null && bundle.Hash.Length != 0
+            && string.Equals(bundle.Hash, hash, StringComparison.Ordinal))
+        {
+            return bundle.Bytes;
         }
 
         var bucket = kind == AssetKind.Css ? _cssByHash : _jsByHash;

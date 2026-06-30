@@ -30,17 +30,11 @@ public sealed class RoutingPage(Navigator nav) : Component
             " binds the URL segment to a property. Try one of these:"
         ],
         Div(Class: "d-flex flex-wrap gap-2 mb-2")[
-            Button(
-                Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.NavigateTo("/users/42"))[I(Class: "bi bi-link-45deg me-1"), "/users/42"],
-            Button(
-                Class: "btn btn-outline-primary btn-sm",
-                OnClick: () => nav.NavigateTo("/users/137"))[I(Class: "bi bi-link-45deg me-1"), "/users/137"],
-            Button(
-                Class: "btn btn-outline-primary btn-sm",
-                OnClick: () =>
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.NavigateTo("/users/42"))[BsIcon(Name: BsIconName.Link45deg, Class: "me-1"), "/users/42"],
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () => nav.NavigateTo("/users/137"))[BsIcon(Name: BsIconName.Link45deg, Class: "me-1"), "/users/137"],
+            BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, OnClick: () =>
                     nav.NavigateTo("/users/ada", new[] { KeyValuePair.Create<string, string?>("tab", "profile") }))[
-                I(Class: "bi bi-link-45deg me-1"), "/users/ada?tab=profile"]
+                BsIcon(Name: BsIconName.Link45deg, Class: "me-1"), "/users/ada?tab=profile"]
         ],
         H2(Class: "h4 mt-5 mb-3")["Reacting to navigation: RouteState.Changed"],
         P(Class: "text-secondary")[

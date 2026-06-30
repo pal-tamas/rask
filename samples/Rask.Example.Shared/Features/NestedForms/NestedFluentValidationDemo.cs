@@ -32,9 +32,7 @@ public sealed class NestedFluentValidationDemo : Component
                     ValidationMessage(() => captured.Quantity, FieldError)
                 ],
                 Td(Style: "width: 3rem;")[
-                    Button("button",
-                        Class: "btn btn-outline-danger btn-sm",
-                        OnClick: () => _model.Lines.Remove(captured))[I(Class: "bi bi-x-lg")]
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Lines.Remove(captured))[BsIcon(Name: BsIconName.XLg)]
                 ]
             ]);
         }
@@ -69,18 +67,15 @@ public sealed class NestedFluentValidationDemo : Component
                     Tbody()[rows]
                 ],
                 Div(Class: "d-flex gap-2")[
-                    Button("button",
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "nf-fv-add",
-                        OnClick: () => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
-                        I(Class: "bi bi-plus-lg me-1"), "Add line"],
-                    Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-fv-submit")[
-                        I(Class: "bi bi-check2-circle me-1"), "Place"]
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-fv-add", OnClick: () => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add line"],
+                    BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-fv-submit")[
+                        BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Place"]
                 ]
             ],
             _submission is null
                 ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-fv-result")[_submission]
+                : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-fv-result")[_submission]
         ];
     }
 }

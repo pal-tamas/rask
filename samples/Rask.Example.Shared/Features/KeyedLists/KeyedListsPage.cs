@@ -27,8 +27,8 @@ public sealed class KeyedListsPage : Component
             "Keyed lists & reconciliation",
             "Give each list item a stable Key: and the diff codec reconciles by identity — inserts, removals, and reorders ship as trusted structural ops that preserve the survivors' DOM state (focus, selection, uncommitted input text) instead of rewriting rows by position."),
 
-        Div(Class: "alert alert-primary d-flex align-items-start")[
-            I(Class: "bi bi-lightbulb-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Primary, Class: "d-flex align-items-start")[
+            BsIcon(Name: BsIconName.LightbulbFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["Try it:"],
                 " type something into a couple of the inputs below, then press ", Strong()["Rotate"],
@@ -39,8 +39,8 @@ public sealed class KeyedListsPage : Component
             ]
         ],
 
-        Div(Class: "card shadow-sm border-0 mb-4")[
-            Div(Class: "card-body")[
+        BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4)))[
+            BsCardBody()[
                 Div(Class: "d-flex flex-wrap align-items-center gap-2 mb-3")[
                     Button(
                         Class: _useKeys ? "btn btn-success btn-sm" : "btn btn-outline-secondary btn-sm",
@@ -50,21 +50,17 @@ public sealed class KeyedListsPage : Component
                         _useKeys ? "Keys: ON" : "Keys: OFF"
                     ],
                     Span(Class: "vr mx-1"),
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-rotate", OnClick: Rotate)[
-                        I(Class: "bi bi-arrow-down-up me-1"), "Rotate"
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-rotate", OnClick: Rotate)[
+                        BsIcon(Name: BsIconName.ArrowDownUp, Class: "me-1"), "Rotate"
                     ],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-reverse", OnClick: Reverse)[
-                        I(Class: "bi bi-arrow-repeat me-1"), "Reverse"
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-reverse", OnClick: Reverse)[
+                        BsIcon(Name: BsIconName.ArrowRepeat, Class: "me-1"), "Reverse"
                     ],
-                    Button(Class: "btn btn-outline-primary btn-sm", Id: "kl-add", OnClick: AddTop)[
-                        I(Class: "bi bi-plus-lg me-1"), "Add to top"
+                    BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Id: "kl-add", OnClick: AddTop)[
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add to top"
                     ],
-                    Button(
-                        Class: "btn btn-outline-danger btn-sm",
-                        Id: "kl-remove",
-                        Disabled: _items.Count == 0,
-                        OnClick: RemoveTop)[
-                        I(Class: "bi bi-dash-lg me-1"), "Remove top"
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, Id: "kl-remove", Disabled: _items.Count == 0, OnClick: RemoveTop)[
+                        BsIcon(Name: BsIconName.DashLg, Class: "me-1"), "Remove top"
                     ]
                 ],
                 Ul(Class: "list-group", Id: "kl-list")[BuildRows()]
@@ -76,8 +72,8 @@ public sealed class KeyedListsPage : Component
             Notes:
             "Key is an identity, not a reactive prop: a Key change mounts a fresh instance and never fires OnPropsChanged. On an element Key emits data-rask-key; on a transparent component or Fragment it auto-forwards onto the first rendered element. RASK022 warns when a projected/looped list item is missing a Key."),
 
-        Div(Class: "alert alert-warning d-flex align-items-start mt-3")[
-            I(Class: "bi bi-exclamation-triangle-fill me-3 fs-4"),
+        BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start mt-3")[
+            BsIcon(Name: BsIconName.ExclamationTriangleFill, Class: "me-3 fs-4"),
             Div()[
                 Strong()["RASK022:"],
                 " a list item produced by ", Code()["Select(...)"], " / ", Code()["SelectMany(...)"],
@@ -109,7 +105,7 @@ public sealed class KeyedListsPage : Component
 
     private static List<Child> Row(Fruit f, int index) =>
     [
-        Span(Class: "badge bg-secondary rounded-pill")[index + 1],
+        BsBadge(Color: BsColor.Secondary, Pill: true)[index + 1],
         Span(Class: "fw-semibold", Style: "min-width: 7rem;")[f.Name],
         Input<string>(
             InputType.Text,

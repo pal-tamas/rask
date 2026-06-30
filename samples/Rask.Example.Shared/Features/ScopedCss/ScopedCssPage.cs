@@ -42,7 +42,7 @@ public sealed class ScopedCssPage : Component
         H2(Class: "h4 mt-5 mb-3")["What gets rewritten"],
         Div(Class: "list-group list-group-flush mb-3")[
             Li(Class: "list-group-item d-flex align-items-start")[
-                I(Class: "bi bi-check2-circle text-success me-2 mt-1"),
+                BsIcon(Name: BsIconName.Check2Circle, Class: "text-success me-2 mt-1"),
                 Div()[
                     Code()[".list li:hover"], " becomes ",
                     Code()[".list li[data-{scopeId}]:hover"],
@@ -50,15 +50,15 @@ public sealed class ScopedCssPage : Component
                 ]
             ],
             Li(Class: "list-group-item d-flex align-items-start")[
-                I(Class: "bi bi-check2-circle text-success me-2 mt-1"),
+                BsIcon(Name: BsIconName.Check2Circle, Class: "text-success me-2 mt-1"),
                 Div()[Code()["@media / @supports / @container / @layer"], " recurse"]
             ],
             Li(Class: "list-group-item d-flex align-items-start")[
-                I(Class: "bi bi-dash-circle text-secondary me-2 mt-1"),
+                BsIcon(Name: BsIconName.DashCircle, Class: "text-secondary me-2 mt-1"),
                 Div()[Code()["@keyframes / @font-face / @import"], " pass through untouched"]
             ],
             Li(Class: "list-group-item d-flex align-items-start")[
-                I(Class: "bi bi-dash-circle text-secondary me-2 mt-1"),
+                BsIcon(Name: BsIconName.DashCircle, Class: "text-secondary me-2 mt-1"),
                 Div()["Shell tags (html, head, body, title, meta, link, script, style, base) are not stamped"]
             ]
         ],

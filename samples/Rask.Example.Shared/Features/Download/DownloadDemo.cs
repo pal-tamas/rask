@@ -21,12 +21,8 @@ public sealed class DownloadDemo(Navigator nav) : Component
 
     protected override RenderResult Render() =>
         Div()[
-            Button(
-                "button",
-                Class: "btn btn-primary",
-                Id: "download-report",
-                OnClick: DownloadReport)[
-                I(Class: "bi bi-file-earmark-text me-2"),
+            BsButton(Color: BsColor.Primary, Id: "download-report", OnClick: DownloadReport)[
+                BsIcon(Name: BsIconName.FileEarmarkText, Class: "me-2"),
                 "Download report"
             ],
             Div(Class: "small text-secondary mt-2",

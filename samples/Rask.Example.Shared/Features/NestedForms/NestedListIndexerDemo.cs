@@ -33,14 +33,9 @@ public sealed class NestedListIndexerDemo : Component
                     ValidationMessage(() => _model.Skus[i].Price, FieldError)
                 ],
                 Td(Style: "width: 5rem;")[
-                    Button("button",
-                        Class: "btn btn-outline-secondary btn-sm me-1",
-                        Disabled: i == 0,
-                        OnClick: () => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
-                        I(Class: "bi bi-arrow-up")],
-                    Button("button",
-                        Class: "btn btn-outline-danger btn-sm",
-                        OnClick: () => _model.Skus.RemoveAt(i))[I(Class: "bi bi-x-lg")]
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Class: "me-1", Disabled: i == 0, OnClick: () => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[
+                        BsIcon(Name: BsIconName.ArrowUp)],
+                    BsButton(Color: BsColor.Danger, Outline: true, Size: BsSize.Sm, OnClick: () => _model.Skus.RemoveAt(i))[BsIcon(Name: BsIconName.XLg)]
                 ]
             ]);
         }
@@ -58,18 +53,15 @@ public sealed class NestedListIndexerDemo : Component
                     Tbody()[rows]
                 ],
                 Div(Class: "d-flex gap-2")[
-                    Button("button",
-                        Class: "btn btn-outline-secondary btn-sm",
-                        Id: "nf-idx-add",
-                        OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
-                        I(Class: "bi bi-plus-lg me-1"), "Add row"],
-                    Button("submit", Class: "btn btn-primary btn-sm", Id: "nf-idx-submit")[
-                        I(Class: "bi bi-check2-circle me-1"), "Submit"]
+                    BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, Id: "nf-idx-add", OnClick: () => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[
+                        BsIcon(Name: BsIconName.PlusLg, Class: "me-1"), "Add row"],
+                    BsButton(Type: "submit", Color: BsColor.Primary, Size: BsSize.Sm, Id: "nf-idx-submit")[
+                        BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Submit"]
                 ]
             ],
             _submission is null
                 ? Fragment()
-                : Div(Class: "alert alert-success small mt-3 mb-0", Id: "nf-idx-result")[_submission]
+                : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-idx-result")[_submission]
         ];
     }
 }

@@ -39,7 +39,7 @@ public sealed class DragDropSortableDemo : Component
                 OnDropAsync: ctx.Drop("list", index),
                 OnDragEnd: ctx.DragEnd,
                 Data: new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
-                I(Class: "bi bi-grip-vertical text-secondary"),
+                BsIcon(Name: BsIconName.GripVertical, Class: "text-secondary"),
                 Span(Class: "fw-semibold")[fruit]
             ]);
         }
