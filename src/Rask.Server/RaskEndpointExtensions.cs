@@ -157,7 +157,6 @@ public static class RaskEndpointExtensions
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
             LiveOptions.PathBase = liveOptions.PathBase;
-            LiveOptions.PreloadScopedAssets = liveOptions.PreloadScopedAssets;
             // Session cap is a per-store instance value (not a static) so concurrent
             // hosts/tests don't clobber each other through global state.
             maxSessions = liveOptions.MaxSessions;

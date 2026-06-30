@@ -120,7 +120,6 @@ public sealed class WasmHostBuilder
             var opts = new RaskLiveOptions();
             configureLive(opts);
             LiveOptions.DiffMode = opts.DiffMode;
-            LiveOptions.PreloadScopedAssets = opts.PreloadScopedAssets;
             // Only propagate a non-empty user-supplied PathBase; an explicit
             // override should win over the auto-detect that RunAsync performs
             // later. An empty value here means "I didn't set one — auto-detect

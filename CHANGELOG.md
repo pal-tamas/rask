@@ -77,7 +77,8 @@ them until tagged releases begin.
   the two bundle files so any static-asset host (`MapStaticAssets`, a CDN) serves them. Because the whole
   bundle ships up front, a later mount (client-side navigation, a conditionally rendered section) is styled
   the instant its node is inserted — so the per-component lazy fetch, the `rel="prefetch"` pre-warming, and
-  the navigation FOUC apply-gate are all gone (`LiveOptions.PreloadScopedAssets` is now a no-op).
+  the navigation FOUC apply-gate are all gone. **Removed** the now-meaningless `PreloadScopedAssets`
+  option (`RaskLiveOptions.PreloadScopedAssets` / `LiveOptions.PreloadScopedAssets`).
 - **Server hosts and the `rask-server` template serve static assets via `app.MapStaticAssets()`.** The
   .NET 9/10 static-asset pipeline replaces `app.UseStaticFiles()` for the showcase server hosts and the
   template, bringing build-time fingerprinting, brotli/gzip and immutable caching — including for package
