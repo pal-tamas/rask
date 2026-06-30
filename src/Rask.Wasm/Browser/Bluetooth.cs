@@ -72,7 +72,12 @@ public interface IBluetooth
     /// </summary>
     ValueTask<IBluetoothDevice?> RequestDeviceAsync(BluetoothRequestOptions options);
 
-    /// <summary>Returns the devices the user has already granted access to (no prompt).</summary>
+    /// <summary>
+    ///     Returns the devices the user has already granted access to (no prompt). A given physical device maps
+    ///     to a single shared handle — <see cref="RequestDeviceAsync" /> and this method return the <em>same</em>
+    ///     <see cref="IBluetoothDevice" /> instance for it, so dispose it from a single owner (disposing one
+    ///     reference releases the device for all).
+    /// </summary>
     ValueTask<IReadOnlyList<IBluetoothDevice>> GetDevicesAsync();
 }
 
@@ -170,8 +175,9 @@ public static class BluetoothInterop
             }
 
             data ??= Convert.FromBase64String(base64);
-            // Isolate subscribers — one throwing callback must not starve the others on a shared notification.
-            try { await w.OnValue(data); }
+            // Each subscriber gets its own copy (a mutating callback must not corrupt the others' bytes), and
+            // one throwing callback must not starve the rest of the fan-out.
+            try { await w.OnValue((byte[])data.Clone()); }
             catch { /* a subscriber's own failure is its concern */ }
         }
     }
