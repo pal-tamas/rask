@@ -46,10 +46,23 @@ internal static class RaskAssetEndpoint
 
         ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
         ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        ctx.Response.Headers.Vary = "Accept-Encoding";
 
         var contentType = kind == AssetKind.Css
             ? "text/css; charset=utf-8"
             : "text/javascript; charset=utf-8";
+
+        // Negotiate br/gzip via the shared Core helper so a WASM-hosting client sees byte-identical
+        // compressed responses to the Server one. Compressed reps are cached (content-addressed).
+        var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
+        if (encoding is not null
+            && ScopedAssetCompression.GetEncoded(hash, kind, encoding) is { } enc)
+        {
+            ctx.Response.Headers.ContentEncoding = encoding;
+            return Results.Bytes(enc.Bytes, contentType,
+                    entityTag: new EntityTagHeaderValue(enc.Etag))
+                .ExecuteAsync(ctx);
+        }
 
         return Results.Bytes(
                 bytes.Value.Utf8.ToArray(),

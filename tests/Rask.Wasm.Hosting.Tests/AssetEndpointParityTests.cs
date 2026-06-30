@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using Rask.Core;
 using Rask.Core.ScopedAssets;
@@ -190,13 +191,30 @@ public class AssetEndpointParityTests
         var response = await host.Http.SendAsync(req);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        // No response-compression registered here, so the endpoint ships plain — and crucially
-        // with NO Content-Encoding (pre-fix this contained "br").
-        Assert.Empty(response.Content.Headers.ContentEncoding);
-        // The body is the real registry asset, not the bogus .br sibling.
-        var body = await response.Content.ReadAsByteArrayAsync();
+        // The endpoint now compresses its OWN immutable bytes (Content-Encoding: br). Whatever
+        // representation arrives must DECODE to the real registry asset — never the bogus on-disk
+        // .br sibling: the precompressed-file middleware must not engage for an endpoint-matched
+        // request and overwrite the body with that 4-byte garbage.
+        var raw = await response.Content.ReadAsByteArrayAsync();
+        byte[] decoded;
+        if (response.Content.Headers.ContentEncoding.Contains("br"))
+        {
+            using var dst = new MemoryStream();
+            await using (var br = new BrotliStream(new MemoryStream(raw), CompressionMode.Decompress))
+            {
+                await br.CopyToAsync(dst);
+            }
+
+            decoded = dst.ToArray();
+        }
+        else
+        {
+            decoded = raw; // identity (or the client already decoded)
+        }
+
         var expected = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
-        Assert.Equal(expected, body);
+        Assert.Equal(expected, decoded);
+        Assert.NotEqual(new byte[] { 0x42, 0x52, 0x09, 0x09 }, decoded);
     }
 
     private sealed class WidgetA : Component

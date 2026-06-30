@@ -64,6 +64,11 @@ them until tagged releases begin.
   Server and WASM. New `/browser/mutation` showcase page.
 
 ### Changed
+- **The scoped-asset endpoint (`/_rask/a/{hash}.{ext}`) now serves brotli/gzip.** It negotiates the
+  client's `Accept-Encoding` and serves a compressed representation (brotli preferred) with a `Vary:
+  Accept-Encoding` header and an encoding-suffixed `ETag`; each compressed representation is built once
+  and cached by content hash (the bytes are immutable), so the scoped bundle ships small while keeping
+  the `immutable` zero-revalidation caching. Shared by the Server and the published-WASM host endpoints.
 - **Scoped CSS/JS now ship as one content-addressed bundle each, not one asset per component.** The
   framework concatenates every registered scoped CSS into a single bundle (and every scoped JS into
   another), hash-sorted so the bytes — and the immutable `/_rask/a/{hash}.{ext}` URL — are deterministic

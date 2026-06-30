@@ -253,7 +253,9 @@ Scoped CSS and JS each ship as **one content-addressed bundle**. The generator r
 every component's scoped asset; the framework concatenates all registered scoped CSS into a
 single bundle and all registered scoped JS into another (hash-sorted, so the bytes — and the
 URL — are deterministic across builds). Each bundle is served at `/_rask/a/{hash}.{ext}` with
-`Cache-Control: immutable`, an `ETag`, `nosniff`, and `.AllowAnonymous()`. The page `<head>`
+`Cache-Control: immutable`, an `ETag`, `nosniff`, and `.AllowAnonymous()` — and **brotli/gzip
+compressed** when the client advertises it (negotiated per request, with each compressed
+representation built once and cached by content hash since the bytes never change). The page `<head>`
 emits exactly **one** `<link rel="stylesheet">` and **one** `<script defer>` — the two
 bundles — keyed `rsk-css` / `rsk-js` so the client morph updates them in place when the hash
 changes (hot reload). Static-file and WASM hosts get the same two files baked to disk by the
