@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Web Bluetooth (`IBluetooth`, `Rask.Wasm.Browser`)** — pair with a Bluetooth Low Energy device and talk to
+  its GATT services from C# in the browser (heart-rate monitors, thermometers, fitness sensors, custom
+  hardware). `RequestDeviceAsync(BluetoothRequestOptions)` shows the chooser (filters / `AcceptAllDevices` +
+  `OptionalServices`) and returns a disposable `IBluetoothDevice` (or `null` if dismissed);
+  `GetDevicesAsync()` returns already-granted devices. A device exposes `Info`, `ConnectAsync`/
+  `DisconnectAsync`/`IsConnectedAsync`, `GetCharacteristicAsync(service, characteristic)`, and
+  `WatchDisconnectAsync(onDisconnect)`; an `IBluetoothCharacteristic` does `ReadAsync`, `WriteAsync(data,
+  withResponse)`, and `WatchAsync(onValue)` for notifications. Notifications and GATT-disconnect are
+  **pushed** to your callbacks (static `[JSInvokable]`s, rooted for the WASM trimmer); the live GATT objects
+  stay JS-side under framework-minted ids (devices deduped + refcounted per physical device); values cross
+  base64-encoded. `IsSupportedAsync` gates the UI. **WASM-only** — `requestDevice` needs transient user
+  activation, the live device handle, and a secure context; Chromium-family only at the time of writing. New
+  `/bluetooth` showcase page in the WASM sample; documented in the [Browser APIs](docs/browser-apis.md) and
+  [Mobile & PWA](docs/pwa.md) guides.
 - **WebUSB (`IUsb`, `Rask.Wasm.Browser`)** — pair with and drive a USB device (custom hardware, dev boards,
   instruments) straight from C# in the browser. `RequestDeviceAsync(filters)` shows the device chooser and
   returns a disposable `IUsbDevice` (or `null` if dismissed); `GetDevicesAsync()` returns already-granted
