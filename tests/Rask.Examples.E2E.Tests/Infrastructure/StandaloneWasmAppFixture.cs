@@ -1,19 +1,24 @@
 using System.Diagnostics;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Rask.Examples.E2E.Tests.Infrastructure;
 
 /// <summary>
-///     Boots <c>Rask.Example.Wasm</c> standalone via WasmAppHost (the dev launcher that
-///     `dotnet run` invokes for browser-wasm projects). WasmAppHost picks a random port
-///     and prints <c>App url: http://127.0.0.1:{port}/index.html</c> — we parse that
-///     from stdout instead of forcing a fixed --urls (WasmAppHost ignores ASP.NET
-///     hosting args).
-///     Note: WasmAppHost does NOT install a SPA fallback. Deep-link reloads at
-///     /events etc. return 404. Tests that exercise this fixture must always start at
-///     the root and navigate via sidebar buttons.
+///     Serves the <em>published</em> <c>Rask.Example.Wasm</c> AppBundle from a tiny in-process
+///     static-file server — the "any static host" (GitHub Pages) scenario, with no Rask runtime in
+///     front of it. Publishing emits a complete <c>index.html</c> (populated SDK import map) plus the
+///     fingerprinted, prebuilt .NET-WASM runtime (<c>-p:WasmBuildNative=false</c> skips the relink,
+///     which is flaky across build environments); a plain file server then serves those bytes exactly
+///     as a CDN/Pages host would.
+///     <para>
+///         This replaces the earlier WasmAppHost dev launcher: WasmAppHost resolves the import-map
+///         index.html at request time from the build's static-web-assets manifest, and that resolution
+///         is unreliable across SDK/build environments (it can serve a 0-byte body for the index route,
+///         so the runtime never boots). Serving the published output removes that variable entirely
+///         while still exercising the same thing this shard cares about — the WASM app booting under a
+///         non-Rask static host.
+///     </para>
+///     <para>A non-file GET falls back to <c>index.html</c> so client-side deep links resolve.</para>
 /// </summary>
 public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 {
@@ -24,55 +29,106 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 #endif
 
     private const string ProjectRelativePath = "samples/Rask.Example.Wasm";
+    private const int Port = 5096;
 
-    private static readonly Regex AppUrlPattern =
-        new(@"App url:\s*(http://[^\s/]+)/index\.html", RegexOptions.Compiled);
-
-    private readonly TaskCompletionSource<string> _baseUrl = new();
-    private readonly Lock _logLock = new();
-    private readonly StringBuilder _stderr = new();
-    private readonly StringBuilder _stdout = new();
-    private Process? _process;
-
-    private TimeSpan ReadyTimeout { get; } = TimeSpan.FromSeconds(180);
-
-    public string BaseUrl => _baseUrl.Task.IsCompletedSuccessfully
-        ? _baseUrl.Task.Result
-        : throw new InvalidOperationException(
-            "BaseUrl read before WasmAppHost emitted 'App url:' line. Did InitializeAsync complete?");
-
-    public string ServerLog
-    {
-        get
+    // Content types the .NET-WASM boot needs served correctly — most importantly application/wasm and
+    // application/json (blazor.boot config), and text/javascript for the ES module imports.
+    private static readonly IReadOnlyDictionary<string, string> ContentTypes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            lock (_logLock)
-            {
-                return $"{_stdout}\n--- STDERR ---\n{_stderr}";
-            }
-        }
-    }
+            [".html"] = "text/html; charset=utf-8",
+            [".js"] = "text/javascript; charset=utf-8",
+            [".mjs"] = "text/javascript; charset=utf-8",
+            [".css"] = "text/css; charset=utf-8",
+            [".wasm"] = "application/wasm",
+            [".json"] = "application/json; charset=utf-8",
+            [".map"] = "application/json; charset=utf-8",
+            [".dll"] = "application/octet-stream",
+            [".pdb"] = "application/octet-stream",
+            [".dat"] = "application/octet-stream",
+            [".blat"] = "application/octet-stream",
+            [".woff"] = "font/woff",
+            [".woff2"] = "font/woff2",
+            [".ttf"] = "font/ttf",
+            [".svg"] = "image/svg+xml",
+            [".png"] = "image/png",
+            [".ico"] = "image/x-icon",
+            [".webmanifest"] = "application/manifest+json"
+        };
+
+    private CancellationTokenSource? _cts;
+    private HttpListener? _listener;
+    private string? _publishDir;
+    private string _wwwroot = string.Empty;
+
+    public string BaseUrl => $"http://localhost:{Port}";
+
+    public string ServerLog { get; private set; } = string.Empty;
 
     public async Task InitializeAsync()
     {
         var repoRoot = LocateRepoRoot();
         var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
 
+        _publishDir = Path.Combine(Path.GetTempPath(), "rask-standalone-wasm-" + Guid.NewGuid().ToString("N"));
+        Publish(repoRoot, projectPath, _publishDir);
+
+        _wwwroot = Path.Combine(_publishDir, "wwwroot");
+        if (!File.Exists(Path.Combine(_wwwroot, "index.html")))
+        {
+            throw new InvalidOperationException(
+                $"Published {ProjectRelativePath} has no wwwroot/index.html at '{_wwwroot}'.\n{ServerLog}");
+        }
+
+        VerifyScopedBundleBaked();
+
+        _cts = new CancellationTokenSource();
+        _listener = new HttpListener();
+        _listener.Prefixes.Add($"http://localhost:{Port}/");
+        _listener.Start();
+        _ = Task.Run(() => ServeLoopAsync(_listener, _wwwroot, _cts.Token));
+
+        await WaitForReadyAsync(TimeSpan.FromSeconds(30));
+    }
+
+    public async Task DisposeAsync()
+    {
+        try { _cts?.Cancel(); }
+        catch
+        {
+            /* ignore */
+        }
+
+        try { _listener?.Stop(); }
+        catch
+        {
+            /* ignore */
+        }
+
+        _listener?.Close();
+        _cts?.Dispose();
+
+        if (_publishDir is not null)
+        {
+            try { Directory.Delete(_publishDir, true); }
+            catch
+            {
+                /* best effort */
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private void Publish(string repoRoot, string projectPath, string outDir)
+    {
         var psi = new ProcessStartInfo("dotnet")
         {
+            // -p:WasmBuildNative=false: use the prebuilt .NET-WASM runtime instead of the (flaky)
+            // native relink, so dotnet.native.* is always present and the runtime boots.
             ArgumentList =
             {
-                "run",
-                "--project",
-                projectPath,
-                "--no-launch-profile",
-                "-c",
-                Configuration,
-                // Skip the WASM native relink and use the prebuilt .NET-WASM runtime (the relink is
-                // flaky in some build environments and, when it produces no dotnet.native.*, the
-                // runtime never boots — a blank page). Matches the `-p:WasmBuildNative=false` the CI
-                // gate uses. Built here (no --no-build) so the property applies to the build whose
-                // static-web-assets `dotnet run` then serves.
-                "-p:WasmBuildNative=false"
+                "publish", projectPath, "-c", Configuration, "-p:WasmBuildNative=false", "-o", outDir, "--nologo"
             },
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -80,101 +136,116 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
             WorkingDirectory = repoRoot
         };
 
-        _process = Process.Start(psi)
-                   ?? throw new InvalidOperationException($"Failed to start `dotnet run` for {ProjectRelativePath}");
-
-        _ = Task.Run(() => DrainAsync(_process.StandardOutput, _stdout, true));
-        _ = Task.Run(() => DrainAsync(_process.StandardError, _stderr, false));
-
-        using var cts = new CancellationTokenSource(ReadyTimeout);
-        var url = await _baseUrl.Task.WaitAsync(cts.Token);
-        await WaitForReadyAsync(url, cts.Token);
-        await VerifyScopedAssetsServedAsync(repoRoot, url, cts.Token);
+        using var p = Process.Start(psi)
+                      ?? throw new InvalidOperationException($"Failed to start `dotnet publish` for {ProjectRelativePath}");
+        var stdout = p.StandardOutput.ReadToEnd();
+        var stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        ServerLog = $"{stdout}\n--- STDERR ---\n{stderr}";
+        if (p.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"`dotnet publish` failed for {ProjectRelativePath} (exit {p.ExitCode}).\n{ServerLog}");
+        }
     }
 
     /// <summary>
-    ///     Fail fast (and descriptively) if the served bundle is missing its baked
-    ///     per-component scoped assets. WasmAppHost serves the project's static web assets
-    ///     (<c>--use-staticwebassets</c>): the <c>/_rask/a/{hash}.{ext}</c> files are baked by
-    ///     <c>Rask.Wasm.Tasks.BakeScopedAssetsTask</c> into the intermediate staging dir and
-    ///     registered as computed static web assets (see <c>_RaskBakeScopedStaticWebAssets</c>
-    ///     in <c>Rask.Wasm/build/Rask.Wasm.targets</c>). If absent, every CodeSample page 404s
-    ///     on <c>window.Rask.CodeSample</c> and highlighting never runs — which would otherwise
-    ///     surface as five separate ~5s Playwright "locator never visible" timeouts with no
-    ///     hint at the cause; with this probe the whole collection fails once, here, with the
-    ///     missing URL and the staging directory named.
+    ///     Fail fast (and descriptively) if the published bundle is missing its baked scoped-JS bundle.
+    ///     The single concatenated scoped-JS bundle is written by <c>BakeScopedAssetsTask</c> into the
+    ///     published <c>wwwroot/_rask/a/{hash}.js</c>; without it every CodeSample page 404s on
+    ///     <c>window.Rask.CodeSample</c> and highlighting never runs — which would otherwise surface as
+    ///     several ~5s "locator never visible" timeouts with no hint at the cause.
     /// </summary>
-    private static async Task VerifyScopedAssetsServedAsync(string repoRoot, string url, CancellationToken ct)
+    private void VerifyScopedBundleBaked()
     {
-        var scopedDir = Path.Combine(repoRoot, ProjectRelativePath, "obj",
-            Configuration, "net10.0-browser", "rask-scoped", "_rask", "a");
-
+        var scopedDir = Path.Combine(_wwwroot, "_rask", "a");
         var jsFile = Directory.Exists(scopedDir)
             ? Directory.EnumerateFiles(scopedDir, "*.js").FirstOrDefault()
             : null;
         if (jsFile is null)
         {
             throw new InvalidOperationException(
-                $"{ProjectRelativePath} is missing baked scoped-JS assets under '{scopedDir}'. " +
-                "The BakeScopedAssetsTask bake did not produce /_rask/a/*.js — standalone WASM would 404 on " +
-                "every scoped-asset URL and highlight/JS-interop tests would all time out. " +
-                "See Rask.Wasm/build/Rask.Wasm.targets (_RaskBakeScopedStaticWebAssets).");
-        }
-
-        var assetUrl = $"{url}/_rask/a/{Path.GetFileName(jsFile)}";
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-        using var resp = await http.GetAsync(assetUrl, ct);
-        if (resp.StatusCode != HttpStatusCode.OK)
-        {
-            throw new InvalidOperationException(
-                $"{ProjectRelativePath} served {assetUrl} with HTTP {(int)resp.StatusCode} (expected 200). " +
-                $"The baked file exists on disk at '{jsFile}' but the static host did not serve it.\n{url}");
+                $"Published {ProjectRelativePath} is missing its baked scoped-JS bundle under '{scopedDir}'. " +
+                "BakeScopedAssetsTask did not emit /_rask/a/*.js — standalone WASM would 404 on the scoped " +
+                "bundle and highlight/JS-interop would time out. See Rask.Wasm/build/Rask.Wasm.targets.");
         }
     }
 
-    public async Task DisposeAsync()
+    private static async Task ServeLoopAsync(HttpListener listener, string wwwroot, CancellationToken ct)
     {
-        if (_process is null)
+        while (!ct.IsCancellationRequested)
         {
-            return;
-        }
-
-        if (!_process.HasExited)
-        {
-            try { _process.Kill(true); }
+            HttpListenerContext context;
+            try
+            {
+                context = await listener.GetContextAsync();
+            }
             catch
             {
-                /* race: already exited */
+                break; // listener stopped/disposed
             }
-        }
 
+            _ = Task.Run(() => HandleRequestAsync(context, wwwroot), ct);
+        }
+    }
+
+    private static async Task HandleRequestAsync(HttpListenerContext ctx, string wwwroot)
+    {
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await _process.WaitForExitAsync(cts.Token);
+            var rel = Uri.UnescapeDataString(ctx.Request.Url!.AbsolutePath).TrimStart('/');
+            if (rel.Length == 0)
+            {
+                rel = "index.html";
+            }
+
+            var path = Path.GetFullPath(Path.Combine(wwwroot, rel));
+            var rooted = path.StartsWith(wwwroot + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                         || path.Equals(wwwroot, StringComparison.Ordinal);
+
+            if (!rooted || !File.Exists(path))
+            {
+                // SPA fallback: a non-file route (no extension) serves index.html; a missing file 404s.
+                if (rooted && !Path.HasExtension(rel))
+                {
+                    path = Path.Combine(wwwroot, "index.html");
+                }
+                else
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+            }
+
+            ctx.Response.ContentType = ContentTypes.TryGetValue(Path.GetExtension(path), out var type)
+                ? type
+                : "application/octet-stream";
+            ctx.Response.Headers["Cache-Control"] = "no-cache";
+            var bytes = await File.ReadAllBytesAsync(path);
+            ctx.Response.ContentLength64 = bytes.Length;
+            await ctx.Response.OutputStream.WriteAsync(bytes);
+            ctx.Response.Close();
         }
         catch
         {
-            /* timed out — best effort */
+            try { ctx.Response.Abort(); }
+            catch
+            {
+                /* client gone */
+            }
         }
-
-        _process.Dispose();
     }
 
-    private async Task WaitForReadyAsync(string url, CancellationToken ct)
+    private async Task WaitForReadyAsync(TimeSpan timeout)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-        while (!ct.IsCancellationRequested)
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
         {
-            if (_process!.HasExited)
-            {
-                throw new InvalidOperationException(
-                    $"{ProjectRelativePath} exited before becoming ready (code {_process.ExitCode}).\n{ServerLog}");
-            }
-
             try
             {
-                using var resp = await http.GetAsync($"{url}/index.html", ct);
+                using var resp = await http.GetAsync($"{BaseUrl}/index.html");
                 if ((int)resp.StatusCode < 500)
                 {
                     return;
@@ -184,36 +255,15 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
             {
                 /* not yet listening */
             }
-            catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+            catch (TaskCanceledException)
             {
                 /* per-request timeout */
             }
 
-            await Task.Delay(250, ct);
+            await Task.Delay(100);
         }
 
-        throw new TimeoutException(
-            $"{ProjectRelativePath} did not respond on {url} within {ReadyTimeout}.\n{ServerLog}");
-    }
-
-    private async Task DrainAsync(StreamReader reader, StringBuilder buffer, bool captureUrl)
-    {
-        while (await reader.ReadLineAsync() is { } line)
-        {
-            lock (_logLock)
-            {
-                buffer.AppendLine(line);
-            }
-
-            if (captureUrl && !_baseUrl.Task.IsCompleted)
-            {
-                var m = AppUrlPattern.Match(line);
-                if (m.Success)
-                {
-                    _baseUrl.TrySetResult(m.Groups[1].Value);
-                }
-            }
-        }
+        throw new TimeoutException($"Static WASM host did not respond on {BaseUrl} within {timeout}.");
     }
 
     private static string LocateRepoRoot()

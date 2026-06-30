@@ -106,6 +106,17 @@ them until tagged releases begin.
   the element's render-owner as before. Allocation-neutral on the render benchmarks (the common
   method-group / `this`-only handler path is unchanged; only closures pay a one-time, cached field lookup).
 
+### Fixed
+- **WASM app on a plain static host could render blank** (keyed `<head>` reconciliation crash). A WASM
+  app served from a static file host (GitHub Pages and the like) hydrates against the SDK `index.html`,
+  whose `<head>` carries SDK-injected nodes the App doesn't render (`<base>`, the importmap `<script>`).
+  The App's scoped-bundle `<link data-rask-key="rsk-css">` promotes the whole `<head>` to keyed
+  reconciliation; when a non-matching SDK node was removed, the shared client morph (`rask-morph.js`)
+  left its `anchor` pointing at the removed node, so the next insert threw
+  `insertBefore … reference node is not a child` and the runtime never finished its first morph (blank
+  page). The keyed reconciliation now advances the anchor past a node before removing it. The Server is
+  unaffected (its `<head>` is fully framework-rendered, with no foreign nodes to skip).
+
 ## [0.11.0] - 2026-06-29
 
 ### Added
