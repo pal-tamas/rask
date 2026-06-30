@@ -37,7 +37,7 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build (no WASM bundle)
-        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false
+        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -m:1
 
       - name: Unit & integration tests
         run: >-
@@ -101,7 +101,7 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build
-        run: dotnet build Rask.slnx -c Release --no-restore
+        run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
       - name: E2E journey (${{ matrix.host }})
         # Namespace-anchored so the leading dot prevents substring collisions
@@ -151,7 +151,7 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Build
-        run: dotnet build Rask.slnx -c Release --no-restore
+        run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
       - name: Pack Rask.Server
         run: dotnet pack src/Rask.Server/Rask.Server.csproj -c Release --no-build -o ./artifacts
