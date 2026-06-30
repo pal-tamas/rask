@@ -93,15 +93,17 @@ public static class RaskWasmEndpointExtensions
         var pathBaseNormalized = RaskPath.Normalize(pathBase);
         LiveOptions.PathBase = pathBaseNormalized;
 
-        // Per-component scoped asset endpoint. Registered before the static-file middleware
-        // so a /_rask/a/{hash}.{ext} URL is served from the in-process ScopedAssetRegistry
-        // even if the published bundle happens to contain a same-named file. The shared
-        // static registry is populated by module initializers from the referenced WASM
-        // assembly (the AppBundle's referenced project) — present as soon as that assembly
-        // is loaded into this host process.
-        RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized);
-
         var resolved = bundlePath ?? WasmAppBundle.ResolveFromAssembly(Assembly.GetEntryAssembly());
+        var bundleDir = string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved) ? null : resolved;
+
+        // Scoped asset endpoint. Registered before the static-file middleware so a /_rask/a/{hash}.{ext}
+        // URL is served from the in-process ScopedAssetRegistry (populated by module initializers from
+        // the referenced WASM assembly as soon as it's loaded into this host). On a registry miss it
+        // falls back to the baked file in the published bundle: this host's registry can be a strict
+        // subset of the in-WASM-runtime set, so its hash for the single concatenated CSS/JS bundle won't
+        // match the browser's request — and because routing matched this endpoint, UseStaticFiles is
+        // skipped and can't serve the baked file itself. The baked copy is authoritative.
+        RaskAssetEndpoint.MapRaskAssets(endpoints, pathBaseNormalized, bundleDir);
 
         if (string.IsNullOrEmpty(resolved) || !Directory.Exists(resolved))
         {

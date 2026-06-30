@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 
 namespace Rask.Examples.E2E.Tests.Infrastructure;
@@ -58,26 +57,30 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 
     private CancellationTokenSource? _cts;
     private HttpListener? _listener;
-    private string? _publishDir;
     private string _wwwroot = string.Empty;
 
     public string BaseUrl => $"http://localhost:{Port}";
 
-    public string ServerLog { get; private set; } = string.Empty;
+    public string ServerLog => $"in-process static-file host over published wwwroot: {_wwwroot}";
 
     public async Task InitializeAsync()
     {
         var repoRoot = LocateRepoRoot();
-        var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
 
-        _publishDir = Path.Combine(Path.GetTempPath(), "rask-standalone-wasm-" + Guid.NewGuid().ToString("N"));
-        Publish(repoRoot, projectPath, _publishDir);
-
-        _wwwroot = Path.Combine(_publishDir, "wwwroot");
+        // Serve the Rask.Example.Wasm AppBundle the main test-suite build already published — via
+        // Rask.Example.Wasm.Host's nested publish, with -p:WasmBuildNative=false so the prebuilt
+        // .NET-WASM runtime is present (the native relink is flaky in some build environments). This
+        // fixture is deliberately build-free: publishing in-fixture would add a concurrent MSBuild
+        // under the full parallel suite and crash a worker node. It relies on the published output the
+        // same way SubPathWasmAppFixture does.
+        _wwwroot = Path.Combine(repoRoot, ProjectRelativePath, "bin", Configuration,
+            "net10.0-browser", "publish", "wwwroot");
         if (!File.Exists(Path.Combine(_wwwroot, "index.html")))
         {
             throw new InvalidOperationException(
-                $"Published {ProjectRelativePath} has no wwwroot/index.html at '{_wwwroot}'.\n{ServerLog}");
+                $"Published {ProjectRelativePath} not found at '{_wwwroot}'. This fixture relies on the " +
+                "main test-suite build having published it (Rask.Example.Wasm.Host's nested publish). " +
+                "Build the solution first — e.g. `dotnet build Rask.slnx -p:WasmBuildNative=false`.");
         }
 
         VerifyScopedBundleBaked();
@@ -107,46 +110,7 @@ public sealed class StandaloneWasmAppFixture : IAsyncLifetime
 
         _listener?.Close();
         _cts?.Dispose();
-
-        if (_publishDir is not null)
-        {
-            try { Directory.Delete(_publishDir, true); }
-            catch
-            {
-                /* best effort */
-            }
-        }
-
         await Task.CompletedTask;
-    }
-
-    private void Publish(string repoRoot, string projectPath, string outDir)
-    {
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            // -p:WasmBuildNative=false: use the prebuilt .NET-WASM runtime instead of the (flaky)
-            // native relink, so dotnet.native.* is always present and the runtime boots.
-            ArgumentList =
-            {
-                "publish", projectPath, "-c", Configuration, "-p:WasmBuildNative=false", "-o", outDir, "--nologo"
-            },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = repoRoot
-        };
-
-        using var p = Process.Start(psi)
-                      ?? throw new InvalidOperationException($"Failed to start `dotnet publish` for {ProjectRelativePath}");
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-        ServerLog = $"{stdout}\n--- STDERR ---\n{stderr}";
-        if (p.ExitCode != 0)
-        {
-            throw new InvalidOperationException(
-                $"`dotnet publish` failed for {ProjectRelativePath} (exit {p.ExitCode}).\n{ServerLog}");
-        }
     }
 
     /// <summary>

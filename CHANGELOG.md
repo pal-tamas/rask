@@ -116,6 +116,15 @@ them until tagged releases begin.
   `insertBefore … reference node is not a child` and the runtime never finished its first morph (blank
   page). The keyed reconciliation now advances the anchor past a node before removing it. The Server is
   unaffected (its `<head>` is fully framework-rendered, with no foreign nodes to skip).
+- **Scoped CSS/JS 404'd on a WASM-hosting ASP.NET app serving a published bundle.** The in-process
+  `/_rask/a/{hash}.{ext}` endpoint serves from the host's `ScopedAssetRegistry`, but a host that serves a
+  *published* bundle only registers assets from assemblies it actually loads — a strict subset of the
+  in-WASM-runtime set — so its hash for the single concatenated bundle didn't match the browser's request
+  and the endpoint returned 404, shadowing the correct baked file (`UseStaticFiles` is skipped once
+  routing matches the endpoint). The endpoint now falls back to the baked `/_rask/a/{hash}.{ext}` file in
+  the published bundle on a registry miss (honouring a precompressed `.br`/`.gz` sibling), so scoped
+  styles and component JS load under `Rask.Wasm.Hosting`. A static-file-only host (e.g. GitHub Pages) was
+  always fine — it serves the baked files directly.
 
 ## [0.11.0] - 2026-06-29
 

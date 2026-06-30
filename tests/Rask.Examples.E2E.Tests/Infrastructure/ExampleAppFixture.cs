@@ -30,14 +30,6 @@ public abstract class ExampleAppFixture : IAsyncLifetime
     // mirrors a real deployment.
     protected virtual bool RunPublished => false;
 
-    // When true, build the host with -p:WasmBuildNative=false (and therefore NOT --no-build, so the
-    // property applies) instead of a plain `dotnet run --no-build`. This skips the WASM native relink
-    // and uses the prebuilt .NET-WASM runtime — the relink is flaky in some build environments and,
-    // when it produces no dotnet.native.*, the runtime never boots (a blank page). It matches the
-    // `-p:WasmBuildNative=false` the CI gate uses. Harmless on non-WASM hosts (the property is
-    // ignored), but only WASM-serving fixtures opt in.
-    protected virtual bool SkipWasmNativeRelink => false;
-
     // Extra environment variables for the spawned host process (e.g. config that production-mode
     // hosts now fail-fast without). Keys use the ASP.NET `__` config delimiter (e.g. "Jwt__Key").
     protected virtual IReadOnlyDictionary<string, string>? ExtraEnvironment => null;
@@ -202,8 +194,11 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         };
     }
 
-    // Plain `dotnet run` launch. By default uses --no-build (serves a pre-built output); WASM-serving
-    // fixtures set SkipWasmNativeRelink so the host is (re)built with -p:WasmBuildNative=false instead.
+    // Plain `dotnet run --no-build` launch — serves a host the main test-suite build already built.
+    // (For WASM hosts that build must pass -p:WasmBuildNative=false so the prebuilt .NET-WASM runtime
+    // is present; the native relink is flaky in some build environments.) Building in-fixture would add
+    // a concurrent MSBuild under the full parallel suite and crash a worker node, so fixtures stay
+    // build-free.
     private ProcessStartInfo DotnetRunStartInfo(string repoRoot, string projectPath)
     {
         var psi = new ProcessStartInfo("dotnet")
@@ -218,17 +213,9 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         psi.ArgumentList.Add("--project");
         psi.ArgumentList.Add(projectPath);
         psi.ArgumentList.Add("--no-launch-profile");
+        psi.ArgumentList.Add("--no-build");
         psi.ArgumentList.Add("-c");
         psi.ArgumentList.Add(Configuration);
-        if (SkipWasmNativeRelink)
-        {
-            psi.ArgumentList.Add("-p:WasmBuildNative=false");
-        }
-        else
-        {
-            psi.ArgumentList.Add("--no-build");
-        }
-
         psi.ArgumentList.Add("--");
         psi.ArgumentList.Add("--urls");
         psi.ArgumentList.Add(BaseUrl);

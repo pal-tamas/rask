@@ -92,9 +92,9 @@ public sealed class SubPathWasmAppFixture : IAsyncLifetime
                 "--project",
                 Path.Combine(repoRoot, "samples", "Rask.Example.Wasm.Host"),
                 "--no-launch-profile",
+                "--no-build",
                 "-c",
                 Configuration,
-                "-p:WasmBuildNative=false",
                 "--",
                 "--urls",
                 OriginUrl
