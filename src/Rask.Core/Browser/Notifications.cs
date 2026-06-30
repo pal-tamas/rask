@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
 
-namespace Rask.Wasm.Browser;
+namespace Rask.Core.Browser;
 
 /// <summary>
 ///     Options for a local notification
@@ -38,10 +38,10 @@ public sealed record NotificationOptions
 /// <summary>
 ///     Typed access to local notifications (the Notifications API,
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API" />) — show a
-///     notification directly from the page (no server / push needed). <b>WASM-only:</b>
-///     <c>Notification.requestPermission()</c> needs a live user gesture, which the Server/WebSocket
-///     round-trip loses. For notifications delivered while the app is closed, use
-///     <see cref="IWebPush" /> (push goes through the service worker).
+///     notification directly from the page (no server / push needed). Works on both hosts; on Server,
+///     trigger <see cref="RequestPermissionAsync" /> from an event handler so the prompt rides a user
+///     gesture. For notifications delivered while the app is closed, use <see cref="IWebPush" /> (push
+///     goes through the service worker).
 /// </summary>
 /// <remarks>
 ///     Requires a secure context. Gate on <see cref="IsSupportedAsync" /> /

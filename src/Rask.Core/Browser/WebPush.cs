@@ -1,7 +1,7 @@
 using Microsoft.JSInterop;
 using Rask.Core.Live;
 
-namespace Rask.Wasm.Browser;
+namespace Rask.Core.Browser;
 
 /// <summary>The user's decision on a notification-permission prompt (<c>Notification.permission</c>).</summary>
 public enum NotificationPermission
@@ -30,9 +30,9 @@ public sealed record PushSubscription(string Endpoint, string P256dh, string Aut
 
 /// <summary>
 ///     Typed access to the Web Push API (<see href="https://developer.mozilla.org/en-US/docs/Web/API/Push_API" />).
-///     <b>WASM-only</b> and the first of Rask's PWA APIs: push relies on a Service Worker that runs
-///     independently of any page, which the Server/WebSocket model can't provide. Inject it through a
-///     component constructor and drive it from event handlers:
+///     Works on both hosts: push relies on a Service Worker that runs independently of any page, which the
+///     WASM host always ships and the Server host serves once PWA is opted into (<c>AddRaskPwa</c>). Inject
+///     it through a component constructor and drive it from event handlers:
 ///     <code>
 ///     if (await push.IsSupportedAsync() &amp;&amp; await push.RequestPermissionAsync() == NotificationPermission.Granted)
 ///     {

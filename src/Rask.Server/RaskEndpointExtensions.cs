@@ -217,8 +217,18 @@ public static class RaskEndpointExtensions
         services.AddScoped<IPermissions, Permissions>();
         services.AddScoped<IVibration, Vibration>();
         services.AddScoped<IPageVisibility, PageVisibilityInfo>();
-        // IShare is intentionally NOT registered on Server: navigator.share() requires transient user
-        // activation, which is lost across the WebSocket round-trip. It is WASM-only (see WasmHostBuilder).
+        // PWA APIs that are transport-agnostic (IJSRuntime-backed, no transient activation needed) are
+        // registered on Server too — push subscribe, local notifications, app badge, and screen wake lock.
+        // Their JS helpers ship in the Server client only when PWA is opted into; see AddRaskPwa.
+        services.AddScoped<IWebPush, WebPush>();
+        services.AddScoped<INotifications, Notifications>();
+        services.AddScoped<IBadge, Badge>();
+        services.AddScoped<IWakeLock, WakeLock>();
+        // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
+        // activation, a live document/handle, or the installed-PWA instance, all of which the WebSocket
+        // round-trip loses. They stay WASM-only (see WasmHostBuilder): IShare, IFullscreen, IInstallPrompt,
+        // IEyeDropper, IPictureInPicture, IMediaDevices, IScreenOrientation, IIdleDetector, ISerial, IUsb,
+        // IHid, IBluetooth.
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();

@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Rask.Wasm.Browser;
+using Rask.Core.Browser;
 
 namespace Rask.Example.Wasm.Features;
 

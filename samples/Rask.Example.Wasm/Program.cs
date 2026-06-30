@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Browser;
 using Rask.Example.Shared;
 using Rask.Wasm;
-using Rask.Wasm.Browser;
 
 // Framework default is LiveDiffMode.Auto — counter increments and similar
 // in-place state changes go over the wire as a handful of bytes instead of the

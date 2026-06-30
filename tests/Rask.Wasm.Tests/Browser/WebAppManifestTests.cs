@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Rask.Wasm.Browser;
+using Rask.Core.Browser;
 
 namespace Rask.Wasm.Tests.Browser;
 

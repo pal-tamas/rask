@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **PWA on the Server host.** The transport-agnostic PWA browser APIs — `IWebPush` (push subscribe),
+  `INotifications`, `IBadge`, `IWakeLock` — and the typed `WebAppManifest` now live in
+  `Rask.Core.Browser` and are registered on the Server host too, so a Server app can subscribe to push,
+  show local notifications, set the app badge, and hold a screen wake lock. `WebAppManifest` gains a
+  `ToJson(basePath)` overload that roots relative manifest URLs at the app's base path (the server-side
+  analogue of the WASM host's boot-time resolution). The remaining browser APIs that need transient
+  activation, a live document/handle, or the installed-PWA instance (`IShare`, `IFullscreen`,
+  `IInstallPrompt`, `IEyeDropper`, `IPictureInPicture`, `IMediaDevices`, `IScreenOrientation`,
+  `IIdleDetector`, `ISerial`, `IUsb`, `IHid`, `IBluetooth`) stay WASM-only.
+
+### Changed
+- **Breaking:** the shared PWA types `WebAppManifest` (and its nested manifest records/enums),
+  `IWebPush`/`WebPush`/`PushSubscription`/`NotificationPermission`, `INotifications`/`Notifications`/
+  `NotificationOptions`, `IBadge`/`Badge`, and `IWakeLock`/`WakeLock`/`IWakeLockSentinel` moved from the
+  `Rask.Wasm.Browser` namespace to `Rask.Core.Browser`. Update the corresponding `using` in WASM apps
+  (`WasmHostBuilder.UseManifest` is unchanged). Accepted at `0.x` pre-release.
+
 ## [0.11.0] - 2026-06-30
 
 ### Added

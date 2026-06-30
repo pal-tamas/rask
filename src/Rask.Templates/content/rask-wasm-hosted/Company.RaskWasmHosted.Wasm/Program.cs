@@ -5,7 +5,7 @@ using Rask.Wasm;
 using Rask.Core.Authentication;
 //#endif
 //#if (pwa)
-using Rask.Wasm.Browser;
+using Rask.Core.Browser;
 //#endif
 
 // PathBase is auto-detected from <base href>. Publish with /p:RaskPathBase=/myapp

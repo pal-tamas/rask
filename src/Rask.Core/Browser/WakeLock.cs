@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace Rask.Wasm.Browser;
+namespace Rask.Core.Browser;
 
 /// <summary>
 ///     A held screen wake lock (a <c>WakeLockSentinel</c>,
@@ -16,9 +16,9 @@ public interface IWakeLockSentinel : IAsyncDisposable
 /// <summary>
 ///     Typed access to the Screen Wake Lock API
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API" />) — keep the
-///     screen from dimming/locking during reading, a timer, navigation, or media playback. <b>WASM-only:</b>
-///     the lock is tied to the live document and is auto-released when the page is hidden, state the
-///     Server/WebSocket round-trip can't carry, so it's registered only by the WASM host.
+///     screen from dimming/locking during reading, a timer, navigation, or media playback. Works on both
+///     hosts; the browser auto-releases the lock when the page is hidden, and the framework helper
+///     re-acquires it when the page becomes visible again.
 /// </summary>
 /// <remarks>
 ///     Requires a secure context. The browser releases the lock whenever the page is hidden; the framework
