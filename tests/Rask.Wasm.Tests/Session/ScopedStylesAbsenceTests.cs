@@ -41,12 +41,12 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
                 "WASM payload must not ship cssText inline — assets are content-addressed");
         }
 
-        // Positive: the rendered HTML contains the per-component <link> to the asset
+        // Positive: the rendered HTML contains the single scoped-CSS bundle <link> to the asset
         // endpoint with a 12-hex content hash.
         var html = doc.RootElement.GetProperty("html").GetString()!;
         Assert.Matches(@"<link rel=""stylesheet"" href=""/_rask/a/[0-9a-f]{12}\.css""", html);
-        // The morph key uses the rsk-css- prefix for framework-emitted asset tags.
-        Assert.Contains("data-rask-key=\"rsk-css-", html);
+        // The bundle <link> carries the stable framework morph key.
+        Assert.Contains("data-rask-key=\"rsk-css\"", html);
     }
 
     private sealed class ScopedCssStubApp : Component

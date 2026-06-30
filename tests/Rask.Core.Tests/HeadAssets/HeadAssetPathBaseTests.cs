@@ -8,11 +8,10 @@ using Rask.Core.ScopedAssets;
 namespace Rask.Core.Tests.HeadAssets;
 
 /// <summary>
-///     Verifies that <see cref="HeadAssetRegistry.EmitMountedAssets" /> honours
-///     <see cref="LiveOptions.PathBase" />. The same scoped-asset hash must produce a
-///     prefixed <c>href</c>/<c>src</c> when a sub-path is configured (Server / Wasm
-///     hosting under a reverse proxy, WASM standalone on GH Pages, etc.) and must
-///     emit the legacy root-relative URL when the prefix is empty.
+///     Verifies that <see cref="HeadAssetRegistry.EmitScopedBundles" /> honours
+///     <see cref="LiveOptions.PathBase" />. The scoped bundle URL must carry the configured
+///     sub-path prefix (Server / Wasm hosting under a reverse proxy, WASM standalone on GH Pages,
+///     etc.) and emit a root-relative URL when the prefix is empty.
 /// </summary>
 [Collection("ScopedAssets")]
 public sealed class HeadAssetPathBaseTests : IDisposable
@@ -33,15 +32,15 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void EmptyPathBase_EmitsLegacyRootRelativeUrls()
+    public void EmptyPathBase_EmitsRootRelativeBundleUrls()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(Widget), "export function f(){}");
-        ScopedAssetRegistry.TryGetCss(typeof(Widget), out var cssHash);
-        ScopedAssetRegistry.TryGetJs(typeof(Widget), out var jsHash);
+        var cssHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
+        var jsHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(Widget) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Contains($"href=\"/_rask/a/{cssHash}.css\"", html);
@@ -50,36 +49,36 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void NonEmptyPathBase_PrependsPrefixToCssAndJsUrls()
+    public void NonEmptyPathBase_PrependsPrefixToBundleUrls()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(Widget), "export function f(){}");
-        ScopedAssetRegistry.TryGetCss(typeof(Widget), out var cssHash);
-        ScopedAssetRegistry.TryGetJs(typeof(Widget), out var jsHash);
 
         LiveOptions.PathBase = "/appA";
+        var cssHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
+        var jsHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(Widget) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Contains($"href=\"/appA/_rask/a/{cssHash}.css\"", html);
         Assert.Contains($"src=\"/appA/_rask/a/{jsHash}.js\"", html);
-        // The asset-id and data-rask-key payloads must not be re-prefixed.
-        Assert.Contains($"data-rask-key=\"rsk-css-{cssHash}\"", html);
-        Assert.Contains($"data-rask-key=\"rsk-js-{jsHash}\"", html);
+        // The bundle morph keys are stable and must not be prefixed.
+        Assert.Contains("data-rask-key=\"rsk-css\"", html);
+        Assert.Contains("data-rask-key=\"rsk-js\"", html);
     }
 
     [Fact]
     public void PathBase_NormalizesTrailingSlashOnAssignment()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
 
         LiveOptions.PathBase = "/sub/";
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(Widget) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Contains($"href=\"/sub/_rask/a/{hash}.css\"", html);
@@ -90,12 +89,12 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     public void PathBase_MultiSegment_Preserved()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
-        ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
 
         LiveOptions.PathBase = "/a/b";
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
 
         var sb = new StringBuilder();
-        HeadAssetRegistry.EmitMountedAssets(sb, new[] { typeof(Widget) });
+        HeadAssetRegistry.EmitScopedBundles(sb);
         var html = sb.ToString();
 
         Assert.Contains($"href=\"/a/b/_rask/a/{hash}.css\"", html);

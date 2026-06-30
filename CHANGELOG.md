@@ -64,6 +64,15 @@ them until tagged releases begin.
   Server and WASM. New `/browser/mutation` showcase page.
 
 ### Changed
+- **Scoped CSS/JS now ship as one content-addressed bundle each, not one asset per component.** The
+  framework concatenates every registered scoped CSS into a single bundle (and every scoped JS into
+  another), hash-sorted so the bytes — and the immutable `/_rask/a/{hash}.{ext}` URL — are deterministic
+  across builds. The page `<head>` emits exactly one `<link rel="stylesheet">` and one `<script defer>`
+  (keyed `rsk-css` / `rsk-js`) instead of one tag per mounted component, and `BakeScopedAssetsTask` writes
+  the two bundle files so any static-asset host (`MapStaticAssets`, a CDN) serves them. Because the whole
+  bundle ships up front, a later mount (client-side navigation, a conditionally rendered section) is styled
+  the instant its node is inserted — so the per-component lazy fetch, the `rel="prefetch"` pre-warming, and
+  the navigation FOUC apply-gate are all gone (`LiveOptions.PreloadScopedAssets` is now a no-op).
 - **Server hosts and the `rask-server` template serve static assets via `app.MapStaticAssets()`.** The
   .NET 9/10 static-asset pipeline replaces `app.UseStaticFiles()` for the showcase server hosts and the
   template, bringing build-time fingerprinting, brotli/gzip and immutable caching — including for package
