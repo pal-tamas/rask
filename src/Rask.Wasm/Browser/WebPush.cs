@@ -19,7 +19,8 @@ public enum NotificationPermission
 /// <summary>
 ///     A push subscription handle (<see href="https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription" />).
 ///     Send these fields to your own backend, which signs (VAPID) and encrypts (RFC&#160;8291) push
-///     messages and POSTs them to <see cref="Endpoint" /> — that server side is outside Rask.
+///     messages and POSTs them to <see cref="Endpoint" /> — the opt-in <c>Rask.WebPush</c> package
+///     does that server side for you.
 /// </summary>
 /// <param name="Endpoint">The push service URL to deliver messages to.</param>
 /// <param name="P256dh">Base64url of the client's P-256 ECDH public key (for payload encryption).</param>

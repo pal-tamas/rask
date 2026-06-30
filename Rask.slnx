@@ -23,6 +23,7 @@
         <Project Path="src/Rask.Templates/Rask.Templates.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj"/>
+        <Project Path="src/Rask.WebPush/Rask.WebPush.csproj"/>
         <Project Path="src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj"/>
         <Project Path="src/Rask.Wasm.Tasks/Rask.Wasm.Tasks.csproj"/>
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj"/>
@@ -40,6 +41,7 @@
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj"/>
+        <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Hosting.Tests/Rask.Wasm.Hosting.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj"/>
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj"/>
