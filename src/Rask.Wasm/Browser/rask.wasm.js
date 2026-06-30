@@ -1258,11 +1258,26 @@ window.__raskIdle = window.__raskIdle || (() => {
 // bytes can't race ahead of the handler. Each open port holds {port, reader, loop, closing, writeChain}
 // under that id; the read loop pushes each inbound chunk back via window.DotNet.invokeMethodAsync (static
 // [JSInvokable] SerialInterop.Data in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
-// Bytes are sent as a plain number array (Array.from) so they deserialize to a C# byte[]; a Uint8Array would
-// JSON-serialize as an object. If the loop ends on its own (device unplugged / stream error) and it wasn't an
-// explicit close(), we tear down and signal RaskSerialClosed so the UI can reset.
+// Bytes ride the boundary base64-encoded (btoa/atob, same as __raskFs): raw byte[] args don't marshal across
+// the JS bridge. If the loop ends on its own (device unplugged / stream error) and it wasn't an explicit
+// close(), we tear down and signal RaskSerialClosed so the UI can reset.
 window.__raskSerial = window.__raskSerial || (() => {
     const ports = new Map();
+    const toB64 = (bytes) => {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+    const fromB64 = (base64) => {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
     const read = (id, port) => {
         const entry = ports.get(id);
         const reader = port.readable.getReader();
@@ -1275,7 +1290,7 @@ window.__raskSerial = window.__raskSerial || (() => {
                         break;
                     }
                     if (value && value.length) {
-                        window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialData", id, Array.from(value));
+                        window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskSerialData", id, toB64(value));
                     }
                 }
             } catch (e) {
@@ -1326,11 +1341,13 @@ window.__raskSerial = window.__raskSerial || (() => {
             if (!entry) {
                 return Promise.resolve();
             }
-            // Serialize writes so concurrent sends don't collide on the single writable-stream lock.
+            // data is base64 (raw byte[] doesn't marshal); serialize writes so concurrent sends don't collide
+            // on the single writable-stream lock.
+            const bytes = fromB64(data);
             entry.writeChain = entry.writeChain.then(async () => {
                 const writer = entry.port.writable.getWriter();
                 try {
-                    await writer.write(new Uint8Array(data));
+                    await writer.write(bytes);
                 } finally {
                     writer.releaseLock();
                 }
