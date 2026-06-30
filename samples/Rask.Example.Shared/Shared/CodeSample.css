@@ -1,9 +1,10 @@
 .sample-card {
     overflow: hidden;
+    border-radius: 0.85rem !important;
 }
 
 .sample-code-col {
-    background: #1f1d2b;
+    background: var(--rask-ink);
     color: #e7e3ff;
     display: flex;
     flex-direction: column;
@@ -101,7 +102,7 @@
 .sample-code {
     padding: 1rem 1.2rem;
     font-size: 0.82rem;
-    line-height: 1.55;
+    line-height: 1.6;
     background: transparent;
     color: inherit;
     overflow-x: auto;
@@ -125,12 +126,40 @@
     flex-direction: column;
 }
 
+/* The "Live result" label reads as the output side of a C# → DOM pairing: the brand accent plus a
+   small pulsing dot, set in the mono face so it rhymes with the code header opposite it. */
 .sample-result-label {
-    font-size: 0.72rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--bs-secondary-color);
-    margin-bottom: 0.6rem;
+    letter-spacing: 0.12em;
+    color: var(--rask-accent);
+    margin-bottom: 0.75rem;
+}
+
+.sample-result-label::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--rask-accent);
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5);
+    animation: sample-pulse 2.4s ease-out infinite;
+}
+
+@keyframes sample-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sample-result-label::before {
+        animation: none;
+    }
 }
 
 .sample-result-body {
