@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
+using Rask.Example.Wasm.Host;
 using Rask.Wasm.Hosting;
 
 namespace Rask.Example.Wasm.Host.Tests.Infrastructure;
@@ -33,9 +34,11 @@ internal sealed class ExampleHostTestServer : IAsyncDisposable
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRask(); // opt into compression — same as production
+        builder.Services.AddPushDemo(builder.Configuration); // Web Push backend — same as production
 
         var app = builder.Build();
         app.UseRouting();
+        app.MapPushDemo();
         app.UseRask(bundlePath);
 
         await app.StartAsync();

@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Server-side Web Push (`Rask.WebPush`)** — a new opt-in package that sends Web Push notifications from
+  your backend, completing the loop with the WASM-only `IWebPush` client. Register with
+  `services.AddRaskWebPush(o => { o.VapidKeys = …; o.Subject = "mailto:…"; })`, then inject `IWebPushSender`
+  and call `SendAsync(subscription, WebPushMessage.Text(title, body, url))`. It signs the request with VAPID
+  (ES256 JWT, RFC 8292) and encrypts the payload with `aes128gcm` (ECDH P-256 + HKDF + AES-128-GCM,
+  RFC 8291), POSTing to the subscription endpoint; the typed message serializes to the exact JSON the default
+  `rask-sw.js` shows. `WebPushResult` classifies the outcome (`ShouldDelete` on 404/410, `ShouldRetry` on
+  429/5xx). `VapidKeys.Generate()` mints a key pair. **Transport-neutral and zero external dependencies** —
+  all crypto is in-box `System.Security.Cryptography`. The hosted WASM sample (`Rask.Example.Wasm.Host`) wires
+  up the full subscribe → send → notify loop; documented in the [Mobile & PWA](docs/pwa.md) guide.
 - **Web Bluetooth (`IBluetooth`, `Rask.Wasm.Browser`)** — pair with a Bluetooth Low Energy device and talk to
   its GATT services from C# in the browser (heart-rate monitors, thermometers, fitness sensors, custom
   hardware). `RequestDeviceAsync(BluetoothRequestOptions)` shows the chooser (filters / `AcceptAllDevices` +

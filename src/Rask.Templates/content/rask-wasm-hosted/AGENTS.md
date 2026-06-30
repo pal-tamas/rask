@@ -40,6 +40,9 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Forms:** two-way bind with `Input.Bound(() => model.Name)`; build choice controls by implementing `IFormControl<T>` (the generator synthesizes the bound + controlled factories) or with the public `ExpressionAccessor`/`BindingHelpers`/`EditContext.RegisterFieldValidator` API in `Rask.Core.Forms` (the Rask sample's `CheckboxGroup`/`RadioGroup`/`MultiSelect` are copyable examples).
 - **Auth:** gate by injecting `IUserProvider` and reading `.Current` (a never-null `ClaimsPrincipal`), or the `Authorize(...)` component (its `Authorized: user => …` slot is handed the principal; static content uses the `[ … ]` indexer);
   `[Authorize]`/`[AllowAnonymous]` on a page. Configure on ASP.NET's own `AddCookie`/`AddJwtBearer`.
+- **Web Push:** subscribe in the WASM client with `IWebPush`; **send** from this ASP.NET host with the opt-in
+  `Rask.WebPush` package — `services.AddRaskWebPush(o => { o.VapidKeys = …; o.Subject = "mailto:…"; })`, then
+  inject `IWebPushSender` and `SendAsync(subscription, WebPushMessage.Text(title, body, url))`. See `docs/pwa.md`.
 
 ## Build & run
 ```bash

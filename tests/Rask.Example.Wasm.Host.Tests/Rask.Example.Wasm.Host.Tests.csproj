@@ -37,6 +37,7 @@
          Rask.Example.* implicit usings emitted by Directory.Build.props find the
          transitively-available Rask.Core / Validation assemblies. -->
     <ProjectReference Include="..\..\samples\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+    <ProjectReference Include="..\..\samples\Rask.Example.Wasm.Host\Rask.Example.Wasm.Host.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
   </ItemGroup>
 

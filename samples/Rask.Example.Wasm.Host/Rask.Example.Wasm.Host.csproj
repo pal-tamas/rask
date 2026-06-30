@@ -17,8 +17,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Example.Wasm.Host.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Wasm.Hosting\Rask.Wasm.Hosting.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.WebPush\Rask.WebPush.csproj"/>
     <ProjectReference Include="..\Rask.Example.Wasm\Rask.Example.Wasm.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"/>
