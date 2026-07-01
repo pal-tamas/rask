@@ -12,8 +12,6 @@ namespace Rask.Wasm.Browser;
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(ShareData))]
-[JsonSerializable(typeof(PushSubscription))]
-[JsonSerializable(typeof(NotificationOptions))]
 [JsonSerializable(typeof(OrientationReading))]
 [JsonSerializable(typeof(MediaConstraints))]
 [JsonSerializable(typeof(MediaDeviceInfo))]

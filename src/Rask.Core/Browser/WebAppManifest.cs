@@ -1,7 +1,8 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Rask.Wasm.Browser;
+namespace Rask.Core.Browser;
 
 /// <summary>
 ///     How an installed PWA is displayed (<c>display</c> member of the web app manifest,
@@ -156,11 +157,12 @@ public sealed record ManifestIcon(
 
 /// <summary>
 ///     A typed <see href="https://developer.mozilla.org/en-US/docs/Web/Manifest">web app manifest</see>.
-///     Configure it in <c>Program.cs</c> with <c>WasmHostBuilder.UseManifest(...)</c>; the framework emits
-///     the <c>&lt;link rel="manifest"&gt;</c> and <c>&lt;meta name="theme-color"&gt;</c> at boot, so you
-///     don't hand-write <c>manifest.webmanifest</c>. Relative URLs (<see cref="StartUrl" />,
-///     <see cref="Scope" />, icon <c>src</c>) are resolved against the page, so they stay correct under a
-///     sub-path deploy (e.g. GitHub Pages).
+///     Configure it in <c>Program.cs</c> with <c>WasmHostBuilder.UsePwa(...)</c> (WASM) or
+///     <c>AddRaskPwa(...)</c> (Server); the framework emits the <c>&lt;link rel="manifest"&gt;</c> and
+///     <c>&lt;meta name="theme-color"&gt;</c> for you, so you don't hand-write <c>manifest.webmanifest</c>.
+///     Relative URLs (<see cref="StartUrl" />, <see cref="Scope" />, icon <c>src</c>) stay correct under a
+///     sub-path deploy (e.g. GitHub Pages): the WASM host resolves them against the page at boot, and the
+///     Server host roots them at its base path via <see cref="ToJson(string)" />.
 /// </summary>
 public sealed record WebAppManifest
 {
@@ -240,7 +242,91 @@ public sealed record WebAppManifest
     public IReadOnlyList<FileHandler>? FileHandlers { get; init; }
 
     /// <summary>Serializes this manifest to its JSON form (omitting unset members).</summary>
+    /// <remarks>
+    ///     Relative URLs (<see cref="StartUrl" />, <see cref="Scope" />, icon <c>src</c>, …) are left
+    ///     verbatim — the WASM host resolves them against the page's <c>&lt;base&gt;</c> at boot. When the
+    ///     manifest is served from its own URL (the Server host), use <see cref="ToJson(string)" /> so those
+    ///     relative URLs are rooted at the app's base path instead.
+    /// </remarks>
     public string ToJson() => JsonSerializer.Serialize(this, RaskManifestJsonContext.Default.WebAppManifest);
+
+    /// <summary>
+    ///     Serializes this manifest to JSON with all relative URLs rewritten to <paramref name="basePath" />-rooted
+    ///     absolute paths. A web app manifest's URL members resolve relative to the <em>manifest's</em> URL, so a
+    ///     manifest served from a dedicated endpoint (rather than injected into the page) must carry absolute paths
+    ///     or <c>start_url</c>/<c>scope</c>/icons would resolve against the endpoint path and break. This is the
+    ///     server-side analogue of the WASM host's boot-time <c>abs()</c> step.
+    /// </summary>
+    /// <param name="basePath">
+    ///     The app's base path (e.g. the Server host's <c>PathBase</c>): <c>""</c> for a root deploy or
+    ///     <c>"/app"</c> for a sub-path deploy. Absolute URLs (scheme-qualified, protocol-relative, or already
+    ///     rooted at <c>/</c>) are left untouched.
+    /// </param>
+    public string ToJson(string basePath)
+    {
+        var root = string.IsNullOrEmpty(basePath) ? "/" : basePath.EndsWith('/') ? basePath : basePath + "/";
+        var node = JsonNode.Parse(ToJson())!.AsObject();
+
+        Reroot(node, "start_url", root);
+        Reroot(node, "scope", root);
+        RerootArraySrc(node, "icons", root);
+        RerootArraySrc(node, "screenshots", root);
+        if (node["shortcuts"] is JsonArray shortcuts)
+        {
+            foreach (var shortcut in shortcuts.OfType<JsonObject>())
+            {
+                Reroot(shortcut, "url", root);
+                RerootArraySrc(shortcut, "icons", root);
+            }
+        }
+
+        if (node["share_target"] is JsonObject shareTarget)
+        {
+            Reroot(shareTarget, "action", root);
+        }
+
+        if (node["file_handlers"] is JsonArray handlers)
+        {
+            foreach (var handler in handlers.OfType<JsonObject>())
+            {
+                Reroot(handler, "action", root);
+            }
+        }
+
+        return node.ToJsonString();
+    }
+
+    private static void RerootArraySrc(JsonObject parent, string arrayKey, string root)
+    {
+        if (parent[arrayKey] is JsonArray array)
+        {
+            foreach (var item in array.OfType<JsonObject>())
+            {
+                Reroot(item, "src", root);
+            }
+        }
+    }
+
+    private static void Reroot(JsonObject obj, string key, string root)
+    {
+        if (obj[key]?.GetValue<string>() is { } url && Resolve(url, root) is { } resolved)
+        {
+            obj[key] = resolved;
+        }
+    }
+
+    /// <summary>Resolves <paramref name="url" /> against <paramref name="root" />, mirroring <c>new URL(url, root)</c>.</summary>
+    private static string? Resolve(string url, string root)
+    {
+        if (string.IsNullOrEmpty(url) || url.StartsWith('/') || url.Contains("://", StringComparison.Ordinal))
+        {
+            return null; // already absolute / host-rooted — leave untouched (matches the WASM abs())
+        }
+
+        // A placeholder authority lets Uri do the "." / nested-segment resolution; we keep only the path.
+        var resolved = new Uri(new Uri("http://_" + root, UriKind.Absolute), url);
+        return resolved.PathAndQuery;
+    }
 }
 
 /// <summary>Source-generated, trim-safe JSON metadata for <see cref="WebAppManifest" />.</summary>

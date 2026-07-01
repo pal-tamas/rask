@@ -900,14 +900,21 @@ window.__raskWebAuthn = window.__raskWebAuthn || (() => {
 })();
 
 
-// WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
-// in the Server client, since these back APIs that can't work over the WebSocket round-trip.
-// WASM-only framework Web-API helpers, spliced into rask.wasm.js ONLY (by the RASK_WASM_API marker).
-// These back APIs that can't work on the Server transport, so they must not ship in the Server
-// client (rask.js) — keeping the Core shared rask-api.js to genuinely-shared helpers only.
+// Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
+// Rask.Core/Resources/rask-pwa.js — the same source the Server client uses.
+// Transport-agnostic PWA framework helpers, spliced into BOTH the Server client (rask.js) and the WASM
+// client (rask.wasm.js) at their shared PWA splice marker. These back the PWA browser APIs that work on
+// either transport — IWebPush (subscribe), INotifications, IBadge, IWakeLock (all in Rask.Core.Browser).
+// The WASM-only helpers that need transient activation / a static SW instance (the manifest injector and
+// install-prompt capture) and the device APIs stay in Rask.Wasm's rask-wasm-api.js.
+//
+// NB: no regex literals here — the MSBuild client-JS splice mangles backslashes, so base64url
+// (de)coding uses split/join instead of regex replace patterns.
 
-// Web Push (driven by IWebPush in Rask.Wasm.Browser). Push needs a Service Worker registration plus
-// key (de)serialization that IJSRuntime can't express directly, so it all lives here.
+// Web Push (driven by IWebPush). Push needs a Service Worker registration plus key (de)serialization
+// that IJSRuntime can't express directly, so it all lives here. The SW URL is resolved by C#
+// (IWebPush.RegisterServiceWorkerAsync defaults to {PathBase}/rask-sw.js — the WASM boot asset or the
+// Server AddRaskPwa endpoint).
 window.__raskPush = window.__raskPush || {
     isSupported: () =>
         ("serviceWorker" in navigator) && ("PushManager" in window) && ("Notification" in window),
@@ -945,8 +952,6 @@ window.__raskPush = window.__raskPush || {
         auth: window.__raskPush._b64url(sub.getKey("auth"))
     }),
 
-    // NB: no regex literals here — the MSBuild client-JS splice mangles backslashes, so base64url
-    // (de)coding uses split/join instead of regex replace patterns.
     _b64url: (buf) => {
         if (!buf) return "";
         const bytes = new Uint8Array(buf);
@@ -966,6 +971,87 @@ window.__raskPush = window.__raskPush || {
         return out;
     }
 };
+
+// Local notifications (driven by INotifications). `new Notification(...)` is a constructor IJSRuntime
+// can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
+window.__raskNotify = window.__raskNotify || {
+    isSupported: () => "Notification" in window,
+    show: (title, options) => {
+        new Notification(title, options || {});
+    }
+};
+
+// App badging (driven by IBadge). setAppBadge() with no argument shows a generic dot, with a number
+// shows the count — collapse the C# nullable int to that here. clearAppBadge() removes it.
+window.__raskBadge = window.__raskBadge || {
+    isSupported: () => "setAppBadge" in navigator,
+    set: (count) => (count === null || count === undefined)
+        ? navigator.setAppBadge()
+        : navigator.setAppBadge(count),
+    clear: () => navigator.clearAppBadge()
+};
+
+// Screen Wake Lock (driven by IWakeLock). A WakeLockSentinel is a live object IJSRuntime can't return,
+// so it's kept here under an integer id. Browsers auto-release the lock when the page is hidden, so we
+// re-acquire still-held locks when the page becomes visible again — a C# sentinel stays effective until
+// it's disposed (which calls release).
+window.__raskWakeLock = window.__raskWakeLock || (() => {
+    const held = new Map();
+    let nextId = 1;
+    let visBound = false;
+
+    const track = (entry) => {
+        entry.sentinel.addEventListener("release", () => { entry.released = true; });
+    };
+
+    const bindVisibility = () => {
+        if (visBound) return;
+        visBound = true;
+        document.addEventListener("visibilitychange", async () => {
+            if (document.visibilityState !== "visible") return;
+            for (const entry of held.values()) {
+                if (!entry.released) continue;
+                try {
+                    entry.sentinel = await navigator.wakeLock.request("screen");
+                    entry.released = false;
+                    track(entry);
+                } catch (_) { /* best-effort re-acquire */ }
+            }
+        });
+    };
+
+    return {
+        isSupported: () => "wakeLock" in navigator,
+        request: async () => {
+            bindVisibility();
+            const entry = { sentinel: await navigator.wakeLock.request("screen"), released: false };
+            track(entry);
+            const id = nextId++;
+            held.set(id, entry);
+            return id;
+        },
+        release: async (id) => {
+            const entry = held.get(id);
+            if (!entry) return;
+            held.delete(id);
+            try {
+                await entry.sentinel.release();
+            } catch (_) { /* already released (e.g. by the page going hidden) */ }
+        }
+    };
+})();
+
+
+// WASM-only helpers (__raskPwa.applyManifest, __raskInstall, device APIs) spliced from
+// Rask.Wasm/Resources/rask-wasm-api.js — never ship in the Server client, since these back APIs that
+// can't work over the WebSocket round-trip (or need WASM-only boot behaviour).
+// WASM-only framework Web-API helpers, spliced into rask.wasm.js ONLY (by the RASK_WASM_API marker).
+// These back APIs that can't work on the Server transport, so they must not ship in the Server
+// client (rask.js) — keeping the Core shared rask-api.js / rask-pwa.js to genuinely-shared helpers only.
+//
+// The transport-agnostic PWA helpers (__raskPush, __raskNotify, __raskBadge, __raskWakeLock) live in
+// Rask.Core/Resources/rask-pwa.js and are spliced into both clients; only the manifest injector and the
+// install-prompt capture (which need page-side boot behaviour WASM provides) stay here.
 
 // PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
 // relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
@@ -1067,74 +1153,8 @@ window.__raskInstall = window.__raskInstall || (() => {
     };
 })();
 
-// Local notifications (driven by INotifications). `new Notification(...)` is a constructor IJSRuntime
-// can't call directly, so showing goes through here. Permission read/request are plain calls in C#.
-window.__raskNotify = window.__raskNotify || {
-    isSupported: () => "Notification" in window,
-    show: (title, options) => {
-        new Notification(title, options || {});
-    }
-};
-
-// App badging (driven by IBadge). setAppBadge() with no argument shows a generic dot, with a number
-// shows the count — collapse the C# nullable int to that here. clearAppBadge() removes it.
-window.__raskBadge = window.__raskBadge || {
-    isSupported: () => "setAppBadge" in navigator,
-    set: (count) => (count === null || count === undefined)
-        ? navigator.setAppBadge()
-        : navigator.setAppBadge(count),
-    clear: () => navigator.clearAppBadge()
-};
-
-// Screen Wake Lock (driven by IWakeLock). A WakeLockSentinel is a live object IJSRuntime can't return,
-// so it's kept here under an integer id. Browsers auto-release the lock when the page is hidden, so we
-// re-acquire still-held locks when the page becomes visible again — a C# sentinel stays effective until
-// it's disposed (which calls release).
-window.__raskWakeLock = window.__raskWakeLock || (() => {
-    const held = new Map();
-    let nextId = 1;
-    let visBound = false;
-
-    const track = (entry) => {
-        entry.sentinel.addEventListener("release", () => { entry.released = true; });
-    };
-
-    const bindVisibility = () => {
-        if (visBound) return;
-        visBound = true;
-        document.addEventListener("visibilitychange", async () => {
-            if (document.visibilityState !== "visible") return;
-            for (const entry of held.values()) {
-                if (!entry.released) continue;
-                try {
-                    entry.sentinel = await navigator.wakeLock.request("screen");
-                    entry.released = false;
-                    track(entry);
-                } catch (_) { /* best-effort re-acquire */ }
-            }
-        });
-    };
-
-    return {
-        isSupported: () => "wakeLock" in navigator,
-        request: async () => {
-            bindVisibility();
-            const entry = { sentinel: await navigator.wakeLock.request("screen"), released: false };
-            track(entry);
-            const id = nextId++;
-            held.set(id, entry);
-            return id;
-        },
-        release: async (id) => {
-            const entry = held.get(id);
-            if (!entry) return;
-            held.delete(id);
-            try {
-                await entry.sentinel.release();
-            } catch (_) { /* already released (e.g. by the page going hidden) */ }
-        }
-    };
-})();
+// __raskNotify / __raskBadge / __raskWakeLock are transport-agnostic and live in
+// Rask.Core/Resources/rask-pwa.js (spliced into both clients) — they are not duplicated here.
 
 // Screen Orientation (driven by IScreenOrientation). Reading returns the live screen.orientation as a
 // plain { type, angle } object (mapped to the typed OrientationInfo in C#); lock/unlock pass through.

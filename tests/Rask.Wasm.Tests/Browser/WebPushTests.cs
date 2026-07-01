@@ -1,5 +1,5 @@
+using Rask.Core.Browser;
 using Rask.Core.Live;
-using Rask.Wasm.Browser;
 
 namespace Rask.Wasm.Tests.Browser;
 

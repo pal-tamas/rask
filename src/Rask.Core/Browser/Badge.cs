@@ -1,14 +1,14 @@
 using Microsoft.JSInterop;
 
-namespace Rask.Wasm.Browser;
+namespace Rask.Core.Browser;
 
 /// <summary>
 ///     Typed access to the Badging API
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/Badging_API" />) — set a numeric or
 ///     dot badge on the <em>installed</em> app's icon (and, on some platforms, the tab). Pairs with
 ///     <see cref="INotifications" /> / <see cref="IWebPush" /> to surface an unread count without opening
-///     a notification. <b>WASM-only:</b> the badge belongs to the installed PWA instance, so it's
-///     registered only by the WASM host; inject it through a component constructor.
+///     a notification. Works on both hosts (the badge targets the installed PWA instance regardless of
+///     transport); inject it through a component constructor.
 /// </summary>
 /// <remarks>
 ///     Requires a secure context and (on most platforms) an installed PWA — setting a badge in a normal
