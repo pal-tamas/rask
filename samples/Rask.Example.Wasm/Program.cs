@@ -25,7 +25,7 @@ var host = WasmHostBuilder.CreateDefault();
 host.Services.AddExampleServices(_ => new Uri(WasmHostBuilder.BaseAddress));
 // Typed PWA manifest — the framework injects <link rel="manifest"> + <meta name="theme-color"> at
 // boot (a data: URL with sub-path-correct absolute URLs), so there's no manifest.webmanifest to ship.
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "Rask WASM Showcase",
     ShortName = "Rask",

@@ -36,6 +36,9 @@ them until tagged releases begin.
   `IIdleDetector`, `ISerial`, `IUsb`, `IHid`, `IBluetooth`) stay WASM-only.
 
 ### Changed
+- **`WasmHostBuilder.UseManifest` renamed to `UsePwa`** for naming parity with the Server host's
+  `AddRaskPwa` (both now read as "enable PWA from this manifest"). `UseManifest` remains as an
+  `[Obsolete]` alias that forwards to `UsePwa`.
 - **Breaking:** the shared PWA types `WebAppManifest` (and its nested manifest records/enums),
   `IWebPush`/`WebPush`/`PushSubscription`/`NotificationPermission`, `INotifications`/`Notifications`/
   `NotificationOptions`, `IBadge`/`Badge`, and `IWakeLock`/`WakeLock`/`IWakeLockSentinel` moved from the

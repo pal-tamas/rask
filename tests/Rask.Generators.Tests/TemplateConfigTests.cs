@@ -167,7 +167,7 @@ public class TemplateConfigTests
         // The icon.svg excluded by (!pwa) must actually be present to ship.
         Assert.NotEmpty(Directory.GetFiles(dir, "icon.svg", SearchOption.AllDirectories));
 
-        // Program.cs wires UseManifest behind //#if (pwa) blocks the engine strips when pwa is off.
+        // Program.cs wires UsePwa behind //#if (pwa) blocks the engine strips when pwa is off.
         var hasProgramConditional = Directory
             .GetFiles(dir, "Program.cs", SearchOption.AllDirectories)
             .Any(f => File.ReadAllText(f).Contains("#if (pwa)", StringComparison.Ordinal));

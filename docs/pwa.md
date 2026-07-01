@@ -54,7 +54,7 @@ hand-write or keep in sync:
 using Rask.Core.Browser;
 
 var host = WasmHostBuilder.CreateDefault();
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "My Rask App",
     ShortName = "Rask App",
@@ -85,7 +85,7 @@ optional and omitted when unset:
 | `FileHandlers` | `file_handlers` | Open associated file types (`FileHandler`) |
 
 ```csharp
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "My Rask App",
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")],
@@ -245,7 +245,7 @@ subscribe → send → notify loop wired up in `samples/Rask.Example.Wasm.Host` 
 ## PWA on the Server host
 
 A Rask **Server** app can be a PWA too — opt in with **`AddRaskPwa`**, the server-side counterpart to
-the WASM host's `UseManifest`. One call makes the app installable and push-capable:
+the WASM host's `UsePwa`. One call makes the app installable and push-capable:
 
 ```csharp
 using Rask.Core.Browser;

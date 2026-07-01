@@ -17,7 +17,7 @@ host.Services.AddSingleton<IWeatherForecastService, HttpWeatherForecastService>(
 //#if (pwa)
 
 // Installable PWA: the framework injects <link rel="manifest"> + <meta name="theme-color"> at boot.
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "Rask App",
     ShortName = "Rask App",

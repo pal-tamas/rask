@@ -9,7 +9,7 @@ namespace Rask.Server;
 
 /// <summary>
 ///     Opt-in Progressive Web App support for the Rask Server host — the server-side counterpart to the
-///     WASM host's <c>WasmHostBuilder.UseManifest(...)</c>. Call <see cref="AddRaskPwa" /> alongside
+///     WASM host's <c>WasmHostBuilder.UsePwa(...)</c>. Call <see cref="AddRaskPwa" /> alongside
 ///     <c>AddRask()</c> to make a Server app installable and push-capable.
 /// </summary>
 /// <remarks>

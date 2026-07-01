@@ -157,7 +157,7 @@ public sealed record ManifestIcon(
 
 /// <summary>
 ///     A typed <see href="https://developer.mozilla.org/en-US/docs/Web/Manifest">web app manifest</see>.
-///     Configure it in <c>Program.cs</c> with <c>WasmHostBuilder.UseManifest(...)</c> (WASM) or
+///     Configure it in <c>Program.cs</c> with <c>WasmHostBuilder.UsePwa(...)</c> (WASM) or
 ///     <c>AddRaskPwa(...)</c> (Server); the framework emits the <c>&lt;link rel="manifest"&gt;</c> and
 ///     <c>&lt;meta name="theme-color"&gt;</c> for you, so you don't hand-write <c>manifest.webmanifest</c>.
 ///     Relative URLs (<see cref="StartUrl" />, <see cref="Scope" />, icon <c>src</c>) stay correct under a
