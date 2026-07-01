@@ -2,17 +2,19 @@ using System.Text;
 using System.Text.Json;
 using Rask.Core.Browser;
 
-namespace Rask.Example.Wasm.Features;
+namespace Rask.Example.Server.Features;
 
 /// <summary>
-///     A live, WASM-only PWA demo: local notifications (<see cref="INotifications" />), Web Push
-///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). These
-///     APIs are WASM-only; <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
+///     A live PWA demo running on the <b>Server</b> host: local notifications
+///     (<see cref="INotifications" />), Web Push (<see cref="IWebPush" /> + this app's
+///     <c>Rask.WebPush</c> backend), and the installed-app badge (<see cref="IBadge" />). These APIs are
+///     transport-agnostic, so the same code runs here over the WebSocket as it does on WASM.
+///     <see cref="ServerPwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
+public sealed class ServerPwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
 {
-    // Fallback VAPID public key for the standalone static showcase (no backend to ask). When a backend
-    // is present the key comes from GET /_push/key instead, so the two never drift.
+    // Fallback VAPID public key matching the demo backend (PushBackend.DemoPublicKey). The live key comes
+    // from GET /_push/key, so the client and server never drift.
     private const string DemoVapidPublicKey =
         "BIl5ANiAgh51-r7wwTyN047Hn3FWTCgLl9cGff1qa5vrft1DmS3jSa-JhTf3PfC6qa_G33YNeNVKT-yyP_6Jqik";
 
@@ -28,7 +30,8 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
             Div(Class: "card-body")[
                 H6(Class: "fw-bold")[I(Class: "bi bi-bell me-2"), "Local notification (INotifications)"],
                 P(Class: "small text-secondary")[
-                    "Requests permission, then shows a notification straight from C# — no server."
+                    "Requests permission, then shows a notification straight from C# — driven over the live ",
+                    "WebSocket. Trigger it from this button so the prompt rides a user gesture."
                 ],
                 Button(Class: "btn btn-primary btn-sm mb-2", Id: "pwa-notify", OnClickAsync: ShowNotification)[
                     "Show a notification"],
@@ -40,10 +43,9 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
             Div(Class: "card-body")[
                 H6(Class: "fw-bold")[I(Class: "bi bi-broadcast me-2"), "Web Push (IWebPush)"],
                 P(Class: "small text-secondary")[
-                    "Subscribes with a demo VAPID key and registers with this app's ", Code()["Rask.WebPush"],
+                    "Subscribes with this app's VAPID key and registers with its ", Code()["Rask.WebPush"],
                     " backend, then sends a real push that the service worker shows even when the tab is ",
-                    "closed. Run the hosted sample (", Code()["Rask.Example.Wasm.Host"],
-                    ") for the full loop — see ", Code()["docs/pwa.md"], "."
+                    "closed — the full loop in one Server app. Install the app for the best experience."
                 ],
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[
                     Button(Class: "btn btn-outline-primary btn-sm", Id: "pwa-push", OnClickAsync: EnablePush)[
@@ -92,8 +94,8 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
 
             await notifications.ShowAsync("Hello from Rask", new NotificationOptions
             {
-                Body = "A local notification, shown from C#.",
-                Tag = "rask-pwa-demo"
+                Body = "A local notification, shown from a Rask.Server app.",
+                Tag = "rask-server-pwa-demo"
             });
             _notifyStatus = "Notification shown";
         }
@@ -122,28 +124,18 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
 
             await push.RegisterServiceWorkerAsync();
 
-            // Use the backend's VAPID public key when there is one, so the client and server can't
-            // drift; fall back to the baked-in demo key on the static showcase.
             var vapidKey = await TryGetServerVapidKey() ?? DemoVapidPublicKey;
             var sub = await push.GetSubscriptionAsync() ?? await push.SubscribeAsync(vapidKey);
             _subscribed = true;
 
-            // Register the subscription with this app's backend. The flat { endpoint, p256dh, auth }
-            // shape is what the /_push/subscribe endpoint expects; the secrets are never rendered to
-            // the page. On the standalone static showcase there is no backend, so a failure is expected.
-            try
-            {
-                var json = $"{{\"endpoint\":\"{sub.Endpoint}\",\"p256dh\":\"{sub.P256dh}\",\"auth\":\"{sub.Auth}\"}}";
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await http.PostAsync("_push/subscribe", content);
-                _pushStatus = response.IsSuccessStatusCode
-                    ? "Subscribed and registered with the backend — click \"Send a test push\"."
-                    : $"Subscribed, but the backend returned {(int)response.StatusCode}.";
-            }
-            catch (HttpRequestException)
-            {
-                _pushStatus = "Subscribed. No backend here (static showcase) — run Rask.Example.Wasm.Host for the full loop.";
-            }
+            // Register the subscription with this app's backend ({ endpoint, p256dh, auth }); the secrets
+            // are never rendered to the page.
+            var json = $"{{\"endpoint\":\"{sub.Endpoint}\",\"p256dh\":\"{sub.P256dh}\",\"auth\":\"{sub.Auth}\"}}";
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await http.PostAsync("_push/subscribe", content);
+            _pushStatus = response.IsSuccessStatusCode
+                ? "Subscribed and registered with the backend — click \"Send a test push\"."
+                : $"Subscribed, but the backend returned {(int)response.StatusCode}.";
         }
         catch (Exception ex)
         {
@@ -155,19 +147,13 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
     {
         try
         {
-            // Ask the backend to deliver a push to every stored subscription. The browser's service
-            // worker shows the notification — even if this tab is closed. The deep-link URL uses the
-            // type-safe generated route so a renamed page is a compile error, not a dead link.
-            var body = $"{{\"title\":\"Rask push\",\"body\":\"Delivered by Rask.WebPush.\",\"url\":\"{Routes.PwaPage()}\"}}";
+            // The deep-link URL uses the type-safe generated route so a renamed page is a compile error.
+            var body = $"{{\"title\":\"Rask push\",\"body\":\"Delivered by Rask.WebPush from the server.\",\"url\":\"{Routes.ServerPwaPage()}\"}}";
             using var content = new StringContent(body, Encoding.UTF8, "application/json");
             var response = await http.PostAsync("_push/send", content);
             _pushStatus = response.IsSuccessStatusCode
                 ? "Push sent — watch for the notification."
                 : $"Backend returned {(int)response.StatusCode}.";
-        }
-        catch (HttpRequestException)
-        {
-            _pushStatus = "No backend here (static showcase) — run Rask.Example.Wasm.Host for the full loop.";
         }
         catch (Exception ex)
         {
@@ -175,7 +161,7 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
         }
     }
 
-    // The backend's current VAPID public key, or null when there is no backend (static showcase).
+    // The backend's current VAPID public key, or null when it can't be reached.
     private async Task<string?> TryGetServerVapidKey()
     {
         try

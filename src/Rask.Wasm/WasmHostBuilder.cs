@@ -92,17 +92,22 @@ public sealed class WasmHostBuilder
     ///     Makes the app an installable PWA from a typed <see cref="WebAppManifest" /> — the framework
     ///     injects the <c>&lt;link rel="manifest"&gt;</c> (a <c>data:</c> URL with sub-path-correct absolute
     ///     URLs) and <c>&lt;meta name="theme-color"&gt;</c> at boot, so there's no <c>manifest.webmanifest</c>
-    ///     to hand-write. Call before <see cref="RunAsync{TApp}" />:
+    ///     to hand-write. The WASM counterpart to the Server host's <c>AddRaskPwa</c>. Call before
+    ///     <see cref="RunAsync{TApp}" />:
     ///     <code>
-    ///     host.UseManifest(new WebAppManifest { Name = "My App", ThemeColor = "#512BD4",
+    ///     host.UsePwa(new WebAppManifest { Name = "My App", ThemeColor = "#512BD4",
     ///         Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")] });
     ///     </code>
     /// </summary>
-    public WasmHostBuilder UseManifest(WebAppManifest manifest)
+    public WasmHostBuilder UsePwa(WebAppManifest manifest)
     {
         _manifest = manifest;
         return this;
     }
+
+    /// <summary>Renamed to <see cref="UsePwa" /> for naming parity with the Server host's <c>AddRaskPwa</c>.</summary>
+    [Obsolete("Renamed to UsePwa (parity with the Server host's AddRaskPwa). This alias will be removed.")]
+    public WasmHostBuilder UseManifest(WebAppManifest manifest) => UsePwa(manifest);
 
     /// <summary>
     ///     Page origin (e.g. "https://localhost:5050/") suitable for use as <see cref="HttpClient.BaseAddress" />.

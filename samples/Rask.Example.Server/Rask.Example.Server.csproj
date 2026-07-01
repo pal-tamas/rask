@@ -9,20 +9,32 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.WebPush\Rask.WebPush.csproj"/>
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
-  <!--
-    The ASP.NET Web SDK's static-web-assets loader instantiates a
-    PhysicalFileProvider over the project's source wwwroot/ at startup, and throws
-    DirectoryNotFoundException if the directory is missing. This example has no
-    static files of its own — but the directory must exist for the SDK to be happy.
-  -->
-  <Target Name="EnsureEmptyWwwroot" BeforeTargets="BeforeBuild">
-    <MakeDir Directories="wwwroot"/>
+  <!-- Embed the Server-only demo sources verbatim so CodeSample can show the real file text beside the
+       live Result (the Server PWA demo lives here, not in Rask.Example.Shared). EmbeddedSource reads them
+       as raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup finds
+       them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.js;Features/**/*.css">
+      <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Guard the bare-leaf LogicalName: a duplicate leaf would silently overwrite another in the manifest
+       (last writer wins). Only raksrc/ items are checked. -->
+  <Target Name="VerifyUniqueEmbeddedSourceNames" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_RaskEmbeddedLeaf Include="@(EmbeddedResource->'%(LogicalName)')"
+                         Condition="$([System.String]::Copy('%(LogicalName)').StartsWith('raksrc/'))"/>
+    </ItemGroup>
+    <Error Condition="'@(_RaskEmbeddedLeaf->Distinct()->Count())' != '@(_RaskEmbeddedLeaf->Count())'"
+           Text="Duplicate embedded-source leaf name(s) under Features/. EmbeddedSource resolves by bare filename (raksrc/{leaf}), so every embedded .cs/.js/.css must have a unique file name across the project (and not collide with a Rask.Example.Shared leaf). Rename the collision." />
   </Target>
 
 </Project>

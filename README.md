@@ -222,11 +222,12 @@ on one and move later.
 | **Needs a live connection** | Yes — UI pauses if the socket drops | No — works offline once loaded |
 | **Direct server/DB/secret access** | Yes, from event handlers | No — call an API |
 | **Scales by** | Server memory (one session each) | Client CPU (free per user) |
-| **Browser APIs** | Shared `Rask.Core.Browser` services work; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (`IShare`/`IWebPush`/`INotifications`/`IBadge`/`IWakeLock`/`IScreenOrientation`/`IFullscreen`) and offline/PWA |
+| **Browser APIs** | Shared `Rask.Core.Browser` services work — including the PWA APIs `IWebPush`/`INotifications`/`IBadge`/`IWakeLock`; APIs needing a live user gesture don't survive the round-trip | All of the above **plus** `Rask.Wasm.Browser` (`IShare`/`IScreenOrientation`/`IFullscreen`/`IInstallPrompt`/device APIs) |
+| **PWA** | Installable + push-capable via `AddRaskPwa` (manifest + service worker); **not** an offline app (offline → static page), no background sync | Full PWA: install, **true offline**, push, background-capable service worker |
 
-**Rule of thumb:** reach for **Server** for data-dense internal apps, instant loads, and direct backend
-access; reach for **WASM** for offline-capable, installable, or static-hosted (e.g. GitHub Pages) apps —
-and it's the transport for the PWA features on the roadmap. See
+**Rule of thumb:** reach for **Server** for data-dense internal apps, instant loads, direct backend
+access, and *installable + push-capable* PWAs; reach for **WASM** for **truly offline-capable**,
+installable, or static-hosted (e.g. GitHub Pages) apps. See
 [architecture](docs/architecture/) and [JS interop → user-activation and the transport](docs/js-interop.md#typed-browser-apis).
 
 ## 🚀 Quick Start — Server

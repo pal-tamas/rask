@@ -18,8 +18,19 @@ public class TemplateConfigTests
         ["rask-wasm-hosted", "Company.RaskWasmHosted"]
     ];
 
-    // The `--pwa` option only exists on the WASM templates (a Server app can't be an offline PWA).
-    public static IEnumerable<object[]> PwaTemplates =>
+    // `--pwa` exists on all three templates, but the scaffolding differs: the WASM templates register
+    // the service worker from index.html and exclude wwwroot/icon.svg when off; the Server template
+    // calls AddRaskPwa (which serves + registers the SW) and excludes its whole wwwroot/** when off (a
+    // Server PWA is installable + push-capable, not an offline app).
+    public static IEnumerable<object[]> AllPwaTemplates =>
+    [
+        ["rask-server"],
+        ["rask-wasm"],
+        ["rask-wasm-hosted"]
+    ];
+
+    // The WASM-specific PWA scaffolding (index.html SW registration + icon.svg exclusion).
+    public static IEnumerable<object[]> WasmPwaTemplates =>
     [
         ["rask-wasm"],
         ["rask-wasm-hosted"]
@@ -92,7 +103,7 @@ public class TemplateConfigTests
     }
 
     [Theory]
-    [MemberData(nameof(PwaTemplates))]
+    [MemberData(nameof(AllPwaTemplates))]
     public void PwaSymbol_IsBoolean_DefaultsFalse(string shortName)
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(
@@ -104,8 +115,31 @@ public class TemplateConfigTests
         Assert.Equal("false", pwa.GetProperty("defaultValue").GetString());
     }
 
+    [Fact]
+    public void ServerPwa_ExcludesWwwroot_WhenPwaOff_AndProgramHasPwaConditional()
+    {
+        var dir = Path.Combine(TemplatesRoot, "rask-server");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(dir, ".template.config", "template.json")));
+        var pwaExclusion = doc.RootElement.GetProperty("sources").EnumerateArray()
+            .SelectMany(s => s.GetProperty("modifiers").EnumerateArray())
+            .FirstOrDefault(m => m.TryGetProperty("condition", out var c) && c.GetString() == "(!pwa)");
+        Assert.True(pwaExclusion.ValueKind == JsonValueKind.Object, "expected a (!pwa) source modifier");
+        var excludes = pwaExclusion.GetProperty("exclude").EnumerateArray().Select(e => e.GetString());
+        Assert.Contains(excludes, e => e!.Contains("wwwroot", StringComparison.Ordinal));
+
+        // The PWA assets excluded by (!pwa) must actually be present to ship.
+        Assert.NotEmpty(Directory.GetFiles(dir, "icon.svg", SearchOption.AllDirectories));
+        Assert.NotEmpty(Directory.GetFiles(dir, "offline.html", SearchOption.AllDirectories));
+
+        // Program.cs wires AddRaskPwa behind a //#if (pwa) block the engine strips when pwa is off.
+        Assert.Contains("#if (pwa)",
+            File.ReadAllText(Path.Combine(dir, "Program.cs")), StringComparison.Ordinal);
+    }
+
     [Theory]
-    [MemberData(nameof(PwaTemplates))]
+    [MemberData(nameof(WasmPwaTemplates))]
     public void Sources_ExcludeIcon_WhenPwaOff(string shortName)
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(
@@ -125,7 +159,7 @@ public class TemplateConfigTests
     }
 
     [Theory]
-    [MemberData(nameof(PwaTemplates))]
+    [MemberData(nameof(WasmPwaTemplates))]
     public void PwaScaffolding_Exists_AndProgramAndIndexHavePwaConditionals(string shortName)
     {
         var dir = Path.Combine(TemplatesRoot, shortName);
@@ -133,7 +167,7 @@ public class TemplateConfigTests
         // The icon.svg excluded by (!pwa) must actually be present to ship.
         Assert.NotEmpty(Directory.GetFiles(dir, "icon.svg", SearchOption.AllDirectories));
 
-        // Program.cs wires UseManifest behind //#if (pwa) blocks the engine strips when pwa is off.
+        // Program.cs wires UsePwa behind //#if (pwa) blocks the engine strips when pwa is off.
         var hasProgramConditional = Directory
             .GetFiles(dir, "Program.cs", SearchOption.AllDirectories)
             .Any(f => File.ReadAllText(f).Contains("#if (pwa)", StringComparison.Ordinal));

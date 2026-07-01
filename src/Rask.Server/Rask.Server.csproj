@@ -41,12 +41,13 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask.js" LogicalName="Rask.Server.Resources.rask.js"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-sw.js" LogicalName="Rask.Server.Resources.rask-sw.js"/>
   </ItemGroup>
 
   <Import Project="..\..\build\Rask.MinifyJs.targets"/>
 
   <Target Name="_RaskBuildClientJs" BeforeTargets="PrepareForBuild"
-          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js"
+          Inputs="Resources\rask.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js"
           Outputs="$(IntermediateOutputPath)rask.js">
     <PropertyGroup>
       <_RaskClientTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.js'))</_RaskClientTemplate>
@@ -54,7 +55,8 @@
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
       <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
-      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)'))</_RaskClientJs>
+      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
+      <_RaskClientJs>$(_RaskClientTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)'))</_RaskClientJs>
     </PropertyGroup>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <WriteLinesToFile File="$(IntermediateOutputPath)rask.js" Lines="$(_RaskClientJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
@@ -66,6 +68,27 @@
     -->
     <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask.js"
                   OutputFile="$(IntermediateOutputPath)rask.js"
+                  Condition=" '$(Configuration)' == 'Release' "/>
+  </Target>
+
+  <!--
+    The embedded Server service worker is assembled the same way: splice the Core shared push /
+    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the Server SW template
+    (Resources/rask-sw.js, which holds the offline-fallback strategy — NOT app-shell caching) and embed
+    the result. Served at {PathBase}/rask-sw.js by AddRaskPwa; see RaskEndpointExtensions.
+  -->
+  <Target Name="_RaskBuildServiceWorker" BeforeTargets="PrepareForBuild"
+          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
+          Outputs="$(IntermediateOutputPath)rask-sw.js">
+    <PropertyGroup>
+      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
+      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
+      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)"/>
+    <WriteLinesToFile File="$(IntermediateOutputPath)rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+    <RaskMinifyJs InputFile="$(IntermediateOutputPath)rask-sw.js"
+                  OutputFile="$(IntermediateOutputPath)rask-sw.js"
                   Condition=" '$(Configuration)' == 'Release' "/>
   </Target>
 

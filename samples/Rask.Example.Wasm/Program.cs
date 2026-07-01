@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Browser;
 using Rask.Example.Shared;
 using Rask.Wasm;
-using Rask.Wasm.Browser;
 
 // Framework default is LiveDiffMode.Auto — counter increments and similar
 // in-place state changes go over the wire as a handful of bytes instead of the
@@ -25,7 +25,7 @@ var host = WasmHostBuilder.CreateDefault();
 host.Services.AddExampleServices(_ => new Uri(WasmHostBuilder.BaseAddress));
 // Typed PWA manifest — the framework injects <link rel="manifest"> + <meta name="theme-color"> at
 // boot (a data: URL with sub-path-correct absolute URLs), so there's no manifest.webmanifest to ship.
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "Rask WASM Showcase",
     ShortName = "Rask",

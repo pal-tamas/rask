@@ -48,6 +48,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Bootstrap (Rask.Bootstrap):** typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/`BsAlert`/…); interactive ones (modal/dropdown/accordion/tabs) run with **zero JS** via the live runtime. Link the CSS with `BootstrapStyles()` in `App.Head`; typed utility classes via `Bs.Join(Shadow.Sm, Margin.Bottom(4))`.
 - **Auth:** gate by injecting `IUserProvider` and reading `.Current` (a never-null `ClaimsPrincipal`), or the `Authorize(...)` component (its `Authorized: user => …` slot is handed the principal; static content uses the `[ … ]` indexer);
   `[Authorize]`/`[AllowAnonymous]` on a page. Configure on ASP.NET's own `AddCookie`/`AddJwtBearer`.
+- **PWA (`--pwa`):** scaffolded with `--pwa`. `builder.Services.AddRaskPwa(new WebAppManifest { … })` (in `Program.cs`) serves the manifest + Rask's service worker, auto-registers it, and emits the manifest link into the server-rendered `<head>`. Ships `wwwroot/icon.svg` + `wwwroot/offline.html`. A Server PWA is **installable + push-capable** (`IWebPush`/`INotifications`/`IBadge`/`IWakeLock` in `Rask.Core.Browser`), but **not an offline app** — offline navigations show `offline.html`. Add `Rask.WebPush` to send push. See docs/pwa.md.
 
 ## Build & run
 ```bash

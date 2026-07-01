@@ -5,6 +5,11 @@
     // Rask.Core/Resources/rask-api.js at build time — single source across both transports.
     // @@RASK_API@@
 
+    // Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
+    // Rask.Core/Resources/rask-pwa.js — the same source the WASM client uses. They assign to window.* so
+    // the IWebPush/INotifications/IBadge/IWakeLock services reach them. Inert unless AddRaskPwa is used.
+    // @@RASK_PWA@@
+
     let root = document.querySelector("[data-rask-root]");
     if (!root) return;
 

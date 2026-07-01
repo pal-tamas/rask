@@ -5,7 +5,7 @@ using Rask.Wasm;
 using Rask.Core.Authentication;
 //#endif
 //#if (pwa)
-using Rask.Wasm.Browser;
+using Rask.Core.Browser;
 //#endif
 
 // PathBase is auto-detected from <base href>. Publish with /p:RaskPathBase=/myapp
@@ -17,7 +17,7 @@ host.Services.AddSingleton<IWeatherForecastService, HttpWeatherForecastService>(
 //#if (pwa)
 
 // Installable PWA: the framework injects <link rel="manifest"> + <meta name="theme-color"> at boot.
-host.UseManifest(new WebAppManifest
+host.UsePwa(new WebAppManifest
 {
     Name = "Rask App",
     ShortName = "Rask App",

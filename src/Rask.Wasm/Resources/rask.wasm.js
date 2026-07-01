@@ -10,8 +10,13 @@ let basePath = null;
 // Rask.Core/Resources/rask-api.js at build time — single source across both transports.
 // @@RASK_API@@
 
-// WASM-only helpers (__raskPush, …) spliced from Rask.Wasm/Resources/rask-wasm-api.js — never ship
-// in the Server client, since these back APIs that can't work over the WebSocket round-trip.
+// Transport-agnostic PWA helpers (__raskPush/__raskNotify/__raskBadge/__raskWakeLock) spliced from
+// Rask.Core/Resources/rask-pwa.js — the same source the Server client uses.
+// @@RASK_PWA@@
+
+// WASM-only helpers (__raskPwa.applyManifest, __raskInstall, device APIs) spliced from
+// Rask.Wasm/Resources/rask-wasm-api.js — never ship in the Server client, since these back APIs that
+// can't work over the WebSocket round-trip (or need WASM-only boot behaviour).
 // @@RASK_WASM_API@@
 
 // Serializes render application across payloads. A navigation diff/full reply may defer

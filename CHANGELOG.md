@@ -28,6 +28,32 @@ them until tagged releases begin.
 - **`NavLink.Match`.** An optional path the active-state comparison uses instead of `Href`, so a link
   can point at one route yet stay active across a whole section (`Href: "/realtime/BTC"`,
   `Match: "/realtime"`, `ActiveMatch: Prefix`).
+- **`AddRaskPwa(manifest)` — opt-in PWA for the Server host.** The server-side counterpart to the WASM
+  host's `UseManifest(...)`. It serves the installable manifest at `{PathBase}/rask/manifest.webmanifest`
+  (URLs rooted at the app base path), emits `<link rel="manifest">` + `<meta name="theme-color">` directly
+  into the server-rendered `<head>`, and serves a service worker at `{PathBase}/rask-sw.js` that handles
+  Web Push and serves a static `offline.html` on failed navigations. The Server service worker deliberately
+  does **not** cache the server-rendered shell (it carries a one-shot session id and is `no-store`), so a
+  Server PWA is installable + push-capable but **not** an offline app — there is no background sync and no
+  install-prompt replay (those stay WASM-only). The transport-neutral push/notificationclick service-worker
+  handlers are shared from `Rask.Core/Resources/rask-sw-shared.js` across both the WASM and Server SWs.
+  The transport-agnostic client helpers (`__raskPush`/`__raskNotify`/`__raskBadge`/`__raskWakeLock`) are
+  shared from `Rask.Core/Resources/rask-pwa.js` and spliced into both the Server and WASM clients; only the
+  manifest injector and install-prompt capture stay WASM-only.
+- **`dotnet new rask-server --pwa` + Server PWA showcase.** The Server template gains a `--pwa` flag
+  (scaffolds `AddRaskPwa`, `wwwroot/icon.svg`, and `offline.html`). The Server sample
+  (`samples/Rask.Example.Server`) is now an installable PWA with a new **Server PWA** showcase page
+  demonstrating the full `INotifications`/`IBadge`/`IWebPush` subscribe→send loop (via `Rask.WebPush`),
+  and an E2E test asserting the manifest, service worker, and the offline-fallback behaviour.
+- **PWA on the Server host.** The transport-agnostic PWA browser APIs — `IWebPush` (push subscribe),
+  `INotifications`, `IBadge`, `IWakeLock` — and the typed `WebAppManifest` now live in
+  `Rask.Core.Browser` and are registered on the Server host too, so a Server app can subscribe to push,
+  show local notifications, set the app badge, and hold a screen wake lock. `WebAppManifest` gains a
+  `ToJson(basePath)` overload that roots relative manifest URLs at the app's base path (the server-side
+  analogue of the WASM host's boot-time resolution). The remaining browser APIs that need transient
+  activation, a live document/handle, or the installed-PWA instance (`IShare`, `IFullscreen`,
+  `IInstallPrompt`, `IEyeDropper`, `IPictureInPicture`, `IMediaDevices`, `IScreenOrientation`,
+  `IIdleDetector`, `ISerial`, `IUsb`, `IHid`, `IBluetooth`) stay WASM-only.
 
 ### Changed
 - **Examples site — visual refresh.** A cohesive design pass over the showcase: a real type system
@@ -42,6 +68,14 @@ them until tagged releases begin.
   the top, replacing the always-expanded ~33%-wide column. On mobile it collapses to a hamburger-driven
   drawer; on desktop the list scrolls inside a viewport-bounded region. The shell now dogfoods
   `BsNavbar`/`BsNav`/`BsNavItem`/`BsOffcanvas`.
+- **`WasmHostBuilder.UseManifest` renamed to `UsePwa`** for naming parity with the Server host's
+  `AddRaskPwa` (both now read as "enable PWA from this manifest"). `UseManifest` remains as an
+  `[Obsolete]` alias that forwards to `UsePwa`.
+- **Breaking:** the shared PWA types `WebAppManifest` (and its nested manifest records/enums),
+  `IWebPush`/`WebPush`/`PushSubscription`/`NotificationPermission`, `INotifications`/`Notifications`/
+  `NotificationOptions`, `IBadge`/`Badge`, and `IWakeLock`/`WakeLock`/`IWakeLockSentinel` moved from the
+  `Rask.Wasm.Browser` namespace to `Rask.Core.Browser`. Update the corresponding `using` in WASM apps
+  (`WasmHostBuilder.UseManifest` is unchanged). Accepted at `0.x` pre-release.
 
 ## [0.11.0] - 2026-06-30
 

@@ -87,7 +87,7 @@
     contributors look at). NuGet consumers see whichever version is packed (above).
   -->
   <Target Name="_RaskSpliceClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;_RaskMinifyClientJs"
-          Inputs="Resources\rask.wasm.js;Resources\rask-wasm-api.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js"
+          Inputs="Resources\rask.wasm.js;Resources\rask-wasm-api.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js"
           Outputs="Browser\rask.wasm.js">
     <PropertyGroup>
       <_RaskWasmTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.wasm.js'))</_RaskWasmTemplate>
@@ -95,8 +95,9 @@
       <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
       <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
       <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
+      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
       <_RaskWasmApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-wasm-api.js'))</_RaskWasmApiBody>
-      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)'))</_RaskWasmJs>
+      <_RaskWasmJs>$(_RaskWasmTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)').Replace('// @@RASK_WASM_API@@', '$(_RaskWasmApiBody)'))</_RaskWasmJs>
     </PropertyGroup>
     <WriteLinesToFile File="Browser\rask.wasm.js" Lines="$(_RaskWasmJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
@@ -119,6 +120,23 @@
     <Copy SourceFiles="Browser\rask.wasm.js" DestinationFiles="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
     <RaskMinifyJs InputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"
                   OutputFile="$(BaseIntermediateOutputPath)$(Configuration)\rask.wasm.js"/>
+  </Target>
+
+  <!--
+    Assemble the served service worker the same way as rask.wasm.js: splice the Core shared push /
+    notificationclick handlers (rask-sw-shared.js, at @@RASK_SW@@) into the WASM SW template
+    (Resources/rask-sw.js, which holds the offline app-shell strategy) and write the result to the
+    tracked, served Browser/rask-sw.js. Edit Resources/rask-sw.js, not Browser/rask-sw.js.
+  -->
+  <Target Name="_RaskSpliceServiceWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          Inputs="Resources\rask-sw.js;..\Rask.Core\Resources\rask-sw-shared.js"
+          Outputs="Browser\rask-sw.js">
+    <PropertyGroup>
+      <_RaskSwTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask-sw.js'))</_RaskSwTemplate>
+      <_RaskSwSharedBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-sw-shared.js'))</_RaskSwSharedBody>
+      <_RaskSwJs>$(_RaskSwTemplate.Replace('// @@RASK_SW@@', '$(_RaskSwSharedBody)'))</_RaskSwJs>
+    </PropertyGroup>
+    <WriteLinesToFile File="Browser\rask-sw.js" Lines="$(_RaskSwJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
   </Target>
 
   <!--
