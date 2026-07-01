@@ -18,6 +18,22 @@ them until tagged releases begin.
   built-in minifier is deliberately **conservative** — it only strips whitespace around the self-delimiting
   `{ } ; ,`, leaving descendant/child combinators, `calc()` operators, selector colons, and string/`url()`
   contents untouched — and only the CSS bundle is minified (JS is served as-is). See `docs/configuration.md`.
+- **Rails-grade developer error page.** The built-in `DefaultErrorPage` (shown when a fault escapes every
+  `ErrorBoundary`) now renders a rich view **in Development**: parsed stack frames (via the trim-safe
+  `DiagnosticMethodInfo`, not reflection), a ±5-line **source excerpt** around each throwing line with the
+  line marked, and the full **inner-exception chain** in collapsible sections. **Production is unchanged and
+  security-gated** — only the outermost type + message are shown; no stack, no source, no file paths, and no
+  inner-exception detail ever reach the response. All text is HTML-encoded, and source reads fail closed
+  (missing/stripped paths degrade to just the frame line). The Development gate still reads
+  `ASPNETCORE_ENVIRONMENT` / `DOTNET_ENVIRONMENT` with no `Microsoft.Extensions.Hosting` dependency.
+- **Flash messages — the injectable `IFlash` service (Rails-style `flash`).** Queue transient user
+  messages from any component or handler (`flash.Success("Saved")` / `Info` / `Warning` / `Error` /
+  `Add(level, …)`); a single headless `FlashOutlet` drains them (`Consume()`, consumed-once) on mount and
+  on `Changed`, rendering each via a caller-owned `Template` with a dismiss callback. `IFlash` is
+  registered **scoped** per session on both hosts, so a message queued just before a client-side
+  `NavigateTo` survives the navigation and shows once on arrival. `Rask.Bootstrap` adds `BsFlash` — a
+  ready-made fixed toast-container of `BsToast`s (mount one in your layout). New **Flash messages**
+  showcase page (`/flash`); see `docs/composition.md`.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
