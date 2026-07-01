@@ -97,10 +97,12 @@ public abstract partial class SharedSmokeTests
     // search filter, and — below md — a hamburger-driven offcanvas drawer. Exercised once per host.
     private async Task TestSidebarNavAsync()
     {
-        // Collapsed by default: at "/" only the active group ("Start") is expanded, so the ~90-item
-        // list isn't dumped at once. The nav is split into many collapsible groups.
-        await Expect(Page.Locator(".side-nav .collapse.show")).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Guides-first: the guide category groups are expanded by default (the narrative spine), while the
+        // demoted Examples/Bootstrap groups stay collapsed so the ~90-item list isn't dumped at once.
+        await Expect(Page.Locator(".side-nav .nav-group-toggle").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var open = await Page.Locator(".side-nav .collapse.show").CountAsync();
+        Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
         Assert.True(groups > 8, $"expected the nav split into many collapsible groups, got {groups}");
 
