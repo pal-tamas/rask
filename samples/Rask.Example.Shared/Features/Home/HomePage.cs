@@ -85,10 +85,10 @@ public sealed class HomePage(Navigator nav) : Component
                     "every example below renders live in your browser."
                 ],
                 Div(Class: "d-flex flex-wrap gap-2")[
-                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[BsIcon(Name: BsIconName.ArrowRight, Class: "me-2"),
-                        "Start with Tags"],
-                    BsButton(Size: BsSize.Lg, Class: "btn-outline-light", OnClick: () => nav.NavigateTo(Routes.GuidesIndexPage()))[
+                    BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo(Routes.GuidesIndexPage()))[
                         BsIcon(Name: BsIconName.Book, Class: "me-2"), "Read the guides"],
+                    BsButton(Size: BsSize.Lg, Class: "btn-outline-light", OnClick: () => nav.NavigateTo("/tags"))[
+                        BsIcon(Name: BsIconName.ArrowRight, Class: "me-2"), "Start with Tags"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
                         Class: "btn btn-outline-light btn-lg")[BsIcon(Name: BsIconName.Github, Class: "me-2"),
@@ -96,15 +96,24 @@ public sealed class HomePage(Navigator nav) : Component
                 ]
             ]
         ],
+        // Guides-first: the narrative guides lead the landing page. Each reads like a Rails guide, with
+        // runnable demos embedded inline, a Chapters index, an on-this-page rail, and prev/next nav.
+        Section(Class: "mb-2")[
+            H2(Class: "h4 mb-1")["Start with a guide"],
+            P(Class: "text-secondary mb-4")[
+                "Task-focused documentation with runnable demos embedded inline — the fastest way in."
+            ],
+            Div()[GuideCards.Render()]
+        ],
         CodeSample(
             ["HomeWelcomeDemo.cs"],
             "The minimal page",
             Notes:
             "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
             Result: HomeWelcomeDemo()),
-        H2(Class: "h4 mt-5 mb-1")["Explore the showcase"],
+        H2(Class: "h4 mt-5 mb-1")["Browse the component examples"],
         P(Class: "text-secondary mb-4")[
-            "Every page on the left has a runnable demo and the C# source that produced it."
+            "Every interactive example in the sidebar has a runnable demo and the C# source that produced it."
         ],
         Div()[FeatureIndex()],
         BsAlert(Color: BsColor.Info, Class: "d-flex align-items-start")[
