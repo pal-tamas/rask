@@ -120,7 +120,15 @@ public abstract class Component
     {
         get
         {
-            Children = children;
+            // Materialise a *lazy* sequence (a `yield`/LINQ pipeline that hasn't been evaluated)
+            // right here, during Render. A Child can wrap a component built by a factory, and those
+            // factories must run NOW — inside the owning component's render walk, where child-reuse
+            // bookkeeping (GetOrCreateChild's position map + PreviousChildren swap) is live — not later
+            // during serialization when that state is gone. Deferring would recreate any embedded
+            // component every render and silently drop its state (e.g. a demo mounted from a
+            // yield-built list). Already-materialised collections (Child[]/List<Child>/…) ran their
+            // factories when the caller built them, so they pass through without a copy.
+            Children = children is IReadOnlyCollection<Child> ? children : children.ToArray();
             return this;
         }
     }
