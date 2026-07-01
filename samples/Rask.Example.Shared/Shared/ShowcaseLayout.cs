@@ -35,6 +35,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         (Features.Routes.ContextPage(), "Context", "bi-diagram-2", "Components", null),
         (Features.Routes.CallbackPage(), "Callback", "bi-arrow-up-right-circle", "Components", null),
         (Features.Routes.ToastPage(), "Toast", "bi-bell", "Components", null),
+        (Features.Routes.FlashPage(), "Flash messages", "bi-megaphone", "Components", null),
         (Features.Routes.ElementRefPage(), "Element refs", "bi-bullseye", "Components", null),
         (Features.Routes.UserPage(), "User & auth", "bi-person-lock", "Components", null),
         (Features.Routes.LiveTickerPage("BTC"), "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
