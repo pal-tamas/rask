@@ -940,12 +940,66 @@ public abstract partial class SharedSmokeTests
     // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
     private async Task TestBrowserApisAsync()
     {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+        var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
+
+        // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
+        // enumerable is materialised at render time so each demo's component instance is reconciled and
+        // keeps its state across renders — see Component's IEnumerable<Child> indexer). Open the guide,
+        // wait for the LAST demo's control so no interaction races hydration, then drive a representative
+        // set: one-shot reads, storage/clipboard round-trips, and JS→C# push. Exhaustive per-wrapper
+        // behaviour is covered by the demo unit tests.
         await SideAsync("Browser APIs", "Browser APIs", "main .markdown-body h1");
-        // Every wrapper is embedded as a code sample (a .sample-card with highlighted C# source).
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 20,
-            "expected the Browser APIs guide to embed the typed wrappers as code samples");
-        await Expect(Page.Locator(".guide-demo .sample-code code.language-csharp span").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            "expected the Browser APIs guide to embed the typed wrappers as live demos");
+        await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Storage — localStorage round-trip via IBrowserStorage.
+        await Page.Locator("#storage-input").FillAsync("persist-me");
+        await Page.Locator("#storage-set").ClickAsync();
+        await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
+        await Page.Locator("#storage-read").ClickAsync();
+        await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Cookies — set then read back via ICookies.
+        await Page.Locator("#cookie-input").FillAsync("choco");
+        await Page.Locator("#cookie-set").ClickAsync();
+        await Page.Locator("#cookie-get").ClickAsync();
+        await Expect(Page.Locator("#cookie-read-value")).ToHaveTextAsync("choco",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Clipboard — copy then read back (granted on the context in InitializeAsync).
+        await Page.Locator("#clipboard-copy").ClickAsync();
+        await Page.Locator("#clipboard-paste").ClickAsync();
+        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!", contains);
+
+        // Geolocation — one-shot position (fixed fix granted on the context).
+        await Page.Locator("#geo-get").ClickAsync();
+        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5", contains);
+
+        // Browser info / media queries / screen info — one-shot property reads populate their readouts.
+        await Page.Locator("#nav-read").ClickAsync();
+        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:", contains);
+        await Page.Locator("#media-read").ClickAsync();
+        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
+        await Page.Locator("#screen-read").ClickAsync();
+        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
+
+        // Vibration / speech are device-dependent (no-op headless) — smoke-check the control renders.
+        await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
+        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+
+        // Broadcast channel — full JS→C# push round-trip (BroadcastChannel.onmessage → [JSInvokable] →
+        // handler → StateHasChanged), on every host including trimmed WASM.
+        await Page.Locator("#bc-send").ClickAsync();
+        await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
+
+        // Intersection observer — another push: scroll the target in and the browser pushes the change.
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
+        await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
     }
 
     private async Task TestInSessionNotFoundAsync()
