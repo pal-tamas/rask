@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Reflection.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
@@ -40,6 +41,74 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         if (view is RootErrorBoundary root)
         {
             root.Inner.RenderHandle = this;
+        }
+
+        // Track this session for C# Hot Reload re-render ONLY under `dotnet watch`
+        // (MetadataUpdater.IsSupported is a feature switch: false — and constant-folded to dead code the
+        // trimmer removes — in a normal/published run). So production pays nothing and the registry never
+        // accumulates.
+        if (MetadataUpdater.IsSupported)
+        {
+            RegisterForHotReload();
+        }
+    }
+
+    // Live sessions tracked weakly so a component-code edit under `dotnet watch` can re-render them; weak
+    // refs mean tracking never keeps a session (its DI scope, tree) alive past its normal lifetime, so no
+    // explicit unregister is needed — dead entries are pruned while enumerating.
+    private static readonly object _hotReloadLock = new();
+    private static readonly List<WeakReference<LiveSessionBase>> _hotReloadSessions = new();
+
+    // Internal (not ctor-inlined) so tests can register a session without depending on the
+    // MetadataUpdater.IsSupported feature switch being on in the test host.
+    internal void RegisterForHotReload()
+    {
+        lock (_hotReloadLock)
+        {
+            _hotReloadSessions.Add(new WeakReference<LiveSessionBase>(this));
+        }
+    }
+
+    /// <summary>
+    ///     Re-render every tracked live session after a C# Hot Reload apply. Marks each session's whole
+    ///     component tree dirty — not just instances of <paramref name="updatedTypes" />, since an edit to
+    ///     a helper/static a component calls wouldn't show up there — so every component re-executes
+    ///     <c>Render()</c> against the freshly-applied IL, then requests a normal render (a diff frame ships
+    ///     over the existing transport). Best-effort and never throws: a faulting session is skipped so one
+    ///     bad tree can't stop the rest. Only invoked from <see cref="ComponentHotReloadHandler" /> under
+    ///     <c>dotnet watch</c>.
+    /// </summary>
+    internal static void RerenderAllForHotReload(Type[]? updatedTypes)
+    {
+        _ = updatedTypes; // any apply re-renders everything (see summary); kept for signature symmetry.
+
+        List<LiveSessionBase> alive = new();
+        lock (_hotReloadLock)
+        {
+            for (var i = _hotReloadSessions.Count - 1; i >= 0; i--)
+            {
+                if (_hotReloadSessions[i].TryGetTarget(out var session))
+                {
+                    alive.Add(session);
+                }
+                else
+                {
+                    _hotReloadSessions.RemoveAt(i); // prune a collected session
+                }
+            }
+        }
+
+        foreach (var session in alive)
+        {
+            try
+            {
+                Component.MarkSubtreeDirtyForHotReload(session.View);
+                _ = session.RequestRenderAsync();
+            }
+            catch
+            {
+                // Hot reload must never throw; skip a session whose tree walk / render faults.
+            }
         }
     }
 
