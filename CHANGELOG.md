@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **C# Hot Reload → live re-render (`dotnet watch`).** Editing a component's `Render()` (or anything it
+  calls) and saving now repaints the running live session automatically — the last gap in Rask's
+  `dotnet watch` story, alongside the existing scoped-CSS/JS hot reload. A new `ComponentHotReloadHandler`
+  (`[MetadataUpdateHandler]`) re-renders every active session: it marks the whole component tree dirty (so
+  cached subtrees re-execute against the freshly-applied IL — even edits to a helper/static a component
+  calls) and requests a normal render, shipping a diff over the existing transport. Sessions are tracked
+  **weakly** and only under `dotnet watch` (`MetadataUpdater.IsSupported`), so a normal/published run pays
+  nothing and the code trims away. The nearest a compiled framework gets to Rails' no-build, edit-and-refresh
+  loop. See `docs/getting-started.md`.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
