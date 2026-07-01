@@ -157,6 +157,132 @@ public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisp
 }
 ```
 
+## API reference — live demos
+
+Every wrapper below runs live and identically on both transports (unless noted). Each demo shows its C#
+source beside the running result. The WASM-only device APIs (Serial, USB, HID, Bluetooth) and the
+installation/PWA APIs live in the [Mobile & PWA guide](pwa.md).
+
+### Storage & persistence
+
+**`IBrowserStorage`** — typed, awaitable `localStorage` / `sessionStorage`.
+
+<!-- demo:browser-storage -->
+
+**`IIndexedDb`** — a persistent, asynchronous key/value store, far larger than localStorage and non-blocking.
+
+<!-- demo:browser-indexeddb -->
+
+**`ICookies`** — read/write non-HttpOnly cookies with typed `CookieOptions`.
+
+<!-- demo:browser-cookies -->
+
+**`IStorageEstimator`** — the origin's storage quota and usage, to budget a cache.
+
+<!-- demo:browser-storage-estimate -->
+
+### Environment & capabilities
+
+**`INavigatorInfo`** — read-only navigator facts: `onLine`, `language`, `userAgent`.
+
+<!-- demo:browser-navigator-info -->
+
+**`INetworkInfo`** — connection quality (effective type, downlink, RTT, Data Saver) to adapt loading.
+
+<!-- demo:browser-network -->
+
+**`IScreenInfo`** — display size, colour depth, and device pixel ratio.
+
+<!-- demo:browser-screen -->
+
+**`IVisualViewport`** — the actually-visible viewport: size, offset, and pinch-zoom scale.
+
+<!-- demo:browser-visual-viewport -->
+
+**`IMediaQuery`** — evaluate CSS media queries and preferences (dark mode, reduced motion) from C#.
+
+<!-- demo:browser-media-query -->
+
+**`IPageVisibility`** — whether the page is foreground/visible.
+
+<!-- demo:browser-page-visibility -->
+
+**`IPerformance`** — a high-resolution monotonic clock and page-load (Navigation Timing) metrics.
+
+<!-- demo:browser-performance -->
+
+**`IPermissions`** — check a feature's permission state before triggering a prompt.
+
+<!-- demo:browser-permissions -->
+
+### Location, sensors & input
+
+**`IGeolocation`** — one-shot device position.
+
+<!-- demo:browser-geolocation -->
+
+**`IGeolocation.WatchAsync`** — track position live; the browser pushes each fix to C#.
+
+<!-- demo:browser-geolocation-watch -->
+
+**`IDeviceOrientation` / `IDeviceMotion`** — gyroscope/compass and accelerometer readings.
+
+<!-- demo:browser-device-sensors -->
+
+**`IGamepad`** — connected game controllers (sticks, triggers, buttons); prefer WASM for twitch input.
+
+<!-- demo:browser-gamepad -->
+
+**`IVibration`** — pulse the device's vibration motor (mobile).
+
+<!-- demo:browser-vibration -->
+
+### Observers
+
+The push pattern above, one element at a time.
+
+**`IIntersectionObserver`** — notified when an element enters or leaves the viewport.
+
+<!-- demo:browser-intersection -->
+
+**`IResizeObserver`** — notified when an element's size changes.
+
+<!-- demo:browser-resize -->
+
+**`IMutationObserver`** — notified when an element's children, attributes, or text change.
+
+<!-- demo:browser-mutation -->
+
+### Media, crypto & files
+
+**`IClipboard`** — copy to and read from the system clipboard.
+
+<!-- demo:browser-clipboard -->
+
+**`ISpeechSynthesis`** — speak text aloud from C#.
+
+<!-- demo:browser-speech -->
+
+**`IMediaSession`** — publish now-playing metadata to the OS and handle hardware media keys.
+
+<!-- demo:browser-media-session -->
+
+**`ICrypto`** — cryptographically strong randomness and SHA hashing (the Web Crypto API).
+
+<!-- demo:browser-crypto -->
+
+**`IFileSystemAccess`** — open a file, edit it, and save it back to the same file (Chromium-family).
+
+<!-- demo:browser-file-system -->
+
+**`IWebAuthn`** — register and sign in with a passkey instead of a password.
+
+<!-- demo:browser-webauthn -->
+
+**`IBroadcastChannel`** — send messages between same-origin tabs (open this guide in a second tab to try it).
+
+<!-- demo:browser-broadcast-channel -->
+
 ## Notes
 
 - **Secure context.** Clipboard, geolocation, notifications, push, `crypto.subtle`, and others require
@@ -167,5 +293,4 @@ public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisp
   push APIs' `[JSInvokable]` methods are `[DynamicDependency]`-rooted, so everything stays correct in a
   `PublishTrimmed` app.
 
-See also: [JS interop](js-interop.md) · [Mobile & PWA](pwa.md) · the **Browser APIs** section of the
-[showcase](https://pal-tamas.github.io/rask/).
+See also: [JS interop](js-interop.md) · [Mobile & PWA](pwa.md).

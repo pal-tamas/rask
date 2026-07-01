@@ -62,34 +62,9 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         (Features.Routes.UploadPage(), "File upload", "bi-upload", "Files", null),
         (Features.Routes.DownloadPage(), "File download", "bi-cloud-download", "Files", null),
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null),
-        (Features.Routes.JsRuntimePage(), "IJSRuntime", "bi-braces", "Apps", null),
-        (Features.Routes.StoragePage(), "Storage", "bi-hdd", "Browser APIs", null),
-        (Features.Routes.CookiesPage(), "Cookies", "bi-database", "Browser APIs", null),
-        (Features.Routes.ClipboardPage(), "Clipboard", "bi-clipboard", "Browser APIs", null),
-        (Features.Routes.GeolocationPage(), "Geolocation", "bi-geo-alt", "Browser APIs", null),
-        (Features.Routes.PermissionsPage(), "Permissions", "bi-shield-lock", "Browser APIs", null),
-        (Features.Routes.VibrationPage(), "Vibration", "bi-phone-vibrate", "Browser APIs", null),
-        (Features.Routes.PageVisibilityPage(), "Page visibility", "bi-eye", "Browser APIs", null),
-        (Features.Routes.NavigatorInfoPage(), "Browser info", "bi-info-circle", "Browser APIs", null),
-        (Features.Routes.NetworkInfoPage(), "Network info", "bi-reception-4", "Browser APIs", null),
-        (Features.Routes.MediaQueryPage(), "Media queries", "bi-aspect-ratio", "Browser APIs", null),
-        (Features.Routes.SpeechPage(), "Speech", "bi-megaphone", "Browser APIs", null),
-        (Features.Routes.ScreenInfoPage(), "Screen info", "bi-display", "Browser APIs", null),
-        (Features.Routes.StorageEstimatePage(), "Quota estimate", "bi-hdd-stack", "Browser APIs", null),
-        (Features.Routes.VisualViewportPage(), "Visual viewport", "bi-aspect-ratio-fill", "Browser APIs", null),
-        (Features.Routes.BroadcastChannelPage(), "Broadcast channel", "bi-broadcast-pin", "Browser APIs", null),
-        (Features.Routes.IntersectionObserverPage(), "Intersection observer", "bi-binoculars", "Browser APIs", null),
-        (Features.Routes.ResizeObserverPage(), "Resize observer", "bi-arrows-angle-expand", "Browser APIs", null),
-        (Features.Routes.MutationObserverPage(), "Mutation observer", "bi-diagram-3", "Browser APIs", null),
-        (Features.Routes.MediaSessionPage(), "Media session", "bi-music-note-beamed", "Browser APIs", null),
-        (Features.Routes.GamepadPage(), "Gamepad", "bi-controller", "Browser APIs", null),
-        (Features.Routes.DeviceSensorsPage(), "Device sensors", "bi-phone-flip", "Browser APIs", null),
-        (Features.Routes.GeolocationWatchPage(), "Live location", "bi-geo", "Browser APIs", null),
-        (Features.Routes.CryptoPage(), "Web Crypto", "bi-shield-shaded", "Browser APIs", null),
-        (Features.Routes.PerformancePage(), "Performance", "bi-stopwatch", "Browser APIs", null),
-        (Features.Routes.IndexedDbPage(), "IndexedDB", "bi-database-fill", "Browser APIs", null),
-        (Features.Routes.FileSystemAccessPage(), "File system access", "bi-folder2-open", "Browser APIs", null),
-        (Features.Routes.WebAuthnPage(), "Passkeys (WebAuthn)", "bi-fingerprint", "Browser APIs", null)
+        (Features.Routes.JsRuntimePage(), "IJSRuntime", "bi-braces", "Apps", null)
+        // The typed browser-API wrappers used to live here as one example page each; they are now folded
+        // into the Browser APIs guide as inline live demos (docs/browser-apis.md). See DemoRegistry.
     ];
 
     // The Bootstrap section: components from the Rask.Bootstrap package.
