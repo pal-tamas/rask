@@ -3,8 +3,10 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shared.Features;
 
-// Renders one guide: docs/{slug}.md, embedded and read by GuideCatalog, rendered by the Markdown
-// component. The slug comes straight from the route, so /guides/routing renders docs/routing.md.
+// Renders one guide: docs/{slug}.md, embedded and read by GuideCatalog. The slug comes straight from the
+// route, so /guides/routing renders docs/routing.md. The Rails-guides-style layout — Chapters TOC, the
+// prose (with any inline demos), a sticky on-this-page rail, and prev/next — all lives in GuideChrome;
+// this page is just the routed shell that supplies the slug and the document title.
 [Route("guides/{slug}")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class GuidePage : Component
@@ -13,25 +15,5 @@ public sealed class GuidePage : Component
 
     protected override RenderResult Head => Title()[$"{GuideCatalog.TitleFor(Slug)} — Guides — Rask"];
 
-    protected override RenderResult Render()
-    {
-        var backLink = NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
-            Class: Bs.Join(Display.InlineFlex(), Flex.Align(BsAlign.Center), Margin.Bottom(3),
-                Txt.DecorationNone, "small"))[
-            BsIcon(Name: BsIconName.ArrowLeft, Class: "me-1"), "All guides"
-        ];
-
-        var source = GuideCatalog.ReadMarkdown(Slug);
-        return source is null
-            ?
-            [
-                backLink,
-                BsAlert(Color: BsColor.Warning)[$"No guide found for “{Slug}”."]
-            ]
-            :
-            [
-                backLink,
-                Markdown(source)
-            ];
-    }
+    protected override RenderResult Render() => GuideChrome(Slug: Slug);
 }

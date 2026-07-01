@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Examples site — Rails-guides-style guide pages with inline live demos (phase 1).** A guide now
+  renders in a documentation layout modelled on rubyonrails.org/docs: a numbered **Chapters** table of
+  contents built from the guide's headings, a sticky **On this page** rail that scroll-spies the current
+  section (client-only, via `IntersectionObserver` — no round-trips), **prev/next** book-navigation
+  following the `GuideCatalog` order, and a version/source banner. Guides can now **embed a live demo
+  inline** with an HTML-comment marker — `<!-- demo:key -->` — which the `Markdown` component splits on
+  and mounts the matching demo (code + live result) from a new `DemoRegistry`; the marker is invisible
+  when the same `docs/*.md` renders on GitHub, so the guides stay dual-purpose. The Routing and Forms
+  guides are wired as the pilot; the visual identity stays on-brand (violet, Space Grotesk). This is the
+  first step toward a guides-first showcase.
 - **C# Hot Reload → live re-render (`dotnet watch`).** Editing a component's `Render()` (or anything it
   calls) and saving now repaints the running live session automatically — the last gap in Rask's
   `dotnet watch` story, alongside the existing scoped-CSS/JS hot reload. A new `ComponentHotReloadHandler`
