@@ -22,6 +22,17 @@
 
   <ItemGroup>
     <PackageReference Include="ColorCode.HTML"/>
+    <PackageReference Include="Markdig"/>
+  </ItemGroup>
+
+  <!-- Embed the repo's user-facing guides (docs/*.md) so the showcase can render them on-site as the
+       Guides section. GuideContent reads them as raskdoc/{leaf} and renders to HTML with Markdig at
+       render time (cached). The bare leaf is the slug, e.g. raskdoc/routing.md -> /guides/routing. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\*.md">
+      <LogicalName>raskdoc/%(Filename)%(Extension)</LogicalName>
+      <Link>Docs/%(Filename)%(Extension)</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
   <!-- Embed the feature/shared sources verbatim so CodeSample can show the *real* file text

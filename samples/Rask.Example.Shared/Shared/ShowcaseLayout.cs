@@ -1,9 +1,10 @@
+using Rask.Core.Components;
 using Rask.Core.Routing;
 
 namespace Rask.Example.Shared;
 
 [Route("/")]
-public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<ShowcaseNavEntry> extraNav) : Component
+public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav) : Component
 {
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
@@ -94,6 +95,7 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
     // The Bootstrap section: components from the Rask.Bootstrap package.
     private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] BootstrapLinks =
     [
+        (Features.Routes.BsNavPage(), "Navbar & nav", "bi-list-nested", "Navigation", null),
         (Features.Routes.BsButtonsPage(), "Buttons & badges", "bi-hand-index-thumb", "Content", null),
         (Features.Routes.BsCardsPage(), "Cards", "bi-window", "Content", null),
         (Features.Routes.BsAlertsPage(), "Alerts", "bi-exclamation-triangle", "Content", null),
@@ -104,100 +106,218 @@ public sealed class ShowcaseLayout(Navigator nav, RouteState route, IEnumerable<
         (Features.Routes.BsUtilitiesPage(), "Utility classes", "bi-magic", "Utilities", null)
     ];
 
+    // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the
+    // search filter text, and the set of expanded sidebar groups (keyed by section + group). All
+    // three are plain component fields toggled through the live diff — no JS.
     private bool _drawerOpen;
+    private string _filter = "";
+    private readonly HashSet<string> _openGroups = new(StringComparer.Ordinal);
 
-    // Subscribe to RouteState.Changed so the sidebar's active-class computation refreshes
-    // on every nav (including browser back/forward) without resorting to BypassRenderCache.
-    // That keeps the layout's normal render-cache behaviour in place — it doesn't re-run on
-    // every form-input keystroke from a child page, only when the route actually changes.
-    protected override void OnMount() => route.Changed += StateHasChanged;
+    // Subscribe to RouteState.Changed so the sidebar's active-class computation refreshes on every
+    // nav (including browser back/forward), the mobile drawer closes after navigating, and the group
+    // holding the active route auto-expands. NavLink does its own active styling; this only drives the
+    // drawer/expand side effects and the layout re-render.
+    protected override void OnMount()
+    {
+        route.Changed += OnRouteChanged;
+        OpenActiveGroup();
+    }
 
-    protected override void OnUnmount() => route.Changed -= StateHasChanged;
+    protected override void OnUnmount() => route.Changed -= OnRouteChanged;
+
+    private void OnRouteChanged()
+    {
+        _drawerOpen = false;
+        OpenActiveGroup();
+        StateHasChanged();
+    }
 
     protected override RenderResult Render() =>
     [
-        Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm sticky-top")[
-            Div(Class: "container-fluid")[
-                Button(
-                    Class: "hamburger-btn",
-                    Type: "button",
-                    OnClick: () => _drawerOpen = !_drawerOpen)[
-                    I(Class: _drawerOpen ? "bi bi-x-lg" : "bi bi-list")
-                ],
-                Button(
-                    Class: "navbar-brand fw-semibold border-0 bg-transparent d-inline-flex align-items-center gap-2",
-                    OnClick: () =>
-                    {
-                        _drawerOpen = false;
-                        nav.NavigateTo("/");
-                    })[
-                    RaskLogo.Mark(24, "brandBolt"),
-                    Span()["Rask"],
-                    BsBadge(Pill: true, Class: "rask-badge")["showcase"],
-                    BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]
-                ],
-                Div(Class: "d-flex align-items-center gap-2 ms-auto")[
-                    PathDisplay(),
-                    A("https://github.com/pal-tamas/rask",
-                        "_blank",
-                        Class: "btn btn-outline-light btn-sm")[BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"]
-                ]
+        BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true,
+            Class: Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
+            Button(Type: "button", Class: Bs.Join("hamburger-btn", Display.None(Bp.Md)),
+                OnClick: () => _drawerOpen = !_drawerOpen)[
+                BsIcon(Name: _drawerOpen ? BsIconName.XLg : BsIconName.List)
+            ],
+            NavLink(Href: Features.Routes.HomePage(), ActiveClass: "",
+                Class: Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
+                    Flex.Gap(2)))[
+                RaskLogo.Mark(24, "brandBolt"),
+                Span()["Rask"],
+                BsBadge(Pill: true, Class: "rask-badge")["showcase"],
+                BsBadge(Color: BsColor.Secondary, Pill: true)[$"v{RaskVersion.Current}"]
+            ],
+            Div(Class: Bs.Join(Display.Flex(), Flex.Align(BsAlign.Center), Flex.Gap(2), Margin.StartAuto))[
+                PathDisplay(),
+                A("https://github.com/pal-tamas/rask", "_blank", Class: "btn btn-outline-light btn-sm")[
+                    BsIcon(Name: BsIconName.Github, Class: "me-1"), "GitHub"]
             ]
         ],
-        Button(
-            Class: _drawerOpen ? "nav-backdrop drawer-open" : "nav-backdrop",
-            Type: "button",
-            OnClick: () => _drawerOpen = false),
-        Div(Class: "container-fluid")[
-            Div(Class: "row")[
-                Aside(Class: _drawerOpen
-                    ? "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav drawer-open"
-                    : "col-12 col-md-4 col-lg-3 col-xl-2 bg-white border-end side-nav")[
-                    Div(Class: "position-sticky pt-3 pb-4 px-2", Style: "top: var(--nav-h);")[BuildGroups()]
-                ],
-                Main(Class: "col-12 col-md-8 col-lg-9 col-xl-10 py-4 px-md-5")[
-                    Div(Class: "mx-auto", Style: "max-width: 1280px;")[Outlet()]
-                ]
+        Div(Class: Bs.Join(Display.Flex(), "app-shell"))[
+            BsOffcanvas(Responsive: Bp.Md, Placement: BsPlacement.Start, Open: _drawerOpen,
+                OnClose: () => _drawerOpen = false, Title: "Menu", Class: "side-nav")[
+                SidebarBody()
+            ],
+            Main(Class: Bs.Join(Flex.Grow(1), Padding.Y(4), Padding.X(3), Padding.X(5, Bp.Md), "page-main"))[
+                Div(Class: Bs.Join(Margin.XAuto, "page-main-inner"))[Outlet()]
             ]
         ]
     ];
 
-    private List<Child> BuildGroups()
+    private RenderResult SidebarBody() => Fragment()[
+        Div(Class: "side-nav-search")[
+            BsInput(Value: _filter, OnChange: v => _filter = v ?? "", Size: BsSize.Sm,
+                Placeholder: "Filter examples…", Class: "side-nav-filter")
+        ],
+        Fragment()[BuildSections()]
+    ];
+
+    // Two top-level sections: the framework/core showcase (plus any host-contributed entries, e.g. the
+    // WASM PWA examples) and the Bootstrap-component showcase from Rask.Bootstrap.
+    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    {
+        yield return ("Framework",
+            Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
+        yield return ("Bootstrap", BootstrapLinks);
+        yield return ("Guides", GuidesNav());
+    }
+
+    // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
+    private static IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> GuidesNav()
+    {
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", "bi-book", "Overview", null);
+        foreach (var g in Features.GuideCatalog.All)
+        {
+            yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
+        }
+    }
+
+    private List<Child> BuildSections()
     {
         var children = new List<Child>();
-        // Two top-level sections: the framework/core showcase (plus any host-contributed entries,
-        // e.g. the WASM PWA example) and the Bootstrap-component showcase from Rask.Bootstrap.
-        AppendSection(children, "Framework",
-            Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
-        AppendSection(children, "Bootstrap", BootstrapLinks);
+        var filtering = _filter.Length > 0;
+
+        foreach (var (section, links) in Sections())
+        {
+            var groups = new List<Child>();
+            foreach (var (group, items) in GroupConsecutive(links))
+            {
+                var visible = filtering
+                    ? items.Where(i => i.Label.Contains(_filter, StringComparison.OrdinalIgnoreCase)).ToList()
+                    : items;
+                if (visible.Count == 0)
+                {
+                    continue;
+                }
+
+                var key = GroupKey(section, group);
+                // While filtering every matching group is forced open so results are always visible.
+                var open = filtering || _openGroups.Contains(key);
+                groups.Add(GroupBlock(key, group, open, visible));
+            }
+
+            if (groups.Count == 0)
+            {
+                continue;
+            }
+
+            children.Add(Div(Class: "side-nav-section")[section]);
+            children.AddRange(groups);
+        }
+
+        if (children.Count == 0)
+        {
+            children.Add(Div(Class: "side-nav-empty text-secondary small")["No examples match that filter."]);
+        }
+
         return children;
     }
 
-    private void AppendSection(
-        List<Child> children, string section,
-        IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> links)
+    private Child GroupBlock(
+        string key, string group, bool open,
+        IReadOnlyList<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> items) =>
+        Div(Class: "nav-group", Key: key)[
+            Button(Type: "button", Class: Bs.Join("nav-group-toggle", open ? "open" : null),
+                OnClick: () => ToggleGroup(key))[
+                I(Class: open ? "bi bi-chevron-down nav-group-chevron" : "bi bi-chevron-right nav-group-chevron"),
+                Span(Class: "nav-group-label")[group]
+            ],
+            BsCollapse(Open: open)[
+                BsNav(Vertical: true, Class: "nav-group-items")[
+                    items.Select(i =>
+                    {
+                        RouteUrl? match = null;
+                        if (i.MatchPrefix is { } mp)
+                        {
+                            match = mp;
+                        }
+
+                        return (Child)BsNavItem(Href: i.Path, Match: match,
+                            ActiveMatch: i.MatchPrefix is null ? null : NavLinkMatch.Prefix,
+                            Key: i.Path, Class: "side-nav-link")[
+                            I(Class: $"bi {i.Icon} me-2"),
+                            Span()[i.Label]
+                        ];
+                    })
+                ]
+            ]
+        ];
+
+    private void ToggleGroup(string key)
     {
-        children.Add(Div(Class: "nav-section text-uppercase fw-bold small text-primary mt-4 mb-1 px-2 pt-3 border-top")[section]);
-        string? currentGroup = null;
-        foreach (var (path, label, icon, group, matchPrefix) in links)
+        if (!_openGroups.Add(key))
         {
-            if (group != currentGroup)
+            _openGroups.Remove(key);
+        }
+    }
+
+    // Expands the group containing the active route so a deep link / back-forward lands with its
+    // section open. Leaves any groups the user opened by hand untouched (this only adds).
+    private void OpenActiveGroup()
+    {
+        foreach (var (section, links) in Sections())
+        {
+            foreach (var link in links)
             {
-                children.Add(H6(Class: "text-uppercase text-secondary small fw-bold mt-3 mb-2 px-2")[group]);
-                currentGroup = group;
+                if (IsActive(link.Path, link.MatchPrefix))
+                {
+                    _openGroups.Add(GroupKey(section, link.Group));
+                    return;
+                }
+            }
+        }
+    }
+
+    private static string GroupKey(string section, string group) => $"{section}{group}";
+
+    // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
+    // groups in the order their first item appears, exactly as the flat list was authored).
+    private static IEnumerable<(string Group, List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> links)
+    {
+        string? current = null;
+        List<(string Path, string Label, string Icon, string Group, string? MatchPrefix)>? bucket = null;
+
+        foreach (var link in links)
+        {
+            if (link.Group != current)
+            {
+                if (bucket is not null)
+                {
+                    yield return (current!, bucket);
+                }
+
+                current = link.Group;
+                bucket = [];
             }
 
-            var active = IsActive(path, matchPrefix);
-            children.Add(Button(
-                Class: active ? "nav-item-btn nav-item-btn-active" : "nav-item-btn",
-                OnClick: () =>
-                {
-                    _drawerOpen = false;
-                    nav.NavigateTo(path);
-                })[
-                I(Class: $"bi {icon} me-2"),
-                Span()[label]
-            ]);
+            bucket!.Add(link);
+        }
+
+        if (bucket is not null)
+        {
+            yield return (current!, bucket);
         }
     }
 

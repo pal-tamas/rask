@@ -52,12 +52,14 @@ public abstract partial class SharedSmokeTests
         // reload happened and the SPA context survived).
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
+        await TestSidebarNavAsync();
         await WalkDslAndComponentPagesAsync();
         await WalkInteractiveComponentPagesAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
         await WalkBootstrapPagesAsync();
+        await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();
 
@@ -91,13 +93,78 @@ public abstract partial class SharedSmokeTests
     private async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
+    // The redesigned sidebar: collapsible groups (only the active route's group open by default), a
+    // search filter, and — below md — a hamburger-driven offcanvas drawer. Exercised once per host.
+    private async Task TestSidebarNavAsync()
+    {
+        // Collapsed by default: at "/" only the active group ("Start") is expanded, so the ~90-item
+        // list isn't dumped at once. The nav is split into many collapsible groups.
+        await Expect(Page.Locator(".side-nav .collapse.show")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
+        Assert.True(groups > 8, $"expected the nav split into many collapsible groups, got {groups}");
+
+        // Expanding a collapsed group reveals its links (they were display:none while collapsed).
+        var forms = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Forms\")").First;
+        await forms.ClickAsync();
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The filter narrows the list to matching labels (and force-opens their groups); clearing it
+        // restores the accordion.
+        var filter = Page.Locator(".side-nav .side-nav-filter");
+        await filter.FillAsync("clipboard");
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Clipboard\")").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")"))
+            .ToHaveCountAsync(0);
+        await filter.FillAsync("");
+
+        // Mobile: the sidebar collapses to an offcanvas drawer behind the hamburger. The static
+        // desktop column gives way to an off-screen drawer toggled open, then dismissed by the backdrop.
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync();
+        await Page.Locator(".hamburger-btn").ClickAsync();
+        await Expect(Page.Locator(".side-nav")).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        // Dismiss by tapping the backdrop. A real tap lands on the visible backdrop strip beside the
+        // drawer, but Playwright's centre-click would be intercepted by the panel that overlays it —
+        // so dispatch the click straight to the backdrop element (its data-rask-on-click still fires).
+        await Page.Locator(".offcanvas-backdrop").DispatchEventAsync("click");
+        await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        await Page.SetViewportSizeAsync(1280, 720);
+    }
+
     // ---- page walk -----------------------------------------------------------------------------
 
     // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
     // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
     // the modal opens and closes purely through Rask's live runtime.
+    // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component. Verify the
+    // index lists guides, a guide renders to a .markdown-body, and cross-links are SPA-routed.
+    private async Task TestGuidesAsync()
+    {
+        await SideAsync("All guides", "Guides");
+        // A guide card links to /guides/{slug}; open the Routing guide.
+        await Page.Locator("main a[href$='/guides/routing']").First.ClickAsync();
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Routing",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.
+        Assert.True(await Page.Locator(".markdown-body a[data-rask-nav][href^='/guides/']").CountAsync() > 0,
+            "expected the rendered guide to carry SPA-routed cross-links");
+        await AssertNoGlobalCrashAsync();
+    }
+
     private async Task WalkBootstrapPagesAsync()
     {
+        // Navbar & nav — the typed navigation primitives. The demo's nav links render as SPA-routed
+        // anchors (data-rask-nav), the same primitive the showcase chrome is built from.
+        await SideAsync("Navbar & nav", "Navbar & nav");
+        await Expect(Page.Locator(".sample-result-body .navbar").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        Assert.True(await Page.Locator(".sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
+
         await SideAsync("Buttons & badges", "Buttons & badges");
         // Bootstrap CSS applied: the .btn has Bootstrap's padding (non-zero), proving _content served.
         var btn = Page.Locator(".sample-result-body button.btn.btn-primary").First;
@@ -675,24 +742,23 @@ public abstract partial class SharedSmokeTests
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
         // The navbar height is centralised in a single --nav-h custom property (no hard-coded 56px),
-        // and on desktop the sidebar uses it to become an independent, viewport-bounded scroll region
-        // so its long link list scrolls inside itself rather than stretching the page — the
-        // "navbar too tall" fix. At the default 1280×720 viewport the 35-link list overflows the box.
+        // and on desktop the sidebar's body uses it to become an independent, viewport-bounded scroll
+        // region so the list scrolls inside itself rather than stretching the page — the "navbar too
+        // tall" fix. (Groups now collapse by default, so the list itself is short; this only asserts
+        // the region is bounded and scrollable when needed, not that it currently overflows.)
         Assert.Equal("56px", (await Page.EvaluateAsync<string>(
             "() => getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim()")));
-        var navScroll = await Page.Locator("aside.side-nav .position-sticky").First.EvaluateAsync<string>(
+        var navScroll = await Page.Locator(".side-nav .offcanvas-body").First.EvaluateAsync<string>(
             @"el => {
                 const cs = getComputedStyle(el);
                 const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
                 return JSON.stringify({
                     overflowY: cs.overflowY,
                     bounded: el.clientHeight <= window.innerHeight - navH + 1,
-                    scrollable: el.scrollHeight > el.clientHeight,
                 });
             }");
         Assert.Contains("\"overflowY\":\"auto\"", navScroll);
         Assert.Contains("\"bounded\":true", navScroll);
-        Assert.Contains("\"scrollable\":true", navScroll);
 
         // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle (a single <link> +
         // <script>), so every component's styles are present up front — a later mount is styled
@@ -1020,7 +1086,7 @@ public abstract partial class SharedSmokeTests
         }");
         await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Page not found",
             new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await Expect(Page.Locator("aside.side-nav button.nav-item-btn-active")).ToHaveCountAsync(0,
+        await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         // "Back to welcome" is an in-session nav to "/" — returns us to a known page so the journey

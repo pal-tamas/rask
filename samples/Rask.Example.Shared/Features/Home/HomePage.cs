@@ -74,6 +74,7 @@ public sealed class HomePage(Navigator nav) : Component
         Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
             Div(Class: "container-fluid py-3")[
                 Div(Class: "hero-logo mb-4")[RaskLogo.Mark(76, "heroBolt")],
+                Div(Class: "hero-eyebrow")["C# UI framework"],
                 H1(Class: "display-5 fw-bold mb-3")[
                     "The Rask framework, ",
                     Span(Class: "hero-accent")["one page at a time."]
@@ -86,6 +87,8 @@ public sealed class HomePage(Navigator nav) : Component
                 Div(Class: "d-flex flex-wrap gap-2")[
                     BsButton(Color: BsColor.Light, Size: BsSize.Lg, Class: "fw-semibold", OnClick: () => nav.NavigateTo("/tags"))[BsIcon(Name: BsIconName.ArrowRight, Class: "me-2"),
                         "Start with Tags"],
+                    BsButton(Size: BsSize.Lg, Class: "btn-outline-light", OnClick: () => nav.NavigateTo(Routes.GuidesIndexPage()))[
+                        BsIcon(Name: BsIconName.Book, Class: "me-2"), "Read the guides"],
                     A("https://github.com/pal-tamas/rask",
                         "_blank",
                         Class: "btn btn-outline-light btn-lg")[BsIcon(Name: BsIconName.Github, Class: "me-2"),

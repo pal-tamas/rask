@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
+  **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
+  component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
+  `/guides/{slug}` renders one; the guides' relative `*.md` cross-links are rewritten to SPA-routed
+  `/guides/{slug}` anchors, and links up to the repo root point at GitHub. High-traffic demo pages gain
+  a "See also" row linking to the matching guide. The guides are embedded from `docs/`, so they never
+  drift from the repo. (Markdig renders at build/runtime on the host; the WASM showcase still publishes
+  trim-clean.)
+- **Rask.Bootstrap navigation primitives — `BsNavbar`, `BsNav`, `BsNavItem`.** Typed navbar/nav
+  containers; each `BsNavItem` with an `Href` renders a core `NavLink`, so links are SPA-routed
+  (`data-rask-nav`) and light up their `.active` class by matching the current route — no client JS,
+  no manual active tracking. New **Navbar & nav** Bootstrap showcase page (`/bootstrap/nav`); see
+  `docs/bootstrap.md`.
+- **`BsOffcanvas` responsive mode (`Responsive: Bp.Md`).** Renders `.offcanvas-{bp}` so the panel is a
+  slide-in drawer below the breakpoint and a static, in-layout column at/above it — the canonical
+  pattern for a sidebar that collapses to a hamburger on mobile. Drawer chrome (header, backdrop) is
+  hidden where the panel turns static.
+- **`NavLink.Match`.** An optional path the active-state comparison uses instead of `Href`, so a link
+  can point at one route yet stay active across a whole section (`Href: "/realtime/BTC"`,
+  `Match: "/realtime"`, `ActiveMatch: Prefix`).
 - **`AddRaskPwa(manifest)` — opt-in PWA for the Server host.** The server-side counterpart to the WASM
   host's `UseManifest(...)`. It serves the installable manifest at `{PathBase}/rask/manifest.webmanifest`
   (URLs rooted at the app base path), emits `<link rel="manifest">` + `<meta name="theme-color">` directly
@@ -36,6 +56,18 @@ them until tagged releases begin.
   `IIdleDetector`, `ISerial`, `IUsb`, `IHid`, `IBluetooth`) stay WASM-only.
 
 ### Changed
+- **Examples site — visual refresh.** A cohesive design pass over the showcase: a real type system
+  (Space Grotesk display, Inter body, JetBrains Mono for code and nav/section labels, loaded from the
+  font CDN), violet-tinted neutrals and a unified deep-ink code surface, a sharpened hero (mono eyebrow
+  + dot-grid texture), refined feature cards, an inset accent bar on the active nav item, and a pulsing
+  "Live result" marker on the code samples. Keeps the .NET-violet brand; motion respects
+  `prefers-reduced-motion`. No DOM/behaviour changes.
+- **Examples site (GitHub Pages) — redesigned, mobile-first navigation.** The left sidebar is now a
+  fixed-width responsive offcanvas built from the `Bs*` navigation primitives: ~90 links are grouped
+  into collapsible sections (only the active route's group is open by default), with a search filter at
+  the top, replacing the always-expanded ~33%-wide column. On mobile it collapses to a hamburger-driven
+  drawer; on desktop the list scrolls inside a viewport-bounded region. The shell now dogfoods
+  `BsNavbar`/`BsNav`/`BsNavItem`/`BsOffcanvas`.
 - **`WasmHostBuilder.UseManifest` renamed to `UsePwa`** for naming parity with the Server host's
   `AddRaskPwa` (both now read as "enable PWA from this manifest"). `UseManifest` remains as an
   `[Obsolete]` alias that forwards to `UsePwa`.

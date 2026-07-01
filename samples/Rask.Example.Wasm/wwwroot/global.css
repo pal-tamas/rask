@@ -14,6 +14,22 @@
     --rask-accent-strong: #512BD4;
     --rask-accent-soft: #f1ebfd;
     --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
+
+    /* Violet-tinted neutrals — the whole surface leans into the brand hue instead of flat grey. */
+    --rask-ink: #14101f; /* deep violet-black: code panes, dark surfaces */
+    --rask-ink-2: #211b30; /* one step lifted from ink */
+    --rask-mist: #f7f5fc; /* page tint */
+    --rask-line: #e8e3f3; /* hairline */
+    --rask-body: #211c2b; /* body text */
+
+    /* Type system: Space Grotesk (display) / Inter (body) / JetBrains Mono (code). Routed through
+       Bootstrap's own font vars so every Bs component picks them up, plus --font-* for direct use. */
+    --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --bs-font-sans-serif: var(--font-body);
+    --bs-font-monospace: var(--font-mono);
+
     --nav-h: 56px;
 }
 
@@ -38,7 +54,23 @@
 }
 
 body {
-    font-feature-settings: "ss01", "cv11";
+    font-family: var(--font-body);
+    /* Inter stylistic sets: single-storey a (cv11), open digits — quiet, technical legibility. */
+    font-feature-settings: "cv11", "ss01";
+    color: var(--rask-body);
+    letter-spacing: -0.004em;
+}
+
+/* Headings carry the display face — tighter tracking, a touch more weight than Bootstrap's default. */
+h1, h2, h3, h4, h5, h6,
+.navbar-brand,
+.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.022em;
+}
+
+.display-5 {
+    font-weight: 700;
 }
 
 a {
@@ -49,8 +81,8 @@ a:hover {
     color: var(--rask-accent-strong);
 }
 
-code, pre {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+code, pre, .font-monospace {
+    font-family: var(--font-mono);
 }
 
 :not(pre) > code {
@@ -86,15 +118,20 @@ body {
     padding-right: env(safe-area-inset-right);
 }
 
+/* A faint violet wash on the page so the whole surface leans into the brand instead of flat grey. */
+body.bg-body-tertiary {
+    background-color: var(--rask-mist);
+}
+
 button, a, [role="button"] {
     touch-action: manipulation;
 }
 
-/* From ShowcaseLayout: lock body scroll while the mobile nav drawer is open.
-   :has() reaches up from the drawer-open descendant; body is a shell tag so this
-   rule belongs in the global stylesheet (it could never be component-scoped). */
+/* From ShowcaseLayout: lock body scroll while the mobile nav drawer (the responsive offcanvas) is
+   shown — :has() reaches up from the .show descendant; body is a shell tag so this rule belongs in the
+   global stylesheet (it could never be component-scoped). */
 @media (max-width: 767.98px) {
-    body:has(.drawer-open) {
+    body:has(.side-nav.show) {
         overflow: hidden;
         height: 100vh;
     }
@@ -156,4 +193,347 @@ button, a, [role="button"] {
 
 .sample-code .cssPropertyValue {
     color: #c3e88d;
+}
+
+/* ShowcaseLayout: the app shell (navbar + responsive-offcanvas sidebar + main). These rules are
+   GLOBAL rather than a scoped {Component}.css because the sidebar is built from several nested
+   Rask.Bootstrap components (BsNavbar / BsOffcanvas / BsCollapse / BsNav / BsNavItem → NavLink), so
+   the elements they render (e.g. .offcanvas-body, the .side-nav-link anchors) sit several component
+   levels below ShowcaseLayout and never carry its scope id. Same rationale as the .sample-code rules
+   above — markup another component renders can't be component-scoped. The .side-nav* / .nav-group* /
+   .app-* class names are specific enough not to leak. */
+
+/* Sticky top bar — glassy translucent dark surface; the brand palette comes from :root above. */
+.app-navbar {
+    background: rgba(28, 30, 36, 0.82) !important;
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    padding-top: calc(0.5rem + env(safe-area-inset-top));
+    z-index: 1046;
+}
+
+/* Hamburger toggle — a transparent icon button shown only below md (the d-md-none utility hides it
+   at >=md, where the sidebar is static). */
+.hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    border-radius: 0.5rem;
+    margin-right: 0.25rem;
+    padding: 0;
+}
+
+.hamburger-btn:hover,
+.hamburger-btn:focus {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.hamburger-btn .bi {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+/* The shell row: sidebar + main, laid out with the Display.Flex utility on the wrapper. */
+.app-shell {
+    align-items: flex-start;
+}
+
+/* The sidebar is a responsive offcanvas (offcanvas-md): a slide-in drawer below md, a fixed-width
+   static column at >=md. */
+.side-nav {
+    --bs-offcanvas-width: min(82vw, 320px);
+}
+
+.side-nav .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Sticky filter box at the top of the scrolling list. */
+.side-nav-search {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-bottom: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+}
+
+.side-nav-filter {
+    border-radius: 0.5rem;
+}
+
+.side-nav-section {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--rask-accent);
+    padding: 0.75rem 0.5rem 0.25rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--rask-line);
+}
+
+.side-nav-section:first-of-type {
+    margin-top: 0;
+    border-top: 0;
+}
+
+/* Group toggle: a full-width, borderless button revealing/hiding its items via BsCollapse. */
+.nav-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 0.5rem 0.35rem;
+    border-radius: 0.4rem;
+    text-align: left;
+}
+
+.nav-group-toggle:hover {
+    color: var(--rask-accent-strong);
+}
+
+.nav-group-chevron {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.nav-group-label {
+    flex: 1;
+}
+
+/* The BsNav list of links inside a group — strip the default list styling. */
+.nav-group-items {
+    margin: 0 0 0.35rem;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-group-items .nav-item {
+    margin: 0;
+}
+
+/* Each link row (a NavLink rendered as .nav-link.side-nav-link). */
+.side-nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.5rem;
+    color: var(--rask-body);
+    font-size: 0.9rem;
+    transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.side-nav-link:hover {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent-strong);
+}
+
+/* Active: the soft brand fill plus an inset accent bar on the leading edge. */
+.side-nav-link.active {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--rask-accent);
+}
+
+.side-nav-link .bi {
+    font-size: 1rem;
+    opacity: 0.85;
+}
+
+.side-nav-empty {
+    padding: 1rem 0.5rem;
+}
+
+/* Main content column. */
+.page-main {
+    min-width: 0; /* let long code blocks scroll instead of stretching the flex item */
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+.page-main-inner {
+    max-width: 1280px;
+}
+
+/* Desktop: pin the static sidebar under the navbar and let only its list scroll, so a long list
+   never stretches the page or hides its bottom entries below the fold. */
+@media (min-width: 768px) {
+    .side-nav.offcanvas-md {
+        flex: 0 0 280px;
+        width: 280px;
+        position: sticky;
+        top: var(--nav-h);
+        align-self: flex-start;
+    }
+
+    /* The body is the bounded scroll region: capped to the viewport minus the navbar so a long,
+       fully-expanded list scrolls inside itself instead of stretching the page. */
+    .side-nav.offcanvas-md .offcanvas-body {
+        max-height: calc(100vh - var(--nav-h));
+        overflow-y: auto;
+        padding: 1rem 0.75rem;
+    }
+}
+
+/* Mobile drawer: account for the fixed navbar and notch insets when the offcanvas slides in. */
+@media (max-width: 767.98px) {
+    .side-nav.offcanvas-md {
+        padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
+    }
+
+    .side-nav.offcanvas-md .offcanvas-body {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+}
+
+/* GuidePage: the Markdig-rendered guide HTML (docs/*.md) is injected verbatim via Raw(), so it carries
+   no scope id — these rules live here (global) and are anchored under .markdown-body so they never leak
+   into the rest of the app. Readable defaults; the broader visual pass refines them. */
+.markdown-body {
+    max-width: 52rem;
+    line-height: 1.7;
+    color: #24232b;
+}
+
+.markdown-body h1 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.markdown-body h2 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.markdown-body h3 {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol {
+    margin-bottom: 1rem;
+}
+
+.markdown-body li {
+    margin-bottom: 0.25rem;
+}
+
+.markdown-body a {
+    color: var(--rask-accent);
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body pre {
+    background: var(--rask-ink);
+    color: #e7e3ff;
+    padding: 1rem 1.2rem;
+    border-radius: 0.7rem;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    border: 1px solid rgba(124, 58, 237, 0.18);
+}
+
+.markdown-body pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+}
+
+.markdown-body :not(pre) > code {
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    padding: 0.08rem 0.34rem;
+    border-radius: 4px;
+    font-size: 0.86em;
+}
+
+.markdown-body blockquote {
+    border-left: 4px solid var(--rask-accent);
+    background: var(--rask-accent-soft);
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0 0.4rem 0.4rem 0;
+}
+
+.markdown-body blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-body table {
+    width: 100%;
+    margin-bottom: 1.25rem;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.markdown-body th {
+    background: var(--bs-body-tertiary, #f6f4fb);
+    font-weight: 600;
+}
+
+.markdown-body img {
+    max-width: 100%;
+}
+
+.markdown-body hr {
+    margin: 2rem 0;
+    border: 0;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+/* SeeAlso: small accent pills linking a demo page to its guide(s). A dedicated class (not Bootstrap's
+   .badge) so it never collides with demo markup that the page itself renders. */
+.see-also-link {
+    display: inline-block;
+    background: var(--rask-accent-soft);
+    color: var(--rask-accent);
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.see-also-link:hover {
+    background: var(--rask-accent);
+    color: #fff;
 }
