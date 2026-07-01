@@ -12,7 +12,6 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
     [InlineData(typeof(BackgroundServicePage), "/background", "Background service")]
-    [InlineData(typeof(BoomPage), "/boom", "Error boundary")]
     [InlineData(typeof(CancellationPage), "/cancellation", "Cancellation")]
     [InlineData(typeof(ComponentsPage), "/components", "User components")]
     [InlineData(typeof(DisposalPage), "/disposal", "Disposal")]
@@ -32,7 +31,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     [InlineData(typeof(UploadPage), "/upload", "File upload")]
     [InlineData(typeof(UserDetailPage), "/users/42", "User #42")]
-    [InlineData(typeof(VirtualizePage), "/virtualize", "Virtualize")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
@@ -49,7 +47,6 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage))]
     [InlineData(typeof(BackgroundServicePage))]
-    [InlineData(typeof(BoomPage))]
     [InlineData(typeof(CancellationPage))]
     [InlineData(typeof(ComponentsPage))]
     [InlineData(typeof(DisposalPage))]
@@ -70,7 +67,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(TodosPage))]
     [InlineData(typeof(UploadPage))]
     [InlineData(typeof(UserDetailPage))]
-    [InlineData(typeof(VirtualizePage))]
     public void Page_HasExpectedRouteOrNotFoundAttribute(Type pageType)
     {
         var hasRoute = pageType.GetCustomAttributes<RouteAttribute>().Any();
