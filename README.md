@@ -801,8 +801,11 @@ ErrorBoundary(
 ]
 ```
 
-Without a `Fallback`, the boundary renders a built-in default error page. The `recover` callback passed to the
-fallback is the only reset path.
+Without a `Fallback`, the boundary renders a built-in default error page. **In Development**
+(`ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT` = `Development`) that page is developer-friendly — parsed
+stack frames, a source excerpt around each throwing line, and the full inner-exception chain. **In
+Production** it shows only the exception type and message: no stack, no source, no file paths, and no
+inner-exception detail leak. The `recover` callback passed to the fallback is the only reset path.
 
 </details>
 
