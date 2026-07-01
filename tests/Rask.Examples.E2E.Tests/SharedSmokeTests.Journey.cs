@@ -106,19 +106,23 @@ public abstract partial class SharedSmokeTests
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
         Assert.True(groups > 8, $"expected the nav split into many collapsible groups, got {groups}");
 
-        // Expanding a collapsed group reveals its links (they were display:none while collapsed).
-        var forms = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Forms\")").First;
-        await forms.ClickAsync();
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
+        // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
+        // across the whole example→guide migration.
+        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
+        var routingGuide = Page.Locator(".side-nav a.side-nav-link[href=\"/guides/routing\"]");
+        await core.ClickAsync(); // collapse
+        await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await core.ClickAsync(); // re-expand
+        await Expect(routingGuide).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // The filter narrows the list to matching labels (and force-opens their groups); clearing it
-        // restores the accordion.
+        // restores the accordion. Uses durable guide labels (always present).
         var filter = Page.Locator(".side-nav .side-nav-filter");
-        await filter.FillAsync("clipboard");
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Clipboard\")").First)
+        await filter.FillAsync("Getting started");
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")"))
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Composition\")"))
             .ToHaveCountAsync(0);
         await filter.FillAsync("");
 
