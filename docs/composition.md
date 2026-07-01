@@ -233,6 +233,44 @@ Runnable demo: [`samples/Rask.Example.Shared/Features/Virtualize/VirtualizePage.
 
 ---
 
+## Flash messages
+
+`IFlash` is Rask's take on Rails' `flash` — transient, consumed-once user messages that survive a
+client-side navigation. Inject it and queue a message; a single `FlashOutlet` shows it once.
+
+```csharp
+public sealed class SavePage(IFlash flash, Navigator nav) : Component
+{
+    private void Save()
+    {
+        // ... persist ...
+        flash.Success("Your changes were saved.");   // Info / Warning / Error / Add(level, …) too
+        nav.NavigateTo(Routes.ListPage());            // the message survives the navigation
+    }
+    // ...
+}
+```
+
+Why it survives the navigation: `IFlash` is registered **scoped** per session (a Server WebSocket
+session or a WASM app instance), and a client-side `NavigateTo` does not recreate the session — so a
+message queued before navigating is still in the queue when the destination mounts.
+
+Show them by mounting **one** outlet in your app layout. The headless `FlashOutlet` ships no markup —
+you own it through `Template`, which receives the messages plus a `dismiss(id)` callback:
+
+```csharp
+FlashOutlet(Template: (messages, dismiss) =>
+    Div()[messages.Select(m => (Child)Div(Class: "alert", Key: m.Id.ToString())[
+        m.Message,
+        Button(OnClick: () => dismiss(m.Id))["×"]])])
+```
+
+`FlashOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IFlash.Changed` fires,
+so each message is delivered to exactly one outlet and never reappears on a later render. `Rask.Bootstrap`
+ships a ready-made `BsFlash` — a fixed toast-container of `BsToast`s; mount a single `BsFlash()` in your
+layout instead of writing a `Template`. Runnable demo:
+[`samples/Rask.Example.Shared/Features/Flash/FlashDemo.cs`](../samples/Rask.Example.Shared/Features/Flash/FlashDemo.cs).
+
 ## Drag and drop
 
 A headless drag-and-drop primitive lives in `Rask.Core/DragAndDrop`. It tracks the
