@@ -414,6 +414,11 @@ button, a, [role="button"] {
     color: #24232b;
 }
 
+/* Clear the sticky navbar when an in-page anchor (Chapters TOC / on-this-page rail) jumps to a heading. */
+.markdown-body :is(h1, h2, h3, h4) {
+    scroll-margin-top: calc(var(--nav-h) + 1.25rem);
+}
+
 .markdown-body h1 {
     font-weight: 700;
     margin-bottom: 1rem;
