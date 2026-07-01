@@ -1035,19 +1035,20 @@ public abstract partial class SharedSmokeTests
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
-            // and re-emit server-highlighted spans.
-            await Page.GotoAsync("/validation");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            // and re-emit server-highlighted spans. The Data table page's only language-code block is
+            // its own highlighted page-source sample, so every match must carry token spans.
+            await Page.GotoAsync("/table");
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await Page.ReloadAsync();
             Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
-                $"/validation after refresh: {highlighted}/{total} highlighted.");
+                $"/table after refresh: {highlighted}/{total} highlighted.");
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
@@ -1142,7 +1143,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Events", "Two-way binding", "Scoped CSS", "Routing", "Welcome" };
+        var labels = new[] { "Events", "Tag factories", "Scoped CSS", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
@@ -1177,35 +1178,36 @@ public abstract partial class SharedSmokeTests
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
-        await SideAsync("Two-way binding", "Two-way binding");
+        await SideAsync("Tag factories", "Tag factories");
         // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
         await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
         // --- a data-rask-nav link with a #fragment scrolls to that element ----------------------
         // The showcase navigates via sidebar buttons, so inject a real NavLink-style anchor to drive
-        // the click-interceptor + fragment path. /validation is a long page and #v7-product sits well
-        // below the fold, so reaching it must move the scroll.
+        // the click-interceptor + fragment path. The Routing guide is a long page and its last section
+        // (#not-found-and-auth-gating, an AutoIdentifiers heading anchor) sits well below the fold, so
+        // reaching it must move the scroll.
         await SideAsync("Welcome", "The Rask framework", "h1.display-5");
         await Page.EvaluateAsync(@"() => {
             const a = document.createElement('a');
             a.id = '__rask_anchor_probe';
             a.setAttribute('data-rask-nav', '');
-            a.setAttribute('href', '/validation#v7-product');
+            a.setAttribute('href', '/guides/routing#not-found-and-auth-gating');
             a.textContent = 'probe';
             document.querySelector('main').appendChild(a);
         }");
         await Page.Locator("#__rask_anchor_probe").ClickAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+        await Expect(Page.Locator("main .markdown-body h1")).ToHaveTextAsync("Routing",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         // The fragment is preserved in the pushed URL (it never reaches the server, so the client
         // re-appends it) …
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/validation#v7-product$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/guides/routing#not-found-and-auth-gating$"),
             new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
         // … and the target is scrolled into view (top within the viewport) with the page actually
         // moved to get there (proving it was below the fold, not a no-op).
         await Page.WaitForFunctionAsync(@"() => {
-            const el = document.getElementById('v7-product');
+            const el = document.getElementById('not-found-and-auth-gating');
             if (!el) return false;
             const r = el.getBoundingClientRect();
             return window.scrollY > 0 && r.top >= -2 && r.top < window.innerHeight;
