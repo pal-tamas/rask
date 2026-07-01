@@ -115,6 +115,41 @@ public class ReconciliationTests
         Assert.False(view.PersistedChildren.ContainsKey((typeof(CounterStub), 1)));
     }
 
+    // Regression: a lazy IEnumerable<Child> (a `yield`/LINQ pipeline) passed to the children indexer
+    // must be materialised RIGHT THEN, during Render — so any component factory inside it runs while the
+    // owning component's child-reuse bookkeeping (GetOrCreateChild positions + PreviousChildren) is live.
+    // Deferring evaluation to serialization would recreate embedded components every render and drop
+    // their state (the bug that broke inline live demos co-mounted in a guide via a yield-built list).
+    [Fact]
+    public void ChildrenIndexer_LazyEnumerable_IsEvaluatedImmediately()
+    {
+        var evaluated = 0;
+
+        IEnumerable<Child> Lazy()
+        {
+            foreach (var _ in Enumerable.Range(0, 3))
+            {
+                evaluated++;
+                yield return Span();
+            }
+        }
+
+        var div = Div()[Lazy()];
+
+        Assert.Equal(3, evaluated); // fully enumerated by the indexer, not deferred
+        Assert.IsType<Child[]>(div.Children); // stored as a materialised array
+    }
+
+    [Fact]
+    public void ChildrenIndexer_AlreadyMaterialisedCollection_PassesThroughWithoutCopy()
+    {
+        var list = new List<Child> { Span(), Div() };
+
+        var div = Div()[(IEnumerable<Child>)list];
+
+        Assert.Same(list, div.Children); // no redundant copy for a ready collection
+    }
+
     private sealed class CounterStub : Component
     {
         public int Value;
