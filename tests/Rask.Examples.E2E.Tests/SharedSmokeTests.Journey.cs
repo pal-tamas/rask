@@ -141,8 +141,10 @@ public abstract partial class SharedSmokeTests
     // Bootstrap section (Rask.Bootstrap). Proves the package's CSS is actually served from
     // _content/Rask.Bootstrap and that the interactive components run with ZERO bootstrap.js —
     // the modal opens and closes purely through Rask's live runtime.
-    // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component. Verify the
-    // index lists guides, a guide renders to a .markdown-body, and cross-links are SPA-routed.
+    // The Guides section: the repo's docs/*.md rendered on-site by the Markdown component, now in the
+    // Rails-guides-style chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
+    // inline via <!-- demo:key --> markers. Verify a guide renders to a .markdown-body, cross-links are
+    // SPA-routed, the Chapters TOC is present, and an embedded demo actually mounted its live result.
     private async Task TestGuidesAsync()
     {
         await SideAsync("All guides", "Guides");
@@ -153,6 +155,19 @@ public abstract partial class SharedSmokeTests
         // The markdown's relative .md cross-links are rewritten to SPA-routed /guides/* anchors.
         Assert.True(await Page.Locator(".markdown-body a[data-rask-nav][href^='/guides/']").CountAsync() > 0,
             "expected the rendered guide to carry SPA-routed cross-links");
+
+        // The Rails-style chrome: a Chapters TOC linking in-page anchors, and prev/next book-nav.
+        await Expect(Page.Locator(".guide-chapters .guide-chapters-list a[href^='#']").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        Assert.True(await Page.Locator(".guide-prevnext .guide-prevnext-link").CountAsync() > 0,
+            "expected prev/next navigation on the guide");
+
+        // A demo embedded via <!-- demo:key --> mounted its CodeSample inline — the marker resolved to a
+        // real component, not dropped as an HTML comment.
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() > 0,
+            "expected the Routing guide to embed at least one live demo");
+        Assert.Equal(0, await Page.Locator("text=Unknown demo").CountAsync());
+
         await AssertNoGlobalCrashAsync();
     }
 

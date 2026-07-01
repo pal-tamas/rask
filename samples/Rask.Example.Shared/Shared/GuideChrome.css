@@ -1,0 +1,229 @@
+/* Scoped styles for the Rails-guides-style guide chrome. These rules attach to GuideChrome's own
+   elements (the banner, Chapters TOC, on-this-page rail, prev/next) — the guide prose itself is Raw
+   HTML under .markdown-body and is styled globally (wwwroot/global.css). Reuses the showcase's brand
+   tokens (violet accent, Space Grotesk display), so it stays on-brand while adopting the Rails IA. */
+
+.guide {
+    max-width: 100%;
+}
+
+/* Version / source banner */
+.guide-banner {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .6rem .9rem;
+    margin-bottom: 1.25rem;
+    font-size: .875rem;
+    color: var(--rask-accent-strong);
+    background: var(--rask-accent-soft);
+    border: 1px solid var(--rask-line);
+    border-radius: .6rem;
+}
+
+.guide-banner-src {
+    margin-left: auto;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.guide-backlink {
+    color: var(--rask-accent-strong);
+}
+
+/* Chapters table of contents */
+.guide-chapters {
+    padding: 1.1rem 1.35rem;
+    margin-bottom: 2rem;
+    background: var(--rask-mist);
+    border: 1px solid var(--rask-line);
+    border-radius: .75rem;
+}
+
+.guide-chapters-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: .8rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rask-accent-strong);
+    margin-bottom: .5rem;
+}
+
+.guide-chapters-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.guide-chapters-list > li {
+    margin: .15rem 0;
+}
+
+.guide-chapters-sub {
+    list-style: none;
+    padding-left: .75rem;
+    margin: .1rem 0 .35rem;
+}
+
+.guide-chapter-link,
+.guide-chapter-sublink {
+    text-decoration: none;
+    color: var(--rask-body);
+}
+
+.guide-chapter-sublink {
+    font-size: .9rem;
+    color: #5b5470;
+}
+
+.guide-chapter-link:hover,
+.guide-chapter-sublink:hover {
+    color: var(--rask-accent);
+    text-decoration: underline;
+}
+
+/* Two-column layout: prose + sticky on-this-page rail */
+.guide-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+}
+
+@media (min-width: 992px) {
+    .guide-layout {
+        grid-template-columns: minmax(0, 1fr) 15rem;
+    }
+}
+
+.guide-content {
+    min-width: 0;
+}
+
+.guide-onthispage {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .guide-onthispage {
+        display: block;
+    }
+}
+
+.guide-onthispage-inner {
+    position: sticky;
+    top: calc(var(--nav-h) + 1.5rem);
+    max-height: calc(100vh - var(--nav-h) - 3rem);
+    overflow-y: auto;
+    padding-left: 1rem;
+    border-left: 1px solid var(--rask-line);
+}
+
+.guide-onthispage-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8a8399;
+    margin-bottom: .6rem;
+}
+
+.guide-onthispage-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: .875rem;
+}
+
+.guide-onthispage-list li {
+    margin: .1rem 0;
+}
+
+.guide-onthispage-sub .guide-onthispage-link {
+    padding-left: .85rem;
+    font-size: .82rem;
+}
+
+.guide-onthispage-link {
+    display: block;
+    padding: .15rem 0 .15rem .65rem;
+    border-left: 2px solid transparent;
+    margin-left: -1rem;
+    text-decoration: none;
+    color: #6b6480;
+    transition: color .12s ease, border-color .12s ease;
+}
+
+.guide-onthispage-link:hover {
+    color: var(--rask-accent);
+}
+
+.guide-onthispage-link.active {
+    color: var(--rask-accent-strong);
+    border-left-color: var(--rask-accent);
+    font-weight: 600;
+}
+
+/* Prev / next book navigation */
+.guide-prevnext {
+    display: flex;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rask-line);
+}
+
+.guide-prevnext-spacer {
+    flex: 1 1 0;
+}
+
+.guide-prevnext-link {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    padding: .85rem 1.1rem;
+    text-decoration: none;
+    color: var(--rask-body);
+    background: #fff;
+    border: 1px solid var(--rask-line);
+    border-radius: .75rem;
+    transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
+}
+
+.guide-prevnext-link:hover {
+    border-color: var(--rask-accent);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, .12);
+    transform: translateY(-1px);
+}
+
+.guide-prevnext-next {
+    text-align: right;
+    justify-content: flex-end;
+}
+
+.guide-prevnext-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.guide-prevnext-label {
+    font-size: .7rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8a8399;
+}
+
+.guide-prevnext-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Embedded live demo spacing inside a guide */
+.guide-demo {
+    margin: 1.5rem 0;
+}
