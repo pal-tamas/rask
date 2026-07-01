@@ -121,6 +121,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
     protected override void OnMount()
     {
         route.Changed += OnRouteChanged;
+        OpenGuideGroups();
         OpenActiveGroup();
     }
 
@@ -169,19 +170,21 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
     private RenderResult SidebarBody() => Fragment()[
         Div(Class: "side-nav-search")[
             BsInput(Value: _filter, OnChange: v => _filter = v ?? "", Size: BsSize.Sm,
-                Placeholder: "Filter examples…", Class: "side-nav-filter")
+                Placeholder: "Filter guides & examples…", Class: "side-nav-filter")
         ],
         Fragment()[BuildSections()]
     ];
 
-    // Two top-level sections: the framework/core showcase (plus any host-contributed entries, e.g. the
-    // WASM PWA examples) and the Bootstrap-component showcase from Rask.Bootstrap.
+    // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by
+    // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
+    // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
+    // showcase — both demoted below the guides and collapsed until visited.
     private IEnumerable<(string Section, IEnumerable<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
-        yield return ("Framework",
+        yield return ("Guides", GuidesNav());
+        yield return ("Examples",
             Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
         yield return ("Bootstrap", BootstrapLinks);
-        yield return ("Guides", GuidesNav());
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
@@ -229,7 +232,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
 
         if (children.Count == 0)
         {
-            children.Add(Div(Class: "side-nav-empty text-secondary small")["No examples match that filter."]);
+            children.Add(Div(Class: "side-nav-empty text-secondary small")["Nothing matches that filter."]);
         }
 
         return children;
@@ -270,6 +273,16 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         if (!_openGroups.Add(key))
         {
             _openGroups.Remove(key);
+        }
+    }
+
+    // Guides-first: the guide category groups start expanded so the narrative spine is visible on
+    // landing (the interactive Examples/Bootstrap groups stay collapsed accordions until visited).
+    private void OpenGuideGroups()
+    {
+        foreach (var (group, _) in GroupConsecutive(GuidesNav()))
+        {
+            _openGroups.Add(GroupKey("Guides", group));
         }
     }
 

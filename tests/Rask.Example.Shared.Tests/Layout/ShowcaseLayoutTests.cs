@@ -40,24 +40,27 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains(">DSL<", html);
         Assert.Contains(">Components<", html);
         Assert.Contains(">Forms<", html);
-        // The two top-level sections are present.
-        Assert.Contains(">Framework<", html);
+        // The top-level sections are present, guides-first: Guides leads, then the demoted Examples and
+        // Bootstrap showcases.
+        Assert.Contains(">Guides<", html);
+        Assert.Contains(">Examples<", html);
         Assert.Contains(">Bootstrap<", html);
     }
 
     [Fact]
-    public void RenderThroughApp_CollapsesInactiveGroups_OnlyActiveGroupOpen()
+    public void RenderThroughApp_GuidesExpanded_ExampleGroupsCollapsed()
     {
-        // The whole point of the redesign: groups are collapsed by default so the ~90-item list
-        // isn't dumped at once. Only the group holding the active route ("Start" at "/") is open.
+        // Guides-first: the guide category groups are expanded by default so the narrative spine is
+        // visible on landing, while the demoted Examples/Bootstrap groups stay collapsed so the ~90-item
+        // list isn't dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = "/" };
         var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
-        Assert.Equal(1, open);
-        Assert.True(closed >= 10, $"expected most groups collapsed, only {closed} closed");
+        Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
+        Assert.True(closed >= 8, $"expected the Examples/Bootstrap groups collapsed, only {closed} closed");
     }
 
     [Fact]
