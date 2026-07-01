@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Examples site — Browser APIs folded into the guide (phase 3).** The 27 standalone Browser-API
+  example pages (`/browser/*`) are removed; every typed wrapper is now an **inline code sample in the
+  Browser APIs guide** (`docs/browser-apis.md`), grouped by capability (Storage · Environment ·
+  Location/sensors · Observers · Media/crypto/files). Browser APIs are device/permission-dependent and
+  mostly no-op headless, so the guide shows each wrapper's source rather than co-mounting dozens of live
+  device demos on one page — 27 sidebar entries collapse into one guide.
 - **Examples site — guides-first navigation (phase 2).** The showcase now leads with the guides. The
   sidebar is reordered **Guides → Examples → Bootstrap** with the guide categories (Start here / Core /
   Integration / Advanced) expanded by default as the primary spine, and the interactive example pages

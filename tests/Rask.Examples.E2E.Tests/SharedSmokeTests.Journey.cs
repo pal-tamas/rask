@@ -106,19 +106,23 @@ public abstract partial class SharedSmokeTests
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
         Assert.True(groups > 8, $"expected the nav split into many collapsible groups, got {groups}");
 
-        // Expanding a collapsed group reveals its links (they were display:none while collapsed).
-        var forms = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Forms\")").First;
-        await forms.ClickAsync();
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
+        // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
+        // across the whole example→guide migration.
+        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
+        var routingGuide = Page.Locator(".side-nav a.side-nav-link[href=\"/guides/routing\"]");
+        await core.ClickAsync(); // collapse
+        await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await core.ClickAsync(); // re-expand
+        await Expect(routingGuide).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // The filter narrows the list to matching labels (and force-opens their groups); clearing it
-        // restores the accordion.
+        // restores the accordion. Uses durable guide labels (always present).
         var filter = Page.Locator(".side-nav .side-nav-filter");
-        await filter.FillAsync("clipboard");
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Clipboard\")").First)
+        await filter.FillAsync("Getting started");
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Getting started\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Validation\")"))
+        await Expect(Page.Locator(".side-nav a.side-nav-link:has-text(\"Composition\")"))
             .ToHaveCountAsync(0);
         await filter.FillAsync("");
 
@@ -922,189 +926,21 @@ public abstract partial class SharedSmokeTests
         await TestBrowserApisAsync();
     }
 
-    // Browser APIs section: one example page per typed wrapper, each over the unified IJSRuntime and
-    // identical on Server and WASM. Clipboard + geolocation are granted on the context
-    // (SharedSmokeTests.InitializeAsync), so those branches resolve rather than permission-faulting.
+    // Browser APIs guide: the 27 typed wrappers folded into docs/browser-apis.md. Browser APIs are
+    // device/permission-dependent and mostly no-op headless, and co-mounting 27 live JS-interop demos on
+    // one page contends for the shared JS channel — so the guide embeds each wrapper as an inline *code
+    // sample* (highlighted source, no auto-mounted live result). Verify the guide renders those samples;
+    // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
     private async Task TestBrowserApisAsync()
     {
-        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
-        var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
-
-        // Storage — localStorage round-trip via IBrowserStorage.
-        await SideAsync("Storage", "Storage");
-        await Page.Locator("#storage-input").FillAsync("persist-me");
-        await Page.Locator("#storage-set").ClickAsync();
-        await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
-        await Page.Locator("#storage-read").ClickAsync();
-        await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        // Cookies — set then read back via ICookies (document.cookie).
-        await SideAsync("Cookies", "Cookies");
-        await Page.Locator("#cookie-input").FillAsync("choco");
-        await Page.Locator("#cookie-set").ClickAsync();
-        await Expect(Page.Locator("#cookie-status")).ToContainTextAsync("Set: choco", contains);
-        await Page.Locator("#cookie-get").ClickAsync();
-        await Expect(Page.Locator("#cookie-read-value")).ToHaveTextAsync("choco",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        // Clipboard — copy then read back the same text via IClipboard.
-        await SideAsync("Clipboard", "Clipboard");
-        await Page.Locator("#clipboard-copy").ClickAsync();
-        await Expect(Page.Locator("#clipboard-status")).ToContainTextAsync("Copied to clipboard", contains);
-        await Page.Locator("#clipboard-paste").ClickAsync();
-        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!", contains);
-
-        // Geolocation — IGeolocation via the __raskApi.geolocation Promise helper (fixed context fix).
-        await SideAsync("Geolocation", "Geolocation");
-        await Page.Locator("#geo-get").ClickAsync();
-        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5", contains);
-
-        // Permissions — geolocation was granted on the context, so the query reports Granted.
-        await SideAsync("Permissions", "Permissions");
-        await Page.Locator("#perm-geo").ClickAsync();
-        await Expect(Page.Locator("#perm-geo-value")).ToContainTextAsync("Granted", contains);
-
-        // Browser info — navigator property reads returned directly by the invoke dispatcher.
-        await SideAsync("Browser info", "Browser info");
-        await Page.Locator("#nav-read").ClickAsync();
-        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:", contains);
-
-        // Page visibility — the test page is foreground, so the state is Visible.
-        await SideAsync("Page visibility", "Page visibility");
-        await Page.Locator("#vis-read").ClickAsync();
-        await Expect(Page.Locator("#vis-value")).ToContainTextAsync("Visible", contains);
-
-        // Vibration is device-dependent (often unsupported in headless desktop), so smoke-check that the
-        // page renders its control rather than asserting an outcome.
-        await SideAsync("Vibration", "Vibration");
-        await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
-
-        // Network info — Chromium exposes navigator.connection; assert the read populated the readout
-        // (the exact class differs by browser, so just confirm it's no longer the idle placeholder).
-        await SideAsync("Network info", "Network info");
-        await Page.Locator("#net-read").ClickAsync();
-        await Expect(Page.Locator("#net-value")).Not.ToContainTextAsync("not requested", contains);
-
-        // Media queries — matchMedia is universally supported; the readout shows the evaluated booleans.
-        await SideAsync("Media queries", "Media queries");
-        await Page.Locator("#media-read").ClickAsync();
-        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
-
-        // Speech — audio can't be asserted headlessly, so smoke-check the page renders its control.
-        await SideAsync("Speech", "Speech");
-        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
-
-        // Screen info — window.screen is always available; assert the read populated the readout.
-        await SideAsync("Screen info", "Screen info");
-        await Page.Locator("#screen-read").ClickAsync();
-        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
-
-        // Quota estimate — Chromium supports navigator.storage.estimate; assert the read populated it
-        // (unsupported browsers say "not supported" — either way it leaves the idle placeholder). The nav
-        // label avoids the word "Storage" so it doesn't collide with the existing "Storage" sidebar entry.
-        await SideAsync("Quota estimate", "Quota estimate");
-        await Page.Locator("#storage-est-read").ClickAsync();
-        await Expect(Page.Locator("#storage-est-value")).Not.ToContainTextAsync("not requested", contains);
-
-        // Visual viewport — window.visualViewport is available in headless Chromium; assert the read.
-        await SideAsync("Visual viewport", "Visual viewport");
-        await Page.Locator("#vv-read").ClickAsync();
-        await Expect(Page.Locator("#vv-value")).ToContainTextAsync("scale", contains);
-
-        // Broadcast channel — exercises the full JS→C# push round-trip (BroadcastChannel.onmessage →
-        // static [JSInvokable] → handler → StateHasChanged) on every host, incl. trimmed WASM. The page
-        // opens a sender + receiver on one name, so a post is delivered to the receiver in the same page.
-        await SideAsync("Broadcast channel", "Broadcast channel");
-        await Page.Locator("#bc-send").ClickAsync();
-        await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
-
-        // Intersection observer — another JS→C# push: scroll the (initially below-the-fold) target into
-        // view and the browser pushes the change → static [JSInvokable] → handler → StateHasChanged. Starts
-        // "out of view"; becomes "in view" after the scroll. Validates the round-trip on every host.
-        await SideAsync("Intersection observer", "Intersection observer");
-        await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
-        await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
-        await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
-
-        // Resize observer — another ElementRef + JS→C# push: the observer fires once on observe with the
-        // box's current size, so the readout shows pixels (proves the round-trip) on every host.
-        await SideAsync("Resize observer", "Resize observer");
-        await Expect(Page.Locator("#resize-value")).ToContainTextAsync("px", contains);
-
-        // Mutation observer — another ElementRef + JS→C# push: mutate the watched box's DOM and the
-        // browser pushes each MutationRecord → static [JSInvokable] → handler. Adding a child bumps the
-        // childList tally; toggling the box's class bumps the attribute tally. Validates both record types.
-        await SideAsync("Mutation observer", "Mutation observer");
-        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("0", contains);
-        await Page.Locator("#mo-add").ClickAsync();
-        await Expect(Page.Locator("#mo-child")).ToContainTextAsync("1", contains);
-        await Page.Locator("#mo-toggle").ClickAsync();
-        await Expect(Page.Locator("#mo-attr")).ToContainTextAsync("1", contains);
-
-        // Media session — publish now-playing metadata to navigator.mediaSession (chromium supports the
-        // setter headless). Proves the one-shot IMediaSession round-trip; the media-key action handlers
-        // can't be exercised without OS media keys, so they're covered by unit tests.
-        await SideAsync("Media session", "Media session");
-        await Page.Locator("#ms-publish").ClickAsync();
-        await Expect(Page.Locator("#ms-status")).ToContainTextAsync("published", contains);
-
-        // Gamepad — chromium exposes navigator.getGamepads, so IsSupported resolves true on both hosts and
-        // the watch starts (status flips to "Ready"). No virtual pad is connected headless, so the count
-        // stays 0; the per-pad readings are covered by unit tests.
-        await SideAsync("Gamepad", "Gamepad");
-        await Expect(Page.Locator("#gamepad-status")).ToContainTextAsync("Ready", contains);
-        await Expect(Page.Locator("#gamepad-count")).ToContainTextAsync("0", contains);
-
-        // Device sensors — chromium exposes DeviceOrientationEvent (no iOS prompt), so Start grants and
-        // begins watching on both hosts; the status flips to "listening" even though no sensor data flows
-        // headless. Proves the IsSupported/RequestPermission/WatchAsync round-trip; readings are unit-tested.
-        await SideAsync("Device sensors", "Device sensors");
-        await Page.Locator("#sensor-start").ClickAsync();
-        await Expect(Page.Locator("#sensor-status")).ToContainTextAsync("listening", contains);
-
-        // Live location — geolocation watch (push). The context grants permission + a fixed fix (51.5074),
-        // so starting the watch pushes that position via watchPosition → static [JSInvokable] → handler.
-        await SideAsync("Live location", "Live location");
-        await Page.Locator("#geowatch-start").ClickAsync();
-        await Expect(Page.Locator("#geowatch-value")).ToContainTextAsync("51.5", contains);
-
-        // Web Crypto — crypto.subtle.digest of the default input "hello" is a known SHA-256 constant, so
-        // the hash is deterministic across hosts (validates the round-trip + hex encoding).
-        await SideAsync("Web Crypto", "Web Crypto");
-        await Page.Locator("#crypto-hash").ClickAsync();
-        await Expect(Page.Locator("#crypto-hash-value"))
-            .ToContainTextAsync("2cf24dba5fb0a30e26e83b2ac5b9e29e", contains);
-
-        // Performance — the page has long since loaded, so the navigation entry yields timing in ms.
-        await SideAsync("Performance", "Performance");
-        await Page.Locator("#perf-read").ClickAsync();
-        await Expect(Page.Locator("#perf-value")).ToContainTextAsync("ms", contains);
-
-        // IndexedDB — a real async set→get round-trip through the transaction-wrapped helper. Set the
-        // default value, read it back, and assert it returns (validates IndexedDB on every host).
-        await SideAsync("IndexedDB", "IndexedDB");
-        await Page.Locator("#idb-set").ClickAsync();
-        await Page.Locator("#idb-get").ClickAsync();
-        await Expect(Page.Locator("#idb-read")).ToContainTextAsync("hello from IndexedDB", contains);
-
-        // File system access — the open/save pickers are native OS dialogs that can't be driven headless,
-        // so this only verifies the editor page routes and renders (the open button + idle status); the
-        // handle read/write/list round-trips are covered by unit tests.
-        await SideAsync("File system access", "File system access");
-        await Expect(Page.Locator("#fs-open")).ToBeVisibleAsync();
-        await Expect(Page.Locator("#fs-status")).ToContainTextAsync("idle", contains);
-
-        // Passkeys (WebAuthn) — the create/get ceremonies open a real authenticator UI that can't be driven
-        // without a virtual authenticator, so the round-trip is covered by unit tests; here we only confirm
-        // the page routes/renders (the support line is environment-dependent, so it's not asserted).
-        await SideAsync("Passkeys (WebAuthn)", "Passkeys (WebAuthn)");
-        await Expect(Page.Locator("#webauthn-create")).ToBeVisibleAsync();
+        await SideAsync("Browser APIs", "Browser APIs", "main .markdown-body h1");
+        // Every wrapper is embedded as a code sample (a .sample-card with highlighted C# source).
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 20,
+            "expected the Browser APIs guide to embed the typed wrappers as code samples");
+        await Expect(Page.Locator(".guide-demo .sample-code code.language-csharp span").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
     }
 
-    // In-session navigation to an unknown route (client pushState + popstate — the same signal
-    // rask.js forwards to the live session). Works on every host (no deep-link needed): the
-    // [NotFound] page renders inside the layout shell and no sidebar entry stays active.
     private async Task TestInSessionNotFoundAsync()
     {
         await Page.EvaluateAsync(@"() => {
