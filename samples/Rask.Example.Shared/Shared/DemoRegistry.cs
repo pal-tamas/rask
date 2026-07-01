@@ -79,6 +79,36 @@ public static class DemoRegistry
                 "An AbstractValidator<TModel> wired to the form via the Rask.Validation.FluentValidation "
                 + "package — the RuleFor chains drive the same ValidationMessage/ValidationSummary UI.",
                 Result: FluentValidationDemo()),
+
+            // --- Browser APIs guide: the typed wrappers over the platform, one live demo each (their
+            //     standalone example pages folded into docs/browser-apis.md). ---
+            ["browser-intersection"] = () => CodeSample(["IntersectionObserverDemo.cs"]),
+            ["browser-resize"] = () => CodeSample(["ResizeObserverDemo.cs"]),
+            ["browser-mutation"] = () => CodeSample(["MutationObserverDemo.cs"]),
+            ["browser-geolocation"] = () => CodeSample(["GeolocationDemo.cs"]),
+            ["browser-geolocation-watch"] = () => CodeSample(["GeolocationWatchDemo.cs"]),
+            ["browser-device-sensors"] = () => CodeSample(["DeviceSensorsDemo.cs"]),
+            ["browser-gamepad"] = () => CodeSample(["GamepadDemo.cs"]),
+            ["browser-vibration"] = () => CodeSample(["VibrationDemo.cs"]),
+            ["browser-navigator-info"] = () => CodeSample(["NavigatorInfoDemo.cs"]),
+            ["browser-network"] = () => CodeSample(["NetworkInfoDemo.cs"]),
+            ["browser-screen"] = () => CodeSample(["ScreenInfoDemo.cs"]),
+            ["browser-visual-viewport"] = () => CodeSample(["VisualViewportDemo.cs"]),
+            ["browser-media-query"] = () => CodeSample(["MediaQueryDemo.cs"]),
+            ["browser-page-visibility"] = () => CodeSample(["PageVisibilityDemo.cs"]),
+            ["browser-performance"] = () => CodeSample(["PerformanceDemo.cs"]),
+            ["browser-permissions"] = () => CodeSample(["PermissionsDemo.cs"]),
+            ["browser-storage"] = () => CodeSample(["StorageDemo.cs"]),
+            ["browser-indexeddb"] = () => CodeSample(["IndexedDbDemo.cs"]),
+            ["browser-cookies"] = () => CodeSample(["CookiesDemo.cs"]),
+            ["browser-storage-estimate"] = () => CodeSample(["StorageEstimateDemo.cs"]),
+            ["browser-clipboard"] = () => CodeSample(["ClipboardDemo.cs"]),
+            ["browser-speech"] = () => CodeSample(["SpeechDemo.cs"]),
+            ["browser-media-session"] = () => CodeSample(["MediaSessionDemo.cs"]),
+            ["browser-crypto"] = () => CodeSample(["CryptoDemo.cs"]),
+            ["browser-file-system"] = () => CodeSample(["FileSystemAccessDemo.cs"]),
+            ["browser-webauthn"] = () => CodeSample(["WebAuthnDemo.cs"]),
+            ["browser-broadcast-channel"] = () => CodeSample(["BroadcastChannelDemo.cs"]),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

@@ -55,17 +55,9 @@ public sealed class HomePage(Navigator nav) : Component
         ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
 
         ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos"),
-        ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime"),
+        ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime")
 
-        // Type-safe, generator-emitted route URLs (Routes.* — same namespace as these pages).
-        ("Browser APIs", "bi-hdd", "Storage", "localStorage / sessionStorage, typed.", Routes.StoragePage()),
-        ("Browser APIs", "bi-database", "Cookies", "document.cookie with typed options.", Routes.CookiesPage()),
-        ("Browser APIs", "bi-clipboard", "Clipboard", "Copy and read text.", Routes.ClipboardPage()),
-        ("Browser APIs", "bi-geo-alt", "Geolocation", "Current position, Promise-wrapped.", Routes.GeolocationPage()),
-        ("Browser APIs", "bi-shield-lock", "Permissions", "Query state before prompting.", Routes.PermissionsPage()),
-        ("Browser APIs", "bi-phone-vibrate", "Vibration", "Pulse the device motor.", Routes.VibrationPage()),
-        ("Browser APIs", "bi-eye", "Page visibility", "Foreground/visible state.", Routes.PageVisibilityPage()),
-        ("Browser APIs", "bi-info-circle", "Browser info", "onLine, language, userAgent.", Routes.NavigatorInfoPage())
+        // The typed browser-API wrappers are documented as inline live demos in the Browser APIs guide.
     ];
 
     protected override RenderResult Head => Title()["Welcome — Rask"];
