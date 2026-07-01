@@ -109,6 +109,47 @@ public static class DemoRegistry
             ["browser-file-system"] = () => CodeSample(["FileSystemAccessDemo.cs"], Result: FileSystemAccessDemo()),
             ["browser-webauthn"] = () => CodeSample(["WebAuthnDemo.cs"], Result: WebAuthnDemo()),
             ["browser-broadcast-channel"] = () => CodeSample(["BroadcastChannelDemo.cs"], Result: BroadcastChannelDemo()),
+
+            // --- Forms guide: the remaining two-way-binding variants (their standalone /binding page
+            //     folded into docs/forms.md). ---
+            ["binding-nullable"] = () => CodeSample(["BindingNullableDemo.cs"], Result: BindingNullableDemo()),
+            ["binding-clear-default"] = () => CodeSample(["BindingClearDefaultDemo.cs"], Result: BindingClearDefaultDemo()),
+            ["binding-afterbind"] = () => CodeSample(["BindingAfterBindDemo.cs"], Result: BindingAfterBindDemo()),
+            ["binding-afterbind-async"] = () => CodeSample(["BindingAfterBindAsyncDemo.cs"], Result: BindingAfterBindAsyncDemo()),
+
+            // --- Forms guide: the form-controls matrix (each control controlled + bound). ---
+            ["form-controls-input"] = () => CodeSample(["FormControlsInputDemo.cs"], Result: FormControlsInputDemo()),
+            ["form-controls-textarea"] = () => CodeSample(["FormControlsTextareaDemo.cs"], Result: FormControlsTextareaDemo()),
+            ["form-controls-select"] = () => CodeSample(["FormControlsSelectDemo.cs"], Result: FormControlsSelectDemo()),
+            ["form-controls-radio"] = () => CodeSample(["FormControlsRadioDemo.cs"], Result: FormControlsRadioDemo()),
+            ["form-controls-checkbox"] = () => CodeSample(["FormControlsCheckboxDemo.cs"], Result: FormControlsCheckboxDemo()),
+            ["form-controls-multiselect"] = () => CodeSample(["FormControlsMultiSelectDemo.cs"], Result: FormControlsMultiSelectDemo()),
+            ["floating-labels"] = () => CodeSample(["FloatingLabelsDemo.cs"], Result: FloatingLabelsDemo()),
+
+            // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---
+            ["validation-summary"] = () => CodeSample(["ValidationSummaryDemo.cs"], Result: ValidationSummaryDemo()),
+            ["validation-inline-async"] = () => CodeSample(["InlineAsyncValidateDemo.cs"], Result: InlineAsyncValidateDemo()),
+            ["validation-custom-attribute"] = () => CodeSample(["CustomAttributeDemo.cs"], Result: CustomAttributeDemo()),
+            ["validation-validatable-object"] = () => CodeSample(["ValidatableObjectDemo.cs"], Result: ValidatableObjectDemo()),
+            ["validation-fluent-async"] = () => CodeSample(["FluentValidationAsyncDemo.cs"], Result: FluentValidationAsyncDemo()),
+            ["validation-async"] = () => CodeSample(["AsyncValidationDemo.cs"], Result: AsyncValidationDemo()),
+            ["validation-programmatic"] = () => CodeSample(["ProgrammaticValidateDemo.cs"], Result: ProgrammaticValidateDemo()),
+            ["validation-first-error-wins"] = () => CodeSample(["FirstErrorWinsDemo.cs"], Result: FirstErrorWinsDemo()),
+            ["validation-cross-field"] = () => CodeSample(["CrossFieldSummaryDemo.cs"], Result: CrossFieldSummaryDemo()),
+            ["validation-nested-async"] = () => CodeSample(["NestedAsyncWithLiveTotalsDemo.cs"], Result: NestedAsyncWithLiveTotalsDemo()),
+
+            // --- Forms guide: nested / complex models (their standalone /nested-forms page folded in). ---
+            ["nested-subobject"] = () => CodeSample(["NestedSubObjectDemo.cs"], Result: NestedSubObjectDemo()),
+            ["nested-list-foreach"] = () => CodeSample(["NestedListForeachDemo.cs"], Result: NestedListForeachDemo()),
+            ["nested-list-indexer"] = () => CodeSample(["NestedListIndexerDemo.cs"], Result: NestedListIndexerDemo()),
+            ["nested-fluent"] = () => CodeSample(["NestedFluentValidationDemo.cs"], Result: NestedFluentValidationDemo()),
+
+            // --- Forms guide: radio/checkbox groups + multi-select example components. ---
+            ["form-groups"] = () => CodeSample(["FormGroupsDemo.cs"], Result: FormGroupsDemo()),
+            ["multi-select"] = () => CodeSample(["MultiSelectDemo.cs"], Result: MultiSelectDemo()),
+            ["multi-select-controlled"] = () => CodeSample(["MultiSelectControlledDemo.cs"], Result: MultiSelectControlledDemo()),
+            ["multi-select-checkbox"] = () => CodeSample(["MultiSelectCheckboxDemo.cs"], Result: MultiSelectCheckboxDemo()),
+            ["multi-select-radio"] = () => CodeSample(["MultiSelectRadioDemo.cs"], Result: MultiSelectRadioDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

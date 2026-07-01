@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Examples site — Forms folded into the guide (phase 3).** The 7 standalone forms example pages
+  (`/binding`, `/form-controls`, `/validation`, `/floating-labels`, `/nested-forms`, `/form-groups`,
+  `/multi-select`) are removed; every forms demo — the binding matrix, the control matrix, the full
+  validation set (inline/DataAnnotations/FluentValidation, async, cross-field, programmatic), nested
+  models, radio/checkbox groups, and multi-select — is now an **inline live demo in the Forms &
+  validation guide** (`docs/forms.md`). Demos are unchanged (reused via `DemoRegistry`); the E2E forms
+  walk drives them on the guide page (locators scoped where option values repeat across demos).
 - **Examples site — Browser APIs folded into the guide (phase 3).** The 27 standalone Browser-API
   example pages (`/browser/*`) are removed; every typed wrapper is now an **inline live demo in the
   Browser APIs guide** (`docs/browser-apis.md`), grouped by capability (Storage · Environment ·
