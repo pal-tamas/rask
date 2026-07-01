@@ -65,6 +65,11 @@ Open the URL printed in the console. **You should see** a small nav bar (`Home |
 above three working pages: a welcome card, a counter you can click, and a weather table that shows a
 *"Loading…"* placeholder for a moment before async data fills in.
 
+> **Edit-and-refresh with `dotnet watch`.** Run `dotnet watch` instead of `dotnet run` for a live
+> inner loop: edit a component's `Render()` (or its scoped `.css`/`.js`) and save, and **C# Hot Reload**
+> applies the change to the running app and Rask re-renders the open session in place — no manual rebuild
+> or browser refresh. It's the closest a compiled framework gets to Rails' no-build loop.
+
 > **First build is slower, and the IDE may look broken — that's expected.** The first build is when
 > Rask's source generators run. Until then your IDE may flag `HomePage()`, `Counter()`, or
 > `NavLink(...)` as undefined — they're *generated* methods that don't exist until you build. Build
