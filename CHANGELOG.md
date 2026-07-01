@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Scoped-CSS bundle minification.** The single content-hashed scoped-CSS bundle is now **minified**
+  (comments + insignificant whitespace stripped) before it's hashed and served — completing the asset
+  pipeline that already bundles, fingerprints (`/_rask/a/{hash}.css`, `immutable`), and brotli/gzip-compresses
+  scoped CSS. New `RaskLiveOptions.MinifyScopedAssets` (`bool?`): `null` (default) = **auto** — on outside
+  `Development`, off in `Development` so hot-reloaded CSS stays readable (resolved by `UseRask` from
+  `IHostEnvironment`); set `true`/`false` to force it. Minification runs **before hashing**, so the digest,
+  immutable URL, and compressed caches all key off the minified bytes (no double representation). The
+  built-in minifier is deliberately **conservative** — it only strips whitespace around the self-delimiting
+  `{ } ; ,`, leaving descendant/child combinators, `calc()` operators, selector colons, and string/`url()`
+  contents untouched — and only the CSS bundle is minified (JS is served as-is). See `docs/configuration.md`.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and

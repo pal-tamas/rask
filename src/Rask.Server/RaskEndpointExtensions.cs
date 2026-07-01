@@ -163,6 +163,14 @@ public static class RaskEndpointExtensions
             // UseRask<TApp>(pathBase: ...) can still override this if the user
             // prefers to set the prefix at endpoint-registration time.
             LiveOptions.PathBase = liveOptions.PathBase;
+            // Only honour an explicit true/false here; null (the default) is left for UseRask to resolve
+            // from the host environment (minify outside Development). Writing null would clobber a value a
+            // test set directly, so guard it.
+            if (liveOptions.MinifyScopedAssets is { } minify)
+            {
+                LiveOptions.MinifyScopedAssets = minify;
+            }
+
             // Session cap is a per-store instance value (not a static) so concurrent
             // hosts/tests don't clobber each other through global state.
             maxSessions = liveOptions.MaxSessions;
@@ -293,6 +301,11 @@ public static class RaskEndpointExtensions
             logger.LogInformation("Rask {Version} (Server) starting", RaskVersion.Current);
         else
             Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
+
+        // Resolve the scoped-CSS minification default from the host environment unless an explicit
+        // true/false was already set (via AddRask or directly): minify outside Development, and keep it
+        // readable + hot-reloadable in Development.
+        LiveOptions.MinifyScopedAssets ??= !app.Environment.IsDevelopment();
 
         app.UseWebSockets();
         ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
