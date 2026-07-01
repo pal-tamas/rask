@@ -88,8 +88,8 @@ public abstract partial class SharedSmokeTests
     // distinctive .rask-error-boundary class (DefaultErrorPage) — when an error escapes every user
     // boundary. Outside the deliberate /boom demos it must never appear. Match that class precisely:
     // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
-    // merely contains the phrase — e.g. the Toast demo's CodeSample shows ToastDemo.cs source whose
-    // "Danger" toast message is literally "Something went wrong.".
+    // merely contains the phrase — e.g. the Toast and Flash demos' CodeSample shows ToastDemo.cs /
+    // FlashDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
     private async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
@@ -562,6 +562,16 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await toast.Locator(".btn-close").ClickAsync();
         await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Flash messages: a producer injects IFlash and raises a message; the headless FlashOutlet drains
+        // it (consumed-once) and renders a dismissible BsAlert — all via live-diff state, no client JS.
+        await SideAsync("Flash messages", "Flash messages");
+        var flashAlert = Page.Locator("main .sample-result-body .alert");
+        await Page.Locator("main .sample-result-body button:has-text('Success')").ClickAsync();
+        await Expect(flashAlert).ToContainTextAsync("Your changes were saved.",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await flashAlert.Locator(".btn-close").ClickAsync();
+        await Expect(flashAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
         // live on IUserProvider.Changed with no reload.

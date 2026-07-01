@@ -1485,6 +1485,39 @@ public abstract class Component
         }
     }
 
+    // Dev-only (C# Hot Reload): mark every live, mounted component in the tree StateDirty so the next
+    // render re-executes each Render() — including cached subtrees — against the freshly-applied IL. A
+    // component with no LiveState has never rendered (no cache to bust), so it's skipped. Called from
+    // LiveSessionBase.RerenderAllForHotReload under `dotnet watch`; best-effort (the caller swallows).
+    internal static void MarkSubtreeDirtyForHotReload(Component root)
+    {
+        var seen = new HashSet<Component>();
+        Visit(root, seen);
+
+        static void Visit(Component c, HashSet<Component> seen)
+        {
+            if (!seen.Add(c))
+            {
+                return;
+            }
+
+            if (c._live is { IsUnmounted: false } live)
+            {
+                live.StateDirty = true;
+            }
+
+            if (c._live?.Children is null)
+            {
+                return;
+            }
+
+            foreach (var child in c._live.Children.Values)
+            {
+                Visit(child, seen);
+            }
+        }
+    }
+
     private static void CollectAliveWithParents(
         Component root,
         HashSet<Component> seen,
