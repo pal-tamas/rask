@@ -71,6 +71,16 @@ public sealed class RaskLiveOptions
     public int MaxSessions { get; set; }
 
     /// <summary>
+    ///     Whether the scoped-CSS bundle is minified (comments + insignificant whitespace stripped) before
+    ///     it is hashed and served. <c>null</c> (default) means <b>auto</b>: on outside the Development
+    ///     environment, off in Development so hot-reloaded CSS stays readable — resolved by
+    ///     <c>UseRask</c> from <c>IHostEnvironment</c>. Set <c>true</c>/<c>false</c> to force it. Minifying
+    ///     before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the
+    ///     minified bytes. Only the CSS bundle is minified; the JS bundle is served as-is.
+    /// </summary>
+    public bool? MinifyScopedAssets { get; set; }
+
+    /// <summary>
     ///     Per-app URL prefix. Empty (default) keeps every framework URL at the
     ///     origin root. A non-empty value like <c>"/appA"</c> scopes every emitted
     ///     framework URL (head asset links, runtime script src, WS connect, upload /
@@ -99,6 +109,14 @@ public static class LiveOptions
 {
     private static string _pathBase = string.Empty;
     public static LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
+
+    /// <summary>
+    ///     Resolved scoped-CSS minification switch read by <see cref="ScopedAssets.ScopedAssetRegistry" />
+    ///     when it builds the bundle. <c>null</c> (default) = unresolved/off — <c>UseRask</c> resolves the
+    ///     auto default from <see cref="RaskLiveOptions.MinifyScopedAssets" /> + the host environment; a
+    ///     standalone host (or a test) can also set it directly.
+    /// </summary>
+    public static bool? MinifyScopedAssets { get; set; }
 
     /// <summary>
     ///     Active URL prefix (see <see cref="RaskLiveOptions.PathBase" />).
