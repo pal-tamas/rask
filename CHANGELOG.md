@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **C# Hot Reload → live re-render (`dotnet watch`).** Editing a component's `Render()` (or anything it
+  calls) and saving now repaints the running live session automatically — the last gap in Rask's
+  `dotnet watch` story, alongside the existing scoped-CSS/JS hot reload. A new `ComponentHotReloadHandler`
+  (`[MetadataUpdateHandler]`) re-renders every active session: it marks the whole component tree dirty (so
+  cached subtrees re-execute against the freshly-applied IL — even edits to a helper/static a component
+  calls) and requests a normal render, shipping a diff over the existing transport. Sessions are tracked
+  **weakly** and only under `dotnet watch` (`MetadataUpdater.IsSupported`), so a normal/published run pays
+  nothing and the code trims away. The nearest a compiled framework gets to Rails' no-build, edit-and-refresh
+  loop. See `docs/getting-started.md`.
 - **Scoped-CSS bundle minification.** The single content-hashed scoped-CSS bundle is now **minified**
   (comments + insignificant whitespace stripped) before it's hashed and served — completing the asset
   pipeline that already bundles, fingerprints (`/_rask/a/{hash}.css`, `immutable`), and brotli/gzip-compresses
