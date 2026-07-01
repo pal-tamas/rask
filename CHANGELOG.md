@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Flash messages — the injectable `IFlash` service (Rails-style `flash`).** Queue transient user
+  messages from any component or handler (`flash.Success("Saved")` / `Info` / `Warning` / `Error` /
+  `Add(level, …)`); a single headless `FlashOutlet` drains them (`Consume()`, consumed-once) on mount and
+  on `Changed`, rendering each via a caller-owned `Template` with a dismiss callback. `IFlash` is
+  registered **scoped** per session on both hosts, so a message queued just before a client-side
+  `NavigateTo` survives the navigation and shows once on arrival. `Rask.Bootstrap` adds `BsFlash` — a
+  ready-made fixed toast-container of `BsToast`s (mount one in your layout). New **Flash messages**
+  showcase page (`/flash`); see `docs/composition.md`.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and

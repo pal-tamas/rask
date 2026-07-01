@@ -8,6 +8,7 @@ using Rask.Core.Browser;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
+using Rask.Core.Messaging;
 using Rask.Core.Routing;
 using Rask.Wasm.Authentication;
 using Rask.Wasm.Browser;
@@ -31,6 +32,9 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
+        // Transient user messages (Rails-style flash). Singleton = one queue for the app instance (the
+        // whole WASM app is a single session), so a message queued before a NavigateTo survives it.
+        Services.AddSingleton<IFlash, Flash>();
         Services.AddSingleton<IBrowserStorage, BrowserStorage>();
         Services.AddSingleton<IClipboard, Clipboard>();
         Services.AddSingleton<IGeolocation, Geolocation>();
