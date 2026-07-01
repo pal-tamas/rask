@@ -48,7 +48,7 @@ public static class RaskEndpointExtensions
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
     // the whole app — a SW under /rask/ could only intercept /rask/* requests.
     internal const string ManifestPath = "/rask/manifest.webmanifest";
-    private const string ServiceWorkerPath = "/rask-sw.js";
+    internal const string ServiceWorkerPath = "/rask-sw.js";
 
     // Hard cap on a single reassembled inbound WS frame. Client→server messages (hello / event
     // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP

@@ -56,17 +56,33 @@ internal sealed class RaskPwaState(WebAppManifest manifest)
 }
 
 /// <summary>
-///     Emits the PWA <c>&lt;link rel="manifest"&gt;</c> (and, when set, <c>&lt;meta name="theme-color"&gt;</c>)
-///     directly into the server-rendered <c>&lt;head&gt;</c> as real HTML — no post-boot JS injection needed
-///     (unlike WASM). The markup is byte-stable per session, so the live diff codec never emits ops for it.
+///     Emits the PWA wiring directly into the server-rendered <c>&lt;head&gt;</c> as real HTML — the
+///     <c>&lt;link rel="manifest"&gt;</c>, an optional <c>&lt;meta name="theme-color"&gt;</c>, and a tiny
+///     inline script that registers the service worker. No post-boot JS injection is needed (unlike WASM),
+///     and the markup is byte-stable per session, so the live diff codec never emits ops for it. Auto-
+///     registering the SW means <c>AddRaskPwa(manifest)</c> is the only call an app needs to be installable.
 /// </summary>
 internal sealed class RaskPwaHeadContribution(RaskPwaState state) : IRaskHeadContribution
 {
     public Component Render()
     {
-        var link = Components.Link(Rel: "manifest", Href: LiveOptions.PathBase + RaskEndpointExtensions.ManifestPath);
-        return state.Manifest.ThemeColor is { } themeColor
-            ? Components.Fragment()[link, Components.Meta(Name: "theme-color", Content: themeColor)]
-            : link;
+        var children = new List<Child>
+        {
+            Components.Link(Rel: "manifest", Href: LiveOptions.PathBase + RaskEndpointExtensions.ManifestPath)
+        };
+
+        if (state.Manifest.ThemeColor is { } themeColor)
+        {
+            children.Add(Components.Meta(Name: "theme-color", Content: themeColor));
+        }
+
+        // PathBase is framework-controlled (no untrusted input), so it's safe to inline. register() is
+        // idempotent — a re-insert during a head morph just resolves the existing registration.
+        var swUrl = LiveOptions.PathBase + RaskEndpointExtensions.ServiceWorkerPath;
+        children.Add(Components.Script()[Components.Raw(
+            "if(\"serviceWorker\" in navigator){navigator.serviceWorker.register(\""
+            + swUrl + "\").catch(function(){});}")]);
+
+        return Components.Fragment()[children];
     }
 }

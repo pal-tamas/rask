@@ -1,9 +1,15 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Rask.Core.Browser;
 using Rask.Core.Live;
+using Rask.Example.Server;
 using Rask.Example.Shared;
 using Rask.Server;
 using Rask.Server.Diagnostics;
+
+// CodeSample reads demo sources embedded as raksrc/{leaf}. The Server-only PWA demo (ServerPwaDemo)
+// lives in this app assembly, not Rask.Example.Shared, so register it with EmbeddedSource.
+EmbeddedSource.RegisterAssembly(System.Reflection.Assembly.GetExecutingAssembly());
 
 // The framework default since AddRask gained an options shape is
 // LiveDiffMode.Auto, so `services.AddRask()` already ships the diff codec out of
@@ -19,6 +25,25 @@ if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
+// Opt into PWA on the Server host: serves the manifest + service worker, emits the manifest link and
+// auto-registers the SW into the server-rendered <head>, so this showcase is an installable PWA. It is
+// installable + push-capable but NOT an offline app (offline navigations show wwwroot/offline.html) —
+// see the Server PWA showcase page and docs/pwa.md.
+builder.Services.AddRaskPwa(new WebAppManifest
+{
+    Name = "Rask Server Showcase",
+    ShortName = "Rask",
+    Description = "The Rask component framework showcase, server-rendered with live updates over a WebSocket.",
+    ThemeColor = "#512BD4",
+    BackgroundColor = "#faf9fe",
+    Display = DisplayMode.Standalone,
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")],
+    Categories = ["developer", "productivity"]
+});
+// Server-side Web Push backend (Rask.WebPush) for the Server PWA demo's subscribe→send loop.
+builder.Services.AddPushDemo(builder.Configuration);
+// The Server-only PWA showcase page contributes its sidebar entry to the shared ShowcaseLayout.
+builder.Services.AddSingleton(new ShowcaseNavEntry("/server-pwa", "Server PWA", "bi-phone", "PWA"));
 // Live-session capacity health check (Healthy / Degraded ≥80% / Unhealthy at cap), surfaced at
 // /health below. Pairs with the OpenTelemetry-ready "Rask.Server" meter + activity source — see
 // docs/observability.md.
@@ -74,6 +99,10 @@ app.MapGet("/_diag", (LiveSessionStore store) =>
 // and every emitted URL (head asset links, history pushState) is scoped under
 // the prefix. The client-side rask.js auto-strips/prepends the prefix via
 // <base href>, so user-space route handlers stay unprefixed.
+// Web Push backend endpoints (must precede the UseRask catch-all): GET /_push/key,
+// POST /_push/subscribe, /_push/unsubscribe, /_push/send.
+app.MapPushDemo();
+
 app.UseRask<App>();
 
 app.Run();

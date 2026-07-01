@@ -19,6 +19,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Scaffold a cookie-backed login: a /login form, a credential store, a protected /members page, and the auth wiring."
+    },
+    "pwa": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Make the app an installable PWA: AddRaskPwa serves a web app manifest + Rask's service worker and registers it. Installable + push-capable (Web Push), not an offline app — offline navigations show a static offline.html."
     }
   },
   "sources": [
@@ -27,6 +33,10 @@
         {
           "condition": "(!auth)",
           "exclude": [ "Auth/**" ]
+        },
+        {
+          "condition": "(!pwa)",
+          "exclude": [ "wwwroot/**" ]
         }
       ]
     }

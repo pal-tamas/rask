@@ -20,6 +20,11 @@ them until tagged releases begin.
   The transport-agnostic client helpers (`__raskPush`/`__raskNotify`/`__raskBadge`/`__raskWakeLock`) are
   shared from `Rask.Core/Resources/rask-pwa.js` and spliced into both the Server and WASM clients; only the
   manifest injector and install-prompt capture stay WASM-only.
+- **`dotnet new rask-server --pwa` + Server PWA showcase.** The Server template gains a `--pwa` flag
+  (scaffolds `AddRaskPwa`, `wwwroot/icon.svg`, and `offline.html`). The Server sample
+  (`samples/Rask.Example.Server`) is now an installable PWA with a new **Server PWA** showcase page
+  demonstrating the full `INotifications`/`IBadge`/`IWebPush` subscribe→send loop (via `Rask.WebPush`),
+  and an E2E test asserting the manifest, service worker, and the offline-fallback behaviour.
 - **PWA on the Server host.** The transport-agnostic PWA browser APIs — `IWebPush` (push subscribe),
   `INotifications`, `IBadge`, `IWakeLock` — and the typed `WebAppManifest` now live in
   `Rask.Core.Browser` and are registered on the Server host too, so a Server app can subscribe to push,

@@ -55,6 +55,9 @@ public sealed class ServerPwaTests
         Assert.Contains("href=\"/rask/manifest.webmanifest\"", body);
         Assert.Contains("name=\"theme-color\"", body);
         Assert.Contains("content=\"#512BD4\"", body);
+        // AddRaskPwa auto-registers the service worker so the app is installable with one call.
+        Assert.Contains("serviceWorker", body);
+        Assert.Contains("register(\"/rask-sw.js\")", body);
         // Exactly one manifest link, and it sits inside <head>.
         Assert.Equal(body.IndexOf("rel=\"manifest\"", StringComparison.Ordinal),
             body.LastIndexOf("rel=\"manifest\"", StringComparison.Ordinal));

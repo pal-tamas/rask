@@ -3,11 +3,30 @@ using Rask.Server;
 //#if (auth)
 using Microsoft.AspNetCore.Authentication.Cookies;
 //#endif
+//#if (pwa)
+using Rask.Core.Browser;
+//#endif
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
 builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>();
+//#if (pwa)
+
+// Installable PWA: AddRaskPwa serves the manifest + service worker and emits the manifest link +
+// SW registration into the server-rendered <head>. The app is installable and push-capable, but NOT
+// an offline app (a Server app renders over a live WebSocket) — offline navigations show wwwroot/
+// offline.html. To send Web Push from this app, add Rask.WebPush; see docs/pwa.md.
+builder.Services.AddRaskPwa(new WebAppManifest
+{
+    Name = "Rask App",
+    ShortName = "Rask App",
+    ThemeColor = "#512BD4",
+    BackgroundColor = "#faf9fe",
+    Display = DisplayMode.Standalone,
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
+});
+//#endif
 //#if (auth)
 
 // Cookie auth — Rask reads HttpContext.User; the sign-in handshake sets this cookie on redeem.

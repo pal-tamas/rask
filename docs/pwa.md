@@ -5,15 +5,20 @@ MAUI.** A Rask **WASM** app is a Progressive Web App: it installs to the home sc
 full-screen, works offline, sends push notifications, and reaches device capabilities (vibration,
 share sheet, geolocation, clipboard) through typed C# — the same component code you already write.
 
-> PWA features are **WASM-only**. Offline, install, and push run independently of any server, which
-> the Server/WebSocket transport can't provide. See
-> [When to use Server vs WASM](../README.md#-when-to-use-server-vs-wasm).
+> **WASM vs Server.** A WASM app gets the *full* PWA: install, **true offline**, push, and every device
+> API. A **Server** app (opt in with `AddRaskPwa`) is **installable + push-capable** — manifest, Web Push
+> subscribe, local notifications, app badge, and wake lock all work — but it is **not an offline app**:
+> it renders over a live WebSocket, so offline navigations show a static offline page, and there is no
+> background sync or install-prompt replay (those stay WASM-only). See
+> [When to use Server vs WASM](../README.md#-when-to-use-server-vs-wasm) and
+> [PWA on the Server host](#pwa-on-the-server-host) below.
 
 - [Make your app a PWA](#make-your-app-a-pwa)
 - [Installable — the web app manifest](#installable--the-web-app-manifest)
 - [Custom install button (`IInstallPrompt`)](#custom-install-button-iinstallprompt)
 - [Offline — the service worker](#offline--the-service-worker)
 - [Push notifications (`IWebPush`)](#push-notifications-iwebpush)
+- [PWA on the Server host](#pwa-on-the-server-host)
 - [Device capabilities for mobile](#device-capabilities-for-mobile)
 - [Deploying (GitHub Pages & sub-paths)](#deploying-github-pages--sub-paths)
 
@@ -21,27 +26,32 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 
 ## Make your app a PWA
 
-Start a new app with the **`--pwa`** option and it's installable + offline out of the box:
+Start a new app with the **`--pwa`** option:
 
 ```bash
-dotnet new rask-wasm --pwa          # standalone browser-WASM PWA
-dotnet new rask-wasm-hosted --pwa   # WASM PWA + ASP.NET host
+dotnet new rask-wasm --pwa          # standalone browser-WASM PWA (full offline)
+dotnet new rask-wasm-hosted --pwa   # WASM PWA + ASP.NET host (full offline)
+dotnet new rask-server --pwa        # installable + push-capable Server app (not offline)
 ```
 
-That scaffolds a web app manifest + icon and registers Rask's default service worker from
-`index.html`. To add it to an existing Rask WASM app, do the two steps below by hand
-(manifest + service-worker registration).
+The WASM templates scaffold a manifest + icon and register Rask's default service worker from
+`index.html`. The Server template calls `AddRaskPwa(...)`, which serves the manifest + service worker
+and registers it for you, plus a static `offline.html`. To add PWA to an existing app, follow the steps
+below — the [manifest](#installable--the-web-app-manifest) and, for WASM,
+[service-worker registration](#offline--the-service-worker); for Server, just
+[`AddRaskPwa`](#pwa-on-the-server-host).
 
 ---
 
 ## Installable — the web app manifest
 
-Configure a typed `WebAppManifest` in `Program.cs` — the framework injects the
-`<link rel="manifest">` (a `data:` URL, so **no `manifest.webmanifest` file to ship**) and the
-`<meta name="theme-color">` at boot. There's nothing to hand-write or keep in sync:
+Configure a typed `WebAppManifest` (in `Rask.Core.Browser`) in `Program.cs` — on WASM the framework
+injects the `<link rel="manifest">` (a `data:` URL, so **no `manifest.webmanifest` file to ship**) and
+the `<meta name="theme-color">` at boot; on Server `AddRaskPwa` serves and links it. There's nothing to
+hand-write or keep in sync:
 
 ```csharp
-using Rask.Wasm.Browser;
+using Rask.Core.Browser;
 
 var host = WasmHostBuilder.CreateDefault();
 host.UseManifest(new WebAppManifest
@@ -157,8 +167,10 @@ Bring your own worker (custom caching/routing) by registering a different URL �
 
 ## Push notifications (`IWebPush`)
 
-`IWebPush` (in `Rask.Wasm.Browser`, injected through the constructor) wraps the Web Push API. Drive
-it from an event handler:
+`IWebPush` (in `Rask.Core.Browser`, injected through the constructor) wraps the Web Push API. It works
+on **both** hosts — on WASM always, and on Server once you opt in with
+[`AddRaskPwa`](#pwa-on-the-server-host) (which serves the service worker push relies on). Drive it from
+an event handler:
 
 ```csharp
 public sealed class PushButton(IWebPush push) : Component
@@ -225,14 +237,59 @@ public sealed class Notifier(IWebPushSender sender, ISubscriptionStore store)
 
 `VapidKeys.Generate()` mints a fresh pair (base64url) for first-time setup. The sender is transport-
 neutral and stores nothing — persisting `PushSubscription`s is your app's job. See the full
-subscribe → send → notify loop wired up in `samples/Rask.Example.Wasm.Host`.
+subscribe → send → notify loop wired up in `samples/Rask.Example.Wasm.Host` (WASM) and
+`samples/Rask.Example.Server` (Server).
+
+---
+
+## PWA on the Server host
+
+A Rask **Server** app can be a PWA too — opt in with **`AddRaskPwa`**, the server-side counterpart to
+the WASM host's `UseManifest`. One call makes the app installable and push-capable:
+
+```csharp
+using Rask.Core.Browser;
+using Rask.Server;
+
+builder.Services.AddRask();
+builder.Services.AddRaskPwa(new WebAppManifest
+{
+    Name = "My Rask App",
+    ShortName = "Rask App",
+    ThemeColor = "#512BD4",
+    Display = DisplayMode.Standalone,
+    Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
+});
+```
+
+`AddRaskPwa`:
+
+- **serves the manifest** at `{PathBase}/rask/manifest.webmanifest` (relative URLs rooted at the app's
+  base path) and emits the `<link rel="manifest">` + `<meta name="theme-color">` directly into the
+  server-rendered `<head>` — no boot-time JS injection;
+- **serves Rask's service worker** at `{PathBase}/rask-sw.js` and **auto-registers it**, so the app
+  meets install criteria with no extra wiring;
+- works with the transport-agnostic PWA APIs `AddRask()` already registers — `IWebPush`,
+  `INotifications`, `IBadge`, `IWakeLock`.
+
+Then ship a static **`wwwroot/offline.html`** (the SW serves it on failed navigations) and, to send
+push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Server showcase
+(`samples/Rask.Example.Server`, the **Server PWA** page) wires the whole loop.
+
+> **What you don't get on Server.** A Server app renders over a live WebSocket, so it is **not an
+> offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
+> carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
+> rather than a dead cached page. There is **no background sync**, and the **install-prompt replay**
+> (`IInstallPrompt`) and the activation-bound device APIs (`IShare`, `IFullscreen`, `IMediaDevices`, …)
+> stay WASM-only. The honest framing: *installable + push + native-feel, not an offline app.*
 
 ---
 
 ## Device capabilities for mobile
 
-Typed wrappers for the browser APIs that make a web app feel native. The shared ones live in
-`Rask.Core.Browser` (work on both transports); the `*(WASM)*` ones live in `Rask.Wasm.Browser` because
+Typed wrappers for the browser APIs that make a web app feel native. Everything in `Rask.Core.Browser`
+works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush`,
+`INotifications`, `IBadge`, and `IWakeLock`. The `*(WASM)*` ones live in `Rask.Wasm.Browser` because
 they need a live user gesture or the installed-app instance the Server round-trip can't carry.
 
 | Capability | Service | Use |
@@ -255,9 +312,9 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
 | **Visual viewport** | `IVisualViewport` | `GetAsync()` → visible size/offset/zoom, e.g. above the soft keyboard |
 | **Cross-tab messaging** | `IBroadcastChannel` | `OpenAsync(name, onMessage)` / `PostAsync` — sync sign-out, theme, "data updated" across tabs |
-| **Local notifications** | `INotifications` *(WASM)* | Show a notification from the page (no server) |
-| **App badge** | `IBadge` *(WASM)* | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
-| **Wake lock** | `IWakeLock` *(WASM)* | Keep the screen awake; dispose the sentinel to release |
+| **Local notifications** | `INotifications` | Show a notification from the page (no server) |
+| **App badge** | `IBadge` | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
+| **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
 | **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
 | **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
@@ -270,7 +327,7 @@ they need a live user gesture or the installed-app instance the Server round-tri
 | **HID device** | `IHid` *(WASM)* | Talk to a HID device — `RequestDevicesAsync(filters)` → devices (output/feature reports + pushed input reports) |
 | **Bluetooth (BLE)** | `IBluetooth` *(WASM)* | Pair with a BLE device — `RequestDeviceAsync(options)` → connect GATT, read/write/notify characteristics |
 
-**App badge.** `IBadge` (`Rask.Wasm.Browser`) sets a count on the **installed** app's icon —
+**App badge.** `IBadge` (`Rask.Core.Browser`) sets a count on the **installed** app's icon —
 `SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
 browser tab, so gate on `IsSupportedAsync()`. Pairs with notifications/push to surface an unread count.
 
@@ -289,7 +346,7 @@ needs a live user gesture, so call it from an event handler and gate on `IsSuppo
 fullscreen first when you also want to **lock the orientation** — most browsers only allow the lock in
 fullscreen.
 
-**Local vs push notifications.** `INotifications` (`Rask.Wasm.Browser`) shows a notification directly
+**Local vs push notifications.** `INotifications` (`Rask.Core.Browser`) shows a notification directly
 from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new NotificationOptions { … })`.
 Use it for in-app alerts. For notifications delivered while the app is **closed**, use
 [`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
