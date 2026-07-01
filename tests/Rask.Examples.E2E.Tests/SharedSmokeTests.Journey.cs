@@ -941,8 +941,14 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Browser APIs", "Browser APIs", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 20,
             "expected the Browser APIs guide to embed the typed wrappers as live demos");
+        // The guide co-mounts every wrapper on one (large) page. Wait for the LAST demo's control to be
+        // present before driving any interaction, so a click never races the page still hydrating on the
+        // slower transports (StandaloneWasm boots the whole bundle; Server threads 27 mounts over the WS).
+        await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Storage — localStorage round-trip via IBrowserStorage.
+        await Page.Locator("#storage-input").ScrollIntoViewIfNeededAsync();
         await Page.Locator("#storage-input").FillAsync("persist-me");
         await Page.Locator("#storage-set").ClickAsync();
         await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
