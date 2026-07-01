@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Rails-grade developer error page.** The built-in `DefaultErrorPage` (shown when a fault escapes every
+  `ErrorBoundary`) now renders a rich view **in Development**: parsed stack frames (via the trim-safe
+  `DiagnosticMethodInfo`, not reflection), a ±5-line **source excerpt** around each throwing line with the
+  line marked, and the full **inner-exception chain** in collapsible sections. **Production is unchanged and
+  security-gated** — only the outermost type + message are shown; no stack, no source, no file paths, and no
+  inner-exception detail ever reach the response. All text is HTML-encoded, and source reads fail closed
+  (missing/stripped paths degrade to just the frame line). The Development gate still reads
+  `ASPNETCORE_ENVIRONMENT` / `DOTNET_ENVIRONMENT` with no `Microsoft.Extensions.Hosting` dependency.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
