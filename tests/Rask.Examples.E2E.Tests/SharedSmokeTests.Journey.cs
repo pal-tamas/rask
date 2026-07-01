@@ -55,6 +55,7 @@ public abstract partial class SharedSmokeTests
         await TestSidebarNavAsync();
         await WalkDslAndComponentPagesAsync();
         await WalkInteractiveComponentPagesAsync();
+        await TestCompositionGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -426,37 +427,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "last key:" }))
             .ToContainTextAsync("focused", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Virtualize: confirm it renders its source (the page now shows the demos via CodeSample)
-        // and that the sticky header is pinned on the <th> cells — the fix for the old <thead>
-        // sticky that flickered. Both are static checks (no scroll interaction) so this stays out
-        // of the shared session's render-timing and can't destabilise later stateful steps.
-        await SideAsync("Virtualize", "Virtualize");
-        await Expect(Page.Locator("main .sample-code-col").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
-            .EvaluateAsync<string>("el => getComputedStyle(el).position");
-        Assert.Equal("sticky", thPosition);
-
-        // Keyed lists: the page's contract is that a keyed reorder preserves the survivors'
-        // DOM state — focus, caret, and uncommitted input text. Type into the first row,
-        // place a caret mid-string, then reverse. We dispatch the reverse via a synthetic
-        // (non-focus-stealing) click so the assertion isolates the reorder's effect on focus
-        // from the focus the pointer would otherwise hand to the button itself. A keyed move
-        // must relocate the live <li> node (Atomic Move), not detach + re-insert it.
-        await SideAsync("Keyed lists", "Keyed lists");
-        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").ClickAsync();
-        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").FillAsync("travels");
-        await Page.EvaluateAsync("() => document.activeElement.setSelectionRange(3, 3)");
-        await Page.EvaluateAsync(
-            "() => document.getElementById('kl-reverse').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
-        var keyedState = await Page.EvaluateAsync<string>(@"() => {
-            const a = document.activeElement;
-            if (!a || !a.classList || !a.classList.contains('kl-note')) return 'focus-lost';
-            const li = a.closest('li');
-            const name = li ? li.querySelector('span.fw-semibold').textContent.trim() : '?';
-            return `${name}|${a.value}|${a.selectionStart}`;
-        }");
-        Assert.Equal("Apple|travels|3", keyedState);
+        // Virtualize and Keyed lists moved to the Composition guide (TestCompositionGuideAsync).
 
         // Data table: every interaction is a URL query-param mutation → rebind → re-render.
         await SideAsync("Data table", "Data table");
@@ -503,33 +474,77 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
+        // Drag & drop and Error boundary moved to the Composition guide (TestCompositionGuideAsync).
+    }
+
+    // Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries
+    // — their standalone example pages folded into docs/composition.md as inline live demos. Open the
+    // guide once and drive each demo in place; locators are scoped by unique #id or by the enclosing
+    // .guide-demo (badges/result panes repeat across demos on the one page).
+    private async Task TestCompositionGuideAsync()
+    {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+
+        await SideAsync("Composition", "Composition", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
+            "expected the Composition guide to embed the demos as live demos");
+
+        // Context: toggling a provider updates a deep consumer straight through a render-cached
+        // intermediate. Scope to this demo — badges appear in other demos on the page too.
+        var ctxDemo = Page.Locator(".guide-demo:has(button:has-text('Toggle theme'))");
+        var ctxBadge = ctxDemo.Locator(".badge");
+        await Expect(ctxBadge).ToContainTextAsync("Light", contains);
+        await ctxDemo.Locator("button:has-text('Toggle theme')").ClickAsync();
+        await Expect(ctxBadge).ToContainTextAsync("Dark", contains);
+
+        // Callback: a child's click invokes the parent's plain delegate and the framework auto-wraps it
+        // to re-render the parent. Scoped by the demo's #callback-rating container.
+        var cb = Page.Locator("#callback-rating");
+        await cb.Locator("button").Nth(3).ClickAsync();
+        await Expect(cb.Locator("p")).ToContainTextAsync("You rated: 4/5", contains);
+
+        // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
+        var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
+            .EvaluateAsync<string>("el => getComputedStyle(el).position");
+        Assert.Equal("sticky", thPosition);
+
+        // Keyed lists: a keyed reorder preserves the survivors' DOM state — focus, caret, and
+        // uncommitted input text. Type into the first row, place a caret mid-string, then reverse via a
+        // synthetic (non-focus-stealing) click; the live <li> node is moved (Atomic Move), not detached.
+        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").ClickAsync();
+        await Page.Locator("#kl-list li:nth-child(1) input.kl-note").FillAsync("travels");
+        await Page.EvaluateAsync("() => document.activeElement.setSelectionRange(3, 3)");
+        await Page.EvaluateAsync(
+            "() => document.getElementById('kl-reverse').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
+        var keyedState = await Page.EvaluateAsync<string>(@"() => {
+            const a = document.activeElement;
+            if (!a || !a.classList || !a.classList.contains('kl-note')) return 'focus-lost';
+            const li = a.closest('li');
+            const name = li ? li.querySelector('span.fw-semibold').textContent.trim() : '?';
+            return `${name}|${a.value}|${a.selectionStart}`;
+        }");
+        Assert.Equal("Apple|travels|3", keyedState);
+
         // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
-        await SideAsync("Drag & drop", "Headless drag & drop");
         await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await HtmlDragDropAsync("[data-testid='fruit-0']", "[data-testid='fruit-2']");
-        await Expect(Page.Locator("#dd-fruit-list .dd-item").Nth(2)).ToContainTextAsync("Apple",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#dd-fruit-list .dd-item").Nth(2)).ToContainTextAsync("Apple", contains);
         await HtmlDragDropAsync("[data-testid='card-2']", "[data-testid='card-5']");
         await Expect(Page.Locator("[data-testid='col-done'] [data-testid='card-2']")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Error boundary (the app's error handling): a handler-throw and a render-throw each trip
-        // the nearest boundary's fallback — the error is contained, the navbar (outside the user
-        // boundary) survives, and Recover restores the healthy subtree.
-        await SideAsync("Error boundary", "Error boundary");
+        // Error boundaries: a handler-throw and a render-throw each trip the nearest boundary's fallback
+        // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
         await Page.Locator("#boom-throw").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo", contains);
         await Expect(Page.Locator(".navbar .navbar-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Render-time throw: the HtmlSerializer rewinds the partial output and the boundary catches
-        // it exactly once; Recover (which also clears the throw flag) restores the trigger.
+        // Render-time throw: the serializer rewinds the partial output and the boundary catches it once.
         await Page.Locator("#boom-render-trigger").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo", contains);
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -537,21 +552,7 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkAuthAndContextPagesAsync()
     {
-        // Context: toggling a provider updates a deep consumer straight through a render-cached
-        // intermediate (the diff-path change-detection bypass).
-        await SideAsync("Context", "Context");
-        var ctxBadge = Page.Locator("main .badge");
-        await Expect(ctxBadge).ToContainTextAsync("Light", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("button:has-text('Toggle theme')").ClickAsync();
-        await Expect(ctxBadge).ToContainTextAsync("Dark", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Callback: a child's click invokes the parent's plain delegate and the framework auto-wraps
-        // it to re-render the parent.
-        await SideAsync("Callback", "Callback");
-        var rating = Page.Locator("main .sample-result-body p");
-        await Page.Locator("main .sample-result-body button").Nth(3).ClickAsync();
-        await Expect(rating).ToContainTextAsync("You rated: 4/5",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Context and Callback moved to the Composition guide (TestCompositionGuideAsync).
 
         // Toast: Bootstrap toasts shown, stacked and dismissed entirely by live-diff state (no Bootstrap
         // JS, no data-bs-dismiss). Showing renders class="toast show"; the × removes it from the host list.
