@@ -12,7 +12,6 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
     [InlineData(typeof(BackgroundServicePage), "/background", "Background service")]
-    [InlineData(typeof(BindingPage), "/binding", "Two-way binding")]
     [InlineData(typeof(BoomPage), "/boom", "Error boundary")]
     [InlineData(typeof(CancellationPage), "/cancellation", "Cancellation")]
     [InlineData(typeof(ComponentsPage), "/components", "User components")]
@@ -23,7 +22,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(LifecyclePage), "/lifecycle", "Lifecycle")]
     [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
     [InlineData(typeof(NavigatorPage), "/navigator", "Navigator")]
-    [InlineData(typeof(NestedFormPage), "/nested-forms", "Complex models")]
     [InlineData(typeof(PrimitivesPage), "/primitives", "Primitives")]
     [InlineData(typeof(PropsPage), "/props", "Universal props")]
     [InlineData(typeof(RoutingPage), "/routing", "Routing")]
@@ -34,7 +32,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     [InlineData(typeof(UploadPage), "/upload", "File upload")]
     [InlineData(typeof(UserDetailPage), "/users/42", "User #42")]
-    [InlineData(typeof(ValidationPage), "/validation", "Validation")]
     [InlineData(typeof(VirtualizePage), "/virtualize", "Virtualize")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
@@ -52,7 +49,6 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage))]
     [InlineData(typeof(BackgroundServicePage))]
-    [InlineData(typeof(BindingPage))]
     [InlineData(typeof(BoomPage))]
     [InlineData(typeof(CancellationPage))]
     [InlineData(typeof(ComponentsPage))]
@@ -63,7 +59,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(LifecyclePage))]
     [InlineData(typeof(LiveTickerPage))]
     [InlineData(typeof(NavigatorPage))]
-    [InlineData(typeof(NestedFormPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(PrimitivesPage))]
     [InlineData(typeof(PropsPage))]
@@ -75,7 +70,6 @@ public sealed class PageBaselineTests
     [InlineData(typeof(TodosPage))]
     [InlineData(typeof(UploadPage))]
     [InlineData(typeof(UserDetailPage))]
-    [InlineData(typeof(ValidationPage))]
     [InlineData(typeof(VirtualizePage))]
     public void Page_HasExpectedRouteOrNotFoundAttribute(Type pageType)
     {

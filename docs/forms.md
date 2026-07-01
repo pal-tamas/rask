@@ -67,6 +67,10 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
+<!-- demo:binding-nullable -->
+
+<!-- demo:binding-clear-default -->
+
 ### Binding lifecycle
 
 Each change handler runs in order: write the value, `NotifyFieldChanged`, run `AfterBind`/
@@ -82,6 +86,13 @@ Select(Bind: () => _model.Country,
        AfterBind: c => { _cities = Cities[c]; _model.City = _cities[0]; })[ /* options */ ]
 Select(Bind: () => _model.City)[_cities.Select(c => Option(Value: c)[c])]
 ```
+
+<!-- demo:binding-afterbind -->
+
+`AfterBindAsync` awaits before the post-handler render, so a dependent async lookup (repopulate a
+dropdown from an API) surfaces its loading state on its own — no manual `StateHasChanged()`:
+
+<!-- demo:binding-afterbind-async -->
 
 ---
 
@@ -142,6 +153,33 @@ ValidationSummary(
 `ValidationMessage.For` keys a single field; `ValidationSummary` lists every `ValidationEntry`
 (`Field` + `Message`), with form-level messages carrying an empty `Field`.
 
+<!-- demo:validation-summary -->
+
+### Controls at a glance
+
+Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
+**bound** (`Bind: () => model.X`, two-way). A derived readout rendered *outside* the control updates
+live either way. The matrix below covers text, textarea, select, and the `Rask.Bootstrap` component
+controls (`BsRadioGroup` / `BsCheckboxGroup` / `BsMultiSelect`).
+
+<!-- demo:form-controls-input -->
+
+<!-- demo:form-controls-textarea -->
+
+<!-- demo:form-controls-select -->
+
+<!-- demo:form-controls-radio -->
+
+<!-- demo:form-controls-checkbox -->
+
+<!-- demo:form-controls-multiselect -->
+
+**Floating labels.** The reusable `Floating*` wrappers (input/select/textarea) render Bootstrap's
+floating-label markup with the label derived from the bound property, and surface validation via
+`.invalid-feedback`:
+
+<!-- demo:floating-labels -->
+
 ---
 
 ## 3. Inline validation (no extra package)
@@ -168,6 +206,11 @@ Form<LoginModel>(_model,
 Per-field `Validate:` produces field-scoped messages and runs on each keystroke after the field is
 touched. Form-level `Validate:` runs at submit and attaches messages to the form-level slot
 (`FieldIdentifier(model, "")`) — they surface in `ValidationSummary`, never against a specific input.
+
+An inline `Validate:` can also be async (`Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`);
+the token cancels the in-flight check on the next keystroke:
+
+<!-- demo:validation-inline-async -->
 
 ---
 
@@ -207,6 +250,14 @@ exist — so attribute and object-level errors surface together (ASP.NET Core MV
 A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`ValidationSummary`); a
 populated one tags the named field.
 
+A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
+
+<!-- demo:validation-custom-attribute -->
+
+`IValidatableObject` runs alongside the attributes, model-level:
+
+<!-- demo:validation-validatable-object -->
+
 ---
 
 ## 5. FluentValidation
@@ -240,6 +291,10 @@ Form<OrderModel>(_model, m => _submission = "Ordered")[
 Per-keystroke validation on a root-model field scopes FluentValidation to that single property
 (`MemberNameValidatorSelector`, fast path); submit runs every rule. FluentValidation's own
 `Cascade(CascadeMode.Stop)` mirrors Rask's first-error-wins gating.
+
+An async `MustAsync` rule rides the same wrapper:
+
+<!-- demo:validation-fluent-async -->
 
 ---
 
@@ -281,6 +336,14 @@ ValidatingIndicator(For: () => _model.Username,
     Template: () => Span(Class: "spinner")["Checking…"])
 ```
 
+An `IAsyncFieldValidator` (the username-uniqueness check above) with the validating indicator:
+
+<!-- demo:validation-async -->
+
+Validation can also be driven **programmatically** — `EditContext.Validate()` and reading `IsValidating`:
+
+<!-- demo:validation-programmatic -->
+
 ### `IsValidating` vs `ShouldShowValidatingIndicator`
 
 - `EditContext.IsValidating(field)` / `IsValidatingAny` — the exact "a validator is in flight right
@@ -298,6 +361,12 @@ The pipeline runs inline → form-level inline → sync `IFieldValidator` → as
 `IAsyncFieldValidator`. Once any stage flags a field, later stages stay quiet on that **same** field
 — so fixing one error reveals the next rule's message. A validator that throws mid-check surfaces a
 generic `"Validation could not be completed."` rather than killing the submit pipeline.
+
+<!-- demo:validation-first-error-wins -->
+
+A **cross-field** rule (form-level `Validate:` feeding the `ValidationSummary`):
+
+<!-- demo:validation-cross-field -->
 
 ---
 
@@ -372,7 +441,20 @@ sub-instance so `ValidationMessage(For: () => _model.Address.Street, …)` reads
 > preserves the root model's public properties (`[DynamicallyAccessedMembers]`, a routed page, or a
 > trimmer descriptor) must extend to every nested type.
 
-See `samples/Rask.Example.Shared/Features/NestedForms/NestedFormPage.cs` for all four patterns side by side.
+The four patterns, live — sub-object binding, `foreach` and indexer collection binding, and
+FluentValidation nesting:
+
+<!-- demo:nested-subobject -->
+
+<!-- demo:nested-list-foreach -->
+
+<!-- demo:nested-list-indexer -->
+
+<!-- demo:nested-fluent -->
+
+A nested graph with **async** validators and live totals rolling up from the rows:
+
+<!-- demo:validation-nested-async -->
 
 ---
 
@@ -416,7 +498,21 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
   the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)
 
-See `samples/Rask.Example.Shared/Features/FormGroups/FormGroupsPage.cs`.
+`RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
+
+<!-- demo:form-groups -->
+
+**Multi-select.** `MultiSelect<TItem>` (and the `Rask.Bootstrap` `BsMultiSelect<T>`) binds an
+`ICollection<TItem>` through a dropdown of chips — bound and controlled, with checkbox and radio
+option renderings:
+
+<!-- demo:multi-select -->
+
+<!-- demo:multi-select-controlled -->
+
+<!-- demo:multi-select-checkbox -->
+
+<!-- demo:multi-select-radio -->
 
 ## 9. Building your own form controls
 

@@ -602,10 +602,22 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkFormsPagesAsync()
     {
+        // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
+        // validation, floating labels, complex models, radio/checkbox groups, multi-select) were folded
+        // into docs/forms.md as inline live demos in the guides-first migration, so the whole section is
+        // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
+        // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
+        await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 25,
+            "expected the Forms guide to embed the forms demos as live demos");
+        // The guide co-mounts every forms demo on one (large) page; wait for a late demo's control (the
+        // multi-select, near the end) before driving any interaction so clicks never race hydration.
+        await Expect(Page.Locator("#ms-interests")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
         // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
         // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text + a
-        // change-only checkbox).
-        await SideAsync("Two-way binding", "Two-way binding");
+        // change-only checkbox). The typed-bind demo's Name input is the first on the page (section 1).
         await Page.Locator("input[name=Name]").First.FillAsync("Ada");
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -624,7 +636,6 @@ public abstract partial class SharedSmokeTests
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
         // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
         // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
-        await SideAsync("Validation", "Validation");
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
@@ -643,7 +654,6 @@ public abstract partial class SharedSmokeTests
         // surfaces the Bootstrap .invalid-feedback under a field (shown via .d-block, no is-invalid
         // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
         // unit-tested.)
-        await SideAsync("Floating labels", "Floating labels");
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
         await Expect(floatingForm.Locator(".invalid-feedback").First)
@@ -657,21 +667,19 @@ public abstract partial class SharedSmokeTests
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Complex models (nested forms): render smoke (nested binding/validation is unit-tested).
-        await SideAsync("Complex models", "Complex models");
-
-        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind.
-        await SideAsync("Radio & checkbox", "Radio & checkbox groups");
-        var groups = Page.Locator("#groups-summary");
-        await Page.Locator("input[type=radio][value='Pro']").CheckAsync();
+        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind. Scope the
+        // option locators to this demo — the "Pro"/"AI" values also appear in the form-controls and
+        // multi-select demos on the same guide page.
+        var groupsDemo = Page.Locator(".guide-demo:has(#groups-summary)");
+        var groups = groupsDemo.Locator("#groups-summary");
+        await groupsDemo.Locator("input[type=radio][value='Pro']").CheckAsync();
         await Expect(groups).ToContainTextAsync("Plan: Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
+        await groupsDemo.Locator("input[type=checkbox][value='AI']").CheckAsync();
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Multi-select: the reusable BsMultiSelect<T> dropdown binds to an ICollection — open it (server
         // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
         // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
-        await SideAsync("Multi-select", "Multi-select");
         var multi = Page.Locator("#ms-interests");
         await multi.Locator(".form-select").ClickAsync(); // open the dropdown
         await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
@@ -707,7 +715,6 @@ public abstract partial class SharedSmokeTests
         // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
         // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
         // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
-        await SideAsync("Form controls", "Form controls");
 
         // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
         await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
@@ -933,12 +940,66 @@ public abstract partial class SharedSmokeTests
     // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
     private async Task TestBrowserApisAsync()
     {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+        var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
+
+        // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
+        // enumerable is materialised at render time so each demo's component instance is reconciled and
+        // keeps its state across renders — see Component's IEnumerable<Child> indexer). Open the guide,
+        // wait for the LAST demo's control so no interaction races hydration, then drive a representative
+        // set: one-shot reads, storage/clipboard round-trips, and JS→C# push. Exhaustive per-wrapper
+        // behaviour is covered by the demo unit tests.
         await SideAsync("Browser APIs", "Browser APIs", "main .markdown-body h1");
-        // Every wrapper is embedded as a code sample (a .sample-card with highlighted C# source).
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 20,
-            "expected the Browser APIs guide to embed the typed wrappers as code samples");
-        await Expect(Page.Locator(".guide-demo .sample-code code.language-csharp span").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            "expected the Browser APIs guide to embed the typed wrappers as live demos");
+        await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Storage — localStorage round-trip via IBrowserStorage.
+        await Page.Locator("#storage-input").FillAsync("persist-me");
+        await Page.Locator("#storage-set").ClickAsync();
+        await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
+        await Page.Locator("#storage-read").ClickAsync();
+        await Expect(Page.Locator("#storage-read-value")).ToHaveTextAsync("persist-me",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Cookies — set then read back via ICookies.
+        await Page.Locator("#cookie-input").FillAsync("choco");
+        await Page.Locator("#cookie-set").ClickAsync();
+        await Page.Locator("#cookie-get").ClickAsync();
+        await Expect(Page.Locator("#cookie-read-value")).ToHaveTextAsync("choco",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Clipboard — copy then read back (granted on the context in InitializeAsync).
+        await Page.Locator("#clipboard-copy").ClickAsync();
+        await Page.Locator("#clipboard-paste").ClickAsync();
+        await Expect(Page.Locator("#clipboard-read-value")).ToContainTextAsync("Copied from Rask!", contains);
+
+        // Geolocation — one-shot position (fixed fix granted on the context).
+        await Page.Locator("#geo-get").ClickAsync();
+        await Expect(Page.Locator("#geo-value")).ToContainTextAsync("lat 51.5", contains);
+
+        // Browser info / media queries / screen info — one-shot property reads populate their readouts.
+        await Page.Locator("#nav-read").ClickAsync();
+        await Expect(Page.Locator("#nav-value")).ToContainTextAsync("online:", contains);
+        await Page.Locator("#media-read").ClickAsync();
+        await Expect(Page.Locator("#media-value")).ToContainTextAsync("prefersDark:", contains);
+        await Page.Locator("#screen-read").ClickAsync();
+        await Expect(Page.Locator("#screen-value")).ToContainTextAsync("DPR", contains);
+
+        // Vibration / speech are device-dependent (no-op headless) — smoke-check the control renders.
+        await Expect(Page.Locator("#vibrate-buzz")).ToBeVisibleAsync(visible);
+        await Expect(Page.Locator("#speech-speak")).ToBeVisibleAsync(visible);
+
+        // Broadcast channel — full JS→C# push round-trip (BroadcastChannel.onmessage → [JSInvokable] →
+        // handler → StateHasChanged), on every host including trimmed WASM.
+        await Page.Locator("#bc-send").ClickAsync();
+        await Expect(Page.Locator("#bc-log")).ToContainTextAsync("Message #1", contains);
+
+        // Intersection observer — another push: scroll the target in and the browser pushes the change.
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("out of view", contains);
+        await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
+        await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
     }
 
     private async Task TestInSessionNotFoundAsync()
@@ -974,19 +1035,20 @@ public abstract partial class SharedSmokeTests
         if (opts.DeepLink)
         {
             // Refresh on a deep CodeSample route must re-render the page (not the RootErrorBoundary)
-            // and re-emit server-highlighted spans.
-            await Page.GotoAsync("/validation");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            // and re-emit server-highlighted spans. The Data table page's only language-code block is
+            // its own highlighted page-source sample, so every match must carry token spans.
+            await Page.GotoAsync("/table");
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await Page.ReloadAsync();
             Assert.Equal(0, await Page.Locator(".rask-error-boundary h1:has-text(\"Something went wrong\")").CountAsync());
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
                 new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
             await WaitForHighlightedSpansAsync(HighlightSettleTimeoutMs);
             var total = await Page.Locator("pre code[class*='language-']").CountAsync();
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
-                $"/validation after refresh: {highlighted}/{total} highlighted.");
+                $"/table after refresh: {highlighted}/{total} highlighted.");
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
@@ -1081,7 +1143,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Events", "Two-way binding", "Scoped CSS", "Routing", "Welcome" };
+        var labels = new[] { "Events", "Tag factories", "Scoped CSS", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
@@ -1116,35 +1178,36 @@ public abstract partial class SharedSmokeTests
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
-        await SideAsync("Two-way binding", "Two-way binding");
+        await SideAsync("Tag factories", "Tag factories");
         // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
         await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
         // --- a data-rask-nav link with a #fragment scrolls to that element ----------------------
         // The showcase navigates via sidebar buttons, so inject a real NavLink-style anchor to drive
-        // the click-interceptor + fragment path. /validation is a long page and #v7-product sits well
-        // below the fold, so reaching it must move the scroll.
+        // the click-interceptor + fragment path. The Routing guide is a long page and its last section
+        // (#not-found-and-auth-gating, an AutoIdentifiers heading anchor) sits well below the fold, so
+        // reaching it must move the scroll.
         await SideAsync("Welcome", "The Rask framework", "h1.display-5");
         await Page.EvaluateAsync(@"() => {
             const a = document.createElement('a');
             a.id = '__rask_anchor_probe';
             a.setAttribute('data-rask-nav', '');
-            a.setAttribute('href', '/validation#v7-product');
+            a.setAttribute('href', '/guides/routing#not-found-and-auth-gating');
             a.textContent = 'probe';
             document.querySelector('main').appendChild(a);
         }");
         await Page.Locator("#__rask_anchor_probe").ClickAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Validation",
+        await Expect(Page.Locator("main .markdown-body h1")).ToHaveTextAsync("Routing",
             new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         // The fragment is preserved in the pushed URL (it never reaches the server, so the client
         // re-appends it) …
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/validation#v7-product$"),
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/guides/routing#not-found-and-auth-gating$"),
             new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
         // … and the target is scrolled into view (top within the viewport) with the page actually
         // moved to get there (proving it was below the fold, not a no-op).
         await Page.WaitForFunctionAsync(@"() => {
-            const el = document.getElementById('v7-product');
+            const el = document.getElementById('not-found-and-auth-gating');
             if (!el) return false;
             const r = el.getBoundingClientRect();
             return window.scrollY > 0 && r.top >= -2 && r.top < window.innerHeight;
