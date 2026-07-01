@@ -80,7 +80,7 @@ dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deplo
 - [Sub-path hosting & side-by-side apps](#-sub-path-hosting--side-by-side-apps)
 - [Examples](#-examples)
 - [Core concepts](#-core-concepts) — Components · Interactivity · Context · Async data · Routing · Auth · Head · Error
-  boundaries · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Element refs · Keyed lists · Live
+  boundaries · Flash messages · Forms & validation · Files · Virtualization · Scoped CSS · Scoped JS · Element refs · Keyed lists · Live
   diff codec · Lifecycle
 - [Performance](#-performance)
 - [Status](#-status)
@@ -803,6 +803,43 @@ ErrorBoundary(
 
 Without a `Fallback`, the boundary renders a built-in default error page. The `recover` callback passed to the
 fallback is the only reset path.
+
+</details>
+
+<details>
+<summary><b>📣 Flash messages (<code>IFlash</code>)</b></summary>
+<br>
+
+Rask's take on Rails' `flash` — transient, consumed-once user messages that survive a client-side navigation.
+Inject `IFlash`, queue a message, then navigate; a single `FlashOutlet` mounted in your layout shows it once.
+
+```csharp
+public sealed class SavePage(IFlash flash, Navigator nav) : Component
+{
+    private void Save()
+    {
+        // … persist …
+        flash.Success("Your changes were saved.");   // Info / Warning / Error / Add(level, …) too
+        nav.NavigateTo(HomePage());                   // the message survives the navigation
+    }
+    // …
+}
+```
+
+`IFlash` is registered **scoped** per session (a Server WebSocket session or a WASM app), and a client-side
+`NavigateTo` doesn't recreate the session — so a message queued before navigating is still there when the
+destination mounts. The headless `FlashOutlet` calls `Consume()` (draining the queue) on mount and on
+`IFlash.Changed`, so each message is delivered to exactly one outlet and never reappears. It ships no markup —
+you own it through `Template`, which receives the messages plus a `dismiss(id)` callback:
+
+```csharp
+FlashOutlet(Template: (messages, dismiss) =>
+    Div()[messages.Select(m => (Child)Div(Class: "alert", Key: m.Id.ToString())[
+        m.Message, Button(OnClick: () => dismiss(m.Id))["×"]])])
+```
+
+Or mount `Rask.Bootstrap`'s ready-made `BsFlash()` (a fixed toast-container of `BsToast`s) instead of writing a
+`Template`. See **[docs/composition.md](docs/composition.md#flash-messages)**.
 
 </details>
 
