@@ -7,13 +7,31 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Live components embedded in a lazy child sequence are now reconciled (state persists).** A
+  component built inside a *lazy* `IEnumerable<Child>` (a `yield`/LINQ pipeline passed to an element's
+  `[...]` children indexer) was evaluated during serialization — after the owning component's
+  child-reuse bookkeeping had run — so it was **re-created every render and silently lost its state**
+  (an input's value, a toggle, any `_field`). The `IEnumerable<Child>` indexer now materialises a lazy
+  sequence immediately, during `Render()`, so embedded component factories run while reconciliation is
+  live and the same instance is reused across renders. Already-materialised collections
+  (`Child[]`/`List<Child>`/…) pass through unchanged (no copy), so the render hot path is unaffected.
+  This is what lets a guide page co-mount many live demos (built from a `yield`-generated list) and have
+  every one stay interactive, including on the Server (WebSocket) transport.
+
 ### Changed
+- **Examples site — Forms folded into the guide (phase 3).** The 7 standalone forms example pages
+  (`/binding`, `/form-controls`, `/validation`, `/floating-labels`, `/nested-forms`, `/form-groups`,
+  `/multi-select`) are removed; every forms demo — the binding matrix, the control matrix, the full
+  validation set (inline/DataAnnotations/FluentValidation, async, cross-field, programmatic), nested
+  models, radio/checkbox groups, and multi-select — is now an **inline live demo in the Forms &
+  validation guide** (`docs/forms.md`). Demos are unchanged (reused via `DemoRegistry`); the E2E forms
+  walk drives them on the guide page (locators scoped where option values repeat across demos).
 - **Examples site — Browser APIs folded into the guide (phase 3).** The 27 standalone Browser-API
-  example pages (`/browser/*`) are removed; every typed wrapper is now an **inline code sample in the
+  example pages (`/browser/*`) are removed; every typed wrapper is now an **inline live demo in the
   Browser APIs guide** (`docs/browser-apis.md`), grouped by capability (Storage · Environment ·
-  Location/sensors · Observers · Media/crypto/files). Browser APIs are device/permission-dependent and
-  mostly no-op headless, so the guide shows each wrapper's source rather than co-mounting dozens of live
-  device demos on one page — 27 sidebar entries collapse into one guide.
+  Location/sensors · Observers · Media/crypto/files). Demos are unchanged (reused via `DemoRegistry`) —
+  27 sidebar entries collapse into one guide that runs every wrapper live.
 - **Examples site — guides-first navigation (phase 2).** The showcase now leads with the guides. The
   sidebar is reordered **Guides → Examples → Bootstrap** with the guide categories (Start here / Core /
   Integration / Advanced) expanded by default as the primary spine, and the interactive example pages

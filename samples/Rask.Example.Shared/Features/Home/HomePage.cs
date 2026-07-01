@@ -9,7 +9,7 @@ public sealed class HomePage(Navigator nav) : Component
     // The showcase index, grouped to mirror the left-hand nav. Every runnable demo page is
     // surfaced here so the home page doubles as a feature map.
     private static readonly string[] SectionOrder =
-        ["DSL", "Components", "Forms", "Styling", "Data & files", "Apps"];
+        ["DSL", "Components", "Styling", "Data & files", "Apps"];
 
     private static readonly (string Section, string Icon, string Title, string Blurb, string Path)[] Features =
     [
@@ -39,12 +39,6 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
         ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/user"),
         ("Components", "bi-shield-exclamation", "Error boundary", "Catch render and lifecycle errors.", "/boom"),
-
-        ("Forms", "bi-arrow-left-right", "Two-way binding", "() => model.X bindings.", "/binding"),
-        ("Forms", "bi-shield-check", "Validation", "Inline, DataAnnotations, FluentValidation.", "/validation"),
-        ("Forms", "bi-input-cursor-text", "Floating labels", "Bootstrap floating labels + validation.", "/floating-labels"),
-        ("Forms", "bi-diagram-3", "Complex models", "Nested objects and collections.", "/nested-forms"),
-        ("Forms", "bi-ui-radios", "Radio & checkbox", "BsRadioGroup and BsCheckboxGroup.", "/form-groups"),
 
         ("Styling", "bi-palette", "Scoped CSS", "Co-located, isolated component styles.", "/scoped-css"),
         ("Styling", "bi-link-45deg", "Asset loading", "Content-addressed scoped assets.", "/asset-loading"),
