@@ -36,6 +36,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
 ## Events, scoped CSS/JS, forms, auth
 - **Events / parent callbacks** are plain delegate props: child declares `Action<int>? OnRate`,
   invokes `OnRate?.Invoke(n)`; parent passes `OnRate: n => _x = n`. Invoking re-renders the parent.
+- **Flash messages:** inject `IFlash` and call `flash.Success("Saved")` (`Info`/`Warning`/`Error`) before `Navigator.NavigateTo(...)`; it's scoped per session, so the message survives the navigation. Mount one `FlashOutlet` (headless) — or `Rask.Bootstrap`'s `BsFlash` — in your layout to show them once.
 - **Scoped CSS/JS:** put `MyComponent.css` / `MyComponent.js` next to `MyComponent.cs`; auto-scoped.
 - **Forms:** two-way bind with `Input.Bound(() => model.Name)`; build choice controls by implementing `IFormControl<T>` (the generator synthesizes the bound + controlled factories) or with the public `ExpressionAccessor`/`BindingHelpers`/`EditContext.RegisterFieldValidator` API in `Rask.Core.Forms` (or use the typed controls in **Rask.Bootstrap**: `BsRadioGroup`/`BsCheckboxGroup`/`BsMultiSelect`/`BsInput`/`BsSelect`/`BsCheck`).
 - **Bootstrap (Rask.Bootstrap):** typed Bootstrap 5.3 components (`BsButton`/`BsCard`/`BsModal`/`BsAlert`/…); interactive ones (modal/dropdown/accordion/tabs) run with **zero JS** via the live runtime. Link the CSS with `BootstrapStyles()` in `App.Head`; typed utility classes via `Bs.Join(Shadow.Sm, Margin.Bottom(4))`.

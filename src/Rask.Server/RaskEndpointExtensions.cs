@@ -26,6 +26,7 @@ using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
+using Rask.Core.Messaging;
 using Rask.Core.Routing;
 using Rask.Core.ScopedAssets;
 using Rask.Server.Authentication;
@@ -196,6 +197,9 @@ public static class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        // Transient user messages (Rails-style flash). Scoped = one queue per session, so a message
+        // queued before a client-side NavigateTo survives the navigation and shows once on arrival.
+        services.AddScoped<IFlash, Flash>();
         services.AddScoped<IBrowserStorage, BrowserStorage>();
         services.AddScoped<IClipboard, Clipboard>();
         services.AddScoped<IGeolocation, Geolocation>();
