@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **Examples site — guides-first navigation (phase 2).** The showcase now leads with the guides. The
+  sidebar is reordered **Guides → Examples → Bootstrap** with the guide categories (Start here / Core /
+  Integration / Advanced) expanded by default as the primary spine, and the interactive example pages
+  demoted (collapsed) below — nothing is removed, so every example route still resolves. The landing
+  page (`/`) opens with the grouped **guides index** (shared `GuideCards`, reused by `/guides`) above a
+  demoted "Browse the component examples" map, and the hero's primary call-to-action is now **Read the
+  guides**. The examples pipeline (fold demos into guides, then delete the standalone pages) lands in
+  later phases.
+
 ### Added
 - **Examples site — Rails-guides-style guide pages with inline live demos (phase 1).** A guide now
   renders in a documentation layout modelled on rubyonrails.org/docs: a numbered **Chapters** table of
