@@ -152,6 +152,8 @@ public sealed class AboutPage : Component
 An empty child template (`[Route("")]`) means "the default child for this layout". The showcase app is built this way:
 every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts the `Outlet()`.
 
+<!-- demo:routing-nested-layout -->
+
 `Outlet()` must be called inside a `Router()` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
@@ -269,6 +271,8 @@ The handler is just `StateHasChanged` — the framework coalesces the resulting 
 already processing. **Always pair the subscribe with the unsubscribe**, or `RouteState` keeps a strong reference to the
 unmounted component. (`NavLink` and `Outlet` do this subscription internally so they stay current even outside the
 router subtree.)
+
+<!-- demo:routing-route-state -->
 
 ## Not-found and auth gating
 

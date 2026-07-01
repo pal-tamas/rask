@@ -1,5 +1,6 @@
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
+using Rask.Example.Shared.Tests.Infrastructure;
 using static Rask.Example.Shared.Generated;
 
 #pragma warning disable RASK014 // tests construct page components directly to drive ToHtml()
@@ -68,17 +69,19 @@ public sealed class GuidesTests
     }
 
     [Fact]
-    public void GuidePage_KnownSlug_RendersMarkdownBody()
+    public void GuidePage_KnownSlug_RendersGuideChromeWithMarkdownBody()
     {
-        var html = new GuidePage { Slug = "routing" }.ToHtml();
+        // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.
+        var html = new GuidePage { Slug = "routing" }.RenderAsLiveRoot(TestServices.Default());
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
+        Assert.Contains("guide-chapters", html); // the Rails-style Chapters TOC
     }
 
     [Fact]
     public void GuidePage_UnknownSlug_RendersNotFound()
     {
-        var html = new GuidePage { Slug = "nope" }.ToHtml();
+        var html = new GuidePage { Slug = "nope" }.RenderAsLiveRoot(TestServices.Default());
         Assert.Contains("No guide found", html);
         Assert.DoesNotContain("markdown-body", html);
     }

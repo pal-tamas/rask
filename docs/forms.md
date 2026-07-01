@@ -20,12 +20,16 @@ Input<string>(InputType.Text, Value: _typed, OnInput: v => _typed = v)
 P()[$"Echo: {_typed}"]
 ```
 
+<!-- demo:binding-manual -->
+
 The ergonomic path is a `Bind` expression — one call replaces `Value` + `OnInput` + parsing:
 
 ```csharp
 Input(Bind: () => _model.Name, Placeholder: "Your name")
 P()[$"Hello, {_model.Name}!"]
 ```
+
+<!-- demo:binding-typed -->
 
 `Bind` is an `Expression<Func<TProp>>` (`Input.Bound<TProp>`). The factory reads the expression and
 derives everything from the bound property:
@@ -45,6 +49,10 @@ Input(Bind: () => _model.StartDate)   // DateOnly → date
 Select(Bind: () => _model.Favorite)[Option("Red")["Red"], Option("Blue")["Blue"]]
 Textarea(Bind: () => _model.Notes, Rows: 3)
 ```
+
+<!-- demo:binding-multi -->
+
+<!-- demo:binding-textarea -->
 
 ### Empty value handling
 
@@ -155,6 +163,8 @@ Form<LoginModel>(_model,
 ]
 ```
 
+<!-- demo:validation-inline -->
+
 Per-field `Validate:` produces field-scoped messages and runs on each keystroke after the field is
 touched. Form-level `Validate:` runs at submit and attaches messages to the form-level slot
 (`FieldIdentifier(model, "")`) — they surface in `ValidationSummary`, never against a specific input.
@@ -184,6 +194,8 @@ Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
     Button(Type: "submit")["Register"]
 ]
 ```
+
+<!-- demo:validation-fields -->
 
 Supports `[Required]`, `[EmailAddress]`, `[Range]`, `[StringLength]`, `[RegularExpression]`, custom
 `ValidationAttribute` subclasses, and `IValidatableObject`. Unlike the BCL's
@@ -222,6 +234,8 @@ Form<OrderModel>(_model, m => _submission = "Ordered")[
     Button(Type: "submit")["Order"]
 ]
 ```
+
+<!-- demo:validation-fluent -->
 
 Per-keystroke validation on a root-model field scopes FluentValidation to that single property
 (`MemberNameValidatorSelector`, fast path); submit runs every rule. FluentValidation's own
