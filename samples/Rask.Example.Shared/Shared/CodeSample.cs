@@ -163,10 +163,7 @@ public sealed class CodeSample : Component
                     ]
                 ],
                 Div(Class: "col-md-5 sample-result-col p-4")[
-                    Div(Class: "sample-result-label")[
-                        BsIcon(Name: BsIconName.Eye, Class: "me-1"),
-                        "Live result"
-                    ],
+                    Div(Class: "sample-result-label")["Live result"],
                     Div(Class: "sample-result-body")[Result ?? Fragment()]
                 ]
             ]

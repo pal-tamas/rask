@@ -14,6 +14,22 @@
     --rask-accent-strong: #512BD4;
     --rask-accent-soft: #f1ebfd;
     --rask-gradient: linear-gradient(135deg, #7C3AED 0%, #512BD4 100%);
+
+    /* Violet-tinted neutrals — the whole surface leans into the brand hue instead of flat grey. */
+    --rask-ink: #14101f; /* deep violet-black: code panes, dark surfaces */
+    --rask-ink-2: #211b30; /* one step lifted from ink */
+    --rask-mist: #f7f5fc; /* page tint */
+    --rask-line: #e8e3f3; /* hairline */
+    --rask-body: #211c2b; /* body text */
+
+    /* Type system: Space Grotesk (display) / Inter (body) / JetBrains Mono (code). Routed through
+       Bootstrap's own font vars so every Bs component picks them up, plus --font-* for direct use. */
+    --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --bs-font-sans-serif: var(--font-body);
+    --bs-font-monospace: var(--font-mono);
+
     --nav-h: 56px;
 }
 
@@ -38,7 +54,23 @@
 }
 
 body {
-    font-feature-settings: "ss01", "cv11";
+    font-family: var(--font-body);
+    /* Inter stylistic sets: single-storey a (cv11), open digits — quiet, technical legibility. */
+    font-feature-settings: "cv11", "ss01";
+    color: var(--rask-body);
+    letter-spacing: -0.004em;
+}
+
+/* Headings carry the display face — tighter tracking, a touch more weight than Bootstrap's default. */
+h1, h2, h3, h4, h5, h6,
+.navbar-brand,
+.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.022em;
+}
+
+.display-5 {
+    font-weight: 700;
 }
 
 a {
@@ -49,8 +81,8 @@ a:hover {
     color: var(--rask-accent-strong);
 }
 
-code, pre {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+code, pre, .font-monospace {
+    font-family: var(--font-mono);
 }
 
 :not(pre) > code {
@@ -84,6 +116,11 @@ body {
     overscroll-behavior-y: none;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+}
+
+/* A faint violet wash on the page so the whole surface leans into the brand instead of flat grey. */
+body.bg-body-tertiary {
+    background-color: var(--rask-mist);
 }
 
 button, a, [role="button"] {
@@ -233,14 +270,15 @@ button, a, [role="button"] {
 }
 
 .side-nav-section {
+    font-family: var(--font-mono);
     text-transform: uppercase;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
     color: var(--rask-accent);
     padding: 0.75rem 0.5rem 0.25rem;
     margin-top: 0.5rem;
-    border-top: 1px solid var(--bs-border-color);
+    border-top: 1px solid var(--rask-line);
 }
 
 .side-nav-section:first-of-type {
@@ -257,10 +295,11 @@ button, a, [role="button"] {
     border: 0;
     background: transparent;
     color: var(--bs-secondary-color);
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     padding: 0.5rem 0.5rem 0.35rem;
     border-radius: 0.4rem;
     text-align: left;
@@ -297,9 +336,9 @@ button, a, [role="button"] {
     min-height: 40px;
     padding: 0.45rem 0.6rem;
     border-radius: 0.5rem;
-    color: #333;
+    color: var(--rask-body);
     font-size: 0.9rem;
-    transition: background-color 120ms ease, color 120ms ease;
+    transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 .side-nav-link:hover {
@@ -307,10 +346,12 @@ button, a, [role="button"] {
     color: var(--rask-accent-strong);
 }
 
+/* Active: the soft brand fill plus an inset accent bar on the leading edge. */
 .side-nav-link.active {
     background: var(--rask-accent-soft);
     color: var(--rask-accent);
     font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--rask-accent);
 }
 
 .side-nav-link .bi {
@@ -414,14 +455,15 @@ button, a, [role="button"] {
 }
 
 .markdown-body pre {
-    background: #1f1d2b;
+    background: var(--rask-ink);
     color: #e7e3ff;
     padding: 1rem 1.2rem;
-    border-radius: 0.6rem;
+    border-radius: 0.7rem;
     overflow-x: auto;
     margin-bottom: 1.25rem;
     font-size: 0.85rem;
-    line-height: 1.55;
+    line-height: 1.6;
+    border: 1px solid rgba(124, 58, 237, 0.18);
 }
 
 .markdown-body pre code {

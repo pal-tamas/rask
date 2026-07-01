@@ -30,6 +30,12 @@ them until tagged releases begin.
   `Match: "/realtime"`, `ActiveMatch: Prefix`).
 
 ### Changed
+- **Examples site — visual refresh.** A cohesive design pass over the showcase: a real type system
+  (Space Grotesk display, Inter body, JetBrains Mono for code and nav/section labels, loaded from the
+  font CDN), violet-tinted neutrals and a unified deep-ink code surface, a sharpened hero (mono eyebrow
+  + dot-grid texture), refined feature cards, an inset accent bar on the active nav item, and a pulsing
+  "Live result" marker on the code samples. Keeps the .NET-violet brand; motion respects
+  `prefers-reduced-motion`. No DOM/behaviour changes.
 - **Examples site (GitHub Pages) — redesigned, mobile-first navigation.** The left sidebar is now a
   fixed-width responsive offcanvas built from the `Bs*` navigation primitives: ~90 links are grouped
   into collapsible sections (only the active route's group is open by default), with a search filter at

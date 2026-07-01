@@ -74,6 +74,7 @@ public sealed class HomePage(Navigator nav) : Component
         Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
             Div(Class: "container-fluid py-3")[
                 Div(Class: "hero-logo mb-4")[RaskLogo.Mark(76, "heroBolt")],
+                Div(Class: "hero-eyebrow")["C# UI framework"],
                 H1(Class: "display-5 fw-bold mb-3")[
                     "The Rask framework, ",
                     Span(Class: "hero-accent")["one page at a time."]
