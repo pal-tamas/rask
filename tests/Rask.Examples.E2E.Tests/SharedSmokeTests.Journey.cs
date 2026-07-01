@@ -588,10 +588,18 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkFormsPagesAsync()
     {
+        // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
+        // validation, floating labels, complex models, radio/checkbox groups, multi-select) were folded
+        // into docs/forms.md as inline live demos in the guides-first migration, so the whole section is
+        // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
+        // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
+        await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 25,
+            "expected the Forms guide to embed the forms demos as live demos");
+
         // Two-way binding: typed bind echo (the per-type / nullable / clear-to-null matrix is unit-
         // tested in Rask.Core.Tests/Forms — here we prove the live round trip for a text + a
-        // change-only checkbox).
-        await SideAsync("Two-way binding", "Two-way binding");
+        // change-only checkbox). The typed-bind demo's Name input is the first on the page (section 1).
         await Page.Locator("input[name=Name]").First.FillAsync("Ada");
         await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Hello," }))
             .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
@@ -610,7 +618,6 @@ public abstract partial class SharedSmokeTests
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
         // the async validator shows "Checking…" then "taken". (Attribute-specific messages and the
         // latest-wins cancellation are unit-tested in Rask.Validation.DataAnnotations.Tests.)
-        await SideAsync("Validation", "Validation");
         await Page.Locator("form:has(#v1-name) button[type=submit]").ClickAsync();
         await Expect(Page.Locator("form:has(#v1-name) .text-danger").First)
             .ToContainTextAsync("required",
@@ -629,7 +636,6 @@ public abstract partial class SharedSmokeTests
         // surfaces the Bootstrap .invalid-feedback under a field (shown via .d-block, no is-invalid
         // toggle); a valid submit reaches the success banner. (Structure/id/label derivation is
         // unit-tested.)
-        await SideAsync("Floating labels", "Floating labels");
         var floatingForm = Page.Locator("form:has(#ff-FullName)");
         await floatingForm.Locator("button[type=submit]").ClickAsync();
         await Expect(floatingForm.Locator(".invalid-feedback").First)
@@ -643,21 +649,19 @@ public abstract partial class SharedSmokeTests
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Complex models (nested forms): render smoke (nested binding/validation is unit-tested).
-        await SideAsync("Complex models", "Complex models");
-
-        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind.
-        await SideAsync("Radio & checkbox", "Radio & checkbox groups");
-        var groups = Page.Locator("#groups-summary");
-        await Page.Locator("input[type=radio][value='Pro']").CheckAsync();
+        // Radio & checkbox groups: single-value radio bind + ICollection checkbox bind. Scope the
+        // option locators to this demo — the "Pro"/"AI" values also appear in the form-controls and
+        // multi-select demos on the same guide page.
+        var groupsDemo = Page.Locator(".guide-demo:has(#groups-summary)");
+        var groups = groupsDemo.Locator("#groups-summary");
+        await groupsDemo.Locator("input[type=radio][value='Pro']").CheckAsync();
         await Expect(groups).ToContainTextAsync("Plan: Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("input[type=checkbox][value='AI']").CheckAsync();
+        await groupsDemo.Locator("input[type=checkbox][value='AI']").CheckAsync();
         await Expect(groups).ToContainTextAsync("AI", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Multi-select: the reusable BsMultiSelect<T> dropdown binds to an ICollection — open it (server
         // live-diff, no Bootstrap JS), pick an option and it appears as a live chip (the control re-renders
         // itself — no StateHasChanged). (Component mechanics are unit-tested in Demos/MultiSelectTests.)
-        await SideAsync("Multi-select", "Multi-select");
         var multi = Page.Locator("#ms-interests");
         await multi.Locator(".form-select").ClickAsync(); // open the dropdown
         await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
@@ -693,7 +697,6 @@ public abstract partial class SharedSmokeTests
         // each with a derived readout rendered OUTSIDE the control / Form. Each readout must update live
         // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
         // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
-        await SideAsync("Form controls", "Form controls");
 
         // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
         await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
