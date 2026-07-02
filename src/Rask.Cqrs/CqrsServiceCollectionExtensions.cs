@@ -32,7 +32,6 @@ public static class CqrsServiceCollectionExtensions
         // scope on Server, the root scope on WASM); it holds no per-session state.
         services.TryAddTransient<Dispatcher>();
         services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<Dispatcher>());
-        services.TryAddTransient<IPublisher>(static sp => sp.GetRequiredService<Dispatcher>());
 
         services.TryAddSingleton(new CqrsExecutionOptions
         {

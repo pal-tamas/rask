@@ -1,15 +1,14 @@
 namespace Rask.Cqrs;
 
 /// <summary>
-/// Dispatches queries and commands to their single handler, and (via <see cref="IPublisher"/>)
-/// publishes notifications. Inject it and call
+/// The single entry point for Rask.Cqrs: dispatches queries and commands to their one handler and
+/// publishes notifications to every handler. Inject it and call
 /// <see cref="DispatchAsync{TResult}(IQuery{TResult}, CancellationToken)"/> /
 /// <see cref="DispatchAsync(ICommand, CancellationToken)"/> — the result type is inferred from the
-/// message — or <see cref="IPublisher.PublishAsync{TNotification}"/>. Inject the narrower
-/// <see cref="IPublisher"/> for a publish-only surface. Backed by a source-generated, reflection-free
-/// dispatch map.
+/// message — or <see cref="PublishAsync{TNotification}"/>. Backed by a source-generated,
+/// reflection-free dispatch map.
 /// </summary>
-public interface IDispatcher : IPublisher
+public interface IDispatcher
 {
     /// <summary>
     /// Dispatches a query to its <see cref="IQueryHandler{TQuery, TResult}"/>. The result type is
@@ -25,11 +24,7 @@ public interface IDispatcher : IPublisher
     /// inferred from the command's <see cref="ICommand{TResult}"/> interface.
     /// </summary>
     Task<TResult> DispatchAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
-}
 
-/// <summary>Publishes notifications to every registered handler.</summary>
-public interface IPublisher
-{
     /// <summary>
     /// Publishes a notification to every <see cref="INotificationHandler{TNotification}"/> registered for
     /// its <b>concrete runtime type</b>, using the strategy configured on <see cref="CqrsOptions"/>.

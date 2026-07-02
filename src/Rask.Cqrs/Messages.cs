@@ -25,6 +25,6 @@ public interface ICommand<out TResult>;
 
 /// <summary>
 /// Marks an event that is broadcast to zero or more <see cref="INotificationHandler{TNotification}"/>
-/// instances. Publish it through <see cref="IPublisher.Publish{TNotification}"/>.
+/// instances. Publish it through <see cref="IDispatcher.PublishAsync{TNotification}"/>.
 /// </summary>
 public interface INotification;

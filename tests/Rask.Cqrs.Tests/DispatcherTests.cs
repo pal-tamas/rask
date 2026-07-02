@@ -58,7 +58,7 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(recorder: recorder);
-        await sp.GetRequiredService<IPublisher>().PublishAsync(new Pinged("go"));
+        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("go"));
         Assert.Equal(new[] { "A:go", "B:go" }, recorder.Entries);
     }
 
@@ -66,7 +66,7 @@ public sealed class DispatcherTests
     public async Task Publish_with_no_handlers_is_a_noop()
     {
         await using var sp = Build();
-        await sp.GetRequiredService<IPublisher>().PublishAsync(new Unheard());
+        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Unheard());
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
-        await sp.GetRequiredService<IPublisher>().PublishAsync(new Pinged("w"));
+        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("w"));
         Assert.Equal(2, recorder.Entries.Count);
         Assert.Contains("A:w", recorder.Entries);
         Assert.Contains("B:w", recorder.Entries);

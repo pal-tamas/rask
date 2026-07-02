@@ -1,6 +1,6 @@
 namespace Rask.Cqrs;
 
-/// <summary>Controls how <see cref="IPublisher.Publish{TNotification}"/> runs a notification's handlers.</summary>
+/// <summary>Controls how <see cref="IDispatcher.PublishAsync{TNotification}"/> runs a notification's handlers.</summary>
 public enum NotificationPublishStrategy
 {
     /// <summary>
