@@ -108,7 +108,27 @@ public sealed partial class Markdown : Component
         Split(source).Where(s => s.IsDemo).Select(s => s.Value).ToArray();
 
     private static string RenderHtml(string source) =>
-        RewriteLinks(global::Markdig.Markdown.ToHtml(source, Pipeline));
+        HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(source, Pipeline)));
+
+    // Markdig renders a fenced ```lang block as <pre><code class="language-{lang}">{HTML-encoded source}
+    // </code></pre> with NO highlighting. Tokenize the known languages server-side with the shared
+    // ColorCode highlighter so guide prose code reads the same as the CodeSample demo panes (coloured by
+    // the .markdown-body pre token rules in global.css); unknown languages pass through untouched.
+    internal static string HighlightCodeBlocks(string html) =>
+        CodeBlockRegex().Replace(html, m =>
+        {
+            var language = SyntaxHighlighter.LanguageFor(m.Groups["lang"].Value);
+            if (language is null)
+            {
+                return m.Value;
+            }
+
+            var source = System.Net.WebUtility.HtmlDecode(m.Groups["body"].Value);
+            // Keep Markdig's original language class (e.g. language-csharp); the token colours come from
+            // the descendant .markdown-body pre span rules, so the class is just a label.
+            return $"<pre><code class=\"language-{m.Groups["lang"].Value}\">"
+                + SyntaxHighlighter.Highlight(source, language) + "</code></pre>";
+        });
 
     private static string RewriteLinks(string html) =>
         DocLinkRegex().Replace(html, m =>
@@ -188,4 +208,9 @@ public sealed partial class Markdown : Component
     // Matches href="…something.md" with an optional "#fragment", excluding absolute/remote URLs.
     [GeneratedRegex("href=\"(?!https?:|/)(?<path>[^\"#]+\\.md)(?<frag>#[^\"]*)?\"")]
     private static partial Regex DocLinkRegex();
+
+    // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.
+    // Non-greedy body; the body is HTML-encoded so a literal </code> can never appear inside it.
+    [GeneratedRegex("<pre><code class=\"language-(?<lang>[^\"]+)\">(?<body>.*?)</code></pre>", RegexOptions.Singleline)]
+    private static partial Regex CodeBlockRegex();
 }

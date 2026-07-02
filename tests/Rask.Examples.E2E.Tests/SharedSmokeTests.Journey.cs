@@ -490,6 +490,10 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
             "expected the Lifecycle guide to embed the lifecycle demos as live demos");
+        // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
+        // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
+        await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control (the
         // background-service chart, near the end) before driving any interaction so clicks never race
         // hydration on the slower transports.
@@ -1034,6 +1038,23 @@ public abstract partial class SharedSmokeTests
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
                 $"/table after refresh: {highlighted}/{total} highlighted.");
+
+            // Guide prose code fences are syntax-highlighted server-side (Markdig has no highlighter, so
+            // Markdown.HighlightCodeBlocks runs ColorCode) — a fresh load must carry token spans.
+            await Page.GotoAsync("/guides/getting-started");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Expect(Page.Locator("main .markdown-body pre code[class*='language-']:has(span[class])").First)
+                .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            // Deep link with a #fragment: on a hard load, GuideChrome.scrollToHash must scroll to the
+            // section (not sit at the top). Use a real late-heading id so the anchor always exists.
+            var deepAnchor = await Page.Locator(".markdown-body :is(h2, h3)[id]").Last.GetAttributeAsync("id");
+            Assert.False(string.IsNullOrEmpty(deepAnchor), "no anchored heading to deep-link to");
+            await Page.GotoAsync($"/guides/getting-started#{deepAnchor}");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Page.WaitForFunctionAsync("() => window.scrollY > 0",
+                null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
