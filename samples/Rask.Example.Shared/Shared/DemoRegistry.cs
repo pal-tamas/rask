@@ -206,6 +206,36 @@ public static class DemoRegistry
             ["bootstrap-tabs"] = () => CodeSample(["BsTabsDemo.cs"], Result: BsTabsDemo()),
             ["bootstrap-forms"] = () => CodeSample(["BsFormsDemo.cs"], Result: BsFormsDemo()),
             ["bootstrap-utilities"] = () => CodeSample(["BsUtilitiesDemo.cs"], Result: BsUtilitiesDemo()),
+
+            // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
+            //     HTML element catalog (their standalone example pages folded into docs/elements.md).
+            //     Each demo already lived in its own *Demo.cs. ---
+            ["primitives-text"] = () => CodeSample(["PrimitivesTextDemo.cs"], Result: PrimitivesTextDemo()),
+            ["primitives-raw"] = () => CodeSample(["PrimitivesRawDemo.cs"], Result: PrimitivesRawDemo()),
+            ["primitives-fragment"] = () => CodeSample(["PrimitivesFragmentDemo.cs"], Result: PrimitivesFragmentDemo()),
+            ["primitives-doctype"] = () => CodeSample(["PrimitivesDoctypeDemo.cs"], Result: PrimitivesDoctypeDemo()),
+            ["primitives-children"] = () => CodeSample(["PrimitivesChildrenDemo.cs"], Result: PrimitivesChildrenDemo()),
+            ["tags-text"] = () => CodeSample(["TagsTextDemo.cs"], Result: TagsTextDemo()),
+            ["tags-form"] = () => CodeSample(["TagsFormDemo.cs"], Result: TagsFormDemo()),
+            ["tags-table"] = () => CodeSample(["TagsTableDemo.cs"], Result: TagsTableDemo()),
+            ["tags-media"] = () => CodeSample(["TagsMediaDemo.cs"], Result: TagsMediaDemo()),
+            ["tags-void"] = () => CodeSample(["TagsVoidDemo.cs"], Result: TagsVoidDemo()),
+            ["props-id-class-style"] = () => CodeSample(["PropsIdClassStyleDemo.cs"], Result: PropsIdClassStyleDemo()),
+            ["props-data"] = () => CodeSample(["PropsDataDemo.cs"], Result: PropsDataDemo()),
+            ["props-aria"] = () => CodeSample(["PropsAriaDemo.cs"], Result: PropsAriaDemo()),
+            ["props-attribute-order"] = () => CodeSample(["PropsAttributeOrderDemo.cs"], Result: PropsAttributeOrderDemo()),
+            ["svg-shapes"] = () => CodeSample(["SvgShapesDemo.cs"], Result: SvgShapesDemo()),
+            ["svg-gradient"] = () => CodeSample(["SvgGradientDemo.cs"], Result: SvgGradientDemo()),
+            ["svg-clickable"] = () => CodeSample(["SvgClickableDemo.cs"], Result: SvgClickableDemo()),
+            ["svg-text"] = () => CodeSample(["SvgTextDemo.cs"], Result: SvgTextDemo()),
+            ["elements-text"] = () => CodeSample(["ElementsTextDemo.cs"], Result: ElementsTextDemo()),
+            ["elements-grouping"] = () => CodeSample(["ElementsGroupingDemo.cs"], Result: ElementsGroupingDemo()),
+            ["elements-sections"] = () => CodeSample(["ElementsSectionsDemo.cs"], Result: ElementsSectionsDemo()),
+            ["elements-forms"] = () => CodeSample(["ElementsFormsDemo.cs"], Result: ElementsFormsDemo()),
+            ["elements-tables"] = () => CodeSample(["ElementsTablesDemo.cs"], Result: ElementsTablesDemo()),
+            ["elements-media"] = () => CodeSample(["ElementsMediaDemo.cs"], Result: ElementsMediaDemo()),
+            ["elements-interactive"] = () => CodeSample(["ElementsInteractiveDemo.cs"], Result: ElementsInteractiveDemo()),
+            ["elements-metadata"] = () => CodeSample(["ElementsMetadataDemo.cs"], Result: ElementsMetadataDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

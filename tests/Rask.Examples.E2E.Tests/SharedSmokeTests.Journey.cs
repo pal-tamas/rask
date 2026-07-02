@@ -59,6 +59,7 @@ public abstract partial class SharedSmokeTests
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
+        await WalkElementsGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -214,50 +215,9 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkDslAndComponentPagesAsync()
     {
-        // DSL group: Tag factories (blockquote), Primitives (Raw verbatim HTML), Universal props
-        // (data-* expansion incl. bare null attribute).
-        await SideAsync("Tag factories", "Tag factories");
-        await Expect(Page.Locator(".sample-result-body blockquote").First)
-            .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        await SideAsync("Primitives", "Primitives");
-        await Expect(Page.Locator(".sample-result-body p")
-                .Filter(new LocatorFilterOptions { HasText = "Already" }).First.Locator("strong"))
-            .ToHaveTextAsync("safe", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        await SideAsync("Universal props", "Universal props");
-        var dataDiv = Page.Locator(".sample-result-body div[data-role='card']").First;
-        await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
-        await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
-        // Accessibility props: Role/TabIndex render as native attrs, Aria expands to aria-* (the
-        // dictionary keys verbatim) and a null value renders as a bare attribute on the icon.
-        var ariaBtn = Page.Locator(".sample-result-body button[role='switch']").First;
-        await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
-        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
-        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
-        await Expect(ariaBtn.Locator("i")).ToHaveAttributeAsync("aria-hidden", "true");
-
-        // HTML elements showcase: each of the 8 category pages renders its live demo of every element
-        // in that group without tripping the root error boundary (SideAsync asserts the heading + no
-        // crash). Spot-check a couple of rendered elements to confirm the demos actually produced DOM.
-        await SideAsync("Text & inline", "Text & inline elements");
-        await Expect(Page.Locator(".sample-result-body ruby").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await SideAsync("Grouping & lists", "Grouping & list elements");
-        await Expect(Page.Locator(".sample-result-body ol[start='2'][reversed]").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await SideAsync("Sections & headings", "Sections & heading elements");
-        await SideAsync("Form elements", "Form elements");
-        await Expect(Page.Locator(".sample-result-body meter").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await SideAsync("Table elements", "Table elements");
-        await SideAsync("Media & embedded", "Media & embedded elements");
-        await SideAsync("Interactive", "Interactive elements");
-        await Expect(Page.Locator(".sample-result-body details[open] summary").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await SideAsync("Document & metadata", "Document & metadata elements");
-
         // User components: generated factory greeting + [SkipFactory] counter that keeps its state.
+        // (The DSL primitives / tag factories / universal props / SVG and the HTML-element catalog were
+        // folded into the Elements guide — see WalkElementsGuideAsync.)
         await SideAsync("User components", "User components");
         var greeting = Page.Locator(".sample-result-body p")
             .Filter(new LocatorFilterOptions { HasText = "Hello," }).First;
@@ -666,6 +626,49 @@ public abstract partial class SharedSmokeTests
         Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
     }
 
+    // Elements guide: the DSL primitives, tag factories, universal props, SVG, and the HTML-element
+    // catalog folded into docs/elements.md (26 demos). Open the guide once, hydration-gate on a late
+    // demo, then spot-check representative demos by their distinctive rendered elements.
+    private async Task WalkElementsGuideAsync()
+    {
+        await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 26,
+            "expected the Elements guide to embed the DSL/element demos as live demos");
+        // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
+        await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Primitives: Text/Raw escaping — the "Already safe" run renders a real <strong>safe</strong>.
+        await Expect(Page.Locator(".guide-demo .sample-result-body p")
+                .Filter(new LocatorFilterOptions { HasText = "Already" }).First.Locator("strong"))
+            .ToHaveTextAsync("safe", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Tag factories: the text-and-semantic demo renders a blockquote.
+        await Expect(Page.Locator(".guide-demo .sample-result-body blockquote").First)
+            .ToContainTextAsync("A small DSL", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Universal props: data-* expansion (incl. a bare null attribute) + ARIA / role / tabindex.
+        var dataDiv = Page.Locator(".guide-demo .sample-result-body div[data-role='card']").First;
+        await Expect(dataDiv).ToHaveAttributeAsync("data-index", "7");
+        await Expect(dataDiv).ToHaveAttributeAsync("data-new", ""); // bare null attribute
+        var ariaBtn = Page.Locator(".guide-demo .sample-result-body button[role='switch']").First;
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-label", "Toggle dark mode");
+        await Expect(ariaBtn).ToHaveAttributeAsync("aria-pressed", "false");
+        await Expect(ariaBtn).ToHaveAttributeAsync("tabindex", "0");
+
+        // HTML element catalog: spot-check distinctive elements from a few category demos.
+        await Expect(Page.Locator(".guide-demo .sample-result-body ruby").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body ol[start='2'][reversed]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator(".guide-demo .sample-result-body meter").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // SVG: the shapes demo renders a live <svg> (typed factories, no Raw()).
+        await Expect(Page.Locator(".guide-demo .sample-result-body svg").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
     private async Task WalkFormsPagesAsync()
     {
         // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
@@ -827,9 +830,6 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkStylingDataAndAppPagesAsync()
     {
-        // SVG: render smoke.
-        await SideAsync("SVG", "SVG", "main h1.h2");
-
         // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
         // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
         // injected client-side after boot, so both the link and its computed effect may lag the first
@@ -1026,11 +1026,11 @@ public abstract partial class SharedSmokeTests
     private async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
     {
         // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
-        await SideAsync("Tag factories", "Tag factories");
+        await SideAsync("Events", "Events");
         await Page.GoBackAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
         await Page.GoForwardAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Tag factories",
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
         if (opts.DeepLink)
@@ -1161,7 +1161,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Events", "Tag factories", "JavaScript interop", "Routing", "Welcome" };
+        var labels = new[] { "Events", "User components", "JavaScript interop", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
@@ -1196,7 +1196,7 @@ public abstract partial class SharedSmokeTests
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
-        await SideAsync("Tag factories", "Tag factories");
+        await SideAsync("User components", "User components");
         // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
         await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
