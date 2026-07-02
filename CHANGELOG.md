@@ -37,6 +37,13 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — a new Elements & the DSL guide (phase 3).** The 12 standalone DSL / HTML-element
+  example pages (`/tags`, `/primitives`, `/props`, `/svg`, and the eight `/elements/*`) are removed; a
+  **new guide `docs/elements.md`** ("Elements & the DSL", in the Core group) folds them in as 26 inline
+  live demos — the four primitives, tag factories, universal props, typed SVG, and the HTML-element
+  catalog by category. Demos are reused via `DemoRegistry` (each already lived in its own `*Demo.cs`); the
+  DSL and HTML-elements sidebar groups are gone (the new guide's sidebar entry replaces them), the
+  HomePage DSL cards and the hero CTA point at the guide, and the E2E drives the demos on the one page.
 - **Examples site — Bootstrap examples folded into the guide (phase 3).** The 9 standalone
   `Rask.Bootstrap` example pages (`/bootstrap/nav`, `/buttons`, `/cards`, `/alerts`, `/icons`, `/modal`,
   `/tabs`, `/forms`, `/utilities`) are removed; every component demo — navbar/nav, buttons & badges,
