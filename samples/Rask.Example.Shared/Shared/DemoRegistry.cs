@@ -327,6 +327,27 @@ public static class DemoRegistry
                 + "Roles and the authenticated check are synchronous (no flicker); Policy resolves in the "
                 + "background. For whole-page gating use [Authorize] on the page instead.",
                 Result: AuthorizeDemo()),
+
+            // --- User components (factory generation) → getting-started.md §6 (its /components page folded in). ---
+            ["components-greeting"] = () => CodeSample(
+                ["ComponentsGreetingDemo.cs"],
+                Notes:
+                "Non-nullable property without an initializer → required factory parameter. Nullable property "
+                + "→ optional with default null. Property with an initializer → excluded from the factory.",
+                Result: ComponentsGreetingDemo()),
+            ["components-di"] = () => CodeSample(
+                ["ComponentsDiDemo.cs"],
+                Notes:
+                "Inject services (HttpClient/Navigator/RouteState) through the constructor, never as a public "
+                + "settable property — that would become a required factory parameter, and `required` on a "
+                + "property with a DI-only constructor is RASK002. Constructor params resolve from DI via "
+                + "ActivatorUtilities; only public settable properties feed the generated factory."),
+            ["components-skipfactory"] = () => CodeSample(
+                ["ComponentsSkipFactoryDemo.cs"],
+                Notes:
+                "[SkipFactory] keeps a property settable in code while removing it from the generated factory "
+                + "signature. The counter below started at 7 — click it and the state persists across re-renders.",
+                Result: ComponentsSkipFactoryDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

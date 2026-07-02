@@ -18,7 +18,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("DSL", "bi-gear", "Universal props", "Id, Class, Style, Data, Ref on every tag.", "/guides/elements"),
         ("DSL", "bi-vector-pen", "SVG", "Typed SVG components.", "/guides/elements"),
 
-        ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/components"),
+        ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/guides/getting-started"),
         ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", "/guides/bootstrap"),
         ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", "/guides/composition"),
         ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
