@@ -24,7 +24,7 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
         ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
         ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
-        ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
+        ("Components", "bi-graph-up-arrow", "Live ticker", "Lifecycle hooks + a zero-JS SVG chart.", "/guides/lifecycle"),
         ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/guides/authentication"),
 
         ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",

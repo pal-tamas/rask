@@ -87,6 +87,14 @@ the component but does **not** re-fire `OnPropsChanged*` — nothing the compone
 reconciliation identity, not a reactive prop, so a key change doesn't fire `OnPropsChanged` either; it mounts a fresh
 instance.)
 
+The live-ticker demo puts the hooks together: a poll loop started in `OnMountAsync` streams a synthetic price
+into a **zero-JS, server-rendered SVG chart**, and the **BTC / ETH / SOL** switcher hands the ticker a new
+`Symbol` — a changed factory parameter — so `OnPropsChanged*` refires (watch the *Hook activity* log), clears
+the buffer, and wakes the loop to poll the new asset immediately. `CancellationToken` tears the loop down on
+unmount:
+
+<!-- demo:lifecycle-ticker -->
+
 ## Sync vs async rules
 
 The async hooks install a synchronization context so each `await` inside a hook triggers an automatic re-render after
