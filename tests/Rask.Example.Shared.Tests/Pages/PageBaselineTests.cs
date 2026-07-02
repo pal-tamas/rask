@@ -12,14 +12,11 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
     [InlineData(typeof(ComponentsPage), "/components", "User components")]
-    [InlineData(typeof(DownloadPage), "/download", "File download")]
     [InlineData(typeof(EventsPage), "/events", "Events")]
-    [InlineData(typeof(HttpPage), "/http", "HttpClient")]
     [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(ToastPage), "/toast", "Toast")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
-    [InlineData(typeof(UploadPage), "/upload", "File upload")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
@@ -36,15 +33,12 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage))]
     [InlineData(typeof(ComponentsPage))]
-    [InlineData(typeof(DownloadPage))]
     [InlineData(typeof(EventsPage))]
-    [InlineData(typeof(HttpPage))]
     [InlineData(typeof(LiveTickerPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TablePage))]
     [InlineData(typeof(ToastPage))]
     [InlineData(typeof(TodosPage))]
-    [InlineData(typeof(UploadPage))]
     public void Page_HasExpectedRouteOrNotFoundAttribute(Type pageType)
     {
         var hasRoute = pageType.GetCustomAttributes<RouteAttribute>().Any();

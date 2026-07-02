@@ -28,9 +28,11 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/user"),
 
         ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",
-            "/http"),
-        ("Data & files", "bi-upload", "File upload", "Staged multipart uploads.", "/upload"),
-        ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
+            "/guides/http-and-files"),
+        ("Data & files", "bi-upload", "File upload", "A typed file picker and RaskFile metadata.",
+            "/guides/http-and-files"),
+        ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.",
+            "/guides/http-and-files"),
 
         ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos")
 

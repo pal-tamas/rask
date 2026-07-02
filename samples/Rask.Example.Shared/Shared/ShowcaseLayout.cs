@@ -24,12 +24,10 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         (Features.Routes.EventsPage(), "Events", "bi-mouse", "Components", null),
         (Features.Routes.TablePage(), "Data table", "bi-table", "Components", null),
         (Features.Routes.OrdersPage(), "Master-detail", "bi-list-nested", "Components", null),
-        (Features.Routes.HttpPage(), "HttpClient + DI", "bi-cloud-arrow-down", "Data", null),
-        (Features.Routes.UploadPage(), "File upload", "bi-upload", "Files", null),
-        (Features.Routes.DownloadPage(), "File download", "bi-cloud-download", "Files", null),
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
-        // The typed browser-API wrappers used to live here as one example page each; they are now folded
-        // into the Browser APIs guide as inline live demos (docs/browser-apis.md). See DemoRegistry.
+        // The HttpClient+DI, file-upload and file-download example pages are now folded into the HTTP &
+        // files guide as inline live demos (docs/http-and-files.md); the typed browser-API wrappers into
+        // the Browser APIs guide (docs/browser-apis.md). See DemoRegistry.
     ];
 
     // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the

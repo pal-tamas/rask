@@ -60,6 +60,7 @@ public abstract partial class SharedSmokeTests
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
         await WalkElementsGuideAsync();
+        await WalkHttpAndFilesGuideAsync();
         await WalkCqrsGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
@@ -693,6 +694,29 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
+    private async Task WalkHttpAndFilesGuideAsync()
+    {
+        // The HttpClient+DI, file-upload and file-download example pages were folded into
+        // docs/http-and-files.md as inline live demos. Drive the guide and assert each demo mounted.
+        await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 4,
+            "expected the HTTP & files guide to embed the http/upload/download demos as live demos");
+
+        // HttpClient + DI: the injected client loads a post card in OnMountAsync. This also guards the
+        // WASM base-address fix — the relative fetch must resolve against the app root from the two-segment
+        // /guides/http-and-files route (not against /guides/), or it 404s and the error banner shows instead.
+        await Expect(Page.Locator(".guide-demo .sample-result-body article.card").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+
+        // File upload: the typed file picker renders its input.
+        await Expect(Page.Locator(".guide-demo .sample-result-body #upload-input").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // File download: the download button renders (the download sink itself is unit-tested).
+        await Expect(Page.Locator(".guide-demo .sample-result-body #download-report").First).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
     private async Task WalkFormsPagesAsync()
     {
         // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
@@ -890,14 +914,8 @@ public abstract partial class SharedSmokeTests
         Assert.Contains("\"bodyOverflowY\":\"hidden\"", navScroll);
         Assert.Contains("\"bounded\":true", navScroll);
 
-        // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.
-        await SideAsync("HttpClient + DI", "HttpClient + DI");
-        await Expect(Page.Locator(".sample-result-body article.card")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        // File upload / download: render smoke (sinks are unit-tested).
-        await SideAsync("File upload", "File upload", "main h1.h2");
-        await SideAsync("File download", "File download", "main h1.h2");
+        // HttpClient + DI, file upload and file download moved to the HTTP & files guide
+        // (WalkHttpAndFilesGuideAsync).
 
         // Todos: full CRUD + URL-driven dialog. Add, edit, toggle, delete.
         await SideAsync("Todos", "Todos");
@@ -1115,8 +1133,9 @@ public abstract partial class SharedSmokeTests
 
         if (opts.Slow3g)
         {
-            // Emulate a slow link via Chromium CDP and confirm the HTTP page still settles. Then
-            // restore full speed so later steps aren't penalized.
+            // Emulate a slow link via Chromium CDP and confirm the HTTP demo on the HTTP & files guide
+            // still settles (a hard nav to the two-segment /guides/http-and-files route also exercises the
+            // WASM base-address fix under throttling). Then restore full speed so later steps aren't penalized.
             var cdp = await Page.Context.NewCDPSessionAsync(Page);
             await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
             {
@@ -1125,8 +1144,8 @@ public abstract partial class SharedSmokeTests
                 ["downloadThroughput"] = 50 * 1024,
                 ["uploadThroughput"] = 50 * 1024,
             });
-            await Page.GotoAsync("/http");
-            await Expect(Page.Locator(".sample-result-body article.card")).ToBeVisibleAsync(
+            await Page.GotoAsync("/guides/http-and-files");
+            await Expect(Page.Locator(".guide-demo .sample-result-body article.card").First).ToBeVisibleAsync(
                 new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
 
             if (opts.OfflineReconnect)
