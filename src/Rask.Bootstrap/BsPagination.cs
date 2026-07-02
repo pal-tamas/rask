@@ -9,7 +9,7 @@ public sealed class BsPagination : BsBlock
     // Accessible label for the surrounding <nav>; defaults to "Page navigation".
     public string? Label { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "pagination",
@@ -32,7 +32,7 @@ public sealed class BsPageItem : BsBlock
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var liCls = BsClass.Join(
             "page-item",
@@ -43,7 +43,7 @@ public sealed class BsPageItem : BsBlock
             ? new Dictionary<string, string?> { ["current"] = "page" }
             : null;
 
-        Child link = Href is not null
+        Component link = Href is not null
             ? A(Class: "page-link", Href: Href)[Items]
             : Button(Type: "button", Class: "page-link", OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
 

@@ -131,7 +131,7 @@ public sealed class ServerPwaTests
 
     private sealed class ShellApp : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             [Doctype(), new Html()[new Head(), new Body()[new H1()["hi"]]]];
     }
 }

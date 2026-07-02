@@ -78,13 +78,13 @@ public sealed class Authorize : Component
     ///     When null, the children indexer supplies static authorized content instead:
     ///     <c>Authorize(Roles: "admin")[ adminPanel ]</c>.
     /// </summary>
-    public Func<ClaimsPrincipal, Child>? Authorized { get; set; }
+    public Func<ClaimsPrincipal, Component>? Authorized { get; set; }
 
     /// <summary>Rendered when the gate denies. Defaults to nothing.</summary>
-    public Child? NotAuthorized { get; set; }
+    public Component? NotAuthorized { get; set; }
 
     /// <summary>Rendered while the provider is loading or a <see cref="Policy" /> is resolving. Defaults to nothing.</summary>
-    public Child? Authorizing { get; set; }
+    public Component? Authorizing { get; set; }
 
     protected override void OnMount()
     {
@@ -115,11 +115,11 @@ public sealed class Authorize : Component
         await EvaluatePolicyAsync(CurrentUser).ConfigureAwait(false);
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (IsAuthorizing())
         {
-            return RenderSlot(Authorizing);
+            return Authorizing;
         }
 
         if (IsAllowed())
@@ -128,11 +128,11 @@ public sealed class Authorize : Component
             // re-renders on IUserProvider.Changed), so user-dependent markup stays in sync without a
             // manual subscription. Null delegate → static authorized content via the children indexer.
             return Authorized is { } authorized
-                ? authorized(CurrentUser).Component
+                ? authorized(CurrentUser)
                 : new Fragment { Children = Children ?? [] };
         }
 
-        return RenderSlot(NotAuthorized);
+        return NotAuthorized;
     }
 
     private bool IsAuthorizing() =>
@@ -235,7 +235,4 @@ public sealed class Authorize : Component
             _policyAllowed = allowed;
         }
     }
-
-    private static RenderResult RenderSlot(Child? slot) =>
-        slot is { Component: { } component } ? (RenderResult)component : default;
 }

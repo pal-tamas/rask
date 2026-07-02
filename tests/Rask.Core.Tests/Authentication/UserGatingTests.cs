@@ -70,11 +70,13 @@ public class UserGatingTests
     {
         private ClaimsPrincipal User => provider.Current;
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             User.Identity?.IsAuthenticated == true
-                ? new Fragment(
+                ?
+                [
                     Span()["secret"],
-                    User.IsInRole("admin") ? Div(Class: "admin-panel")["admin"] : new Fragment())
+                    User.IsInRole("admin") ? Div(Class: "admin-panel")["admin"] : null
+                ]
                 : Span()["public"];
     }
 

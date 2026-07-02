@@ -19,7 +19,7 @@ public sealed class KeyedListsReorderDemo : Component
 
     private bool _useKeys = true;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex flex-wrap align-items-center gap-2 mb-3")[
                 Button(
@@ -46,9 +46,9 @@ public sealed class KeyedListsReorderDemo : Component
             Ul(Class: "list-group", Id: "kl-list")[BuildRows()]
         ];
 
-    private List<Child> BuildRows()
+    private List<Component> BuildRows()
     {
-        var rows = new List<Child>(_items.Count);
+        var rows = new List<Component>(_items.Count);
         for (var i = 0; i < _items.Count; i++)
         {
             var f = _items[i];
@@ -64,7 +64,7 @@ public sealed class KeyedListsReorderDemo : Component
         return rows;
     }
 
-    private static List<Child> Row(Fruit f, int index) =>
+    private static List<Component> Row(Fruit f, int index) =>
     [
         BsBadge(Color: BsColor.Secondary, Pill: true)[index + 1],
         Span(Class: "fw-semibold", Style: "min-width: 7rem;")[f.Name],

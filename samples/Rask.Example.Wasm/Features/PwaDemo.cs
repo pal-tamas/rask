@@ -22,7 +22,7 @@ public sealed class PwaDemo(INotifications notifications, IWebPush push, IBadge 
     private string? _badgeStatus;
     private int _badgeCount;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "card shadow-sm border-0 mb-3")[
             Div(Class: "card-body")[

@@ -8,7 +8,7 @@ public sealed class DisposalUnmountDemo : Component
     private bool _hookMounted;
     private int _nextHookId;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "unmount-hook-mount", Disabled: _hookMounted, OnClick: MountHook)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Start ticker"],

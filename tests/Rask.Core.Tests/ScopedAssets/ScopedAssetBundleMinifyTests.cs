@@ -94,11 +94,11 @@ public class ScopedAssetBundleMinifyTests : IDisposable
 
     private sealed class WidgetA : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 
     private sealed class WidgetB : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 }

@@ -6,7 +6,7 @@ public sealed class BsAlertsDemo : Component
 {
     private bool _show = true;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "vstack gap-2")[
             BsAlert(Color: BsColor.Primary)["A simple primary alert — check it out!"],

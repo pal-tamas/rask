@@ -10,7 +10,7 @@ public sealed class Greeting : Component
     public required string Name { get; set; }
     public string? Title { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         P(Class: "mb-0")[
             Title is null ? "" : $"{Title} ",
             "Hello, ", Strong()[Name], "!"
@@ -21,5 +21,5 @@ public sealed class Greeting : Component
 // visible through an auto-generated `global using static`, no using needed.
 public sealed class ComponentsGreetingDemo : Component
 {
-    protected override RenderResult Render() => Greeting("Ada", "Dr.");
+    protected override Component? Render() => Greeting("Ada", "Dr.");
 }

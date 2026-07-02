@@ -24,7 +24,7 @@ public sealed class ServerPwaDemo(INotifications notifications, IWebPush push, I
     private string? _badgeStatus;
     private int _badgeCount;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "card shadow-sm border-0 mb-3")[
             Div(Class: "card-body")[

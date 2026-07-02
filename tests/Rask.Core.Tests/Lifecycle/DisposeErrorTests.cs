@@ -63,7 +63,7 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom");
         }
 
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class FaultingAsyncDisposable : Component, IAsyncDisposable
@@ -76,14 +76,14 @@ public class DisposeErrorTests
             throw new InvalidOperationException("boom-async");
         }
 
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class RecordingDisposable : Component, IDisposable
     {
         public int Disposes;
         public void Dispose() => Disposes++;
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class TwoChildHost : Component
@@ -98,7 +98,7 @@ public class DisposeErrorTests
             _b = b;
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             if (!Include)
             {

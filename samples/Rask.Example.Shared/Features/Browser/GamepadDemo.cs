@@ -45,7 +45,7 @@ public sealed class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
         StateHasChanged();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "small text-secondary mb-2")["Status: ", Code(Id: "gamepad-status")[_status]],
@@ -54,7 +54,7 @@ public sealed class GamepadDemo(IGamepad gamepad) : Component, IAsyncDisposable
                 _pads.Count == 0
                     ? Div(Class: "text-secondary small")["No controllers connected."]
                     : Ul(Class: "list-group list-group-flush")[
-                        _pads.Values.Select(p => (Child)Li(Class: "list-group-item px-0", Key: p.Index)[
+                        _pads.Values.Select(p => (Component)Li(Class: "list-group-item px-0", Key: p.Index)[
                             Div(Class: "small fw-semibold")[$"#{p.Index} — {p.Id}"],
                             Div(Class: "small text-secondary")[
                                 $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "

@@ -66,7 +66,7 @@ public sealed class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMot
         }
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Button(Class: "btn btn-sm btn-primary mb-3", Id: "sensor-start", OnClickAsync: Start)["Start"],

@@ -23,10 +23,10 @@ public sealed class BsFlash : Component
     // Auto-dismiss each toast after this many ms. Null = sticky (dismiss via the × only).
     public int? AutoHideMs { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         FlashOutlet(Template: (messages, dismiss) =>
             Div(Class: $"toast-container position-fixed {Placement} p-3")[
-                messages.Select(m => (Child)BsToast(
+                messages.Select(m => (Component)BsToast(
                     Id: m.Id,
                     Title: m.Title,
                     Message: m.Message,

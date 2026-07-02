@@ -51,10 +51,10 @@ public sealed class KeyedListsPageTests
             .GetField("_useKeys", BindingFlags.NonPublic | BindingFlags.Instance)!
             .SetValue(demo, useKeys);
 
-        var rows = (List<Child>)typeof(KeyedListsReorderDemo)
+        var rows = (List<Component>)typeof(KeyedListsReorderDemo)
             .GetMethod("BuildRows", BindingFlags.NonPublic | BindingFlags.Instance)!
             .Invoke(demo, null)!;
 
-        return string.Concat(rows.Select(r => r.Component.ToHtml()));
+        return string.Concat(rows.Select(r => r.ToHtml()));
     }
 }

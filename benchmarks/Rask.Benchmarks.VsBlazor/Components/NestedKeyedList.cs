@@ -20,11 +20,11 @@ internal static class NestedKeyedList
 
     public static Component BuildRask(int[] outerOrder)
     {
-        var cards = new List<Child>(outerOrder.Length);
+        var cards = new List<Component>(outerOrder.Length);
         for (var i = 0; i < outerOrder.Length; i++)
         {
             var cardKey = outerOrder[i];
-            var rows = new List<Child>(InnerRowCount);
+            var rows = new List<Component>(InnerRowCount);
             for (var r = 0; r < InnerRowCount; r++)
             {
                 rows.Add(C.Li(
@@ -52,9 +52,9 @@ internal static class NestedKeyedList
     public sealed class StatefulNestedKeyedList : Component
 #pragma warning restore RASK014
     {
-        private Child[]? _cardsByKey;
+        private Component[]? _cardsByKey;
         private int[]? _order;
-        private List<Child>? _scratch;
+        private List<Component>? _scratch;
         private int _swapA = 3;
         private int _swapB;
         public int OuterCapacity { get; init; } = OuterCardCount;
@@ -78,10 +78,10 @@ internal static class NestedKeyedList
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             EnsureSeeded();
-            _scratch ??= new List<Child>(OuterCapacity);
+            _scratch ??= new List<Component>(OuterCapacity);
             _scratch.Clear();
             for (var i = 0; i < _order!.Length; i++)
             {
@@ -98,10 +98,10 @@ internal static class NestedKeyedList
                 return;
             }
 
-            _cardsByKey = new Child[OuterCapacity];
+            _cardsByKey = new Component[OuterCapacity];
             for (var k = 0; k < OuterCapacity; k++)
             {
-                var rows = new List<Child>(InnerRowCount);
+                var rows = new List<Component>(InnerRowCount);
                 for (var r = 0; r < InnerRowCount; r++)
                 {
                     rows.Add(C.Li(

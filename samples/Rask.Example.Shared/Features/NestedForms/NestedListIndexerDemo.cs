@@ -14,11 +14,11 @@ public sealed class NestedListIndexerDemo : Component
     public NestedListIndexerDemo() => _model.Skus.Add(new SkuRow { Code = "WIDGET-1", Price = 9.99m });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
-        var rows = new List<Child>();
+        var rows = new List<Component>();
         for (var idx = 0; idx < _model.Skus.Count; idx++)
         {
             var i = idx; // Per-iteration capture — without this every lambda closes over Skus.Count.
@@ -60,7 +60,7 @@ public sealed class NestedListIndexerDemo : Component
                 ]
             ],
             _submission is null
-                ? Fragment()
+                ? null
                 : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-idx-result")[_submission]
         ];
     }

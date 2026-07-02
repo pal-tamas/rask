@@ -26,7 +26,7 @@ public sealed class HeadChildrenAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask019 = new(
         "RASK019",
         "<head> is a framework-managed slot — declare contents via Component.Head",
-        "Do not pass children to '<head>'; declare head content by overriding the 'RenderResult Head' property on any component instead. The framework collects, dedupes, and splices contributions automatically.",
+        "Do not pass children to '<head>'; declare head content by overriding the 'Component? Head' property on any component instead. The framework collects, dedupes, and splices contributions automatically.",
         "Usage",
         DiagnosticSeverity.Error,
         true,

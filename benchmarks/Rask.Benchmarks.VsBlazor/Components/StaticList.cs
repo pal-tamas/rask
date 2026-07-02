@@ -13,7 +13,7 @@ internal static class StaticList
 {
     public static Component BuildRask(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}")[

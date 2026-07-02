@@ -165,7 +165,7 @@ public class HeadAssetRegistryTests
     public void Add_FragmentChildrenFlatten()
     {
         var registry = new HeadAssetRegistry();
-        registry.Add(Fragment()[
+        registry.Add([
             Link(Rel: "stylesheet", Href: "/x.css"),
             Script("/x.js")
         ]);

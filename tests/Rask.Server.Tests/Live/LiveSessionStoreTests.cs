@@ -105,6 +105,6 @@ public class LiveSessionStoreTests
 
     private sealed class BasicComponent : Component
     {
-        protected override RenderResult Render() => new Span();
+        protected override Component? Render() => new Span();
     }
 }

@@ -23,12 +23,12 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
     public Action<ICollection<TItem>>? AfterBind { get; set; }
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
-    public Func<TItem, Child>? OptionLabel { get; set; }
+    public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
 
@@ -61,14 +61,14 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
         var groupName = Name ?? acc?.PropertyName ?? "checkbox-group";
         var wrapperClass = BsClass.Join("form-check", ItemClass);
 
-        var children = new List<Child>();
+        var children = new List<Component>();
         var index = 0;
         foreach (var option in Options)
         {
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = selected is not null && selected.Contains(optionValue, comparer);
-            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Input<string>(
@@ -87,7 +87,7 @@ public sealed class BsCheckboxGroup<TItem> : Component, IFormControl<ICollection
             children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
         }
 
-        return Fragment()[children];
+        return [.. children];
     }
 
     private async Task ToggleAsync(

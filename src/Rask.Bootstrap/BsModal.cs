@@ -27,11 +27,11 @@ public sealed class BsModal : BsBlock
     private static readonly IReadOnlyDictionary<string, string?> ModalAria =
         new Dictionary<string, string?> { ["modal"] = "true" };
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (Open is not true)
         {
-            return Fragment();
+            return null;
         }
 
         var dialogCls = BsClass.Join(
@@ -46,19 +46,19 @@ public sealed class BsModal : BsBlock
         var content = Div(Class: "modal-content")[
             showHeader
                 ? Div(Class: "modal-header")[
-                    Title is not null ? H5(Class: "modal-title")[Title] : (Child)Fragment(),
+                    Title is not null ? H5(Class: "modal-title")[Title] : null,
                     HideClose is not true
                         ? BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync)
-                        : (Child)Fragment()]
-                : (Child)Fragment(),
+                        : null]
+                : null,
             Div(Class: "modal-body")[Items],
-            Footer is { } footer ? Div(Class: "modal-footer")[footer] : (Child)Fragment()];
+            Footer is { } footer ? Div(Class: "modal-footer")[footer] : null];
 
         var modal = Div(Id: Id, Class: "modal fade show", Style: "display:block", TabIndex: -1,
             Role: "dialog", Aria: ModalAria,
             OnClick: staticBackdrop ? null : OnClose, OnClickAsync: staticBackdrop ? null : OnCloseAsync)[
                 Div(Class: dialogCls, OnClick: staticBackdrop ? null : Shield)[content]];
 
-        return Fragment()[modal, Div(Class: "modal-backdrop fade show")];
+        return [modal, Div(Class: "modal-backdrop fade show")];
     }
 }

@@ -19,7 +19,7 @@ Children attach through the **indexer**, not a `Children:` parameter:
 Div(Class: "card")[
     Span(Class: "title")["Hello"],
     "plain text becomes a Text node",   // string → Text (HTML-encoded)
-    items.Select(i => (Child)Li(Key: i.Id)[i.Name])
+    items.Select(i => (Component)Li(Key: i.Id)[i.Name])
 ]
 ```
 
@@ -30,11 +30,12 @@ Div(Class: "card")[
 > diff codec writes a one-time `data-rask-key="…"` warning to standard error when it detects a
 > duplicate — treat it as a bug to fix, not noise.
 
-`Fragment()` renders its children with **no wrapping element** — use it for a list of
-siblings, or as the conditional "render nothing" branch:
+A `[...]` collection expression renders its items with **no wrapping element** — use it for a list
+of siblings. For the conditional "render nothing" branch, return `null` (a `null` child renders
+nothing):
 
 ```csharp
-show ? Panel() : (Child)Fragment()    // Fragment() renders nothing
+show ? Panel() : null    // null renders nothing
 ```
 
 > The `..` spread fails inside `[…]` (the compiler parses it as a `Range`). Pass the
@@ -43,8 +44,8 @@ show ? Panel() : (Child)Fragment()    // Fragment() renders nothing
 The page root is itself a fragment that renders the full shell:
 
 ```csharp
-protected override RenderResult Render() =>
-    Fragment()[Doctype(), Html()[Head()[Title()["My app"]], Body()[ /* … */ ]]];
+protected override Component? Render() =>
+    [Doctype(), Html()[Head()[Title()["My app"]], Body()[ /* … */ ]]];
 ```
 
 ---
@@ -58,15 +59,15 @@ delegate types, but you still never *construct* one — see below.) The generate
 re-renders the parent that owns it**, with no `StateHasChanged` threaded through by hand.
 
 ```csharp
-// Child: declares the event as a delegate prop and invokes it.
+// Component: declares the event as a delegate prop and invokes it.
 public sealed class RatingStars : Component
 {
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-inline-flex gap-1")[
-            Enumerable.Range(1, 5).Select(i => (Child)Button(
+            Enumerable.Range(1, 5).Select(i => (Component)Button(
                 OnClick: () => OnRate?.Invoke(i),   // raise the event
                 Key: i)[i <= Value ? "★" : "☆"])
         ];
@@ -77,7 +78,7 @@ public sealed class RatingDemo : Component
 {
     private int _rating;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             RatingStars(Value: _rating, OnRate: n => _rating = n),   // re-renders the parent
             P()[_rating == 0 ? "Click a star." : $"You rated {_rating}/5"]
@@ -166,7 +167,7 @@ Context.Provide<Theme>(Value: _theme)[
 // Consume anywhere below, in Render():
 public sealed class ThemeBadge : Component
 {
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var theme = Context.Required<Theme>();   // throws if no provider
         return Span(Class: theme.IsDark ? "badge bg-dark" : "badge bg-light")[theme.Name];
@@ -281,7 +282,7 @@ you own it through `Template`, which receives the messages plus a `dismiss(id)` 
 
 ```csharp
 FlashOutlet(Template: (messages, dismiss) =>
-    Div()[messages.Select(m => (Child)Div(Class: "alert", Key: m.Id.ToString())[
+    Div()[messages.Select(m => (Component)Div(Class: "alert", Key: m.Id.ToString())[
         m.Message,
         Button(OnClick: () => dismiss(m.Id))["×"]])])
 ```

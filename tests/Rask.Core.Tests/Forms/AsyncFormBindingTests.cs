@@ -308,7 +308,7 @@ public class AsyncFormBindingTests
             _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
         }
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             Form<SignupModel>(_model, Context: _ctx)[
                 Input(() => _model.Username),
                 ValidatingIndicator(() => _model.Username, () => Span(Class: "spinner")["Checking..."]),

@@ -33,7 +33,7 @@ public sealed class DefaultNotFoundPage : Component
         _route.Changed -= StateHasChanged;
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
         var path = route?.Path ?? "";

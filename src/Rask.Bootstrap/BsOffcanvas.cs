@@ -23,7 +23,7 @@ public sealed class BsOffcanvas : BsBlock
     public Callback? OnClose { get; set; }
     public CallbackAsync? OnCloseAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var open = Open is true;
         var placementCls = (Placement ?? BsPlacement.Start) switch
@@ -44,15 +44,15 @@ public sealed class BsOffcanvas : BsBlock
             TabIndex: -1, Role: "dialog")[
                 showHeader
                     ? Div(Class: BsClass.Join("offcanvas-header", hideAbove))[
-                        Title is not null ? H5(Class: "offcanvas-title")[Title] : (Child)Fragment(),
+                        Title is not null ? H5(Class: "offcanvas-title")[Title] : null,
                         HideClose is not true
                             ? BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync)
-                            : (Child)Fragment()]
-                    : (Child)Fragment(),
+                            : null]
+                    : null,
                 Div(Class: "offcanvas-body")[Items]];
 
         return open && Backdrop is not false
-            ? Fragment()[panel,
+            ? [panel,
                 Div(Class: BsClass.Join("offcanvas-backdrop", "fade", "show", hideAbove),
                     OnClick: OnClose, OnClickAsync: OnCloseAsync)]
             : panel;

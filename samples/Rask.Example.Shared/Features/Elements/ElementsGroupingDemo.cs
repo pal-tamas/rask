@@ -3,7 +3,7 @@ namespace Rask.Example.Shared.Features;
 // Grouping content + lists: p, hr, pre, blockquote, div, ol/ul/li, dl/dt/dd, figure/figcaption.
 public sealed class ElementsGroupingDemo : Component
 {
-    protected override RenderResult Render() => Div(Class: "vstack gap-3")[
+    protected override Component? Render() => Div(Class: "vstack gap-3")[
         P()["A paragraph of flow content, grouped in a ", Code()["Div"], "."],
         Pre(Class: "bg-light border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
         Blockquote(Class: "blockquote fs-6 border-start ps-3", Cite: "https://example.com")[

@@ -5,7 +5,7 @@ namespace Rask.Example.EfCore;
 // shell — the slice pages return body fragments (RASK021).
 public sealed class App : Component
 {
-    protected override RenderResult Head =>
+    protected override Component? Head =>
     [
         Title()["Rask — EF Core + SQLite"],
         Meta("utf-8"),
@@ -16,7 +16,7 @@ public sealed class App : Component
             Href: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css")
     ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html("en")[

@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class TagsPage : Component
 {
-    protected override RenderResult Head => Title()["Tag factories — Rask"];
+    protected override Component? Head => Title()["Tag factories — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Tag factories",

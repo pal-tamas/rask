@@ -12,7 +12,7 @@ public class EventHandlerErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(true);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, null);
+        boundary.SetProps(new Component[] { handlerOwner }, null);
 
         // ToHtml stamps handlerOwner.Boundary AND registers the handler under the live
         // root's handler dict. RegisterHandler happens during the serialization walk via
@@ -36,7 +36,7 @@ public class EventHandlerErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(false);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { handlerOwner }, null);
+        boundary.SetProps(new Component[] { handlerOwner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
         _ = boundary.ToHtml();
@@ -75,7 +75,7 @@ public class EventHandlerErrorBoundaryTests
         public HandlerOwner(bool throwsSync) => _throwsSync = throwsSync;
         public string? RegisteredHandlerId { get; private set; }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             // Register the handler against the live render context so the live root holds
             // it in _handlers and TryInvokeHandlerAsync can look it up by id.

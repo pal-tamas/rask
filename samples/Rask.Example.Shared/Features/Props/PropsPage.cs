@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PropsPage : Component
 {
-    protected override RenderResult Head => Title()["Universal props — Rask"];
+    protected override Component? Head => Title()["Universal props — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Universal props",

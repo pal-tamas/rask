@@ -11,14 +11,14 @@ public sealed class EyeDropperDemo(IEyeDropper eyeDropper) : Component
     private string? _hex;
     private string _status = "(idle)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex align-items-center gap-3 mb-2")[
                     Button(Class: "btn btn-primary btn-sm", Id: "eyedropper-pick", OnClickAsync: Pick)[
                         I(Class: "bi bi-eyedropper me-1"), "Pick a color"],
                     _hex is null
-                        ? (Child)Span(Class: "text-secondary small")["No color picked yet"]
+                        ? (Component)Span(Class: "text-secondary small")["No color picked yet"]
                         : Div(Class: "d-flex align-items-center gap-2")[
                             Span(Id: "eyedropper-swatch",
                                 Class: "d-inline-block rounded border",

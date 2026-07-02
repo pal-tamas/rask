@@ -102,7 +102,7 @@ public readonly struct EditOp
     public EditOpKind Kind { get; }
 
     /// <summary>
-    ///     Child-index sequence from the document root that identifies the
+    ///     Component-index sequence from the document root that identifies the
     ///     target DOM node (or, for <see cref="EditOpKind.InsertSubtree" /> /
     ///     <see cref="EditOpKind.RemoveSubtree" /> / <see cref="EditOpKind.MoveSubtree" />,
     ///     the slot among siblings).

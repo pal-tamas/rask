@@ -75,7 +75,7 @@ public class KeyTests
         // following sibling Div (the slot is cleared after the keyed body serializes).
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(
-            Fragment()[Fragment(Key: "k")[Text("t")], Div()[Text("x")]], sb);
+            [Fragment(Key: "k")[Text("t")], Div()[Text("x")]], sb);
         Assert.Equal("t<div>x</div>", sb.ToString());
     }
 
@@ -83,6 +83,6 @@ public class KeyTests
     {
         private readonly Component _body;
         public KeyWrapper(Component body) => _body = body;
-        protected override RenderResult Render() => _body;
+        protected override Component? Render() => _body;
     }
 }

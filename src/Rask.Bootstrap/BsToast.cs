@@ -62,7 +62,7 @@ public sealed class BsToast : Component
         OnCloseAsync?.Invoke(Id);
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var close = BsCloseButton(
             White: Color is not null,
@@ -77,7 +77,7 @@ public sealed class BsToast : Component
                 Role: "alert", Aria: ToastAria)[
                 Div(Class: "d-flex")[
                     Div(Class: "toast-body")[
-                        Icon is { } glyph ? BsIcon(Name: glyph, Class: "me-2") : (Child)Fragment(),
+                        Icon is { } glyph ? BsIcon(Name: glyph, Class: "me-2") : null,
                         Message
                     ],
                     close
@@ -88,9 +88,9 @@ public sealed class BsToast : Component
         // Default layout — header (icon + title + timestamp + ×) over the body.
         return Div(Id: Id.ToString(), Class: BsClass.Join("toast show", Class), Role: "alert", Aria: ToastAria)[
             Div(Class: "toast-header")[
-                Icon is { } headerGlyph ? BsIcon(Name: headerGlyph, Class: "me-2") : (Child)Fragment(),
+                Icon is { } headerGlyph ? BsIcon(Name: headerGlyph, Class: "me-2") : null,
                 Strong(Class: "me-auto")[Title ?? ""],
-                Timestamp is { } ts ? Small(Class: "text-secondary")[ts] : (Child)Fragment(),
+                Timestamp is { } ts ? Small(Class: "text-secondary")[ts] : null,
                 close
             ],
             Div(Class: "toast-body")[Message]

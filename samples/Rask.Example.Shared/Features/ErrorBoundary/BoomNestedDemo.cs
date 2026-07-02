@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // itself throws, the outer boundary catches the escalation.
 public sealed class BoomNestedDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         ErrorBoundary((ex, _) => OuterFallback(ex))[
             Div(Class: "p-3 border rounded bg-white", Id: "boom-nested-host")[
                 P(Class: "mb-2 small text-secondary",
@@ -21,7 +21,7 @@ public sealed class BoomNestedDemo : Component
             ]
         ];
 
-    private static Child InnerFallback(Exception ex, Callback recover) =>
+    private static Component InnerFallback(Exception ex, Callback recover) =>
         BsAlert(Color: BsColor.Warning, Class: "d-flex align-items-start",
             Id: "boom-nested-inner-fallback")[
             BsIcon(Name: BsIconName.ShieldExclamation, Class: "me-3 fs-4"),
@@ -33,7 +33,7 @@ public sealed class BoomNestedDemo : Component
             ]
         ];
 
-    private static Child OuterFallback(Exception ex) =>
+    private static Component OuterFallback(Exception ex) =>
         BsAlert(Color: BsColor.Danger, Id: "boom-nested-outer-fallback")[
             Strong()["Outer boundary caught: "], ex.Message
         ];

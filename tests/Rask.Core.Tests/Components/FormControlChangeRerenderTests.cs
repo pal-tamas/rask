@@ -119,7 +119,7 @@ public class FormControlChangeRerenderTests
     {
         public readonly Picker Picker = new();
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var p = ctx.GetOrCreate(_ => Picker);
@@ -135,7 +135,7 @@ public class FormControlChangeRerenderTests
         private string _pick = "rask";
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Div()[
@@ -151,7 +151,7 @@ public class FormControlChangeRerenderTests
     {
         public readonly Echo Echo = new();
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var e = ctx.GetOrCreate(_ => Echo);
@@ -165,7 +165,7 @@ public class FormControlChangeRerenderTests
         private string _text = "a";
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Div()[
@@ -179,7 +179,7 @@ public class FormControlChangeRerenderTests
     {
         public readonly BoundForm Form = new();
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var f = ctx.GetOrCreate(_ => Form);
@@ -193,7 +193,7 @@ public class FormControlChangeRerenderTests
         private readonly Model _model = new() { Color = "red" };
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Form(_model)[
@@ -212,7 +212,7 @@ public class FormControlChangeRerenderTests
     {
         public readonly BindOwnerConsumer Consumer = new();
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
@@ -228,7 +228,7 @@ public class FormControlChangeRerenderTests
         private readonly Model _model = new() { Name = "rask" };
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Form(_model)[
@@ -249,6 +249,6 @@ public class FormControlChangeRerenderTests
     {
         public System.Linq.Expressions.Expression<Func<string>>? Bind { get; set; }
 
-        protected override RenderResult Render() => Input(Bind!);
+        protected override Component? Render() => Input(Bind!);
     }
 }

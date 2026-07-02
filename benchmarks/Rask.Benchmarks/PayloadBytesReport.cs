@@ -110,7 +110,7 @@ internal static class PayloadBytesReport
     private static Component BuildLargePageWithCounter(int counter)
     {
         const int rowCount = 200;
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
@@ -121,7 +121,7 @@ internal static class PayloadBytesReport
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[
@@ -136,7 +136,7 @@ internal static class PayloadBytesReport
 
     private static Component BuildKeyedListTree(int[] order)
     {
-        var rows = new List<Child>(order.Length);
+        var rows = new List<Component>(order.Length);
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
@@ -147,7 +147,7 @@ internal static class PayloadBytesReport
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
         ];
@@ -156,7 +156,7 @@ internal static class PayloadBytesReport
     private static Component BuildLargePageWithDeepTextCell(int counter)
     {
         const int rowCount = 200;
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             var text = i == rowCount / 2 ? $"ticker {counter}" : $"Item {i}";
@@ -168,7 +168,7 @@ internal static class PayloadBytesReport
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[C.Div(Class: "body")[rows]]

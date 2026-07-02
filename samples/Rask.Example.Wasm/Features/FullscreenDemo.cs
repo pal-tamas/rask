@@ -13,7 +13,7 @@ public sealed class FullscreenDemo(IFullscreen fullscreen) : Component
     private readonly ElementRef _stage = ElementRef.New();
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Ref: _stage, Class: "border rounded bg-light d-flex align-items-center justify-content-center mb-2",

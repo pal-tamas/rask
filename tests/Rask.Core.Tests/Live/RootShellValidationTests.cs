@@ -26,7 +26,7 @@ public class RootShellValidationTests
     public void RootErrorBoundary_FullShell_DoesNotThrow()
     {
         var root = new RootErrorBoundary(new StubComponent(() =>
-            Fragment()[Doctype(), Html("en")[Head(), Body()[P()["hi"]]]]));
+            [Doctype(), Html("en")[Head(), Body()[P()["hi"]]]]));
 
         var html = root.RenderAsLiveRoot(Services());
 

@@ -14,7 +14,7 @@ public sealed class CookiesDemo(ICookies cookies) : Component
     private string? _read;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Div(Class: "input-group input-group-sm mb-2")[

@@ -56,14 +56,14 @@ public sealed class RuntimeScriptInjectionTests
     // No RaskRuntimeScript() — the framework injects it.
     private sealed class ShellApp(RouteState routeState) : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             [Doctype(), new Html()[new Head(), new Body()[new H1()[$"path={routeState.Path}"]]]];
     }
 
     // Legacy tree that still contains the (now no-op) RaskRuntimeScript().
     private sealed class LegacyShellApp(RouteState routeState) : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(), new Html()[new Head(),
                 new Body()[new H1()[$"path={routeState.Path}"], RaskRuntimeScript()]]

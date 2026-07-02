@@ -14,7 +14,7 @@ public sealed class VirtualizeProviderDemo : Component
     private const string StickyHead =
         "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         VirtualizeModel(
             ctx => Div(
                 Class: "border rounded bg-white",
@@ -42,7 +42,7 @@ public sealed class VirtualizeProviderDemo : Component
 
     // tbody = top spacer + visible window + bottom spacer, every child keyed so the whole tbody
     // stays on the trusted keyed-diff path (spacers patch only their height; rows move by index).
-    private static IEnumerable<Child> BodyRows(VirtualizationContext<VirtualizeRow> ctx)
+    private static IEnumerable<Component> BodyRows(VirtualizationContext<VirtualizeRow> ctx)
     {
         yield return Spacer(ctx.OffsetBefore, "spacer-before");
 
@@ -66,7 +66,7 @@ public sealed class VirtualizeProviderDemo : Component
         yield return Spacer(ctx.OffsetAfter, "spacer-after");
     }
 
-    private static Child Spacer(int height, string key) =>
+    private static Component Spacer(int height, string key) =>
         Tr(
             Style: $"height:{height}px;",
             Data: new Dictionary<string, string?> { ["rask-key"] = key })[

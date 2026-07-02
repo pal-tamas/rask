@@ -14,7 +14,7 @@ public sealed class BsTable : BsBlock
     public bool? Small { get; set; }
     public bool? Responsive { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "table",

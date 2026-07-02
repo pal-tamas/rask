@@ -13,7 +13,7 @@ public sealed class BindingAfterBindAsyncDemo : Component
     private string[] _languages = [];
     private bool _loading;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "mb-3")[
             Label("bind-async-track", Class: "form-label small")["Track"],

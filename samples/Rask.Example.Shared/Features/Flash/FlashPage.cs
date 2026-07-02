@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class FlashPage : Component
 {
-    protected override RenderResult Head => Title()["Flash messages — Rask"];
+    protected override Component? Head => Title()["Flash messages — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Flash messages",

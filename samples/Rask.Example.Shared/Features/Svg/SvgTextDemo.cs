@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 public sealed class SvgTextDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Svg("220", "60", "0 0 220 60")[
             SvgText("10", "38", FontFamily: "sans-serif", FontSize: "28",
                 FontWeight: "bold", Fill: "#512BD4")[

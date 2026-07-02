@@ -10,7 +10,7 @@ public class ErrorBoundaryTests
     public void Render_NoError_RendersChildren()
     {
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { Span()[Text("ok")] }, null);
+        boundary.SetProps(new Component[] { Span()[Text("ok")] }, null);
 
         Assert.Equal("<span>ok</span>", boundary.ToHtml());
     }
@@ -20,7 +20,7 @@ public class ErrorBoundaryTests
     {
         var boundary = ErrorBoundary();
         boundary.SetProps(
-            new Child[] { new ThrowingRender("kaboom") },
+            new Component[] { new ThrowingRender("kaboom") },
             (ex, _) => Span()[Text(ex.Message)]);
 
         Assert.Equal("<span>kaboom</span>", boundary.ToHtml());
@@ -34,7 +34,7 @@ public class ErrorBoundaryTests
         // serialized HTML around the fallback.
         var boundary = ErrorBoundary();
         boundary.SetProps(
-            new Child[] { new ThrowMidwayComponent() },
+            new Component[] { new ThrowMidwayComponent() },
             (ex, _) => Span()[Text("fb")]);
 
         var html = boundary.ToHtml();
@@ -47,7 +47,7 @@ public class ErrorBoundaryTests
     {
         var boundary = ErrorBoundary();
         boundary.SetProps(
-            new Child[] { new ThrowingRender("dflt") },
+            new Component[] { new ThrowingRender("dflt") },
             null);
 
         var html = boundary.ToHtml();
@@ -62,12 +62,12 @@ public class ErrorBoundaryTests
         var outerCaught = false;
         var inner = ErrorBoundary();
         inner.SetProps(
-            new Child[] { new ThrowingRender("inner") },
+            new Component[] { new ThrowingRender("inner") },
             (ex, _) => Span()[Text("INNER:" + ex.Message)]);
 
         var outer = ErrorBoundary();
         outer.SetProps(
-            new Child[] { inner },
+            new Component[] { inner },
             (_, _) =>
             {
                 outerCaught = true;
@@ -84,12 +84,12 @@ public class ErrorBoundaryTests
     {
         var inner = ErrorBoundary();
         inner.SetProps(
-            new Child[] { new ThrowingRender("first") },
+            new Component[] { new ThrowingRender("first") },
             (_, _) => throw new InvalidOperationException("fallback-broke"));
 
         var outer = ErrorBoundary();
         outer.SetProps(
-            new Child[] { inner },
+            new Component[] { inner },
             (ex, _) => Span()[Text("OUTER:" + ex.Message)]);
 
         Assert.Equal("<span>OUTER:fallback-broke</span>", outer.ToHtml());
@@ -100,7 +100,7 @@ public class ErrorBoundaryTests
     {
         var boundary = ErrorBoundary();
         boundary.SetProps(
-            new Child[] { new ConditionalThrow(true) },
+            new Component[] { new ConditionalThrow(true) },
             (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
 
         // First render: boundary trips on the throw, emits fallback.
@@ -109,7 +109,7 @@ public class ErrorBoundaryTests
 
         // Now simulate "fix the cause" then call Recover.
         boundary.SetProps(
-            new Child[] { new ConditionalThrow(false) },
+            new Component[] { new ConditionalThrow(false) },
             (ex, recover) => Button(OnClick: recover)[Text("retry:" + ex.Message)]);
         boundary.Recover();
 
@@ -125,7 +125,7 @@ public class ErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { probe }, null);
+        boundary.SetProps(new Component[] { probe }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -143,7 +143,7 @@ public class ErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var probe = new BoundaryProbe();
         var first = ErrorBoundary();
-        first.SetProps(new Child[] { probe }, null);
+        first.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(first, sp))
         {
             _ = first.ToHtml();
@@ -153,7 +153,7 @@ public class ErrorBoundaryTests
 
         // Now reparent the probe under a different boundary. The stamp should NOT change.
         var second = ErrorBoundary();
-        second.SetProps(new Child[] { probe }, null);
+        second.SetProps(new Component[] { probe }, null);
         using (LiveRenderContext.Begin(second, sp))
         {
             _ = second.ToHtml();
@@ -166,12 +166,12 @@ public class ErrorBoundaryTests
     {
         private readonly string _msg;
         public ThrowingRender(string msg) => _msg = msg;
-        protected override RenderResult Render() => throw new InvalidOperationException(_msg);
+        protected override Component? Render() => throw new InvalidOperationException(_msg);
     }
 
     private sealed class ThrowMidwayComponent : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             Div()[Text("partial"),
                 new ThrowingRender("late")];
     }
@@ -181,13 +181,13 @@ public class ErrorBoundaryTests
         private readonly bool _throw;
         public ConditionalThrow(bool shouldThrow) => _throw = shouldThrow;
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             _throw ? throw new InvalidOperationException("bang") : Span()[Text("ok")];
     }
 
     private sealed class BoundaryProbe : Component
     {
         public ErrorBoundary? CapturedBoundary => Boundary;
-        protected override RenderResult Render() => Span()[Text("probe")];
+        protected override Component? Render() => Span()[Text("probe")];
     }
 }

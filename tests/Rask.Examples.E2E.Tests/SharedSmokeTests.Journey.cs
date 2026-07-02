@@ -970,7 +970,7 @@ public abstract partial class SharedSmokeTests
 
         // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
         // enumerable is materialised at render time so each demo's component instance is reconciled and
-        // keeps its state across renders — see Component's IEnumerable<Child> indexer). Open the guide,
+        // keeps its state across renders — see Component's IEnumerable<Component> indexer). Open the guide,
         // wait for the LAST demo's control so no interaction races hydration, then drive a representative
         // set: one-shot reads, storage/clipboard round-trips, and JS→C# push. Exhaustive per-wrapper
         // behaviour is covered by the demo unit tests.

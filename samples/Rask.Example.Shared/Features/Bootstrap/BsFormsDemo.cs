@@ -10,7 +10,7 @@ public sealed class BsFormsDemo : Component
     private readonly Signup _model = new();
     private string? _result;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<Signup>(_model, m => _result = $"Welcome, {m.Name}!", Class: "vstack gap-3")[
             DataAnnotationsValidator(),
@@ -26,7 +26,7 @@ public sealed class BsFormsDemo : Component
             BsButton(Color: BsColor.Primary, Type: "submit")["Create account"]
         ],
         _result is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "mt-3 mb-0")[
                 BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _result]
     ];

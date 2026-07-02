@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PrimitivesPage : Component
 {
-    protected override RenderResult Head => Title()["Primitives — Rask"];
+    protected override Component? Head => Title()["Primitives — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Primitives",

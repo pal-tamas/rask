@@ -28,8 +28,8 @@ internal static class TableSortFilter
     public sealed class StatefulTableSortFilter : Component
 #pragma warning restore RASK014
     {
-        private readonly Dictionary<int, Child> _rowCache = new();
-        private List<Child>? _scratch;
+        private readonly Dictionary<int, Component> _rowCache = new();
+        private List<Component>? _scratch;
 
         public StatefulTableSortFilter()
         {
@@ -68,9 +68,9 @@ internal static class TableSortFilter
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
-            _scratch ??= new List<Child>(VisibleOrder.Length);
+            _scratch ??= new List<Component>(VisibleOrder.Length);
             _scratch.Clear();
             for (var i = 0; i < VisibleOrder.Length; i++)
             {
@@ -90,7 +90,7 @@ internal static class TableSortFilter
             ];
         }
 
-        private Child GetOrCreateRow(int id)
+        private Component GetOrCreateRow(int id)
         {
             if (_rowCache.TryGetValue(id, out var row))
             {

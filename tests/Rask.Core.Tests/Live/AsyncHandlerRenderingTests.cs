@@ -151,7 +151,7 @@ public class AsyncHandlerRenderingTests
         public string State { get; set; } = "init";
         public string LastRendered { get; private set; } = "";
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             LastRendered = State;

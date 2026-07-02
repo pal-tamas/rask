@@ -246,7 +246,7 @@ public sealed class LiveTickerTests
     [SkipFactory]
     private sealed class TwoTickerRoot(Action<string> log) : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[

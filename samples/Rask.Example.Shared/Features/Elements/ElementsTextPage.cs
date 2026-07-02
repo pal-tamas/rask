@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsTextPage : Component
 {
-    protected override RenderResult Head => Title()["Text & inline elements — Rask"];
+    protected override Component? Head => Title()["Text & inline elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Text & inline elements",

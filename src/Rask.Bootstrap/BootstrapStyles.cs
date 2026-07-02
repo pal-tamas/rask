@@ -13,13 +13,13 @@ public sealed class BootstrapStyles : Component
     // Include the Bootstrap Icons stylesheet (default true). Set false if you don't use BsIcon.
     public bool? Icons { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var prefix = LiveOptions.PathBase;
         var core = Link(Rel: "stylesheet", Href: prefix + Base + "css/bootstrap.min.css");
 
         return Icons is false
             ? core
-            : Fragment()[core, Link(Rel: "stylesheet", Href: prefix + Base + "icons/bootstrap-icons.min.css")];
+            : [core, Link(Rel: "stylesheet", Href: prefix + Base + "icons/bootstrap-icons.min.css")];
     }
 }
