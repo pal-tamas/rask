@@ -1,6 +1,5 @@
 using System.Reflection;
 using Rask.Core.Forms;
-using Rask.Core.Routing;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
@@ -11,9 +10,9 @@ public sealed class UploadPageTests
     [Fact]
     public void Render_BeforeFileChosen_ShowsNoFileSelected()
     {
-        var routeState = new RouteState { Path = "/upload" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        // Render UploadDemo directly — its standalone /upload page was folded into
+        // docs/http-and-files.md, where the demo is embedded as a live sample.
+        var html = new UploadDemo().RenderAsLiveRoot(TestServices.Default());
 
         Assert.Contains("upload-input", html);
         Assert.Contains("No file selected yet.", html);

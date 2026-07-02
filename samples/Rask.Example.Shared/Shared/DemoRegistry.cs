@@ -247,6 +247,36 @@ public static class DemoRegistry
             ["elements-media"] = () => CodeSample(["ElementsMediaDemo.cs"], Result: ElementsMediaDemo()),
             ["elements-interactive"] = () => CodeSample(["ElementsInteractiveDemo.cs"], Result: ElementsInteractiveDemo()),
             ["elements-metadata"] = () => CodeSample(["ElementsMetadataDemo.cs"], Result: ElementsMetadataDemo()),
+
+            // --- HTTP & files guide: the HttpClient+DI, file-upload and file-download example pages
+            // folded into docs/http-and-files.md as inline live demos. ---
+            ["data-http-register"] = () => CodeSample(
+                ["HttpRegisterDemo.cs"],
+                Notes:
+                "Relative URLs require BaseAddress. WasmHostBuilder.BaseAddress is the app root (and carries "
+                + "any sub-path) — read it lazily inside the factory so it fires after the JS module imports.",
+                Result: HttpRegisterDemo()),
+            ["data-http-fetch"] = () => CodeSample(
+                ["HttpFetchDemo.cs"],
+                Notes:
+                "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a "
+                + "re-render when the awaited task completes. Component.CancellationToken cancels on unmount — "
+                + "navigate away mid-fetch and the in-flight request aborts.",
+                Result: HttpFetchDemo()),
+            ["data-upload"] = () => CodeSample(
+                ["UploadDemo.cs"],
+                Notes:
+                "The handler runs once per change event. RaskFile is only valid while the handler is on the "
+                + "stack — read whatever you need (bytes, metadata) before returning. The same component code "
+                + "runs unchanged on both hosts.",
+                Result: UploadDemo()),
+            ["data-download"] = () => CodeSample(
+                ["DownloadDemo.cs"],
+                Notes:
+                "Navigator.Download must be called from an event handler — outside that scope it throws, "
+                + "because there's no live render round-trip to attach the download to. The handler can do "
+                + "other state changes too (here, bump a counter); both ship in the same render.",
+                Result: DownloadDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning
