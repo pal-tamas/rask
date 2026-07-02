@@ -55,6 +55,16 @@ them until tagged releases begin.
   expression returning a `Component`.
 
 ### Fixed
+- **WASM `WasmHostBuilder.BaseAddress` is now the app root, independent of the current route.** It read
+  `document.baseURI`, which — once the SPA has navigated and the `<base>` element is no longer in the
+  live DOM — reflects the *current route*. A singleton `HttpClient` whose `BaseAddress` is resolved
+  lazily therefore baked whatever route was active at first resolution into every later relative fetch:
+  from a two-segment route like `/guides/elements`, `GetFromJsonAsync("data/posts-1.json")` resolved
+  against `/guides/` and 404'd (single-segment routes like `/http` happened to resolve correctly, which
+  masked it). `getBaseAddress()` now derives from the boot-cached, route-independent `getBasePath()`
+  (`new URL(getBasePath(), location.origin)`), so it stays the app root — carrying any sub-path — for
+  the app's lifetime. Covered by the standalone/plain WASM showcase journeys (the `HttpClient + DI` page
+  after the guides walk).
 - **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
   mobile navbar stays one line.** Three showcase-guide polish fixes: (1) fenced ```` ```lang ```` blocks
   in the guide prose (rendered by Markdig, which has no highlighter) are now tokenized server-side with
