@@ -27,7 +27,7 @@ public class RenderRoundTripBenchmarks
 
     private static Component BuildTree()
     {
-        var rows = new List<Child>(15);
+        var rows = new List<Component>(15);
         for (var i = 0; i < 15; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}", Key: i)[
@@ -37,7 +37,7 @@ public class RenderRoundTripBenchmarks
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[

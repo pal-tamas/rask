@@ -11,7 +11,7 @@ namespace Rask.Example.Auth.WasmCookie.Features;
 [AllowAnonymous]
 public sealed class MembersPage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
             Div(Class: "card-body")[
                 Authorize(
@@ -24,8 +24,8 @@ public sealed class MembersPage : Component
 
 public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
 {
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             H1("members-greeting", "h3 mb-3")[$"Welcome, {userProvider.Current.Identity?.Name}"],
             Authorize(["admin"])[
                 Div(Id: "admin-note", Class: "alert alert-warning py-2")["🔑 You have admin access."]],

@@ -13,7 +13,7 @@ public sealed class BsAlert : BsBlock
     public Callback? OnClose { get; set; }
     public CallbackAsync? OnCloseAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var dismissible = Dismissible is true;
         var cls = BsClass.Join(

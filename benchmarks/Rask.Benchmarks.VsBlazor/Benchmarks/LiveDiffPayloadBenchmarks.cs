@@ -178,7 +178,7 @@ public class LiveDiffPayload_KeyedList100ReorderBenchmarks : LiveDiffPayloadBase
 
     private int _blazorSwapB;
 
-    // Stateful Rask root: 100 rows wrapped as Child instances once on first render and
+    // Stateful Rask root: 100 rows wrapped as Component instances once on first render and
     // cached by key. The benchmark Tick swaps two slots of the order array and calls
     // StateHasChanged — the next render returns a reordered list pointing at the SAME
     // row instances (no fresh Div+Span allocations). Mirrors Blazor's ParameterView

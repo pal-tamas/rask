@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsSectionsPage : Component
 {
-    protected override RenderResult Head => Title()["Sections & heading elements — Rask"];
+    protected override Component? Head => Title()["Sections & heading elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Sections & heading elements",

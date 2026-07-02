@@ -6,7 +6,7 @@ public sealed class EventsFormDemo : Component
 {
     private string _submitted = "(none yet)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form(OnSubmit: OnSubmit, Class: "mb-2")[
             Div(Class: "input-group")[

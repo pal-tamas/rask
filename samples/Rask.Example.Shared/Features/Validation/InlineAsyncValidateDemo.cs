@@ -16,19 +16,19 @@ public sealed class InlineAsyncValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
             BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking…"
         ];
 
-    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
+    private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
         var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
         if (formOnly.Count == 0)
         {
-            return Fragment();
+            return null;
         }
 
         return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
@@ -47,7 +47,7 @@ public sealed class InlineAsyncValidateDemo : Component
         return TakenCodes.Contains(code) ? new[] { $"\"{code}\" is reserved." } : Array.Empty<string>();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<PromoModel>(
             _model,
@@ -74,7 +74,7 @@ public sealed class InlineAsyncValidateDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

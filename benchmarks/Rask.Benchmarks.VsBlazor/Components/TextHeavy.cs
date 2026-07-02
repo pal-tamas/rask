@@ -13,7 +13,7 @@ internal static class TextHeavy
 {
     public static Component BuildRask(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add(C.P()[$"line {i} of text content with no special chars"]);

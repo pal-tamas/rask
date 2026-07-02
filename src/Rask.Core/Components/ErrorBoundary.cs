@@ -2,7 +2,7 @@ namespace Rask.Core.Components;
 
 public sealed class ErrorBoundary : Component
 {
-    public Func<Exception, Callback, Child>? Fallback { get; set; }
+    public Func<Exception, Callback, Component>? Fallback { get; set; }
 
     internal Exception? Error { get; private set; }
 
@@ -14,8 +14,8 @@ public sealed class ErrorBoundary : Component
     // Sugar for tests that construct an ErrorBoundary directly and need to seed both
     // props in one call.
     internal void SetProps(
-        IEnumerable<Child>? children,
-        Func<Exception, Callback, Child>? fallback)
+        IEnumerable<Component>? children,
+        Func<Exception, Callback, Component>? fallback)
     {
         Children = children;
         Fallback = fallback;
@@ -48,7 +48,7 @@ public sealed class ErrorBoundary : Component
         StateHasChanged();
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (Error is null)
         {

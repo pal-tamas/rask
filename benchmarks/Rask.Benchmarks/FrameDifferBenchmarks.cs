@@ -191,7 +191,7 @@ public class FrameDifferBenchmarks
 
     private static Component BuildKeyedList(int[] order, int textRow)
     {
-        var rows = new List<Child>(order.Length);
+        var rows = new List<Component>(order.Length);
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];

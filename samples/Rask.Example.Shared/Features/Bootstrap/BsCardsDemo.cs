@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // BsCardTitle / BsCardText). Color tints the whole card via the contrast-aware text-bg-* helper.
 public sealed class BsCardsDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-3")[
             Div(Class: "col-md-6")[
                 BsCard()[

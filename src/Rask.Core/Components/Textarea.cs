@@ -175,6 +175,6 @@ public sealed class Textarea<T> : Element, IFormControl<T>
         }
     }
 
-    protected override IEnumerable<Child> RenderChildren() =>
+    protected override IEnumerable<Component?> RenderChildren() =>
         _content is not null ? [_content] : base.RenderChildren();
 }

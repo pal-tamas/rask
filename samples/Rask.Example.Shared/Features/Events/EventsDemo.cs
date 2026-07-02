@@ -19,7 +19,7 @@ public sealed class EventsDemo : Component
 
     private static string Fmt(double d) => d.ToString("0", CultureInfo.InvariantCulture);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-3")[
             // Pointer tracking pad: mousemove + enter/leave + wheel, all typed.
             Div(Class: "col-md-6")[

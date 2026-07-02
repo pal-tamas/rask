@@ -6,7 +6,7 @@ public sealed class BsInputGroup : BsBlock
 {
     public BsSize? Size { get; set; }
 
-    protected override RenderResult Render() => Div(
+    protected override Component? Render() => Div(
         Id: Id,
         Class: BsClass.Join(
             "input-group",
@@ -17,6 +17,6 @@ public sealed class BsInputGroup : BsBlock
 // A text add-on inside an input group: <span class="input-group-text"> (e.g. "@", "$", a unit).
 public sealed class BsInputGroupText : BsBlock
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Span(Id: Id, Class: BsClass.Join("input-group-text", Class))[Items];
 }

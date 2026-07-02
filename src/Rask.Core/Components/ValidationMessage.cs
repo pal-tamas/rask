@@ -24,7 +24,7 @@ public sealed class ValidationMessage : Component
         Func<IReadOnlyList<string>, Component> Template) =>
         new() { For = For, Template = Template };
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null || For is null)
@@ -48,23 +48,23 @@ public sealed class ValidationSummary : Component
     // Headless: caller owns the markup. Invoked only when the form has at least one
     // message; each entry pairs the offending field name (empty for form-level messages)
     // with its error text.
-    public required Func<IReadOnlyList<ValidationEntry>, Component> Template { get; set; }
+    public required Func<IReadOnlyList<ValidationEntry>, Component?> Template { get; set; }
 
     // Reads EditContext message state — see ValidationMessage for the rationale.
     protected override bool BypassRenderCache => true;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null)
         {
-            return new Fragment();
+            return null;
         }
 
         var entries = ctx.GetValidationEntries();
         if (entries.Count == 0)
         {
-            return new Fragment();
+            return null;
         }
 
         return Template(entries);
@@ -96,7 +96,7 @@ public sealed class ValidatingIndicator : Component
         Func<Component> Template) =>
         new() { For = For, Template = Template };
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var ctx = EditContextScope.Current;
         if (ctx is null || For is null)

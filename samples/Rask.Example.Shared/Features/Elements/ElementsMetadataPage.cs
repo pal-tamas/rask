@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsMetadataPage : Component
 {
-    protected override RenderResult Head => Title()["Document & metadata elements — Rask"];
+    protected override Component? Head => Title()["Document & metadata elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Document & metadata elements",

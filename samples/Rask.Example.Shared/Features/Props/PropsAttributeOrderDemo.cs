@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 public sealed class PropsAttributeOrderDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         A(
             "/tags",
             Id: "out",

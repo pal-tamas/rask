@@ -22,15 +22,15 @@ public sealed class DragDropKanbanDemo : Component
         ["done"] = [new Card(5, "Read the codebase")]
     };
 
-    protected override RenderResult Render() => DragDrop(KanbanBody, MoveCard);
+    protected override Component? Render() => DragDrop(KanbanBody, MoveCard);
 
     private Component KanbanBody(DragDropContext ctx)
     {
-        var cols = new List<Child>(_columns.Length);
+        var cols = new List<Component>(_columns.Length);
         foreach (var zone in _columns)
         {
             var cards = _board[zone];
-            var cardChildren = new List<Child>(cards.Count);
+            var cardChildren = new List<Component>(cards.Count);
             for (var i = 0; i < cards.Count; i++)
             {
                 var card = cards[i];

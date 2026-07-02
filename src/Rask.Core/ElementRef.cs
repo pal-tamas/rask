@@ -16,7 +16,7 @@ namespace Rask.Core;
 ///         <c>data-rask-ref="{id}"</c> onto the element:
 ///         <code>
 ///         private readonly ElementRef _chart = ElementRef.New();
-///         protected override RenderResult Render() => Canvas(Ref: _chart);
+///         protected override Component? Render() => Canvas(Ref: _chart);
 ///         </code>
 ///     </para>
 ///     <para>

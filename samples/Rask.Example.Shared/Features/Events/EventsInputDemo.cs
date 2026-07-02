@@ -4,7 +4,7 @@ public sealed class EventsInputDemo : Component
 {
     private string _typed = string.Empty;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Input(
             InputType.Text,

@@ -37,7 +37,7 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
     public bool? Inline { get; set; }
     public bool? Reverse { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         ExpressionAccessor.Accessor? acc = null;
         EditContext? ctx = null;
@@ -87,7 +87,7 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
             input,
             Label is not null
                 ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
-                : (Child)Fragment(),
-            invalid ? Div(Class: "invalid-feedback d-block")[messages[0]] : (Child)Fragment()];
+                : null,
+            invalid ? Div(Class: "invalid-feedback d-block")[messages[0]] : null];
     }
 }

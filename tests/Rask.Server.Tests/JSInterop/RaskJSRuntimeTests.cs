@@ -218,7 +218,7 @@ internal sealed class JsRoundTripApp : Component
     public static TaskCompletionSource<string?> LastResult { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
@@ -252,7 +252,7 @@ internal sealed class JsClickApp : Component
     public JsClickApp(IJSRuntime js) => _js = js;
     public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["t"]],
@@ -275,7 +275,7 @@ internal sealed class JsRenderStormApp : Component
 
     public JsRenderStormApp(IJSRuntime js) => _js = js;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]
@@ -297,7 +297,7 @@ internal sealed class JsErrorApp : Component
     public static TaskCompletionSource<Exception> Caught { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["t"]], new Body()[Text("ready")]]

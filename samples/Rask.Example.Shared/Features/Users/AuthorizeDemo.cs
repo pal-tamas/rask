@@ -12,7 +12,7 @@ public sealed class AuthorizeDemo : Component
 
     public AuthorizeDemo(DemoUserProvider auth) => _auth = auth;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "authorize-demo")[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[

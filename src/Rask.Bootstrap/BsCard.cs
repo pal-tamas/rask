@@ -7,40 +7,40 @@ public sealed class BsCard : BsBlock
     // Fills the whole card with a theme color via the contrast-aware text-bg-* helper.
     public BsColor? Color { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: Id, Class: BsClass.Join("card", Color is { } c ? c.TextBg() : null, Class))[Items];
 }
 
 public sealed class BsCardHeader : BsBlock
 {
-    protected override RenderResult Render() => Wrap("card-header");
+    protected override Component? Render() => Wrap("card-header");
 }
 
 public sealed class BsCardBody : BsBlock
 {
-    protected override RenderResult Render() => Wrap("card-body");
+    protected override Component? Render() => Wrap("card-body");
 }
 
 public sealed class BsCardFooter : BsBlock
 {
-    protected override RenderResult Render() => Wrap("card-footer");
+    protected override Component? Render() => Wrap("card-footer");
 }
 
 public sealed class BsCardTitle : BsBlock
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         H5(Id: Id, Class: BsClass.Join("card-title", Class))[Items];
 }
 
 public sealed class BsCardSubtitle : BsBlock
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         H6(Id: Id, Class: BsClass.Join("card-subtitle", "mb-2", "text-body-secondary", Class))[Items];
 }
 
 public sealed class BsCardText : BsBlock
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         P(Id: Id, Class: BsClass.Join("card-text", Class))[Items];
 }
 
@@ -51,7 +51,7 @@ public sealed class BsCardImage : BsBlock
     public string? Alt { get; set; }
     public bool? Bottom { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Img(Id: Id, Class: BsClass.Join(Bottom is true ? "card-img-bottom" : "card-img-top", Class),
             Src: Src, Alt: Alt);
 }

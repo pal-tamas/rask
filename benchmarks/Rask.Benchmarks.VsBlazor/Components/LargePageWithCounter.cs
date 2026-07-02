@@ -16,7 +16,7 @@ internal static class LargePageWithCounter
 
     public static Component BuildRask(int counter)
     {
-        var rows = new List<Child>(LargePageRowCount);
+        var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}")[
@@ -39,7 +39,7 @@ internal static class LargePageWithCounter
     /// </summary>
     public static Component BuildRaskWithDeepTextCell(int counter)
     {
-        var rows = new List<Child>(LargePageRowCount);
+        var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";

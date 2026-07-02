@@ -18,9 +18,9 @@ public sealed class SvgPage : Component
     // index is fixed, so this just names the first colour in the prose note below.
     private const int _selected = 0;
 
-    protected override RenderResult Head => Title()["SVG — Rask"];
+    protected override Component? Head => Title()["SVG — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "SVG",

@@ -43,7 +43,7 @@ public class ContextTests
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new ContextProbe();
-        var root = new StubComponent(() => new Fragment(probe));
+        var root = new StubComponent(() => [probe]);
 
         root.RenderAsLiveRoot(sp);
 
@@ -118,9 +118,11 @@ public class ContextTests
         var sp = RenderHarness.EmptyServices();
         var inner = new ContextProbe();
         var sibling = new ContextProbe();
-        var root = new StubComponent(() => new Fragment(
+        var root = new StubComponent(() =>
+        [
             Context.Provide(new Theme("scoped"))[inner],
-            sibling));
+            sibling
+        ]);
 
         root.RenderAsLiveRoot(sp);
 
@@ -215,7 +217,7 @@ public class ContextTests
         public string? LastSeen;
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             var theme = Context.Required<Theme>();
@@ -228,7 +230,7 @@ public class ContextTests
     {
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Span()["plain"];
@@ -239,7 +241,7 @@ public class ContextTests
     {
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Span()[Context.Has<Theme>() ? "has" : "none"];
@@ -252,7 +254,7 @@ public class ContextTests
         public bool Has;
         public bool RequiredThrew;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             Has = Context.Has<Theme>();
             GotOptional = Context.Get<Theme>();
@@ -265,7 +267,7 @@ public class ContextTests
                 RequiredThrew = true;
             }
 
-            return new Fragment();
+            return null;
         }
     }
 
@@ -273,10 +275,10 @@ public class ContextTests
     {
         public int Got;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             Got = Context.Required<int>();
-            return new Fragment();
+            return null;
         }
     }
 
@@ -284,10 +286,10 @@ public class ContextTests
     {
         public string? Greeting;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             Greeting = Context.Required<IGreeter>().Hello();
-            return new Fragment();
+            return null;
         }
     }
 
@@ -297,12 +299,12 @@ public class ContextTests
         public string? B;
         public string? Unnamed;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             A = Context.Get<string>("a");
             B = Context.Get<string>("b");
             Unnamed = Context.Get<string>();
-            return new Fragment();
+            return null;
         }
     }
 
@@ -319,7 +321,7 @@ public class ContextTests
             _plain = plain;
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var con = ctx.GetOrCreate(_ => _consumer);

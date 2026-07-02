@@ -19,7 +19,7 @@ public sealed class CqrsCounterDemo(IDispatcher dispatcher) : Component
         _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "cqrs-counter", Class: "vstack gap-3")[
             Div(Class: "d-flex align-items-center gap-3")[
                 Span(Id: "cqrs-count", Class: "display-6 fw-semibold")[$"{_view.Count}"],

@@ -30,10 +30,10 @@ public class CrossParentKeyedMoveTests
             ["done"] = new List<int> { 5 }
         };
 
-        private Child Column(string zone)
+        private Component Column(string zone)
         {
             var cards = Cols[zone];
-            var children = new List<Child>();
+            var children = new List<Component>();
             foreach (var id in cards)
             {
                 children.Add(Div(Key: id, Class: "card")[Div(Class: "card-body")[Span()[$"card{id}"]]]);
@@ -48,9 +48,9 @@ public class CrossParentKeyedMoveTests
             ];
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
-            var cols = new List<Child>();
+            var cols = new List<Component>();
             foreach (var z in Zones)
             {
                 cols.Add(Column(z));

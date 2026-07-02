@@ -51,9 +51,9 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
 
     private sealed class ScopedCssStubApp : Component
     {
-        protected override RenderResult Head => Title()["wasm-stub"];
+        protected override Component? Head => Title()["wasm-stub"];
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(),
             Html()[

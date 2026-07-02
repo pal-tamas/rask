@@ -18,7 +18,7 @@ public class SyncAsyncHandlerAnalyzerTests
                                                 namespace Demo;
                                                 public sealed class App : Component
                                                 {
-                                                    protected override RenderResult Render()
+                                                    protected override Component? Render()
                                                     {
                                                         {{body}}
                                                     }

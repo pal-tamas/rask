@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class HttpPage : Component
 {
-    protected override RenderResult Head => Title()["HttpClient + DI — Rask"];
+    protected override Component? Head => Title()["HttpClient + DI — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "HttpClient + DI",

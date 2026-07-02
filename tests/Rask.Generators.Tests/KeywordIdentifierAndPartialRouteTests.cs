@@ -16,7 +16,7 @@ public class KeywordIdentifierAndPartialRouteTests
                   {
                       public string? @event { get; set; }   // optional keyword prop
                       public int @class { get; set; }        // required keyword prop (folded into propsChanged)
-                      protected override RenderResult Render() => this;
+                      protected override Component? Render() => this;
                   }
                   """;
 
@@ -41,7 +41,7 @@ public class KeywordIdentifierAndPartialRouteTests
                   public sealed class Widget : Component
                   {
                       public string? Title { get; set; }
-                      protected override RenderResult Render() => this;
+                      protected override Component? Render() => this;
                   }
                   """;
 
@@ -64,7 +64,7 @@ public class KeywordIdentifierAndPartialRouteTests
                   [Route("/p")]
                   public sealed partial class PageA : Component
                   {
-                      protected override RenderResult Render() => this;
+                      protected override Component? Render() => this;
                   }
                   [Obsolete]
                   public sealed partial class PageA

@@ -61,7 +61,7 @@ public class CounterAllocationPinTests
     }
 
     private static Component BuildFullPageShell() =>
-        Fragment()[
+        [
             Doctype(),
             Html()[
                 Body()[

@@ -24,7 +24,7 @@ public sealed class LifecycleCycleProbe : Component
         return Task.CompletedTask;
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             BsBadge(Color: BsColor.Success)[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")["Unmount me to fire OnUnmount / OnUnmountAsync."]

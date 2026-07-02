@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // healthy subtree.
 public sealed class BoomHandlerDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         ErrorBoundary(
             BoundaryFallback)[
             Div(Class: "p-3 border rounded bg-white", Id: "boom-handler-host")[
@@ -16,7 +16,7 @@ public sealed class BoomHandlerDemo : Component
             ]
         ];
 
-    private static Child BoundaryFallback(Exception ex, Callback recover) =>
+    private static Component BoundaryFallback(Exception ex, Callback recover) =>
         BsAlert(Color: BsColor.Danger, Class: "d-flex align-items-start", Id: "boom-fallback")[
             BsIcon(Name: BsIconName.ExclamationOctagonFill, Class: "me-3 fs-4"),
             Div()[

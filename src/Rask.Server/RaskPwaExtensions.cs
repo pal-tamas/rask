@@ -66,7 +66,7 @@ internal sealed class RaskPwaHeadContribution(RaskPwaState state) : IRaskHeadCon
 {
     public Component Render()
     {
-        var children = new List<Child>
+        var children = new List<Component>
         {
             Components.Link(Rel: "manifest", Href: LiveOptions.PathBase + RaskEndpointExtensions.ManifestPath)
         };
@@ -83,6 +83,6 @@ internal sealed class RaskPwaHeadContribution(RaskPwaState state) : IRaskHeadCon
             "if(\"serviceWorker\" in navigator){navigator.serviceWorker.register(\""
             + swUrl + "\").catch(function(){});}")]);
 
-        return Components.Fragment()[children];
+        return [.. children];
     }
 }

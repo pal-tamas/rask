@@ -23,7 +23,7 @@ internal static class AppendDeleteRowChurn
     /// </summary>
     public static Component BuildRask(int[] order)
     {
-        var rows = new List<Child>(order.Length);
+        var rows = new List<Component>(order.Length);
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
@@ -37,7 +37,7 @@ internal static class AppendDeleteRowChurn
         return C.Div(Class: "list")[rows];
     }
 
-    // Stateful counterpart for the LiveDiff harness — caches row Child wrappers by
+    // Stateful counterpart for the LiveDiff harness — caches row Component wrappers by
     // key and only swaps the visible order array on Mutate. Matches Blazor's
     // ParameterView-update path (which also reuses its child components across
     // parameter changes) instead of paying for 100+ fresh element allocations per
@@ -46,10 +46,10 @@ internal static class AppendDeleteRowChurn
     public sealed class StatefulAppendDeleteList : Component
 #pragma warning restore RASK014
     {
-        private readonly Dictionary<int, Child> _rowsByKey = new();
+        private readonly Dictionary<int, Component> _rowsByKey = new();
         private int[]? _currentOrder;
 
-        private List<Child>? _scratch;
+        private List<Component>? _scratch;
 
         // Capacity is kept for the seeded-initial-order branch; sparse keys (e.g. N+1000)
         // work transparently because rows are lazy-built into the dictionary on demand.
@@ -71,11 +71,11 @@ internal static class AppendDeleteRowChurn
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             EnsureSeeded();
             var order = _currentOrder!;
-            _scratch ??= new List<Child>(order.Length);
+            _scratch ??= new List<Component>(order.Length);
             _scratch.Clear();
             for (var i = 0; i < order.Length; i++)
             {
@@ -85,7 +85,7 @@ internal static class AppendDeleteRowChurn
             return C.Div(Class: "list")[_scratch];
         }
 
-        private Child GetOrCreateRow(int key)
+        private Component GetOrCreateRow(int key)
         {
             if (_rowsByKey.TryGetValue(key, out var row))
             {

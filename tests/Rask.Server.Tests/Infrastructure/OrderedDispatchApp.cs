@@ -19,7 +19,7 @@ public sealed class OrderedDispatchApp : Component
 
     public string Sequence { get; private set; } = "";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[
@@ -33,14 +33,14 @@ public sealed class OrderedDispatchApp : Component
 
     private Component Buttons()
     {
-        var children = new List<Child>();
+        var children = new List<Component>();
         for (var i = 0; i < HandlerCount; i++)
         {
             var captured = i;
             children.Add(Button(OnClickAsync: () => RecordAsync(captured), Key: captured)[$"#{captured}"]);
         }
 
-        return Fragment()[children.ToArray()];
+        return [.. children.ToArray()];
     }
 
     private async Task RecordAsync(int index)

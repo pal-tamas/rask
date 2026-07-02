@@ -12,7 +12,7 @@ internal sealed class ReactiveTitleStubApp : Component
 {
     private int _count;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html()[

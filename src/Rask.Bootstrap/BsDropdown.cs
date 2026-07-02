@@ -17,7 +17,7 @@ public sealed class BsDropdown : BsBlock
     public Callback? OnToggle { get; set; }
     public CallbackAsync? OnToggleAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var open = Open is true;
         var expanded = new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" };
@@ -42,7 +42,7 @@ public sealed class BsDropdownItem : BsBlock
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (Divider is true)
         {
@@ -59,7 +59,7 @@ public sealed class BsDropdownItem : BsBlock
             Disabled is true ? "disabled" : null,
             Class);
 
-        Child item = Href is not null
+        Component item = Href is not null
             ? A(Class: cls, Href: Href)[Items]
             : Button(Type: "button", Class: cls, OnClick: OnClick, OnClickAsync: OnClickAsync)[Items];
 

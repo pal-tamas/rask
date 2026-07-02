@@ -24,14 +24,14 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public Action<ICollection<TItem>>? AfterBind { get; set; }
     public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
 
-    public Func<TItem, Child>? OptionLabel { get; set; }
+    public Func<TItem, Component>? OptionLabel { get; set; }
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders.
     private bool _open;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
 
@@ -62,11 +62,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             selected = Value;
         }
 
-        Child LabelOf(TItem item) =>
+        Component LabelOf(TItem item) =>
             OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
 
         // The control box doubles as the dropdown toggle; chips reuse BsBadge + BsCloseButton.
-        var box = new List<Child>();
+        var box = new List<Component>();
         if (selected is null || selected.Count == 0)
         {
             box.Add(Span(Class: "text-secondary")[Placeholder ?? "Select…"]);
@@ -86,7 +86,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             }
         }
 
-        var rows = new List<Child>();
+        var rows = new List<Component>();
         var idx = 0;
         foreach (var option in Options)
         {
@@ -102,7 +102,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             idx++;
         }
 
-        var children = new List<Child>
+        var children = new List<Component>
         {
             Div(
                 Class: disabled

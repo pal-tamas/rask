@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsTablesPage : Component
 {
-    protected override RenderResult Head => Title()["Table elements — Rask"];
+    protected override Component? Head => Title()["Table elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Table elements",

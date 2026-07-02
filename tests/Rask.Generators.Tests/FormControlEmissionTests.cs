@@ -22,7 +22,7 @@ public class FormControlEmissionTests
                                       public Action<int>? AfterBind { get; set; }
                                       public Func<int, Task>? AfterBindAsync { get; set; }
                                       public string? Label { get; set; }
-                                      public override RenderResult Render() => this;
+                                      public override Component? Render() => this;
                                   }
                                   """;
 
@@ -91,7 +91,7 @@ public class FormControlEmissionTests
                       public ValidateAsync<ICollection<TItem>>? ValidateAsync { get; set; }
                       public Action<ICollection<TItem>>? AfterBind { get; set; }
                       public Func<ICollection<TItem>, Task>? AfterBindAsync { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 

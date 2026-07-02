@@ -77,7 +77,7 @@ public class FrameDifferTests
         // A Fragment is transparent — it emits no HTML of its own — so text on either side of it
         // is DOM-adjacent and coalesces. The contiguity (HtmlEnd == htmlStart) check catches this
         // case that a children-list-level merge would miss.
-        var frames = Frames(Div()["a", Fragment()["b"]]);
+        var frames = Frames(Div()["a", ["b"]]);
 
         var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
         Assert.Equal("ab", text.Name);
@@ -823,16 +823,16 @@ public class FrameDifferTests
         // recursion must not be clobbered (including the MovesBuffer the batch accumulates into).
         // This pins the exact ops: the outer row reorder and the inner span reorder each emit a
         // single trusted PermutationBatch, at the right parent depths and non-interleaved.
-        static Child Row(int key, bool innerSwapped)
+        static Component Row(int key, bool innerSwapped)
         {
-            Child a = Span(Key: $"{key}a")["A"];
-            Child b = Span(Key: $"{key}b")["B"];
+            Component a = Span(Key: $"{key}a")["A"];
+            Component b = Span(Key: $"{key}b")["B"];
             var li = Li(Key: key);
             return innerSwapped ? li[b, a] : li[a, b];
         }
 
-        var before = Frames(Ul()[new List<Child> { Row(0, false), Row(1, false) }]);
-        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[new List<Child> { Row(1, false), Row(0, true) }]);
+        var before = Frames(Ul()[new List<Component> { Row(0, false), Row(1, false) }]);
+        var (afterFrames, afterHtml) = FramesAndHtml(Ul()[new List<Component> { Row(1, false), Row(0, true) }]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, afterFrames, ops, out var usedKeyed, afterHtml);
@@ -850,7 +850,7 @@ public class FrameDifferTests
 
     private static Component BuildKeyedRows(params int[] keys)
     {
-        var rows = new List<Child>(keys.Length);
+        var rows = new List<Component>(keys.Length);
         foreach (var k in keys)
         {
             rows.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = k.ToString() })[
@@ -863,7 +863,7 @@ public class FrameDifferTests
 
     private static Component BuildMixedRows(params (int Key, bool Keyed)[] rows)
     {
-        var children = new List<Child>(rows.Length);
+        var children = new List<Component>(rows.Length);
         foreach (var (key, keyed) in rows)
         {
             children.Add(keyed
@@ -878,7 +878,7 @@ public class FrameDifferTests
     // Data["rask-key"] entry — the differ should treat them identically.
     private static Component BuildKeyedRowsViaKeyProp(params int[] keys)
     {
-        var rows = new List<Child>(keys.Length);
+        var rows = new List<Component>(keys.Length);
         foreach (var k in keys)
         {
             rows.Add(Li(Key: k)[$"Item {k}"]);
@@ -889,7 +889,7 @@ public class FrameDifferTests
 
     private static Component BuildKeyedRowsWithLabel(params (string Key, string Label)[] rows)
     {
-        var items = new List<Child>(rows.Length);
+        var items = new List<Component>(rows.Length);
         foreach (var (key, label) in rows)
         {
             items.Add(Li(Data: new Dictionary<string, string?> { ["rask-key"] = key })[label]);
@@ -919,7 +919,7 @@ public class FrameDifferTests
     private static Component BuildLargePageWithCounter(int counter)
     {
         const int rowCount = 200;
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add(Div(Class: "row", Id: $"r{i}", Key: i)[

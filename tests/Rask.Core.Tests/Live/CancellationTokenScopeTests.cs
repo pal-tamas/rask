@@ -41,6 +41,6 @@ public class CancellationTokenScopeTests
     private sealed class Probe : Component
     {
         public CancellationToken Token => CancellationToken;
-        protected override RenderResult Render() => C.Span();
+        protected override Component? Render() => C.Span();
     }
 }

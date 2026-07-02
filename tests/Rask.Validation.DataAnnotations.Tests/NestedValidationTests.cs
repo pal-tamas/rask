@@ -275,7 +275,7 @@ public class NestedValidationTests
             DataAnnotationsValidator(),
             Input(() => p.Address!.Street),
             ValidationMessage(() => p.Address!.Street,
-                msgs => Fragment()[msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
+                msgs => [.. msgs.Select((m, i) => Div(Class: "err", Key: i)[m])])
         ]);
 
         var initial = view.RenderAsLiveRoot();

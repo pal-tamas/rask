@@ -11,7 +11,7 @@ public sealed class CryptoDemo(ICrypto crypto) : Component
     private string? _bytes;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[

@@ -10,7 +10,7 @@ public sealed class PerformanceDemo(IPerformance performance) : Component
     private string? _value;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Button(Class: "btn btn-outline-primary btn-sm mb-2", Id: "perf-read", OnClickAsync: Read)[

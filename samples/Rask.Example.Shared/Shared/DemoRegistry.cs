@@ -23,7 +23,7 @@ public static class DemoRegistry
             ["routing-nested-layout"] = () => CodeSample(
                 ["RoutingLayoutDemo.cs"],
                 Notes:
-                "Child templates are joined to the parent's. An empty child template (\"\") means "
+                "Component templates are joined to the parent's. An empty child template (\"\") means "
                 + "\"default child for this layout\". This very showcase is built that way — every page "
                 + "declares [ParentRoute(typeof(ShowcaseLayout))]."),
             ["routing-route-state"] = () => CodeSample(

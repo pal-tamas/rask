@@ -24,7 +24,7 @@ public class InputTypeMismatchAnalyzerTests
                                                         public bool Flag { get; set; }
                                                     }
                                                     private readonly M _m = new();
-                                                    protected override RenderResult Render()
+                                                    protected override Component? Render()
                                                     {
                                                         {{body}}
                                                     }

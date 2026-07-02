@@ -254,26 +254,26 @@ public class HeadAssetEmissionTests
 
     private sealed class CssOnly : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class JsOnly : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class BothAssets : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class WidgetA : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class WidgetB : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 }

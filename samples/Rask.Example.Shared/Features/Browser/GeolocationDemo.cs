@@ -9,7 +9,7 @@ public sealed class GeolocationDemo(IGeolocation geolocation) : Component
     private string? _location;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "geo-get", OnClickAsync: Get)[

@@ -13,7 +13,7 @@ public sealed class BsInput<T> : BsFormControl<T>
     public bool? ReadOnly { get; set; }
     public string? Autocomplete { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var b = Resolve();
         var controlId = ControlId(b);

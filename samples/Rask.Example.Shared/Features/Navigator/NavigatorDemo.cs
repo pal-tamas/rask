@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // event-handler code — a button click here changes the path, a select changes just the query.
 public sealed class NavigatorDemo(Navigator nav) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-flex flex-column gap-2")[
             Button(
                 OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"],

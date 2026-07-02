@@ -17,12 +17,12 @@ public sealed class ValidationSummaryDemo : Component
                 entries.Select((e, i) => Li(Key: i)[
                     e.Field.Length == 0
                         ? e.Message
-                        : Fragment()[Strong()[e.Field], ": ", e.Message]
+                        : [Strong()[e.Field], ": ", e.Message]
                 ])
             ]
         ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<RegistrationModel>(
             _model,
@@ -57,7 +57,7 @@ public sealed class ValidationSummaryDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

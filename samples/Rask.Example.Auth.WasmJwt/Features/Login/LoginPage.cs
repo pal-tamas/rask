@@ -12,12 +12,12 @@ public sealed class LoginPage(JwtLoginService login) : Component
 
     [QueryParam] public string? ReturnUrl { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "login", Class: "card shadow-sm mx-auto", Style: "max-width:24rem")[
             Div(Class: "card-body")[
                 H1(Class: "h3 card-title mb-3")["Sign in"],
                 _error is null
-                    ? (Child)Fragment()
+                    ? null
                     : Div(Id: "login-error", Class: "alert alert-danger py-2")[_error],
                 Form(_model, OnValidSubmitAsync: SubmitAsync)[
                     Div(Class: "mb-3")[

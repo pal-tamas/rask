@@ -16,7 +16,7 @@ public sealed class BsSpinner : BsBlock
 
     private bool Grow => Kind == BsSpinnerKind.Grow;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             Grow ? "spinner-grow" : "spinner-border",

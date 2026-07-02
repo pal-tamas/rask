@@ -83,41 +83,41 @@ public class RouteFlattenerTests
 
     private sealed class HomePage : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class UserPage : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class UserNew : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class DashPage : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class DashHome : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class DashOverview : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class DashSettings : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class DeepLeaf : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 }

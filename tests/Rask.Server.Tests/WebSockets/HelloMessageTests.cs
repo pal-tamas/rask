@@ -130,8 +130,8 @@ public class HelloMessageTests
             AwaitCompleted.TrySetResult();
         }
 
-        protected override RenderResult Render() =>
-            Fragment()[
+        protected override Component? Render() =>
+            [
                 Doctype(),
                 Html()[
                     Head()[

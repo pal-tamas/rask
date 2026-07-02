@@ -8,7 +8,7 @@ public sealed class SpeechDemo(ISpeechSynthesis speech) : Component
     private string _text = "Hello from Rask — spoken straight from C#.";
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Input(

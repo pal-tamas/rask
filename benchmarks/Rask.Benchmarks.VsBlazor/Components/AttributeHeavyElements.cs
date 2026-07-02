@@ -21,7 +21,7 @@ internal static class AttributeHeavyElements
     public static Component BuildRask(int attrCount)
     {
         var dataAttrCount = Math.Max(0, attrCount - 3);
-        var elements = new List<Child>(ElementCount);
+        var elements = new List<Component>(ElementCount);
         for (var i = 0; i < ElementCount; i++)
         {
             var data = new Dictionary<string, string?>(dataAttrCount);
@@ -49,7 +49,7 @@ internal static class AttributeHeavyElements
     {
         var dataAttrCount = Math.Max(0, attrCount - 3);
         const int mutateIndex = ElementCount / 2;
-        var elements = new List<Child>(ElementCount);
+        var elements = new List<Component>(ElementCount);
         for (var i = 0; i < ElementCount; i++)
         {
             var data = new Dictionary<string, string?>(dataAttrCount);

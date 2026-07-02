@@ -8,7 +8,7 @@ public sealed class DisposalAsyncDemo : Component
     private bool _asyncMounted;
     private int _nextAsyncId;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-async-mount", Disabled: _asyncMounted, OnClick: MountAsync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount async probe"],

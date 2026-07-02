@@ -86,7 +86,7 @@ Authorize(
     Authorizing:   Spinner())                     // shown while the principal/policy resolves
 ```
 
-- **`Authorized`** is `Func<ClaimsPrincipal, Child>` — it receives the signed-in principal and re-runs
+- **`Authorized`** is `Func<ClaimsPrincipal, Component>` — it receives the signed-in principal and re-runs
   whenever the gate re-renders (i.e. on `IUserProvider.Changed`), so user-dependent markup stays fresh
   on its own. For static authorized content that ignores the user, use the children-indexer shorthand
   `Authorize(...)[ content ]`.
@@ -142,10 +142,10 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
 
     [QueryParam] public string? ReturnUrl { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "mx-auto", Style: "max-width:24rem")[
             H1()["Sign in"],
-            _error is null ? Fragment() : Div(Class: "alert alert-danger")[_error],
+            _error is null ? null : Div(Class: "alert alert-danger")[_error],
             Form(_model, OnValidSubmitAsync: SubmitAsync, Class: "vstack gap-3")[
                 Input(() => _model.Username, Id: "username", Class: "form-control"),
                 Input(() => _model.Password, Id: "password", Type: InputType.Password, Class: "form-control"),
@@ -180,7 +180,7 @@ subscription:
 [Authorize]
 public sealed class SecurePage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Authorize(
             Authorizing:   P()["Signing you in…"],
             NotAuthorized: P()["Please sign in."],
@@ -783,7 +783,7 @@ public sealed class LoginPage(
     private string? _error;
     [QueryParam] public string? ReturnUrl { get; set; }
 
-    protected override RenderResult Render() => /* same form as Cookie + Server */ ...;
+    protected override Component? Render() => /* same form as Cookie + Server */ ...;
 
     private async Task SubmitAsync(LoginModel m)
     {

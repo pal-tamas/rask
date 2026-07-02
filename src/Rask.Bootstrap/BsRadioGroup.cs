@@ -24,14 +24,14 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
     public Action<TValue>? AfterBind { get; set; }
     public Func<TValue, Task>? AfterBindAsync { get; set; }
 
-    public Func<TValue, Child>? OptionLabel { get; set; }
+    public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Name { get; set; }
 
     // Extra wrapper classes per item, e.g. "form-check-inline".
     public string? ItemClass { get; set; }
     public bool? Disabled { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         ArgumentNullException.ThrowIfNull(Options);
 
@@ -64,14 +64,14 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
         var groupName = Name ?? acc?.PropertyName ?? "radio-group";
         var wrapperClass = BsClass.Join("form-check", ItemClass);
 
-        var children = new List<Child>();
+        var children = new List<Component>();
         var index = 0;
         foreach (var option in Options)
         {
             var optionValue = option;
             var optionId = $"{groupName}-{index}";
             var isChecked = current is not null && comparer.Equals(optionValue, current);
-            Child label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
+            Component label = OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? string.Empty;
 
             children.Add(Div(Class: wrapperClass, Key: index)[
                 Input<string>(
@@ -88,7 +88,7 @@ public sealed class BsRadioGroup<TValue> : Component, IFormControl<TValue>
             children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
         }
 
-        return Fragment()[children];
+        return [.. children];
     }
 
     private async Task SelectAsync(

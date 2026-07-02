@@ -86,7 +86,7 @@ public class ComponentTests
     public void Indexer_AcceptsStringAndComponent_ViaImplicitChild()
     {
         // Both `"text"` and `Component` instances flow through the indexer thanks to the
-        // implicit Child conversions; the indexer signature is `params IEnumerable<Child>`.
+        // implicit Component conversions; the indexer signature is `params IEnumerable<Component>`.
         var html = Div()["before", Strong()["bold"], "after"].ToHtml();
         Assert.Equal("<div>before<strong>bold</strong>after</div>", html);
     }

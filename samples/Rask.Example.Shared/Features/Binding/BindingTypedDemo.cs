@@ -4,7 +4,7 @@ public sealed class BindingTypedDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Input(
             () => _model.Name,

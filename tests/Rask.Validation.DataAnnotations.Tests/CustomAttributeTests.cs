@@ -116,7 +116,7 @@ public class CustomAttributeTests
 
     private sealed class NoOpRoot : Component
     {
-        protected override RenderResult Render() => Fragment();
+        protected override Component? Render() => null;
     }
 
     private sealed class StubServices : IServiceProvider
