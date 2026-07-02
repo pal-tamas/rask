@@ -1,17 +1,22 @@
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Routing;
 using Rask.Example.Shared.Tests.Infrastructure;
+using static Rask.Example.Shared.Features.Generated;
 
-namespace Rask.Example.Shared.Tests.Pages;
+namespace Rask.Example.Shared.Tests.Demos;
 
-public sealed class NavigatorPageTests
+// NavigatorQueryDemo is the query-mutation widget promoted out of the former NavigatorPage when the
+// routing pages were folded into the guides. It reads RouteState for the live readout and mutates the
+// current URL's query through the scoped Navigator. The mutation tests exercise Navigator directly
+// (page-independent); the render tests mount the demo over a stub RouteState.
+public sealed class NavigatorQueryDemoTests
 {
     [Fact]
     public void Render_EmptyQuery_ShowsEmptyPlaceholder()
     {
-        var routeState = new RouteState { Path = "/navigator" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var routeState = new RouteState { Path = "/guides/routing" };
+        var html = new LiveHost(() => NavigatorQueryDemo(), TestServices.Default(routeState: routeState))
+            .RenderAsLiveRoot();
         Assert.Contains("(empty)", html);
     }
 
@@ -23,9 +28,9 @@ public sealed class NavigatorPageTests
             ["page"] = "2",
             ["sort"] = "asc"
         });
-        var routeState = new RouteState { Path = "/navigator", Query = query };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var routeState = new RouteState { Path = "/guides/routing", Query = query };
+        var html = new LiveHost(() => NavigatorQueryDemo(), TestServices.Default(routeState: routeState))
+            .RenderAsLiveRoot();
         Assert.Contains("page=2", html);
         Assert.Contains("sort=asc", html);
     }
@@ -33,7 +38,7 @@ public sealed class NavigatorPageTests
     [Fact]
     public void SetQuery_FromHandler_AddsKeyToRouteState()
     {
-        var routeState = new RouteState { Path = "/navigator" };
+        var routeState = new RouteState { Path = "/guides/routing" };
         var nav = new Navigator(routeState);
         TestNavigator.RunHandler(nav, () => nav.SetQuery("page", "1"));
         Assert.True(routeState.Query.ContainsKey("page"));
@@ -45,7 +50,7 @@ public sealed class NavigatorPageTests
         var initial =
             new QueryCollection(
                 new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["page"] = "2" });
-        var routeState = new RouteState { Path = "/navigator", Query = initial };
+        var routeState = new RouteState { Path = "/guides/routing", Query = initial };
         var nav = new Navigator(routeState);
 
         TestNavigator.RunHandler(nav, () => nav.RemoveQuery("page"));
@@ -60,7 +65,7 @@ public sealed class NavigatorPageTests
             ["a"] = "1",
             ["b"] = "2"
         });
-        var routeState = new RouteState { Path = "/navigator", Query = initial };
+        var routeState = new RouteState { Path = "/guides/routing", Query = initial };
         var nav = new Navigator(routeState);
 
         TestNavigator.RunHandler(nav, () => nav.ClearQuery());

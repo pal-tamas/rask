@@ -29,24 +29,17 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         (Features.Routes.ElementsInteractivePage(), "Interactive", "bi-hand-index", "HTML elements", null),
         (Features.Routes.ElementsMetadataPage(), "Document & metadata", "bi-file-earmark-code", "HTML elements", null),
         (Features.Routes.ComponentsPage(), "User components", "bi-boxes", "Components", null),
-        (Features.Routes.RoutingPage(), "Routing", "bi-signpost-2", "Components", null),
-        (Features.Routes.UserDetailPage("42"), "Route + query params", "bi-link-45deg", "Components", "/users"),
-        (Features.Routes.NavigatorPage(), "Navigator", "bi-compass", "Components", null),
         (Features.Routes.ToastPage(), "Toast", "bi-bell", "Components", null),
         (Features.Routes.FlashPage(), "Flash messages", "bi-megaphone", "Components", null),
-        (Features.Routes.ElementRefPage(), "Element refs", "bi-bullseye", "Components", null),
         (Features.Routes.UserPage(), "User & auth", "bi-person-lock", "Components", null),
         (Features.Routes.LiveTickerPage("BTC"), "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
         (Features.Routes.EventsPage(), "Events", "bi-mouse", "Components", null),
         (Features.Routes.TablePage(), "Data table", "bi-table", "Components", null),
         (Features.Routes.OrdersPage(), "Master-detail", "bi-list-nested", "Components", null),
-        (Features.Routes.ScopedCssPage(), "Scoped CSS", "bi-palette", "Styling", null),
-        (Features.Routes.AssetLoadingPage(), "Asset loading", "bi-link-45deg", "Styling", null),
         (Features.Routes.HttpPage(), "HttpClient + DI", "bi-cloud-arrow-down", "Data", null),
         (Features.Routes.UploadPage(), "File upload", "bi-upload", "Files", null),
         (Features.Routes.DownloadPage(), "File download", "bi-cloud-download", "Files", null),
-        (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null),
-        (Features.Routes.JsRuntimePage(), "IJSRuntime", "bi-braces", "Apps", null)
+        (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
         // The typed browser-API wrappers used to live here as one example page each; they are now folded
         // into the Browser APIs guide as inline live demos (docs/browser-apis.md). See DemoRegistry.
     ];
