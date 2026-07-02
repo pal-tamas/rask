@@ -96,7 +96,7 @@ public sealed class LiveTickerPage(Navigator nav) : Component
 
     private void ClearLog() => _log.Clear();
 
-    // Same trick LifecyclePage uses: an unmount-time StateHasChanged lands in
+    // Same trick the lifecycle demos use: an unmount-time StateHasChanged lands in
     // the in-handler guard and gets dropped on WASM. Yielding to the event loop
     // lets the lock release before we request the follow-up render.
     private async Task DeferredRerenderAsync()

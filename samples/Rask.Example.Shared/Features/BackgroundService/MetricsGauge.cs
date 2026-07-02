@@ -12,7 +12,7 @@ namespace Rask.Example.Shared.Features;
 // (ShowcaseLayout.cs:57-59): += in OnMount, -= in OnUnmount so a navigated-away
 // component stops repainting and can be collected (no event-handler leak). Updated
 // fires from a background thread; StateHasChanged() is thread-safe and a no-op once
-// unmounted, so no extra marshalling is needed here (same as DisposalPage's timer probe).
+// unmounted, so no extra marshalling is needed here (same as the disposable timer probe).
 
 // Numeric readout of the latest tick. Ids are stable so the E2E journey can assert the
 // tick count advances without any user interaction.

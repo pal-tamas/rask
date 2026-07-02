@@ -29,6 +29,15 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — lifecycle examples folded into the guide (phase 3).** The 4 standalone example pages
+  (`/lifecycle`, `/disposal`, `/cancellation`, `/background`) are removed; every lifecycle demo — the
+  hook-order probe, the mount/unmount cycle, `IDisposable` / `IAsyncDisposable`, `OnUnmount` vs
+  `IDisposable`, lifetime-token cancellation, and the decoupled background-service feed — is now an
+  **inline live demo in the Lifecycle guide** (`docs/lifecycle.md`), which gains Disposal and Background
+  service sections. The mount/unmount widgets that lived inline in the pages moved into their own demo
+  components (`LifecycleCycleDemo`, `DisposalSyncDemo`/`DisposalAsyncDemo`/`DisposalUnmountDemo`,
+  `CancellationDemo`, `BackgroundMetricsDemo`) so they stay runnable inline; the lifecycle probes are
+  unchanged. Demos reused via `DemoRegistry`; the E2E lifecycle demos run on the one guide page.
 - **Examples site — composition examples folded into the guide (phase 3).** The 6 standalone example
   pages for context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries are removed;
   each is now an **inline live demo in the Composition guide** (`docs/composition.md`), which gains
