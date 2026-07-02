@@ -39,6 +39,8 @@ public static class GuideCatalog
             "bi-shield-lock", "Integration"),
         new("data-access", "Data access", "EF Core + SQLite, vertical slices, DDD patterns.",
             "bi-database", "Integration"),
+        new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.",
+            "bi-shuffle", "Integration"),
         new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.",
             "bi-universal-access", "Integration"),
         new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.",

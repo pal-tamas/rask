@@ -60,6 +60,7 @@ public abstract partial class SharedSmokeTests
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
         await WalkElementsGuideAsync();
+        await WalkCqrsGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -145,6 +146,29 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);
+    }
+
+    // The CQRS guide (docs/cqrs.md) embeds the counter slice. Driving it end-to-end proves the
+    // source-generated dispatch works on this host: OnMount runs a query, the button sends a command
+    // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
+    // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
+    // would throw "No handler is registered" and trip the root error boundary instead.
+    private async Task WalkCqrsGuideAsync()
+    {
+        await ClickSidebar("CQRS");
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("CQRS",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        var count = Page.Locator("#cqrs-count");
+        await Expect(count).ToHaveTextAsync("0", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // Command → notification → query round-trip: the count increments and the dispatch log renders.
+        await Page.Locator("#cqrs-increment").ClickAsync();
+        await Expect(count).ToHaveTextAsync("1", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#cqrs-log")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await AssertNoGlobalCrashAsync();
     }
 
     // ---- page walk -----------------------------------------------------------------------------
@@ -843,22 +867,27 @@ public abstract partial class SharedSmokeTests
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 
         // The navbar height is centralised in a single --nav-h custom property (no hard-coded 56px),
-        // and on desktop the sidebar's body uses it to become an independent, viewport-bounded scroll
-        // region so the list scrolls inside itself rather than stretching the page — the "navbar too
-        // tall" fix. (Groups now collapse by default, so the list itself is short; this only asserts
-        // the region is bounded and scrollable when needed, not that it currently overflows.)
+        // and on desktop the sidebar's list (.side-nav-scroll) becomes an independent, viewport-bounded
+        // scroll region so it scrolls inside itself rather than stretching the page — the "navbar too
+        // tall" fix. The filter above it is a pinned flex header (the body itself does not scroll — a
+        // sticky-in-flex child would not stick in Safari). (Groups now collapse by default, so the list
+        // itself is short; this only asserts the region is bounded and scrollable when needed.)
         Assert.Equal("56px", (await Page.EvaluateAsync<string>(
             "() => getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim()")));
-        var navScroll = await Page.Locator(".side-nav .offcanvas-body").First.EvaluateAsync<string>(
+        var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
             @"el => {
                 const cs = getComputedStyle(el);
+                const body = getComputedStyle(el.closest('.offcanvas-body'));
                 const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
                 return JSON.stringify({
                     overflowY: cs.overflowY,
+                    bodyOverflowY: body.overflowY,
                     bounded: el.clientHeight <= window.innerHeight - navH + 1,
                 });
             }");
         Assert.Contains("\"overflowY\":\"auto\"", navScroll);
+        // The body itself must not scroll — only the inner list does, so the filter stays pinned.
+        Assert.Contains("\"bodyOverflowY\":\"hidden\"", navScroll);
         Assert.Contains("\"bounded\":true", navScroll);
 
         // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.

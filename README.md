@@ -15,6 +15,7 @@
 [![NuGet Rask.Validation.FluentValidation](https://img.shields.io/nuget/v/Rask.Validation.FluentValidation.svg?label=Rask.Validation.FluentValidation)](https://www.nuget.org/packages/Rask.Validation.FluentValidation)
 [![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
 [![NuGet Rask.WebPush](https://img.shields.io/nuget/v/Rask.WebPush.svg?label=Rask.WebPush)](https://www.nuget.org/packages/Rask.WebPush)
+[![NuGet Rask.Cqrs](https://img.shields.io/nuget/v/Rask.Cqrs.svg?label=Rask.Cqrs)](https://www.nuget.org/packages/Rask.Cqrs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
@@ -179,6 +180,7 @@ Pick one host package per project, then add validation packages as needed:
 | `Rask.Validation.FluentValidation` | any host (referenced from the project that hosts your forms)        | drop `FluentValidationValidator(new MyValidator())` inside  |
 | `Rask.Bootstrap`                   | any host (referenced from the project with your components)         | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
 | `Rask.WebPush`                     | any backend (a `Rask.Server` app or a WASM PWA's ASP.NET host)      | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
+| `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)                | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 
 ```bash
 dotnet add package Rask.Server                       # server live host
@@ -188,6 +190,7 @@ dotnet add package Rask.Validation.DataAnnotations   # opt-in: System.ComponentM
 dotnet add package Rask.Validation.FluentValidation  # opt-in: FluentValidation 12.x
 dotnet add package Rask.Bootstrap                     # opt-in: typed Bootstrap 5.3 components
 dotnet add package Rask.WebPush                       # opt-in: send Web Push from the backend (VAPID + RFC 8291)
+dotnet add package Rask.Cqrs                          # opt-in: source-generated CQRS/mediator (trim-safe)
 ```
 
 `Rask.Server` and `Rask.Wasm` each pull in `Rask.Core` and the source generators transitively; `Rask.Wasm.Hosting`
