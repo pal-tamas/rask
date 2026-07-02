@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using ColorCode;
 using Microsoft.JSInterop;
 
@@ -6,13 +5,6 @@ namespace Rask.Example.Shared;
 
 public sealed class CodeSample : Component
 {
-    // Source is a constant author-time string per instance, and a page can mount
-    // ~15 CodeSamples that each re-render on every live diff (and again on every tab
-    // switch). Memoise the tokenized HTML keyed by language + trimmed source so repeated
-    // renders never re-run the parser. This also bounds HtmlClassFormatter construction
-    // to one-per-distinct-(language, source).
-    private static readonly ConcurrentDictionary<string, string> HighlightCache = new(StringComparer.Ordinal);
-
     // Clipboard interop is injected via the ctor (the framework's DI seam) so Source stays
     // a plain factory parameter — a settable non-nullable service prop would become a
     // required param and clash with the DI-only ctor (no parameterless ctor → RASK002).
@@ -54,49 +46,15 @@ public sealed class CodeSample : Component
     {
         var file = Files[index];
         var source = EmbeddedSource.Read(file);
-        return Path.GetExtension(file).ToLowerInvariant() switch
+        var ext = Path.GetExtension(file).ToLowerInvariant();
+        var codeClass = ext switch
         {
-            ".js" => (file, source, Languages.JavaScript, "language-javascript"),
-            ".css" => (file, source, Languages.Css, "language-css"),
-            ".cs" => (file, source, Languages.CSharp, "language-csharp"),
-            _ => (file, source, null, "language-plaintext"),
+            ".js" => "language-javascript",
+            ".css" => "language-css",
+            ".cs" => "language-csharp",
+            _ => "language-plaintext",
         };
-    }
-
-    // Syntax highlighting is produced server-side by ColorCode: GetHtmlString tokenizes the
-    // source into <span class="..."> markup whose classes (keyword/string/comment/cssSelector/…)
-    // are coloured by the .sample-code rules in the app's global stylesheet (wwwroot/global.css);
-    // they can't be scoped because Raw() markup carries no scope id. The result is injected via
-    // the Raw() factory (verbatim, un-encoded — ColorCode already HTML-encodes token text), so no
-    // client JS runs and the highlight is present in the very first render.
-    private static string HighlightedHtml(string source, ILanguage language)
-    {
-        var trimmed = source.TrimEnd();
-        return HighlightCache.GetOrAdd(
-            // Key by language id too: the same text tokenizes differently per language.
-            $"{language.Id}\n{trimmed}",
-            // A fresh formatter per cache-miss: HtmlClassFormatter mutates a per-instance
-            // Writer field during GetHtmlString and is therefore not safe to share across
-            // concurrent renders. The cache bounds this to one allocation per distinct key.
-            _ => StripWrapper(new HtmlClassFormatter().GetHtmlString(trimmed, language)));
-    }
-
-    // ColorCode wraps its output as <div class="{lang}"><pre>\n …spans… \n</pre></div>.
-    // We keep our own <pre class="sample-code"><code class="language-…"> for layout and
-    // scoped styling, so peel ColorCode's wrapper and inject only the inner token spans.
-    private static string StripWrapper(string html)
-    {
-        const string open = "<pre>";
-        const string close = "</pre>";
-        var start = html.IndexOf(open, StringComparison.Ordinal);
-        var end = html.LastIndexOf(close, StringComparison.Ordinal);
-        if (start < 0 || end < 0)
-        {
-            return html; // defensive: ColorCode's output shape changed — render it as-is.
-        }
-
-        start += open.Length;
-        return html.Substring(start, end - start);
+        return (file, source, SyntaxHighlighter.LanguageFor(ext), codeClass);
     }
 
     // Copies the raw (un-highlighted) source of the active tab. C# already holds the string,
@@ -149,23 +107,24 @@ public sealed class CodeSample : Component
                         ? Fragment()
                         : P(Class: $"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
-            Div(Class: "row g-0")[
-                Div(Class: "col-md-7 sample-code-col")[
-                    Header(),
-                    Pre(Class: "sample-code m-0")[
-                        Code(Class: codeClass)[
-                            // A known language is tokenized server-side and injected verbatim;
-                            // an unknown extension falls back to plain, HTML-encoded text.
-                            activeLanguage is null
-                                ? Text(activeSource.TrimEnd())
-                                : Raw(HighlightedHtml(activeSource, activeLanguage))
-                        ]
+            // Stacked, code first: the source pane on top, the live result below (full width). Reads
+            // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
+            // pane into a narrow column on smaller viewports.
+            Div(Class: "sample-code-col")[
+                Header(),
+                Pre(Class: "sample-code m-0")[
+                    Code(Class: codeClass)[
+                        // A known language is tokenized server-side and injected verbatim;
+                        // an unknown extension falls back to plain, HTML-encoded text.
+                        activeLanguage is null
+                            ? Text(activeSource.TrimEnd())
+                            : Raw(SyntaxHighlighter.Highlight(activeSource, activeLanguage))
                     ]
-                ],
-                Div(Class: "col-md-5 sample-result-col p-4")[
-                    Div(Class: "sample-result-label")["Live result"],
-                    Div(Class: "sample-result-body")[Result ?? Fragment()]
                 ]
+            ],
+            Div(Class: "sample-result-col p-4")[
+                Div(Class: "sample-result-label")["Live result"],
+                Div(Class: "sample-result-body")[Result ?? Fragment()]
             ]
         ];
     }
