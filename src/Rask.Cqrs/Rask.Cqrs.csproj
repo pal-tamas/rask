@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Cqrs</PackageId>
+    <Description>Source-generated, reflection-free CQRS/mediator for .NET. Define `IQuery&lt;T&gt;`, `ICommand`, `ICommand&lt;T&gt;` and `INotification` messages with their handlers, then dispatch through `IDispatcher` with the response type inferred — no runtime reflection and no assembly scanning, so it publishes clean under the WASM/AOT trimmer. Pipeline behaviors provide the decorator hook for cross-cutting logging/validation/transactions. Standalone: depends only on Microsoft.Extensions.DependencyInjection.Abstractions.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+  </ItemGroup>
+
+  <!--
+    The dispatch source generator is referenced as an analyzer (no runtime assembly reference),
+    keeping Rask.Cqrs self-contained: consumers get the generator without pulling in the Rask
+    component/routes generators. See src/Rask.Cqrs.Generators.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs.Generators\Rask.Cqrs.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!-- Ship the global `using Rask.Cqrs;` to downstream consumers. -->
+  <ItemGroup>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <!-- Pack the source generator into analyzers/dotnet/cs/ so NuGet consumers run it. -->
+  <ItemGroup>
+    <None Include="..\Rask.Cqrs.Generators\bin\$(Configuration)\netstandard2.0\Rask.Cqrs.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+</Project>
