@@ -150,6 +150,19 @@ public static class DemoRegistry
             ["multi-select-controlled"] = () => CodeSample(["MultiSelectControlledDemo.cs"], Result: MultiSelectControlledDemo()),
             ["multi-select-checkbox"] = () => CodeSample(["MultiSelectCheckboxDemo.cs"], Result: MultiSelectCheckboxDemo()),
             ["multi-select-radio"] = () => CodeSample(["MultiSelectRadioDemo.cs"], Result: MultiSelectRadioDemo()),
+
+            // --- Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, error
+            //     boundaries (their standalone example pages folded into docs/composition.md). ---
+            ["context-theme"] = () => CodeSample(["ContextThemeDemo.cs"], Result: ContextThemeDemo()),
+            ["callback-rating"] = () => CodeSample(["CallbackRatingDemo.cs"], Result: CallbackRatingDemo()),
+            ["virtualize-items"] = () => CodeSample(["VirtualizeItemsDemo.cs"], Result: VirtualizeItemsDemo()),
+            ["virtualize-provider"] = () => CodeSample(["VirtualizeProviderDemo.cs"], Result: VirtualizeProviderDemo()),
+            ["keyed-lists-reorder"] = () => CodeSample(["KeyedListsReorderDemo.cs"], Result: KeyedListsReorderDemo()),
+            ["drag-drop-sortable"] = () => CodeSample(["DragDropSortableDemo.cs"], Result: DragDropSortableDemo()),
+            ["drag-drop-kanban"] = () => CodeSample(["DragDropKanbanDemo.cs"], Result: DragDropKanbanDemo()),
+            ["boom-handler"] = () => CodeSample(["BoomHandlerDemo.cs"], Result: BoomHandlerDemo()),
+            ["boom-render"] = () => CodeSample(["BoomRenderDemo.cs"], Result: BoomRenderDemo()),
+            ["boom-nested"] = () => CodeSample(["BoomNestedDemo.cs"], Result: BoomNestedDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

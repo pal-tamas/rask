@@ -29,6 +29,13 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — composition examples folded into the guide (phase 3).** The 6 standalone example
+  pages for context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries are removed;
+  each is now an **inline live demo in the Composition guide** (`docs/composition.md`), which gains
+  "Keyed lists" and "Error boundaries" sections. The keyed-lists demo's interactive widget (keys
+  on/off, reorder, focus-preserving rows) moved from the page into `KeyedListsReorderDemo` so it stays
+  runnable inline. Demos reused via `DemoRegistry`; the E2E composition demos run on the guide page
+  (locators scoped where badges/panes repeat).
 - **Examples site — Forms folded into the guide (phase 3).** The 7 standalone forms example pages
   (`/binding`, `/form-controls`, `/validation`, `/floating-labels`, `/nested-forms`, `/form-groups`,
   `/multi-select`) are removed; every forms demo — the binding matrix, the control matrix, the full
