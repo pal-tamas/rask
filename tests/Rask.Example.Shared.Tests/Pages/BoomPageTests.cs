@@ -1,21 +1,23 @@
 using System.Reflection;
-using Rask.Core.Routing;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
+#pragma warning disable RASK014 // tests render the demo components directly as roots
+
 namespace Rask.Example.Shared.Tests.Pages;
 
+// The error-boundary demos (folded into the Composition guide from their former standalone page): a
+// handler-throw boundary, a render-throw boundary, and nested boundaries.
 public sealed class BoomPageTests
 {
     [Fact]
-    public void Render_AtRest_EmitsAllThreeHostDivs()
+    public void Demos_AtRest_EmitTheirHostDivs()
     {
-        var html = new Shared.App().RenderAsLiveRoot(
-            TestServices.Default(routeState: new RouteState { Path = "/boom" }));
+        var sp = TestServices.Default();
 
-        Assert.Contains("boom-handler-host", html);
-        Assert.Contains("boom-render-host", html);
-        Assert.Contains("boom-nested-host", html);
+        Assert.Contains("boom-handler-host", new BoomHandlerDemo().RenderAsLiveRoot(sp));
+        Assert.Contains("boom-render-host", new BoomRenderDemo().RenderAsLiveRoot(sp));
+        Assert.Contains("boom-nested-host", new BoomNestedDemo().RenderAsLiveRoot(sp));
     }
 
     [Fact]

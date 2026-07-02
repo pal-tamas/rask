@@ -1,18 +1,20 @@
 using System.Reflection;
-using Rask.Core.Routing;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
+#pragma warning disable RASK014 // test renders the demo component directly as a root
+
 namespace Rask.Example.Shared.Tests.Pages;
 
+// The keyed-lists reorder demo (folded into the Composition guide from its former standalone page). It
+// keys rows by a stable id so a reorder preserves the survivors' DOM state; the keys-off branch shows
+// positional reconciliation instead.
 public sealed class KeyedListsPageTests
 {
     [Fact]
-    public void Route_KeyedLists_RendersSeededRows()
+    public void Demo_RendersSeededRows_KeyedByDefault()
     {
-        var routeState = new RouteState { Path = "/keyed-lists" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        var html = new KeyedListsReorderDemo().RenderAsLiveRoot(TestServices.Default());
 
         Assert.Contains("Apple", html);
         Assert.Contains("Elderberry", html);
@@ -40,19 +42,18 @@ public sealed class KeyedListsPageTests
         Assert.Contains("Apple", html);
     }
 
-    // Render just the list rows (which have no DI dependencies) by invoking the page's
-    // private BuildRows() — rendering the whole page would touch CodeSample, a DI component
-    // that requires a live render context.
+    // Render just the list rows (which have no DI dependencies) by invoking the demo's private
+    // BuildRows() — rendering the whole demo through CodeSample would require a live render context.
     private static string RenderRows(bool useKeys)
     {
-        var page = new KeyedListsPage();
-        typeof(KeyedListsPage)
+        var demo = new KeyedListsReorderDemo();
+        typeof(KeyedListsReorderDemo)
             .GetField("_useKeys", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .SetValue(page, useKeys);
+            .SetValue(demo, useKeys);
 
-        var rows = (List<Child>)typeof(KeyedListsPage)
+        var rows = (List<Child>)typeof(KeyedListsReorderDemo)
             .GetMethod("BuildRows", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .Invoke(page, null)!;
+            .Invoke(demo, null)!;
 
         return string.Concat(rows.Select(r => r.Component.ToHtml()));
     }
