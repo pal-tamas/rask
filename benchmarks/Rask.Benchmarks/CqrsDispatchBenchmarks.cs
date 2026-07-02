@@ -21,20 +21,20 @@ public class CqrsDispatchBenchmarks
     }
 
     [Benchmark]
-    public Task<int> Query() => _dispatcher.Query(new BenchAdd(2, 3));
+    public Task<int> Query() => _dispatcher.QueryAsync(new BenchAdd(2, 3));
 
     [Benchmark]
-    public Task<int> SendCommand() => _dispatcher.Send(new BenchCreate("abcd"));
+    public Task<int> SendCommand() => _dispatcher.SendAsync(new BenchCreate("abcd"));
 
     [Benchmark]
-    public Task Publish() => _dispatcher.Publish(new BenchPinged(1));
+    public Task Publish() => _dispatcher.PublishAsync(new BenchPinged(1));
 }
 
 public sealed record BenchAdd(int A, int B) : IQuery<int>;
 
 public sealed class BenchAddHandler : IQueryHandler<BenchAdd, int>
 {
-    public Task<int> Handle(BenchAdd query, CancellationToken cancellationToken) =>
+    public Task<int> HandleAsync(BenchAdd query, CancellationToken cancellationToken) =>
         Task.FromResult(query.A + query.B);
 }
 
@@ -42,7 +42,7 @@ public sealed record BenchCreate(string Name) : ICommand<int>;
 
 public sealed class BenchCreateHandler : ICommandHandler<BenchCreate, int>
 {
-    public Task<int> Handle(BenchCreate command, CancellationToken cancellationToken) =>
+    public Task<int> HandleAsync(BenchCreate command, CancellationToken cancellationToken) =>
         Task.FromResult(command.Name.Length);
 }
 
@@ -50,10 +50,10 @@ public sealed record BenchPinged(int Value) : INotification;
 
 public sealed class BenchPingedA : INotificationHandler<BenchPinged>
 {
-    public Task Handle(BenchPinged notification, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task HandleAsync(BenchPinged notification, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 public sealed class BenchPingedB : INotificationHandler<BenchPinged>
 {
-    public Task Handle(BenchPinged notification, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task HandleAsync(BenchPinged notification, CancellationToken cancellationToken) => Task.CompletedTask;
 }

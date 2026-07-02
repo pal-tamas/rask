@@ -30,7 +30,7 @@ public sealed record GetCounterState : IQuery<CounterState>;
 public sealed class GetCounterStateHandler(CqrsCounterStore store)
     : IQueryHandler<GetCounterState, CounterState>
 {
-    public Task<CounterState> Handle(GetCounterState query, CancellationToken ct) =>
+    public Task<CounterState> HandleAsync(GetCounterState query, CancellationToken ct) =>
         Task.FromResult(new CounterState(store.Count, store.Log));
 }
 ```
@@ -55,12 +55,12 @@ public sealed class CounterView(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMountAsync() =>
-        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.Send(new IncrementCounter(1), CancellationToken); // ICommand<int>
-        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
+        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
     }
 }
 ```
@@ -77,10 +77,10 @@ order, so don't depend on it, and publishing a notification that has no handlers
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IPublisher publisher)
     : ICommandHandler<IncrementCounter, int>
 {
-    public async Task<int> Handle(IncrementCounter command, CancellationToken ct)
+    public async Task<int> HandleAsync(IncrementCounter command, CancellationToken ct)
     {
         var value = store.IncrementBy(command.By);
-        await publisher.Publish(new CounterIncremented(value), ct);
+        await publisher.PublishAsync(new CounterIncremented(value), ct);
         return value;
     }
 }
@@ -98,7 +98,7 @@ so one behavior shape covers everything.
 public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore store)
     : IPipelineBehavior<TRequest, TResult>
 {
-    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken ct)
+    public Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken ct)
     {
         store.Note($"⚙ dispatch {typeof(TRequest).Name}");
         return next();

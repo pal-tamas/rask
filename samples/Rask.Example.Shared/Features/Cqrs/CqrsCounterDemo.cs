@@ -11,12 +11,12 @@ public sealed class CqrsCounterDemo(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMountAsync() =>
-        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.Send(new IncrementCounter(1), CancellationToken);
-        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
+        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken);
+        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
     }
 
     protected override RenderResult Render() =>

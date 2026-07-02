@@ -36,7 +36,7 @@ public sealed record GetCounterState : IQuery<CounterState>;
 
 public sealed class GetCounterStateHandler(CqrsCounterStore store) : IQueryHandler<GetCounterState, CounterState>
 {
-    public Task<CounterState> Handle(GetCounterState query, CancellationToken cancellationToken) =>
+    public Task<CounterState> HandleAsync(GetCounterState query, CancellationToken cancellationToken) =>
         Task.FromResult(new CounterState(store.Count, store.Log));
 }
 
@@ -46,10 +46,10 @@ public sealed record IncrementCounter(int By) : ICommand<int>;
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IPublisher publisher)
     : ICommandHandler<IncrementCounter, int>
 {
-    public async Task<int> Handle(IncrementCounter command, CancellationToken cancellationToken)
+    public async Task<int> HandleAsync(IncrementCounter command, CancellationToken cancellationToken)
     {
         var value = store.IncrementBy(command.By);
-        await publisher.Publish(new CounterIncremented(value), cancellationToken);
+        await publisher.PublishAsync(new CounterIncremented(value), cancellationToken);
         return value;
     }
 }
@@ -59,7 +59,7 @@ public sealed record CounterIncremented(int Value) : INotification;
 
 public sealed class CounterIncrementedHandler(CqrsCounterStore store) : INotificationHandler<CounterIncremented>
 {
-    public Task Handle(CounterIncremented notification, CancellationToken cancellationToken)
+    public Task HandleAsync(CounterIncremented notification, CancellationToken cancellationToken)
     {
         store.Note($"🔔 count is now {notification.Value}");
         return Task.CompletedTask;
@@ -72,7 +72,7 @@ public sealed class CounterIncrementedHandler(CqrsCounterStore store) : INotific
 public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore store)
     : IPipelineBehavior<TRequest, TResult>
 {
-    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
+    public Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
     {
         store.Note($"⚙ dispatch {typeof(TRequest).Name}");
         return next();

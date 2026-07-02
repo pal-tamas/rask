@@ -22,5 +22,5 @@ public delegate Task<TResult> RequestHandlerDelegate<TResult>();
 public interface IPipelineBehavior<in TRequest, TResult>
 {
     /// <summary>Wraps <paramref name="next"/> around the request.</summary>
-    Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken);
+    Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken);
 }

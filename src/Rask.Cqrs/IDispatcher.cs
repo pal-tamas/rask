@@ -11,7 +11,7 @@ public interface IQueryDispatcher
     /// Dispatches a query to its handler. The result type is inferred from the query's
     /// <see cref="IQuery{TResult}"/> interface.
     /// </summary>
-    Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
+    Task<TResult> QueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -21,13 +21,13 @@ public interface IQueryDispatcher
 public interface ICommandDispatcher
 {
     /// <summary>Dispatches a void command to its <see cref="ICommandHandler{TCommand}"/>.</summary>
-    Task Send(ICommand command, CancellationToken cancellationToken = default);
+    Task SendAsync(ICommand command, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Dispatches a command to its <see cref="ICommandHandler{TCommand, TResult}"/>. The result type is
     /// inferred from the command's <see cref="ICommand{TResult}"/> interface.
     /// </summary>
-    Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
+    Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Publishes notifications to every registered handler.</summary>
@@ -39,7 +39,7 @@ public interface IPublisher
     /// Handlers declared against a base type are not invoked, and a notification with no handlers is a
     /// no-op.
     /// </summary>
-    Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+    Task PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
         where TNotification : INotification;
 }
 
