@@ -46,6 +46,7 @@ dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
 dotnet add package Rask.Bootstrap          # optional: typed Bootstrap 5.3 components
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
 ```
 
 ## Why Rask
