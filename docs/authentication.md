@@ -99,6 +99,15 @@ Authorize(
 Use `Authorize` for *content* gating; use `[Authorize]` on a page for *route* gating; inject `IUserProvider`
 and read `.Current` directly when you need imperative logic.
 
+The imperative form, live — gate in `Render()` on the current user (sign in / out to flip the branch):
+
+<!-- demo:auth-user-gate -->
+
+And the declarative `Authorize` component, live — sign in as *user* or *admin* to switch between the
+`NotAuthorized`, `Authorized`, and role-gated slots:
+
+<!-- demo:auth-authorize -->
+
 ---
 
 ## Cookie + Server

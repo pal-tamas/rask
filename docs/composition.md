@@ -128,8 +128,22 @@ type, exactly like `OnClick: () => _count++`. The surface:
 All of these are delegated by a single capture-phase listener per event in the shared client module
 (`rask-events.js`, spliced into both the Server and WASM runtimes), so there is no per-element JS. The
 Todos sample uses `OnKeyDown` to close its dialog on Escape (it focuses the `<dialog>` on open via an
-`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute). See the
-**DOM events** showcase page for a live demo.
+`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
+
+The full surface, live — every readout updates from a plain field mutation, no `StateHasChanged`:
+
+<!-- demo:events -->
+
+And the everyday handlers on their own — a click counter, `onInput`, `onChange` on a `<select>`, and
+`onSubmit` (which receives a `FormData` of the named fields):
+
+<!-- demo:events-click -->
+
+<!-- demo:events-input -->
+
+<!-- demo:events-select -->
+
+<!-- demo:events-form -->
 
 **Cancelling async work.** `Component.CancellationToken` is cancelled when the component unmounts —
 and, *while an event handler is running*, **also** when the host cancels that dispatch (the server's
@@ -290,8 +304,9 @@ FlashOutlet(Template: (messages, dismiss) =>
 `FlashOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IFlash.Changed` fires,
 so each message is delivered to exactly one outlet and never reappears on a later render. `Rask.Bootstrap`
 ships a ready-made `BsFlash` — a fixed toast-container of `BsToast`s; mount a single `BsFlash()` in your
-layout instead of writing a `Template`. Runnable demo:
-[`samples/Rask.Example.Shared/Features/Flash/FlashDemo.cs`](../samples/Rask.Example.Shared/Features/Flash/FlashDemo.cs).
+layout instead of writing a `Template`. Queue one, show once:
+
+<!-- demo:flash -->
 
 ## Drag and drop
 

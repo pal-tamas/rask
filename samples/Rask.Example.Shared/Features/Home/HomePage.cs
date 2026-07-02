@@ -19,13 +19,13 @@ public sealed class HomePage(Navigator nav) : Component
         ("DSL", "bi-vector-pen", "SVG", "Typed SVG components.", "/guides/elements"),
 
         ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/components"),
-        ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", Routes.ToastPage()),
-        ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", Routes.FlashPage()),
-        ("Components", "bi-mouse", "Events", "DOM event handlers.", "/events"),
+        ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", "/guides/bootstrap"),
+        ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", "/guides/composition"),
+        ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
         ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
         ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
         ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
-        ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/user"),
+        ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/guides/authentication"),
 
         ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",
             "/guides/http-and-files"),
