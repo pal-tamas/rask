@@ -28,6 +28,16 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Examples site — fold four Components-group example pages into their existing guides (phase 3).** The
+  standalone `/events`, `/flash`, `/toast` and `/user` pages are removed; their demos (already in their own
+  `*Demo.cs`) are registered in `DemoRegistry` and embedded as inline live demos in the guides that already
+  document them: **Events** and **Flash** → `docs/composition.md`, **Toast** → `docs/bootstrap.md`, and the
+  **User & auth** gating demos (imperative `IUserProvider` gate + declarative `Authorize`) → `docs/authentication.md`.
+  The sidebar's Events/Toast/Flash/User rows and the home page's cards repoint at those guides. The E2E journey
+  drives the moved demos on their guide walks (`TestCompositionGuideAsync`, `WalkBootstrapGuideAsync`, and a new
+  `WalkAuthGuideAsync`); the Server slow-link / WS-reconnect steps that used `/events` now use the composition
+  guide's folded click-counter demo. No new guide files. `ComponentsPage`, `LiveTicker`, `TablePage`,
+  `OrdersPage` and the `Todos` capstone app are untouched (later clusters).
 - **Examples site — a new HTTP & files guide (phase 3).** The three standalone "Data & files" example
   pages — `/http` (HttpClient + DI), `/upload` (file upload), `/download` (file download) — are removed;
   a **new guide `docs/http-and-files.md`** ("HTTP & files", Integration group) folds them in as four inline

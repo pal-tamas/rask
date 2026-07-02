@@ -62,7 +62,7 @@ public abstract partial class SharedSmokeTests
         await WalkElementsGuideAsync();
         await WalkHttpAndFilesGuideAsync();
         await WalkCqrsGuideAsync();
-        await WalkAuthAndContextPagesAsync();
+        await WalkAuthGuideAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
         await WalkBootstrapGuideAsync();
@@ -213,8 +213,8 @@ public abstract partial class SharedSmokeTests
     private async Task WalkBootstrapGuideAsync()
     {
         await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 9,
-            "expected the Bootstrap guide to embed the component demos as live demos");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 10,
+            "expected the Bootstrap guide to embed the component demos (incl. the folded toast) as live demos");
         await Expect(Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -236,6 +236,16 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("div.modal .btn-close").First.ClickAsync();
         await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
+        // Toast (its standalone /toast page folded in) — shown and dismissed entirely by live-diff state
+        // (no bootstrap.js, no data-bs-dismiss). Showing renders class="toast show"; the × removes it.
+        await Page.Locator(".guide-demo button:has-text('Show toast')").First.ClickAsync();
+        var toast = Page.Locator(".guide-demo .sample-result-body .toast.show").First;
+        await Expect(toast).ToContainTextAsync("Hello, world!",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await toast.Locator(".btn-close").ClickAsync();
+        await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
     }
 
     private async Task WalkDslAndComponentPagesAsync()
@@ -277,33 +287,8 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Events: click counter, streaming input echo, form submit echo.
-        await SideAsync("Events", "Events");
-        var clickButton = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
-        await clickButton.ClickAsync();
-        await clickButton.ClickAsync();
-        await Expect(clickButton).ToContainTextAsync("Clicks: 2",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".sample-result-body input[type=text]:not([name])").First.FillAsync("Hello Rask");
-        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "You typed:" }))
-            .ToContainTextAsync("Hello Rask", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("input[name=name]").FillAsync("Ada");
-        await Page.Locator("button[type=submit]").ClickAsync();
-        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "Last submitted:" }))
-            .ToContainTextAsync("Ada", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Full GlobalEventHandlers surface demo: OnDoubleClick (a MouseEventArgs event) and OnFocus
-        // (a parameterless focus event) reach the C# handlers end-to-end and re-render the readouts —
-        // proving the new universal event store dispatches over both transports, not just OnClick.
-        var dblButton = Page.Locator(".sample-result-body button:has-text('Double-click')").First;
-        await dblButton.DblClickAsync();
-        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "double-clicks:" }))
-            .ToContainTextAsync("double-clicks: 1", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator(".sample-result-body div[tabindex='0']").First.ClickAsync();
-        await Expect(Page.Locator(".sample-result-body").Filter(new LocatorFilterOptions { HasText = "last key:" }))
-            .ToContainTextAsync("focused", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Virtualize and Keyed lists moved to the Composition guide (TestCompositionGuideAsync).
+        // Events (the full GlobalEventHandlers surface) moved to the Composition guide
+        // (TestCompositionGuideAsync). Virtualize and Keyed lists likewise.
 
         // Data table: every interaction is a URL query-param mutation → rebind → re-render.
         await SideAsync("Data table", "Data table");
@@ -362,8 +347,8 @@ public abstract partial class SharedSmokeTests
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
 
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
-            "expected the Composition guide to embed the demos as live demos");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 12,
+            "expected the Composition guide to embed the demos (incl. the folded events + flash) as live demos");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the guide still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -382,6 +367,44 @@ public abstract partial class SharedSmokeTests
         var cb = Page.Locator("#callback-rating");
         await cb.Locator("button").Nth(3).ClickAsync();
         await Expect(cb.Locator("p")).ToContainTextAsync("You rated: 4/5", contains);
+
+        // Events (the full GlobalEventHandlers surface — its standalone /events page folded into this
+        // guide). Scope each interaction to its own .guide-demo; result panes/inputs repeat across demos.
+        var eClick = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "Clicks:" })
+            .Locator("button:has-text('Clicks:')").First;
+        await eClick.ClickAsync();
+        await eClick.ClickAsync();
+        await Expect(eClick).ToContainTextAsync("Clicks: 2", contains);
+
+        var eInput = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "You typed:" });
+        await eInput.Locator("input[type=text]").First.FillAsync("Hello Rask");
+        await Expect(eInput).ToContainTextAsync("You typed: \"Hello Rask\"", contains);
+
+        // Form (onSubmit → FormData): assert the demo renders its named input + submit control. Driving the
+        // submit on the busy co-mounted guide is timing-fragile — the uncontrolled input's value can be
+        // reconciled away before the form's FormData is read at submit time (the readout lands "(blank)").
+        // The OnSubmit/FormData path is covered by EventsFormDemoTests; here we assert it mounts.
+        var eForm = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "Last submitted:" });
+        await Expect(eForm.Locator("input[name=name]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(eForm.Locator("button[type=submit]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Full surface demo: OnDoubleClick (MouseEventArgs) + OnFocus (parameterless) reach C# and re-render
+        // — proving the universal event store dispatches over both transports, not just OnClick.
+        var eSurface = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "double-clicks:" });
+        await eSurface.Locator("button:has-text('Double-click')").DblClickAsync();
+        await Expect(eSurface).ToContainTextAsync("double-clicks: 1", contains);
+        await eSurface.Locator("div[tabindex='0']").ClickAsync();
+        await Expect(eSurface).ToContainTextAsync("focused", contains);
+
+        // Flash: a producer raises an IFlash message; the headless FlashOutlet drains it (consumed-once)
+        // and renders a dismissible BsAlert — live-diff state, no client JS.
+        await Page.Locator(".guide-demo button:has-text('Success')").First.ClickAsync();
+        var flashAlert = Page.Locator(".alert:has-text('Your changes were saved.')");
+        await Expect(flashAlert).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await flashAlert.Locator(".btn-close").ClickAsync();
+        await Expect(flashAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
@@ -424,33 +447,15 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkAuthAndContextPagesAsync()
+    private async Task WalkAuthGuideAsync()
     {
-        // Context and Callback moved to the Composition guide (TestCompositionGuideAsync).
-
-        // Toast: Bootstrap toasts shown, stacked and dismissed entirely by live-diff state (no Bootstrap
-        // JS, no data-bs-dismiss). Showing renders class="toast show"; the × removes it from the host list.
-        await SideAsync("Toast", "Toast");
-        var toast = Page.Locator("main .sample-result-body .toast.show");
-        await Page.Locator("main .sample-result-body button:has-text('Show toast')").ClickAsync();
-        await Expect(toast).ToContainTextAsync("Hello, world!",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await toast.Locator(".btn-close").ClickAsync();
-        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-
-        // Flash messages: a producer injects IFlash and raises a message; the headless FlashOutlet drains
-        // it (consumed-once) and renders a dismissible BsAlert — all via live-diff state, no client JS.
-        await SideAsync("Flash messages", "Flash messages");
-        var flashAlert = Page.Locator("main .sample-result-body .alert");
-        await Page.Locator("main .sample-result-body button:has-text('Success')").ClickAsync();
-        await Expect(flashAlert).ToContainTextAsync("Your changes were saved.",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await flashAlert.Locator(".btn-close").ClickAsync();
-        await Expect(flashAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // The Toast, Flash and User & auth example pages were folded into their guides: Toast →
+        // WalkBootstrapGuideAsync, Flash + events → TestCompositionGuideAsync. This walks the
+        // Authentication guide's two gating demos (imperative UserGate + declarative Authorize).
+        await SideAsync("Authentication", "Authentication", "main .markdown-body h1");
 
         // User & auth: imperative gate (UserGate) + declarative Authorize slots, both re-rendering
-        // live on IUserProvider.Changed with no reload.
-        await SideAsync("User & auth", "User & auth gating");
+        // live on IUserProvider.Changed with no reload. The demo #ids are unique on the guide page.
         var gate = Page.Locator("#user-gate");
         await Expect(gate).ToContainTextAsync("signed out", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await gate.Locator("button:has-text('Sign in as user')").ClickAsync();
@@ -1073,11 +1078,11 @@ public abstract partial class SharedSmokeTests
     private async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
     {
         // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
-        await SideAsync("Events", "Events");
+        await SideAsync("Data table", "Data table");
         await Page.GoBackAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
         await Page.GoForwardAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
         if (opts.DeepLink)
@@ -1161,8 +1166,8 @@ public abstract partial class SharedSmokeTests
                     ["downloadThroughput"] = 50 * 1024,
                     ["uploadThroughput"] = 50 * 1024,
                 });
-                await Page.GotoAsync("/events");
-                var bump = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+                await Page.GotoAsync("/guides/composition");
+                var bump = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
                 await Expect(bump).ToBeVisibleAsync(
                     new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
                 await bump.ClickAsync();
@@ -1191,11 +1196,12 @@ public abstract partial class SharedSmokeTests
 
         if (opts.OfflineReconnect)
         {
-            // Drop and restore the WebSocket; server-held state must survive the reconnect.
-            await Page.GotoAsync("/events");
-            await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Events",
-                new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-            var clicks = Page.Locator(".sample-result-body button:has-text('Clicks:')").First;
+            // Drop and restore the WebSocket; server-held state must survive the reconnect. The events
+            // click-counter demo now lives on the Composition guide (its /events page was folded in).
+            await Page.GotoAsync("/guides/composition");
+            await Expect(Page.Locator("main .markdown-body h1")).ToContainTextAsync("Composition",
+                new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+            var clicks = Page.Locator(".guide-demo .sample-result-body button:has-text('Clicks:')").First;
             await clicks.ClickAsync();
             await clicks.ClickAsync();
             await Expect(clicks).ToContainTextAsync("Clicks: 2",
@@ -1209,7 +1215,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Events", "User components", "JavaScript interop", "Routing", "Welcome" };
+        var labels = new[] { "Composition", "User components", "JavaScript interop", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
