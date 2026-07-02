@@ -318,19 +318,19 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         if (model.Kind == HandlerKind.CommandVoid)
         {
             sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
-                .AppendLine("> next = async () => { await handler.Handle(typed, ct).ConfigureAwait(false); return default; };");
+                .AppendLine("> next = async () => { await handler.HandleAsync(typed, ct).ConfigureAwait(false); return default; };");
         }
         else
         {
             sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
-                .AppendLine("> next = () => handler.Handle(typed, ct);");
+                .AppendLine("> next = () => handler.HandleAsync(typed, ct);");
         }
 
         sb.AppendLine("        for (int i = behaviors.Length - 1; i >= 0; i--)");
         sb.AppendLine("        {");
         sb.AppendLine("            var behavior = behaviors[i];");
         sb.AppendLine("            var prev = next;");
-        sb.AppendLine("            next = () => behavior.Handle(typed, prev, ct);");
+        sb.AppendLine("            next = () => behavior.HandleAsync(typed, prev, ct);");
         sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine("        return next();");

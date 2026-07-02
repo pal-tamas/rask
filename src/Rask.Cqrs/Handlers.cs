@@ -7,7 +7,7 @@ public interface IQueryHandler<in TQuery, TResult>
     where TQuery : IQuery<TResult>
 {
     /// <summary>Executes the query.</summary>
-    Task<TResult> Handle(TQuery query, CancellationToken cancellationToken);
+    Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken);
 }
 
 /// <summary>Handles a single void <see cref="ICommand"/> type.</summary>
@@ -16,7 +16,7 @@ public interface ICommandHandler<in TCommand>
     where TCommand : ICommand
 {
     /// <summary>Executes the command.</summary>
-    Task Handle(TCommand command, CancellationToken cancellationToken);
+    Task HandleAsync(TCommand command, CancellationToken cancellationToken);
 }
 
 /// <summary>Handles a single <see cref="ICommand{TResult}"/> type that returns a value.</summary>
@@ -26,7 +26,7 @@ public interface ICommandHandler<in TCommand, TResult>
     where TCommand : ICommand<TResult>
 {
     /// <summary>Executes the command and returns its result.</summary>
-    Task<TResult> Handle(TCommand command, CancellationToken cancellationToken);
+    Task<TResult> HandleAsync(TCommand command, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -38,5 +38,5 @@ public interface INotificationHandler<in TNotification>
     where TNotification : INotification
 {
     /// <summary>Reacts to the published notification.</summary>
-    Task Handle(TNotification notification, CancellationToken cancellationToken);
+    Task HandleAsync(TNotification notification, CancellationToken cancellationToken);
 }
