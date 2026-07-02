@@ -135,64 +135,80 @@ button, a, [role="button"] {
         overflow: hidden;
         height: 100vh;
     }
+
+    /* Keep the top navbar a single line on phones: never wrap, and drop the decorative brand badges
+       ("showcase" + version pill) that pushed the brand + GitHub button onto a second row. */
+    .app-navbar {
+        flex-wrap: nowrap;
+    }
+
+    .app-navbar .navbar-brand .badge {
+        display: none;
+    }
 }
 
 /* From CodeSample: ColorCode emits <span class="keyword|string|comment|…"> token markup
    injected through Raw(), so those spans carry no scope attribute. Anchored under
    .sample-code so the generic class names don't leak page-wide. Dark palette tuned to
    the #1f1d2b background / #e7e3ff base text. */
-.sample-code .keyword,
-.sample-code .preprocessorKeyword {
+:is(.sample-code, .markdown-body pre) .keyword,
+:is(.sample-code, .markdown-body pre) .preprocessorKeyword {
     color: #c792ea;
 }
 
-.sample-code .string,
-.sample-code .stringCSharpVerbatim {
+:is(.sample-code, .markdown-body pre) .string,
+:is(.sample-code, .markdown-body pre) .stringCSharpVerbatim {
     color: #c3e88d;
 }
 
-.sample-code .stringEscape {
+:is(.sample-code, .markdown-body pre) .stringEscape {
     color: #89ddff;
 }
 
-.sample-code .comment {
+:is(.sample-code, .markdown-body pre) .comment {
     color: #6b6786;
     font-style: italic;
 }
 
-.sample-code .xmlDocComment {
+:is(.sample-code, .markdown-body pre) .xmlDocComment {
     color: #6b6786;
     font-style: italic;
 }
 
-.sample-code .xmlDocTag {
+:is(.sample-code, .markdown-body pre) .xmlDocTag {
     color: #8b87a8;
 }
 
-.sample-code .number {
+:is(.sample-code, .markdown-body pre) .number {
     color: #f78c6c;
 }
 
-.sample-code .className {
+:is(.sample-code, .markdown-body pre) .className {
     color: #82aaff;
 }
 
-.sample-code .plainText {
+:is(.sample-code, .markdown-body pre) .plainText {
     color: #e7e3ff;
 }
 
 /* CSS-language tokens (ColorCode's CSS lexer): selectors, property names and values. The
    JS lexer reuses the shared keyword/string/comment/number classes above. */
-.sample-code .cssSelector {
+:is(.sample-code, .markdown-body pre) .cssSelector {
     color: #82aaff;
 }
 
-.sample-code .cssPropertyName {
+:is(.sample-code, .markdown-body pre) .cssPropertyName {
     color: #89ddff;
 }
 
-.sample-code .cssPropertyValue {
+:is(.sample-code, .markdown-body pre) .cssPropertyValue {
     color: #c3e88d;
+}
+
+/* CodeSample: the source pane and the live result stack vertically (code first); a hairline
+   divides them now that they are no longer side-by-side columns. */
+.sample-result-col {
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
 }
 
 /* ShowcaseLayout: the app shell (navbar + responsive-offcanvas sidebar + main). These rules are

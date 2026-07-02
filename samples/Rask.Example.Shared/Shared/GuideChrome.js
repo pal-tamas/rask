@@ -30,6 +30,12 @@ export function spy(root) {
         a.addEventListener('click', onAnchorClick);
     });
 
+    // On a fresh load / refresh of a URL carrying a "#fragment" (a shared deep link), jump to that
+    // section. The click path above handles in-SPA anchor clicks; this covers a hard navigation where
+    // the browser's own jump fired before the guide body (prose, highlighted code, live demos) had
+    // rendered, so it landed nowhere. Runs on every mount; a no-op when there is no hash / no target.
+    scrollToHash();
+
     const headings = Array.from(root.querySelectorAll('.markdown-body :is(h2, h3)[id]'));
     if (headings.length === 0) {
         state.set(root, { observer: null, links });
@@ -80,6 +86,21 @@ export function stop(root) {
     }
     entry.links.forEach((anchors) => anchors.forEach((a) => a.removeEventListener('click', onAnchorClick)));
     state.delete(root);
+}
+
+function scrollToHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!id) {
+        return;
+    }
+    const target = document.getElementById(id);
+    if (!target) {
+        return;
+    }
+    // Two rAFs: let the just-mounted guide body (and any co-mounted live demos) finish laying out
+    // before we measure, so the jump lands on the section rather than a pre-layout position. The
+    // heading's scroll-margin-top (global.css) clears the sticky navbar.
+    requestAnimationFrame(() => requestAnimationFrame(() => target.scrollIntoView({ block: 'start' })));
 }
 
 function onAnchorClick(event) {
