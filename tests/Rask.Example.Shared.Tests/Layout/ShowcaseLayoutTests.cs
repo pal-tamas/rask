@@ -118,19 +118,9 @@ public sealed class ShowcaseLayoutTests
         Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
     }
 
-    [Fact]
-    public void RenderThroughApp_RealtimeEthPath_KeepsLiveTickerNavActive()
-    {
-        // The actual bug surface: when the route is /realtime/ETH (after switching from BTC inside
-        // the LiveTickerPage), the sidebar's "Live ticker" item must still render active — now via
-        // NavLink's Match (the section root) with Prefix matching.
-        var routeState = new RouteState { Path = "/realtime/ETH" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
-
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-graph-up-arrow",
-            CollapseWhitespace(html));
-    }
+    // (The former render-through-App "Live ticker stays active on /realtime/ETH" test is gone with the
+    // Live ticker sidebar entry — its /realtime page folded into the Lifecycle guide. The MatchPrefix
+    // active-link logic it exercised stays covered by IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix.)
 
     [Fact]
     public void BypassRenderCache_Default_NotBypassed()

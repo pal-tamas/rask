@@ -271,22 +271,8 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkInteractiveComponentPagesAsync()
     {
-        // Live ticker: lifecycle hooks drive a zero-JS server-rendered SVG; switching symbol fires
-        // OnPropsChanged without remounting.
-        await SideAsync("Live ticker", "BTC live ticker");
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // Standalone proved a real bug here (publish-render rebuild dropped the history entry): the
-        // sidebar nav above must have advanced the URL to /realtime/BTC.
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/realtime/BTC$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Page.Locator("#ticker-switch-ETH").ClickAsync();
-        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Live ticker (lifecycle hooks + zero-JS SVG chart) moved to the Lifecycle guide
+        // (WalkLifecycleGuideAsync).
 
         // Events (the full GlobalEventHandlers surface) moved to the Composition guide
         // (TestCompositionGuideAsync). Virtualize and Keyed lists likewise.
@@ -483,8 +469,8 @@ public abstract partial class SharedSmokeTests
     private async Task WalkLifecycleGuideAsync()
     {
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
-            "expected the Lifecycle guide to embed the lifecycle demos as live demos");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
+            "expected the Lifecycle guide to embed the lifecycle demos (incl. the folded live ticker) as live demos");
         // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
         // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
         await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
@@ -494,6 +480,19 @@ public abstract partial class SharedSmokeTests
         // hydration on the slower transports.
         await Expect(Page.Locator("#metrics-chart svg")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Live ticker (its standalone /realtime/{Symbol} page folded in): the poll loop started in
+        // OnMountAsync draws a zero-JS server-rendered SVG chart, and the switcher hands the ticker a new
+        // Symbol (via internal state now, not a route param) so OnPropsChanged refires without a remount.
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("BTC",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("#ticker-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("#ticker-switch-ETH").ClickAsync();
+        await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Lifecycle hooks: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
         // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).

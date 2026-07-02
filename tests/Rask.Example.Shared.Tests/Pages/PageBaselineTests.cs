@@ -11,7 +11,6 @@ public sealed class PageBaselineTests
 {
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
-    [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
@@ -29,7 +28,6 @@ public sealed class PageBaselineTests
 
     [Theory]
     [InlineData(typeof(HomePage))]
-    [InlineData(typeof(LiveTickerPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TablePage))]
     [InlineData(typeof(TodosPage))]
