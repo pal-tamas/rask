@@ -2413,6 +2413,31 @@ function raskShouldSuppressValue(el, incoming) {
     return false;
 }
 
+// The `.checked` analogue of the value guard above. A native radio/checkbox click flips the
+// `.checked` PROPERTY but leaves the `checked` ATTRIBUTE untouched, so the change dispatch records
+// the pre-click attribute state (raskNotePendingChecked) — exactly as the value guard records the
+// pre-edit `value` attribute. A lagging frame the server computed BEFORE the click reached it still
+// carries that stale checked, so it's suppressed until an authoritative frame (the echo of the new
+// state OR a server correction) arrives with a different value and releases the guard. For a radio
+// the dispatch records the whole same-name group, so a stale frame can't re-check the previously
+// selected radio (which would natively uncheck the new one). Kept a hoisted `function` so the
+// spliced rask-dom.js can call it regardless of splice ordering — same rationale as the value guard.
+function _raskPendingChecked() {
+    return window.__raskPendingChecked || (window.__raskPendingChecked = new WeakMap());
+}
+
+function raskNotePendingChecked(el, supersededChecked) {
+    if (el) _raskPendingChecked().set(el, !!supersededChecked);
+}
+
+function raskShouldSuppressChecked(el, incoming) {
+    const map = _raskPendingChecked();
+    if (!el || !map.has(el)) return false;
+    if (map.get(el) === !!incoming) return true;   // lagging frame carrying the stale checked
+    map.delete(el);                                 // authoritative response — release the guard
+    return false;
+}
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
         _raskReplaceChild(from.parentNode, to, from);
@@ -2449,8 +2474,11 @@ function morph(from, to) {
             // even when from.value already equals newVal; a still-pending user edit
             // (incoming !== the value the user committed) is left untouched.
             if (!raskShouldSuppressValue(from, newVal) && from.value !== newVal) from.value = newVal;
+            // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can
+            // clear the guard even when from.checked already matches — a lagging frame carrying the
+            // pre-click checked is left to the browser's just-applied native state.
             const checked = to.hasAttribute("checked");
-            if (from.checked !== checked) from.checked = checked;
+            if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
     }
     // Skip JS-owned elements (marked data-rask-managed) — they're not part of
@@ -2702,6 +2730,7 @@ function syncFormProperty(el, name, value, isPresent) {
         if (raskShouldSuppressValue(el, value)) return;
         el.value = value;
     } else if (name === "checked" && tag === "INPUT") {
+        if (raskShouldSuppressChecked(el, !!isPresent)) return;
         el.checked = !!isPresent;
     } else if (name === "selected" && tag === "OPTION") {
         el.selected = !!isPresent;
@@ -3112,6 +3141,19 @@ document.addEventListener("change", (e) => {
         if (!(t.tagName === "INPUT" && t.type === "checkbox")) {
             const sv = t.getAttribute("value");
             raskNotePendingValue(t, sv === null ? "" : sv);
+        }
+        // Same guard for the `.checked` property: record the PRE-CLICK checked (the `checked`
+        // attribute, which a native click leaves untouched) so a lagging re-render can't revert
+        // the just-committed selection before the authoritative frame lands — see
+        // raskShouldSuppressChecked. For a radio, note the whole same-name group: a stale frame that
+        // re-checks the previously selected radio would natively uncheck the new one.
+        if (t.tagName === "INPUT" && (t.type === "checkbox" || t.type === "radio")) {
+            if (t.type === "radio" && t.name) {
+                root.querySelectorAll('input[type=radio][name="' + CSS.escape(t.name) + '"]')
+                    .forEach((r) => raskNotePendingChecked(r, r.hasAttribute("checked")));
+            } else {
+                raskNotePendingChecked(t, t.hasAttribute("checked"));
+            }
         }
         send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
     }

@@ -747,6 +747,19 @@ document.addEventListener("change", (e) => {
             const sv = t.getAttribute("value");
             raskNotePendingValue(t, sv === null ? "" : sv);
         }
+        // Same guard for the `.checked` property: record the PRE-CLICK checked (the `checked`
+        // attribute, which a native click leaves untouched) so a lagging re-render can't revert
+        // the just-committed selection before the authoritative frame lands — see
+        // raskShouldSuppressChecked. For a radio, note the whole same-name group: a stale frame that
+        // re-checks the previously selected radio would natively uncheck the new one.
+        if (t.tagName === "INPUT" && (t.type === "checkbox" || t.type === "radio")) {
+            if (t.type === "radio" && t.name) {
+                root.querySelectorAll('input[type=radio][name="' + CSS.escape(t.name) + '"]')
+                    .forEach((r) => raskNotePendingChecked(r, r.hasAttribute("checked")));
+            } else {
+                raskNotePendingChecked(t, t.hasAttribute("checked"));
+            }
+        }
         send({id: t.getAttribute("data-rask-on-change"), type: "change", value: changeVal});
     }
 });
