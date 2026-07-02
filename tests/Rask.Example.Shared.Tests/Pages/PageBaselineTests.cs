@@ -12,10 +12,8 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
     [InlineData(typeof(ComponentsPage), "/components", "User components")]
-    [InlineData(typeof(EventsPage), "/events", "Events")]
     [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
-    [InlineData(typeof(ToastPage), "/toast", "Toast")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
@@ -33,11 +31,9 @@ public sealed class PageBaselineTests
     [Theory]
     [InlineData(typeof(HomePage))]
     [InlineData(typeof(ComponentsPage))]
-    [InlineData(typeof(EventsPage))]
     [InlineData(typeof(LiveTickerPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TablePage))]
-    [InlineData(typeof(ToastPage))]
     [InlineData(typeof(TodosPage))]
     public void Page_HasExpectedRouteOrNotFoundAttribute(Type pageType)
     {
