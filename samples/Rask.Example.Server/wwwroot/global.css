@@ -266,19 +266,36 @@ button, a, [role="button"] {
     --bs-offcanvas-width: min(82vw, 320px);
 }
 
+/* The body is a non-scrolling flex column: a pinned filter header over a single scrolling list. The
+   filter is a real flex header (not position:sticky) because a sticky child of a flex container does
+   not stick in Safari — it would scroll away with the list. This is bulletproof across browsers. */
 .side-nav .offcanvas-body {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    padding: 1rem 0.75rem;
+    overflow: hidden;
 }
 
-/* Sticky filter box at the top of the scrolling list. */
+/* Pinned filter header — a fixed-height flex item over the scrolling list, with a hairline divider so
+   list rows read as scrolling cleanly beneath it rather than clipping against a hard edge. */
 .side-nav-search {
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    flex: 0 0 auto;
     padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     background: var(--bs-body-bg, #fff);
+    border-bottom: 1px solid var(--rask-line);
+}
+
+/* The single scrolling region: the nav list scrolls here (never the body), so the filter stays put. */
+.side-nav-scroll {
+    flex: 1 1 auto;
+    min-height: 0; /* let the list scroll inside the flex column instead of stretching it */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .side-nav-filter {
@@ -400,12 +417,10 @@ button, a, [role="button"] {
         align-self: flex-start;
     }
 
-    /* The body is the bounded scroll region: capped to the viewport minus the navbar so a long,
-       fully-expanded list scrolls inside itself instead of stretching the page. */
+    /* Cap the body to the viewport minus the navbar so the inner .side-nav-scroll (not the page) is the
+       bounded scroll region — a long, fully-expanded list scrolls inside itself, filter pinned above. */
     .side-nav.offcanvas-md .offcanvas-body {
         max-height: calc(100vh - var(--nav-h));
-        overflow-y: auto;
-        padding: 1rem 0.75rem;
     }
 }
 
@@ -413,11 +428,6 @@ button, a, [role="button"] {
 @media (max-width: 767.98px) {
     .side-nav.offcanvas-md {
         padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
-    }
-
-    .side-nav.offcanvas-md .offcanvas-body {
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
     }
 }
 
