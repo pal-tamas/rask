@@ -159,9 +159,10 @@ public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisp
 
 ## API reference — live demos
 
-Every wrapper below runs live and identically on both transports (unless noted). Each demo shows its C#
-source beside the running result. The WASM-only device APIs (Serial, USB, HID, Bluetooth) and the
-installation/PWA APIs live in the [Mobile & PWA guide](pwa.md).
+Every wrapper below runs live and identically on both transports. Each demo shows its C# source beside
+the running result (some are device/permission-dependent and no-op in a headless or desktop browser —
+try them on a phone). The WASM-only device APIs (Serial, USB, HID, Bluetooth) and the installation/PWA
+APIs live in the [Mobile & PWA guide](pwa.md).
 
 ### Storage & persistence
 

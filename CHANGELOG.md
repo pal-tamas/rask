@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Live components embedded in a lazy child sequence are now reconciled (state persists).** A
+  component built inside a *lazy* `IEnumerable<Child>` (a `yield`/LINQ pipeline passed to an element's
+  `[...]` children indexer) was evaluated during serialization — after the owning component's
+  child-reuse bookkeeping had run — so it was **re-created every render and silently lost its state**
+  (an input's value, a toggle, any `_field`). The `IEnumerable<Child>` indexer now materialises a lazy
+  sequence immediately, during `Render()`, so embedded component factories run while reconciliation is
+  live and the same instance is reused across renders. Already-materialised collections
+  (`Child[]`/`List<Child>`/…) pass through unchanged (no copy), so the render hot path is unaffected.
+  This is what lets a guide page co-mount many live demos (built from a `yield`-generated list) and have
+  every one stay interactive, including on the Server (WebSocket) transport.
+
 ### Changed
 - **Examples site — composition examples folded into the guide (phase 3).** The 6 standalone example
   pages for context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries are removed;
@@ -25,9 +37,8 @@ them until tagged releases begin.
 - **Examples site — Browser APIs folded into the guide (phase 3).** The 27 standalone Browser-API
   example pages (`/browser/*`) are removed; every typed wrapper is now an **inline live demo in the
   Browser APIs guide** (`docs/browser-apis.md`), grouped by capability (Storage · Environment ·
-  Location/sensors · Observers · Media/crypto/files). The demos themselves are unchanged (reused via
-  `DemoRegistry`), so behaviour is identical — just consolidated from 27 sidebar entries into one
-  guide. The E2E browser walk drives the demos on the guide page instead of page-by-page.
+  Location/sensors · Observers · Media/crypto/files). Demos are unchanged (reused via `DemoRegistry`) —
+  27 sidebar entries collapse into one guide that runs every wrapper live.
 - **Examples site — guides-first navigation (phase 2).** The showcase now leads with the guides. The
   sidebar is reordered **Guides → Examples → Bootstrap** with the guide categories (Start here / Core /
   Integration / Advanced) expanded by default as the primary spine, and the interactive example pages
@@ -48,6 +59,41 @@ them until tagged releases begin.
   when the same `docs/*.md` renders on GitHub, so the guides stay dual-purpose. The Routing and Forms
   guides are wired as the pilot; the visual identity stays on-brand (violet, Space Grotesk). This is the
   first step toward a guides-first showcase.
+- **C# Hot Reload → live re-render (`dotnet watch`).** Editing a component's `Render()` (or anything it
+  calls) and saving now repaints the running live session automatically — the last gap in Rask's
+  `dotnet watch` story, alongside the existing scoped-CSS/JS hot reload. A new `ComponentHotReloadHandler`
+  (`[MetadataUpdateHandler]`) re-renders every active session: it marks the whole component tree dirty (so
+  cached subtrees re-execute against the freshly-applied IL — even edits to a helper/static a component
+  calls) and requests a normal render, shipping a diff over the existing transport. Sessions are tracked
+  **weakly** and only under `dotnet watch` (`MetadataUpdater.IsSupported`), so a normal/published run pays
+  nothing and the code trims away. The nearest a compiled framework gets to Rails' no-build, edit-and-refresh
+  loop. See `docs/getting-started.md`.
+- **Scoped-CSS bundle minification.** The single content-hashed scoped-CSS bundle is now **minified**
+  (comments + insignificant whitespace stripped) before it's hashed and served — completing the asset
+  pipeline that already bundles, fingerprints (`/_rask/a/{hash}.css`, `immutable`), and brotli/gzip-compresses
+  scoped CSS. New `RaskLiveOptions.MinifyScopedAssets` (`bool?`): `null` (default) = **auto** — on outside
+  `Development`, off in `Development` so hot-reloaded CSS stays readable (resolved by `UseRask` from
+  `IHostEnvironment`); set `true`/`false` to force it. Minification runs **before hashing**, so the digest,
+  immutable URL, and compressed caches all key off the minified bytes (no double representation). The
+  built-in minifier is deliberately **conservative** — it only strips whitespace around the self-delimiting
+  `{ } ; ,`, leaving descendant/child combinators, `calc()` operators, selector colons, and string/`url()`
+  contents untouched — and only the CSS bundle is minified (JS is served as-is). See `docs/configuration.md`.
+- **Rails-grade developer error page.** The built-in `DefaultErrorPage` (shown when a fault escapes every
+  `ErrorBoundary`) now renders a rich view **in Development**: parsed stack frames (via the trim-safe
+  `DiagnosticMethodInfo`, not reflection), a ±5-line **source excerpt** around each throwing line with the
+  line marked, and the full **inner-exception chain** in collapsible sections. **Production is unchanged and
+  security-gated** — only the outermost type + message are shown; no stack, no source, no file paths, and no
+  inner-exception detail ever reach the response. All text is HTML-encoded, and source reads fail closed
+  (missing/stripped paths degrade to just the frame line). The Development gate still reads
+  `ASPNETCORE_ENVIRONMENT` / `DOTNET_ENVIRONMENT` with no `Microsoft.Extensions.Hosting` dependency.
+- **Flash messages — the injectable `IFlash` service (Rails-style `flash`).** Queue transient user
+  messages from any component or handler (`flash.Success("Saved")` / `Info` / `Warning` / `Error` /
+  `Add(level, …)`); a single headless `FlashOutlet` drains them (`Consume()`, consumed-once) on mount and
+  on `Changed`, rendering each via a caller-owned `Template` with a dismiss callback. `IFlash` is
+  registered **scoped** per session on both hosts, so a message queued just before a client-side
+  `NavigateTo` survives the navigation and shows once on arrival. `Rask.Bootstrap` adds `BsFlash` — a
+  ready-made fixed toast-container of `BsToast`s (mount one in your layout). New **Flash messages**
+  showcase page (`/flash`); see `docs/composition.md`.
 - **Examples site — on-site Guides (the repo's `docs/*.md` rendered in the showcase).** A new
   **Guides** section renders the framework's narrative documentation in-app via a reusable `Markdown`
   component (Markdig, with the rendered HTML cached). `/guides` lists the guides as grouped cards and
