@@ -57,6 +57,14 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — Bootstrap examples folded into the guide (phase 3).** The 9 standalone
+  `Rask.Bootstrap` example pages (`/bootstrap/nav`, `/buttons`, `/cards`, `/alerts`, `/icons`, `/modal`,
+  `/tabs`, `/forms`, `/utilities`) are removed; every component demo — navbar/nav, buttons & badges,
+  cards, dismissible alerts, icons, the zero-JS modal, tabs & accordion, `IFormControl<T>` forms, and
+  the typed utility classes — is now an **inline live demo in the Bootstrap guide** (`docs/bootstrap.md`).
+  Demos are reused via `DemoRegistry` (they already lived in their own `Bs*Demo.cs`); the standalone
+  Bootstrap sidebar section is gone (the guide's own sidebar entry stays), and the E2E drives the demos
+  on the one guide page.
 - **Examples site — demo `CodeSample` stacks the code above the live result.** The source pane and the
   live result were side-by-side columns (`col-md-7` / `col-md-5`); they now stack vertically, code first
   then result, separated by a hairline — reads top-to-bottom and never squeezes either pane into a narrow
