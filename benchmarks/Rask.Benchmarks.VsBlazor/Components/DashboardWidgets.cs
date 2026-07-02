@@ -22,9 +22,9 @@ internal static class DashboardWidgets
     public sealed class StatefulDashboard : Component
 #pragma warning restore RASK014
     {
-        private List<Child>? _staticAlerts;
-        private List<Child>? _staticSidebar;
-        private List<Child>? _staticStatusGrid;
+        private List<Component>? _staticAlerts;
+        private List<Component>? _staticSidebar;
+        private List<Component>? _staticStatusGrid;
 
         public int Counter { get; private set; }
 
@@ -34,11 +34,11 @@ internal static class DashboardWidgets
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             if (_staticSidebar is null)
             {
-                _staticSidebar = new List<Child>
+                _staticSidebar = new List<Component>
                 {
                     C.Li(Class: "nav-item")[C.A("/dashboard")["Dashboard"]],
                     C.Li(Class: "nav-item")[C.A("/reports")["Reports"]],
@@ -47,7 +47,7 @@ internal static class DashboardWidgets
                     C.Li(Class: "nav-item")[C.A("/help")["Help"]]
                 };
 
-                _staticAlerts = new List<Child>(AlertCount);
+                _staticAlerts = new List<Component>(AlertCount);
                 for (var i = 0; i < AlertCount; i++)
                 {
                     _staticAlerts.Add(C.Li(Class: "alert", Id: $"a{i}")[
@@ -56,7 +56,7 @@ internal static class DashboardWidgets
                     ]);
                 }
 
-                _staticStatusGrid = new List<Child>(StatusGridSize);
+                _staticStatusGrid = new List<Component>(StatusGridSize);
                 for (var i = 0; i < StatusGridSize; i++)
                 {
                     _staticStatusGrid.Add(C.Div(Class: "status-cell", Id: $"s{i}")[

@@ -4,7 +4,7 @@ public sealed class EventsSelectDemo : Component
 {
     private string _pick = "rask";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Select<string>(
             Class: "form-select mb-2",

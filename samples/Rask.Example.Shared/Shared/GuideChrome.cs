@@ -60,7 +60,7 @@ public sealed class GuideChrome : Component
         }
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var source = GuideCatalog.ReadMarkdown(Slug);
         if (source is null)
@@ -87,14 +87,14 @@ public sealed class GuideChrome : Component
         ];
     }
 
-    private static Child BackLink() =>
+    private static Component BackLink() =>
         NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
             Class: Bs.Join(Display.InlineFlex(), Flex.Align(BsAlign.Center), Margin.Bottom(3),
                 Txt.DecorationNone, "small", "guide-backlink"))[
             BsIcon(Name: BsIconName.ArrowLeft, Class: "me-1"), "All guides"
         ];
 
-    private Child Banner() =>
+    private Component Banner() =>
         Div(Class: "guide-banner")[
             BsIcon(Name: BsIconName.InfoCircle, Class: "me-2"),
             Span()[$"You're reading the Rask v{RaskVersion.Current} guides."],
@@ -106,14 +106,14 @@ public sealed class GuideChrome : Component
 
     // The numbered Chapters TOC: each ## is a chapter; the ### under it become a nested sub-list. Mirrors
     // the "Chapters" box at the top of every Rails guide.
-    private static Child Chapters(IReadOnlyList<Markdown.Heading> headings)
+    private static Component? Chapters(IReadOnlyList<Markdown.Heading> headings)
     {
         if (headings.Count == 0)
         {
-            return Fragment();
+            return null;
         }
 
-        var chapters = new List<Child>();
+        var chapters = new List<Component>();
         for (var i = 0; i < headings.Count; i++)
         {
             if (headings[i].Level != 2)
@@ -121,7 +121,7 @@ public sealed class GuideChrome : Component
                 continue;
             }
 
-            var subs = new List<Child>();
+            var subs = new List<Component>();
             for (var j = i + 1; j < headings.Count && headings[j].Level == 3; j++)
             {
                 subs.Add(Li(Key: headings[j].Id)[Anchor(headings[j], "guide-chapter-sublink")]);
@@ -130,7 +130,7 @@ public sealed class GuideChrome : Component
             chapters.Add(Li(Key: headings[i].Id)[
                 subs.Count == 0
                     ? Anchor(headings[i], "guide-chapter-link")
-                    : Fragment()[
+                    : [
                         Anchor(headings[i], "guide-chapter-link"),
                         Ol(Class: "guide-chapters-sub")[subs]
                     ]
@@ -145,11 +145,11 @@ public sealed class GuideChrome : Component
 
     // The sticky secondary rail; the client scroll-spy toggles .active on the link whose section is in
     // view. data-spy carries the target id so the JS can match without parsing the href.
-    private static Child OnThisPage(IReadOnlyList<Markdown.Heading> headings)
+    private static Component? OnThisPage(IReadOnlyList<Markdown.Heading> headings)
     {
         if (headings.Count == 0)
         {
-            return Fragment();
+            return null;
         }
 
         return Aside(Class: "guide-onthispage")[
@@ -157,7 +157,7 @@ public sealed class GuideChrome : Component
                 Aria: new Dictionary<string, string?> { ["label"] = "On this page" })[
                 Div(Class: "guide-onthispage-title")["On this page"],
                 Ul(Class: "guide-onthispage-list")[
-                    headings.Select(h => (Child)Li(
+                    headings.Select(h => (Component)Li(
                         Key: h.Id,
                         Class: h.Level == 3 ? "guide-onthispage-sub" : null)[
                         Anchor(h, "guide-onthispage-link")
@@ -168,14 +168,14 @@ public sealed class GuideChrome : Component
     }
 
     // A fragment anchor into the guide body; the scroll-spy matches rail links by their "#id" href.
-    private static Child Anchor(Markdown.Heading h, string cssClass) =>
+    private static Component Anchor(Markdown.Heading h, string cssClass) =>
         A(Href: $"#{h.Id}", Class: cssClass)[h.Text];
 
-    private static Child PrevNext(GuideEntry? prev, GuideEntry? next)
+    private static Component? PrevNext(GuideEntry? prev, GuideEntry? next)
     {
         if (prev is null && next is null)
         {
-            return Fragment();
+            return null;
         }
 
         return Nav(Class: "guide-prevnext",

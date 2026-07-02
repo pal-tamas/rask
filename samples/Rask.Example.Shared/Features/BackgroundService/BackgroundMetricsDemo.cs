@@ -5,7 +5,7 @@ namespace Rask.Example.Shared.Features;
 // loop ticks whether or not this demo is mounted) and repaint themselves on each tick.
 public sealed class BackgroundMetricsDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-4")[
             Div(Class: "col-lg-5")[
                 MetricsGauge()

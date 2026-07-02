@@ -17,9 +17,9 @@ public class Rask020CollisionTests
             new[]
             {
                 ("/proj/PageA/Counter.cs",
-                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }"),
                 ("/proj/PageB/Counter.cs",
-                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
             new[]
             {
@@ -43,9 +43,9 @@ public class Rask020CollisionTests
             new[]
             {
                 ("/proj/PageA/Counter.cs",
-                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }"),
                 ("/proj/PageB/Counter.cs",
-                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                    "namespace B; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
             new[]
             {
@@ -63,11 +63,11 @@ public class Rask020CollisionTests
             new[]
             {
                 ("/proj/A/Widget.cs",
-                    "namespace A; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                    "namespace A; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }"),
                 ("/proj/B/Widget.cs",
-                    "namespace B; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                    "namespace B; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }"),
                 ("/proj/C/Widget.cs",
-                    "namespace C; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                    "namespace C; public sealed class Widget : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
             new[]
             {
@@ -97,9 +97,9 @@ public class Rask020CollisionTests
             new[]
             {
                 ("/proj/A/Counter.cs",
-                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }"),
+                    "namespace A; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }"),
                 ("/proj/B/Toggle.cs",
-                    "namespace B; public sealed class Toggle : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                    "namespace B; public sealed class Toggle : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
             new[]
             {
@@ -116,7 +116,7 @@ public class Rask020CollisionTests
             new[]
             {
                 ("/proj/Counter.cs",
-                    "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.RenderResult Render() => this; }")
+                    "namespace Foo; public sealed class Counter : Rask.Core.Component { protected override Rask.Core.Component? Render() => this; }")
             },
             new[] { ("/proj/Counter.js", "export function rendered(el) {}") });
 

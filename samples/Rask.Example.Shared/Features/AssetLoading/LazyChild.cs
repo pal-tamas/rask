@@ -7,7 +7,7 @@ namespace Rask.Example.Shared.Features;
 /// </summary>
 public sealed class LazyChild : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "lazy-child")[
             "I just mounted — my CSS was fetched on demand. Toggle me off and back on; the second mount uses the browser's HTTP cache."
         ];

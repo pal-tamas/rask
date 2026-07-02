@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // Rask.Core.Components.Generated; children go through the [...] indexer.
 public sealed class ElementsTextDemo : Component
 {
-    protected override RenderResult Render() => Div(Class: "vstack gap-2")[
+    protected override Component? Render() => Div(Class: "vstack gap-2")[
         P()[
             "Link ", A(Href: "https://example.com", Target: "_blank", Rel: "noopener")["an anchor"],
             ", ", Strong()["strong"], ", ", B()["bold"], ", ", Em()["emphasis"], ", ", I()["idiomatic"],

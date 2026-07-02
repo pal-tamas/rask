@@ -12,7 +12,7 @@ public sealed class MultiSelectControlledDemo : Component
 
     private ICollection<string> _topics = [];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold")["Topics"],

@@ -13,7 +13,7 @@ internal static class KeyedList
 {
     public static Component BuildRask(int[] order)
     {
-        var rows = new List<Child>(order.Length);
+        var rows = new List<Component>(order.Length);
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
@@ -28,7 +28,7 @@ internal static class KeyedList
     }
 
     // Stateful counterpart used by the live-diff payload benchmark. Mirrors the design
-    // of StatefulLargePageWithCounter: cache the per-key Child wrappers once, then mutate
+    // of StatefulLargePageWithCounter: cache the per-key Component wrappers once, then mutate
     // the order via a private rotation array. Each Tick swaps two slots and calls
     // StateHasChanged so the next RenderForLive emits a reordered (but otherwise
     // identical) row list — fair apples-to-apples vs Blazor's ParameterView path,
@@ -37,9 +37,9 @@ internal static class KeyedList
     public sealed class StatefulKeyedList : Component
 #pragma warning restore RASK014
     {
-        private readonly Dictionary<int, Child> _rowsByKey = new();
+        private readonly Dictionary<int, Component> _rowsByKey = new();
         private int[]? _order;
-        private List<Child>? _scratch;
+        private List<Component>? _scratch;
         private int _swapA = 5;
 
         private int _swapB;
@@ -83,11 +83,11 @@ internal static class KeyedList
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             EnsureSeeded();
             var order = _order!;
-            _scratch ??= new List<Child>(order.Length);
+            _scratch ??= new List<Component>(order.Length);
             _scratch.Clear();
             for (var i = 0; i < order.Length; i++)
             {
@@ -97,7 +97,7 @@ internal static class KeyedList
             return C.Div(Class: "list")[_scratch];
         }
 
-        private Child GetOrCreateRow(int key)
+        private Component GetOrCreateRow(int key)
         {
             if (_rowsByKey.TryGetValue(key, out var row))
             {

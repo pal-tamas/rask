@@ -8,7 +8,7 @@ public sealed class BsCollapse : BsBlock
     public bool? Open { get; set; }
     public bool? Horizontal { get; set; }
 
-    protected override RenderResult Render() => Div(
+    protected override Component? Render() => Div(
         Id: Id,
         Class: BsClass.Join(
             "collapse",

@@ -40,9 +40,9 @@ public class CompositeHandlerOwnerTests
     {
         public int Active;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
-            var kids = new List<Child> { Span()[$"active={Active}"] };
+            var kids = new List<Component> { Span()[$"active={Active}"] };
             for (var i = 1; i <= 2; i++)
             {
                 var index = i; // captured local → handler becomes a closure, not a this-bound method
@@ -56,6 +56,6 @@ public class CompositeHandlerOwnerTests
     // A composite wrapper that renders whatever children it is given — stands in for BsCard/BsButton.
     private sealed class PassThrough : Component
     {
-        protected override RenderResult Render() => Div()[Children ?? []];
+        protected override Component? Render() => Div()[Children ?? []];
     }
 }

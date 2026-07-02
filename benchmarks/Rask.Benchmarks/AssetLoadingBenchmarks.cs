@@ -220,100 +220,100 @@ public class AssetLoadingBenchmarks
 #pragma warning disable RASK014
 public sealed class AssetRow000 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow001 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow002 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow003 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow004 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow005 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow006 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow007 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow008 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow009 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow010 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow011 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow012 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow013 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow014 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow015 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow016 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow017 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow018 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }
 
 public sealed class AssetRow019 : Component
 {
-    protected override RenderResult Render() => this;
+    protected override Component? Render() => this;
 }

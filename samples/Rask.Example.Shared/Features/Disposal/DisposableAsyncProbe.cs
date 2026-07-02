@@ -19,7 +19,7 @@ public sealed class DisposableAsyncProbe : Component, IAsyncDisposable
         Log($"#{InstanceId} async-mounted");
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             BsBadge(Color: BsColor.Info, Class: "dispose-async-pill")[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")[

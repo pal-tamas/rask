@@ -11,7 +11,7 @@ public sealed class SkipFactoryCounter : Component
 
     protected override void OnMount() => _count = Initial;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsButton(Color: BsColor.Primary, Outline: true, Id: "skipfactory-counter", OnClick: () => _count++)[BsIcon(Name: BsIconName.HandIndex, Class: "me-2"), $"Clicks: {_count}"];
 }
 
@@ -20,5 +20,5 @@ public sealed class SkipFactoryCounter : Component
 // re-renders just like any other private state. The counter starts at 7.
 public sealed class ComponentsSkipFactoryDemo : Component
 {
-    protected override RenderResult Render() => SkipFactoryCounter();
+    protected override Component? Render() => SkipFactoryCounter();
 }

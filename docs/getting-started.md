@@ -114,7 +114,7 @@ child node automatically:
 ```csharp
 public sealed class Greeting : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "greeting")[
             H1()["Hello, world!"],
             P()["Welcome to your new Rask app — ", Strong()["it's all C#"], "."],
@@ -123,12 +123,12 @@ public sealed class Greeting : Component
 }
 ```
 
-`Render()` returns `RenderResult`, which accepts three shapes — you'll mostly use the first two:
+`Render()` returns `Component?`, which accepts three shapes — you'll mostly use the first two:
 
 - a single node — `Render() => Div()[...]`;
 - a **collection expression** for several top-level nodes with no wrapper — `Render() => [H1()["Title"],
   P()["Body"]]`;
-- `default` — render nothing.
+- `null` — render nothing.
 
 > **Safe by default — good to know, not needed yet.** Two security defaults are worth knowing about but
 > won't get in your way:
@@ -153,7 +153,7 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             H1()["Counter"],
             P()[$"Current count: {_count}"],
@@ -174,9 +174,9 @@ public sealed class RatingStars : Component
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }            // a plain delegate prop
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
-            Enumerable.Range(1, 5).Select(i => (Child)Button(
+            Enumerable.Range(1, 5).Select(i => (Component)Button(
                 OnClick: () => OnRate?.Invoke(i),        // child invokes; parent re-renders
                 Key: i)[i <= Value ? "★" : "☆"])
         ];
@@ -186,7 +186,7 @@ public sealed class RatingDemo : Component
 {
     private int _rating;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             RatingStars(Value: _rating, OnRate: n => _rating = n),   // lambda captures this
             P()[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
@@ -238,13 +238,13 @@ runtime `<script>` is auto-appended to `<body>`, and `<head>` is filled from eve
 public sealed class App : Component
 {
     // App-level head; pages can override their own Head to set a per-page Title.
-    protected override RenderResult Head => [
+    protected override Component? Head => [
         Title()["My Rask App"],
         Meta("utf-8"),
         Meta(Name: "viewport", Content: "width=device-width, initial-scale=1")
     ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[
@@ -261,7 +261,7 @@ Any component can contribute to `<head>` while it's in the tree by overriding `H
 `<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
 
 ```csharp
-protected override RenderResult Head => Title()["Welcome — My Rask App"];
+protected override Component? Head => Title()["Welcome — My Rask App"];
 ```
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
@@ -283,7 +283,7 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 

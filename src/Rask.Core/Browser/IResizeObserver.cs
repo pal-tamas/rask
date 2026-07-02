@@ -27,7 +27,7 @@ public sealed record ResizeEntry(double Width, double Height);
 ///     </para>
 ///     <code>
 ///     private readonly ElementRef _box = ElementRef.New();
-///     protected override RenderResult Render() => Div(Ref: _box)[ ... ];
+///     protected override Component? Render() => Div(Ref: _box)[ ... ];
 ///     protected override async Task OnRenderedAsync(bool first)
 ///     {
 ///         if (!first) return;

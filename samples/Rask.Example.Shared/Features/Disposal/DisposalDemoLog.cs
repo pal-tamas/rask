@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 internal static class DisposalDemoLog
 {
     public static Component Render(IReadOnlyList<string> entries, string id) =>
-        Fragment()[
+        [
             H3(Class: "h6 text-secondary text-uppercase small mt-4")["Log"],
             entries.Count == 0
                 ? P(Class: "text-secondary small mb-0")["Empty — mount and unmount the probe."]

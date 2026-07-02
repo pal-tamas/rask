@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // aside/header/footer/main/address/search.
 public sealed class ElementsSectionsDemo : Component
 {
-    protected override RenderResult Render() => Article(Class: "border rounded p-3")[
+    protected override Component? Render() => Article(Class: "border rounded p-3")[
         Header()[
             Hgroup()[
                 H1(Class: "h4 mb-1")["Article title"],

@@ -16,7 +16,7 @@ public sealed class ProgrammaticValidateDemo : Component
     }
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -25,7 +25,7 @@ public sealed class ProgrammaticValidateDemo : Component
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<TaskModel>(
             _model,
@@ -46,7 +46,7 @@ public sealed class ProgrammaticValidateDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Components;
@@ -9,6 +10,15 @@ using Rask.Core.Live;
 
 namespace Rask.Core;
 
+// [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
+// can be written as `Render() => [Doctype(), Html(...)]` (the items are built into a Fragment by
+// Create below). The builder is self-referential (typeof(Component)) and public so collection
+// expressions in *other* assemblies bind to it even though Fragment itself is internal. The
+// required iteration type comes from the *pattern* GetEnumerator below — Component deliberately
+// does NOT implement IEnumerable<Component>, because that would make the `this[IEnumerable<Component>]`
+// children indexer applicable to a bare component and silently rebind `Div()[Span()[...]]` from
+// "one child" to "the span's own children", collapsing nesting.
+[CollectionBuilder(typeof(Component), nameof(Create))]
 public abstract class Component
 {
     // Pre-built "h0".."h255" so handler registration in the common case (small forms,
@@ -47,9 +57,48 @@ public abstract class Component
 
     private LiveState Live => _live ??= new LiveState();
 
-    // Set by the children indexer below. Factories no longer expose Children as a
-    // parameter — `Div()[Span(...), "hi"]` is the canonical call shape.
-    public IEnumerable<Child>? Children { get; set; }
+    // Set by the children indexer below. Factories no longer expose Children as a parameter —
+    // `Div()[Span(...), "hi"]` is the canonical call shape. Elements are nullable: a `null` child
+    // renders nothing, so an inline `cond ? node : null` needs no placeholder.
+    public IEnumerable<Component?>? Children { get; set; }
+
+    // Present ONLY to give the [CollectionBuilder] attribute above an iteration type of
+    // `Component?` (see CS9188). This is the *enumerable pattern* — a public GetEnumerator — and is
+    // intentionally NOT `IEnumerable<Component?>`: implementing the interface would rebind the
+    // `this[IEnumerable<Component?>]` indexer and collapse nested components (see class remark).
+    // Enumerating a component walks its children.
+    public IEnumerator<Component?> GetEnumerator() => (Children ?? []).GetEnumerator();
+
+    // Collection-expression builder targeted by the [CollectionBuilder] attribute above. A
+    // `Render()`/`Head` body written as `[Doctype(), Html(...)]` lands here and is wrapped in a
+    // (tagless, internal) Fragment so the whole render pipeline keeps operating on a single
+    // Component. Public because the compiler emits this call at each collection-expression site,
+    // including in user assemblies where Fragment is not visible.
+    public static Component Create(ReadOnlySpan<Component?> items) => new Fragment(items.ToArray());
+
+    // Heterogeneous-literal children: `Div()["Score: ", 42, Span()]`. These implicit conversions
+    // (formerly on the deleted `Component` struct) let strings/primitives/dates flow into a children
+    // list as auto-created Text nodes. Value types render with InvariantCulture so the HTML stays
+    // locale-independent and byte-stable for the diff codec — matching Forms/BindingHelpers and
+    // RouteValueParser. Narrower integer types widen to `int`; `char` renders the character.
+    public static implicit operator Component(string text) => new Text { Value = text };
+    public static implicit operator Component(int value) => Format(value);
+    public static implicit operator Component(long value) => Format(value);
+    public static implicit operator Component(double value) => Format(value);
+    public static implicit operator Component(float value) => Format(value);
+    public static implicit operator Component(decimal value) => Format(value);
+    public static implicit operator Component(bool value) => new Text { Value = value ? "True" : "False" };
+    public static implicit operator Component(char value) => new Text { Value = value.ToString() };
+    public static implicit operator Component(Guid value) => new Text { Value = value.ToString() };
+    public static implicit operator Component(DateOnly value) => Format(value);
+    public static implicit operator Component(TimeOnly value) => Format(value);
+    public static implicit operator Component(DateTime value) => Format(value);
+    public static implicit operator Component(DateTimeOffset value) => Format(value);
+    public static implicit operator Component(TimeSpan value) => Format(value);
+
+    private static Component Format<T>(T value)
+        where T : IFormattable =>
+        new Text { Value = value.ToString(null, CultureInfo.InvariantCulture) };
 
     // Stable identity for keyed list reconciliation (Blazor `@key` parity). When set on an
     // element it emits `data-rask-key`; when set on a transparent component (a custom
@@ -100,10 +149,10 @@ public abstract class Component
     }
 
     // Primary children indexer. `Div()[Span(...), "hi"]` is the call shape: literal lists of
-    // Components/strings (each implicitly Child via Child's converters). Overload resolution
-    // prefers this `params Child[]` form over the IEnumerable<…> variants below — the compiler
-    // emits a single `new Child[N]{ … }` and we assign it directly, no intermediate copy.
-    public Component this[params Child[] children]
+    // components/strings (each implicitly a Component via the converters above). Overload
+    // resolution prefers this `params Component[]` form over the IEnumerable<…> variant below —
+    // the compiler emits a single `new Component[N]{ … }` and we assign it directly, no copy.
+    public Component this[params Component?[] children]
     {
         get
         {
@@ -112,80 +161,33 @@ public abstract class Component
         }
     }
 
-    // Single-arg / pre-built enumerable form. Used by call sites that have a List<Child> or
-    // any IEnumerable<Child> already in hand (e.g. row builders that did the materialisation
-    // themselves). The compiler picks this over the `params Child[]` overload only when the
-    // arg can't be coerced into Child[] — i.e. it's a single IEnumerable<Child> instance.
-    public Component this[IEnumerable<Child> children]
+    // Single-arg enumerable form: a `List<Component>`, a `.Select(...)` LINQ projection, or any
+    // pre-built `IEnumerable<Component>`. The compiler picks this over the `params Component[]`
+    // overload only when the arg is a single sequence that isn't already a `Component[]`.
+    public Component this[IEnumerable<Component?> children]
     {
         get
         {
             // Materialise a *lazy* sequence (a `yield`/LINQ pipeline that hasn't been evaluated)
-            // right here, during Render. A Child can wrap a component built by a factory, and those
-            // factories must run NOW — inside the owning component's render walk, where child-reuse
-            // bookkeeping (GetOrCreateChild's position map + PreviousChildren swap) is live — not later
-            // during serialization when that state is gone. Deferring would recreate any embedded
-            // component every render and silently drop its state (e.g. a demo mounted from a
-            // yield-built list). Already-materialised collections (Child[]/List<Child>/…) ran their
-            // factories when the caller built them, so they pass through without a copy.
-            Children = children is IReadOnlyCollection<Child> ? children : children.ToArray();
+            // right here, during Render. A component may be built by a factory, and those factories
+            // must run NOW — inside the owning component's render walk, where child-reuse bookkeeping
+            // (GetOrCreateChild's position map + PreviousChildren swap) is live — not later during
+            // serialization when that state is gone. Deferring would recreate any embedded component
+            // every render and silently drop its state (e.g. a demo mounted from a yield-built list).
+            // Already-materialised collections (Component?[]/List<Component?>/…) ran their factories
+            // when the caller built them, so they pass through without a copy.
+            Children = children is IReadOnlyCollection<Component?> ? children : children.ToArray();
             return this;
         }
     }
 
-    // LINQ pipeline form. `_items.Select(x => Foo(x))` returns IEnumerable<TComponent> that
-    // C# can't auto-lift through the user-defined Component→Child conversion. We materialise
-    // into a Child[] once here so subsequent foreach loops on `Children` walk a value-type
-    // array enumerator with no boxing. (The prior `.Select(c => (Child)c)` overload that
-    // every caller had to write is now unnecessary — pass the raw `IEnumerable<Component>`.)
-    public Component this[IEnumerable<Component> children]
-    {
-        get
-        {
-            if (children is Component[] arr)
-            {
-                var dst = new Child[arr.Length];
-                for (var i = 0; i < arr.Length; i++)
-                {
-                    dst[i] = arr[i];
-                }
-
-                Children = dst;
-            }
-            else if (children is IReadOnlyCollection<Component> coll)
-            {
-                var dst = new Child[coll.Count];
-                var i = 0;
-                foreach (var c in coll)
-                {
-                    dst[i++] = c;
-                }
-
-                Children = dst;
-            }
-            else
-            {
-                var list = new List<Child>();
-                foreach (var c in children)
-                {
-                    list.Add(c);
-                }
-
-                Children = list;
-            }
-
-            return this;
-        }
-    }
-
-    // Serializer fast-path. The two hot indexer overloads (`params Child[]` at the top and the
-    // materialised `IEnumerable<Component>` path) both leave `Children` holding a `Child[]`.
+    // Serializer fast-path. The hot indexer overloads leave `Children` holding a `Component?[]`.
     // Exposing the raw array lets the render walk iterate by index instead of `foreach`-ing the
-    // `IEnumerable<Child>` interface — which boxes a `SZGenericArrayEnumerator<Child>` (~32 B)
-    // per child-bearing element, every render. Returns null for the List/LINQ-pipeline backings,
-    // which fall back to the virtual `RenderChildren()` walk. No component in Rask.Core overrides
-    // `RenderChildren`, so for Element subclasses this array is exactly what that method yields.
-    internal Child[]? ChildrenArray => Children as Child[];
+    // `IEnumerable<Component?>` interface — which boxes a `SZGenericArrayEnumerator<Component?>`
+    // (~32 B) per child-bearing element, every render. Returns null for the List/LINQ-pipeline
+    // backings, which fall back to the virtual `RenderChildren()` walk. No component in Rask.Core
+    // overrides `RenderChildren`, so for Element subclasses this array is exactly what it yields.
+    internal Component?[]? ChildrenArray => Children as Component?[];
 
     // Null TagName means "not an HTML element" (Fragment/Doctype/Text/Raw/ErrorBoundary/user
     // components). When non-null, HtmlSerializer wraps WriteAttributes(sb)/RenderChildren()
@@ -306,20 +308,20 @@ public abstract class Component
     ///     a subsequent render, its head contribution drops out automatically — the registry
     ///     is rebuilt from scratch each pass.
     ///     <para>
-    ///         Default is <c>default</c> — no head contribution. Typical override returns a
-    ///         collection expression of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c>
-    ///         calls (e.g. <c>Head =&gt; [Title(...), Meta(...)]</c>), a single tag, or a
-    ///         <c>Fragment()[...]</c>. Cannot return <c>null</c> (non-nullable value type) — use
-    ///         <c>default</c> for "no contribution".
+    ///         Default is <c>null</c> — no head contribution. Typical override returns a collection
+    ///         expression of <c>Link</c> / <c>Script</c> / <c>Title</c> / <c>Meta</c> calls (e.g.
+    ///         <c>Head =&gt; [Title(...), Meta(...)]</c>) or a single tag. Return <c>null</c> for
+    ///         "no contribution" (including conditional bodies:
+    ///         <c>Head =&gt; cond ? [Title(...)] : null</c>).
     ///     </para>
     /// </summary>
-    protected virtual RenderResult Head => default;
+    protected virtual Component? Head => null;
 
-    internal Component? HeadInternal => Head.ToComponentOrNull();
+    internal Component? HeadInternal => Head;
     internal void MarkConsumesContextInternal() => _consumesContext = true;
 
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
-    internal IEnumerable<Child> RenderChildrenInternal() => RenderChildren();
+    internal IEnumerable<Component?> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();
 
     // Default: no HTML attributes. HTML element subclasses derive from Element, which
@@ -402,7 +404,7 @@ public abstract class Component
         AppendAttr(sb, name, UrlSanitizer.SanitizeMedia(value));
     }
 
-    protected virtual IEnumerable<Child> RenderChildren() => Children ?? [];
+    protected virtual IEnumerable<Component?> RenderChildren() => Children ?? [];
 
     // Tag components override this to wrap children rendering in an ambient scope
     // (e.g. Form pushes an EditContext for descendant fields to consume).
@@ -413,7 +415,10 @@ public abstract class Component
     internal void SeedPreviousChildren(Dictionary<(Type, int), Component> previous) =>
         Live.PreviousChildren = previous;
 
-    protected virtual RenderResult Render() => this;
+    // Override to produce this component's subtree. Returns a single component or a `[...]`
+    // collection expression (Component is itself a collection-expression target). The base returns
+    // the component itself; return `null` to render nothing. Symmetric with `Head`.
+    protected virtual Component? Render() => this;
 
     /// <summary>
     public string ToHtml()
@@ -713,13 +718,18 @@ public abstract class Component
             actual);
     }
 
-    internal Component RenderForLive()
+    internal Component? RenderForLive()
     {
         // Skip when nothing meaningful changed: no first-time render, no prop change, no
         // explicit StateHasChanged, and the component hasn't opted out of caching. The
         // serializer still walks Live.CachedRenderResult, so any descendant whose own
         // Live.StateDirty or Live.PropsDirty IS set will re-render itself — ancestors don't need to
         // re-execute to permit that.
+        //
+        // A component that renders nothing (Render() returns null) leaves CachedRenderResult null,
+        // so it never hits this cache and re-runs its (trivial) Render() on each non-dirty walk.
+        // That's fine: nothing-render is state-driven — such components set StateDirty when they
+        // gain content — and null can't double as the "already rendered" sentinel.
         //
         // A non-Element component that has children cannot reuse its cache: its children arrive via
         // the `[...]` indexer (not a factory param, so absent from the prop-change check) and are
@@ -757,7 +767,7 @@ public abstract class Component
         // the scope is live during BOTH Render() and the walk of its returned subtree —
         // factories inside Render and handlers registered on elements deep in the tree both
         // attribute back to this component.
-        Live.CachedRenderResult = Render().ToComponent();
+        Live.CachedRenderResult = Render();
 
         Live.PropsDirty = false;
         Live.StateDirty = false;
@@ -1466,7 +1476,7 @@ public abstract class Component
         throw new InvalidOperationException(
             "The Rask root component must render a full page shell, but the rendered output is "
             + "missing: " + string.Join(", ", missing) + ". A root render should look like:\n"
-            + "    Fragment()[Doctype(), Html(\"en\")[Head(), Body()[ /* content */ ]]]\n"
+            + "    [Doctype(), Html(\"en\")[Head(), Body()[ /* content */ ]]]\n"
             + "The runtime <script> is injected into <body> automatically — you do not need to add it.");
     }
 

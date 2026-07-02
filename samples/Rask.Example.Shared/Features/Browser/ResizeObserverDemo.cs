@@ -34,7 +34,7 @@ public sealed class ResizeObserverDemo(IResizeObserver observer) : Component, IA
         });
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "small text-secondary mb-2")[

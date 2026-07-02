@@ -8,7 +8,7 @@ public sealed class DisposalSyncDemo : Component
     private int _nextSyncId;
     private bool _syncMounted;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "dispose-sync-mount", Disabled: _syncMounted, OnClick: MountSync)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount sync probe"],

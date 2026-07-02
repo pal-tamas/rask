@@ -10,7 +10,7 @@ namespace Rask.Example.Shared;
 // call it from inside a render (a LiveRenderContext is required).
 public static class GuideCards
 {
-    public static IEnumerable<Child> Render()
+    public static IEnumerable<Component> Render()
     {
         foreach (var group in GuideCatalog.GroupOrder)
         {
@@ -22,7 +22,7 @@ public static class GuideCards
 
             yield return H2(Class: Bs.Join(Font.Bold, Txt.Uppercase, Txt.Color(BsColor.Secondary),
                 Margin.Top(4), Margin.Bottom(3), "h6", "feature-section"))[group];
-            yield return Div(Class: "row g-3")[cards.Select(c => (Child)Card(c))];
+            yield return Div(Class: "row g-3")[cards.Select(c => (Component)Card(c))];
         }
     }
 

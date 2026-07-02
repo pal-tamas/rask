@@ -14,7 +14,7 @@ public sealed class HttpRegisterDemo : Component
     private static HttpClient CreateClient(Func<string> baseAddress) =>
         new() { BaseAddress = new Uri(baseAddress()) };
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: "border-0 bg-light")[
             BsCardBody()[
                 Div(Class: "small text-secondary text-uppercase mb-1")["Configured HttpClient"],

@@ -13,8 +13,8 @@ public class RuntimeScriptInjectionTests
             .AddSingleton<IRaskRuntimeScript>(new StubRuntimeScriptProvider(Raw(ScriptHtml)))
             .BuildServiceProvider();
 
-    private static Component Shell(params Child[] bodyChildren) =>
-        Fragment()[Doctype(), Html("en")[Head(), Body()[bodyChildren]]];
+    private static Component Shell(params Component[] bodyChildren) =>
+        [Doctype(), Html("en")[Head(), Body()[bodyChildren]]];
 
     [Fact]
     public void Body_ProviderRegistered_InjectsScriptAsLastBodyChild()

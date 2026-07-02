@@ -27,7 +27,7 @@ public sealed class BsButton : BsBlock
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "btn",

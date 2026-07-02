@@ -75,11 +75,13 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
         Size is { } s && s.Suffix() is { } suffix ? $"{prefix}-{suffix}" : null;
 
     // Wraps a control element with an optional label above and help-text/invalid-feedback below.
-    private protected RenderResult Field(string? controlId, in Bound b, Child control) => Fragment()[
+    private protected Component Field(string? controlId, in Bound b, Component control) =>
+    [
         Label is not null
             ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-label")[Label]
-            : (Child)Fragment(),
+            : null,
         control,
-        HelpText is not null ? Div(Class: "form-text")[HelpText] : (Child)Fragment(),
-        b.Invalid ? Div(Class: "invalid-feedback d-block")[b.Messages[0]] : (Child)Fragment()];
+        HelpText is not null ? Div(Class: "form-text")[HelpText] : null,
+        b.Invalid ? Div(Class: "invalid-feedback d-block")[b.Messages[0]] : null
+    ];
 }

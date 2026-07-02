@@ -46,7 +46,7 @@ public sealed class HttpFetchDemo(HttpClient http) : Component
         }
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (_error is not null)
         {

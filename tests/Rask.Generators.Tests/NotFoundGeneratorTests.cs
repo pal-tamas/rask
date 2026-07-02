@@ -12,7 +12,7 @@ public class NotFoundGeneratorTests
                   [NotFound]
                   public sealed class MyNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -35,13 +35,13 @@ public class NotFoundGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class Layout : Component { public override RenderResult Render() => this; }
+                  public sealed class Layout : Component { public override Component? Render() => this; }
 
                   [NotFound]
                   [ParentRoute(typeof(Layout))]
                   public sealed class MyNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -64,7 +64,7 @@ public class NotFoundGeneratorTests
                   [NotFound]
                   public sealed class Bad : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -82,13 +82,13 @@ public class NotFoundGeneratorTests
                   [NotFound]
                   public sealed class FirstNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
 
                   [NotFound]
                   public sealed class SecondNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -108,13 +108,13 @@ public class NotFoundGeneratorTests
                   [NotFound]
                   public sealed class FirstNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
 
                   [NotFound]
                   public sealed class SecondNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -135,7 +135,7 @@ public class NotFoundGeneratorTests
                   [NotFound]
                   public sealed class MyNotFound : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -154,10 +154,10 @@ public class NotFoundGeneratorTests
                   using Rask.Core.Routing;
                   namespace Demo;
                   [Route("/")]
-                  public sealed class HomePage : Component { public override RenderResult Render() => this; }
+                  public sealed class HomePage : Component { public override Component? Render() => this; }
 
                   [NotFound]
-                  public sealed class MyNotFound : Component { public override RenderResult Render() => this; }
+                  public sealed class MyNotFound : Component { public override Component? Render() => this; }
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);

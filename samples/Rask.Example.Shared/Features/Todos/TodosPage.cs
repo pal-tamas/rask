@@ -21,7 +21,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     [RouteParam] public Guid? Id { get; set; }
 
-    protected override RenderResult Head => Title()["Todos — Rask"];
+    protected override Component? Head => Title()["Todos — Rask"];
 
     private bool IsAdding => route.Path.EndsWith("/new", StringComparison.OrdinalIgnoreCase);
 
@@ -59,7 +59,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     private void Delete(TodoItem item) => _todos.Remove(item);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             PageHeader.Render(
                 "Todos",
@@ -135,7 +135,7 @@ public sealed class TodoFormDialog : Component
 #pragma warning restore CS8618
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     // Move focus into the dialog the moment it opens (false → true), so Escape closes it without a
     // prior click and a keyboard user lands inside the form. OnRenderedAsync runs after the DOM is
@@ -159,11 +159,11 @@ public sealed class TodoFormDialog : Component
         }
     }
 
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             // Dim, clickable backdrop behind the centered dialog. A non-modal <dialog open> gets no
             // ::backdrop, so we render our own — clicking it cancels, like the nav drawer's backdrop.
-            Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : Fragment(),
+            Open ? Div(Class: "todo-backdrop", OnClick: OnCancel) : null,
             // tabindex makes the <dialog> programmatically focusable; OnKeyDown gives it Escape-to-close.
             Dialog(Open, Ref: _dialog, TabIndex: -1, OnKeyDown: OnKey)[
                 H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],

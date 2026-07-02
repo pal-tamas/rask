@@ -7,9 +7,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class EventsPage : Component
 {
-    protected override RenderResult Head => Title()["Events — Rask"];
+    protected override Component? Head => Title()["Events — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Events",

@@ -484,8 +484,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     // An event-callback delegate prop whose invocation should re-render its owner: an
     // Action/Action<T>/Func<Task>/Func<T,Task> shape (void- or Task-returning, arity <= 1). The
-    // return-type rule excludes template/data delegates — Func<…,Component>, Func<…,ValueTask<…>>
-    // (VirtualizeModel.ItemsProvider), Func<…,Child> (ErrorBoundary.Fallback), Func<…,IEnumerable<…>>
+    // return-type rule excludes template/data delegates — Func<…,Component> (ErrorBoundary.Fallback),
+    // Func<…,ValueTask<…>> (VirtualizeModel.ItemsProvider), Func<…,IEnumerable<…>>
     // (validators) — so only true parent→child callbacks are wrapped.
     private static bool IsAutoRerenderDelegate(ITypeSymbol type)
     {
@@ -636,7 +636,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                // Children is exposed via the `Component this[params Child[]]` indexer, not as
+                // Children is exposed via the `Component this[params Component[]]` indexer, not as
                 // a factory parameter. Skip any property that matches the standard Children shape
                 // so subclasses can't accidentally bring it back into the factory signature.
                 if (prop.Name == "Children" && IsChildCollectionType(
@@ -845,19 +845,21 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
-    // Children is delivered via the `Component this[params Child[]]` indexer on Component
+    // Children is delivered via the `Component this[params Component[]]` indexer on Component
     // itself — the factory has no Children parameter. This helper exists only to recognize
     // the standard Children collection shapes while filtering them out in GetFactoryProperties.
     private static bool IsChildCollectionType(string typeFqn)
     {
-        var t = StripNullable(typeFqn);
-        return t is "global::System.Collections.Generic.IEnumerable<global::Rask.Core.Child>"
-            or "global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Child>"
-            or "global::System.Collections.Generic.IReadOnlyCollection<global::Rask.Core.Child>"
-            or "global::System.Collections.Generic.IList<global::Rask.Core.Child>"
-            or "global::System.Collections.Generic.ICollection<global::Rask.Core.Child>"
-            or "global::System.Collections.Generic.List<global::Rask.Core.Child>"
-            or "global::Rask.Core.Child[]";
+        // Strip ALL nullable annotations (the outer collection `?` and the inner `Component?`
+        // element annotation) so the match holds regardless of how nullability is rendered.
+        var t = typeFqn.Replace("?", "");
+        return t is "global::System.Collections.Generic.IEnumerable<global::Rask.Core.Component>"
+            or "global::System.Collections.Generic.IReadOnlyList<global::Rask.Core.Component>"
+            or "global::System.Collections.Generic.IReadOnlyCollection<global::Rask.Core.Component>"
+            or "global::System.Collections.Generic.IList<global::Rask.Core.Component>"
+            or "global::System.Collections.Generic.ICollection<global::Rask.Core.Component>"
+            or "global::System.Collections.Generic.List<global::Rask.Core.Component>"
+            or "global::Rask.Core.Component[]";
     }
 
     private static string StripNullable(string typeFqn) =>

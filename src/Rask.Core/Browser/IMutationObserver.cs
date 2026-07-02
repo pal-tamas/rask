@@ -50,7 +50,7 @@ public sealed record MutationOptions
 ///     </para>
 ///     <code>
 ///     private readonly ElementRef _target = ElementRef.New();
-///     protected override RenderResult Render() => Div(Ref: _target)[ ... ];
+///     protected override Component? Render() => Div(Ref: _target)[ ... ];
 ///     protected override async Task OnRenderedAsync(bool first)
 ///     {
 ///         if (!first) return;

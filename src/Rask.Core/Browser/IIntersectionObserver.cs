@@ -40,7 +40,7 @@ public sealed record IntersectionOptions
 ///     </para>
 ///     <code>
 ///     private readonly ElementRef _sentinel = ElementRef.New();
-///     protected override RenderResult Render() => Div(Ref: _sentinel)[ ... ];
+///     protected override Component? Render() => Div(Ref: _sentinel)[ ... ];
 ///     protected override async Task OnRenderedAsync(bool first)
 ///     {
 ///         if (!first) return;

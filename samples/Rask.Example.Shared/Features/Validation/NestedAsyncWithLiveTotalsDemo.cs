@@ -34,7 +34,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
     private static Component Checking() =>
         Span(Class: "validating-indicator text-muted small mt-1")[
@@ -65,7 +65,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
             : Array.Empty<string>();
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         // Live derived state — recomputed on every render. The dispatcher re-renders this
         // component after each event handler completes, so the figures stay in sync with the
@@ -164,7 +164,7 @@ public sealed class NestedAsyncWithLiveTotalsDemo : Component
                 ]
             ],
             _submission is null
-                ? Fragment()
+                ? null
                 : Div(Id: "v-nlive-submission", Class: "alert alert-success small mt-3 mb-0")[
                     BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission
                 ]

@@ -9,7 +9,7 @@ public sealed class ClipboardDemo(IClipboard clipboard) : Component
     private string? _read;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsInputGroup(Size: BsSize.Sm, Class: "mb-2")[

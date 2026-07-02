@@ -1,21 +1,35 @@
 namespace Rask.Core.Tests.Components;
 
+// A `[...]` collection expression targeting Component builds a tagless container (internally a
+// Fragment) via Component.Create. These pin the container's rendering: no children => empty string,
+// single/multiple children => concatenated with no wrapping element, text children HTML-encoded.
 public class FragmentTests
 {
     [Fact]
-    public void Render_NoChildren_EmitsEmptyString() => Assert.Equal("", Fragment().ToHtml());
+    public void Render_NoChildren_EmitsEmptyString()
+    {
+        Component empty = Component.Create([]);
+        Assert.Equal("", empty.ToHtml());
+    }
 
     [Fact]
-    public void Render_SingleChild_EmitsThatChild() =>
-        Assert.Equal("<!DOCTYPE html>", Fragment()[Doctype()].ToHtml());
+    public void Render_SingleChild_EmitsThatChild()
+    {
+        Component fragment = [Doctype()];
+        Assert.Equal("<!DOCTYPE html>", fragment.ToHtml());
+    }
 
     [Fact]
     public void Render_MultipleChildren_EmitsConcatenated()
     {
-        var fragment = Fragment()[Doctype(), Html()];
+        Component fragment = [Doctype(), Html()];
         Assert.Equal("<!DOCTYPE html><html></html>", fragment.ToHtml());
     }
 
     [Fact]
-    public void Render_TextChild_HtmlEncodes() => Assert.Equal("a&lt;b", Fragment()[Text("a<b")].ToHtml());
+    public void Render_TextChild_HtmlEncodes()
+    {
+        Component fragment = [Text("a<b")];
+        Assert.Equal("a&lt;b", fragment.ToHtml());
+    }
 }

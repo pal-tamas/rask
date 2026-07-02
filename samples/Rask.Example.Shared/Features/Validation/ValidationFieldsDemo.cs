@@ -8,9 +8,9 @@ public sealed class ValidationFieldsDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<RegistrationModel>(
             _model,
@@ -48,7 +48,7 @@ public sealed class ValidationFieldsDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

@@ -8,7 +8,7 @@ public sealed class BsUtilitiesDemo : Component
     private static Component Tile(string label, string? extra = null) =>
         Div(Class: Bs.Join(Bg.BodyTertiary, Border.All, Rounded.Default, Padding.All(3), Txt.Center(), extra))[label];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: Bs.Join(Display.Flex(), Flex.Column(), Flex.Gap(4)))[
 

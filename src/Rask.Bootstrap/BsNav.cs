@@ -14,7 +14,7 @@ public sealed class BsNav : BsBlock
     public bool? Fill { get; set; }
     public bool? Justified { get; set; }
 
-    protected override RenderResult Render() => Ul(Id: Id, Class: BsClass.Join(
+    protected override Component? Render() => Ul(Id: Id, Class: BsClass.Join(
         "nav",
         Vertical is true ? "flex-column" : null,
         Pills is true ? "nav-pills" : null,
@@ -36,10 +36,10 @@ public sealed class BsNavItem : BsBlock
     public bool? Disabled { get; set; }
     public NavLinkMatch? ActiveMatch { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var linkCls = BsClass.Join("nav-link", Disabled is true ? "disabled" : null, Class);
-        Child link = Href is { } href
+        Component link = Href is { } href
             ? NavLink(Href: href, Match: Match, ActiveClass: "active", ActiveMatch: ActiveMatch, Class: linkCls)[Items]
             : Span(Class: linkCls)[Items];
         return Li(Class: "nav-item")[link];

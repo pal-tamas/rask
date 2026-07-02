@@ -98,6 +98,6 @@ public class SvgScopedCssTests
     {
         private readonly Component _body;
         public SvgCssWrapper(Component body) => _body = body;
-        protected override RenderResult Render() => _body;
+        protected override Component? Render() => _body;
     }
 }

@@ -13,17 +13,17 @@ public sealed class UserGateDemo : Component
 
     protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "user-gate")[
             _auth.Current.Identity?.IsAuthenticated == true
-                ? Fragment()[
+                ? [
                     P()["Signed in as ", Strong()[_auth.Current.Identity!.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     _auth.Current.IsInRole("admin")
                         ? BsAlert(Color: BsColor.Warning, Class: "py-2")["🔑 Admin-only panel"]
-                        : (Child)Fragment(),
+                        : null,
                     BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: _auth.SignOut)["Sign out"]]
-                : Fragment()[
+                : [
                     P(Class: "text-secondary")["You are signed out."],
                     Div(Class: "d-flex gap-2")[
                         BsButton(Color: BsColor.Primary, Size: BsSize.Sm, OnClick: () => _auth.SignIn("alice", "user"))[

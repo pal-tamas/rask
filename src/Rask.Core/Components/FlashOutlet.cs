@@ -33,7 +33,7 @@ public sealed class FlashOutlet : Component
     ///     Renders the currently-showing messages. Receives a <c>dismiss</c> callback that removes a
     ///     message by <see cref="FlashMessage.Id" />. Invoked only when at least one message is showing.
     /// </summary>
-    public required Func<IReadOnlyList<FlashMessage>, Action<int>, RenderResult> Template { get; set; }
+    public required Func<IReadOnlyList<FlashMessage>, Action<int>, Component> Template { get; set; }
 
     // Holds mutable, framework-unobserved state (_messages, drained out-of-band on IFlash.Changed), so
     // the render cache must not pin an earlier snapshot. Same rationale as ValidationMessage.
@@ -60,14 +60,14 @@ public sealed class FlashOutlet : Component
         }
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         FlashMessage[] snapshot;
         lock (_gate)
         {
             if (_messages.Count == 0)
             {
-                return default;
+                return null;
             }
 
             snapshot = [.. _messages];

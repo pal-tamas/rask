@@ -71,7 +71,7 @@ public class HtmlSerializerBenchmarks
     // constant so very small trees still exercise the same per-attribute encoder path.
     private static Component BuildTree(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
@@ -93,7 +93,7 @@ public class HtmlSerializerBenchmarks
 
     private static Component BuildScopedCssTree(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             rows.Add((i & 3) switch
@@ -105,7 +105,7 @@ public class HtmlSerializerBenchmarks
             });
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[C.Div(Class: "list")[rows]]
@@ -115,7 +115,7 @@ public class HtmlSerializerBenchmarks
 
     private static Component BuildTextHeavyTree(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             // All values are encoding-free ASCII so the HtmlEncoder.Encode call returns
@@ -142,24 +142,24 @@ public class HtmlSerializerBenchmarks
 public sealed class ScopedRowA : Component
 {
     public int Index { get; set; }
-    protected override RenderResult Render() => C.Div(Class: "row", Id: $"a{Index}")[C.Span()[$"a {Index}"]];
+    protected override Component? Render() => C.Div(Class: "row", Id: $"a{Index}")[C.Span()[$"a {Index}"]];
 }
 
 public sealed class ScopedRowB : Component
 {
     public int Index { get; set; }
-    protected override RenderResult Render() => C.Div(Class: "row", Id: $"b{Index}")[C.Span()[$"b {Index}"]];
+    protected override Component? Render() => C.Div(Class: "row", Id: $"b{Index}")[C.Span()[$"b {Index}"]];
 }
 
 public sealed class ScopedRowC : Component
 {
     public int Index { get; set; }
-    protected override RenderResult Render() => C.Div(Class: "row", Id: $"c{Index}")[C.Span()[$"c {Index}"]];
+    protected override Component? Render() => C.Div(Class: "row", Id: $"c{Index}")[C.Span()[$"c {Index}"]];
 }
 
 public sealed class ScopedRowD : Component
 {
     public int Index { get; set; }
-    protected override RenderResult Render() => C.Div(Class: "row", Id: $"d{Index}")[C.Span()[$"d {Index}"]];
+    protected override Component? Render() => C.Div(Class: "row", Id: $"d{Index}")[C.Span()[$"d {Index}"]];
 }
 #pragma warning restore RASK014

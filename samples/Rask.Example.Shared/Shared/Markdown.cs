@@ -41,7 +41,7 @@ public sealed partial class Markdown : Component
     public string Source { get; set; }
 #pragma warning restore CS8618
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         DemoMarkerRegex().IsMatch(Source)
             ? Div(Class: "markdown-body")[Segments()]
             : Div(Class: "markdown-body")[Raw(HtmlCache.GetOrAdd(Source, RenderHtml))];
@@ -50,7 +50,7 @@ public sealed partial class Markdown : Component
     // independently) and each demo segment becomes the resolved demo component. An unknown key renders a
     // visible warning rather than silently vanishing (the registry-integrity test keeps guides from
     // shipping one).
-    private IEnumerable<Child> Segments()
+    private IEnumerable<Component> Segments()
     {
         var index = 0;
         foreach (var segment in Split(Source))

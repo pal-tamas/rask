@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class DownloadPage : Component
 {
-    protected override RenderResult Head => Title()["File download — Rask"];
+    protected override Component? Head => Title()["File download — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "File download",

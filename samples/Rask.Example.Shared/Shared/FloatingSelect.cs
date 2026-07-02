@@ -13,12 +13,12 @@ public sealed class FloatingSelect<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
         return Div(Class: "form-floating mb-3")[
             // form-select (not form-control); the caller's <option>s flow in as Children.
-            Select(Bind, Id: id, Class: "form-select")[Children ?? Array.Empty<Child>()],
+            Select(Bind, Id: id, Class: "form-select")[Children ?? Array.Empty<Component>()],
             Label(id)[label],
             ValidationMessage(Bind, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]])
         ];

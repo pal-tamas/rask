@@ -9,7 +9,7 @@ public sealed class LifecycleCycleDemo : Component
     private bool _cycleMounted;
     private int _nextCycleId;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "lifecycle-cycle-mount", Disabled: _cycleMounted, OnClick: MountCycle)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],

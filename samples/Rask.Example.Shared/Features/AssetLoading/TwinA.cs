@@ -7,6 +7,6 @@ namespace Rask.Example.Shared.Features;
 /// </summary>
 public sealed class TwinA : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "twin-tag")["Twin A — independent hash"];
 }

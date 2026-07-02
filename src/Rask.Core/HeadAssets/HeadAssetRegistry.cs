@@ -55,7 +55,10 @@ internal sealed class HeadAssetRegistry
         {
             foreach (var child in children)
             {
-                AddOne(child.Component);
+                if (child is not null)
+                {
+                    AddOne(child);
+                }
             }
         }
         else

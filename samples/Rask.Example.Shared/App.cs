@@ -11,7 +11,7 @@ public sealed class App : Component
     // (<title>, <base>) so the latest contributor wins, and auto-appends the
     // scoped-css <link> + scoped-js <script>. User contributions splice in BEFORE
     // the scoped-css link so global.css's brand palette overrides Bootstrap.
-    protected override RenderResult Head =>
+    protected override Component? Head =>
     [
         Title()["Rask — feature showcase"],
         Meta("utf-8"),
@@ -38,7 +38,7 @@ public sealed class App : Component
     ];
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html("en")[

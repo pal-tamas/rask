@@ -34,7 +34,7 @@ public class ComponentConstructionAnalyzerTests
                   namespace Demo;
                   public sealed class Counter : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   class Caller { void M() { var x = new Counter(); } }
                   """;
@@ -70,7 +70,7 @@ public class ComponentConstructionAnalyzerTests
                   namespace Demo;
                   public sealed class Counter : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -121,7 +121,7 @@ public class ComponentConstructionAnalyzerTests
                   namespace Demo;
                   public sealed class Page : Component
                   {
-                      protected override RenderResult Render() => new Div();
+                      protected override Component? Render() => new Div();
                   }
                   """;
 
@@ -158,7 +158,7 @@ public class ComponentConstructionAnalyzerTests
                   namespace Demo;
                   internal sealed class Hidden : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   class Caller { void M() { var x = new Hidden(); } }
                   """;

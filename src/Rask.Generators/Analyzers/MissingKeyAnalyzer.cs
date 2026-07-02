@@ -11,8 +11,8 @@ namespace Rask.Generators.Analyzers;
 
 // RASK022 — warn when a Rask factory call (an HTML element or a custom component) is produced
 // in a sibling-list context without a Key. Two idioms are flagged:
-//   * a `.Select(...)`/`.SelectMany(...)` projection whose body becomes a Child, and
-//   * an element/component added to a Child collection (`List<Child>.Add(...)`) inside a loop.
+//   * a `.Select(...)`/`.SelectMany(...)` projection whose body becomes a sibling component, and
+//   * a component added to a component collection (`List<Component>.Add(...)`) inside a loop.
 // Keyless list items reconcile by POSITION: an insert/remove/reorder falls back to a full-HTML
 // morph and loses DOM identity (focus, input state) on surviving nodes. A stable `Key:` lets
 // the diff codec match by identity and ship trusted keyed structural ops instead. Best-effort:
@@ -21,7 +21,6 @@ namespace Rask.Generators.Analyzers;
 public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 {
     private const string ComponentFullName = "Rask.Core.Component";
-    private const string ChildFullName = "Rask.Core.Child";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";
 
@@ -33,8 +32,8 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         "Usage",
         DiagnosticSeverity.Warning,
         true,
-        "Elements/components produced in a .Select(...) projection or added to a Child collection in "
-        + "a loop should carry a stable Key (Blazor @key parity). Without it, insert/remove/reorder "
+        "Elements/components produced in a .Select(...) projection or added to a component collection "
+        + "in a loop should carry a stable Key (Blazor @key parity). Without it, insert/remove/reorder "
         + "falls back to a positional full-HTML morph and loses DOM identity (focus, input state) on "
         + "surviving nodes.",
         DiagnosticHelp.Link("RASK022"));
@@ -54,20 +53,18 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
             }
 
             var component = start.Compilation.GetTypeByMetadataName(ComponentFullName);
-            var child = start.Compilation.GetTypeByMetadataName(ChildFullName);
-            if (component is null || child is null)
+            if (component is null)
             {
                 return;
             }
 
             start.RegisterSyntaxNodeAction(
-                ctx => Analyze(ctx, component, child),
+                ctx => Analyze(ctx, component),
                 SyntaxKind.InvocationExpression);
         });
     }
 
-    private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol component,
-        INamedTypeSymbol child)
+    private static void Analyze(SyntaxNodeAnalysisContext context, INamedTypeSymbol component)
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
         var model = context.SemanticModel;
@@ -89,22 +86,22 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         }
 
         // 3) The produced "child expression": the call plus any `[...]` children indexer, paren,
-        //    and `(Child)` cast wrapping it. Its converted type tells us it becomes a sibling Child.
+        //    and `(Component)` cast wrapping it. Its (converted) type tells us it becomes a sibling
+        //    component.
         var outer = ClimbToChildExpression(invocation);
         var typeInfo = model.GetTypeInfo(outer, context.CancellationToken);
         var isChildLike =
-            IsChild(typeInfo.Type, child) || IsChild(typeInfo.ConvertedType, child)
-                                          || InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
-                                          || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
+            InheritsFrom(typeInfo.Type as INamedTypeSymbol, component)
+            || InheritsFrom(typeInfo.ConvertedType as INamedTypeSymbol, component);
         if (!isChildLike)
         {
             return;
         }
 
-        // 4) Sibling-LIST context: a Select/SelectMany projection, or an Add to a Child collection
-        //    inside a loop. A single static child (e.g. Div()[ Span() ]) is not flagged.
+        // 4) Sibling-LIST context: a Select/SelectMany projection, or an Add to a component
+        //    collection inside a loop. A single static child (e.g. Div()[ Span() ]) is not flagged.
         if (!IsInSelectProjection(outer)
-            && !IsCollectionAddInLoop(outer, model, child, context.CancellationToken))
+            && !IsCollectionAddInLoop(outer, model, component, context.CancellationToken))
         {
             return;
         }
@@ -125,9 +122,6 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsChild(ITypeSymbol? type, INamedTypeSymbol child) =>
-        type is not null && SymbolEqualityComparer.Default.Equals(type, child);
-
     private static bool HasKeyArgument(InvocationExpressionSyntax invocation)
     {
         foreach (var arg in invocation.ArgumentList.Arguments)
@@ -147,7 +141,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    // Climb past the children indexer (`[...]`), parens, and `(Child)` casts to reach the
+    // Climb past the children indexer (`[...]`), parens, and `(Component)` casts to reach the
     // expression that actually flows into the surrounding list/projection context.
     private static ExpressionSyntax ClimbToChildExpression(ExpressionSyntax node)
     {
@@ -215,15 +209,15 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
     }
 
     private static bool IsCollectionAddInLoop(SyntaxNode outer, SemanticModel model,
-        INamedTypeSymbol child, CancellationToken ct)
+        INamedTypeSymbol component, CancellationToken ct)
     {
-        // outer must be the single argument to a `.Add(<Child>)` call ...
+        // outer must be the single argument to a `.Add(<Component>)` call ...
         if (outer.Parent is not ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax inv } }
             || inv.Expression is not MemberAccessExpressionSyntax ma
             || !string.Equals(ma.Name.Identifier.ValueText, "Add", StringComparison.Ordinal)
             || model.GetSymbolInfo(inv, ct).Symbol is not IMethodSymbol add
             || add.Parameters.Length != 1
-            || !IsChild(add.Parameters[0].Type, child))
+            || !InheritsFrom(add.Parameters[0].Type as INamedTypeSymbol, component))
         {
             return false;
         }

@@ -23,5 +23,5 @@ public interface IRaskRuntimeScript
 /// </summary>
 public sealed class RaskRuntimeScript : Component
 {
-    protected override RenderResult Render() => new Raw(string.Empty);
+    protected override Component? Render() => new Raw(string.Empty);
 }

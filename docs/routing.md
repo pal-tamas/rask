@@ -22,7 +22,7 @@ Put `[Route("/path")]` on a `Component`. That's the whole registration:
 [Route("/about")]
 public sealed class AboutPage : Component
 {
-    protected override RenderResult Render() => H1()["About"];
+    protected override Component? Render() => H1()["About"];
 }
 ```
 
@@ -38,7 +38,7 @@ root (`App`):
 ```csharp
 public sealed class App : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[
@@ -102,7 +102,7 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }       // /users/42  → Id = 42
     [QueryParam] public string? Tab { get; set; }   // ?tab=profile → Tab = "profile"
 
-    protected override RenderResult Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
+    protected override Component? Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 ```
 
@@ -133,7 +133,7 @@ parent's, and the parent renders the matched child wherever it places an `Outlet
 [Route("/")]
 public sealed class Layout : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Nav()[ /* sidebar */ ],
             Main()[Outlet()]        // the matched child page renders here
@@ -143,7 +143,7 @@ public sealed class Layout : Component
 [Route("about"), ParentRoute(typeof(Layout))]
 public sealed class AboutPage : Component
 {
-    protected override RenderResult Render() => H1()["About"];
+    protected override Component? Render() => H1()["About"];
 }
 
 // /about now matches Layout → AboutPage, with AboutPage rendered into Layout's Outlet().
@@ -165,7 +165,7 @@ like any other framework service:
 ```csharp
 public sealed class ProductsPage(Navigator nav) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Button(OnClick: () => nav.NavigateTo("/dashboard"))["Open dashboard"];
 }
 ```
@@ -240,7 +240,7 @@ is handled entirely in the client runtime and applies to both transports.
 ```csharp
 public sealed class CurrentLocation(RouteState route) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             "path: ", Code()[route.Path],
             " query count: ", route.Query.Count
@@ -267,7 +267,7 @@ public sealed class PathDisplay(RouteState route) : Component
     protected override void OnMount() => route.Changed += StateHasChanged;
     protected override void OnUnmount() => route.Changed -= StateHasChanged;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Span()["path: ", Code()[route.Path]];
 }
 ```
@@ -288,7 +288,7 @@ framework falls back to a minimal built-in page if no app-defined one exists.
 [NotFound]
 public sealed class NotFoundPage : Component
 {
-    protected override RenderResult Render() => H1()["Page not found"];
+    protected override Component? Render() => H1()["Page not found"];
 }
 ```
 

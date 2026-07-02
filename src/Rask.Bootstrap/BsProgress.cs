@@ -19,7 +19,7 @@ public sealed class BsProgress : BsBlock
     // Animates the stripes (implies Striped).
     public bool? Animated { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var min = Min ?? 0;
         var max = Max ?? 100;

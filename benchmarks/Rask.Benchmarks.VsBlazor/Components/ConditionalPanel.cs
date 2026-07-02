@@ -24,13 +24,13 @@ internal static class ConditionalPanel
 
     public static Component BuildRask(bool showPanel)
     {
-        var rows = new List<Child>(PanelRowCount);
+        var rows = new List<Component>(PanelRowCount);
         for (var i = 0; i < PanelRowCount; i++)
         {
             rows.Add(C.Li(Class: "panel-row")[$"Detail {i}"]);
         }
 
-        var body = new List<Child>(3) { C.Header()[C.H1()["Dashboard"]] };
+        var body = new List<Component>(3) { C.Header()[C.H1()["Dashboard"]] };
         if (showPanel)
         {
             body.Add(C.Div(Class: "panel")[C.Ul()[rows]]);

@@ -6,7 +6,7 @@ public sealed class BindingNullableDemo : Component
 
     private readonly Holder _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "mb-3")[
             Label("bind-null-age", Class: "form-label small")["Optional age (int?)"],

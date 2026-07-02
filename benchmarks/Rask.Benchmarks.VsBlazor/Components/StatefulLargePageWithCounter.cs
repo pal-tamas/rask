@@ -5,7 +5,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 
 // Stateful counterpart to LargePageWithCounter.BuildRask(int). The rebuild-each-time
 // factory was producing 621 KB / iter on CounterOnLargePage — 200 fresh Div+Span+A
-// components plus a fresh 200-element List<Child> per call. That mass dwarfed the
+// components plus a fresh 200-element List<Component> per call. That mass dwarfed the
 // diff codec's own pooled-buffer allocations and made the per-iteration MemoryDiagnoser
 // number measure tree construction, not the diff path.
 //
@@ -25,7 +25,7 @@ public sealed class StatefulLargePageWithCounter : Component
 {
     public const int LargePageRowCount = 200;
 
-    private List<Child>? _rows;
+    private List<Component>? _rows;
 
     public int Counter { get; private set; }
 
@@ -35,11 +35,11 @@ public sealed class StatefulLargePageWithCounter : Component
         StateHasChanged();
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (_rows is null)
         {
-            _rows = new List<Child>(LargePageRowCount);
+            _rows = new List<Component>(LargePageRowCount);
             for (var i = 0; i < LargePageRowCount; i++)
             {
                 _rows.Add(C.Div(Class: "row", Id: $"r{i}")[
@@ -70,8 +70,8 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
     public const int LargePageRowCount = 200;
     private const int MutatingIndex = LargePageRowCount / 2;
 
-    private Child[]? _rowsByIndex;
-    private List<Child>? _scratch;
+    private Component[]? _rowsByIndex;
+    private List<Component>? _scratch;
 
     public int Counter { get; private set; }
 
@@ -81,11 +81,11 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
         StateHasChanged();
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (_rowsByIndex is null)
         {
-            _rowsByIndex = new Child[LargePageRowCount];
+            _rowsByIndex = new Component[LargePageRowCount];
             for (var i = 0; i < LargePageRowCount; i++)
             {
                 if (i == MutatingIndex)
@@ -105,7 +105,7 @@ public sealed class StatefulLargePageWithDeepTextCell : Component
             C.A($"/item/{MutatingIndex}", Class: "lnk")[$"open {MutatingIndex}"]
         ];
 
-        _scratch ??= new List<Child>(LargePageRowCount);
+        _scratch ??= new List<Component>(LargePageRowCount);
         _scratch.Clear();
         for (var i = 0; i < LargePageRowCount; i++)
         {

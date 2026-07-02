@@ -17,7 +17,7 @@ public sealed class IndexedDbDemo(IIndexedDb indexedDb) : Component
 
     private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "row g-2 mb-2")[

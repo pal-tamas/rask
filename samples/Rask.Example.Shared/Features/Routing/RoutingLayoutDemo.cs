@@ -3,7 +3,7 @@ using Rask.Core.Routing;
 namespace Rask.Example.Shared.Features;
 
 // A layout is a routed component that renders Outlet() where its children should appear.
-// Child pages declare [ParentRoute(typeof(RoutingLayoutDemo))] and their templates are
+// Component pages declare [ParentRoute(typeof(RoutingLayoutDemo))] and their templates are
 // joined onto the parent's, so /routing-demo/nested/profile matches this layout, then the
 // child below renders inside the Outlet. Unique route strings keep this demo from colliding
 // with the real showcase routes — this is exactly how ShowcaseLayout hosts every page.
@@ -11,7 +11,7 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class RoutingLayoutDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Nav()["sidebar"],
             Main()[Outlet()]   // children render here
@@ -22,6 +22,6 @@ public sealed class RoutingLayoutDemo : Component
 [Route("profile"), ParentRoute(typeof(RoutingLayoutDemo))]
 public sealed class RoutingNestedProfile : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         H1()["Profile"];
 }
