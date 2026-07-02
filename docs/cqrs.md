@@ -47,7 +47,8 @@ builder.Services.AddRaskCqrs();
 ```
 
 Inject `IDispatcher` and call `DispatchAsync` — one method for both queries and commands, with the
-result type inferred from the message. (For notifications, inject `IPublisher`.)
+result type inferred from the message. Notifications go through `PublishAsync` (also on `IDispatcher`,
+since it extends `IPublisher`); inject the narrower `IPublisher` when a type only publishes.
 
 ```csharp
 public sealed class CounterView(IDispatcher dispatcher) : Component

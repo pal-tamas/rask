@@ -46,7 +46,7 @@ public sealed class DispatcherTests
 
         Assert.Equal(7, await dispatcher.DispatchAsync(new Add(3, 4)));
         await dispatcher.DispatchAsync(new Poke("x"));
-        await sp.GetRequiredService<IPublisher>().PublishAsync(new Pinged("p"));
+        await dispatcher.PublishAsync(new Pinged("p"));
 
         Assert.Contains("poke:x", recorder.Entries);
         Assert.Contains("A:p", recorder.Entries);
