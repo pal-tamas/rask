@@ -46,8 +46,8 @@ them.
 builder.Services.AddRaskCqrs();
 ```
 
-Inject `IDispatcher` — or the read-only `IQueryDispatcher` / write-only `ICommandDispatcher` when a
-type only reads or only writes — and dispatch. The result type is inferred from the message:
+Inject `IDispatcher` and call `DispatchAsync` — one method for both queries and commands, with the
+result type inferred from the message. (For notifications, inject `IPublisher`.)
 
 ```csharp
 public sealed class CounterView(IDispatcher dispatcher) : Component
@@ -55,12 +55,12 @@ public sealed class CounterView(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMountAsync() =>
-        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
-        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
+        await dispatcher.DispatchAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
+        _view = await dispatcher.DispatchAsync(new GetCounterState(), CancellationToken);
     }
 }
 ```
