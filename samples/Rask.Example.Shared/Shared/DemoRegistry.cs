@@ -172,6 +172,19 @@ public static class DemoRegistry
             //     embed the probe source — the teaching artifact — while Result mounts the live widget. ---
             ["lifecycle-hooks"] = () => CodeSample(["LifecycleProbe.cs"], Result: LifecycleProbe()),
             ["lifecycle-cycle"] = () => CodeSample(["LifecycleCycleProbe.cs"], Result: LifecycleCycleDemo()),
+            // Live ticker (its standalone /realtime/{Symbol} page folded in): a poll loop in OnMountAsync
+            // + a symbol switch that fires OnPropsChanged, drawing a zero-JS server-rendered SVG chart.
+            ["lifecycle-ticker"] = () => CodeSample(
+                ["LiveTicker.cs"],
+                Notes:
+                "OnMountAsync runs a long-lived poll loop; every await uses ConfigureAwait(false) so it "
+                + "calls StateHasChanged() once per real data change (one render per tick). Switching the "
+                + "symbol fires OnPropsChanged/OnPropsChangedAsync, which clears the buffer and wakes the loop "
+                + "so the new asset polls immediately; CancellationToken cancels the loop on unmount. The chart "
+                + "is a server-rendered SVG (Sparkline) emitted straight from Render() — no canvas, no JS. The "
+                + "feed is a local random-walk (offline-safe); swapping in a real HTTP source is a one-line "
+                + "change in PollOnceAsync.",
+                Result: LiveTickerDemo()),
             ["disposal-sync"] = () => CodeSample(["DisposableTimerProbe.cs"], Result: DisposalSyncDemo()),
             ["disposal-async"] = () => CodeSample(["DisposableAsyncProbe.cs"], Result: DisposalAsyncDemo()),
             ["disposal-unmount"] = () => CodeSample(["UnmountTimerProbe.cs"], Result: DisposalUnmountDemo()),

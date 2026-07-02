@@ -28,6 +28,15 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Examples site — fold the Live ticker page into the Lifecycle guide (phase 3).** The standalone
+  `/realtime/{Symbol}` page is removed; its reusable `LiveTicker` widget (poll loop in `OnMountAsync`, a symbol
+  switch that fires `OnPropsChanged*`, `OnRendered` first-paint, `OnUnmount*`, `CancellationToken`, and a
+  zero-JS server-rendered SVG chart) is embedded in **`docs/lifecycle.md`** under "When `OnPropsChanged*`
+  refires" via a new `LiveTickerDemo` (registered `lifecycle-ticker`). Because a co-mounted guide demo can't
+  own a live `[RouteParam]`, the BTC/ETH/SOL switcher now flips `Symbol` via internal state instead of URL
+  navigation — re-rendering reconciles the same `LiveTicker` instance and fires `OnPropsChanged` exactly as
+  the route-param switch did. `LiveTicker.cs` / `PricePoint.cs` are unchanged; `LiveTickerPageTests` →
+  `LiveTickerDemoTests`; the sidebar row and home card repoint at the guide.
 - **Examples site — fold the User components page into Getting started (phase 3).** The standalone
   `/components` page is removed; its three demos (`Greeting`, `WeatherCard`, `SkipFactoryCounter`, already in
   their own `*Demo.cs`) are registered in `DemoRegistry` (`components-greeting` / `-di` / `-skipfactory`) and
