@@ -36,6 +36,12 @@ them until tagged releases begin.
   load / refresh of a guide URL carrying a `#fragment` now scrolls to that section (`GuideChrome`
   previously only smooth-scrolled on in-page anchor clicks). (3) The top navbar no longer wraps to two
   lines on phones — it stays single-line and drops the decorative brand badges below `md`.
+- **Guides site — the mobile nav drawer's filter box stays pinned while the list scrolls.** The
+  sidebar filter was a `position: sticky` child of the drawer's flex column, which does not stick in
+  Safari (a long-standing WebKit limitation for sticky flex children): on iOS/Safari the filter scrolled
+  away with the list, leaving a half-clipped row above it. The sidebar body is now a non-scrolling flex
+  column — a pinned filter header with a hairline divider over a single scrolling list
+  (`.side-nav-scroll`) — so the filter stays put in every browser and rows scroll cleanly beneath it.
 - **A radio/checkbox click is no longer reverted by a lagging live-diff render.** The client applied a
   form control's `.checked` property unconditionally in both apply paths (the full morph and the diff
   codec), while `.value` was already protected by a pending-edit guard. On a busy page a re-render the
