@@ -16,7 +16,7 @@ public sealed class VirtualizeItemsDemo : Component
     private const string StickyHead =
         "position:sticky; top:0; z-index:1; background:#f8f9fa; box-shadow:inset 0 -1px 0 #dee2e6; ";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         VirtualizeModel<VirtualizeRow>(
             ctx => Div(
                 Class: "border rounded bg-white",
@@ -46,7 +46,7 @@ public sealed class VirtualizeItemsDemo : Component
     // data-rask-key so the whole tbody stays on the keyed reconciliation path (it's all-or-nothing):
     // the spacers keep their identity and only their height attribute is patched as you scroll, while
     // the real rows move by index — all trusted diff ops, so the header is never re-rendered.
-    private static IEnumerable<Child> BodyRows(VirtualizationContext<VirtualizeRow> ctx)
+    private static IEnumerable<Component> BodyRows(VirtualizationContext<VirtualizeRow> ctx)
     {
         yield return Spacer(ctx.OffsetBefore, "spacer-before");
 
@@ -69,7 +69,7 @@ public sealed class VirtualizeItemsDemo : Component
         yield return Spacer(ctx.OffsetAfter, "spacer-after");
     }
 
-    private static Child Spacer(int height, string key) =>
+    private static Component Spacer(int height, string key) =>
         Tr(
             Style: $"height:{height}px;",
             Data: new Dictionary<string, string?> { ["rask-key"] = key })[

@@ -7,7 +7,7 @@ public sealed class BsBreadcrumb : BsBlock
     // Accessible label for the surrounding <nav>; defaults to "breadcrumb".
     public string? Label { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var navAria = new Dictionary<string, string?> { ["label"] = Label ?? "breadcrumb" };
         return Nav(Id: Id, Aria: navAria)[Ol(Class: BsClass.Join("breadcrumb", Class))[Items]];
@@ -21,7 +21,7 @@ public sealed class BsBreadcrumbItem : BsBlock
     public bool? Active { get; set; }
     public string? Href { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var active = Active is true;
         var cls = BsClass.Join("breadcrumb-item", active ? "active" : null, Class);

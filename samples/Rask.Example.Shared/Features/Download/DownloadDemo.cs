@@ -19,7 +19,7 @@ public sealed class DownloadDemo(Navigator nav) : Component
         nav.Download("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             BsButton(Color: BsColor.Primary, Id: "download-report", OnClick: DownloadReport)[
                 BsIcon(Name: BsIconName.FileEarmarkText, Class: "me-2"),

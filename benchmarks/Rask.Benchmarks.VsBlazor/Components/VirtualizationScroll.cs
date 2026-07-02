@@ -50,7 +50,7 @@ internal static class VirtualizationScroll
         var virt = C.VirtualizeModel(
             ctx =>
             {
-                var rows = new List<Child>(ctx.VisibleItems.Count);
+                var rows = new List<Component>(ctx.VisibleItems.Count);
                 foreach (var item in ctx.VisibleItems)
                 {
                     rows.Add(C.Div(Class: "row", Id: $"r{item.Index}")[

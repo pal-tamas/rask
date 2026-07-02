@@ -7,13 +7,13 @@ internal static class SeeAlso
 {
     public static Component Guides(params (string Slug, string Title)[] guides)
     {
-        var children = new List<Child>
+        var children = new List<Component>
         {
             Span(Class: Bs.Join(Txt.Color(BsColor.Secondary), Font.Semibold))[
                 BsIcon(Name: BsIconName.JournalText, Class: "me-1"), "See also"
             ]
         };
-        children.AddRange(guides.Select(g => (Child)Rask.Core.Components.Generated.NavLink(
+        children.AddRange(guides.Select(g => (Component)Rask.Core.Components.Generated.NavLink(
             Href: Features.Routes.GuidePage(g.Slug), ActiveClass: "",
             Class: Bs.Join("see-also-link", Txt.DecorationNone), Key: g.Slug)[g.Title]));
 

@@ -12,7 +12,7 @@ public sealed class BindingAfterBindDemo : Component
     private readonly Holder _model = new();
     private string[] _cities = Cities["US"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "mb-3")[
             Label("bind-after-country", Class: "form-label small")["Country"],

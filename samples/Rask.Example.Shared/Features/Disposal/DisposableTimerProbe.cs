@@ -16,7 +16,7 @@ public sealed class DisposableTimerProbe : Component, IDisposable
         Log($"#{InstanceId} mounted");
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             BsBadge(Color: BsColor.Warning, Class: "dispose-probe-pill")[$"#{InstanceId} alive"],
             Span(Class: "text-secondary small")[$"Mounted at {_mountedAt:HH:mm:ss.fff}. Unmount me to fire Dispose()."]

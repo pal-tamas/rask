@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsGroupingPage : Component
 {
-    protected override RenderResult Head => Title()["Grouping & list elements — Rask"];
+    protected override Component? Head => Title()["Grouping & list elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Grouping & list elements",

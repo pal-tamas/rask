@@ -171,7 +171,7 @@ internal static class VsBlazorPayloadBytesReport
                 leaf = Generated.Div(Class: $"d{i}")[leaf];
             }
 
-            return Generated.Fragment()[
+            return [
                 Generated.Doctype(),
                 Generated.Html()[
                     Generated.Body()[leaf]]];

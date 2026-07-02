@@ -28,7 +28,7 @@ internal static class LifecycleChurn
 
     public static Component BuildRask(int activeCount)
     {
-        var children = new List<Child>(activeCount);
+        var children = new List<Component>(activeCount);
         for (var i = 0; i < activeCount; i++)
         {
 #pragma warning disable RASK014
@@ -45,9 +45,9 @@ internal static class LifecycleChurn
     {
         public int Index { get; set; }
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             C.Div(Class: "child", Id: $"c{Index}")[
-                C.Span(Class: "label")[$"Child {Index}"]
+                C.Span(Class: "label")[$"Component {Index}"]
             ];
     }
 
@@ -62,7 +62,7 @@ internal static class LifecycleChurn
             b.AddAttribute(2, "id", $"c{Index}");
             b.OpenElement(3, "span");
             b.AddAttribute(4, "class", "label");
-            b.AddContent(5, $"Child {Index}");
+            b.AddContent(5, $"Component {Index}");
             b.CloseElement();
             b.CloseElement();
         }

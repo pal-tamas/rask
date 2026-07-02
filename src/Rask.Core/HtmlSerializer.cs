@@ -62,8 +62,15 @@ internal static class HtmlSerializer
         sb.Append(HtmlEncoder.Default.Encode(value));
     }
 
-    public static void Serialize(Component component, StringBuilder sb)
+    public static void Serialize(Component? component, StringBuilder sb)
     {
+        // A null component means "render nothing" — Render()/RenderForLive() return Component? and
+        // yield null for the nothing-render case (formerly an empty Fragment). Emit nothing.
+        if (component is null)
+        {
+            return;
+        }
+
         // FrameSinkScope.Current is the ambient frame writer set by the caller when it
         // wants a parallel RenderFrame[] alongside the HTML output (Phase 1 diff codec).
         // Reading it once per call and threading it through avoids the ThreadStatic
@@ -112,14 +119,14 @@ internal static class HtmlSerializer
                     {
                         for (var i = 0; i < fragmentArray.Length; i++)
                         {
-                            Serialize(fragmentArray[i].Component, sb);
+                            Serialize(fragmentArray[i], sb);
                         }
                     }
                     else if (fragment.Children is { } fragmentChildren)
                     {
                         foreach (var child in fragmentChildren)
                         {
-                            Serialize(child.Component, sb);
+                            Serialize(child, sb);
                         }
                     }
                 }
@@ -158,14 +165,14 @@ internal static class HtmlSerializer
                         {
                             for (var i = 0; i < ctxArray.Length; i++)
                             {
-                                Serialize(ctxArray[i].Component, sb);
+                                Serialize(ctxArray[i], sb);
                             }
                         }
                         else if (context.Children is { } ctxChildren)
                         {
                             foreach (var child in ctxChildren)
                             {
-                                Serialize(child.Component, sb);
+                                Serialize(child, sb);
                             }
                         }
                     }
@@ -215,17 +222,17 @@ internal static class HtmlSerializer
                 {
                     if (el.ChildrenArray is { } childArray)
                     {
-                        // Index walk over the backing Child[] — no enumerator allocation.
+                        // Index walk over the backing Component[] — no enumerator allocation.
                         for (var i = 0; i < childArray.Length; i++)
                         {
-                            Serialize(childArray[i].Component, sb);
+                            Serialize(childArray[i], sb);
                         }
                     }
                     else
                     {
                         foreach (var child in el.RenderChildrenInternal())
                         {
-                            Serialize(child.Component, sb);
+                            Serialize(child, sb);
                         }
                     }
                 }

@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // datalist, output, progress, meter, button. (See the Forms page for binding/validation.)
 public sealed class ElementsFormsDemo : Component
 {
-    protected override RenderResult Render() => Form(Class: "vstack gap-3")[
+    protected override Component? Render() => Form(Class: "vstack gap-3")[
         Fieldset(Class: "border rounded p-3")[
             Legend(Class: "fs-6 float-none w-auto px-2")["Profile"],
             Div(Class: "mb-2")[

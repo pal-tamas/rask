@@ -16,7 +16,7 @@ public sealed class BsCloseButton : BsBlock
     public Callback? OnClick { get; set; }
     public CallbackAsync? OnClickAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var aria = new Dictionary<string, string?> { ["label"] = AriaLabel ?? "Close" };
         return Button(Id: Id, Type: "button", Disabled: Disabled,

@@ -13,7 +13,7 @@ namespace Company.RaskServer;
 [Authorize]
 public sealed class MembersPage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "welcome-card")[
             Authorize(
                 NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."])[MemberContent()]
@@ -22,8 +22,8 @@ public sealed class MembersPage : Component
 
 public sealed class MemberContent(IAuthSignIn auth, IUserProvider userProvider) : Component
 {
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
             Authorize(Roles: ["admin"])[
                 Div(Style: "color:#7a5c00")["🔑 You have admin access."]],

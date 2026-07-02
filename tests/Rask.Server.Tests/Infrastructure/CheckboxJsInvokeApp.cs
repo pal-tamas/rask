@@ -17,7 +17,7 @@ public sealed class CheckboxJsInvokeApp(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("test.noop", firstRender);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[

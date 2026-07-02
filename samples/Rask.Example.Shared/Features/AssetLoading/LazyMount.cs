@@ -11,7 +11,7 @@ public sealed class LazyMount : Component
     private static readonly Component Empty = Div();
     private bool _shown;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             BsButton(Color: BsColor.Secondary, Outline: true, Class: "mb-3", OnClick: () => _shown = !_shown)[
                 _shown ? "Hide LazyChild" : "Show LazyChild"

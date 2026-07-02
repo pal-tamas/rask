@@ -21,7 +21,7 @@ internal static class ClassToggle
 
     public static Component BuildRask(int activeIndex)
     {
-        var items = new List<Child>(SidebarItemCount);
+        var items = new List<Component>(SidebarItemCount);
         for (var i = 0; i < SidebarItemCount; i++)
         {
             var cls = i == activeIndex ? "nav-item active" : "nav-item";

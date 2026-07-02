@@ -14,7 +14,7 @@ public sealed class HangingApp : Component
     // without a handle to the DI-constructed instance; reset per test before the host starts.
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["hang"]],

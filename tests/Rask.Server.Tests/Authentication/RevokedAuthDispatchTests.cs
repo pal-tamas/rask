@@ -107,7 +107,7 @@ public sealed class M2Counter
 
 public sealed class M2App : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [Doctype(), Html("en")[Head()[Title()["m2"]], Body()[Router()]]];
 }
 
@@ -115,7 +115,7 @@ public sealed class M2App : Component
 [Authorize]
 public sealed class M2ProtectedPage(M2Counter counter) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "m2")[
             Span()[$"count={counter.Count}"],
             Button(OnClick: () => counter.Count++)["bump"]

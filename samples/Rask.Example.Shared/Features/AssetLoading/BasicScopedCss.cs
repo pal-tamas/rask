@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 /// </summary>
 public sealed class BasicScopedCss : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "basic-card")[
             P()["This card's pink background and rounded corners come from a sibling ",
                 Code()["BasicScopedCss.css"],

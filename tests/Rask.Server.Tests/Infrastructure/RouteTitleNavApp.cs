@@ -21,7 +21,7 @@ public sealed class RouteTitleNavApp : Component
 
     protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[

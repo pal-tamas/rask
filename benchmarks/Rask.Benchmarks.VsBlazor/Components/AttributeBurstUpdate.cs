@@ -20,7 +20,7 @@ internal static class AttributeBurstUpdate
 
     public static Component BuildRask(bool loaded)
     {
-        var rows = new List<Child>(RowCount);
+        var rows = new List<Component>(RowCount);
         for (var i = 0; i < RowCount; i++)
         {
             var row = loaded

@@ -9,7 +9,7 @@ public sealed class CancellationDemo : Component
     private bool _mounted;
     private int _nextInstance;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex gap-2 mb-3")[
                 BsButton(Color: BsColor.Primary, Size: BsSize.Sm, Id: "cancel-mount", Disabled: _mounted, OnClick: Mount)[BsIcon(Name: BsIconName.PlayCircle, Class: "me-1"), "Mount probe"],

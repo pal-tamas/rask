@@ -13,14 +13,14 @@ namespace Rask.Example.Auth.Features;
 [Authorize]
 public sealed class MembersPage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "members", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
             Div(Class: "card-body")[
                 Authorize(
                     Authorizing: P("members-authorizing", "text-secondary mb-0")["Signing you in…"],
                     NotAuthorized: P("members-anon", "mb-0")[
                         "Please ", NavLink("/login")["sign in"], "."],
-                    Authorized: user => Fragment()[
+                    Authorized: user => [
                         H1("members-greeting", "h3 mb-3")[$"Welcome, {user.Identity?.Name}"],
                         MemberContent()])
             ]
@@ -31,8 +31,8 @@ public sealed class MembersPage : Component
 // delegate above, so this no longer needs IUserProvider — it injects IAuthSignIn purely for sign-out.
 public sealed class MemberContent(IAuthSignIn auth) : Component
 {
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             P(Class: "text-secondary")["This page is gated by ", Code()["[Authorize]"],
                 " plus the Authorize component."],
             // Role gate: only an admin sees this.

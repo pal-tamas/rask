@@ -29,7 +29,7 @@ public sealed class GatedRenderApp : Component
         ReleaseRender.Reset();
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (_gateNextRender)
         {

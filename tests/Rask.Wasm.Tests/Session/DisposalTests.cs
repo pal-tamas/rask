@@ -67,7 +67,7 @@ public class DisposalTests
 
     private sealed class MiniApp : Component
     {
-        protected override RenderResult Render() => Fragment()[Doctype(), Html("en")[Head(), Body()]];
+        protected override Component? Render() => [Doctype(), Html("en")[Head(), Body()]];
     }
 
     private sealed class CountingUserProvider : IUserProvider

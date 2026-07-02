@@ -28,7 +28,7 @@ public sealed class UploadDemo : Component
         _modified = file.LastModified;
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Input<string>(
                 Id: "upload-input",

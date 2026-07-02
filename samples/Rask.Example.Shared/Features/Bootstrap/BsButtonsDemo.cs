@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // not class strings. Each BsButton wraps the core Button and emits the right .btn classes.
 public sealed class BsButtonsDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "vstack gap-3")[
             Div(Class: "hstack gap-2 flex-wrap")[

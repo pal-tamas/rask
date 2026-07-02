@@ -9,7 +9,7 @@ public sealed class FormControlsInputDemo : Component
     private string _controlled = "";
     private readonly Model _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-4")[
             Div(Class: "col-md-6")[
                 Label(Class: "form-label fw-semibold")["Controlled (Value + OnChange)"],

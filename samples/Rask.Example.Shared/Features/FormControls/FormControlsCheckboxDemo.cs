@@ -11,7 +11,7 @@ public sealed class FormControlsCheckboxDemo : Component
     private ICollection<string> _controlled = [];
     private readonly Model _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-4")[
             Div(Class: "col-md-6", Id: "fc-checkbox-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],

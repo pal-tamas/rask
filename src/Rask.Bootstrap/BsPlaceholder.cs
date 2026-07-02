@@ -12,7 +12,7 @@ public sealed class BsPlaceholder : BsBlock
 
     public BsPlaceholderAnimation? Animation { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "placeholder",

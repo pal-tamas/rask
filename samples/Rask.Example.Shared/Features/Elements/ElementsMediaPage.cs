@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsMediaPage : Component
 {
-    protected override RenderResult Head => Title()["Media & embedded elements — Rask"];
+    protected override Component? Head => Title()["Media & embedded elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Media & embedded elements",

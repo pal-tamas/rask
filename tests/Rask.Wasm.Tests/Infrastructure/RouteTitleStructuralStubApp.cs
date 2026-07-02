@@ -16,7 +16,7 @@ internal sealed class RouteTitleStructuralStubApp : Component
 
     public RouteTitleStructuralStubApp(RouteState routeState) => _routeState = routeState;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html()[

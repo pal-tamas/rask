@@ -17,7 +17,7 @@ public sealed class ContextThemeDemo : Component
 {
     private Theme _theme = Theme.Light;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         // Provide the current theme to the whole subtree below.
         Context.Provide<Theme>(_theme)[
             Div(

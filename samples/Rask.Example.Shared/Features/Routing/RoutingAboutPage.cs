@@ -9,6 +9,6 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class RoutingAboutPage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         H1()["About"];
 }

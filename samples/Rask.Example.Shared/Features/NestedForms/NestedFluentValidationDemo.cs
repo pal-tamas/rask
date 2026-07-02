@@ -14,11 +14,11 @@ public sealed class NestedFluentValidationDemo : Component
     public NestedFluentValidationDemo() => _model.Lines.Add(new NestedOrderLine { Sku = "BOX-1", Quantity = 3 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
-        var rows = new List<Child>();
+        var rows = new List<Component>();
         foreach (var line in _model.Lines)
         {
             var captured = line;
@@ -74,7 +74,7 @@ public sealed class NestedFluentValidationDemo : Component
                 ]
             ],
             _submission is null
-                ? Fragment()
+                ? null
                 : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-fv-result")[_submission]
         ];
     }

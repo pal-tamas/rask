@@ -10,7 +10,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
     protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync(CancellationToken);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             H1()["Weather"],
             P()["This component demonstrates showing async data."],

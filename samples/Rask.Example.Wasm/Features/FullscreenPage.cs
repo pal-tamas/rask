@@ -12,9 +12,9 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class FullscreenPage : Component
 {
-    protected override RenderResult Head => Title()["Fullscreen — Rask"];
+    protected override Component? Head => Title()["Fullscreen — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1(Class: "h2 mb-1")["Fullscreen"],
         P(Class: "text-secondary")[

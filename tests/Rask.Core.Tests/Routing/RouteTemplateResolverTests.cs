@@ -35,10 +35,10 @@ public class RouteTemplateResolverTests
 [Route("/__resolver-test/annotated")]
 public sealed class RouteTemplateResolverAnnotatedPage : Component
 {
-    protected override RenderResult Render() => Span();
+    protected override Component? Render() => Span();
 }
 
 public sealed class RouteTemplateResolverUnannotatedPage : Component
 {
-    protected override RenderResult Render() => Span();
+    protected override Component? Render() => Span();
 }

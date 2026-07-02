@@ -106,7 +106,7 @@ public class RenderSkipTests
         private readonly Component _child;
         public StaticChildHost(Component child) => _child = child;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
@@ -120,7 +120,7 @@ public class RenderSkipTests
         private readonly Component _child;
         public PassThroughChildHost(Component child) => _child = child;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);

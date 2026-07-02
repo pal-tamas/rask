@@ -8,7 +8,7 @@ public sealed class ElementsMediaDemo : Component
 {
     private static string Asset(string name) => LiveOptions.PathBase + "/img/" + name;
 
-    protected override RenderResult Render() => Div(Class: "vstack gap-3")[
+    protected override Component? Render() => Div(Class: "vstack gap-3")[
         Div(Class: "d-flex flex-wrap gap-3 align-items-start")[
             Figure(Class: "figure m-0")[
                 // <picture> picks a <source> by media query, else falls back to <img>.

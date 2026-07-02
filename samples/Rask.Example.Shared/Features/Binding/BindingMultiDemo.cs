@@ -6,7 +6,7 @@ public sealed class BindingMultiDemo : Component
 
     private readonly Holder _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "mb-3 form-check")[
             Input(

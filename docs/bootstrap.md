@@ -14,7 +14,7 @@ no changes to your host beyond linking the CSS.
 Reference the package, then link the CSS in your `App`'s `Head` with `BootstrapStyles()`:
 
 ```csharp
-protected override RenderResult Head =>
+protected override Component? Head =>
 [
     Title()["My App"],
     BootstrapStyles()           // links _content/Rask.Bootstrap/css + icons (PathBase-aware)

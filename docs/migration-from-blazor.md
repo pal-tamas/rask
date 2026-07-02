@@ -50,7 +50,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 public sealed class Greeting : Component
 {
     public required string Name { get; set; }   // non-nullable → required factory param
-    protected override RenderResult Render() => H1()[$"Hello, {Name}!"];
+    protected override Component? Render() => H1()[$"Hello, {Name}!"];
 }
 // call site: Greeting(Name: "Ada")
 ```
@@ -68,7 +68,7 @@ public sealed class Greeting : Component
 Button(OnClick: () => _count++)[$"Count: {_count}"]
 ```
 
-### Child → parent callback (no `EventCallback`)
+### Component → parent callback (no `EventCallback`)
 
 This is the biggest API difference. Blazor wraps child events in `EventCallback` so
 the parent re-renders. **Rask has no `Callback`/`EventCallback` type** — the child
@@ -86,7 +86,7 @@ re-renders the parent that owns the lambda (the lambda's `this`).
 public sealed class RatingStars : Component
 {
     public Action<int>? OnRate { get; set; }
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Button(OnClick: () => OnRate?.Invoke(5))["Rate"];
 }
 
@@ -102,8 +102,8 @@ component that should update.
 
 ```razor
 @* Blazor *@
-<CascadingValue Value="theme"><Child /></CascadingValue>
-@* in Child: *@ [CascadingParameter] Theme Theme { get; set; }
+<CascadingValue Value="theme"><Component /></CascadingValue>
+@* in Component: *@ [CascadingParameter] Theme Theme { get; set; }
 ```
 
 ```csharp
@@ -181,7 +181,7 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   `Range` inside the indexer. Pass enumerables **directly** instead:
 
   ```csharp
-  Ul()[items.Select(i => (Child)Li(Key: i.Id)[i.Name])]   // ✓ pass the sequence
+  Ul()[items.Select(i => (Component)Li(Key: i.Id)[i.Name])]   // ✓ pass the sequence
   // Ul()[.. items.Select(...)]                            // ✗ parses as Range
   ```
 

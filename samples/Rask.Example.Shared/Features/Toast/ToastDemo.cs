@@ -62,7 +62,7 @@ public sealed class ToastDemo : Component
         }
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var toasts = Snapshot();
         return Div()[
@@ -89,7 +89,7 @@ public sealed class ToastDemo : Component
                     OnClick: () => _autoHide = !_autoHide)[
                     I(Class: $"bi {(_autoHide ? "bi-check-square" : "bi-square")} me-1"), "Auto-hide (5s)"],
                 Div(Class: "btn-group btn-group-sm", Role: "group")[
-                    Placements.Select(p => (Child)Button(
+                    Placements.Select(p => (Component)Button(
                         Class: _placement == p.Class ? "btn btn-secondary" : "btn btn-outline-secondary",
                         OnClick: () => _placement = p.Class,
                         Key: p.Class)[p.Label])
@@ -102,9 +102,9 @@ public sealed class ToastDemo : Component
                 toasts.Length == 0
                     ? Div(Class: "position-absolute top-50 start-50 translate-middle text-secondary small")[
                         "No toasts — click a button above."]
-                    : (Child)Fragment(),
+                    : null,
                 Div(Class: $"toast-container position-absolute {_placement} p-3")[
-                    toasts.Select(t => (Child)BsToast(
+                    toasts.Select(t => (Component)BsToast(
                         Id: t.Id,
                         Title: t.Title,
                         Message: t.Message,

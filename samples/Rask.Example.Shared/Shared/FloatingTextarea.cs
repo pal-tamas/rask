@@ -11,7 +11,7 @@ public sealed class FloatingTextarea<TProp> : Component
 {
     public required Expression<Func<TProp>> Bind { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
         return Div(Class: "form-floating mb-3")[

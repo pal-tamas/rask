@@ -14,7 +14,7 @@ public sealed class CooperativeTimeoutApp : Component
     // await it without a handle to the DI-constructed instance; reset per test before the host starts.
     public static TaskCompletionSource<bool> Cancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["timeout"]],

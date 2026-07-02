@@ -14,7 +14,7 @@ public sealed class ElementRefDemo : Component
 
     public ElementRefDemo(IJSRuntime js) => _js = js;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Input<string>(
                 InputType.Text,
@@ -30,7 +30,7 @@ public sealed class ElementRefDemo : Component
             ],
             _measured.Length > 0
                 ? P(Class: "small text-secondary mt-2 mb-0")[_measured]
-                : (Child)Fragment()
+                : null
         ];
 
     // Built-in helper: passes the ref to __raskEl.focus, which receives the resolved element.

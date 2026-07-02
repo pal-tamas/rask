@@ -25,7 +25,7 @@ public sealed class LifecycleProbe : Component
     protected override void OnRendered(bool firstRender) =>
         _log.Add($"OnRendered(firstRender: {firstRender})");
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             Div(Class: "d-flex align-items-center gap-3 mb-3")[
                 BsBadge(Color: BsColor.Primary, Class: "fs-6")[$"Render #{++_renderCount}"],

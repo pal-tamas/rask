@@ -23,7 +23,7 @@ internal sealed class RootErrorBoundary : Component
 
     private static LiveRenderContext? Current => LiveRenderContext.Current;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var ctx = Current
                   ?? throw new InvalidOperationException(

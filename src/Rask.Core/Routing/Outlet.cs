@@ -33,7 +33,7 @@ public sealed class Outlet : Component
         _route.Changed -= StateHasChanged;
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var ctx = LiveRenderContext.Current
                   ?? throw new InvalidOperationException(

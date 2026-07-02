@@ -65,9 +65,9 @@ public sealed class CodeSample : Component
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
-    private Child Header()
+    private Component Header()
     {
-        Child files = Files.Count == 1
+        Component files = Files.Count == 1
             ? Span(Class: "sample-code-label ms-2")[Files[0]]
             : Span(Class: "sample-tabs ms-2")[
                 Files.Select((file, index) => Button(
@@ -95,16 +95,16 @@ public sealed class CodeSample : Component
         ];
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
         return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(4), "sample-card"))[
             Title is null && Notes is null
-                ? Fragment()
+                ? null
                 : BsCardHeader(Class: "bg-white border-bottom")[
-                    Title is null ? Fragment() : H5(Class: "mb-0 fw-semibold")[Title],
+                    Title is null ? null : H5(Class: "mb-0 fw-semibold")[Title],
                     Notes is null
-                        ? Fragment()
+                        ? null
                         : P(Class: $"text-secondary small mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
@@ -124,7 +124,7 @@ public sealed class CodeSample : Component
             ],
             Div(Class: "sample-result-col p-4")[
                 Div(Class: "sample-result-label")["Live result"],
-                Div(Class: "sample-result-body")[Result ?? Fragment()]
+                Div(Class: "sample-result-body")[Result ?? null]
             ]
         ];
     }

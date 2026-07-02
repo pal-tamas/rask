@@ -20,7 +20,7 @@ public class AutoCallbackTests
         Assert.Equal(1, host.Receiver.RenderCount); // cached after first paint — stable props
         Assert.Contains("count=0", host.ToHtml());
 
-        await host.Receiver.Child.Fire(5);
+        await host.Receiver.Component.Fire(5);
 
         host.RenderAsLiveRoot(sp);
         Assert.Equal(2, host.Receiver.RenderCount); // the wrapper re-rendered the receiver
@@ -40,7 +40,7 @@ public class AutoCallbackTests
         host.RenderAsLiveRoot(sp);
         Assert.Equal(1, host.Receiver.RenderCount);
 
-        await host.Receiver.Child.FireWrappedInOwnLambda(8);
+        await host.Receiver.Component.FireWrappedInOwnLambda(8);
 
         host.RenderAsLiveRoot(sp);
         Assert.Equal(2, host.Receiver.RenderCount);
@@ -54,7 +54,7 @@ public class AutoCallbackTests
         var host = new Host(Receiver.Mode.Async);
 
         host.RenderAsLiveRoot(sp);
-        await host.Receiver.Child.FireAsync(3); // mutation happens only after an awaited Task.Yield
+        await host.Receiver.Component.FireAsync(3); // mutation happens only after an awaited Task.Yield
 
         host.RenderAsLiveRoot(sp);
         Assert.Contains("count=3", host.ToHtml());
@@ -102,7 +102,7 @@ public class AutoCallbackTests
         var host = new Host(Receiver.Mode.StringArg);
 
         host.RenderAsLiveRoot(sp);
-        await host.Receiver.Child.FireString("hello");
+        await host.Receiver.Component.FireString("hello");
 
         host.RenderAsLiveRoot(sp);
         Assert.Contains("text=hello", host.ToHtml());
@@ -121,7 +121,7 @@ public class AutoCallbackTests
 
         public Host(Receiver.Mode mode) => Receiver = new Receiver(mode);
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Receiver);
@@ -138,7 +138,7 @@ public class AutoCallbackTests
         public enum Mode { Sync, Async, StringArg }
 
         private readonly Mode _mode;
-        public readonly Fireable Child = new();
+        public readonly Fireable Component = new();
         public int Count;
         public Action<int>? OnAdd;
         public Func<int, Task>? OnAddAsync;
@@ -148,11 +148,11 @@ public class AutoCallbackTests
 
         public Receiver(Mode mode) => _mode = mode;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             var ctx = LiveRenderContext.Current!;
-            var c = ctx.GetOrCreate(_ => Child);
+            var c = ctx.GetOrCreate(_ => Component);
             ctx.NotifyParameters(c, false);
 
             switch (_mode)
@@ -181,7 +181,7 @@ public class AutoCallbackTests
     {
         public Receiver? Owner;
 
-        protected override RenderResult Render() => Span()["x"];
+        protected override Component? Render() => Span()["x"];
 
         public ValueTask Fire(int n)
         {
@@ -211,7 +211,7 @@ public class AutoCallbackTests
     {
         public int Seen = -1;
 
-        protected override RenderResult Render() => new Fragment();
+        protected override Component? Render() => null;
 
         public ValueTask Fire(int n)
         {

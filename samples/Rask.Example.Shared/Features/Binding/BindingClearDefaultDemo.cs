@@ -4,7 +4,7 @@ public sealed class BindingClearDefaultDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "mb-3")[
             Label("bind-clear-age", Class: "form-label small")["Age (non-nullable int) — clear → 0"],
