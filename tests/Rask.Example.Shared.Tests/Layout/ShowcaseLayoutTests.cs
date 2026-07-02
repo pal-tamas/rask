@@ -59,7 +59,7 @@ public sealed class ShowcaseLayoutTests
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
         Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
-        Assert.True(closed >= 3, $"expected the Examples groups collapsed, only {closed} closed");
+        Assert.True(closed >= 2, $"expected the Examples groups collapsed, only {closed} closed");
     }
 
     [Fact]

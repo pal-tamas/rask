@@ -28,6 +28,17 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Examples site — a new HTTP & files guide (phase 3).** The three standalone "Data & files" example
+  pages — `/http` (HttpClient + DI), `/upload` (file upload), `/download` (file download) — are removed;
+  a **new guide `docs/http-and-files.md`** ("HTTP & files", Integration group) folds them in as four inline
+  live demos (register + fetch, upload, download). The `*Demo.cs` components are unchanged — they're now
+  registered in `DemoRegistry` (`data-http-register` / `data-http-fetch` / `data-upload` / `data-download`)
+  and embedded by the guide (verified by `GuideEmbeddingTests`); the sidebar's Data/Files groups and the
+  home page's Data & files cards repoint at the guide. The E2E journey's scattered `/http` `/upload`
+  `/download` walks are replaced by a single `WalkHttpAndFilesGuideAsync` (which also guards the WASM
+  base-address fix — the `HttpClient` fetch runs from the two-segment `/guides/http-and-files` route). The
+  existing `docs/data-access.md` (EF Core persistence) is unchanged; the new guide covers data/file
+  *transfer* and cross-links to it. The `Data table` and `Master-detail` example pages are untouched.
 - **BREAKING: `Component` is now the framework's single rendering currency — `RenderResult` and
   `Child` are removed.** `Render()` and the `Head` override now return `Component?` (symmetric;
   return `null` to render nothing, replacing the old empty-`Fragment`/`default` sentinel). Children

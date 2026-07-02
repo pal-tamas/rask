@@ -37,6 +37,8 @@ public static class GuideCatalog
             "bi-bootstrap", "Integration"),
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),
+        new("http-and-files", "HTTP & files", "Fetch JSON with a DI'd HttpClient; upload and download files.",
+            "bi-arrow-down-up", "Integration"),
         new("data-access", "Data access", "EF Core + SQLite, vertical slices, DDD patterns.",
             "bi-database", "Integration"),
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.",
