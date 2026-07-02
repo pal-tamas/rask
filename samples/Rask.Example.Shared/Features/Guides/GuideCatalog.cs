@@ -18,6 +18,8 @@ public static class GuideCatalog
         new("migration-from-blazor", "Migrating from Blazor", "Concept mapping and behavioural differences.",
             "bi-arrow-left-right", "Start here"),
 
+        new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.",
+            "bi-code-square", "Core"),
         new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.",
             "bi-signpost-2", "Core"),
         new("composition", "Composition", "Children, fragments, callbacks, context, virtualize.",

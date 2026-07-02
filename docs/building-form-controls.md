@@ -199,12 +199,12 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
 
 ---
 
-## 6. Stateless `Fragment` vs stateful `Component` — host re-render
+## 6. Stateless helper vs stateful `Component` — host re-render
 
-A control with **no view state** *can* be a plain static factory returning a `Fragment`: its handlers are
-owned by the **host** that declared it, so a change re-renders the host for free (host-side derived UI just
-updates). But a `Fragment` isn't a `Component`, so the generator can't synthesize its factory and it can't
-implement `IFormControl<T>`.
+A control with **no view state** *can* be a plain **static factory method** returning a `Component` (a single
+element, or a `[...]` collection of siblings): its handlers are owned by the **host** that declared it, so a
+change re-renders the host for free (host-side derived UI just updates). But a static helper isn't a
+`Component` subclass, so the generator can't synthesize a factory for it and it can't implement `IFormControl<T>`.
 
 A control written as a **`Component`** (required for `IFormControl<T>`, or because it needs view state like an
 open/closed dropdown) is its own re-render boundary: a toggle re-renders *it*, not the host. Keep live

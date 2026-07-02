@@ -37,7 +37,6 @@ public sealed class ShowcaseLayoutTests
 
         // Each group renders a collapsible toggle whose label is the group name.
         Assert.Contains(">Start<", html);
-        Assert.Contains(">DSL<", html);
         Assert.Contains(">Components<", html);
         // The top-level sections are present, guides-first: Guides leads, then the demoted Examples. The
         // Bootstrap examples now live in the Bootstrap guide (folded into docs/bootstrap.md), so there is
@@ -150,7 +149,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav()
     {
-        // Behavioural test: navigate from "/" to "/tags", then re-render App with the
+        // Behavioural test: navigate from "/" to "/components", then re-render App with the
         // same RouteState. The layout's active-link computation must reflect the new
         // path — which requires its Render() to re-execute after the path change.
         var routeState = new RouteState { Path = "/" };
@@ -162,11 +161,11 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-house",
             CollapseWhitespace(htmlAtRoot));
 
-        routeState.Path = "/tags";
-        var htmlAtTags = app.RenderAsLiveRoot(services);
-        // After nav, the active link should be the Tags one (bi-code-slash icon).
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-code-slash",
-            CollapseWhitespace(htmlAtTags));
+        routeState.Path = "/components";
+        var htmlAtComponents = app.RenderAsLiveRoot(services);
+        // After nav, the active link should be the User-components one (bi-boxes icon).
+        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-boxes",
+            CollapseWhitespace(htmlAtComponents));
     }
 
     private static string CollapseWhitespace(string s) =>

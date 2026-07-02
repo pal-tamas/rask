@@ -438,7 +438,14 @@ export function getLocation() {
 }
 
 export function getBaseAddress() {
-    return new URL(document.baseURI).href;
+    // The app root (origin + base path), NOT document.baseURI. document.baseURI reflects the
+    // *current* SPA route once the app has navigated (the <base> element is not in the live DOM
+    // after boot), so reading it here would bake whatever route happened to be active when the
+    // singleton HttpClient was first resolved into its BaseAddress — e.g. a fetch of
+    // "data/posts-1.json" from a two-segment route like /guides/elements would resolve against
+    // /guides/ and 404. getBasePath() is cached from the boot-time <base href> (carrying any
+    // sub-path) and is route-independent, so the base stays the app root for the app's lifetime.
+    return new URL(getBasePath(), location.origin).href;
 }
 
 export function pushHistory(url, replace) {

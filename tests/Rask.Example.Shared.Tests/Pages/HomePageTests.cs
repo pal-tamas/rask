@@ -14,7 +14,7 @@ public sealed class HomePageTests
 
         Assert.Contains("The Rask framework", html);
         Assert.Contains("hero-card", html);
-        Assert.Contains("Start with Tags", html);
+        Assert.Contains("Start with the DSL", html);
         Assert.Contains("Source on GitHub", html);
         // Feature cards
         Assert.Contains(">DSL<", html);
