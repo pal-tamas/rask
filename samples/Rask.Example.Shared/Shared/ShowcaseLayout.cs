@@ -104,12 +104,16 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         ]
     ];
 
+    // The sidebar body is a non-scrolling flex column: a pinned filter header (.side-nav-search) over a
+    // single scrolling list (.side-nav-scroll). The filter is a real flex header rather than a
+    // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
+    // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
         Div(Class: "side-nav-search")[
             BsInput(Value: _filter, OnChange: v => _filter = v ?? "", Size: BsSize.Sm,
                 Placeholder: "Filter guides & examples…", Class: "side-nav-filter")
         ],
-        [.. BuildSections()]
+        Div(Class: "side-nav-scroll")[BuildSections()]
     ];
 
     // Guides-first: the narrative guides are the primary spine (top of the sidebar, groups expanded by
