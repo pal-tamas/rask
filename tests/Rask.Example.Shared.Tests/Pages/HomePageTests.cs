@@ -20,9 +20,6 @@ public sealed class HomePageTests
         Assert.Contains(">DSL<", html);
         Assert.Contains(">Components<", html);
         Assert.Contains(">Routing<", html);
-        Assert.Contains(">Lifecycle<", html);
-        Assert.Contains(">Cancellation<", html);
-        Assert.Contains(">Disposal<", html);
         Assert.Contains(">Scoped CSS<", html);
         // "+" is HTML-encoded inside element text content as &#x2B;.
         Assert.Contains("HttpClient &#x2B; DI", html);

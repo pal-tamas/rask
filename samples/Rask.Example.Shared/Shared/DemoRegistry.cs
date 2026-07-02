@@ -163,6 +163,18 @@ public static class DemoRegistry
             ["boom-handler"] = () => CodeSample(["BoomHandlerDemo.cs"], Result: BoomHandlerDemo()),
             ["boom-render"] = () => CodeSample(["BoomRenderDemo.cs"], Result: BoomRenderDemo()),
             ["boom-nested"] = () => CodeSample(["BoomNestedDemo.cs"], Result: BoomNestedDemo()),
+
+            // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation, background
+            //     service (their standalone example pages folded into docs/lifecycle.md). The demos
+            //     embed the probe source — the teaching artifact — while Result mounts the live widget. ---
+            ["lifecycle-hooks"] = () => CodeSample(["LifecycleProbe.cs"], Result: LifecycleProbe()),
+            ["lifecycle-cycle"] = () => CodeSample(["LifecycleCycleProbe.cs"], Result: LifecycleCycleDemo()),
+            ["disposal-sync"] = () => CodeSample(["DisposableTimerProbe.cs"], Result: DisposalSyncDemo()),
+            ["disposal-async"] = () => CodeSample(["DisposableAsyncProbe.cs"], Result: DisposalAsyncDemo()),
+            ["disposal-unmount"] = () => CodeSample(["UnmountTimerProbe.cs"], Result: DisposalUnmountDemo()),
+            ["cancellation"] = () => CodeSample(["CancellationProbe.cs"], Result: CancellationDemo()),
+            ["background-metrics"] = () => CodeSample(
+                ["MetricsFeed.cs", "MetricsGauge.cs", "MetricsChart.cs"], Result: BackgroundMetricsDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning
