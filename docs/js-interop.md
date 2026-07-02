@@ -51,6 +51,11 @@ component CSS.
 > An orphan `.css` with no matching component, or two that match ambiguously, raises
 > **RASK015 / RASK016**. See [diagnostics](diagnostics.md).
 
+Two components declare the **same** `.box` selector in their own `.css`; each is scoped to its own
+`data-r-{id}`, so they never collide — one paints red, the other blue:
+
+<!-- demo:js-interop-scoped-css -->
+
 ---
 
 ## Scoped JS
@@ -96,6 +101,11 @@ public sealed class CodeSample : Component
 Nothing (no `el`) is passed automatically — pass what the function needs. For a return
 value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the trimmer
 (DAM annotation or a `JsonSerializerContext`).
+
+A `sessionStorage` round-trip through the unified `IJSRuntime` — set, read, and remove, each a plain
+`InvokeVoidAsync` / `InvokeAsync<string?>` against a built-in browser API, identical on both transports:
+
+<!-- demo:js-interop-jsruntime -->
 
 ---
 
@@ -241,9 +251,10 @@ public sealed class FocusDemo : Component
 }
 ```
 
-Runnable demo:
-[`samples/Rask.Example.Shared/Features/ElementRef/ElementRefDemo.cs`](../samples/Rask.Example.Shared/Features/ElementRef/ElementRefDemo.cs)
-(+ `ElementRefDemo.js`).
+Focus a built-in element, then hand a ref to a sibling `.js` that measures it — the ref revives to the
+live DOM node before the function runs:
+
+<!-- demo:js-interop-elementref -->
 
 ---
 
@@ -270,6 +281,19 @@ its rule is already in the applied CSSOM, so there is no per-component lazy fetc
 of unstyled content, and the scoped-JS namespace (`window.Rask[...]`) is ready on first
 interaction. Scoped CSS is selector-rewritten to `[data-r-xxxx]`, so a bundle rule for an
 unmounted component has no visual effect until its elements exist.
+
+The demos below all draw from that one shared bundle. A component with only scoped CSS; a component with
+scoped JS keeping module state (`window.Rask.JsOnlyDemo.bump`); two components declaring the same
+`.twin-tag` selector, each isolated to its own scope; and a lazily-mounted child whose rule already rides
+the bundle, so it paints the instant it mounts — no per-component fetch, no FOUC:
+
+<!-- demo:asset-basic-css -->
+
+<!-- demo:asset-js-only -->
+
+<!-- demo:asset-twin-bundle -->
+
+<!-- demo:asset-lazy-mount -->
 
 ---
 
