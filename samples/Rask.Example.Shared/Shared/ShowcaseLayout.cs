@@ -16,7 +16,6 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
         (Features.Routes.HomePage(), "Welcome", "bi-house", "Start", null),
-        (Features.Routes.LiveTickerPage("BTC"), "Live ticker", "bi-graph-up-arrow", "Components", "/realtime"),
         (Features.Routes.TablePage(), "Data table", "bi-table", "Components", null),
         (Features.Routes.OrdersPage(), "Master-detail", "bi-list-nested", "Components", null),
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
@@ -24,7 +23,8 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Flash → Composition (docs/composition.md); Toast →
         // Bootstrap (docs/bootstrap.md); User & auth → Authentication (docs/authentication.md); User
-        // components → Getting started (docs/getting-started.md). See DemoRegistry.
+        // components → Getting started (docs/getting-started.md); Live ticker → Lifecycle
+        // (docs/lifecycle.md). See DemoRegistry.
     ];
 
     // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the
