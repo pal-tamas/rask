@@ -39,6 +39,21 @@ So on the first render of a component you get, in order: `OnMount` → `OnMountA
 `OnPropsChangedAsync` → (render) → `OnRendered(firstRender: true)` → `OnRenderedAsync(firstRender: true)`. On disposal:
 `OnUnmount` → `OnUnmountAsync`.
 
+### Live probe
+
+The component below records every hook invocation into a list and re-renders so you can watch the order.
+**Trigger re-render** fires a bare event-handler render — note it re-runs `OnRendered*` but does **not** re-fire
+`OnMount*` / `OnPropsChanged*` (nothing the component is bound to changed):
+
+<!-- demo:lifecycle-hooks -->
+
+### Mount / unmount cycle
+
+Toggle the probe in and out of the tree to watch `OnUnmount` and `OnUnmountAsync` fire (children before parents). The
+log is held by the parent, so it survives the probe's unmount:
+
+<!-- demo:lifecycle-cycle -->
+
 A typical async-data page uses `OnMountAsync` to fetch once and renders a placeholder until it lands:
 
 ```csharp
@@ -121,6 +136,30 @@ protected override void OnUnmount()
 }
 ```
 
+## Disposal: `IDisposable` / `IAsyncDisposable`
+
+Components that implement `IDisposable` or `IAsyncDisposable` get their `Dispose` / `DisposeAsync` called by the
+framework when they leave the render tree. Use it to release timers, subscriptions, or any handle you took out in
+`OnMount`. Disposal walks children depth-first, so nested disposables tear down bottom-up.
+
+Mount, then unmount — the sync probe's `Dispose()` runs as the parent's diff removes it from the tree:
+
+<!-- demo:disposal-sync -->
+
+The async variant is awaited on its own dispatch path; the log entry shows up after the next render cycle resolves the
+continuation:
+
+<!-- demo:disposal-async -->
+
+## `OnUnmount` vs `IDisposable`
+
+`OnUnmount` / `OnUnmountAsync` is the framework-side cleanup signal. It fires **before** the lifetime
+`CancellationToken` is cancelled, so cleanup code can still observe the token. Reach for it when the resource is
+conceptually a *lifecycle hook* (unsubscribe from an event, stop a timer you started in `OnMount`) and reserve
+`IDisposable` for things you would dispose anyway in non-Rask code (file handles, HTTP responses, DB connections):
+
+<!-- demo:disposal-unmount -->
+
 ## Cancellation tied to component lifetime
 
 Every component exposes a `protected CancellationToken CancellationToken`. It's allocated lazily (a component that
@@ -153,5 +192,21 @@ The framework cancels the token **before** disposing the subtree, so awaits unwi
 before `Dispose` runs and the unmount hooks fire. Cooperation is required: the framework only *signals* the token — it
 doesn't abort blocking calls. Thread the token through anything you want cancelled.
 
-(See `samples/Rask.Example.Shared/Features/Cancellation/CancellationPage.cs` and `LifecyclePage.cs` for runnable probes that log every
-hook invocation, and `PropsPage.cs` for the props-binding demo.)
+Mount the probe to start a 2.5-second `Task.Delay` inside `OnMountAsync`; click **Unmount** before it settles to
+cancel — the probe records what happened into the log:
+
+<!-- demo:cancellation -->
+
+## Background service
+
+An app-wide background process can push updates into the UI. A single `IMetricsFeed` singleton runs its own loop and
+raises an event each tick; the two widgets below each subscribe independently (`feed.Updated += StateHasChanged`) and
+repaint themselves. Unlike a poll loop that lives inside one component, this producer is **decoupled from the component
+tree** — it keeps ticking across navigations (and, on the Server, across every session):
+
+<!-- demo:background-metrics -->
+
+The producer is a DI `AddSingleton<IMetricsFeed, MetricsFeed>()` — one instance for the whole app. Each consumer is a
+tiny component that subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected)
+once it leaves the tree. The loop runs on a background thread, so `StateHasChanged()` crosses threads — safe here: it
+schedules a render under the subscriber's own session lock and is a no-op once the component unmounts.

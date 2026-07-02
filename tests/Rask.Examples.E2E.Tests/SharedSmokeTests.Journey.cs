@@ -56,6 +56,7 @@ public abstract partial class SharedSmokeTests
         await WalkDslAndComponentPagesAsync();
         await WalkInteractiveComponentPagesAsync();
         await TestCompositionGuideAsync();
+        await WalkLifecycleGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -307,18 +308,6 @@ public abstract partial class SharedSmokeTests
 
     private async Task WalkInteractiveComponentPagesAsync()
     {
-        // Lifecycle: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
-        // the render counter.
-        await SideAsync("Lifecycle", "Lifecycle hooks");
-        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        var badge = Page.Locator(".badge:has-text('Render #')").First;
-        await Page.WaitForTimeoutAsync(500);
-        var before = ExtractRenderCount(await badge.TextContentAsync());
-        await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
-        await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
         // Element refs: ElementRef → data-rask-ref → JS interop (focus a built-in, measure via user
         // scoped JS).
         await SideAsync("Element refs", "Element refs");
@@ -370,39 +359,6 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ticker-symbol")).ToHaveTextAsync("ETH",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#ticker-log")).ToContainTextAsync("OnPropsChanged: Symbol BTC → ETH",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Background service: an app-wide singleton's loop pushes updates to two decoupled
-        // subscribers. The tick badge must climb with NO user interaction — proof the
-        // background producer (not a click handler) is driving the render.
-        await SideAsync("Background service", "Background service");
-        await Expect(Page.Locator("#metrics-chart svg")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        var firstTick = await ReadMetricsTickAsync();
-        await Expect(Page.Locator("#metrics-tick")).Not.ToContainTextAsync($"tick {firstTick}",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        Assert.True(await ReadMetricsTickAsync() > firstTick, "the background feed did not advance on its own");
-
-        // Cancellation: unmount a probe mid-delay → its CancellationToken fires and it logs cancelled.
-        await SideAsync("Cancellation", "Cancellation");
-        await Page.Locator("#cancel-mount").ClickAsync();
-        await Expect(Page.Locator(".cancel-probe-pill")).ToContainTextAsync("running",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#cancel-unmount").ClickAsync();
-        await Expect(Page.Locator(".cancel-log")).ToContainTextAsync("cancelled",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Disposal: sync IDisposable + async IAsyncDisposable both fire on unmount.
-        await SideAsync("Disposal", "Disposal");
-        await Page.Locator("#dispose-sync-mount").ClickAsync();
-        await Expect(Page.Locator(".dispose-probe-pill")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Page.Locator("#dispose-sync-unmount").ClickAsync();
-        await Expect(Page.Locator("#dispose-sync-log")).ToContainTextAsync("disposed",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#dispose-async-mount").ClickAsync();
-        await Page.Locator("#dispose-async-unmount").ClickAsync();
-        await Expect(Page.Locator("#dispose-async-log")).ToContainTextAsync("async-disposed",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Events: click counter, streaming input echo, form submit echo.
@@ -597,6 +553,66 @@ public abstract partial class SharedSmokeTests
         await Expect(demo).ToContainTextAsync("welcome, rootadmin",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await demo.Locator("button:has-text('Sign out')").ClickAsync();
+    }
+
+    // Lifecycle guide: the Lifecycle / Disposal / Cancellation / Background-service example pages were
+    // folded into docs/lifecycle.md as inline live demos, so the whole cluster is one guide page now.
+    // Open it once and drive each demo in place — locators are scoped by unique #id.
+    private async Task WalkLifecycleGuideAsync()
+    {
+        await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
+            "expected the Lifecycle guide to embed the lifecycle demos as live demos");
+        // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control (the
+        // background-service chart, near the end) before driving any interaction so clicks never race
+        // hydration on the slower transports.
+        await Expect(Page.Locator("#metrics-chart svg")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Lifecycle hooks: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
+        // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).
+        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var badge = Page.Locator(".badge:has-text('Render #')").First;
+        var before = ExtractRenderCount(await badge.TextContentAsync());
+        await Page.Locator("button:has-text('Trigger re-render')").ClickAsync();
+        await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Mount / unmount cycle: mounting then unmounting the probe fires OnUnmount / OnUnmountAsync,
+        // logged into the parent-held list (which survives the unmount).
+        await Page.Locator("#lifecycle-cycle-mount").ClickAsync();
+        await Page.Locator("#lifecycle-cycle-unmount").ClickAsync();
+        await Expect(Page.Locator("#lifecycle-cycle-log")).ToContainTextAsync("OnUnmount",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Disposal: sync IDisposable + async IAsyncDisposable both fire on unmount.
+        await Page.Locator("#dispose-sync-mount").ClickAsync();
+        await Expect(Page.Locator(".dispose-probe-pill")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-sync-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-sync-log")).ToContainTextAsync("disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#dispose-async-mount").ClickAsync();
+        await Page.Locator("#dispose-async-unmount").ClickAsync();
+        await Expect(Page.Locator("#dispose-async-log")).ToContainTextAsync("async-disposed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Cancellation: unmount a probe mid-delay → its CancellationToken fires and it logs cancelled.
+        await Page.Locator("#cancel-mount").ClickAsync();
+        await Expect(Page.Locator(".cancel-probe-pill")).ToContainTextAsync("running",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#cancel-unmount").ClickAsync();
+        await Expect(Page.Locator(".cancel-log")).ToContainTextAsync("cancelled",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Background service: an app-wide singleton's loop pushes updates to two decoupled subscribers.
+        // The tick badge must climb with NO user interaction — proof the background producer (not a
+        // click handler) drives the render.
+        var firstTick = await ReadMetricsTickAsync();
+        await Expect(Page.Locator("#metrics-tick")).Not.ToContainTextAsync($"tick {firstTick}",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await ReadMetricsTickAsync() > firstTick, "the background feed did not advance on its own");
     }
 
     private async Task WalkFormsPagesAsync()
