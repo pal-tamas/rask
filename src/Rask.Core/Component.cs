@@ -120,7 +120,15 @@ public abstract class Component
     {
         get
         {
-            Children = children;
+            // Materialise a *lazy* sequence (a `yield`/LINQ pipeline that hasn't been evaluated)
+            // right here, during Render. A Child can wrap a component built by a factory, and those
+            // factories must run NOW — inside the owning component's render walk, where child-reuse
+            // bookkeeping (GetOrCreateChild's position map + PreviousChildren swap) is live — not later
+            // during serialization when that state is gone. Deferring would recreate any embedded
+            // component every render and silently drop its state (e.g. a demo mounted from a
+            // yield-built list). Already-materialised collections (Child[]/List<Child>/…) ran their
+            // factories when the caller built them, so they pass through without a copy.
+            Children = children is IReadOnlyCollection<Child> ? children : children.ToArray();
             return this;
         }
     }
@@ -1471,6 +1479,39 @@ public abstract class Component
             if (!seen.Add(c))
             {
                 return;
+            }
+
+            if (c._live?.Children is null)
+            {
+                return;
+            }
+
+            foreach (var child in c._live.Children.Values)
+            {
+                Visit(child, seen);
+            }
+        }
+    }
+
+    // Dev-only (C# Hot Reload): mark every live, mounted component in the tree StateDirty so the next
+    // render re-executes each Render() — including cached subtrees — against the freshly-applied IL. A
+    // component with no LiveState has never rendered (no cache to bust), so it's skipped. Called from
+    // LiveSessionBase.RerenderAllForHotReload under `dotnet watch`; best-effort (the caller swallows).
+    internal static void MarkSubtreeDirtyForHotReload(Component root)
+    {
+        var seen = new HashSet<Component>();
+        Visit(root, seen);
+
+        static void Visit(Component c, HashSet<Component> seen)
+        {
+            if (!seen.Add(c))
+            {
+                return;
+            }
+
+            if (c._live is { IsUnmounted: false } live)
+            {
+                live.StateDirty = true;
             }
 
             if (c._live?.Children is null)

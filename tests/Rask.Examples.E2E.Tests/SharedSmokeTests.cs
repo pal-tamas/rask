@@ -75,9 +75,16 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     {
         var filter = Page.Locator(".side-nav .side-nav-filter");
         await filter.FillAsync(label);
-        var link = Page.Locator(".side-nav a.side-nav-link:has-text(\"" + label + "\")").First;
-        await link.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
+        // Guides-first: a label can appear as BOTH an example page and a guide (e.g. "Routing",
+        // "Lifecycle"), and the Guides section renders first. The journey's example walks want the
+        // example page, so prefer a link that isn't a /guides/* one; guide-only labels (Composition,
+        // Forms & validation, Browser APIs, …) have no example link and fall back to the guide.
+        var escaped = label.Replace("\"", "\\\"");
+        var any = Page.Locator($".side-nav a.side-nav-link:has-text(\"{escaped}\")");
+        await any.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
         await Page.WaitForTimeoutAsync(200);
+        var example = Page.Locator($".side-nav a.side-nav-link:has-text(\"{escaped}\"):not([href^=\"/guides/\"])");
+        var link = await example.CountAsync() > 0 ? example.First : any.First;
         await link.ClickAsync();
     }
 

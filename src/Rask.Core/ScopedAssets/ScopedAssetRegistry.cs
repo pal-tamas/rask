@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Rask.Core.Live;
 using Rask.Core.ScopedCss;
 
 namespace Rask.Core.ScopedAssets;
@@ -339,7 +340,7 @@ public static class ScopedAssetRegistry
     // one tag per mounted component; the bundle is served like any other content-addressed asset
     // (GetByHash resolves it), so its URL is immutable and a static-asset host can ship it as a
     // single fingerprinted file. Rebuilt only when the registered set changes.
-    private sealed record BundleEntry(long Version, string Hash, AssetBytes Bytes);
+    private sealed record BundleEntry(long Version, bool Minified, string Hash, AssetBytes Bytes);
 
     private static volatile BundleEntry? _cssBundle;
     private static volatile BundleEntry? _jsBundle;
@@ -360,8 +361,12 @@ public static class ScopedAssetRegistry
     private static BundleEntry? EnsureBundle(AssetKind kind)
     {
         var version = Version;
+        // Only the CSS bundle is minified (the JS bundle is served as-is). Reading the flag here — and
+        // keying the cache on it — means flipping LiveOptions.MinifyScopedAssets rebuilds the bundle
+        // (its bytes, hash, and immutable URL) rather than serving a stale representation.
+        var minify = kind == AssetKind.Css && LiveOptions.MinifyScopedAssets == true;
         var cached = kind == AssetKind.Css ? _cssBundle : _jsBundle;
-        if (cached is not null && cached.Version == version)
+        if (cached is not null && cached.Version == version && cached.Minified == minify)
         {
             return cached.Hash.Length == 0 ? null : cached;
         }
@@ -376,7 +381,7 @@ public static class ScopedAssetRegistry
         {
             if (bucket.Count == 0)
             {
-                var empty = new BundleEntry(version, string.Empty, default);
+                var empty = new BundleEntry(version, minify, string.Empty, default);
                 if (kind == AssetKind.Css) { _cssBundle = empty; } else { _jsBundle = empty; }
                 return null;
             }
@@ -393,8 +398,15 @@ public static class ScopedAssetRegistry
             bytes = ms.ToArray();
         }
 
+        // Minify the fully-concatenated CSS once per rebuild, before hashing, so the digest + immutable
+        // URL + brotli/gzip caches all key off the minified bytes (never a double representation).
+        if (minify)
+        {
+            bytes = CssMinifier.MinifyUtf8(bytes);
+        }
+
         var hash = ComputeHash(bytes);
-        var entry = new BundleEntry(version, hash, new AssetBytes(bytes, "\"" + hash + "\""));
+        var entry = new BundleEntry(version, minify, hash, new AssetBytes(bytes, "\"" + hash + "\""));
         if (kind == AssetKind.Css) { _cssBundle = entry; } else { _jsBundle = entry; }
         return entry;
     }
