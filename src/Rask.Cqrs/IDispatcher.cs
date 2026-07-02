@@ -1,13 +1,15 @@
 namespace Rask.Cqrs;
 
 /// <summary>
-/// Dispatches queries and commands to their single handler. Inject it and call
+/// Dispatches queries and commands to their single handler, and (via <see cref="IPublisher"/>)
+/// publishes notifications. Inject it and call
 /// <see cref="DispatchAsync{TResult}(IQuery{TResult}, CancellationToken)"/> /
 /// <see cref="DispatchAsync(ICommand, CancellationToken)"/> — the result type is inferred from the
-/// message. Backed by a source-generated, reflection-free dispatch map. For notifications, inject
-/// <see cref="IPublisher"/>.
+/// message — or <see cref="IPublisher.PublishAsync{TNotification}"/>. Inject the narrower
+/// <see cref="IPublisher"/> for a publish-only surface. Backed by a source-generated, reflection-free
+/// dispatch map.
 /// </summary>
-public interface IDispatcher
+public interface IDispatcher : IPublisher
 {
     /// <summary>
     /// Dispatches a query to its <see cref="IQueryHandler{TQuery, TResult}"/>. The result type is

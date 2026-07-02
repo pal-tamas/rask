@@ -11,16 +11,13 @@ namespace Rask.Benchmarks;
 public class CqrsDispatchBenchmarks
 {
     private IDispatcher _dispatcher = null!;
-    private IPublisher _publisher = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         var services = new ServiceCollection();
         services.AddRaskCqrs();
-        var provider = services.BuildServiceProvider();
-        _dispatcher = provider.GetRequiredService<IDispatcher>();
-        _publisher = provider.GetRequiredService<IPublisher>();
+        _dispatcher = services.BuildServiceProvider().GetRequiredService<IDispatcher>();
     }
 
     [Benchmark]
@@ -30,7 +27,7 @@ public class CqrsDispatchBenchmarks
     public Task<int> SendCommand() => _dispatcher.DispatchAsync(new BenchCreate("abcd"));
 
     [Benchmark]
-    public Task Publish() => _publisher.PublishAsync(new BenchPinged(1));
+    public Task Publish() => _dispatcher.PublishAsync(new BenchPinged(1));
 }
 
 public sealed record BenchAdd(int A, int B) : IQuery<int>;

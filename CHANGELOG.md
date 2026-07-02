@@ -11,7 +11,8 @@ them until tagged releases begin.
 - **Source-generated CQRS/mediator (`Rask.Cqrs`)** — a new opt-in, standalone package for structuring
   work as queries, commands and notifications. Define `IQuery<TResult>` / `ICommand` / `ICommand<TResult>`
   / `INotification` messages with their handlers, then dispatch through `IDispatcher.DispatchAsync`
-  (one method for queries and commands, response type inferred) and `IPublisher.PublishAsync`. Register once
+  (one method for queries and commands, response type inferred) and `PublishAsync` for notifications
+  (`IDispatcher` extends `IPublisher`). Register once
   with `services.AddRaskCqrs()` — **host-agnostic**, the same call works on the Server and WASM hosts.
   A dedicated Roslyn generator (`Rask.Cqrs.Generators`) wires every handler at compile time via a
   `[ModuleInitializer]` registry and closed-generic invokers, so dispatch does **no runtime reflection
