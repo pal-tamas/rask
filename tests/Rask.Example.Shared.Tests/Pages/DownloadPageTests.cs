@@ -11,9 +11,10 @@ public sealed class DownloadPageTests
     [Fact]
     public void Render_EmitsDownloadButton_AndZeroCount()
     {
-        var routeState = new RouteState { Path = "/download" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+        // Render DownloadDemo directly — its standalone /download page was folded into
+        // docs/http-and-files.md, where the demo is embedded as a live sample.
+        var nav = new Navigator(new RouteState { Path = "/" }, new CapturingDownloadSink());
+        var html = new DownloadDemo(nav).RenderAsLiveRoot(TestServices.Default());
 
         Assert.Contains("download-report", html);
         Assert.Contains("Generated 0 time(s)", html);
