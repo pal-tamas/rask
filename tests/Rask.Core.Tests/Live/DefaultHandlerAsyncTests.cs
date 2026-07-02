@@ -37,7 +37,7 @@ public class DefaultHandlerAsyncTests
         var sp = RenderHarness.EmptyServices();
         var owner = new UnmatchedAsyncOwner(true);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { owner }, null);
+        boundary.SetProps(new Component[] { owner }, null);
 
         using var ctx = LiveRenderContext.Begin(boundary, sp);
         _ = boundary.ToHtml();
@@ -60,7 +60,7 @@ public class DefaultHandlerAsyncTests
         public string? RegisteredHandlerId { get; private set; }
         public bool ContinuationRan { get; private set; }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var live = LiveRenderContext.Current!;
             // Func<Task<bool>> is NOT in the dispatch fast-path (only Func<Task> is), so it lands

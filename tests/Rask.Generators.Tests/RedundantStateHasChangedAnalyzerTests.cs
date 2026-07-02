@@ -27,7 +27,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task OnClick_StateHasChanged_ReportsRask026()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "protected override RenderResult Render() => Button(OnClick: () => StateHasChanged())[\"x\"];")));
+            "protected override Component? Render() => Button(OnClick: () => StateHasChanged())[\"x\"];")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnClick", d.GetMessage());
     }
@@ -36,7 +36,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task OnChange_StateHasChanged_ReportsRask026()
     {
         var d = Assert.Single(await Diagnostics(App(
-            "protected override RenderResult Render() => Input<string>(OnChange: _ => StateHasChanged());")));
+            "protected override Component? Render() => Input<string>(OnChange: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("OnChange", d.GetMessage());
     }
@@ -46,7 +46,7 @@ public class RedundantStateHasChangedAnalyzerTests
     {
         var d = Assert.Single(await Diagnostics(App(
             "private string _name = \"\";"
-            + "protected override RenderResult Render() => Input(() => _name, AfterBind: _ => StateHasChanged());")));
+            + "protected override Component? Render() => Input(() => _name, AfterBind: _ => StateHasChanged());")));
         Assert.Equal("RASK026", d.Id);
         Assert.Contains("AfterBind", d.GetMessage());
     }
@@ -54,36 +54,36 @@ public class RedundantStateHasChangedAnalyzerTests
     [Fact]
     public async Task AsyncCallback_StateHasChanged_ReportsRask026() =>
         Assert.Equal("RASK026", Assert.Single(await Diagnostics(App(
-                "protected override RenderResult Render() => "
+                "protected override Component? Render() => "
                 + "Button(OnClickAsync: async () => { await System.Threading.Tasks.Task.Yield(); StateHasChanged(); })[\"x\"];")))
             .Id);
 
     [Fact]
     public async Task BareHandler_NoStateHasChanged_NoDiagnostic() =>
         Assert.Empty(await Diagnostics(App(
-            "protected override RenderResult Render() => Button(OnClick: () => { })[\"x\"];")));
+            "protected override Component? Render() => Button(OnClick: () => { })[\"x\"];")));
 
     [Fact]
     public async Task StateHasChangedInLifecycleMethod_NoDiagnostic() =>
         // Not inside a callback lambda — a background/lifecycle StateHasChanged is legitimate.
         Assert.Empty(await Diagnostics(App(
             "protected override void OnMount() => StateHasChanged();"
-            + "protected override RenderResult Render() => Div()[\"x\"];")));
+            + "protected override Component? Render() => Div()[\"x\"];")));
 
     [Fact]
     public async Task StateHasChangedOnAnotherComponent_NoDiagnostic() =>
         // Re-rendering a *different* component from a callback can be intentional — only self-calls flag.
         Assert.Empty(await Diagnostics(App(
             "private readonly App _other = null!;"
-            + "protected override RenderResult Render() => Button(OnClick: () => _other.StateHasChanged())[\"x\"];")));
+            + "protected override Component? Render() => Button(OnClick: () => _other.StateHasChanged())[\"x\"];")));
 
     [Fact]
     public async Task StateHasChangedInLambdaToUserHelperTakingCallback_NoDiagnostic() =>
         // A user method whose parameter happens to be typed Callback carries no auto-re-render guarantee —
         // only generated component factories do. The StateHasChanged here may be genuinely required.
         Assert.Empty(await Diagnostics(App(
-            "private static Child Wrap(Callback cb) => Div()[Button(OnClick: cb)[\"x\"]];"
-            + "protected override RenderResult Render() => Wrap(() => StateHasChanged());")));
+            "private static Component Wrap(Callback cb) => Div()[Button(OnClick: cb)[\"x\"]];"
+            + "protected override Component? Render() => Wrap(() => StateHasChanged());")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {

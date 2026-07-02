@@ -10,11 +10,11 @@ public sealed class DragDropSortableDemo : Component
         "Apple", "Banana", "Cherry", "Date", "Elderberry"
     ];
 
-    protected override RenderResult Render() => DragDrop(SortableBody, ReorderFruit);
+    protected override Component? Render() => DragDrop(SortableBody, ReorderFruit);
 
     private Component SortableBody(DragDropContext ctx)
     {
-        var rows = new List<Child>(_fruits.Count);
+        var rows = new List<Component>(_fruits.Count);
         for (var i = 0; i < _fruits.Count; i++)
         {
             var fruit = _fruits[i];

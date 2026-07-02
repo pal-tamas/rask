@@ -12,7 +12,7 @@ public sealed class BsIcon : BsBlock
     private static readonly IReadOnlyDictionary<string, string?> Hidden =
         new Dictionary<string, string?> { ["hidden"] = "true" };
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join("bi", $"bi-{Name.ToCssName()}", Color is { } c ? c.Text() : null, Class);
 

@@ -140,7 +140,7 @@ public sealed class LazyImages(IIntersectionObserver io) : Component, IAsyncDisp
     private readonly ElementRef _sentinel = ElementRef.New();
     private IAsyncDisposable? _obs;
 
-    protected override RenderResult Render() => Div(Ref: _sentinel)[ /* … */ ];
+    protected override Component? Render() => Div(Ref: _sentinel)[ /* … */ ];
 
     protected override async Task OnRenderedAsync(bool first)
     {

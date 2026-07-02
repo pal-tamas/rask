@@ -5,7 +5,7 @@ namespace Company.RaskWasm;
 [Route("/")]
 public sealed class HomePage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "welcome-card")[
             H1(Class: "welcome-title")["Hello, Rask!"],
             P(Class: "welcome-lead")["Welcome to your new app."],

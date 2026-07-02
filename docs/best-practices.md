@@ -61,7 +61,7 @@ mistake, the rule notes the ID.
   `<script>` is appended to `<body>`, `<head>` is filled from each component's `Head` override). A
   partial shell is **RASK021**.
 - **Contribute to `<head>` via the `Head` override, not `Head()` children.** `Head()` is a managed
-  slot; passing it children is **RASK019**. Override `protected override RenderResult Head` instead;
+  slot; passing it children is **RASK019**. Override `protected override Component? Head` instead;
   `<title>`/`<base>` are singletons where the last contributor wins. See
   [getting started §6](getting-started.md#6-the-page-root-shell-and-the-head-override).
 - **Don't fight the attribute order.** Universal attributes always render
@@ -234,8 +234,8 @@ mistake, the rule notes the ID.
   [architecture → keyed reconciliation](architecture/live-rendering.md#keyed-reconciliation-trusted-structural-ops).
 - **Treat `Key` as identity, not a reactive signal.** Changing a key mounts a fresh instance; it
   doesn't refire `OnPropsChanged`.
-- **Use `Fragment()` to avoid a wrapper node** for sibling lists or a "render nothing" branch
-  (`show ? Panel() : (Child)Fragment()`).
+- **Use a `[...]` collection expression to avoid a wrapper node** for sibling lists, and `null` for a
+  "render nothing" branch (`show ? Panel() : null`).
 - **Benchmark every render-hotpath or live-runtime change.** Diff codec, frame writer, serializer,
   and dispatch are under measurement — run `benchmarks/Rask.Benchmarks` before/after and quote the
   `Allocated` delta. See [development workflow](development-workflow.md).
@@ -258,7 +258,7 @@ mistake, the rule notes the ID.
 | List items with no `Key:` (**RASK022**) — focus/input lost on reorder | Pass a stable, unique `Key:` (entity id) |
 | `new Counter()` outside Core (**RASK014**) | Call the generated factory `Counter()` |
 | Service as a settable property → required factory param (**RASK002**) | Inject via the constructor |
-| `Head()[Title()[...]]` (**RASK019**) | Override `protected override RenderResult Head` |
+| `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
 | `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |

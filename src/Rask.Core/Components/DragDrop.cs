@@ -95,7 +95,7 @@ public sealed class DragDrop : Component
         return sourceZone is null ? null : new DragDropMove(sourceZone, sourceIndex, zone, index);
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (Body is null)
         {

@@ -48,9 +48,9 @@ public sealed class DefaultErrorPage : Component
 
     protected override bool BypassRenderCache => true;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
-        var children = new List<Child>
+        var children = new List<Component>
         {
             Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
         };
@@ -86,7 +86,7 @@ public sealed class DefaultErrorPage : Component
     // The type + message, plus (development only) a parsed stack with source excerpts. All text is
     // passed as string children, so Rask's Text encodes it — source lines and exception messages can
     // never inject markup.
-    private IEnumerable<Child> RenderException(Exception ex)
+    private IEnumerable<Component> RenderException(Exception ex)
     {
         yield return Generated.P(Style: TypeStyle)[TypeName(ex)];
         yield return Generated.Pre(Style: MessageStyle)[ex.Message];
@@ -105,7 +105,7 @@ public sealed class DefaultErrorPage : Component
     // Development-only: parse the exception's captured frames and, where a frame carries file+line
     // (Debug/PDB builds), show a source excerpt with the throwing line marked. Falls back to the raw
     // StackTrace string when no structured frames are available.
-    private static IEnumerable<Child> RenderStack(Exception ex)
+    private static IEnumerable<Component> RenderStack(Exception ex)
     {
         var frames = new StackTrace(ex, fNeedFileInfo: true).GetFrames();
         if (frames is null || frames.Length == 0)

@@ -7,20 +7,20 @@ public sealed class CrossFieldSummaryDemo : Component
     private readonly TripModel _model = new();
     private string? _submission;
 
-    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
+    private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
                 Ul(Class: "mb-0 ps-3")[
                     entries.Select((e, i) => Li(Key: i)[
                         e.Field.Length == 0
                             ? e.Message
-                            : Fragment()[Strong()[e.Field], ": ", e.Message]
+                            : [Strong()[e.Field], ": ", e.Message]
                     ])
                 ]
             ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<TripModel>(
             _model,
@@ -44,7 +44,7 @@ public sealed class CrossFieldSummaryDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

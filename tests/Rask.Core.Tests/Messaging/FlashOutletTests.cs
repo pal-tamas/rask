@@ -18,7 +18,7 @@ public class FlashOutletTests
         return () => FlashOutlet(Template: (msgs, d) =>
         {
             captured = d;
-            return Div()[msgs.Select(m => (Child)Span(Key: m.Id.ToString())[m.Message])];
+            return Div()[msgs.Select(m => (Component)Span(Key: m.Id.ToString())[m.Message])];
         });
     }
 

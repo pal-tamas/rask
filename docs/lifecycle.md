@@ -65,7 +65,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
     protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         _forecasts is null
             ? P()[Em()["Loading..."]]
             : Table()[/* render rows */];

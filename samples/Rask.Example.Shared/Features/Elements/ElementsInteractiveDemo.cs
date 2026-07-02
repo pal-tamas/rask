@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // menu (a semantic command list).
 public sealed class ElementsInteractiveDemo : Component
 {
-    protected override RenderResult Render() => Div(Class: "vstack gap-3")[
+    protected override Component? Render() => Div(Class: "vstack gap-3")[
         Details(Open: true, Class: "border rounded p-2")[
             Summary(Class: "fw-semibold")["Disclosure — click to toggle"],
             P(Class: "mb-0 mt-2 text-secondary")["The browser shows/hides this natively; no JS needed."]

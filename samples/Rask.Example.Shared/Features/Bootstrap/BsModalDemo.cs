@@ -6,7 +6,7 @@ public sealed class BsModalDemo : Component
 {
     private bool _open;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         BsButton(Color: BsColor.Primary, OnClick: () => _open = true)["Launch demo modal"],
         BsModal(

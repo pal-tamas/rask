@@ -16,7 +16,7 @@ public sealed class HidDemo(IHid hid) : Component, IAsyncDisposable
     private string _lastReport = "—";
     private string _status = "(idle)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[

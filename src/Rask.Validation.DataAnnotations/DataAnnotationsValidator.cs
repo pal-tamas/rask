@@ -23,7 +23,7 @@ public sealed class DataAnnotationsValidator : Component
     // (the empty Fragment) doesn't change between renders. Cache opt-out is unnecessary here
     // — re-rendering only re-registers the validator, which AddValidator no-ops on dedup.
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         // Snapshot the render-scoped IServiceProvider at Render time. Handler invocation
         // (submit, change, blur) doesn't re-enter LiveRenderContext, so reading
@@ -32,7 +32,7 @@ public sealed class DataAnnotationsValidator : Component
         // session (same DI scope), so the first registration's snapshot is durable;
         // AddValidator's type-dedup discards subsequent re-registrations anyway.
         EditContextScope.Current?.AddValidator(new Inner(LiveRenderContext.Current?.Services));
-        return Core.Components.Generated.Fragment();
+        return null;
     }
 
     private sealed class Inner : IFieldValidator

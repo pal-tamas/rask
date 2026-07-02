@@ -46,7 +46,7 @@ public sealed class KeyedNavApp : Component
         StateHasChanged();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[

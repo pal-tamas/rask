@@ -31,7 +31,7 @@ public sealed class IntersectionObserverDemo(IIntersectionObserver observer) : C
         });
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex align-items-center gap-2 mb-2")[

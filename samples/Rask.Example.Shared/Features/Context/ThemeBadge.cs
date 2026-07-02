@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // consumer, so it re-renders whenever the provided value changes.
 public sealed class ThemeBadge : Component
 {
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var theme = Context.Required<Theme>();
         var css = theme.IsDark ? "bg-dark text-light border border-secondary" : "bg-warning-subtle text-dark";

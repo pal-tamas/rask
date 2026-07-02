@@ -115,7 +115,7 @@ public class ReconciliationTests
         Assert.False(view.PersistedChildren.ContainsKey((typeof(CounterStub), 1)));
     }
 
-    // Regression: a lazy IEnumerable<Child> (a `yield`/LINQ pipeline) passed to the children indexer
+    // Regression: a lazy IEnumerable<Component> (a `yield`/LINQ pipeline) passed to the children indexer
     // must be materialised RIGHT THEN, during Render — so any component factory inside it runs while the
     // owning component's child-reuse bookkeeping (GetOrCreateChild positions + PreviousChildren) is live.
     // Deferring evaluation to serialization would recreate embedded components every render and drop
@@ -125,7 +125,7 @@ public class ReconciliationTests
     {
         var evaluated = 0;
 
-        IEnumerable<Child> Lazy()
+        IEnumerable<Component> Lazy()
         {
             foreach (var _ in Enumerable.Range(0, 3))
             {
@@ -137,15 +137,15 @@ public class ReconciliationTests
         var div = Div()[Lazy()];
 
         Assert.Equal(3, evaluated); // fully enumerated by the indexer, not deferred
-        Assert.IsType<Child[]>(div.Children); // stored as a materialised array
+        Assert.IsType<Component[]>(div.Children); // stored as a materialised array
     }
 
     [Fact]
     public void ChildrenIndexer_AlreadyMaterialisedCollection_PassesThroughWithoutCopy()
     {
-        var list = new List<Child> { Span(), Div() };
+        var list = new List<Component> { Span(), Div() };
 
-        var div = Div()[(IEnumerable<Child>)list];
+        var div = Div()[(IEnumerable<Component>)list];
 
         Assert.Same(list, div.Children); // no redundant copy for a ready collection
     }
@@ -153,12 +153,12 @@ public class ReconciliationTests
     private sealed class CounterStub : Component
     {
         public int Value;
-        protected override RenderResult Render() => Raw($"<x>{Value}</x>");
+        protected override Component? Render() => Raw($"<x>{Value}</x>");
     }
 
     private sealed class OtherStub : Component
     {
-        protected override RenderResult Render() => Raw("<y/>");
+        protected override Component? Render() => Raw("<y/>");
     }
 }
 

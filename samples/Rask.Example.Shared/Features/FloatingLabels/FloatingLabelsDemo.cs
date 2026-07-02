@@ -8,7 +8,7 @@ public sealed class FloatingLabelsDemo : Component
     private readonly AccountModel _model = new();
     private string? _submission;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<AccountModel>(
             _model,
@@ -35,7 +35,7 @@ public sealed class FloatingLabelsDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

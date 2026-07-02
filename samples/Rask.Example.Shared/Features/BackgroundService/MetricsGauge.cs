@@ -24,7 +24,7 @@ public sealed class MetricsGauge(IMetricsFeed feed) : Component
 
     protected override void OnUnmount() => feed.Updated -= StateHasChanged;
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var s = feed.State.Current;
         return BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Sizing.H(100)))[

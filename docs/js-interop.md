@@ -235,7 +235,7 @@ public sealed class FocusDemo : Component
 
     public FocusDemo(IJSRuntime js) => _js = js;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Input<string>(InputType.Text, Ref: _input),
             Div(Ref: _box)["measure me"],

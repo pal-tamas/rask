@@ -13,7 +13,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, null);
+        boundary.SetProps(new Component[] { child }, null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
         // OnMountAsync fires. The faulted Task continuation routes through Boundary.Trip.
@@ -35,7 +35,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.PropsAsync);
         var boundary = ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, null);
+        boundary.SetProps(new Component[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -87,7 +87,7 @@ public class AsyncLifecycleErrorBoundaryTests
         var boundary = ErrorBoundary();
         var handle = new RecordingHandle();
         boundary.RenderHandle = handle;
-        boundary.SetProps(new Child[] { child }, null);
+        boundary.SetProps(new Component[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -150,7 +150,7 @@ public class AsyncLifecycleErrorBoundaryTests
             throw new InvalidOperationException("props-async");
         }
 
-        protected override RenderResult Render() => Span()[Text("loading")];
+        protected override Component? Render() => Span()[Text("loading")];
     }
 
     private sealed class RecordingHandle : IRenderHandle

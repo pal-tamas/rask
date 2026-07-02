@@ -82,7 +82,7 @@ public class ComponentHotReloadTests
     {
         public int RenderCount;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             RenderCount++;
             return Div();
@@ -96,7 +96,7 @@ public class ComponentHotReloadTests
         private readonly Component _child;
         public StaticChildHost(Component child) => _child = child;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);

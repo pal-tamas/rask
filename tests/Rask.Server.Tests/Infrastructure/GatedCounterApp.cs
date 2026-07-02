@@ -15,7 +15,7 @@ public sealed class GatedCounterApp : Component
 
     public int Counter;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         new Html()[new Head()[new Title()["gated"]],

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 public sealed class TagsFormDemo : Component
 {
-    protected override RenderResult Render() => Form()[
+    protected override Component? Render() => Form()[
         Div(Class: "mb-2")[
             Label("n", Class: "form-label small mb-1")["Name"],
             Input<string>(InputType.Text, Id: "n", Class: "form-control form-control-sm", Placeholder: "Jane Doe")

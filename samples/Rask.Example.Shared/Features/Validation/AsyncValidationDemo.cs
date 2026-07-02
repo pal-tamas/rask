@@ -20,7 +20,7 @@ public sealed class AsyncValidationDemo : Component
             BsIcon(Name: BsIconName.ArrowClockwise, Class: "me-1"), "Checking availability..."
         ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form<SignupModel>(
             _model,
@@ -33,14 +33,14 @@ public sealed class AsyncValidationDemo : Component
                 Input(() => _model.Username, Id: "v3-username", Class: "form-control"),
                 ValidatingIndicator(() => _model.Username, Checking),
                 ValidationMessage(() => _model.Username,
-                    msgs => Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
+                    msgs => [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])])
             ],
             Div()[
                 BsButton(Type: "submit", Color: BsColor.Primary)[BsIcon(Name: BsIconName.Check2Circle, Class: "me-1"), "Sign up"]
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

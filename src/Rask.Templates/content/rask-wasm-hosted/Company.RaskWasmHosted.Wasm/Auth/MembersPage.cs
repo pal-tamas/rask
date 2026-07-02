@@ -12,7 +12,7 @@ namespace Company.RaskWasmHosted.Wasm;
 [AllowAnonymous]
 public sealed class MembersPage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Style: "max-width:32rem;margin:3rem auto;font-family:system-ui")[
             Authorize(
                 NotAuthorized: P()["Please ", NavLink(Href: "/login")["sign in"], "."])[MemberContent()]
@@ -21,8 +21,8 @@ public sealed class MembersPage : Component
 
 public sealed class MemberContent(WasmLoginService login, IUserProvider userProvider) : Component
 {
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             H1()[$"Welcome, {userProvider.Current.Identity?.Name}"],
             Authorize(Roles: ["admin"])[
                 Div(Style: "color:#7a5c00")["🔑 You have admin access."]],

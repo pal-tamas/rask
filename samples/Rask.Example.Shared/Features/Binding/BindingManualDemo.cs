@@ -9,7 +9,7 @@ public sealed class BindingManualDemo : Component
 {
     private string _typed = "";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Input(
             InputType.Text,

@@ -13,7 +13,7 @@ public class FactoryNavigationEmissionTests
                                public sealed class Widget : Component
                                {
                                    public string Name { get; set; }
-                                   public override RenderResult Render() => this;
+                                   public override Component? Render() => this;
                                }
                                """;
 
@@ -41,7 +41,7 @@ public class FactoryNavigationEmissionTests
                   namespace Demo;
                   public sealed class Box<T> : Component where T : class
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 

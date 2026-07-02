@@ -10,7 +10,7 @@ public sealed class BsTextarea<T> : BsFormControl<T>
     public int? Rows { get; set; }
     public bool? ReadOnly { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var b = Resolve();
         var controlId = ControlId(b);

@@ -2,7 +2,7 @@ namespace Rask.Example.Shared.Features;
 
 public sealed class PropsIdClassStyleDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(
             Id: "card-1",
             Class: "card border-primary",

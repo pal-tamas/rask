@@ -5,7 +5,7 @@ assistants the conventions so generated code compiles and runs. Full docs:
 https://github.com/pal-tamas/rask/tree/main/docs
 
 ## Mental model
-- Components are **plain C# classes** deriving from `Component`. Override `RenderResult Render()`
+- Components are **plain C# classes** deriving from `Component`. Override `Component? Render()`
   and return a tree of HTML built with **generated factory methods** — no `.razor`, no JSX.
 - The **same component code** runs server-rendered (live diff over WebSockets) or on WASM.
 
@@ -17,7 +17,7 @@ https://github.com/pal-tamas/rask/tree/main/docs
   `..` spread does **not** work inside `[...]`.
 - **Props are factory parameters.** A nullable prop is optional; a non-nullable prop with no
   initializer is **required**. Declare HTML attributes nullable (`bool? Disabled`) to keep them optional.
-- **A page/root component must render the full shell**: `Fragment()[Doctype(), Html(...)[Head(...), Body(...)]]`
+- **A page/root component must render the full shell**: `[Doctype(), Html(...)[Head(...), Body(...)]]`
   (RASK021). The framework injects its runtime `<script>` automatically — don't add one.
 - **Text vs raw:** `Text("..")` / a bare string HTML-encodes; `Raw("..")` is verbatim (XSS risk — avoid for user input).
 - **Accessibility:** set ARIA via the `Aria` dictionary on any element — `Button(Aria: new() { ["label"] = "Close" })`

@@ -187,7 +187,7 @@ public class AsyncLifecycleRenderingTests
             await Gate.Task;
         }
 
-        protected override RenderResult Render() => Span()[Text("probe")];
+        protected override Component? Render() => Span()[Text("probe")];
     }
 
     private sealed class AlwaysAwaitsProbe : Component
@@ -202,7 +202,7 @@ public class AsyncLifecycleRenderingTests
 
         protected override Task OnRenderedAsync(bool firstRender) => _gate.Task;
 
-        protected override RenderResult Render() => Span()[Text("probe")];
+        protected override Component? Render() => Span()[Text("probe")];
     }
 
     // Two-component probe wired into one render tree. A and B each have their own
@@ -221,7 +221,7 @@ public class AsyncLifecycleRenderingTests
             _b.Release();
         }
 
-        protected override RenderResult Render() => Div()[_a, _b];
+        protected override Component? Render() => Div()[_a, _b];
 
         protected override Task OnRenderedAsync(bool firstRender)
         {
@@ -257,13 +257,13 @@ public class AsyncLifecycleRenderingTests
             Done.TrySetResult();
         }
 
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class SyncCompletingComponent : Component
     {
         protected override Task OnMountAsync() => Task.CompletedTask;
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class SingleAwaitComponent : Component
@@ -276,7 +276,7 @@ public class AsyncLifecycleRenderingTests
             Done.TrySetResult();
         }
 
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class ConfigureAwaitFalseComponent : Component
@@ -289,7 +289,7 @@ public class AsyncLifecycleRenderingTests
             Done.TrySetResult();
         }
 
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class RecordingHandle : IRenderHandle

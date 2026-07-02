@@ -4,7 +4,7 @@ public sealed class CallbackRatingDemo : Component
 {
     private int _rating;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "callback-rating")[
             // The lambda captures `this`, so it owns this demo — the framework wraps it so clicking
             // a star in the child re-renders the line below, with no extra ceremony.

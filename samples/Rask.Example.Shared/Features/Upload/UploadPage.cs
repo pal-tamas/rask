@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class UploadPage : Component
 {
-    protected override RenderResult Head => Title()["File upload — Rask"];
+    protected override Component? Head => Title()["File upload — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "File upload",

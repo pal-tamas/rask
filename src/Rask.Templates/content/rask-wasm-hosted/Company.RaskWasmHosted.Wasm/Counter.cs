@@ -7,7 +7,7 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             H1()["Counter"],
             P()[$"Current count: {_count}"],

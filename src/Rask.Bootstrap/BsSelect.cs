@@ -6,7 +6,7 @@ namespace Rask.Bootstrap;
 // validation display. Pass Option(...) children. Bound: BsSelect(() => model.Plan, Label: "Plan")[…].
 public sealed class BsSelect<T> : BsFormControl<T>
 {
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var b = Resolve();
         var controlId = ControlId(b);

@@ -32,7 +32,7 @@ public sealed class JsRuntimeDemo(IJSRuntime js) : Component
         }
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Div(Class: "mb-3")[

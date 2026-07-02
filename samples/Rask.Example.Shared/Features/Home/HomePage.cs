@@ -14,7 +14,7 @@ public sealed class HomePage(Navigator nav) : Component
     private static readonly (string Section, string Icon, string Title, string Blurb, string Path)[] Features =
     [
         ("DSL", "bi-code-slash", "Tag factories", "Every HTML element, strongly typed.", "/guides/elements"),
-        ("DSL", "bi-asterisk", "Primitives", "Text, Raw, Fragment, Doctype, Child.", "/guides/elements"),
+        ("DSL", "bi-asterisk", "Primitives", "Text, Raw, Fragment, Doctype, Component.", "/guides/elements"),
         ("DSL", "bi-gear", "Universal props", "Id, Class, Style, Data, Ref on every tag.", "/guides/elements"),
         ("DSL", "bi-vector-pen", "SVG", "Typed SVG components.", "/guides/elements"),
 
@@ -37,9 +37,9 @@ public sealed class HomePage(Navigator nav) : Component
         // The typed browser-API wrappers are documented as inline live demos in the Browser APIs guide.
     ];
 
-    protected override RenderResult Head => Title()["Welcome — Rask"];
+    protected override Component? Head => Title()["Welcome — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "p-4 p-md-5 mb-4 rounded-3 hero-card")[
             Div(Class: "container-fluid py-3")[
@@ -79,7 +79,7 @@ public sealed class HomePage(Navigator nav) : Component
             ["HomeWelcomeDemo.cs"],
             "The minimal page",
             Notes:
-            "Generator-emitted factories build a tree. Strings convert implicitly to Child. Component.ToHtml() produces the final HTML.",
+            "Generator-emitted factories build a tree. Strings convert implicitly to Component. Component.ToHtml() produces the final HTML.",
             Result: HomeWelcomeDemo()),
         H2(Class: "h4 mt-5 mb-1")["Browse the component examples"],
         P(Class: "text-secondary mb-4")[
@@ -96,7 +96,7 @@ public sealed class HomePage(Navigator nav) : Component
     ];
 
     // Yields, per section in display order, a heading followed by a row of feature cards.
-    private IEnumerable<Child> FeatureIndex()
+    private IEnumerable<Component> FeatureIndex()
     {
         foreach (var section in SectionOrder)
         {
@@ -108,7 +108,7 @@ public sealed class HomePage(Navigator nav) : Component
 
             yield return H3(Class: "h6 fw-bold text-uppercase text-secondary mt-4 mb-3 feature-section")[section];
             yield return Div(Class: "row g-3")[
-                cards.Select(f => (Child)FeatureCard(f.Icon, f.Title, f.Blurb, f.Path))
+                cards.Select(f => (Component)FeatureCard(f.Icon, f.Title, f.Blurb, f.Path))
             ];
         }
     }

@@ -10,9 +10,9 @@ public sealed class LiveTickerPage(Navigator nav) : Component
 
     [RouteParam] public string Symbol { get; set; } = "BTC";
 
-    protected override RenderResult Head => Title()[$"{Symbol} live ticker — Rask"];
+    protected override Component? Head => Title()[$"{Symbol} live ticker — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             $"{Symbol} live ticker",

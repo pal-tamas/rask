@@ -44,7 +44,7 @@ public class HeadAssetRenderTests
     [Fact]
     public void TitleSingleton_RootContributorOverriddenByChild()
     {
-        // Root contributes Title="App". Child contributes Title="Page". The page wins —
+        // Root contributes Title="App". Component contributes Title="Page". The page wins —
         // exactly one <title> in head, content is "Page". Exercises the singleton dedup
         // through the full render path, not just the registry in isolation.
         var view = new ShellWithTitle("App", new ContributesTitle("Page"));
@@ -118,7 +118,7 @@ public class HeadAssetRenderTests
         private readonly Component _body;
         public PageShell(Component body) => _body = body;
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[
@@ -142,9 +142,9 @@ public class HeadAssetRenderTests
             _body = body;
         }
 
-        protected override RenderResult Head => Title()[_title];
+        protected override Component? Head => Title()[_title];
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[
@@ -159,28 +159,28 @@ public class HeadAssetRenderTests
 
     private sealed class NoHeadComponent : Component
     {
-        protected override RenderResult Render() => Div()["plain body"];
+        protected override Component? Render() => Div()["plain body"];
     }
 
     private sealed class ContributesLink : Component
     {
-        protected override RenderResult Head => Link(Rel: "stylesheet", Href: "/a.css");
-        protected override RenderResult Render() => Div()["with link"];
+        protected override Component? Head => Link(Rel: "stylesheet", Href: "/a.css");
+        protected override Component? Render() => Div()["with link"];
     }
 
     private sealed class ContributesTitle : Component
     {
         private readonly string _title;
         public ContributesTitle(string title) => _title = title;
-        protected override RenderResult Head => Title()[_title];
-        protected override RenderResult Render() => Div()["with title"];
+        protected override Component? Head => Title()[_title];
+        protected override Component? Render() => Div()["with title"];
     }
 
     private sealed class ContributesTitleWithId : Component
     {
         public int Id { get; set; }
-        protected override RenderResult Head => Title()[$"User #{Id}"];
-        protected override RenderResult Render() => Div()[$"user {Id}"];
+        protected override Component? Head => Title()[$"User #{Id}"];
+        protected override Component? Render() => Div()[$"user {Id}"];
     }
 
     private sealed class TwoChildHost : Component
@@ -194,6 +194,6 @@ public class HeadAssetRenderTests
             _b = b;
         }
 
-        protected override RenderResult Render() => Div()[_a, _b];
+        protected override Component? Render() => Div()[_a, _b];
     }
 }

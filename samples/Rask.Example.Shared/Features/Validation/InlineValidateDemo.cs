@@ -8,15 +8,15 @@ public sealed class InlineValidateDemo : Component
     private string? _submission;
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
-    private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries)
+    private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries)
     {
         // Filter to form-level entries — per-field rules already render through FieldError.
         var formOnly = entries.Where(e => e.Field.Length == 0).ToList();
         if (formOnly.Count == 0)
         {
-            return Fragment();
+            return null;
         }
 
         return BsAlert(Color: BsColor.Danger, Class: "small mb-0")[
@@ -26,7 +26,7 @@ public sealed class InlineValidateDemo : Component
         ];
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Form(
             _model,
@@ -57,7 +57,7 @@ public sealed class InlineValidateDemo : Component
             ]
         ],
         _submission is null
-            ? Fragment()
+            ? null
             : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0")[BsIcon(Name: BsIconName.CheckCircle, Class: "me-2"), _submission]
     ];
 }

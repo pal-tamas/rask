@@ -19,7 +19,7 @@ public class MissingKeyAnalyzerTests
                                                 public sealed class App : Component
                                                 {
                                                     private readonly int[] _items = { 1, 2, 3 };
-                                                    protected override RenderResult Render()
+                                                    protected override Component? Render()
                                                     {
                                                         {{body}}
                                                     }
@@ -39,7 +39,7 @@ public class MissingKeyAnalyzerTests
     public async Task ForeachAddToChildList_NoKey_ReportsRask022()
     {
         var d = Assert.Single(await Diagnostics(App("""
-                                                    var rows = new List<Child>();
+                                                    var rows = new List<Component>();
                                                     foreach (var i in _items) rows.Add(Tr()[i.ToString()]);
                                                     return Ul()[rows];
                                                     """)));
@@ -67,7 +67,7 @@ public class MissingKeyAnalyzerTests
     public async Task ForeachAddToChildList_WithKey_NoDiagnostic()
     {
         Assert.Empty(await Diagnostics(App("""
-                                           var rows = new List<Child>();
+                                           var rows = new List<Component>();
                                            foreach (var i in _items) rows.Add(Tr(Key: i)[i.ToString()]);
                                            return Ul()[rows];
                                            """)));
@@ -92,7 +92,7 @@ public class MissingKeyAnalyzerTests
     {
         // A one-off Add (not in a loop) isn't a reconciled list — don't warn.
         Assert.Empty(await Diagnostics(App("""
-                                           var rows = new List<Child>();
+                                           var rows = new List<Component>();
                                            rows.Add(Tr()["one"]);
                                            return Ul()[rows];
                                            """)));

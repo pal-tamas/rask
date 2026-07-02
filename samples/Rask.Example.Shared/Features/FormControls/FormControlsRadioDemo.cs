@@ -11,7 +11,7 @@ public sealed class FormControlsRadioDemo : Component
     private Plan _controlled = Plan.Free;
     private readonly Model _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "row g-4")[
             Div(Class: "col-md-6", Id: "fc-radio-controlled")[
                 Label(Class: "form-label fw-semibold d-block")["Controlled (Value + OnChange)"],

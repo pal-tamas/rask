@@ -7,7 +7,7 @@ public sealed class BoomRenderDemo : Component
 {
     private bool _throwOnRender;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         ErrorBoundary(
             // Recover for the render-throw demo must ALSO reset _throwOnRender —
             // otherwise the boundary clears its error, re-walks its cached Children
@@ -45,7 +45,7 @@ public sealed class BoomRenderDemo : Component
             ]
         ];
 
-    private static Child BoundaryFallback(Exception ex, Callback recover) =>
+    private static Component BoundaryFallback(Exception ex, Callback recover) =>
         BsAlert(Color: BsColor.Danger, Class: "d-flex align-items-start", Id: "boom-fallback")[
             BsIcon(Name: BsIconName.ExclamationOctagonFill, Class: "me-3 fs-4"),
             Div()[
@@ -62,7 +62,7 @@ public sealed class BoomRenderDemo : Component
     [SkipFactory]
     private sealed class RenderThrower : Component
     {
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
             throw new InvalidOperationException("kaboom — render-time boundary demo");
     }
 }

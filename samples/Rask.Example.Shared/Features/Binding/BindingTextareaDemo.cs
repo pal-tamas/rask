@@ -4,7 +4,7 @@ public sealed class BindingTextareaDemo : Component
 {
     private readonly Holder _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Textarea(
             () => _model.Notes,

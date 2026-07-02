@@ -12,8 +12,8 @@ public sealed class SvgClickableDemo : Component
 
     private int _selected;
 
-    protected override RenderResult Render() =>
-        Fragment()[
+    protected override Component? Render() =>
+        [
             Svg("240", "48", "0 0 240 48")[BuildSwatches()],
             P(Class: "mt-2 mb-0 small text-secondary")[
                 "Selected colour: ",
@@ -22,9 +22,9 @@ public sealed class SvgClickableDemo : Component
         ];
 
     // Keyed so the diff codec reconciles the swatches by identity rather than by position.
-    private List<Child> BuildSwatches()
+    private List<Component> BuildSwatches()
     {
-        var children = new List<Child>();
+        var children = new List<Component>();
         for (var i = 0; i < Swatches.Length; i++)
         {
             var index = i;

@@ -29,7 +29,7 @@ public class RootShellAnalyzerTests
                                                           private static object Html(string lang) => null!;
                                                           private static object Head() => null!;
                                                           private static object Body() => null!;
-                                                          protected override RenderResult Render() { {{renderBody}} return this; }
+                                                          protected override Component? Render() { {{renderBody}} return this; }
                                                       }
                                                       """;
 

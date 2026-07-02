@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.Authentication;
 // pipeline (Allow / Challenge / Forbid) can be exercised end-to-end over real HTTP.
 public sealed class RouteGuardTestApp : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html("en")[
@@ -25,14 +25,14 @@ public sealed class RouteGuardTestApp : Component
 [AllowAnonymous]
 public sealed class E2EPublicPage : Component
 {
-    protected override RenderResult Render() => Div(Id: "public")["public-content"];
+    protected override Component? Render() => Div(Id: "public")["public-content"];
 }
 
 [Route("/e2e/members")]
 [Authorize]
 public sealed class E2EMembersPage(IUserProvider userProvider) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "members")["members-content for ", Span()[userProvider.Current.Identity?.Name ?? "?"]];
 }
 
@@ -40,5 +40,5 @@ public sealed class E2EMembersPage(IUserProvider userProvider) : Component
 [Authorize(Roles = "admin")]
 public sealed class E2EAdminPage : Component
 {
-    protected override RenderResult Render() => Div(Id: "admin")["admin-content"];
+    protected override Component? Render() => Div(Id: "admin")["admin-content"];
 }

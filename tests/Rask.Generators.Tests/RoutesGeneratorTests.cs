@@ -15,7 +15,7 @@ public class RoutesGeneratorTests
                   [Route("/")]
                   public sealed class HomePage : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -39,7 +39,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       [RouteParam] public int Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -62,7 +62,7 @@ public class RoutesGeneratorTests
                   public sealed class CounterPage : Component
                   {
                       [RouteParam] public string? Name { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -85,7 +85,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       [RouteParam] public string Id { get; set; } = "";
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -103,7 +103,7 @@ public class RoutesGeneratorTests
                   [Route("/users/{id:int}")]
                   public sealed class UserPage : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -123,7 +123,7 @@ public class RoutesGeneratorTests
                   {
                       [RouteParam] public string? Name { get; set; }
                       [QueryParam] public string? Greeting { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -146,7 +146,7 @@ public class RoutesGeneratorTests
                   public sealed class HomePage : Component
                   {
                       [QueryParam("q")] public string? Search { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -170,7 +170,7 @@ public class RoutesGeneratorTests
                   public sealed class HomePage : Component
                   {
                       [QueryParam("a b&c")] public string? Search { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -191,13 +191,13 @@ public class RoutesGeneratorTests
                   [Route("/dashboard")]
                   public sealed class DashboardPage : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   [Route("overview")]
                   [ParentRoute(typeof(DashboardPage))]
                   public sealed class DashOverview : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -217,11 +217,11 @@ public class RoutesGeneratorTests
                   namespace Demo;
                   [Route("/a")]
                   [ParentRoute(typeof(B))]
-                  public sealed class A : Component { public override RenderResult Render() => this; }
+                  public sealed class A : Component { public override Component? Render() => this; }
 
                   [Route("/b")]
                   [ParentRoute(typeof(A))]
-                  public sealed class B : Component { public override RenderResult Render() => this; }
+                  public sealed class B : Component { public override Component? Render() => this; }
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
@@ -239,7 +239,7 @@ public class RoutesGeneratorTests
                   public sealed class OrderPage : Component
                   {
                       [RouteParam] public System.Guid Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -260,7 +260,7 @@ public class RoutesGeneratorTests
                   public sealed class BlogPostPage : Component
                   {
                       [RouteParam] public string Slug { get; set; } = "";
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -279,7 +279,7 @@ public class RoutesGeneratorTests
                   namespace Demo;
                   public sealed class Plain : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -297,10 +297,10 @@ public class RoutesGeneratorTests
                   using Rask.Core;
                   using Rask.Core.Routing;
                   namespace Demo;
-                  [Route("/")] public sealed class HomePage : Component { public override RenderResult Render() => this; }
-                  [Route("/dashboard")] public sealed class DashPage : Component { public override RenderResult Render() => this; }
+                  [Route("/")] public sealed class HomePage : Component { public override Component? Render() => this; }
+                  [Route("/dashboard")] public sealed class DashPage : Component { public override Component? Render() => this; }
                   [Route("overview")] [ParentRoute(typeof(DashPage))]
-                  public sealed class DashOverview : Component { public override RenderResult Render() => this; }
+                  public sealed class DashOverview : Component { public override Component? Render() => this; }
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
@@ -325,7 +325,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       [RouteParam] public string? Stray { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -344,7 +344,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       [RouteParam("id")] public int UserId { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -366,7 +366,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       public int Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -384,7 +384,7 @@ public class RoutesGeneratorTests
                   public sealed class Stray : Component
                   {
                       [RouteParam] public int Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -404,7 +404,7 @@ public class RoutesGeneratorTests
                   public sealed class Stray : Component
                   {
                       [QueryParam] public string? Q { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -464,7 +464,7 @@ public class RoutesGeneratorTests
                   {
                       [RouteParam] public int Id { get; set; }
                       [QueryParam] public string? Q { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -484,7 +484,7 @@ public class RoutesGeneratorTests
                   public sealed class XPage : Component
                   {
                       [QueryParam] public List<int>? Bad { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -514,7 +514,7 @@ public class RoutesGeneratorTests
                   public sealed class CustomerPage : Component
                   {
                       [RouteParam] public CustomerId Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -548,7 +548,7 @@ public class RoutesGeneratorTests
                   public sealed class ListPage : Component
                   {
                       [QueryParam] public PageNumber? Page { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -573,7 +573,7 @@ public class RoutesGeneratorTests
                   public sealed class TodosPage : Component
                   {
                       [RouteParam] public System.Guid? Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -604,7 +604,7 @@ public class RoutesGeneratorTests
                   public sealed class TodosPage : Component
                   {
                       [RouteParam] public System.Guid? Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -629,7 +629,7 @@ public class RoutesGeneratorTests
                   public sealed class UserPage : Component
                   {
                       [RouteParam] public int Id { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 

@@ -13,10 +13,10 @@ public sealed class LoginPage(JwtLoginService login) : Component
 
     [QueryParam] public string? ReturnUrl { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Style: "max-width:22rem;margin:3rem auto;font-family:system-ui")[
             H1()["Sign in"],
-            _error is null ? (Child)Fragment() : Div(Style: "color:#b00020")[_error],
+            _error is null ? null : Div(Style: "color:#b00020")[_error],
             Form(_model, OnValidSubmitAsync: SubmitAsync)[
                 Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],
                 Div()[Label("password")["Password"], Input(() => _model.Password, Id: "password", Type: InputType.Password)],

@@ -24,7 +24,7 @@ public sealed class ElementsMetadataDemo : Component
     ];
 #pragma warning restore RASK019
 
-    protected override RenderResult Render() => Div(Class: "vstack gap-3")[
+    protected override Component? Render() => Div(Class: "vstack gap-3")[
         Div()[
             P(Class: "small mb-1 text-secondary")[
                 "The structural elements compose a document. Here is a real shell and its serialized HTML:"],

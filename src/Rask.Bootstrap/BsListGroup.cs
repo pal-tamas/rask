@@ -7,7 +7,7 @@ public sealed class BsListGroup : BsBlock
     public bool? Flush { get; set; }
     public bool? Numbered { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "list-group",
@@ -31,7 +31,7 @@ public sealed class BsListGroupItem : BsBlock
     public BsColor? Color { get; set; }
     public string? Href { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var action = Href is not null;
         var cls = BsClass.Join(

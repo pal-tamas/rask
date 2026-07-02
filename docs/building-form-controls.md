@@ -58,7 +58,7 @@ namespace MyApp.Controls;
 public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
-    public Func<TValue, Child>? OptionLabel { get; set; }
+    public Func<TValue, Component>? OptionLabel { get; set; }
     public string? Class { get; set; }
 
     // IFormControl<TValue> — controlled mode.
@@ -73,7 +73,7 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
     public Action<TValue>? AfterBind { get; set; }
     public Func<TValue, Task>? AfterBindAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var comparer = EqualityComparer<TValue>.Default;
 
@@ -95,7 +95,7 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
             current = Value;
         }
 
-        var buttons = new List<Child>();
+        var buttons = new List<Component>();
         var i = 0;
         foreach (var option in Options)
         {
@@ -108,7 +108,7 @@ public sealed class SegmentedControl<TValue> : Component, IFormControl<TValue>
                 Key: i++)[OptionLabel is not null ? OptionLabel(option) : option?.ToString() ?? ""]);
         }
 
-        var children = new List<Child> { Div(Class: "btn-group")[buttons] };
+        var children = new List<Component> { Div(Class: "btn-group")[buttons] };
         if (Bind is not null)
         {
             children.Add(ValidationMessage(Bind, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));

@@ -18,7 +18,7 @@ public sealed class EditProductPage(IDbContextFactory<CatalogDbContext> dbContex
 
     [RouteParam] public int Id { get; set; }
 
-    protected override RenderResult Head => Title()["Edit product — Rask EF Core"];
+    protected override Component? Head => Title()["Edit product — Rask EF Core"];
 
     // Fires on first render and whenever Id changes — load the row to edit into the form.
     protected override async Task OnPropsChangedAsync()
@@ -53,7 +53,7 @@ public sealed class EditProductPage(IDbContextFactory<CatalogDbContext> dbContex
         navigator.NavigateTo("/products");
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (!_loaded)
         {

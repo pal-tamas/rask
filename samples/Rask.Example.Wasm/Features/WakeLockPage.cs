@@ -13,9 +13,9 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class WakeLockPage : Component
 {
-    protected override RenderResult Head => Title()["Wake lock — Rask"];
+    protected override Component? Head => Title()["Wake lock — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1(Class: "h2 mb-1")["Wake lock"],
         P(Class: "text-secondary")[

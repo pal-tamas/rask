@@ -12,9 +12,9 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class OrientationPage : Component
 {
-    protected override RenderResult Head => Title()["Orientation — Rask"];
+    protected override Component? Head => Title()["Orientation — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1(Class: "h2 mb-1")["Orientation"],
         P(Class: "text-secondary")[

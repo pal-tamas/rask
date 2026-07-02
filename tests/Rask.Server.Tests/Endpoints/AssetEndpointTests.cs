@@ -390,7 +390,7 @@ public class AssetEndpointTests
 
     private sealed class WidgetA : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 }
 

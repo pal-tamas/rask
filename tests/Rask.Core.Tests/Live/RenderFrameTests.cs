@@ -53,7 +53,7 @@ public class RenderFrameTests
     [Fact]
     public void Serialize_DoctypeAndFragment_EmitsDoctypeFrameAndWalksFragmentChildren()
     {
-        var tree = Fragment()[Doctype(), Div()["hi"]];
+        Component tree = [Doctype(), Div()["hi"]];
 
         var frames = RenderAndCaptureFrames(tree);
 

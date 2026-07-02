@@ -9,7 +9,7 @@ namespace Rask.Example.Shared.Features;
 // the client-side navigation and shows once on the destination. Shown inline here so the demo is contained.
 public sealed class FlashDemo(IFlash flash) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Div(Class: "d-flex flex-wrap gap-2")[
                 BsButton(Color: BsColor.Info, OnClick: () => flash.Info("Just so you know.", "Info"))["Info"],
@@ -25,13 +25,13 @@ public sealed class FlashDemo(IFlash flash) : Component
             Div(Class: "mt-3")[
                 FlashOutlet(Template: (messages, dismiss) =>
                     Div()[
-                        messages.Select(m => (Child)BsAlert(
+                        messages.Select(m => (Component)BsAlert(
                             Color: ToColor(m.Level),
                             Dismissible: true,
                             OnClose: () => dismiss(m.Id),
                             Class: "d-flex align-items-center",
                             Key: m.Id.ToString())[
-                            m.Title is { } title ? Strong(Class: "me-1")[$"{title}:"] : (Child)Fragment(),
+                            m.Title is { } title ? Strong(Class: "me-1")[$"{title}:"] : null,
                             m.Message])
                     ])
             ]

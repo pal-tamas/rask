@@ -31,7 +31,7 @@ public sealed class WeatherCard(HttpClient http) : Component
             WeatherJsonContext.Default.Forecast,
             CancellationToken);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         _forecast is null
             ? P()[Em()["Loading…"]]
             : Article()[
@@ -47,7 +47,7 @@ public sealed class WeatherCard(HttpClient http) : Component
 // Call site is unchanged — ActivatorUtilities resolves `http`:
 public sealed class ComponentsDiDemo : Component
 {
-    protected override RenderResult Render() => WeatherCard(City: "Helsinki");
+    protected override Component? Render() => WeatherCard(City: "Helsinki");
 }
 
 [JsonSerializable(typeof(WeatherCard.Forecast))]

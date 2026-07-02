@@ -19,11 +19,11 @@ public sealed class BsTabs : BsBlock
     public bool? Pills { get; set; }
     public bool? Fill { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var tabs = Tabs ?? [];
-        var navItems = new List<Child>(tabs.Count);
-        Child pane = Fragment();
+        var navItems = new List<Component>(tabs.Count);
+        Component? pane = null;
 
         foreach (var tab in tabs)
         {

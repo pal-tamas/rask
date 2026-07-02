@@ -18,7 +18,7 @@ public class AuthBeforeRaskAnalyzerTests
 
                                                    public sealed class App : Component
                                                    {
-                                                       protected override RenderResult Render() => new Doctype();
+                                                       protected override Component? Render() => new Doctype();
                                                    }
 
                                                    public static class Program

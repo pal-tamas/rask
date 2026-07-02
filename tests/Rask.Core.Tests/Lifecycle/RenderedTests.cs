@@ -20,8 +20,8 @@ public class RenderedTests
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 
-        Assert.Equal(new[] { true, false, false }, root.Child.RenderedFlags);
-        Assert.Equal(3, root.Child.RenderedCount);
+        Assert.Equal(new[] { true, false, false }, root.Component.RenderedFlags);
+        Assert.Equal(3, root.Component.RenderedCount);
     }
 
     [Fact]
@@ -40,13 +40,13 @@ public class RenderedTests
 
     private sealed class ChildHostingRoot : Component
     {
-        public ChildHostingRoot(LifecycleTrackingComponent child) => Child = child;
-        public LifecycleTrackingComponent Child { get; }
+        public ChildHostingRoot(LifecycleTrackingComponent child) => Component = child;
+        public LifecycleTrackingComponent Component { get; }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
-            var c = ctx.GetOrCreate(_ => Child);
+            var c = ctx.GetOrCreate(_ => Component);
             ctx.NotifyParameters(c, true);
             return c;
         }
