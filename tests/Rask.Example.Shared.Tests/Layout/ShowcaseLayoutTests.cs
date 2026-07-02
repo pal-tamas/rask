@@ -39,9 +39,9 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains(">Start<", html);
         Assert.Contains(">DSL<", html);
         Assert.Contains(">Components<", html);
-        Assert.Contains(">Forms<", html);
-        // The top-level sections are present, guides-first: Guides leads, then the demoted Examples and
-        // Bootstrap showcases.
+        // The top-level sections are present, guides-first: Guides leads, then the demoted Examples. The
+        // Bootstrap examples now live in the Bootstrap guide (folded into docs/bootstrap.md), so there is
+        // no longer a separate Bootstrap section — but its guide sidebar link still renders below.
         Assert.Contains(">Guides<", html);
         Assert.Contains(">Examples<", html);
         Assert.Contains(">Bootstrap<", html);
@@ -51,8 +51,8 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_GuidesExpanded_ExampleGroupsCollapsed()
     {
         // Guides-first: the guide category groups are expanded by default so the narrative spine is
-        // visible on landing, while the demoted Examples/Bootstrap groups stay collapsed so the ~90-item
-        // list isn't dumped at once. The five guide groups (Overview + the four categories) are open.
+        // visible on landing, while the demoted Examples groups stay collapsed so the ~90-item list isn't
+        // dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = "/" };
         var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
@@ -60,7 +60,7 @@ public sealed class ShowcaseLayoutTests
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
         Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
-        Assert.True(closed >= 8, $"expected the Examples/Bootstrap groups collapsed, only {closed} closed");
+        Assert.True(closed >= 3, $"expected the Examples groups collapsed, only {closed} closed");
     }
 
     [Fact]
