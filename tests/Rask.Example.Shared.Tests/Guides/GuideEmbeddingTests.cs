@@ -88,4 +88,50 @@ public sealed class GuideEmbeddingTests
     {
         Assert.Equal(["binding-typed"], Markdown.DemoKeys("<!--   demo:  binding-typed   -->"));
     }
+
+    [Fact]
+    public void HighlightCodeBlocks_TokenizesAKnownLanguageFence()
+    {
+        // Markdig renders a fenced ```csharp block as this (body HTML-encoded, no highlighting).
+        const string markdig = "<pre><code class=\"language-csharp\">var x = 1;</code></pre>";
+
+        var html = Markdown.HighlightCodeBlocks(markdig);
+
+        // Server-side tokenization injects ColorCode token <span class="...">s and keeps the language class.
+        Assert.Contains("<span class=\"", html);
+        Assert.Contains("language-csharp", html);
+    }
+
+    [Fact]
+    public void HighlightCodeBlocks_TokenizesABashFence()
+    {
+        // The getting-started guide's `dotnet new …` blocks are ```bash; ColorCode has no shell lexer,
+        // so BashLanguage supplies comment/string/keyword rules.
+        const string markdig = "<pre><code class=\"language-bash\">dotnet new rask -o MyApp # scaffold</code></pre>";
+
+        var html = Markdown.HighlightCodeBlocks(markdig);
+
+        Assert.Contains("language-bash", html);
+        Assert.Contains("class=\"comment\"", html);   // the trailing "# scaffold" comment is tokenized
+    }
+
+    [Fact]
+    public void HighlightCodeBlocks_LeavesAnUnknownLanguageFenceUntouched()
+    {
+        const string plain = "<pre><code class=\"language-text\">just text</code></pre>";
+
+        Assert.Equal(plain, Markdown.HighlightCodeBlocks(plain));
+    }
+
+    [Fact]
+    public void HighlightCodeBlocks_DecodesEntitiesBeforeTokenizing()
+    {
+        // Markdig HTML-encodes the source; the highlighter must decode before tokenizing so the rendered
+        // token text is the real code (a single re-encoded '<', not the literal "&lt;").
+        const string markdig = "<pre><code class=\"language-csharp\">if (a &lt; b) { }</code></pre>";
+
+        var html = Markdown.HighlightCodeBlocks(markdig);
+
+        Assert.DoesNotContain("&amp;lt;", html);
+    }
 }

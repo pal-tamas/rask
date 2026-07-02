@@ -514,6 +514,10 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
             "expected the Lifecycle guide to embed the lifecycle demos as live demos");
+        // Guide prose code fences are syntax-highlighted server-side (runs on every host, including
+        // StandaloneWasm which can't deep-link): the ```csharp blocks carry ColorCode token spans.
+        await Expect(Page.Locator("main .markdown-body pre code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         // The guide co-mounts every lifecycle demo on one page; wait for the LAST demo's control (the
         // background-service chart, near the end) before driving any interaction so clicks never race
         // hydration on the slower transports.
@@ -775,10 +779,15 @@ public abstract partial class SharedSmokeTests
         await Page.Keyboard.PressAsync("Escape");
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
-        // Re-open, then close by clicking outside — the transparent full-viewport backdrop catches it.
+        // Re-open, then close by clicking outside — the transparent full-viewport backdrop (z-index 999)
+        // catches it. Dispatch the click straight to the backdrop element rather than a coordinate click:
+        // a positional click is unreliable here (the sticky navbar covers the top, and — now that
+        // CodeSample stacks full-width — the `w-100` open menu covers the centre band, so both intercept
+        // parts of the backdrop). DispatchEvent bubbles to Rask's delegated click handler and fires the
+        // backdrop's OnClick(_open=false), exercising the close-on-outside-click path deterministically.
         await multi.Locator(".form-select").ClickAsync();
         await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await multi.Locator(".position-fixed").ClickAsync();
+        await multi.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
         // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
@@ -789,7 +798,10 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ms-controlled-summary")).ToContainTextAsync("Tech",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // Close it again so the open dropdown's full-viewport backdrop doesn't intercept later navigation.
-        await controlled.Locator(".position-fixed").ClickAsync();
+        // DispatchEvent (not a positional click) — the full-width open menu / sticky navbar cover the
+        // backdrop's clickable points; this fires the backdrop's OnClick handler directly. See the
+        // #ms-interests close above.
+        await controlled.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
@@ -828,7 +840,7 @@ public abstract partial class SharedSmokeTests
         await fcMulti.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
         await Expect(Page.Locator("#fc-multiselect-bound-out")).ToContainTextAsync("Tech",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await fcMulti.Locator(".position-fixed").ClickAsync();
+        await fcMulti.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(fcMulti.Locator(".dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
@@ -1058,6 +1070,23 @@ public abstract partial class SharedSmokeTests
             var highlighted = await Page.Locator("pre code[class*='language-']:has(span[class])").CountAsync();
             Assert.True(total > 0 && total == highlighted,
                 $"/table after refresh: {highlighted}/{total} highlighted.");
+
+            // Guide prose code fences are syntax-highlighted server-side (Markdig has no highlighter, so
+            // Markdown.HighlightCodeBlocks runs ColorCode) — a fresh load must carry token spans.
+            await Page.GotoAsync("/guides/getting-started");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Expect(Page.Locator("main .markdown-body pre code[class*='language-']:has(span[class])").First)
+                .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            // Deep link with a #fragment: on a hard load, GuideChrome.scrollToHash must scroll to the
+            // section (not sit at the top). Use a real late-heading id so the anchor always exists.
+            var deepAnchor = await Page.Locator(".markdown-body :is(h2, h3)[id]").Last.GetAttributeAsync("id");
+            Assert.False(string.IsNullOrEmpty(deepAnchor), "no anchored heading to deep-link to");
+            await Page.GotoAsync($"/guides/getting-started#{deepAnchor}");
+            await Expect(Page.Locator("main .markdown-body h1")).ToBeVisibleAsync(
+                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Page.WaitForFunctionAsync("() => window.scrollY > 0",
+                null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
             // A deep link to an unknown route renders the [NotFound] page inside the layout shell.
             await Page.GotoAsync("/this-route-definitely-does-not-exist");
