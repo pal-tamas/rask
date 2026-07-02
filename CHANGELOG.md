@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
+  mobile navbar stays one line.** Three showcase-guide polish fixes: (1) fenced ```` ```lang ```` blocks
+  in the guide prose (rendered by Markdig, which has no highlighter) are now tokenized server-side with
+  the same ColorCode pipeline the demo code panes use — `csharp`, `js`, `css`, `html`, and `bash`/shell
+  (a small custom lexer, since ColorCode ships none) all colour; unknown languages stay plain. (2) A hard
+  load / refresh of a guide URL carrying a `#fragment` now scrolls to that section (`GuideChrome`
+  previously only smooth-scrolled on in-page anchor clicks). (3) The top navbar no longer wraps to two
+  lines on phones — it stays single-line and drops the decorative brand badges below `md`.
 - **A radio/checkbox click is no longer reverted by a lagging live-diff render.** The client applied a
   form control's `.checked` property unconditionally in both apply paths (the full morph and the diff
   codec), while `.value` was already protected by a pending-edit guard. On a busy page a re-render the
@@ -29,6 +37,11 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — demo `CodeSample` stacks the code above the live result.** The source pane and the
+  live result were side-by-side columns (`col-md-7` / `col-md-5`); they now stack vertically, code first
+  then result, separated by a hairline — reads top-to-bottom and never squeezes either pane into a narrow
+  column. No CSS selectors or E2E locators changed (the `.sample-code-col` / `.sample-result-body` class
+  names are preserved).
 - **Examples site — routing & JS-interop examples folded into the guides (phase 3).** The 7 standalone
   example pages — `/routing`, `/users/{id}`, `/navigator`, `/element-ref`, `/scoped-css`,
   `/asset-loading`, `/jsruntime` — are removed. The **Routing** guide (`docs/routing.md`) gains a live
