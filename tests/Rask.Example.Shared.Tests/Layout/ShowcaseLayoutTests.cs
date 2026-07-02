@@ -110,7 +110,7 @@ public sealed class ShowcaseLayoutTests
     [InlineData("/users/42", "/users/42", "/users", true)]
     [InlineData("/users/99", "/users/42", "/users", true)]
     [InlineData("/realtimes/BTC", "/realtime/BTC", "/realtime", false)] // prefix must be a full segment
-    [InlineData("/lifecycle", "/realtime/BTC", "/realtime", false)]
+    [InlineData("/toast", "/realtime/BTC", "/realtime", false)]
     public void IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix(
         string path, string href, string? matchPrefix, bool expected)
     {

@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Features;
 // (ShowcaseLayout.cs:57-59): += in OnMount, -= in OnUnmount so a navigated-away
 // component stops repainting and can be collected (no event-handler leak). Updated
 // fires from a background thread; StateHasChanged() is thread-safe and a no-op once
-// unmounted, so no extra marshalling is needed here (same as DisposalPage's timer probe).
+// unmounted, so no extra marshalling is needed here (same as the disposable timer probe).
 
 // SVG sparkline of the CPU history — a second, independent subscriber. Reuses the
 // stateless Sparkline demo (zero JS, server-rendered SVG); the feed's rolling buffer is
