@@ -16,17 +16,13 @@ public sealed class PageBaselineTests
     [InlineData(typeof(EventsPage), "/events", "Events")]
     [InlineData(typeof(HttpPage), "/http", "HttpClient")]
     [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
-    [InlineData(typeof(NavigatorPage), "/navigator", "Navigator")]
     [InlineData(typeof(PrimitivesPage), "/primitives", "Primitives")]
     [InlineData(typeof(PropsPage), "/props", "Universal props")]
-    [InlineData(typeof(RoutingPage), "/routing", "Routing")]
-    [InlineData(typeof(ScopedCssPage), "/scoped-css", "Scoped CSS")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(TagsPage), "/tags", "Tag factories")]
     [InlineData(typeof(ToastPage), "/toast", "Toast")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     [InlineData(typeof(UploadPage), "/upload", "File upload")]
-    [InlineData(typeof(UserDetailPage), "/users/42", "User #42")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
@@ -47,18 +43,14 @@ public sealed class PageBaselineTests
     [InlineData(typeof(EventsPage))]
     [InlineData(typeof(HttpPage))]
     [InlineData(typeof(LiveTickerPage))]
-    [InlineData(typeof(NavigatorPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(PrimitivesPage))]
     [InlineData(typeof(PropsPage))]
-    [InlineData(typeof(RoutingPage))]
-    [InlineData(typeof(ScopedCssPage))]
     [InlineData(typeof(TablePage))]
     [InlineData(typeof(TagsPage))]
     [InlineData(typeof(ToastPage))]
     [InlineData(typeof(TodosPage))]
     [InlineData(typeof(UploadPage))]
-    [InlineData(typeof(UserDetailPage))]
     public void Page_HasExpectedRouteOrNotFoundAttribute(Type pageType)
     {
         var hasRoute = pageType.GetCustomAttributes<RouteAttribute>().Any();

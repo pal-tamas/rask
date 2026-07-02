@@ -178,6 +178,11 @@ load belongs in a redirect/route, not in `Render()`.
 `Navigator` mutates the shared `RouteState`; after the handler returns, the live runtime pushes (or replaces) the
 resulting URL into browser history.
 
+Try it — every button mutates this page's own query string through the scoped `Navigator`; watch the address bar and
+the readout update over the live diff:
+
+<!-- demo:routing-navigator -->
+
 ### Methods
 
 ```csharp

@@ -32,6 +32,9 @@ public static class DemoRegistry
                 "Subscribe to RouteState.Changed in OnMount and unsubscribe in OnUnmount. Useful for "
                 + "components rendered above the Router (sidebars, breadcrumbs, the header path display) "
                 + "that must refresh on every nav, including browser back/forward."),
+            // Live: mutate the current URL's query through the scoped Navigator (its standalone example
+            // page folded into docs/routing.md). Embed NavigatorDemo.cs as the teaching source.
+            ["routing-navigator"] = () => CodeSample(["NavigatorDemo.cs"], Result: NavigatorQueryDemo()),
 
             // --- Forms guide: two-way binding ---
             ["binding-manual"] = () => CodeSample(
@@ -175,6 +178,22 @@ public static class DemoRegistry
             ["cancellation"] = () => CodeSample(["CancellationProbe.cs"], Result: CancellationDemo()),
             ["background-metrics"] = () => CodeSample(
                 ["MetricsFeed.cs", "MetricsGauge.cs", "MetricsChart.cs"], Result: BackgroundMetricsDemo()),
+
+            // --- JS-interop guide: element refs, scoped CSS, scoped JS / IJSRuntime, and the asset-
+            //     loading story (their standalone example pages folded into docs/js-interop.md). ---
+            ["js-interop-elementref"] = () => CodeSample(
+                ["ElementRefDemo.cs", "ElementRefDemo.js"], Result: ElementRefDemo()),
+            ["js-interop-scoped-css"] = () => CodeSample(
+                ["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"],
+                Result: Div(Class: "d-flex flex-column gap-2")[ScopedRed(), ScopedBlue()]),
+            ["js-interop-jsruntime"] = () => CodeSample(["JsRuntimeDemo.cs"], Result: JsRuntimeDemo()),
+            ["asset-basic-css"] = () => CodeSample(
+                ["BasicScopedCss.cs", "BasicScopedCss.css"], Result: BasicScopedCss()),
+            ["asset-js-only"] = () => CodeSample(["JsOnlyDemo.cs", "JsOnlyDemo.js"], Result: JsOnlyDemo()),
+            ["asset-twin-bundle"] = () => CodeSample(
+                ["TwinA.cs", "TwinA.css"], Result: Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
+            ["asset-lazy-mount"] = () => CodeSample(
+                ["LazyMount.cs", "LazyChild.cs", "LazyChild.css"], Result: LazyMount()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning

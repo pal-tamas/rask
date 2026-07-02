@@ -1,30 +1,16 @@
 using System.Reflection;
-using Rask.Core.Routing;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Server.Tests.Pages;
 
-// The JsRuntime feature is split into a host page (JsRuntimePage: route + Head + CodeSample)
-// and the interactive demo (JsRuntimeDemo: the IJSRuntime sessionStorage round-trip). The page
-// is a parameterless host; the demo takes IJSRuntime through its ctor. Page-level tests target
-// JsRuntimePage; the behavioral tests target JsRuntimeDemo. Both run on Server + WASM, so the
-// unit tests stay on the Server-Tests project since they don't depend on host transport.
+// JsRuntimeDemo is the IJSRuntime sessionStorage round-trip demo (folded into docs/js-interop.md when
+// the JsRuntime example page was removed). It takes IJSRuntime through its ctor; these behavioral tests
+// drive its handlers with a fake runtime. They live on the Server-Tests project but don't depend on host
+// transport (the demo runs identically on Server + WASM).
 
-public sealed class JsRuntimePageTests
+public sealed class JsRuntimeDemoTests
 {
-    [Fact]
-    public void Head_TitleSet()
-    {
-        var head = typeof(JsRuntimePage).GetProperty("Head",
-            BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var page = new JsRuntimePage();
-        // Head now returns a RenderResult struct; unwrap to the contributed Component.
-        var headComponent = ((RenderResult)head.GetValue(page)!).ToComponentOrNull();
-        Assert.NotNull(headComponent);
-        Assert.Contains("IJSRuntime", headComponent!.ToHtml());
-    }
-
     [Fact]
     public async Task OnRenderedAsync_FirstRender_ReadsSessionStorage_PopulatesLastRead()
     {
@@ -168,15 +154,6 @@ public sealed class JsRuntimePageTests
 
         var status = GetField<string?>(demo, "_status");
         Assert.StartsWith("Remove failed:", status);
-    }
-
-    [Fact]
-    public void RouteAttribute_RegisteredAt_Jsruntime()
-    {
-        var attr = typeof(JsRuntimePage)
-            .GetCustomAttribute<RouteAttribute>();
-        Assert.NotNull(attr);
-        Assert.Equal("jsruntime", attr!.Template);
     }
 
     private static async Task InvokeOnRenderedAsync(JsRuntimeDemo demo, bool firstRender)
