@@ -53,7 +53,7 @@ public abstract partial class SharedSmokeTests
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
         await TestSidebarNavAsync();
-        await WalkDslAndComponentPagesAsync();
+        await WalkUserComponentsGuideAsync();
         await WalkInteractiveComponentPagesAsync();
         await TestCompositionGuideAsync();
         await WalkLifecycleGuideAsync();
@@ -248,13 +248,14 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkDslAndComponentPagesAsync()
+    private async Task WalkUserComponentsGuideAsync()
     {
-        // User components: generated factory greeting + [SkipFactory] counter that keeps its state.
+        // User components (generated factories, DI-via-ctor, [SkipFactory]) — the standalone /components
+        // page was folded into the Getting started guide's factory-generation section as live demos.
         // (The DSL primitives / tag factories / universal props / SVG and the HTML-element catalog were
         // folded into the Elements guide — see WalkElementsGuideAsync.)
-        await SideAsync("User components", "User components");
-        var greeting = Page.Locator(".sample-result-body p")
+        await SideAsync("Getting started", "Getting started", "main .markdown-body h1");
+        var greeting = Page.Locator(".guide-demo .sample-result-body p")
             .Filter(new LocatorFilterOptions { HasText = "Hello," }).First;
         await Expect(greeting).ToContainTextAsync("Dr.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(greeting.Locator("strong")).ToHaveTextAsync("Ada");
@@ -1215,7 +1216,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Composition", "User components", "JavaScript interop", "Routing", "Welcome" };
+        var labels = new[] { "Composition", "Getting started", "JavaScript interop", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
@@ -1250,7 +1251,7 @@ public abstract partial class SharedSmokeTests
         await Page.WaitForFunctionAsync("() => window.scrollY > 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });
 
-        await SideAsync("User components", "User components");
+        await SideAsync("Todos", "Todos");
         // The new page must land at the top (the reset can lag a CSS-deferred body commit, so poll).
         await Page.WaitForFunctionAsync("() => Math.round(window.scrollY) === 0",
             null, new PageWaitForFunctionOptions { Timeout = 10_000 });

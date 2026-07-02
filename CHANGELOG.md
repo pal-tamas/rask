@@ -28,6 +28,13 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Examples site — fold the User components page into Getting started (phase 3).** The standalone
+  `/components` page is removed; its three demos (`Greeting`, `WeatherCard`, `SkipFactoryCounter`, already in
+  their own `*Demo.cs`) are registered in `DemoRegistry` (`components-greeting` / `-di` / `-skipfactory`) and
+  embedded as inline live demos in **`docs/getting-started.md` §6 (factory generation)** — the section that
+  already documents the required/optional/excluded property rules and `[SkipFactory]`. The sidebar's User
+  components row and the home card repoint at the Getting started guide; the E2E `WalkUserComponentsGuideAsync`
+  drives the greeting + `[SkipFactory]` counter on that guide. No new guide file.
 - **Examples site — fold four Components-group example pages into their existing guides (phase 3).** The
   standalone `/events`, `/flash`, `/toast` and `/user` pages are removed; their demos (already in their own
   `*Demo.cs`) are registered in `DemoRegistry` and embedded as inline live demos in the guides that already

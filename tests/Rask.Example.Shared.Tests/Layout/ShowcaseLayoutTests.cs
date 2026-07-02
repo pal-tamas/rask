@@ -149,7 +149,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav()
     {
-        // Behavioural test: navigate from "/" to "/components", then re-render App with the
+        // Behavioural test: navigate from "/" to "/table", then re-render App with the
         // same RouteState. The layout's active-link computation must reflect the new
         // path — which requires its Render() to re-execute after the path change.
         var routeState = new RouteState { Path = "/" };
@@ -161,11 +161,11 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-house",
             CollapseWhitespace(htmlAtRoot));
 
-        routeState.Path = "/components";
-        var htmlAtComponents = app.RenderAsLiveRoot(services);
-        // After nav, the active link should be the User-components one (bi-boxes icon).
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-boxes",
-            CollapseWhitespace(htmlAtComponents));
+        routeState.Path = "/table";
+        var htmlAtTable = app.RenderAsLiveRoot(services);
+        // After nav, the active link should be the Data-table one (bi-table icon).
+        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-table",
+            CollapseWhitespace(htmlAtTable));
     }
 
     private static string CollapseWhitespace(string s) =>
