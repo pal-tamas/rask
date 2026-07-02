@@ -755,14 +755,15 @@ public abstract partial class SharedSmokeTests
         await Page.Keyboard.PressAsync("Escape");
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
-        // Re-open, then close by clicking outside — the transparent full-viewport backdrop catches it.
-        // Click a CORNER of the backdrop: now that CodeSample stacks full-width, the open menu covers the
-        // viewport centre (the backdrop's default click point), so a centre click lands on the menu and
-        // never closes. Same fix the Todos dialog backdrop uses.
+        // Re-open, then close by clicking outside — the transparent full-viewport backdrop (z-index 999)
+        // catches it. Dispatch the click straight to the backdrop element rather than a coordinate click:
+        // a positional click is unreliable here (the sticky navbar covers the top, and — now that
+        // CodeSample stacks full-width — the `w-100` open menu covers the centre band, so both intercept
+        // parts of the backdrop). DispatchEvent bubbles to Rask's delegated click handler and fires the
+        // backdrop's OnClick(_open=false), exercising the close-on-outside-click path deterministically.
         await multi.Locator(".form-select").ClickAsync();
         await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await multi.Locator(".position-fixed").ClickAsync(
-            new LocatorClickOptions { Position = new Position { X = 8, Y = 8 } });
+        await multi.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
         // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
@@ -773,7 +774,10 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#ms-controlled-summary")).ToContainTextAsync("Tech",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // Close it again so the open dropdown's full-viewport backdrop doesn't intercept later navigation.
-        await controlled.Locator(".position-fixed").ClickAsync();
+        // DispatchEvent (not a positional click) — the full-width open menu / sticky navbar cover the
+        // backdrop's clickable points; this fires the backdrop's OnClick handler directly. See the
+        // #ms-interests close above.
+        await controlled.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(Page.Locator("#ms-controlled .dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
@@ -812,7 +816,7 @@ public abstract partial class SharedSmokeTests
         await fcMulti.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Tech" }).ClickAsync();
         await Expect(Page.Locator("#fc-multiselect-bound-out")).ToContainTextAsync("Tech",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await fcMulti.Locator(".position-fixed").ClickAsync();
+        await fcMulti.Locator(".position-fixed").DispatchEventAsync("click");
         await Expect(fcMulti.Locator(".dropdown-menu.show")).ToBeHiddenAsync(
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
