@@ -91,6 +91,11 @@ Every component below is driven entirely by Rask's live runtime — **no `bootst
 
 <!-- demo:bootstrap-tabs -->
 
+**Toasts** — shown, stacked, dismissed and auto-hidden entirely from Rask state (no `bootstrap.js`, no
+`data-bs-dismiss`, no `setTimeout`):
+
+<!-- demo:bootstrap-toast -->
+
 **Forms** — `IFormControl<T>`-bound controls with built-in validation:
 
 <!-- demo:bootstrap-forms -->

@@ -277,6 +277,56 @@ public static class DemoRegistry
                 + "because there's no live render round-trip to attach the download to. The handler can do "
                 + "other state changes too (here, bump a counter); both ship in the same render.",
                 Result: DownloadDemo()),
+
+            // --- Components-group example pages folded into their existing guides (part 1). ---
+            // Events → composition.md (the GlobalEventHandlers surface).
+            ["events"] = () => CodeSample(
+                ["EventsDemo.cs"],
+                Notes:
+                "Every handler just mutates a field; the framework re-renders the component that owns the "
+                + "callback, so the readouts update on their own. MouseEventArgs carries button/coords/modifiers, "
+                + "WheelEventArgs adds deltas, ClipboardEventArgs the pasted text. Wiring both OnX and OnXAsync "
+                + "for one event is a compile error (RASK027) — pick one.",
+                Result: EventsDemo()),
+            ["events-click"] = () => CodeSample(["EventsClickDemo.cs"], Result: EventsClickDemo()),
+            ["events-input"] = () => CodeSample(["EventsInputDemo.cs"], Result: EventsInputDemo()),
+            ["events-select"] = () => CodeSample(["EventsSelectDemo.cs"], Result: EventsSelectDemo()),
+            ["events-form"] = () => CodeSample(
+                ["EventsFormDemo.cs"],
+                Notes: "OnSubmit receives a FormData object collected from all named form fields.",
+                Result: EventsFormDemo()),
+            // Flash → composition.md ("Flash messages").
+            ["flash"] = () => CodeSample(
+                ["FlashDemo.cs"],
+                Notes:
+                "FlashDemo injects IFlash and calls flash.Success(...) / .Error(...) on click. The headless "
+                + "FlashOutlet — subscribed to IFlash.Changed — drains the queue (consumed-once) and renders a "
+                + "dismissible BsAlert stack; the × calls the Template's dismiss(id). No StateHasChanged, no JS.",
+                Result: FlashDemo()),
+            // Toast → bootstrap.md (the Rask.Bootstrap BsToast component).
+            ["bootstrap-toast"] = () => CodeSample(
+                ["ToastDemo.cs"],
+                Notes:
+                "BsToast renders class=\"toast show\", so a toast exists in the tree only while visible; the × "
+                + "fires OnClose(Id) — an Action<int> the host binds as a method group — so the framework "
+                + "re-renders the host, dropping it from the list. Auto-hide is a one-shot Timer in OnMount, "
+                + "disposed in OnUnmount. Each toast carries a Key for the keyed diff.",
+                Result: ToastDemo()),
+            // User & auth → authentication.md (imperative gate + declarative Authorize).
+            ["auth-user-gate"] = () => CodeSample(
+                ["UserGateDemo.cs"],
+                Notes:
+                "The principal resolves from the IUserProvider in scope. A component that gates on the user "
+                + "subscribes to the provider's Changed event — the same pattern sidebars use for RouteState — "
+                + "so it re-renders when the principal changes.",
+                Result: UserGateDemo()),
+            ["auth-authorize"] = () => CodeSample(
+                ["AuthorizeDemo.cs"],
+                Notes:
+                "Authorize picks the Authorized, NotAuthorized, or Authorizing slot off the same IUserProvider. "
+                + "Roles and the authenticated check are synchronous (no flicker); Policy resolves in the "
+                + "background. For whole-page gating use [Authorize] on the page instead.",
+                Result: AuthorizeDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning
