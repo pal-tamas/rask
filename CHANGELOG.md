@@ -45,6 +45,14 @@ them until tagged releases begin.
   `Bs{CheckboxGroup,RadioGroup,MultiSelect}.OptionLabel`. Migration: replace `RenderResult` with
   `Component?`, `Child` with `Component`, `Fragment()[a, b]` with `[a, b]` (and `Fragment()[list]`
   with `[.. list]`), and `(Component)Fragment()` / `default` "render nothing" branches with `null`.
+- **README slimmed to a landing page; docs realigned to the `Component` model.** The README is cut from
+  ~1600 lines to a lean front door — pitch, install, and a doc-links table — that routes readers to the
+  **[live demo](https://pal-tamas.github.io/rask/)**, the **`docs/`** guides, and the **`samples/`** apps
+  instead of duplicating a book-length "Core concepts" tour inline (the deep-dive content already lives in
+  `docs/`). Removed the `RenderResult` / `Child` / `Fragment` public vocabulary from the guides
+  (`elements.md`, `building-form-controls.md`, `live-rendering.md`, `llms.txt`): the primitives are now
+  `Text` / `Raw` / `Doctype`, and multi-root / sibling content is described as a `[...]` collection
+  expression returning a `Component`.
 
 ### Fixed
 - **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
