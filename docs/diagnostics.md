@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK027)
+# Rask diagnostics (RASK001–RASK029)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -36,6 +36,8 @@ build once.
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 | [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
+| [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
+| [RASK029](#rask029) | Warning | Handler cannot be registered (open generic or no public constructor) |
 
 ---
 
@@ -358,3 +360,41 @@ The error fires only when both siblings are passed as non-`null` arguments to th
 passing `null` for one (a conditional "set at most one") is left alone. Applies to every paired event,
 including form callbacks (`OnInput`/`OnInputAsync`, `OnChange`/`OnChangeAsync`, …). Suppressible like any
 analyzer.
+
+## RASK028
+**Ambiguous request handler** · Error
+
+A query (`IQuery<T>`) or command (`ICommand` / `ICommand<T>`) must have **exactly one** handler — the
+[`Rask.Cqrs`](cqrs.md) dispatcher maps each request type to a single handler, so two handlers for the
+same request would make dispatch non-deterministic. The generator reports this on each competing
+handler.
+
+```csharp
+public sealed record GetValue : IQuery<int>;
+public sealed class HandlerOne : IQueryHandler<GetValue, int> { /* ... */ } // ✗ RASK028
+public sealed class HandlerTwo : IQueryHandler<GetValue, int> { /* ... */ } // ✗ RASK028
+```
+
+**Fix:** keep a single handler for the request type (merge the logic, or split into two distinct
+request types). Notifications are exempt — an `INotification` may have any number of
+`INotificationHandler`s.
+
+## RASK029
+**Handler cannot be registered** · Warning
+
+A discovered handler can't be registered in DI, so it is skipped and dispatching its request would throw
+at runtime. The two causes are an **open generic** handler (its type parameters can't be closed at
+registration time) and a handler with **no public constructor** (the container can't build it).
+
+```csharp
+public sealed record GetValue : IQuery<int>;
+public sealed class PrivateHandler : IQueryHandler<GetValue, int>
+{
+    private PrivateHandler() { }                                          // ✗ RASK029: no public ctor
+    public Task<int> Handle(GetValue query, CancellationToken ct) => Task.FromResult(1);
+}
+```
+
+**Fix:** give the handler a public constructor, or make it a closed (non-generic) type. A request with
+*no* handler at all is not flagged (the handler may live in another assembly) — it throws a clear
+`InvalidOperationException` when dispatched.

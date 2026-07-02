@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <Using Include="Rask.Cqrs"/>
+  </ItemGroup>
+</Project>

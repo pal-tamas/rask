@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Source-generated CQRS/mediator (`Rask.Cqrs`)** — a new opt-in, standalone package for structuring
+  work as queries, commands and notifications. Define `IQuery<TResult>` / `ICommand` / `ICommand<TResult>`
+  / `INotification` messages with their handlers, then dispatch through `IDispatcher.DispatchAsync`
+  (one method for queries and commands, response type inferred) and `PublishAsync` for notifications —
+  a single injectable interface. Register once
+  with `services.AddRaskCqrs()` — **host-agnostic**, the same call works on the Server and WASM hosts.
+  A dedicated Roslyn generator (`Rask.Cqrs.Generators`) wires every handler at compile time via a
+  `[ModuleInitializer]` registry and closed-generic invokers, so dispatch does **no runtime reflection
+  and no assembly scanning**, and handler constructors are kept under the trimmer with
+  `[DynamicDependency]` — a WASM app using it publishes with **zero IL warnings** (the reason a
+  reflection-based mediator like MediatR can't fit the browser runtime). Pipeline behaviors
+  (`IPipelineBehavior<TRequest, TResult>`, registered with `AddOpenBehavior` / `AddBehavior`) are the
+  decorator hook for cross-cutting logging/validation/transactions; none ship. Notifications fan out
+  `Sequential` (default) or `WhenAll`. Two compile-time diagnostics guard the wiring — **RASK028**
+  (ambiguous handler) and **RASK029** (unregisterable handler). Depends only on
+  `Microsoft.Extensions.DependencyInjection.Abstractions`, so it works in any .NET app, not just Rask.
+  Documented in the new [CQRS](docs/cqrs.md) guide with a live demo in the showcase; self-contained
+  optional package like the validation libraries.
+
 ### Fixed
 - **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
   mobile navbar stays one line.** Three showcase-guide polish fixes: (1) fenced ```` ```lang ```` blocks
@@ -16,6 +36,12 @@ them until tagged releases begin.
   load / refresh of a guide URL carrying a `#fragment` now scrolls to that section (`GuideChrome`
   previously only smooth-scrolled on in-page anchor clicks). (3) The top navbar no longer wraps to two
   lines on phones — it stays single-line and drops the decorative brand badges below `md`.
+- **Guides site — the mobile nav drawer's filter box stays pinned while the list scrolls.** The
+  sidebar filter was a `position: sticky` child of the drawer's flex column, which does not stick in
+  Safari (a long-standing WebKit limitation for sticky flex children): on iOS/Safari the filter scrolled
+  away with the list, leaving a half-clipped row above it. The sidebar body is now a non-scrolling flex
+  column — a pinned filter header with a hairline divider over a single scrolling list
+  (`.side-nav-scroll`) — so the filter stays put in every browser and rows scroll cleanly beneath it.
 - **A radio/checkbox click is no longer reverted by a lagging live-diff render.** The client applied a
   form control's `.checked` property unconditionally in both apply paths (the full morph and the diff
   codec), while `.value` was already protected by a pending-edit guard. On a busy page a re-render the

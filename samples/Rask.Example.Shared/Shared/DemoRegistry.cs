@@ -187,6 +187,17 @@ public static class DemoRegistry
                 ["ScopedRed.cs", "ScopedBlue.cs", "ScopedRed.css", "ScopedBlue.css"],
                 Result: Div(Class: "d-flex flex-column gap-2")[ScopedRed(), ScopedBlue()]),
             ["js-interop-jsruntime"] = () => CodeSample(["JsRuntimeDemo.cs"], Result: JsRuntimeDemo()),
+
+            // --- CQRS guide: one vertical slice (query + result-command + notification + a pipeline
+            //     behaviour), dispatched reflection-free by the Rask.Cqrs source generator. ---
+            ["cqrs-counter"] = () => CodeSample(
+                ["CqrsCounterDemo.cs", "CounterSlice.cs"],
+                Notes:
+                "One slice, all four message shapes: a query (GetCounterState), a command that returns "
+                + "a value (IncrementCounter), a notification the command publishes (CounterIncremented), "
+                + "and a pipeline behaviour (DispatchLogBehavior) that wraps every dispatch — the "
+                + "generator wires them with no runtime reflection.",
+                Result: CqrsCounterDemo()),
             ["asset-basic-css"] = () => CodeSample(
                 ["BasicScopedCss.cs", "BasicScopedCss.css"], Result: BasicScopedCss()),
             ["asset-js-only"] = () => CodeSample(["JsOnlyDemo.cs", "JsOnlyDemo.js"], Result: JsOnlyDemo()),
