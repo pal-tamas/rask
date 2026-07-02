@@ -12,7 +12,7 @@ public sealed class PermissionsDemo(IPermissions permissions) : Component
     private string? _clip;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[

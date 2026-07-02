@@ -16,10 +16,10 @@ public sealed class LoginPage(IAuthSignIn auth, ICredentialStore creds) : Compon
 
     [QueryParam] public string? ReturnUrl { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "welcome-card")[
             H1()["Sign in"],
-            _error is null ? (Child)Fragment() : Div(Style: "color:#b00020")[_error],
+            _error is null ? null : Div(Style: "color:#b00020")[_error],
             // Async submit uses the generated OnValidSubmitAsync sibling (like Button's OnClickAsync).
             Form(_model, OnValidSubmitAsync: SubmitAsync)[
                 Div()[Label("username")["Username"], Input(() => _model.Username, Id: "username")],

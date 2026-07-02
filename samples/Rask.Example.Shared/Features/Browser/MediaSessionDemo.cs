@@ -53,7 +53,7 @@ public sealed class MediaSessionDemo(IMediaSession media) : Component, IAsyncDis
         }
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex flex-wrap gap-2 mb-3")[

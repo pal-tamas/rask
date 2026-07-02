@@ -71,7 +71,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         StateHasChanged();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true,
             Class: Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
@@ -108,7 +108,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
     // single scrolling list (.side-nav-scroll). The filter is a real flex header rather than a
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
-    private RenderResult SidebarBody() => Fragment()[
+    private Component SidebarBody() => [
         Div(Class: "side-nav-search")[
             BsInput(Value: _filter, OnChange: v => _filter = v ?? "", Size: BsSize.Sm,
                 Placeholder: "Filter guides & examples…", Class: "side-nav-filter")
@@ -137,14 +137,14 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         }
     }
 
-    private List<Child> BuildSections()
+    private List<Component> BuildSections()
     {
-        var children = new List<Child>();
+        var children = new List<Component>();
         var filtering = _filter.Length > 0;
 
         foreach (var (section, links) in Sections())
         {
-            var groups = new List<Child>();
+            var groups = new List<Component>();
             foreach (var (group, items) in GroupConsecutive(links))
             {
                 var visible = filtering
@@ -178,7 +178,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         return children;
     }
 
-    private Child GroupBlock(
+    private Component GroupBlock(
         string key, string group, bool open,
         IReadOnlyList<(string Path, string Label, string Icon, string Group, string? MatchPrefix)> items) =>
         Div(Class: "nav-group", Key: key)[
@@ -197,7 +197,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
                             match = mp;
                         }
 
-                        return (Child)BsNavItem(Href: i.Path, Match: match,
+                        return (Component)BsNavItem(Href: i.Path, Match: match,
                             ActiveMatch: i.MatchPrefix is null ? null : NavLinkMatch.Prefix,
                             Key: i.Path, Class: "side-nav-link")[
                             I(Class: $"bi {i.Icon} me-2"),

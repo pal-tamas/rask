@@ -166,12 +166,12 @@ public class HotReloadTests
 
     private sealed class WidgetA : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class WidgetB : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     // Sentinel types whose Name matches the generator-emitted classes — the hot-reload

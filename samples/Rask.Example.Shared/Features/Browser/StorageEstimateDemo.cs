@@ -8,7 +8,7 @@ public sealed class StorageEstimateDemo(IStorageEstimator storage) : Component
     private string? _value;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "storage-est-read", OnClickAsync: Read)[

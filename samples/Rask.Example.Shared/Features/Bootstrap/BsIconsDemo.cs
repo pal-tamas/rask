@@ -4,7 +4,7 @@ namespace Rask.Example.Shared.Features;
 // and Color tints it. Icons are decorative (aria-hidden) unless you pass AriaLabel.
 public sealed class BsIconsDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "vstack gap-3")[
             Div(Class: "fs-2 hstack gap-3 flex-wrap")[

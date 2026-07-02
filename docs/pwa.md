@@ -116,7 +116,7 @@ public sealed class InstallButton(IInstallPrompt install) : Component
         StateHasChanged();
     }
 
-    protected override RenderResult Render() => _canInstall
+    protected override Component? Render() => _canInstall
         ? Button(OnClickAsync: Prompt)["Install app"]
         : Text("");
 

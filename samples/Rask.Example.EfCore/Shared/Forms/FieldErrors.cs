@@ -5,5 +5,5 @@ namespace Rask.Example.EfCore.Shared.Forms;
 public static class FieldErrors
 {
     public static Component Template(IReadOnlyList<string> messages) =>
-        Fragment()[messages.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. messages.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 }

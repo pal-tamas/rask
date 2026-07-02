@@ -13,11 +13,11 @@ public sealed class NestedListForeachDemo : Component
         _model.Items.Add(new LineItem { Description = "Coffee beans (250g)", Quantity = 2 });
 
     private static Component FieldError(IReadOnlyList<string> msgs) =>
-        Fragment()[msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
+        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
-        var rows = new List<Child>();
+        var rows = new List<Component>();
         foreach (var item in _model.Items)
         {
             var captured = item; // foreach already captures per-iteration but make it loud.
@@ -56,7 +56,7 @@ public sealed class NestedListForeachDemo : Component
                 ]
             ],
             _submission is null
-                ? Fragment()
+                ? null
                 : BsAlert(Color: BsColor.Success, Class: "small mt-3 mb-0", Id: "nf-list-result")[_submission]
         ];
     }

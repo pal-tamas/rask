@@ -89,7 +89,7 @@ public class DownloadTokenPullTests : ResettingTestBase
             _contentType = contentType;
         }
 
-        protected override RenderResult Render() =>
+        protected override Component? Render() =>
         [
             Doctype(),
             Html()[

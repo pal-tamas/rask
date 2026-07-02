@@ -20,7 +20,7 @@ internal static class NavSwitch
 
     public static Component BuildRask(int activeTab)
     {
-        var tabs = new List<Child>(TabCount);
+        var tabs = new List<Component>(TabCount);
         for (var t = 0; t < TabCount; t++)
         {
             var isActive = t == activeTab;
@@ -29,7 +29,7 @@ internal static class NavSwitch
             ]);
         }
 
-        var contentRows = new List<Child>(RowsPerTab);
+        var contentRows = new List<Component>(RowsPerTab);
         for (var i = 0; i < RowsPerTab; i++)
         {
             contentRows.Add(C.Div(Class: "row")[
@@ -48,7 +48,7 @@ internal static class NavSwitch
     public sealed class StatefulNavSwitch : Component
 #pragma warning restore RASK014
     {
-        private readonly List<Child>?[] _tabContentCache = new List<Child>?[TabCount];
+        private readonly List<Component>?[] _tabContentCache = new List<Component>?[TabCount];
 
         public int ActiveTab { get; private set; }
 
@@ -58,9 +58,9 @@ internal static class NavSwitch
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
-            var tabs = new List<Child>(TabCount);
+            var tabs = new List<Component>(TabCount);
             for (var t = 0; t < TabCount; t++)
             {
                 var isActive = t == ActiveTab;
@@ -72,7 +72,7 @@ internal static class NavSwitch
             var content = _tabContentCache[ActiveTab];
             if (content is null)
             {
-                content = new List<Child>(RowsPerTab);
+                content = new List<Component>(RowsPerTab);
                 for (var i = 0; i < RowsPerTab; i++)
                 {
                     content.Add(C.Div(Class: "row")[

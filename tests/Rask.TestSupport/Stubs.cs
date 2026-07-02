@@ -15,7 +15,7 @@ public sealed class StubComponent : Component
     public StubComponent(Component root) : this(() => root) { }
     public StubComponent(Func<Component> factory) => _factory = factory;
 
-    protected override RenderResult Render() => _factory();
+    protected override Component? Render() => _factory();
 }
 
 /// <summary>
@@ -24,13 +24,13 @@ public sealed class StubComponent : Component
 /// </summary>
 public sealed class ContextCapture(Action<EditContext> capture) : Component
 {
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         if (EditContextScope.Current is { } c)
         {
             capture(c);
         }
 
-        return new Fragment();
+        return null;
     }
 }

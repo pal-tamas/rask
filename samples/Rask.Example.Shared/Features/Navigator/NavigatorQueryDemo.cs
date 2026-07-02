@@ -8,7 +8,7 @@ namespace Rask.Example.Shared.Features;
 // RemoveQuery / ClearQuery) so it stays on the guide page rather than navigating away.
 public sealed class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             BsCard(Class: Bs.Join(Shadow.Sm, Border.None, Margin.Bottom(3)))[
                 BsCardBody()[

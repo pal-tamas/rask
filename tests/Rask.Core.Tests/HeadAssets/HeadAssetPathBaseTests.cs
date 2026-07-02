@@ -102,6 +102,6 @@ public sealed class HeadAssetPathBaseTests : IDisposable
 
     private sealed class Widget : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 }

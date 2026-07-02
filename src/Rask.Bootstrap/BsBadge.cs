@@ -11,7 +11,7 @@ public sealed class BsBadge : BsBlock
 
     public string? Style { get; set; }
 
-    protected override RenderResult Render() => Span(
+    protected override Component? Render() => Span(
         Id: Id,
         Class: BsClass.Join(
             "badge",

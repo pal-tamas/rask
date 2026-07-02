@@ -14,7 +14,7 @@ public sealed class IdleDetectorDemo(IIdleDetector idle) : Component, IAsyncDisp
     private string _screen = "unlocked";
     private string _status = "(idle)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Button(Class: "btn btn-primary btn-sm mb-3", Id: "idle-start", OnClickAsync: Start)[

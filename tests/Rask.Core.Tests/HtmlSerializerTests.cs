@@ -44,7 +44,7 @@ public class HtmlSerializerTests
     public void Serialize_Fragment_RendersChildrenInOrder()
     {
         var sb = new StringBuilder();
-        HtmlSerializer.Serialize(Fragment()[Text("a"), Raw("<i>"), Text("b")], sb);
+        HtmlSerializer.Serialize([Text("a"), Raw("<i>"), Text("b")], sb);
         Assert.Equal("a<i>b", sb.ToString());
     }
 
@@ -153,13 +153,13 @@ public class HtmlSerializerTests
     {
         private readonly Component _body;
         public CssWrapper(Component body) => _body = body;
-        protected override RenderResult Render() => _body;
+        protected override Component? Render() => _body;
     }
 
     private sealed class ScopedWrapper : Component
     {
         private readonly Component _body;
         public ScopedWrapper(Component body) => _body = body;
-        protected override RenderResult Render() => _body;
+        protected override Component? Render() => _body;
     }
 }

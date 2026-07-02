@@ -26,5 +26,5 @@ public sealed class JwtBootstrap(ProtectedSessionStorage store, JwtValidator val
         }
     }
 
-    protected override RenderResult Render() => default;
+    protected override Component? Render() => default;
 }

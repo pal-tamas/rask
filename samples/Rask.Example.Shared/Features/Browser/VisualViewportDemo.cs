@@ -8,7 +8,7 @@ public sealed class VisualViewportDemo(IVisualViewport viewport) : Component
     private string? _value;
     private string? _status;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
             BsCardBody()[
                 BsButton(Color: BsColor.Primary, Outline: true, Size: BsSize.Sm, Class: "mb-2", Id: "vv-read", OnClickAsync: Read)[

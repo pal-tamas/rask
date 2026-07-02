@@ -36,7 +36,7 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1()["Counter"],
         P()[$"Current count: {_count}"],
@@ -134,7 +134,7 @@ If you've worked in Blazor, here's how the day-to-day differs in Rask:
 | `.razor` files mixing markup + code               | Plain C# classes with an indexer for children — `Div(...)[Span(...), "hi"]`. The whole tree is C# expressions, so refactors, find-references, and IDE navigation just work.                                                                                                                                               |
 | `[Inject]` properties                             | Services come in through the **constructor** (`Counter(IClock clock) : Component`), like anywhere else in .NET. Framework services (`Navigator`, `RouteState`, `HttpClient`) inject the same way.                                                                                                                         |
 | `@page "/path"`                                   | `[Route("/path")]` on the class, and every route gets a generated **type-safe URL builder** — `NavLink(UserPage(id: 42))` instead of `"/users/42"` strings that rot when the route changes.                                                                                                                               |
-| `RenderFragment` / `EventCallback`                | Children are `IEnumerable<Child>`; event handlers are plain delegates (`OnClick: () => _count++`). Child→parent callbacks are plain delegate props too (`Action<T>?` / `Func<T,Task>?`) — invoking one auto-re-renders the parent that owns it, no `EventCallback` wrapper. No specialised types, no `@bind-Value:event`. |
+| `RenderFragment` / `EventCallback`                | Children are `IEnumerable<Component>`; event handlers are plain delegates (`OnClick: () => _count++`). Component→parent callbacks are plain delegate props too (`Action<T>?` / `Func<T,Task>?`) — invoking one auto-re-renders the parent that owns it, no `EventCallback` wrapper. No specialised types, no `@bind-Value:event`. |
 | `.razor.css` association ceremony                 | Scoped CSS via a sibling `{Component}.css` (Blazor-parity descendant combinators) — auto-globbed at build time, hot-reloaded under `dotnet watch`. Same idea for JS: a sibling `{Component}.js` is bundled and dispatched by the framework.                                                                               |
 | Separate render modes to wire up                  | **Same component code on Server or WASM.** Pick the host package per project; you don't rewrite components when switching render mode. Server-only (multipart upload) and WASM-only (chunked file reads, inline downloads) behaviours live in the hosts, not in your tree.                                                |
 | `<AuthorizeView>` + `AuthenticationStateProvider` | Inject `IUserProvider` and read `.Current` (a never-null `ClaimsPrincipal`) and a headless `Authorize(...)` component with `Authorized`/`NotAuthorized`/`Authorizing` slots. Auth itself is configured on ASP.NET's **own** `AddCookie`/`AddJwtBearer`/`AddAuthorization` — Rask adds no parallel options surface.                       |
@@ -204,7 +204,7 @@ through the live runtime with **zero JavaScript**. Link the CSS once in your `Ap
 factories:
 
 ```csharp
-protected override RenderResult Head => [Title()["My App"], BootstrapStyles()];
+protected override Component? Head => [Title()["My App"], BootstrapStyles()];
 
 // elsewhere
 BsButton(Color: BsColor.Primary, OnClick: () => _open = true)["Open"]
@@ -261,15 +261,15 @@ namespace MyApp;
 
 public sealed class App : Component
 {
-    // App-level head content goes through the RenderResult Head override.
+    // App-level head content goes through the Component? Head override.
     // Pages override their own Head to set per-page Title — singleton dedup
     // means the page's contribution supersedes this fallback for the tab.
-    protected override RenderResult Head => [
+    protected override Component? Head => [
         Title()["My Rask App"],
         Meta("utf-8")
     ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             Doctype(),
             Html("en")[
@@ -304,7 +304,7 @@ namespace MyApp;
 [Route("/")]
 public sealed class HomePage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             H1()["Hello, world!"],
             P()["Welcome to your new Rask app."]
@@ -500,27 +500,27 @@ The framework, feature by feature. Each section is collapsed — click to expand
 <br>
 
 Every component is a `sealed class : Component`. Override `Render()` and return a tree. Children attach via the
-`Component this[params IEnumerable<Child>]` indexer — strings, `Component`s, and value types (`int`, `double`,
-`bool`, `DateOnly`, `Guid`, …) all convert implicitly to `Child`, so `H1()["Hello"]`, `Div()[Span(...), "text"]`,
+`Component this[params IEnumerable<Component>]` indexer — strings, `Component`s, and value types (`int`, `double`,
+`bool`, `DateOnly`, `Guid`, …) all convert implicitly to `Component`, so `H1()["Hello"]`, `Div()[Span(...), "text"]`,
 and `Td()[f.TemperatureC]` (no `.ToString()`) all work. Value types render with `InvariantCulture`, so the HTML
 stays locale-independent.
 
 When you project a list into the children, no per-item cast is needed — `Tbody()[rows.Select(r => Tr(Key: r.Id)[...])]`
 binds straight to the indexer (an `IEnumerable<Component>` overload handles the LINQ-pipeline shape).
 
-`Render()` (and the `Head` override) return `RenderResult`, which accepts three shapes:
+`Render()` (and the `Head` override) return `Component?`, which accepts three shapes:
 
-- **A single component** — `Render() => Div()[...]` (converts implicitly).
+- **A single component** — `Render() => Div()[...]`.
 - **A collection expression** — `Render() => [Doctype(), Html(...)]` for multiple top-level nodes, with no wrapper
-  element. (This is sugar for `Fragment()[...]`; the items are grouped into a `Fragment` internally.)
-- **`default`** — render nothing / no contribution. Conditionals target-type each branch, so
-  `Render() => ready ? [Doctype(), Html(...)] : default;` works.
+  element. (`Component` is itself a collection-expression target; the items are grouped into a tagless container internally.)
+- **`null`** — render nothing / no contribution. Conditionals target-type each branch, so
+  `Render() => ready ? [Doctype(), Html(...)] : null;` works.
 
 ```csharp
 public sealed class Greeting : Component
 {
     public string? Name { get; set; }
-    protected override RenderResult Render() => H1()[$"Hello, {Name ?? "world"}!"];
+    protected override Component? Render() => H1()[$"Hello, {Name ?? "world"}!"];
 }
 ```
 
@@ -552,7 +552,7 @@ public sealed class Counter : Component
 {
     private int _count;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             H1()["Counter"],
             P()[$"Current count: {_count}"],
@@ -561,7 +561,7 @@ public sealed class Counter : Component
 }
 ```
 
-**Child → parent callbacks are plain delegate props** — `Action`, `Action<T>`, `Func<Task>`, `Func<T, Task>`. There is
+**Component → parent callbacks are plain delegate props** — `Action`, `Action<T>`, `Func<Task>`, `Func<T, Task>`. There is
 no `Callback`/`EventCallback` type. The generated factory wraps a qualifying delegate so invoking it runs your handler
 **and then re-renders the component that owns it** (the lambda's `this`). The child stays oblivious to the parent, and
 the parent never wires `StateHasChanged()` by hand:
@@ -573,9 +573,9 @@ public sealed class RatingStars : Component
     public int Value { get; set; }
     public Action<int>? OnRate { get; set; }   // a plain delegate prop
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
-            Enumerable.Range(1, 5).Select(i => (Child)Button(
+            Enumerable.Range(1, 5).Select(i => (Component)Button(
                 OnClick: () => OnRate?.Invoke(i),  // child invokes; parent re-renders
                 Key: i)[i <= Value ? "★" : "☆"])
         ];
@@ -586,7 +586,7 @@ public sealed class RatingDemo : Component
 {
     private int _rating;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         [
             RatingStars(Value: _rating, OnRate: n => _rating = n),
             P()[_rating == 0 ? "Click a star." : $"You rated: {_rating}/5"]
@@ -617,7 +617,7 @@ public sealed class ThemeDemo : Component
 {
     private Theme _theme = new("Light", false);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Context.Provide<Theme>(Value: _theme)[      // provided to the whole subtree
             Button(OnClick: () => _theme = _theme.IsDark ? new("Light", false) : new("Dark", true))[
                 $"Toggle — {_theme.Name}"],
@@ -627,12 +627,12 @@ public sealed class ThemeDemo : Component
 
 public sealed class ThemeCard : Component       // theme-unaware; render-cached after first paint
 {
-    protected override RenderResult Render() => Div()["Nested: ", ThemeBadge()];
+    protected override Component? Render() => Div()["Nested: ", ThemeBadge()];
 }
 
 public sealed class ThemeBadge : Component      // the consumer
 {
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var theme = Context.Required<Theme>();  // reading latches it out of the render cache…
         return Span()[theme.IsDark ? "🌙 Dark" : "☀️ Light"];
@@ -667,7 +667,7 @@ public sealed class Weather(IWeatherForecastService service) : Component
     protected override async Task OnMountAsync() =>
         _forecasts = await service.GetForecastsAsync();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         _forecasts is null
             ? P()[Em()["Loading..."]]
             : Table()[/* render rows */];
@@ -690,7 +690,7 @@ public sealed class UserPage : Component
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
 
-    protected override RenderResult Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
+    protected override Component? Render() => Span()[$"User #{Id} — {Tab ?? "overview"}"];
 }
 
 // elsewhere:
@@ -722,13 +722,13 @@ public sealed class AccountPanel : Component
     protected override void OnMount() => _auth.Changed += StateHasChanged;
     protected override void OnUnmount() => _auth.Changed -= StateHasChanged;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         _auth.Current.Identity?.IsAuthenticated == true
-            ? Fragment()[
+            ? [
                 P()["Signed in as ", Strong()[_auth.Current.Identity!.Name ?? "?"]],
                 _auth.Current.IsInRole("admin")             // role-gated branch
                     ? Div()["🔑 Admin-only panel"]
-                    : (Child)Fragment()]
+                    : null]
             : P()["You are signed out."];
 }
 ```
@@ -756,7 +756,7 @@ auth configured through ASP.NET's own AddCookie/AddJwtBearer, and a security che
 <summary><b>📑 Page head contributions</b></summary>
 <br>
 
-Any component can override `protected virtual RenderResult Head` to declare what belongs in `<head>` while that
+Any component can override `protected virtual Component? Head` to declare what belongs in `<head>` while that
 component
 is in the tree. The default is `default` — no contribution; a single tag, a collection expression of several tags, or
 `default` for "nothing" are all valid (e.g. `Head => loggedIn ? [Meta(...)] : default`):
@@ -769,13 +769,13 @@ public sealed class UserDetailPage : Component
     // The framework dedupes by rendered HTML; <title> and <base> are singleton
     // tags — last contributor wins. So this page's Title overrides App's
     // fallback when the user lands on /users/42.
-    protected override RenderResult Head => [
+    protected override Component? Head => [
         Title()[$"User #{Id} — My Rask App"],
         Meta(Name: "description", Content: $"Profile for user {Id}"),
         Link(Rel: "stylesheet", Href: "https://cdn.example.com/profile.css")
     ];
 
-    protected override RenderResult Render() => /* … */;
+    protected override Component? Render() => /* … */;
 }
 ```
 
@@ -840,7 +840,7 @@ you own it through `Template`, which receives the messages plus a `dismiss(id)` 
 
 ```csharp
 FlashOutlet(Template: (messages, dismiss) =>
-    Div()[messages.Select(m => (Child)Div(Class: "alert", Key: m.Id.ToString())[
+    Div()[messages.Select(m => (Component)Div(Class: "alert", Key: m.Id.ToString())[
         m.Message, Button(OnClick: () => dismiss(m.Id))["×"]])])
 ```
 
@@ -911,7 +911,7 @@ public sealed class SignupPage : Component
 {
     private readonly SignupModel _model = new();
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
             DataAnnotationsValidator(),                         // opt-in: DA attributes
             Input(Bind: () => _model.Username),
@@ -959,7 +959,7 @@ protected override void OnMount()
     _ctx.AddValidator(new UniqueUsernameValidator());
 }
 
-protected override RenderResult Render() =>
+protected override Component? Render() =>
     Form<SignupModel>(_model, Context: _ctx, OnValidSubmit: m => Console.WriteLine(m.Username))[
         DataAnnotationsValidator(),
         Input(Bind: () => _model.Username),
@@ -1122,7 +1122,7 @@ public sealed class ReportPage(Navigator nav) : Component
                      Encoding.UTF8.GetBytes("hello"),
                      "text/plain");
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Button(OnClick: Download)["Download report"];
 }
 ```
@@ -1216,7 +1216,7 @@ hot-reloaded under `dotnet watch`.
 // Card.cs
 public sealed class Card : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card")["..."];
 }
 ```
@@ -1295,7 +1295,7 @@ public sealed class CodeSample(IJSRuntime js) : Component
     protected override async Task OnRenderedAsync(bool firstRender) =>
         await js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "sample-card")[ /* the marker class user JS will query */ ];
 }
 ```
@@ -1376,7 +1376,7 @@ public sealed class MeasureDemo : Component
 
     public MeasureDemo(IJSRuntime js) => _js = js;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div()[
             Input<string>(Ref: _input, Type: InputType.Text),
             Div(Ref: _box)["A box whose width JS will read."],
@@ -1430,7 +1430,7 @@ A few things worth knowing:
 - **`Data["rask-key"]` still works** for back-compat; when both are set, `Key` wins.
 
 **RASK022** (warning) nudges you when a list item is missing a key — it fires on a `.Select(...)` / `.SelectMany(...)`
-projection whose body becomes a `Child`, or an element `.Add(...)`-ed to a `List<Child>` inside a loop. Add a `Key:`
+projection whose body becomes a `Component`, or an element `.Add(...)`-ed to a `List<Component>` inside a loop. Add a `Key:`
 (or a `Data` `rask-key`) to clear it. Suppress per-site with `#pragma warning disable RASK022`, or promote it to an
 error with `<WarningsAsErrors>RASK022</WarningsAsErrors>` in the `.csproj`.
 

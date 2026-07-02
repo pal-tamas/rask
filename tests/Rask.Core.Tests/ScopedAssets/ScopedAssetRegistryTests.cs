@@ -651,72 +651,72 @@ public class ScopedAssetRegistryTests
 
     private sealed class WidgetA : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class WidgetB : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P0 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P1 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P2 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P3 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P4 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P5 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P6 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P7 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P8 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class P9 : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class Generic<T> : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private class BaseWidget : Component
     {
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class DerivedWidget : BaseWidget
@@ -727,7 +727,7 @@ public class ScopedAssetRegistryTests
     {
         internal sealed class Inner : Component
         {
-            protected override RenderResult Render() => this;
+            protected override Component? Render() => this;
         }
     }
 }

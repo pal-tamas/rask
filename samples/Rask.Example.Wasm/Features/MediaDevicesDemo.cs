@@ -14,7 +14,7 @@ public sealed class MediaDevicesDemo(IMediaDevices media) : Component, IAsyncDis
     private IMediaStreamHandle? _stream;
     private string _status = "(idle)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Video(Ref: _video, Width: 320, Height: 240, Muted: true, PlaysInline: true,

@@ -7,7 +7,7 @@ public sealed class BsAccordion : BsBlock
     // Removes the default background/borders (.accordion-flush).
     public bool? Flush { get; set; }
 
-    protected override RenderResult Render() => Div(
+    protected override Component? Render() => Div(
         Id: Id,
         Class: BsClass.Join("accordion", Flush is true ? "accordion-flush" : null, Class))[Items];
 }
@@ -21,7 +21,7 @@ public sealed class BsAccordionItem : BsBlock
     public Callback? OnToggle { get; set; }
     public CallbackAsync? OnToggleAsync { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var open = Open is true;
         var expanded = new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" };

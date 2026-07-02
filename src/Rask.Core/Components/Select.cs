@@ -50,16 +50,16 @@ public sealed class Select<T> : Element, IFormControl<T>
         return base.EnterChildrenScope();
     }
 
-    private static IEnumerable<Child> MarkSelected(IEnumerable<Child> children, string current)
+    private static IEnumerable<Component?> MarkSelected(IEnumerable<Component?> children, string current)
     {
-        var list = new List<Child>();
+        var list = new List<Component?>();
         foreach (var c in children)
         {
-            if (c.Component is Option opt)
+            if (c is Option opt)
             {
                 list.Add(MarkOption(opt, current));
             }
-            else if (c.Component is Optgroup og)
+            else if (c is Optgroup og)
             {
                 list.Add(MarkOptgroup(og, current));
             }
@@ -69,8 +69,8 @@ public sealed class Select<T> : Element, IFormControl<T>
             }
         }
 
-        // Return an array so Children stays a Child[] and the serializer's zero-allocation
-        // fast path (ChildrenArray => Children as Child[]) still applies after marking.
+        // Return an array so Children stays a Component?[] and the serializer's zero-allocation
+        // fast path (ChildrenArray => Children as Component?[]) still applies after marking.
         return list.ToArray();
     }
 
@@ -103,7 +103,7 @@ public sealed class Select<T> : Element, IFormControl<T>
         }
 
         var newChildren = og.Children.Select(c =>
-            c.Component is Option o ? MarkOption(o, current) : c).ToArray();
+            c is Option o ? MarkOption(o, current) : c).ToArray();
         return new Optgroup
         {
             Disabled = og.Disabled,

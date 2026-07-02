@@ -13,7 +13,7 @@ public sealed class FileSystemAccessDemo(IFileSystemAccess files) : Component, I
     private string _text = string.Empty;
     private string _status = "(idle)";
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Div(Class: "d-flex gap-2 flex-wrap mb-2")[

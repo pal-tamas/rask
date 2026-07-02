@@ -8,7 +8,7 @@ public sealed class BsTabsDemo : Component
     private bool _panel0 = true;
     private bool _panel1;
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "vstack gap-4")[
             BsTabs(Active: _tab, Tabs:

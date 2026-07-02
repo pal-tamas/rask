@@ -15,7 +15,7 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;
 
-    protected override RenderResult Head => Title()["Products — Rask EF Core"];
+    protected override Component? Head => Title()["Products — Rask EF Core"];
 
     // Runs on every mount — navigating back from the create/edit slices remounts this page, so the
     // list always reflects the latest committed state.
@@ -40,7 +40,7 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
         await LoadAsync();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "d-flex justify-content-between align-items-center mb-3")[
             Div()[

@@ -104,7 +104,7 @@ public class PayloadBytesPerUpdate
 
     private static Component BuildLargePageWithCounter(int counter)
     {
-        var rows = new List<Child>(LargePageRowCount);
+        var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
             rows.Add(C.Div(Class: "row", Id: $"r{i}", Style: "display:flex;gap:8px;", Key: i)[
@@ -115,7 +115,7 @@ public class PayloadBytesPerUpdate
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[
@@ -132,7 +132,7 @@ public class PayloadBytesPerUpdate
 
     private static Component BuildKeyedListTree(int[] order)
     {
-        var rows = new List<Child>(order.Length);
+        var rows = new List<Component>(order.Length);
         for (var i = 0; i < order.Length; i++)
         {
             var idx = order[i];
@@ -143,7 +143,7 @@ public class PayloadBytesPerUpdate
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[C.Div(Class: "list")[rows]]
@@ -157,7 +157,7 @@ public class PayloadBytesPerUpdate
         // deep inside the row list rather than at the top. Today's payload size is the
         // same regardless — the whole body is re-shipped — but the diff codec should
         // produce a single UpdateText op deep in the path.
-        var rows = new List<Child>(LargePageRowCount);
+        var rows = new List<Component>(LargePageRowCount);
         for (var i = 0; i < LargePageRowCount; i++)
         {
             var text = i == LargePageRowCount / 2 ? $"ticker {counter}" : $"Item {i}";
@@ -169,7 +169,7 @@ public class PayloadBytesPerUpdate
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[C.Div(Class: "body")[rows]]

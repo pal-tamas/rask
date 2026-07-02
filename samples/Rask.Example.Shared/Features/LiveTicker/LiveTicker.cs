@@ -188,7 +188,7 @@ public sealed class LiveTicker : Component
         Emit("OnUnmountAsync: flushed (after 50ms)");
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var current = _history.Count > 0 ? _history[^1].PriceUsd : 0m;
         var first = _history.Count > 0 ? _history[0].PriceUsd : 0m;
@@ -211,10 +211,10 @@ public sealed class LiveTicker : Component
                     _history.Count > 1
                         ? Span(Class: $"fs-6 fw-semibold {changeClass}", Id: "ticker-change")[
                             $"{changeSign}{change.ToString("F2", CultureInfo.InvariantCulture)}% since first sample"]
-                        : Fragment()
+                        : null
                 ],
                 _error is null
-                    ? Fragment()
+                    ? null
                     : BsAlert(Color: BsColor.Warning, Class: "py-2 px-3 small mb-3", Id: "ticker-error")[
                         BsIcon(Name: BsIconName.ExclamationTriangle, Class: "me-2"), $"Feed error: {_error}"
                     ],

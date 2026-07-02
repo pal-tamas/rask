@@ -12,9 +12,9 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class PictureInPicturePage : Component
 {
-    protected override RenderResult Head => Title()["Picture-in-Picture — Rask"];
+    protected override Component? Head => Title()["Picture-in-Picture — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1(Class: "h2 mb-1")["Picture-in-Picture"],
         P(Class: "text-secondary")[

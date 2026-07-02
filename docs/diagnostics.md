@@ -213,7 +213,7 @@ As RASK016, for `{Name}.js` matching multiple component classes.
 Children were passed to `Head()`. Rask collects, dedupes, and splices head content itself, so the
 `<head>` element doesn't take children.
 
-**Fix:** override `protected override RenderResult Head => ...` on any component and return your
+**Fix:** override `protected override Component? Head => ...` on any component and return your
 `Title`/`Meta`/`Link`/`Script` — a single tag, or a collection expression like
 `Head => [Title(...)["..."], Meta(...)]`. See [the head guide](getting-started.md).
 
@@ -234,7 +234,7 @@ The root `TApp` doesn't render a full shell. A root `Render()` must produce
 `Doctype()`, `Html(...)[ Head(), Body()[ ... ] ]`. A runtime backstop (`ValidateRootShell`) also
 enforces this, so an incomplete shell that slips past the analyzer still fails at render.
 
-**Fix:** make the root render the complete shell — typically `Fragment()[ Doctype(), Html(...)[...] ]`.
+**Fix:** make the root render the complete shell — typically `[ Doctype(), Html(...)[...] ]`.
 Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
 
 ## RASK022

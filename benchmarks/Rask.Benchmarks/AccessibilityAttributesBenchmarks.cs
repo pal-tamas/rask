@@ -35,7 +35,7 @@ public class AccessibilityAttributesBenchmarks
 
     private static Component BuildTree(int rowCount)
     {
-        var rows = new List<Child>(rowCount);
+        var rows = new List<Component>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             var aria = new Dictionary<string, string?>

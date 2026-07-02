@@ -44,9 +44,9 @@ public sealed class OrdersPage : Component
     private readonly Dictionary<int, (string Col, bool Asc)> _itemSort = new();
     private (string Col, bool Asc) _orderSort = ("", true);
 
-    protected override RenderResult Head => Title()["Master-detail — Rask"];
+    protected override Component? Head => Title()["Master-detail — Rask"];
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var orders = SortOrders(_orders, _orderSort);
 
@@ -93,9 +93,9 @@ public sealed class OrdersPage : Component
         ];
     }
 
-    private List<Child> BuildOrderRows(IReadOnlyList<Order> orders)
+    private List<Component> BuildOrderRows(IReadOnlyList<Order> orders)
     {
-        var rows = new List<Child>(orders.Count * 2);
+        var rows = new List<Component>(orders.Count * 2);
         foreach (var order in orders)
         {
             var open = _expanded.Contains(order.Id);

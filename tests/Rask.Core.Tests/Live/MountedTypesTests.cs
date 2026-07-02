@@ -182,36 +182,36 @@ public class MountedTypesTests
 
     private sealed class CssOnly : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 
     private sealed class JsOnly : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 
     private sealed class BothAssets : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 
     private sealed class NoAssets : Component
     {
-        protected override RenderResult Render() => Div();
+        protected override Component? Render() => Div();
     }
 
     private sealed class Outer : Component
     {
-        protected override RenderResult Render() => new Middle();
+        protected override Component? Render() => new Middle();
     }
 
     private sealed class Middle : Component
     {
-        protected override RenderResult Render() => new Inner();
+        protected override Component? Render() => new Inner();
     }
 
     private sealed class Inner : Component
     {
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 }

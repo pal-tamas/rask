@@ -85,7 +85,7 @@ public class MountTests
         public OrderRecorder(List<string> order) => _order = order;
         protected override void OnMount() => _order.Add("mount");
         protected override void OnPropsChanged() => _order.Add("props");
-        protected override RenderResult Render() => this;
+        protected override Component? Render() => this;
     }
 
     private sealed class RecordingRenderHandle : IRenderHandle

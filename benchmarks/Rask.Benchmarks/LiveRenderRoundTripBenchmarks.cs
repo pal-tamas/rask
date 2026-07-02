@@ -68,13 +68,13 @@ public class LiveRenderRoundTripBenchmarks
 
     private static Component BuildTree()
     {
-        var rows = new List<Child>(20);
+        var rows = new List<Component>(20);
         for (var i = 0; i < 20; i++)
         {
             rows.Add(B.RowItem(i, Key: i));
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[
                 C.Body()[
@@ -94,7 +94,7 @@ public class LiveRenderRoundTripBenchmarks
         // something to HTML. Wrap in Fragment+Doctype+Html+Body so RenderAsLiveRoot
         // produces a valid document with a <body> for the live root marker.
         Component current = B.DeepNode(50);
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[C.Body()[C.Div(Class: "deep")[current]]]
         ];
@@ -117,7 +117,7 @@ public class LiveRenderRoundTripBenchmarks
             (order[i], order[j]) = (order[j], order[i]);
         }
 
-        var rows = new List<Child>(count);
+        var rows = new List<Component>(count);
         for (var i = 0; i < count; i++)
         {
             var idx = order[i];
@@ -128,7 +128,7 @@ public class LiveRenderRoundTripBenchmarks
             ]);
         }
 
-        return C.Fragment()[
+        return [
             C.Doctype(),
             C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
         ];
@@ -143,7 +143,7 @@ public sealed class RowItem : Component
 {
     public int Index { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         C.Div(Class: "row", Id: $"r{Index}")[
             C.Span(Class: "label")[$"Item {Index}"],
             C.A($"/item/{Index}", Class: "lnk")[$"open {Index}"],
@@ -159,7 +159,7 @@ public sealed class DeepNode : Component
 {
     public int Depth { get; set; }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Depth <= 0
             ? C.Div(Class: "leaf", Id: "leaf")[C.Span()["leaf"]]
             : C.Div(Class: "node", Id: $"n{Depth}")[B.DeepNode(Depth - 1)];

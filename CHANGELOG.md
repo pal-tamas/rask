@@ -27,6 +27,25 @@ them until tagged releases begin.
   Documented in the new [CQRS](docs/cqrs.md) guide with a live demo in the showcase; self-contained
   optional package like the validation libraries.
 
+### Changed
+- **BREAKING: `Component` is now the framework's single rendering currency — `RenderResult` and
+  `Child` are removed.** `Render()` and the `Head` override now return `Component?` (symmetric;
+  return `null` to render nothing, replacing the old empty-`Fragment`/`default` sentinel). Children
+  are `IEnumerable<Component?>` and the children indexer takes `params Component?[]`, so a `null`
+  child renders nothing and needs no placeholder. The heterogeneous-literal converters
+  (`string`/`int`/`bool`/`DateTime`/… → a `Text` node) moved from the deleted `Child` struct onto
+  `Component`, so `Div()["Score: ", 42]` is unchanged. `Component` is itself a collection-expression
+  target (via `[CollectionBuilder]` + a public `Component.Create`), so `Render() => [Doctype(),
+  Html(...)]` and `Head => [Title(), Meta()]` keep working; a bare component passed to the indexer is
+  still a single child (nesting is not flattened — `Component` exposes only a pattern `GetEnumerator`,
+  not `IEnumerable<Component>`). **`Fragment` is now internal** — express multi-root / grouped content
+  with a `[...]` collection expression instead of `Fragment()[...]`. Public delegate props that used
+  `Child` now use `Component`: `ErrorBoundary.Fallback`, `Authorize.{Authorized,NotAuthorized,
+  Authorizing}`, `ValidationSummary.Template`, `FlashOutlet.Template`, and the Bootstrap
+  `Bs{CheckboxGroup,RadioGroup,MultiSelect}.OptionLabel`. Migration: replace `RenderResult` with
+  `Component?`, `Child` with `Component`, `Fragment()[a, b]` with `[a, b]` (and `Fragment()[list]`
+  with `[.. list]`), and `(Component)Fragment()` / `default` "render nothing" branches with `null`.
+
 ### Fixed
 - **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
   mobile navbar stays one line.** Three showcase-guide polish fixes: (1) fenced ```` ```lang ```` blocks

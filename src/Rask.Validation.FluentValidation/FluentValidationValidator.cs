@@ -24,10 +24,10 @@ public sealed class FluentValidationValidator : Component
 {
     public required IValidator Validator { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         EditContextScope.Current?.AddValidator(new Inner(Validator));
-        return Core.Components.Generated.Fragment();
+        return null;
     }
 
     private sealed class Inner : IAsyncFieldValidator

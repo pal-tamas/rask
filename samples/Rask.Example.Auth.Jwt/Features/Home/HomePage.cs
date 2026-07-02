@@ -7,7 +7,7 @@ namespace Rask.Example.Auth.Jwt.Features;
 [AllowAnonymous]
 public sealed class HomePage : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Id: "home", Class: "card shadow-sm mx-auto", Style: "max-width:34rem")[
             Div(Class: "card-body")[
                 H1(Class: "h3 card-title mb-3")["Rask JWT-auth sample"],

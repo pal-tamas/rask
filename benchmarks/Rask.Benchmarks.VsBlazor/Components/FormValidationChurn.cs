@@ -30,9 +30,9 @@ internal static class FormValidationChurn
             StateHasChanged();
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
-            var children = new List<Child>((FieldCount * 2) + 1);
+            var children = new List<Component>((FieldCount * 2) + 1);
             for (var i = 0; i < FieldCount; i++)
             {
                 var fieldClass = _invalid[i] ? "field invalid" : "field";

@@ -46,7 +46,7 @@ public sealed class Sparkline : Component
     private string AreaColor => AreaFill ?? "rgba(13, 110, 253, 0.15)";
     private string LabelFormat => ValueFormat ?? "$#,##0.00";
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var values = Values;
         var n = values.Count;
@@ -101,7 +101,7 @@ public sealed class Sparkline : Component
         var lastX = X(n - 1);
         var lastY = Y(values[n - 1]);
 
-        var children = new List<Child>
+        var children = new List<Component>
         {
             // Light horizontal gridlines (top / middle / baseline).
             Line(Num(PadX), Num(PadTop), Num(W - PadX), Num(PadTop),

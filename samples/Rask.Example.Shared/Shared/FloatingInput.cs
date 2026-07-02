@@ -21,7 +21,7 @@ public sealed class FloatingInput<TProp> : Component
     // Input infers its type from TProp (text/number/date/…). Bootstrap floating labels REQUIRE a
     // placeholder. ValidationMessage renders nothing until the field has messages; `d-block` forces
     // the feedback visible without an `.is-invalid` sibling toggle.
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var (id, label) = FloatingField.Resolve(Bind);
         return Div(Class: "form-floating mb-3")[

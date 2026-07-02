@@ -5,7 +5,7 @@ public class FactoryAttributeTests
     [Fact]
     public void Factory_DoesNotEmit_ChildrenParameter()
     {
-        // Children is delivered via the `Component this[params Child[]]` indexer on Component,
+        // Children is delivered via the `Component this[params Component[]]` indexer on Component,
         // not as a factory parameter. The generator must filter Children out of the signature
         // even though it's a public settable property on the base class.
         var src = """
@@ -13,7 +13,7 @@ public class FactoryAttributeTests
                   namespace Demo;
                   public sealed class Wrap : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -39,7 +39,7 @@ public class FactoryAttributeTests
                   {
                       public object? Model { get; set; }
                       public System.Delegate? OnValidSubmit { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -78,7 +78,7 @@ public class FactoryAttributeTests
                   [Route("/")]
                   public sealed class HomePage : Component
                   {
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 
@@ -101,7 +101,7 @@ public class FactoryAttributeTests
                   public sealed class Holder : Component
                   {
                       public object? Model { get; set; }
-                      public override RenderResult Render() => this;
+                      public override Component? Render() => this;
                   }
                   """;
 

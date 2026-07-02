@@ -86,7 +86,7 @@ public class ButtonTests
     [Fact]
     public void Constructor_IEnumerableOverload_RendersChildrenInOrder()
     {
-        var children = new List<Child> { "a", Raw("<b>") };
+        var children = new List<Component> { "a", Raw("<b>") };
         Assert.Equal(
             "<button>a<b></button>",
             Button()[children].ToHtml());

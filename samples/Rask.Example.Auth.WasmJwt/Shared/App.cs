@@ -4,7 +4,7 @@ public sealed class App : Component
 {
     // Bootstrap + Bootstrap Icons via CDN keep the showcase look without vendoring wwwroot/lib
     // per sample. wwwroot/global.css layers the Rask purple palette on top.
-    protected override RenderResult Head =>
+    protected override Component? Head =>
     [
         Title()["Rask — JWT + WASM auth"],
         Meta("utf-8"),
@@ -18,7 +18,7 @@ public sealed class App : Component
         Link(Rel: "stylesheet", Href: "/global.css")
     ];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Doctype(),
         Html("en")[

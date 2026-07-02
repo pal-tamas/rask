@@ -10,7 +10,7 @@ namespace Rask.Bootstrap;
 //   3. Event delegates are forwarded straight to the native component (the consumer's handler closes
 //      over their page, so handler-owner resolution re-renders it) — both the sync and async params
 //      are forwarded; RASK027 is suppressed in this layer only (see .editorconfig).
-//   4. Prefer the inline `cond ? node : (Child)Fragment()` shape over building List<Child>.
+//   4. Prefer the inline `cond ? node : null` shape over building List<Component>.
 //
 // BsBlock itself exposes the Id/Class pass-through that the generated factory surfaces as optional
 // parameters, without pulling in Element's full HTML attribute/event surface. Abstract, so the
@@ -23,16 +23,16 @@ public abstract class BsBlock : Component
     // The children passed via the indexer, or an empty sequence. (Dynamic-child correctness is handled
     // by the framework: a non-Element component with children is not served from the render cache —
     // see Component.RenderForLive — so these wrappers don't opt out of caching by hand.)
-    private protected IEnumerable<Child> Items => Children ?? [];
+    private protected IEnumerable<Component?> Items => Children ?? [];
 
     // Renders a <div class="{baseClass} {Class}" id="{Id}"> wrapper around the children — the shape
     // most container parts share (card sections, etc.).
-    private protected RenderResult Wrap(string baseClass) =>
+    private protected Component Wrap(string baseClass) =>
         Div(Id: Id, Class: BsClass.Join(baseClass, Class))[Items];
 
     // The children followed by extra trailing children (e.g. an alert's close button), as one
     // sequence for the children indexer (the `..` spread is unsupported — pass an enumerable).
-    private protected IEnumerable<Child> ItemsWith(params Child[] trailing)
+    private protected IEnumerable<Component?> ItemsWith(params Component?[] trailing)
     {
         foreach (var item in Items)
         {

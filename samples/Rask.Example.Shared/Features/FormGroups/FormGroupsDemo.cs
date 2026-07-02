@@ -11,7 +11,7 @@ public sealed class FormGroupsDemo : Component
     private Plan _plan = Plan.Free;
     private ICollection<string> _interests = [];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "vstack gap-3")[
             Div()[
                 Label(Class: "form-label fw-semibold d-block")["Plan"],

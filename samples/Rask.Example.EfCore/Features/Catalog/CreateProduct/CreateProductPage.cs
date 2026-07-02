@@ -15,7 +15,7 @@ public sealed class CreateProductPage(IDbContextFactory<CatalogDbContext> dbCont
 {
     private readonly CreateProductForm _form = new();
 
-    protected override RenderResult Head => Title()["New product — Rask EF Core"];
+    protected override Component? Head => Title()["New product — Rask EF Core"];
 
     private async Task SubmitAsync(CreateProductForm form)
     {
@@ -29,7 +29,7 @@ public sealed class CreateProductPage(IDbContextFactory<CatalogDbContext> dbCont
         navigator.NavigateTo("/products");
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0 mx-auto", Style: "max-width: 32rem")[
             Div(Class: "card-body")[
                 H1(Class: "h4 mb-3")["New product"],

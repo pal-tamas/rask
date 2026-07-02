@@ -36,7 +36,7 @@ public sealed class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) :
         StateHasChanged();
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "card shadow-sm border-0")[
             Div(Class: "card-body")[
                 Video(Ref: _video, Width: 320, Height: 180, Muted: true, PlaysInline: true, Controls: true,

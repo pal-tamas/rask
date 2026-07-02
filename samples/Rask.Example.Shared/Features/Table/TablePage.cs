@@ -26,7 +26,7 @@ public sealed class TablePage(Navigator nav) : Component
     [QueryParam] public int? Page { get; set; }
     [QueryParam] public int? Size { get; set; }
 
-    protected override RenderResult Head => Title()["Data table — Rask"];
+    protected override Component? Head => Title()["Data table — Rask"];
 
     private static Person[] BuildPeople(int count)
     {
@@ -62,7 +62,7 @@ public sealed class TablePage(Navigator nav) : Component
         return rows;
     }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var sizeRaw = Size ?? 10;
         var size = sizeRaw is 5 or 10 or 25 or 50 ? sizeRaw : 10;
@@ -163,8 +163,9 @@ public sealed class TablePage(Navigator nav) : Component
                                         "No people match your search."
                                     ]
                                 ]
-                                : Fragment()[
-                                    visible.Select(p =>
+                                :
+                                [
+                                    .. visible.Select(p =>
                                         Tr(Key: p.Id)[
                                             Td(Class: "text-secondary")[p.Id],
                                             Td(Class: "fw-semibold")[p.Name],
@@ -186,7 +187,7 @@ public sealed class TablePage(Navigator nav) : Component
                             : $"Showing {from}–{to} of {totalFiltered}",
                         filter.Length > 0
                             ? Span(Class: "ms-1")[$"(filtered from {_people.Length} total)"]
-                            : Fragment()
+                            : null
                     ],
                     Nav()[
                         Ul(Class: "pagination pagination-sm mb-0")[BuildPagination(page, totalPages, GoToPage)]
@@ -245,9 +246,9 @@ public sealed class TablePage(Navigator nav) : Component
         ];
     }
 
-    private static List<Child> BuildPagination(int page, int totalPages, Action<int> goToPage)
+    private static List<Component> BuildPagination(int page, int totalPages, Action<int> goToPage)
     {
-        var items = new List<Child>
+        var items = new List<Component>
         {
             PageItem("«", 1, page == 1, "First", goToPage),
             PageItem("‹", Math.Max(1, page - 1), page == 1, "Prev", goToPage)
@@ -287,7 +288,7 @@ public sealed class TablePage(Navigator nav) : Component
         return items;
     }
 
-    private static Child PageItem(string glyph, int targetPage, bool disabled, string label, Action<int> goToPage)
+    private static Component PageItem(string glyph, int targetPage, bool disabled, string label, Action<int> goToPage)
     {
         return Li(Class: disabled ? "page-item disabled" : "page-item")[
             Button(
@@ -301,7 +302,7 @@ public sealed class TablePage(Navigator nav) : Component
         ];
     }
 
-    private static Child NumberItem(int n, int current, Action<int> goToPage)
+    private static Component NumberItem(int n, int current, Action<int> goToPage)
     {
         var active = n == current;
         return Li(Class: active ? "page-item active" : "page-item")[

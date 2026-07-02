@@ -6,9 +6,9 @@ namespace Rask.Example.Shared.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class ElementsFormsPage : Component
 {
-    protected override RenderResult Head => Title()["Form elements — Rask"];
+    protected override Component? Head => Title()["Form elements — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         PageHeader.Render(
             "Form elements",

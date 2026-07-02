@@ -27,7 +27,7 @@ public sealed class UnmountTimerProbe : Component
         Log($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
     }
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
         Div(Class: "d-flex align-items-center gap-2")[
             BsBadge(Color: BsColor.Warning)[$"#{InstanceId} tick {_ticks}"],
             Span(Class: "text-secondary small")["Stop me to fire OnUnmount and dispose the Timer."]

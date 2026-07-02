@@ -13,7 +13,7 @@ public sealed class BsNavbar : BsBlock
     public bool? Sticky { get; set; }
     public bool? Container { get; set; }
 
-    protected override RenderResult Render()
+    protected override Component? Render()
     {
         var cls = BsClass.Join(
             "navbar",

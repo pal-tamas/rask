@@ -261,7 +261,7 @@ public class UnmountTests
             OnUnmountImpl = () => throw new InvalidOperationException("unmount-boom")
         };
         var boundary = new ErrorBoundary();
-        boundary.SetProps(new Child[] { child }, null);
+        boundary.SetProps(new Component[] { child }, null);
 
         using (LiveRenderContext.Begin(boundary, sp))
         {
@@ -305,7 +305,7 @@ public class UnmountTests
         public CountingDisposable(Action onDispose) => _onDispose = onDispose;
         public void Dispose() => _onDispose();
         protected override void OnUnmount() => UnmountCount++;
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     // Re-disposes its already-disposed child from its own OnUnmount, mimicking a teardown that
@@ -318,7 +318,7 @@ public class UnmountTests
 
         protected override void OnUnmount() => ComponentLifecycle.DisposeComponentTree(_child);
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             if (!IncludeChild)
             {
@@ -345,7 +345,7 @@ public class UnmountTests
             WasCancelledAtUnmount = CancellationToken.IsCancellationRequested;
         }
 
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class UnmountThenDisposable : Component, IDisposable
@@ -354,7 +354,7 @@ public class UnmountTests
         public UnmountThenDisposable(List<string> order) => _order = order;
         public void Dispose() => _order.Add("dispose");
         protected override void OnUnmount() => _order.Add("unmount");
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class OrderingUnmount : Component
@@ -369,7 +369,7 @@ public class UnmountTests
         }
 
         protected override void OnUnmount() => _order.Add(_name);
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 
     private sealed class OrderingMiddle : Component
@@ -387,7 +387,7 @@ public class UnmountTests
 
         protected override void OnUnmount() => _order.Add(_name);
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
@@ -402,7 +402,7 @@ public class UnmountTests
         public bool IncludeChild;
         public SwitchableHost(Component child) => _child = child;
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             if (!IncludeChild)
             {
@@ -428,7 +428,7 @@ public class UnmountTests
             _b = b;
         }
 
-        protected override RenderResult Render()
+        protected override Component? Render()
         {
             if (!IncludeChildren)
             {
@@ -454,6 +454,6 @@ public class UnmountTests
 
         protected override void OnUnmount() => _order.Add("unmount");
 
-        protected override RenderResult Render() => Span();
+        protected override Component? Render() => Span();
     }
 }

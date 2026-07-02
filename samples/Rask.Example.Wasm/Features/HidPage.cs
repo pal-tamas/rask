@@ -12,9 +12,9 @@ namespace Rask.Example.Wasm.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class HidPage : Component
 {
-    protected override RenderResult Head => Title()["WebHID — Rask"];
+    protected override Component? Head => Title()["WebHID — Rask"];
 
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         H1(Class: "h2 mb-1")["WebHID"],
         P(Class: "text-secondary")[

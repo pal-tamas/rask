@@ -6,7 +6,7 @@ namespace Rask.Example.Shared.Features;
 // own top bar and sidebar are built from.
 public sealed class BsNavDemo : Component
 {
-    protected override RenderResult Render() =>
+    protected override Component? Render() =>
     [
         Div(Class: "vstack gap-4")[
             // A navbar shell: brand on the left, an action pushed to the right with the ms-auto utility.
