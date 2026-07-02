@@ -59,6 +59,7 @@ public abstract partial class SharedSmokeTests
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
+        await WalkCqrsGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -144,6 +145,29 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);
+    }
+
+    // The CQRS guide (docs/cqrs.md) embeds the counter slice. Driving it end-to-end proves the
+    // source-generated dispatch works on this host: OnMount runs a query, the button sends a command
+    // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
+    // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
+    // would throw "No handler is registered" and trip the root error boundary instead.
+    private async Task WalkCqrsGuideAsync()
+    {
+        await ClickSidebar("CQRS");
+        await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("CQRS",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        var count = Page.Locator("#cqrs-count");
+        await Expect(count).ToHaveTextAsync("0", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // Command → notification → query round-trip: the count increments and the dispatch log renders.
+        await Page.Locator("#cqrs-increment").ClickAsync();
+        await Expect(count).ToHaveTextAsync("1", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(Page.Locator("#cqrs-log")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        await AssertNoGlobalCrashAsync();
     }
 
     // ---- page walk -----------------------------------------------------------------------------

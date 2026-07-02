@@ -87,6 +87,10 @@
          Rask.Bootstrap; the Auth/EfCore standalone samples don't reference it, so they must not get
          its global static usings (the namespace wouldn't resolve). Same set as the validation usings. -->
     <_RaskExampleBootstrapUsings>$(_RaskExampleValidationUsings)</_RaskExampleBootstrapUsings>
+    <!-- The CQRS demo slice lives in the showcase Shared library, the only in-repo example that
+         references Rask.Cqrs, so scope its global `using Rask.Cqrs;` to that project. -->
+    <_RaskExampleCqrsUsings>false</_RaskExampleCqrsUsings>
+    <_RaskExampleCqrsUsings Condition=" '$(MSBuildProjectName)' == 'Rask.Example.Shared' ">true</_RaskExampleCqrsUsings>
   </PropertyGroup>
 
   <!--
@@ -112,5 +116,7 @@
           Condition=" '$(_RaskExampleValidationUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Validation.FluentValidation\build\Rask.Validation.FluentValidation.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props"
           Condition=" '$(_RaskExampleBootstrapUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Bootstrap\build\Rask.Bootstrap.props') "/>
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props"
+          Condition=" '$(_RaskExampleCqrsUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Cqrs\build\Rask.Cqrs.props') "/>
 
 </Project>

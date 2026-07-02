@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Cqrs;
 using Rask.Core.Authentication;
 using Rask.Example.Shared.Features;
 
@@ -39,6 +40,13 @@ public static class ExampleServiceCollectionExtensions
         // there's a single session, so scoped resolves once from the root provider — same behaviour.
         services.AddScoped<DemoUserProvider>();
         services.AddScoped<IUserProvider>(sp => sp.GetRequiredService<DemoUserProvider>());
+
+        // The CQRS showcase slice (docs/cqrs.md). One host-agnostic AddRaskCqrs call registers the
+        // source-generated handlers on both the Server and WASM hosts; the store is scoped so each
+        // live session counts independently, and the sample-defined DispatchLogBehavior is the
+        // decorator hook in action.
+        services.AddScoped<CqrsCounterStore>();
+        services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
         return services;
     }
 }

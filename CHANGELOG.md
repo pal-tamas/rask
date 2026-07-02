@@ -7,6 +7,25 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Source-generated CQRS/mediator (`Rask.Cqrs`)** — a new opt-in, standalone package for structuring
+  work as queries, commands and notifications. Define `IQuery<TResult>` / `ICommand` / `ICommand<TResult>`
+  / `INotification` messages with their handlers, then dispatch through `IDispatcher` (or the read-only
+  `IQueryDispatcher` / write-only `ICommandDispatcher`) with the response type inferred. Register once
+  with `services.AddRaskCqrs()` — **host-agnostic**, the same call works on the Server and WASM hosts.
+  A dedicated Roslyn generator (`Rask.Cqrs.Generators`) wires every handler at compile time via a
+  `[ModuleInitializer]` registry and closed-generic invokers, so dispatch does **no runtime reflection
+  and no assembly scanning**, and handler constructors are kept under the trimmer with
+  `[DynamicDependency]` — a WASM app using it publishes with **zero IL warnings** (the reason a
+  reflection-based mediator like MediatR can't fit the browser runtime). Pipeline behaviors
+  (`IPipelineBehavior<TRequest, TResult>`, registered with `AddOpenBehavior` / `AddBehavior`) are the
+  decorator hook for cross-cutting logging/validation/transactions; none ship. Notifications fan out
+  `Sequential` (default) or `WhenAll`. Two compile-time diagnostics guard the wiring — **RASK028**
+  (ambiguous handler) and **RASK029** (unregisterable handler). Depends only on
+  `Microsoft.Extensions.DependencyInjection.Abstractions`, so it works in any .NET app, not just Rask.
+  Documented in the new [CQRS](docs/cqrs.md) guide with a live demo in the showcase; self-contained
+  optional package like the validation libraries.
+
 ### Fixed
 - **A radio/checkbox click is no longer reverted by a lagging live-diff render.** The client applied a
   form control's `.checked` property unconditionally in both apply paths (the full morph and the diff
