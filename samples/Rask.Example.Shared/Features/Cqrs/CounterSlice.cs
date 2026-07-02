@@ -43,13 +43,13 @@ public sealed class GetCounterStateHandler(CqrsCounterStore store) : IQueryHandl
 // --- Command with a result: mutate, publish an event, return the new value ---
 public sealed record IncrementCounter(int By) : ICommand<int>;
 
-public sealed class IncrementCounterHandler(CqrsCounterStore store, IPublisher publisher)
+public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
     : ICommandHandler<IncrementCounter, int>
 {
     public async Task<int> HandleAsync(IncrementCounter command, CancellationToken cancellationToken)
     {
         var value = store.IncrementBy(command.By);
-        await publisher.PublishAsync(new CounterIncremented(value), cancellationToken);
+        await dispatcher.PublishAsync(new CounterIncremented(value), cancellationToken);
         return value;
     }
 }

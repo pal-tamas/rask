@@ -47,8 +47,7 @@ builder.Services.AddRaskCqrs();
 ```
 
 Inject `IDispatcher` and call `DispatchAsync` — one method for both queries and commands, with the
-result type inferred from the message. Notifications go through `PublishAsync` (also on `IDispatcher`,
-since it extends `IPublisher`); inject the narrower `IPublisher` when a type only publishes.
+result type inferred from the message. Notifications go through `PublishAsync` on the same `IDispatcher`.
 
 ```csharp
 public sealed class CounterView(IDispatcher dispatcher) : Component
@@ -75,13 +74,13 @@ invoked for a derived one — see Limitations), their run order is deterministic
 order, so don't depend on it, and publishing a notification that has no handlers is a no-op.
 
 ```csharp
-public sealed class IncrementCounterHandler(CqrsCounterStore store, IPublisher publisher)
+public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
     : ICommandHandler<IncrementCounter, int>
 {
     public async Task<int> HandleAsync(IncrementCounter command, CancellationToken ct)
     {
         var value = store.IncrementBy(command.By);
-        await publisher.PublishAsync(new CounterIncremented(value), ct);
+        await dispatcher.PublishAsync(new CounterIncremented(value), ct);
         return value;
     }
 }
