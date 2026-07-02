@@ -756,9 +756,13 @@ public abstract partial class SharedSmokeTests
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
         // Re-open, then close by clicking outside — the transparent full-viewport backdrop catches it.
+        // Click a CORNER of the backdrop: now that CodeSample stacks full-width, the open menu covers the
+        // viewport centre (the backdrop's default click point), so a centre click lands on the menu and
+        // never closes. Same fix the Todos dialog backdrop uses.
         await multi.Locator(".form-select").ClickAsync();
         await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await multi.Locator(".position-fixed").ClickAsync();
+        await multi.Locator(".position-fixed").ClickAsync(
+            new LocatorClickOptions { Position = new Position { X = 8, Y = 8 } });
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
 
         // Controlled BsMultiSelect (Value + OnChange, no Bind): selecting a topic flows out through OnChange
