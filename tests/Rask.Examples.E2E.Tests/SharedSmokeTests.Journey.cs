@@ -62,7 +62,7 @@ public abstract partial class SharedSmokeTests
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
-        await WalkBootstrapPagesAsync();
+        await WalkBootstrapGuideAsync();
         await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();
@@ -181,31 +181,35 @@ public abstract partial class SharedSmokeTests
         await AssertNoGlobalCrashAsync();
     }
 
-    private async Task WalkBootstrapPagesAsync()
+    // Bootstrap guide: the 9 Rask.Bootstrap component example pages folded into docs/bootstrap.md as
+    // inline live demos. Open the guide once, hydration-gate on the interactive modal demo, and drive
+    // the representative components in place — all live via Rask state, no bootstrap.js.
+    private async Task WalkBootstrapGuideAsync()
     {
-        // Navbar & nav — the typed navigation primitives. The demo's nav links render as SPA-routed
-        // anchors (data-rask-nav), the same primitive the showcase chrome is built from.
-        await SideAsync("Navbar & nav", "Navbar & nav");
-        await Expect(Page.Locator(".sample-result-body .navbar").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        Assert.True(await Page.Locator(".sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
+        await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 9,
+            "expected the Bootstrap guide to embed the component demos as live demos");
+        await Expect(Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        await SideAsync("Buttons & badges", "Buttons & badges");
-        // Bootstrap CSS applied: the .btn has Bootstrap's padding (non-zero), proving _content served.
-        var btn = Page.Locator(".sample-result-body button.btn.btn-primary").First;
-        await Expect(btn).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        // Navbar & nav — the BsNavItems render as SPA-routed anchors (data-rask-nav), the same primitive
+        // the showcase chrome is built from.
+        await Expect(Page.Locator(".guide-demo .sample-result-body .navbar").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(
+            await Page.Locator(".guide-demo .sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
+
+        // Buttons — Bootstrap CSS applied (the _content bundle served): .btn-primary renders.
+        await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Modal — open + close driven by Rask state, no bootstrap.js loaded.
-        await SideAsync("Modal", "Modal");
-        await Page.Locator(".sample-result-body button:has-text(\"Launch demo modal\")").First.ClickAsync();
+        await Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First.ClickAsync();
         await Expect(Page.Locator("div.modal.show").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await Page.Locator("div.modal .btn-close").First.ClickAsync();
         await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-
-        await SideAsync("Tabs & accordion", "Tabs & accordion");
-        await SideAsync("Utility classes", "Utility classes");
     }
 
     private async Task WalkDslAndComponentPagesAsync()
