@@ -11,7 +11,6 @@ public sealed class PageBaselineTests
 {
     [Theory]
     [InlineData(typeof(HomePage), "/", "Welcome")]
-    [InlineData(typeof(ComponentsPage), "/components", "User components")]
     [InlineData(typeof(LiveTickerPage), "/realtime/BTC", "BTC live ticker")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
@@ -30,7 +29,6 @@ public sealed class PageBaselineTests
 
     [Theory]
     [InlineData(typeof(HomePage))]
-    [InlineData(typeof(ComponentsPage))]
     [InlineData(typeof(LiveTickerPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TablePage))]

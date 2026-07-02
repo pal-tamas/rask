@@ -219,13 +219,27 @@ public sealed class Card : Component
 }
 ```
 
+Live — a `Greeting` with a required `Name` and an optional `Title`, called through its generated
+`Greeting(Name: "Ada", …)` factory:
+
+<!-- demo:components-greeting -->
+
 **Inject framework services (`HttpClient`, `Navigator`, `RouteState`, `IJSRuntime`) through the
 constructor, not as properties** — a non-nullable settable property would become a *required* factory
-parameter. The template's `Weather` page is the model to copy:
+parameter (and `required` on a property with a DI-only constructor is the **RASK002** warning). The
+template's `Weather` page is the model to copy:
 
 ```csharp
 public sealed class Weather(IWeatherForecastService service) : Component { ... }
 ```
+
+<!-- demo:components-di -->
+
+`[SkipFactory]` keeps a property settable in code but out of the factory signature — useful for seeding
+cached internal state the caller shouldn't pass. The counter below starts at 7 (its `Initial` is
+`[SkipFactory]`, seeded in `OnMount`) and keeps its state across re-renders like any private field:
+
+<!-- demo:components-skipfactory -->
 
 ## 7. The page shell and the `Head` override
 
