@@ -59,6 +59,42 @@ BsNav(Vertical: true, Pills: true)[
 BsOffcanvas(Responsive: Bp.Md, Open: _open, OnClose: () => _open = false)[ /* nav */ ]
 ```
 
+### Live examples
+
+Every component below is driven entirely by Rask's live runtime — **no `bootstrap.js`** is loaded.
+
+**Navigation** — a navbar shell + a vertical nav whose items SPA-route and self-highlight:
+
+<!-- demo:bootstrap-nav -->
+
+**Buttons & badges:**
+
+<!-- demo:bootstrap-buttons -->
+
+**Cards:**
+
+<!-- demo:bootstrap-cards -->
+
+**Alerts** — dismissible, the close is controlled state:
+
+<!-- demo:bootstrap-alerts -->
+
+**Icons** — the typed `BsIcon` over every Bootstrap Icons glyph:
+
+<!-- demo:bootstrap-icons -->
+
+**Modal** — open and close driven by Rask state:
+
+<!-- demo:bootstrap-modal -->
+
+**Tabs & accordion** — controlled active/expanded state:
+
+<!-- demo:bootstrap-tabs -->
+
+**Forms** — `IFormControl<T>`-bound controls with built-in validation:
+
+<!-- demo:bootstrap-forms -->
+
 ## Utility classes
 
 Bootstrap's utility classes are exposed as **typed string tokens**, grouped by family, composed into a
@@ -96,7 +132,7 @@ Bs.Join(Display.Flex(Bp.Lg), Margin.Bottom(4, Bp.Md))   // → "d-lg-flex mb-md-
 
 > The text group is named `Txt` (not `Text`) to avoid clashing with the core `Text` node component.
 
-See the live showcase: **Bootstrap → Utility classes** (`/bootstrap/utilities`).
+<!-- demo:bootstrap-utilities -->
 
 ## Versioning
 

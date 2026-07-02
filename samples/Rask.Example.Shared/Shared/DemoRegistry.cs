@@ -194,6 +194,18 @@ public static class DemoRegistry
                 ["TwinA.cs", "TwinA.css"], Result: Div(Class: "d-flex gap-2 flex-wrap")[TwinA(), TwinB()]),
             ["asset-lazy-mount"] = () => CodeSample(
                 ["LazyMount.cs", "LazyChild.cs", "LazyChild.css"], Result: LazyMount()),
+
+            // --- Bootstrap guide: the Rask.Bootstrap component showcase (its standalone example pages
+            //     folded into docs/bootstrap.md). Each demo already lived in its own Bs*Demo.cs. ---
+            ["bootstrap-nav"] = () => CodeSample(["BsNavDemo.cs"], Result: BsNavDemo()),
+            ["bootstrap-buttons"] = () => CodeSample(["BsButtonsDemo.cs"], Result: BsButtonsDemo()),
+            ["bootstrap-cards"] = () => CodeSample(["BsCardsDemo.cs"], Result: BsCardsDemo()),
+            ["bootstrap-alerts"] = () => CodeSample(["BsAlertsDemo.cs"], Result: BsAlertsDemo()),
+            ["bootstrap-icons"] = () => CodeSample(["BsIconsDemo.cs"], Result: BsIconsDemo()),
+            ["bootstrap-modal"] = () => CodeSample(["BsModalDemo.cs"], Result: BsModalDemo()),
+            ["bootstrap-tabs"] = () => CodeSample(["BsTabsDemo.cs"], Result: BsTabsDemo()),
+            ["bootstrap-forms"] = () => CodeSample(["BsFormsDemo.cs"], Result: BsFormsDemo()),
+            ["bootstrap-utilities"] = () => CodeSample(["BsUtilitiesDemo.cs"], Result: BsUtilitiesDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning
