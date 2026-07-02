@@ -19,28 +19,20 @@ public sealed class HomePage(Navigator nav) : Component
         ("DSL", "bi-vector-pen", "SVG", "Typed SVG components.", "/svg"),
 
         ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/components"),
-        ("Components", "bi-signpost-2", "Routing", "Attributes, nested layouts, Outlet().", "/routing"),
-        ("Components", "bi-link-45deg", "Route + query params", "Bind URL segments and query.", "/users/42"),
-        ("Components", "bi-compass", "Navigator", "Programmatic navigation.", "/navigator"),
         ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", Routes.ToastPage()),
         ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", Routes.FlashPage()),
-        ("Components", "bi-bullseye", "Element refs", "Reach the live DOM from C#.", "/element-ref"),
         ("Components", "bi-mouse", "Events", "DOM event handlers.", "/events"),
         ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
         ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
         ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
         ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/user"),
 
-        ("Styling", "bi-palette", "Scoped CSS", "Co-located, isolated component styles.", "/scoped-css"),
-        ("Styling", "bi-link-45deg", "Asset loading", "Content-addressed scoped assets.", "/asset-loading"),
-
         ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",
             "/http"),
         ("Data & files", "bi-upload", "File upload", "Staged multipart uploads.", "/upload"),
         ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
 
-        ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos"),
-        ("Apps", "bi-braces", "IJSRuntime", "Dispatch to scoped JS modules.", "/jsruntime")
+        ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos")
 
         // The typed browser-API wrappers are documented as inline live demos in the Browser APIs guide.
     ];

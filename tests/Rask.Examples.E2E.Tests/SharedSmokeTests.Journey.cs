@@ -57,6 +57,8 @@ public abstract partial class SharedSmokeTests
         await WalkInteractiveComponentPagesAsync();
         await TestCompositionGuideAsync();
         await WalkLifecycleGuideAsync();
+        await WalkRoutingGuideAsync();
+        await WalkJsInteropGuideAsync();
         await WalkAuthAndContextPagesAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync();
@@ -265,85 +267,10 @@ public abstract partial class SharedSmokeTests
         await skip.ClickAsync();
         await Expect(skip).ToContainTextAsync("Clicks: 10",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Routing: an in-handler Navigator.NavigateTo("/users/137") resolves through parent-route +
-        // outlet, same path as a sidebar click.
-        await SideAsync("Routing", "Routing");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "/users/137" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/users/137$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("User #137",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-
-        // Route + query params: the sidebar entry binds /users/42; the page shows the bound Id.
-        await SideAsync("Route + query params", "User #42");
-        await Expect(Page.Locator("li:has-text('Id')").Locator("strong")).ToHaveTextAsync("42");
-        await Expect(Page).ToHaveTitleAsync("User #42 — Rask",
-            new PageAssertionsToHaveTitleOptions { Timeout = 5_000 });
-
-        // Adjacent text nodes: the toggle renders a literal ("Toggle ?tab=") directly beside a dynamic
-        // value, which the browser coalesces into one text node. A diff-codec regression left the
-        // dynamic half stale after SetQuery (the bug that surfaced here). Assert the label actually
-        // flips on each click — exercises the coalesced-text UpdateText path on both transports.
-        var tabToggle = Page.Locator("button.btn-primary:has-text('Toggle ?tab=')");
-        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=profile",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await tabToggle.ClickAsync();
-        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=activity",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await tabToggle.ClickAsync();
-        await Expect(tabToggle).ToContainTextAsync("Toggle ?tab=profile",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
-        // Navigator: SetQuery mutates the URL and the in-SPA head-diff updates <title> across a
-        // route-param change.
-        await SideAsync("Navigator", "Navigator");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "SetQuery sort=asc" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*\\?sort=asc.*"),
-            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "ClearQuery" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*/navigator$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
     }
 
     private async Task WalkInteractiveComponentPagesAsync()
     {
-        // Element refs: ElementRef → data-rask-ref → JS interop (focus a built-in, measure via user
-        // scoped JS).
-        await SideAsync("Element refs", "Element refs");
-        var refInput = Page.Locator("main .sample-result-body input");
-        await Page.Locator("main .sample-result-body button:has-text('Focus the input')").ClickAsync();
-        await Expect(refInput).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
-        await Page.Locator("main .sample-result-body button:has-text('Measure the box')").ClickAsync();
-        await Expect(Page.Locator("main .sample-result-body p"))
-            .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Scoped JS is loaded: the measure above invoked window.Rask["ElementRefDemo"].width, so the
-        // per-component JS namespace must be present on window.
-        Assert.True(
-            await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
-            "scoped JS namespace window.Rask is missing — component JS did not load");
-
-        // Code sample tabs + copy: the Element refs sample shows the real component
-        // (ElementRefDemo.cs tab) and its sibling scoped JS (ElementRefDemo.js tab). Switching
-        // tabs is a Rask state round-trip that swaps the highlighted pane; clicking copy runs the
-        // scoped Rask.CodeSample.copy, which flashes "Copied!" (resilient to headless clipboard
-        // restrictions via its execCommand fallback).
-        var codeCard = Page.Locator("main .sample-code-col").First;
-        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.js')").ClickAsync();
-        await Expect(codeCard.Locator(".sample-code"))
-            .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        // Regression: switching tabs swaps the highlighted pane by replacing one Raw value
-        // (highlighted C#) with another (highlighted JS) over the live diff. The new markup must
-        // be reparsed into REAL token <span> elements — not escaped into literal "<span …>" text
-        // (which is what a textContent-based Raw update produced, ToContainText above can't catch
-        // it because the escaped text still "contains" the substring). Require a real token span
-        // element in the freshly-switched pane.
-        await Expect(codeCard.Locator(".sample-code code span[class]").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await codeCard.Locator(".sample-copy").ClickAsync();
-        await Expect(codeCard.Locator(".sample-copy"))
-            .ToContainTextAsync("Copied!", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
         // Live ticker: lifecycle hooks drive a zero-JS server-rendered SVG; switching symbol fires
         // OnPropsChanged without remounting.
         await SideAsync("Live ticker", "BTC live ticker");
@@ -615,6 +542,122 @@ public abstract partial class SharedSmokeTests
         Assert.True(await ReadMetricsTickAsync() > firstTick, "the background feed did not advance on its own");
     }
 
+    // Routing guide: the Routing / Route+query / Navigator example pages folded into docs/routing.md.
+    // The guide is otherwise code-only (navigating the showcase itself IS the live routing); the one
+    // live demo is the Navigator query mutators, which operate on this guide's own URL.
+    private async Task WalkRoutingGuideAsync()
+    {
+        await SideAsync("Routing", "Routing", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
+            "expected the Routing guide to embed the Navigator demo as a live demo");
+        var navDemo = Page.Locator(".guide-demo:has(#nav-query)");
+        await Expect(navDemo.Locator("#nav-query")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+        // SetQuery mutates this page's own query; the URL and the live readout both update.
+        await navDemo.Locator("#nav-set-sort").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[?&]sort=asc.*"),
+            new PageAssertionsToHaveURLOptions { Timeout = 10_000 });
+        await Expect(navDemo.Locator("#nav-query")).ToContainTextAsync("sort=asc",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await navDemo.Locator("#nav-clear").ClickAsync();
+        await Expect(navDemo.Locator("#nav-query")).ToContainTextAsync("(empty)",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    }
+
+    // JS-interop guide: the Element refs / Scoped CSS / IJSRuntime / Asset-loading example pages folded
+    // into docs/js-interop.md as inline live demos. Open the guide once, hydration-gate on a late demo
+    // (the lazy-mount toggle near the end), then drive each demo by #id / scoped locator.
+    private async Task WalkJsInteropGuideAsync()
+    {
+        await ClearJsRuntimeStorageAsync();
+        await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 7,
+            "expected the JS-interop guide to embed the demos as live demos");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" })).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // Scoped CSS: two components declare the same `.box` selector; each is scoped, so the computed
+        // background colours differ and neither is the transparent default.
+        var boxes = Page.Locator(".guide-demo .sample-result-body .box");
+        await Expect(boxes).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        var bg0 = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+        Assert.NotEqual(bg0, bg1);
+        Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
+
+        // Element refs: focus a built-in, then measure the box via the sibling scoped JS.
+        var elDemo = Page.Locator(".guide-demo:has(button:has-text('Measure the box'))");
+        await elDemo.Locator("button:has-text('Focus the input')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body input"))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+        await elDemo.Locator("button:has-text('Measure the box')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body p"))
+            .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Scoped JS namespace is present (the measure invoked window.Rask.ElementRefDemo.width).
+        Assert.True(
+            await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
+            "scoped JS namespace window.Rask is missing — component JS did not load");
+
+        // CodeSample tabs + copy on the Element refs demo's source pane: switching tabs swaps one Raw
+        // highlighted pane for another (must reparse into real token <span>s, not escaped text); copy
+        // flashes "Copied!".
+        var codeCard = Page.Locator(".sample-code-col:has(.sample-tab:has-text('ElementRefDemo.js'))").First;
+        await codeCard.Locator(".sample-tab:has-text('ElementRefDemo.js')").ClickAsync();
+        await Expect(codeCard.Locator(".sample-code"))
+            .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(codeCard.Locator(".sample-code code span[class]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await codeCard.Locator(".sample-copy").ClickAsync();
+        await Expect(codeCard.Locator(".sample-copy"))
+            .ToContainTextAsync("Copied!", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
+        await Page.Locator("#demo-input").FillAsync("hello-rask");
+        await Page.Locator("#demo-set").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Set to: hello-rask",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-read").ClickAsync();
+        await Expect(Page.Locator("#demo-last-read")).ToHaveTextAsync("hello-rask",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#demo-remove").ClickAsync();
+        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle, so a lazily-mounted
+        // component is styled the instant its node is inserted — no extra <link>, no FOUC.
+        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
+        await Page.EvaluateAsync(@"() => {
+            window.__raskLazyApplied = null;
+            const obs = new MutationObserver(() => {
+                if (window.__raskLazyApplied !== null) return;
+                if (!document.querySelector('.lazy-child')) return;
+                let applied = false;
+                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
+                    if (!l.sheet) return;
+                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
+                });
+                window.__raskLazyApplied = applied;
+                obs.disconnect();
+            });
+            obs.observe(document.documentElement, {
+                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
+            });
+        }");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
+            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
+            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
+        await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
+        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
+    }
+
     private async Task WalkFormsPagesAsync()
     {
         // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
@@ -771,17 +814,6 @@ public abstract partial class SharedSmokeTests
         // SVG: render smoke.
         await SideAsync("SVG", "SVG", "main h1.h2");
 
-        // Scoped CSS: two components get distinct scope ids → distinct computed background colors.
-        await SideAsync("Scoped CSS", "Scoped CSS");
-        var boxes = Page.Locator(".sample-result-body .box");
-        await Expect(boxes).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        var bg0 = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        Assert.NotEqual(bg0, bg1);
-        // The scoped stylesheet actually loaded and applied: the rule painted a real colour rather
-        // than leaving the default transparent background.
-        Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
-
         // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
         // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
         // injected client-side after boot, so both the link and its computed effect may lag the first
@@ -812,51 +844,6 @@ public abstract partial class SharedSmokeTests
             }");
         Assert.Contains("\"overflowY\":\"auto\"", navScroll);
         Assert.Contains("\"bounded\":true", navScroll);
-
-        // Asset loading: scoped CSS/JS each ship as ONE content-addressed bundle (a single <link> +
-        // <script>), so every component's styles are present up front — a later mount is styled
-        // immediately, with no FOUC and no extra <link>.
-        await SideAsync("Asset loading", "Asset loading", "main h1.h3");
-        var cssLinkSel = "head link[rel='stylesheet'][href^='/_rask/a/']";
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
-        Assert.Equal(1, await Page.Locator("head script[src^='/_rask/a/'][src$='.js']").CountAsync());
-        // Each section is a CodeSample: source beside the live result.
-        Assert.True(await Page.Locator("main .sample-card").CountAsync() >= 4,
-            "expected >=4 CodeSample cards on the asset-loading page");
-        // LazyChild's scoped CSS already rides the bundle, so a measured mount adds no <link> and the
-        // rule (.lazy-child → #fff4d6) is APPLIED in the CSSOM at the instant the node is inserted —
-        // no flash. Observe the mutation rather than getComputedStyle: a freshly recalc'd element can
-        // read its pre-application value for a frame even when the sheet is applied.
-        await Page.EvaluateAsync(@"() => {
-            window.__raskLazyApplied = null;
-            const obs = new MutationObserver(() => {
-                if (window.__raskLazyApplied !== null) return;
-                if (!document.querySelector('.lazy-child')) return;
-                let applied = false;
-                document.head.querySelectorAll('link[rel=""stylesheet""]').forEach((l) => {
-                    if (!l.sheet) return;
-                    try { for (const r of l.sheet.cssRules) if (r.cssText.indexOf('lazy-child') >= 0) applied = true; } catch (e) {}
-                });
-                window.__raskLazyApplied = applied;
-                obs.disconnect();
-            });
-            obs.observe(document.documentElement, {
-                childList: true, subtree: true, attributes: true, attributeFilter: ['class']
-            });
-        }");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Show LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // No new scoped <link> — the bundle already carries LazyChild.css.
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
-        await Page.WaitForFunctionAsync("() => window.__raskLazyApplied !== null",
-            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
-        Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskLazyApplied === true"),
-            "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
-        await Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameString = "Hide LazyChild" }).ClickAsync();
-        await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
-        // The single bundle <link> stays one element across mount/unmount.
-        Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
 
         // HttpClient + DI: an injected HttpClient loads a card in OnMountAsync.
         await SideAsync("HttpClient + DI", "HttpClient + DI");
@@ -927,23 +914,6 @@ public abstract partial class SharedSmokeTests
         // Page-source CodeSample card is present.
         await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
-        // The interactive demo now lives in the CodeSample Result pane beside its own source.
-        await ClearJsRuntimeStorageAsync();
-        await SideAsync("IJSRuntime", "IJSRuntime", "main h1.h2");
-        await Expect(Page.Locator("main .sample-card .sample-result-body #demo-input")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Page.Locator("#demo-input").FillAsync("hello-rask");
-        await Page.Locator("#demo-set").ClickAsync();
-        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Set to: hello-rask",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#demo-read").ClickAsync();
-        await Expect(Page.Locator("#demo-last-read")).ToHaveTextAsync("hello-rask",
-            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
-        await Page.Locator("#demo-remove").ClickAsync();
-        await Expect(Page.Locator("#demo-status")).ToContainTextAsync("Removed",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         await TestBrowserApisAsync();
     }
@@ -1158,7 +1128,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Events", "Tag factories", "Scoped CSS", "Routing", "Welcome" };
+        var labels = new[] { "Events", "Tag factories", "JavaScript interop", "Routing", "Welcome" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)

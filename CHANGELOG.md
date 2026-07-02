@@ -29,6 +29,16 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — routing & JS-interop examples folded into the guides (phase 3).** The 7 standalone
+  example pages — `/routing`, `/users/{id}`, `/navigator`, `/element-ref`, `/scoped-css`,
+  `/asset-loading`, `/jsruntime` — are removed. The **Routing** guide (`docs/routing.md`) gains a live
+  Navigator query-mutation demo (route/query-param binding stays documented in prose and unit-tested; the
+  showcase's own sidebar navigation *is* the live routing). The **JavaScript interop** guide
+  (`docs/js-interop.md`) gains inline live demos for element refs, scoped CSS (two components, same
+  selector), the `IJSRuntime` `sessionStorage` round-trip, and the asset-loading bundle story (basic
+  scoped CSS, scoped JS with module state, twin-selector bundling, lazy mount with no FOUC). Demos are
+  reused via `DemoRegistry`; `NavigatorQueryDemo` was promoted out of the former page. The E2E drives
+  both guides in place.
 - **Examples site — lifecycle examples folded into the guide (phase 3).** The 4 standalone example pages
   (`/lifecycle`, `/disposal`, `/cancellation`, `/background`) are removed; every lifecycle demo — the
   hook-order probe, the mount/unmount cycle, `IDisposable` / `IAsyncDisposable`, `OnUnmount` vs
