@@ -492,6 +492,10 @@ public abstract partial class SharedSmokeTests
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
             "expected the Composition guide to embed the demos as live demos");
+        // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
+        // interaction, so a fill/click never races the guide still hydrating on the slower transports.
+        await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Context: toggling a provider updates a deep consumer straight through a render-cached
         // intermediate. Scope to this demo — badges appear in other demos on the page too.
