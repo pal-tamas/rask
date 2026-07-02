@@ -45,8 +45,26 @@ them until tagged releases begin.
   `Bs{CheckboxGroup,RadioGroup,MultiSelect}.OptionLabel`. Migration: replace `RenderResult` with
   `Component?`, `Child` with `Component`, `Fragment()[a, b]` with `[a, b]` (and `Fragment()[list]`
   with `[.. list]`), and `(Component)Fragment()` / `default` "render nothing" branches with `null`.
+- **README slimmed to a landing page; docs realigned to the `Component` model.** The README is cut from
+  ~1600 lines to a lean front door — pitch, install, and a doc-links table — that routes readers to the
+  **[live demo](https://pal-tamas.github.io/rask/)**, the **`docs/`** guides, and the **`samples/`** apps
+  instead of duplicating a book-length "Core concepts" tour inline (the deep-dive content already lives in
+  `docs/`). Removed the `RenderResult` / `Child` / `Fragment` public vocabulary from the guides
+  (`elements.md`, `building-form-controls.md`, `live-rendering.md`, `llms.txt`): the primitives are now
+  `Text` / `Raw` / `Doctype`, and multi-root / sibling content is described as a `[...]` collection
+  expression returning a `Component`.
 
 ### Fixed
+- **WASM `WasmHostBuilder.BaseAddress` is now the app root, independent of the current route.** It read
+  `document.baseURI`, which — once the SPA has navigated and the `<base>` element is no longer in the
+  live DOM — reflects the *current route*. A singleton `HttpClient` whose `BaseAddress` is resolved
+  lazily therefore baked whatever route was active at first resolution into every later relative fetch:
+  from a two-segment route like `/guides/elements`, `GetFromJsonAsync("data/posts-1.json")` resolved
+  against `/guides/` and 404'd (single-segment routes like `/http` happened to resolve correctly, which
+  masked it). `getBaseAddress()` now derives from the boot-cached, route-independent `getBasePath()`
+  (`new URL(getBasePath(), location.origin)`), so it stays the app root — carrying any sub-path — for
+  the app's lifetime. Covered by the standalone/plain WASM showcase journeys (the `HttpClient + DI` page
+  after the guides walk).
 - **Guides site — prose code fences are syntax-highlighted, deep links scroll on refresh, and the
   mobile navbar stays one line.** Three showcase-guide polish fixes: (1) fenced ```` ```lang ```` blocks
   in the guide prose (rendered by Markdig, which has no highlighter) are now tokenized server-side with
@@ -82,6 +100,13 @@ them until tagged releases begin.
   every one stay interactive, including on the Server (WebSocket) transport.
 
 ### Changed
+- **Examples site — a new Elements & the DSL guide (phase 3).** The 12 standalone DSL / HTML-element
+  example pages (`/tags`, `/primitives`, `/props`, `/svg`, and the eight `/elements/*`) are removed; a
+  **new guide `docs/elements.md`** ("Elements & the DSL", in the Core group) folds them in as 26 inline
+  live demos — the four primitives, tag factories, universal props, typed SVG, and the HTML-element
+  catalog by category. Demos are reused via `DemoRegistry` (each already lived in its own `*Demo.cs`); the
+  DSL and HTML-elements sidebar groups are gone (the new guide's sidebar entry replaces them), the
+  HomePage DSL cards and the hero CTA point at the guide, and the E2E drives the demos on the one page.
 - **Examples site — Bootstrap examples folded into the guide (phase 3).** The 9 standalone
   `Rask.Bootstrap` example pages (`/bootstrap/nav`, `/buttons`, `/cards`, `/alerts`, `/icons`, `/modal`,
   `/tabs`, `/forms`, `/utilities`) are removed; every component demo — navbar/nav, buttons & badges,

@@ -16,18 +16,6 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
         (Features.Routes.HomePage(), "Welcome", "bi-house", "Start", null),
-        (Features.Routes.TagsPage(), "Tag factories", "bi-code-slash", "DSL", null),
-        (Features.Routes.PrimitivesPage(), "Primitives", "bi-asterisk", "DSL", null),
-        (Features.Routes.PropsPage(), "Universal props", "bi-gear", "DSL", null),
-        (Features.Routes.SvgPage(), "SVG", "bi-vector-pen", "DSL", null),
-        (Features.Routes.ElementsTextPage(), "Text & inline", "bi-fonts", "HTML elements", null),
-        (Features.Routes.ElementsGroupingPage(), "Grouping & lists", "bi-list-ul", "HTML elements", null),
-        (Features.Routes.ElementsSectionsPage(), "Sections & headings", "bi-layout-text-window", "HTML elements", null),
-        (Features.Routes.ElementsFormsPage(), "Form elements", "bi-ui-checks-grid", "HTML elements", null),
-        (Features.Routes.ElementsTablesPage(), "Table elements", "bi-table", "HTML elements", null),
-        (Features.Routes.ElementsMediaPage(), "Media & embedded", "bi-image", "HTML elements", null),
-        (Features.Routes.ElementsInteractivePage(), "Interactive", "bi-hand-index", "HTML elements", null),
-        (Features.Routes.ElementsMetadataPage(), "Document & metadata", "bi-file-earmark-code", "HTML elements", null),
         (Features.Routes.ComponentsPage(), "User components", "bi-boxes", "Components", null),
         (Features.Routes.ToastPage(), "Toast", "bi-bell", "Components", null),
         (Features.Routes.FlashPage(), "Flash messages", "bi-megaphone", "Components", null),

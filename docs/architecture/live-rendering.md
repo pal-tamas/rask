@@ -128,7 +128,7 @@ them (`Live/RenderFrame.cs`, `FrameWriter.Text`):
 - **Adjacent text coalesces.** `Div()["a", value]` is two `Text` frames, but the browser
   merges adjacent text into a *single* DOM node. The frame writer concatenates contiguous
   text frames into one so the model matches — including text on either side of a
-  transparent `Fragment`/`Context`, which emits no markup of its own. (Contiguity is
+  transparent component (a `[...]` collection or `Context`), which emits no markup of its own. (Contiguity is
   detected by `HtmlEnd == htmlStart`: any tag or node between two texts advances the HTML,
   so element-separated text stays distinct.)
 - **Empty text emits nothing.** An empty/`null` string child produces no HTML and no DOM
