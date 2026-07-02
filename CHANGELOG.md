@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Fixed
+- **A radio/checkbox click is no longer reverted by a lagging live-diff render.** The client applied a
+  form control's `.checked` property unconditionally in both apply paths (the full morph and the diff
+  codec), while `.value` was already protected by a pending-edit guard. On a busy page a re-render the
+  runtime computed *before* the click reached it could land afterwards and flip the just-clicked
+  radio/checkbox back — most visibly on the slower standalone WASM bundle, where clicking a radio in
+  the Forms guide's group demo reverted to unchecked. `.checked` now uses the same guard: the change
+  dispatch records the pre-click state (the `checked` attribute a native click leaves untouched — for a
+  radio, the whole same-name group), and a lagging frame carrying that stale state is suppressed until
+  an authoritative frame (the echo of the new state, or a server correction) arrives and releases it.
 - **Live components embedded in a lazy child sequence are now reconciled (state persists).** A
   component built inside a *lazy* `IEnumerable<Child>` (a `yield`/LINQ pipeline passed to an element's
   `[...]` children indexer) was evaluated during serialization — after the owning component's
