@@ -44,20 +44,6 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // into the Browser APIs guide as inline live demos (docs/browser-apis.md). See DemoRegistry.
     ];
 
-    // The Bootstrap section: components from the Rask.Bootstrap package.
-    private static readonly (string Path, string Label, string Icon, string Group, string? MatchPrefix)[] BootstrapLinks =
-    [
-        (Features.Routes.BsNavPage(), "Navbar & nav", "bi-list-nested", "Navigation", null),
-        (Features.Routes.BsButtonsPage(), "Buttons & badges", "bi-hand-index-thumb", "Content", null),
-        (Features.Routes.BsCardsPage(), "Cards", "bi-window", "Content", null),
-        (Features.Routes.BsAlertsPage(), "Alerts", "bi-exclamation-triangle", "Content", null),
-        (Features.Routes.BsIconsPage(), "Icons", "bi-emoji-smile", "Content", null),
-        (Features.Routes.BsModalPage(), "Modal", "bi-window-stack", "Interactive", null),
-        (Features.Routes.BsTabsPage(), "Tabs & accordion", "bi-segmented-nav", "Interactive", null),
-        (Features.Routes.BsFormsPage(), "Forms", "bi-input-cursor-text", "Forms", null),
-        (Features.Routes.BsUtilitiesPage(), "Utility classes", "bi-magic", "Utilities", null)
-    ];
-
     // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the
     // search filter text, and the set of expanded sidebar groups (keyed by section + group). All
     // three are plain component fields toggled through the live diff — no JS.
@@ -135,7 +121,6 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
             Links.Concat(extraNav.Select(e => (e.Path, e.Label, e.Icon, e.Group, e.MatchPrefix))));
-        yield return ("Bootstrap", BootstrapLinks);
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
