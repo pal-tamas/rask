@@ -121,6 +121,7 @@ function syncFormProperty(el, name, value, isPresent) {
         if (raskShouldSuppressValue(el, value)) return;
         el.value = value;
     } else if (name === "checked" && tag === "INPUT") {
+        if (raskShouldSuppressChecked(el, !!isPresent)) return;
         el.checked = !!isPresent;
     } else if (name === "selected" && tag === "OPTION") {
         el.selected = !!isPresent;
