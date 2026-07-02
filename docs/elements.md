@@ -5,7 +5,7 @@ factory** for every HTML (and SVG) element, a uniform set of **universal props**
 `[...]` children indexer to nest them. This guide is the reference for that surface, with a live demo of
 each piece.
 
-- [Primitives](#primitives) — `Text`, `Raw`, `Fragment`, `Doctype`, and children from strings
+- [Primitives](#primitives) — `Text`, `Raw`, `Doctype`, sibling fragments via `[...]`, and children from strings
 - [Tag factories](#tag-factories) — every HTML element, strongly typed
 - [Universal props](#universal-props) — `Id`/`Class`/`Style`/`Data`/`Aria` on every tag
 - [SVG](#svg) — typed SVG components, no `Raw()`
@@ -15,8 +15,8 @@ each piece.
 
 ## Primitives
 
-Four primitives sit beneath every Rask page: **`Text`**, **`Raw`**, **`Fragment`**, and **`Doctype`**.
-Everything else is built out of them.
+Three primitives sit beneath every Rask page: **`Text`**, **`Raw`**, and **`Doctype`**. Everything else is
+built out of them — plus the `[...]` collection expression, which groups siblings with no wrapping tag.
 
 `Text` HTML-encodes its value — `<` and `&` render as literal characters, never parsed as markup:
 
@@ -29,8 +29,9 @@ output, sanitised snippets) — **never on user input**.
 
 > **Security:** `Raw` skips all HTML encoding. Never feed it untrusted strings — sanitize, or use `Text`.
 
-`Fragment` renders its children with no surrounding tag — handy for siblings at the root, especially
-`Fragment(Doctype(), Html(...))` as the page entry point:
+A bare `[...]` collection expression returns multiple siblings with no surrounding tag — a `Component`
+in its own right, so it's what `Render()` returns when a component has more than one root. Handy for
+siblings at the root, especially `[Doctype(), Html(...)]` as the page entry point:
 
 <!-- demo:primitives-fragment -->
 
