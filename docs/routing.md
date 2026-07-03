@@ -124,6 +124,13 @@ Other binding-related analyzers worth knowing:
 Route/query binding feeds the lifecycle: `OnPropsChanged*` fires on first render and whenever a bound param actually
 changes value. See [lifecycle.md](lifecycle.md).
 
+A worked example: the **data table** at [`/table`](/table) holds *all* of its UI state — the search filter,
+the sort column and direction, the current page and page size — in `[QueryParam]` properties, and writes each
+header click and pager button back through `Navigator.SetQuery`. Because the state lives in the URL, it's
+shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):
+
+<!-- demo:routing-querytable -->
+
 ## Nested routes — `[ParentRoute]` + `Outlet()`
 
 A page can declare a parent layout with `[ParentRoute(typeof(Parent))]`. The child's template is joined onto the

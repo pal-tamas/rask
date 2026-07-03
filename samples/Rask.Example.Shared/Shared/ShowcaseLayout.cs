@@ -16,15 +16,15 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
         (Features.Routes.HomePage(), "Welcome", "bi-house", "Start", null),
-        (Features.Routes.TablePage(), "Data table", "bi-table", "Components", null),
-        (Features.Routes.OrdersPage(), "Master-detail", "bi-list-nested", "Components", null),
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Flash → Composition (docs/composition.md); Toast →
         // Bootstrap (docs/bootstrap.md); User & auth → Authentication (docs/authentication.md); User
         // components → Getting started (docs/getting-started.md); Live ticker → Lifecycle
-        // (docs/lifecycle.md). See DemoRegistry.
+        // (docs/lifecycle.md); Master-detail → Composition (docs/composition.md keyed lists). The Data
+        // table stays a working [QueryParam] example at /table (unlisted) — its source is shown in
+        // docs/routing.md's query-param section. See DemoRegistry.
     ];
 
     // Mobile drawer open state (ignored at ≥md, where the responsive offcanvas is static), the

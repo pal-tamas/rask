@@ -59,7 +59,9 @@ public sealed class ShowcaseLayoutTests
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
         Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
-        Assert.True(closed >= 2, $"expected the Examples groups collapsed, only {closed} closed");
+        // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
+        // stay collapsed. The guides-expanded assertion above is the primary contract.
+        Assert.True(closed >= 1, $"expected the Examples groups collapsed, only {closed} closed");
     }
 
     [Fact]
@@ -139,7 +141,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav()
     {
-        // Behavioural test: navigate from "/" to "/table", then re-render App with the
+        // Behavioural test: navigate from "/" to "/todos", then re-render App with the
         // same RouteState. The layout's active-link computation must reflect the new
         // path — which requires its Render() to re-execute after the path change.
         var routeState = new RouteState { Path = "/" };
@@ -151,11 +153,11 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-house",
             CollapseWhitespace(htmlAtRoot));
 
-        routeState.Path = "/table";
-        var htmlAtTable = app.RenderAsLiveRoot(services);
-        // After nav, the active link should be the Data-table one (bi-table icon).
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-table",
-            CollapseWhitespace(htmlAtTable));
+        routeState.Path = "/todos";
+        var htmlAtTodos = app.RenderAsLiveRoot(services);
+        // After nav, the active link should be the Todos one (bi-check2-square icon).
+        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-check2-square",
+            CollapseWhitespace(htmlAtTodos));
     }
 
     private static string CollapseWhitespace(string s) =>

@@ -28,6 +28,14 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Examples site — fold the data-grid pages (phase 3, final cluster).** The **Master-detail** page
+  (`/master-detail`) is removed; its grid becomes a new `MasterDetailDemo` embedded in **`docs/composition.md`**
+  under "Keyed lists" (registered `master-detail`) — it's a keyed-reconciliation showcase (expand inserts a
+  keyed detail `<tr>`; sibling open rows keep their own inner sort). `OrdersPageTests` → `MasterDetailDemoTests`.
+  The **Data table** (`/table`) teaches `[QueryParam]`-driven, shareable-URL state, which can't be a co-mounted
+  live guide demo, so it's shown **code-only in `docs/routing.md`** (registered `routing-querytable`) and its
+  `/table` route stays as a real, unlisted example the guide links to. Both are removed from the sidebar/home
+  nav. This completes the phase-3 example-folding; `TodosPage` remains a runnable capstone.
 - **Examples site — fold the Live ticker page into the Lifecycle guide (phase 3).** The standalone
   `/realtime/{Symbol}` page is removed; its reusable `LiveTicker` widget (poll loop in `OnMountAsync`, a symbol
   switch that fires `OnPropsChanged*`, `OnRendered` first-paint, `OnUnmount*`, `CancellationToken`, and a

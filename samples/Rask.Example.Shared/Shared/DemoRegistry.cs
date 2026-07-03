@@ -35,6 +35,17 @@ public static class DemoRegistry
             // Live: mutate the current URL's query through the scoped Navigator (its standalone example
             // page folded into docs/routing.md). Embed NavigatorDemo.cs as the teaching source.
             ["routing-navigator"] = () => CodeSample(["NavigatorDemo.cs"], Result: NavigatorQueryDemo()),
+            // Code-only: the Data table page is a full [QueryParam]-driven grid. It binds sort/filter/page/size
+            // from the URL, so it can't be a co-mounted live demo (a guide can't own query params) — the live
+            // page lives (unlisted) at /table; here we show its source as the query-param teaching example.
+            ["routing-querytable"] = () => CodeSample(
+                ["TablePage.cs"],
+                Title: "A [QueryParam]-driven data table",
+                Notes:
+                "Sort, filter, page and page-size are [QueryParam] properties bound from the URL; each header "
+                + "click and pager button writes them back via Navigator.SetQuery, so the page re-resolves "
+                + "against the new query and the state is shareable, bookmarkable, and replayed by browser "
+                + "back/forward. Visit /table to see it live."),
 
             // --- Forms guide: two-way binding ---
             ["binding-manual"] = () => CodeSample(
@@ -161,6 +172,7 @@ public static class DemoRegistry
             ["virtualize-items"] = () => CodeSample(["VirtualizeItemsDemo.cs"], Result: VirtualizeItemsDemo()),
             ["virtualize-provider"] = () => CodeSample(["VirtualizeProviderDemo.cs"], Result: VirtualizeProviderDemo()),
             ["keyed-lists-reorder"] = () => CodeSample(["KeyedListsReorderDemo.cs"], Result: KeyedListsReorderDemo()),
+            ["master-detail"] = () => CodeSample(["MasterDetailDemo.cs"], Result: MasterDetailDemo()),
             ["drag-drop-sortable"] = () => CodeSample(["DragDropSortableDemo.cs"], Result: DragDropSortableDemo()),
             ["drag-drop-kanban"] = () => CodeSample(["DragDropKanbanDemo.cs"], Result: DragDropKanbanDemo()),
             ["boom-handler"] = () => CodeSample(["BoomHandlerDemo.cs"], Result: BoomHandlerDemo()),
