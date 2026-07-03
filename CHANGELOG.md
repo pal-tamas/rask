@@ -114,6 +114,18 @@ them until tagged releases begin.
   (`__c.Prop = prop;`), which an init-only setter cannot satisfy (CS8852).
 
 ### Fixed
+- **Bootstrap form controls now repaint their `.invalid-feedback` when validation runs on submit.**
+  `BsInput`/`BsSelect`/`BsTextarea` bake the per-field message straight into their own render output from
+  the `EditContext`'s mutable message list — state the render cache doesn't observe. Submitting a form with
+  no `OnInvalidSubmit` (the common case) populated the messages but left the controls cache-pinned to the
+  pre-submit empty state, so the errors never appeared. `BsFormControl` now sets `BypassRenderCache` (the
+  same opt-out `ValidationMessage`/`ValidationSummary`/`ValidatingIndicator` already use), so a submit-time
+  validation pass paints its field messages.
+- **`BsFormControl` boxes each field (label + control + help + `.invalid-feedback`) in one wrapper `<div>`.**
+  Previously the feedback was a bare sibling of the control, so in a flex/grid form
+  (`.d-flex.flex-column.gap-3`) it became a separate gap-spaced item a full row below its input; it now sits
+  tight under the control. `Required: true` additionally marks the field's `<label>` with a red asterisk
+  (`<span class="text-danger ms-1">*</span>`).
 - **A plain `Button(OnClick:)` with no explicit `type` again fires its click handler on the Server host.**
   The recent submit/reset guard in the Server client (added so a modal's backdrop-shield click handler can't
   hijack a native form submit) keyed off `button.type` — but a bare `<button>` reports `type === "submit"`

@@ -32,6 +32,14 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     public string? HelpText { get; set; }
     public string? Name { get; set; }
 
+    // Field() bakes the per-field .invalid-feedback straight into this control's own render output
+    // from the EditContext's mutable message list — state the render cache doesn't observe. Without
+    // opting out, the cache pins whichever message state an earlier render saw (e.g. the empty state
+    // captured before submit), so validation produced during the submit pipeline never repaints. Same
+    // rationale as ValidationMessage/ValidationSummary/ValidatingIndicator, which bundle the feedback
+    // as a separate bypassing component; the Bootstrap controls inline it, so they bypass here.
+    protected override bool BypassRenderCache => true;
+
     // Bootstrap floating label (https://getbootstrap.com/docs/5.0/forms/floating-labels/): wraps the
     // control + label in a .form-floating with the label AFTER the control, so the label floats over an
     // empty field and shrinks on focus/fill. Requires a Label; controls that need a placeholder for the
@@ -81,7 +89,10 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
         Size is { } s && s.Suffix() is { } suffix ? $"{prefix}-{suffix}" : null;
 
     // Wraps a control element with an optional label + help-text/invalid-feedback. Default puts the
-    // label above; Floating wraps control+label in a .form-floating (label after the control).
+    // label above; Floating wraps control+label in a .form-floating (label after the control). The
+    // whole field is boxed in a single wrapper <div> so it is ONE layout item: in a flex/grid form
+    // (e.g. .d-flex.flex-column.gap-3) the .invalid-feedback then sits tight under its input instead
+    // of becoming a separate gap-spaced sibling one row below.
     private protected Component Field(string? controlId, in Bound b, Component control)
     {
         var help = HelpText is not null ? Div(Class: "form-text")[HelpText] : null;
@@ -89,25 +100,30 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
 
         if (Floating is true && Label is not null)
         {
-            return
-            [
+            return Div()[
                 Div(Class: "form-floating")[
                     control,
-                    Rask.Core.Components.Generated.Label(For: controlId)[Label]
+                    RequiredLabel(controlId, null)
                 ],
                 help,
                 feedback
             ];
         }
 
-        return
-        [
-            Label is not null
-                ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-label")[Label]
-                : null,
+        return Div()[
+            Label is not null ? RequiredLabel(controlId, "form-label") : null,
             control,
             help,
             feedback
         ];
     }
+
+    // The field <label>, with a red asterisk appended when the control is Required so every required
+    // field is marked consistently without each call site repeating the markup. Absent Required, the
+    // asterisk span is null and the label renders exactly as before.
+    private Component RequiredLabel(string? controlId, string? cls) =>
+        Rask.Core.Components.Generated.Label(For: controlId, Class: cls)[
+            Label,
+            Required is true ? Span(Class: "text-danger ms-1")["*"] : null
+        ];
 }
