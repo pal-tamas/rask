@@ -1,12 +1,15 @@
-using Rask.Core.Routing;
+using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
 
 namespace Rask.Example.Shared.Tests.Pages;
 
-public sealed class OrdersPageTests
+// MasterDetailDemo (embedded in the Composition guide's "Keyed lists" section) is the former
+// /master-detail page with the page chrome stripped — the outer grid, keyed detail rows, and both
+// sorts are unchanged. Rendered directly here since its standalone page was folded into the guide.
+public sealed class MasterDetailDemoTests
 {
     [Fact]
-    public void Route_MasterDetail_RendersOuterGrid()
+    public void Render_RendersOuterGrid_WithKeyedRowsAndExpanders()
     {
         var html = Render();
 
@@ -30,6 +33,5 @@ public sealed class OrdersPageTests
     }
 
     private static string Render() =>
-        new Shared.App().RenderAsLiveRoot(
-            TestServices.Default(routeState: new RouteState { Path = "/master-detail" }));
+        new MasterDetailDemo().RenderAsLiveRoot(TestServices.Default());
 }

@@ -28,6 +28,58 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Docs — guides-first migration wrap-up (phase 4).** With every foldable example page now living inside a
+  `docs/*.md` guide as an inline live demo, the doc index is reconciled: `llms.txt` gains the missing
+  **Elements & the DSL** entry (all 24 guides indexed), the README documentation table adds **HTTP & files**
+  and **CQRS**, and `docs/ai-agents.md`'s guide list is refreshed to a representative-not-exhaustive form so it
+  stops going stale. Verified no doc/artifact references a deleted example route, and `GuideCatalog` ↔ `docs/`
+  ↔ `llms.txt` ↔ README all line up. Only `TodosPage` and the unlisted `[QueryParam]` `/table` example remain
+  standalone. This closes the guides-first epic.
+- **Examples site — fold the data-grid pages (phase 3, final cluster).** The **Master-detail** page
+  (`/master-detail`) is removed; its grid becomes a new `MasterDetailDemo` embedded in **`docs/composition.md`**
+  under "Keyed lists" (registered `master-detail`) — it's a keyed-reconciliation showcase (expand inserts a
+  keyed detail `<tr>`; sibling open rows keep their own inner sort). `OrdersPageTests` → `MasterDetailDemoTests`.
+  The **Data table** (`/table`) teaches `[QueryParam]`-driven, shareable-URL state, which can't be a co-mounted
+  live guide demo, so it's shown **code-only in `docs/routing.md`** (registered `routing-querytable`) and its
+  `/table` route stays as a real, unlisted example the guide links to. Both are removed from the sidebar/home
+  nav. This completes the phase-3 example-folding; `TodosPage` remains a runnable capstone.
+- **Examples site — fold the Live ticker page into the Lifecycle guide (phase 3).** The standalone
+  `/realtime/{Symbol}` page is removed; its reusable `LiveTicker` widget (poll loop in `OnMountAsync`, a symbol
+  switch that fires `OnPropsChanged*`, `OnRendered` first-paint, `OnUnmount*`, `CancellationToken`, and a
+  zero-JS server-rendered SVG chart) is embedded in **`docs/lifecycle.md`** under "When `OnPropsChanged*`
+  refires" via a new `LiveTickerDemo` (registered `lifecycle-ticker`). Because a co-mounted guide demo can't
+  own a live `[RouteParam]`, the BTC/ETH/SOL switcher now flips `Symbol` via internal state instead of URL
+  navigation — re-rendering reconciles the same `LiveTicker` instance and fires `OnPropsChanged` exactly as
+  the route-param switch did. `LiveTicker.cs` / `PricePoint.cs` are unchanged; `LiveTickerPageTests` →
+  `LiveTickerDemoTests`; the sidebar row and home card repoint at the guide.
+- **Examples site — fold the User components page into Getting started (phase 3).** The standalone
+  `/components` page is removed; its three demos (`Greeting`, `WeatherCard`, `SkipFactoryCounter`, already in
+  their own `*Demo.cs`) are registered in `DemoRegistry` (`components-greeting` / `-di` / `-skipfactory`) and
+  embedded as inline live demos in **`docs/getting-started.md` §6 (factory generation)** — the section that
+  already documents the required/optional/excluded property rules and `[SkipFactory]`. The sidebar's User
+  components row and the home card repoint at the Getting started guide; the E2E `WalkUserComponentsGuideAsync`
+  drives the greeting + `[SkipFactory]` counter on that guide. No new guide file.
+- **Examples site — fold four Components-group example pages into their existing guides (phase 3).** The
+  standalone `/events`, `/flash`, `/toast` and `/user` pages are removed; their demos (already in their own
+  `*Demo.cs`) are registered in `DemoRegistry` and embedded as inline live demos in the guides that already
+  document them: **Events** and **Flash** → `docs/composition.md`, **Toast** → `docs/bootstrap.md`, and the
+  **User & auth** gating demos (imperative `IUserProvider` gate + declarative `Authorize`) → `docs/authentication.md`.
+  The sidebar's Events/Toast/Flash/User rows and the home page's cards repoint at those guides. The E2E journey
+  drives the moved demos on their guide walks (`TestCompositionGuideAsync`, `WalkBootstrapGuideAsync`, and a new
+  `WalkAuthGuideAsync`); the Server slow-link / WS-reconnect steps that used `/events` now use the composition
+  guide's folded click-counter demo. No new guide files. `ComponentsPage`, `LiveTicker`, `TablePage`,
+  `OrdersPage` and the `Todos` capstone app are untouched (later clusters).
+- **Examples site — a new HTTP & files guide (phase 3).** The three standalone "Data & files" example
+  pages — `/http` (HttpClient + DI), `/upload` (file upload), `/download` (file download) — are removed;
+  a **new guide `docs/http-and-files.md`** ("HTTP & files", Integration group) folds them in as four inline
+  live demos (register + fetch, upload, download). The `*Demo.cs` components are unchanged — they're now
+  registered in `DemoRegistry` (`data-http-register` / `data-http-fetch` / `data-upload` / `data-download`)
+  and embedded by the guide (verified by `GuideEmbeddingTests`); the sidebar's Data/Files groups and the
+  home page's Data & files cards repoint at the guide. The E2E journey's scattered `/http` `/upload`
+  `/download` walks are replaced by a single `WalkHttpAndFilesGuideAsync` (which also guards the WASM
+  base-address fix — the `HttpClient` fetch runs from the two-segment `/guides/http-and-files` route). The
+  existing `docs/data-access.md` (EF Core persistence) is unchanged; the new guide covers data/file
+  *transfer* and cross-links to it. The `Data table` and `Master-detail` example pages are untouched.
 - **BREAKING: `Component` is now the framework's single rendering currency — `RenderResult` and
   `Child` are removed.** `Render()` and the `Head` override now return `Component?` (symmetric;
   return `null` to render nothing, replacing the old empty-`Fragment`/`default` sentinel). Children
@@ -62,6 +114,14 @@ them until tagged releases begin.
   (`__c.Prop = prop;`), which an init-only setter cannot satisfy (CS8852).
 
 ### Fixed
+- **An uncontrolled `<input>`'s value is no longer wiped by a full-document morph.** A full-HTML reply
+  (initial paint, scoped-CSS delivery, or a reconnect resync) reconciles the whole page through `morph()`,
+  which reset **every** input to the rendered `value` — treating a *missing* `value` attribute as `value=""`.
+  But an input with no rendered `value` is *uncontrolled* (the framework isn't managing it), so any full reply
+  that landed while the user had typed into one silently cleared their text (e.g. a form's `FormData` then read
+  blank). The morph now only syncs an input when the render actually provides a `value` (controlled/bound
+  inputs always render one, even `value=""`), leaving uncontrolled inputs' client-owned values alone. Guarded
+  by an E2E that types into an uncontrolled field, forces a reconnect resync, and asserts the value survives.
 - **WASM `WasmHostBuilder.BaseAddress` is now the app root, independent of the current route.** It read
   `document.baseURI`, which — once the SPA has navigated and the `<base>` element is no longer in the
   live DOM — reflects the *current route*. A singleton `HttpClient` whose `BaseAddress` is resolved

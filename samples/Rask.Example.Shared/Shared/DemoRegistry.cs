@@ -35,6 +35,17 @@ public static class DemoRegistry
             // Live: mutate the current URL's query through the scoped Navigator (its standalone example
             // page folded into docs/routing.md). Embed NavigatorDemo.cs as the teaching source.
             ["routing-navigator"] = () => CodeSample(["NavigatorDemo.cs"], Result: NavigatorQueryDemo()),
+            // Code-only: the Data table page is a full [QueryParam]-driven grid. It binds sort/filter/page/size
+            // from the URL, so it can't be a co-mounted live demo (a guide can't own query params) — the live
+            // page lives (unlisted) at /table; here we show its source as the query-param teaching example.
+            ["routing-querytable"] = () => CodeSample(
+                ["TablePage.cs"],
+                Title: "A [QueryParam]-driven data table",
+                Notes:
+                "Sort, filter, page and page-size are [QueryParam] properties bound from the URL; each header "
+                + "click and pager button writes them back via Navigator.SetQuery, so the page re-resolves "
+                + "against the new query and the state is shareable, bookmarkable, and replayed by browser "
+                + "back/forward. Visit /table to see it live."),
 
             // --- Forms guide: two-way binding ---
             ["binding-manual"] = () => CodeSample(
@@ -161,6 +172,7 @@ public static class DemoRegistry
             ["virtualize-items"] = () => CodeSample(["VirtualizeItemsDemo.cs"], Result: VirtualizeItemsDemo()),
             ["virtualize-provider"] = () => CodeSample(["VirtualizeProviderDemo.cs"], Result: VirtualizeProviderDemo()),
             ["keyed-lists-reorder"] = () => CodeSample(["KeyedListsReorderDemo.cs"], Result: KeyedListsReorderDemo()),
+            ["master-detail"] = () => CodeSample(["MasterDetailDemo.cs"], Result: MasterDetailDemo()),
             ["drag-drop-sortable"] = () => CodeSample(["DragDropSortableDemo.cs"], Result: DragDropSortableDemo()),
             ["drag-drop-kanban"] = () => CodeSample(["DragDropKanbanDemo.cs"], Result: DragDropKanbanDemo()),
             ["boom-handler"] = () => CodeSample(["BoomHandlerDemo.cs"], Result: BoomHandlerDemo()),
@@ -172,6 +184,19 @@ public static class DemoRegistry
             //     embed the probe source — the teaching artifact — while Result mounts the live widget. ---
             ["lifecycle-hooks"] = () => CodeSample(["LifecycleProbe.cs"], Result: LifecycleProbe()),
             ["lifecycle-cycle"] = () => CodeSample(["LifecycleCycleProbe.cs"], Result: LifecycleCycleDemo()),
+            // Live ticker (its standalone /realtime/{Symbol} page folded in): a poll loop in OnMountAsync
+            // + a symbol switch that fires OnPropsChanged, drawing a zero-JS server-rendered SVG chart.
+            ["lifecycle-ticker"] = () => CodeSample(
+                ["LiveTicker.cs"],
+                Notes:
+                "OnMountAsync runs a long-lived poll loop; every await uses ConfigureAwait(false) so it "
+                + "calls StateHasChanged() once per real data change (one render per tick). Switching the "
+                + "symbol fires OnPropsChanged/OnPropsChangedAsync, which clears the buffer and wakes the loop "
+                + "so the new asset polls immediately; CancellationToken cancels the loop on unmount. The chart "
+                + "is a server-rendered SVG (Sparkline) emitted straight from Render() — no canvas, no JS. The "
+                + "feed is a local random-walk (offline-safe); swapping in a real HTTP source is a one-line "
+                + "change in PollOnceAsync.",
+                Result: LiveTickerDemo()),
             ["disposal-sync"] = () => CodeSample(["DisposableTimerProbe.cs"], Result: DisposalSyncDemo()),
             ["disposal-async"] = () => CodeSample(["DisposableAsyncProbe.cs"], Result: DisposalAsyncDemo()),
             ["disposal-unmount"] = () => CodeSample(["UnmountTimerProbe.cs"], Result: DisposalUnmountDemo()),
@@ -247,6 +272,107 @@ public static class DemoRegistry
             ["elements-media"] = () => CodeSample(["ElementsMediaDemo.cs"], Result: ElementsMediaDemo()),
             ["elements-interactive"] = () => CodeSample(["ElementsInteractiveDemo.cs"], Result: ElementsInteractiveDemo()),
             ["elements-metadata"] = () => CodeSample(["ElementsMetadataDemo.cs"], Result: ElementsMetadataDemo()),
+
+            // --- HTTP & files guide: the HttpClient+DI, file-upload and file-download example pages
+            // folded into docs/http-and-files.md as inline live demos. ---
+            ["data-http-register"] = () => CodeSample(
+                ["HttpRegisterDemo.cs"],
+                Notes:
+                "Relative URLs require BaseAddress. WasmHostBuilder.BaseAddress is the app root (and carries "
+                + "any sub-path) — read it lazily inside the factory so it fires after the JS module imports.",
+                Result: HttpRegisterDemo()),
+            ["data-http-fetch"] = () => CodeSample(
+                ["HttpFetchDemo.cs"],
+                Notes:
+                "OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a "
+                + "re-render when the awaited task completes. Component.CancellationToken cancels on unmount — "
+                + "navigate away mid-fetch and the in-flight request aborts.",
+                Result: HttpFetchDemo()),
+            ["data-upload"] = () => CodeSample(
+                ["UploadDemo.cs"],
+                Notes:
+                "The handler runs once per change event. RaskFile is only valid while the handler is on the "
+                + "stack — read whatever you need (bytes, metadata) before returning. The same component code "
+                + "runs unchanged on both hosts.",
+                Result: UploadDemo()),
+            ["data-download"] = () => CodeSample(
+                ["DownloadDemo.cs"],
+                Notes:
+                "Navigator.Download must be called from an event handler — outside that scope it throws, "
+                + "because there's no live render round-trip to attach the download to. The handler can do "
+                + "other state changes too (here, bump a counter); both ship in the same render.",
+                Result: DownloadDemo()),
+
+            // --- Components-group example pages folded into their existing guides (part 1). ---
+            // Events → composition.md (the GlobalEventHandlers surface).
+            ["events"] = () => CodeSample(
+                ["EventsDemo.cs"],
+                Notes:
+                "Every handler just mutates a field; the framework re-renders the component that owns the "
+                + "callback, so the readouts update on their own. MouseEventArgs carries button/coords/modifiers, "
+                + "WheelEventArgs adds deltas, ClipboardEventArgs the pasted text. Wiring both OnX and OnXAsync "
+                + "for one event is a compile error (RASK027) — pick one.",
+                Result: EventsDemo()),
+            ["events-click"] = () => CodeSample(["EventsClickDemo.cs"], Result: EventsClickDemo()),
+            ["events-input"] = () => CodeSample(["EventsInputDemo.cs"], Result: EventsInputDemo()),
+            ["events-select"] = () => CodeSample(["EventsSelectDemo.cs"], Result: EventsSelectDemo()),
+            ["events-form"] = () => CodeSample(
+                ["EventsFormDemo.cs"],
+                Notes: "OnSubmit receives a FormData object collected from all named form fields.",
+                Result: EventsFormDemo()),
+            // Flash → composition.md ("Flash messages").
+            ["flash"] = () => CodeSample(
+                ["FlashDemo.cs"],
+                Notes:
+                "FlashDemo injects IFlash and calls flash.Success(...) / .Error(...) on click. The headless "
+                + "FlashOutlet — subscribed to IFlash.Changed — drains the queue (consumed-once) and renders a "
+                + "dismissible BsAlert stack; the × calls the Template's dismiss(id). No StateHasChanged, no JS.",
+                Result: FlashDemo()),
+            // Toast → bootstrap.md (the Rask.Bootstrap BsToast component).
+            ["bootstrap-toast"] = () => CodeSample(
+                ["ToastDemo.cs"],
+                Notes:
+                "BsToast renders class=\"toast show\", so a toast exists in the tree only while visible; the × "
+                + "fires OnClose(Id) — an Action<int> the host binds as a method group — so the framework "
+                + "re-renders the host, dropping it from the list. Auto-hide is a one-shot Timer in OnMount, "
+                + "disposed in OnUnmount. Each toast carries a Key for the keyed diff.",
+                Result: ToastDemo()),
+            // User & auth → authentication.md (imperative gate + declarative Authorize).
+            ["auth-user-gate"] = () => CodeSample(
+                ["UserGateDemo.cs"],
+                Notes:
+                "The principal resolves from the IUserProvider in scope. A component that gates on the user "
+                + "subscribes to the provider's Changed event — the same pattern sidebars use for RouteState — "
+                + "so it re-renders when the principal changes.",
+                Result: UserGateDemo()),
+            ["auth-authorize"] = () => CodeSample(
+                ["AuthorizeDemo.cs"],
+                Notes:
+                "Authorize picks the Authorized, NotAuthorized, or Authorizing slot off the same IUserProvider. "
+                + "Roles and the authenticated check are synchronous (no flicker); Policy resolves in the "
+                + "background. For whole-page gating use [Authorize] on the page instead.",
+                Result: AuthorizeDemo()),
+
+            // --- User components (factory generation) → getting-started.md §6 (its /components page folded in). ---
+            ["components-greeting"] = () => CodeSample(
+                ["ComponentsGreetingDemo.cs"],
+                Notes:
+                "Non-nullable property without an initializer → required factory parameter. Nullable property "
+                + "→ optional with default null. Property with an initializer → excluded from the factory.",
+                Result: ComponentsGreetingDemo()),
+            ["components-di"] = () => CodeSample(
+                ["ComponentsDiDemo.cs"],
+                Notes:
+                "Inject services (HttpClient/Navigator/RouteState) through the constructor, never as a public "
+                + "settable property — that would become a required factory parameter, and `required` on a "
+                + "property with a DI-only constructor is RASK002. Constructor params resolve from DI via "
+                + "ActivatorUtilities; only public settable properties feed the generated factory."),
+            ["components-skipfactory"] = () => CodeSample(
+                ["ComponentsSkipFactoryDemo.cs"],
+                Notes:
+                "[SkipFactory] keeps a property settable in code while removing it from the generated factory "
+                + "signature. The counter below started at 7 — click it and the state persists across re-renders.",
+                Result: ComponentsSkipFactoryDemo()),
         };
 
     // Whether a demo key is registered (guides referencing an unknown key render a visible warning
