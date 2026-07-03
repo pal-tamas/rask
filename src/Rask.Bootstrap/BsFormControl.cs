@@ -32,6 +32,12 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     public string? HelpText { get; set; }
     public string? Name { get; set; }
 
+    // Bootstrap floating label (https://getbootstrap.com/docs/5.0/forms/floating-labels/): wraps the
+    // control + label in a .form-floating with the label AFTER the control, so the label floats over an
+    // empty field and shrinks on focus/fill. Requires a Label; controls that need a placeholder for the
+    // effect (BsInput/BsTextarea) supply one from the Label when floating.
+    public bool? Floating { get; set; }
+
     // The resolved binding for a render: accessor/context/field + current value + validation state.
     private protected readonly record struct Bound(
         bool IsBound,
@@ -74,14 +80,34 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     private protected string? SizeClass(string prefix) =>
         Size is { } s && s.Suffix() is { } suffix ? $"{prefix}-{suffix}" : null;
 
-    // Wraps a control element with an optional label above and help-text/invalid-feedback below.
-    private protected Component Field(string? controlId, in Bound b, Component control) =>
-    [
-        Label is not null
-            ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-label")[Label]
-            : null,
-        control,
-        HelpText is not null ? Div(Class: "form-text")[HelpText] : null,
-        b.Invalid ? Div(Class: "invalid-feedback d-block")[b.Messages[0]] : null
-    ];
+    // Wraps a control element with an optional label + help-text/invalid-feedback. Default puts the
+    // label above; Floating wraps control+label in a .form-floating (label after the control).
+    private protected Component Field(string? controlId, in Bound b, Component control)
+    {
+        var help = HelpText is not null ? Div(Class: "form-text")[HelpText] : null;
+        var feedback = b.Invalid ? Div(Class: "invalid-feedback d-block")[b.Messages[0]] : null;
+
+        if (Floating is true && Label is not null)
+        {
+            return
+            [
+                Div(Class: "form-floating")[
+                    control,
+                    Rask.Core.Components.Generated.Label(For: controlId)[Label]
+                ],
+                help,
+                feedback
+            ];
+        }
+
+        return
+        [
+            Label is not null
+                ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-label")[Label]
+                : null,
+            control,
+            help,
+            feedback
+        ];
+    }
 }

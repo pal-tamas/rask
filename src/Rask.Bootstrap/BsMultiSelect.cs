@@ -28,6 +28,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
+    // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
+    // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
+    public string? Label { get; set; }
+    public bool? Floating { get; set; }
+
     // View state only — the selection lives in the bound model / parent Value. Toggling re-renders.
     private bool _open;
 
@@ -102,29 +107,43 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             idx++;
         }
 
-        var children = new List<Component>
+        var boxDiv = Div(
+            Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
+                Flex.Align(BsAlign.Center), Flex.Gap(1), disabled ? "disabled pe-none" : null),
+            TabIndex: disabled ? null : 0,
+            OnClick: disabled ? null : () => _open = !_open,
+            OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
+
+        var floating = Floating is true && Label is not null;
+        var labelNode = Label is null
+            ? null
+            : Rask.Core.Components.Generated.Label(Class: floating ? null : "form-label")[Label];
+
+        var children = new List<Component?>();
+        if (labelNode is not null && !floating)
         {
-            Div(
-                Class: disabled
-                    ? "form-select h-auto d-flex flex-wrap align-items-center gap-1 disabled pe-none"
-                    : "form-select h-auto d-flex flex-wrap align-items-center gap-1",
-                TabIndex: disabled ? null : 0,
-                OnClick: disabled ? null : () => _open = !_open,
-                OnKeyDown: disabled ? null : OnBoxKeyDown)[box],
-            Div(Class: _open ? "dropdown-menu show d-block w-100" : "dropdown-menu")[rows]
-        };
+            children.Add(labelNode);
+        }
+
+        // Floating: .form-floating wraps the .form-select box + label (label after → Bootstrap floats it);
+        // the dropdown menu stays a sibling of it inside .dropdown so it still positions correctly.
+        children.Add(floating ? Div(Class: "form-floating")[boxDiv, labelNode] : boxDiv);
+        children.Add(Div(Class: _open
+            ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
+            : "dropdown-menu")[rows]);
 
         if (_open && !disabled)
         {
             children.Add(Div(
-                Class: "position-fixed top-0 start-0 w-100 h-100",
+                Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0, Sizing.W(100), Sizing.H(100)),
                 Style: "z-index: 999;",
                 OnClick: () => _open = false));
         }
 
         if (bound)
         {
-            children.Add(ValidationMessage(Bind!, msgs => Div(Class: "invalid-feedback d-block")[msgs[0]]));
+            children.Add(ValidationMessage(Bind!,
+                msgs => Div(Class: BsClass.Join("invalid-feedback", Display.Block()))[msgs[0]]));
         }
 
         return Div(Class: BsClass.Join("dropdown", Class), Id: Id)[children];
