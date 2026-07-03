@@ -226,6 +226,9 @@ public static class Font
     public const string Italic = "fst-italic";
     public const string NotItalic = "fst-normal";
 
+    // .small — ~0.875em, the inline small-print size (Bootstrap's utility form of <small>).
+    public const string Small = "small";
+
     // fs-1 … fs-6 font-size scale.
     public static string Size(int n) => $"fs-{n}";
 }
@@ -241,6 +244,19 @@ public static class Sizing
     public const string MaxH100 = "mh-100";
     public const string VW100 = "vw-100";
     public const string VH100 = "vh-100";
+}
+
+// Bootstrap grid: the .row container and its column spans (.col / .col-auto / .col-{bp?}-{1..12}).
+// (Named Grid — not Col/Row — so it doesn't collide with the generated <col>/<tr> element factories.)
+// A bare Column(n) also caps width to n/12 of its container, so it centres a card with Margin.XAuto
+// without needing a Row parent.
+public static class Grid
+{
+    public const string Row = "row";
+    public const string Col = "col";
+    public const string ColAuto = "col-auto";
+    public static string Column(int n, Bp? bp = null) => $"col-{bp.Infix()}{n}";
+    public static string Gutter(int size) => $"g-{size}";
 }
 
 // position-* and edge/translate helpers.
@@ -270,6 +286,11 @@ public static class Position
 public static class Bg
 {
     public static string Color(BsColor color) => $"bg-{color.Infix()}";
+
+    // The contrast-subtle background tint (bg-{color}-subtle) — the light wash used for gentle row/cell
+    // emphasis (e.g. warning/negative stock highlighting) rather than the full-strength Color() fill.
+    public static string Subtle(BsColor color) => $"bg-{color.Infix()}-subtle";
+
     public const string Body = "bg-body";
     public const string BodyTertiary = "bg-body-tertiary";
     public const string White = "bg-white";
