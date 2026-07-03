@@ -313,15 +313,14 @@ public abstract partial class SharedSmokeTests
         await eInput.Locator("input[type=text]").First.FillAsync("Hello Rask");
         await Expect(eInput).ToContainTextAsync("You typed: \"Hello Rask\"", contains);
 
-        // Form (onSubmit → FormData): assert the demo renders its named input + submit control. Driving the
-        // submit on the busy co-mounted guide is timing-fragile — the uncontrolled input's value can be
-        // reconciled away before the form's FormData is read at submit time (the readout lands "(blank)").
-        // The OnSubmit/FormData path is covered by EventsFormDemoTests; here we assert it mounts.
+        // Form (onSubmit → FormData): fill the named field and submit; OnSubmit reads it off a FormData and
+        // echoes it. This is reliable now that the morph no longer wipes an uncontrolled input's value on a
+        // full reply (it previously landed "(blank)" on the busy co-mounted guide — see the uncontrolled-input
+        // reconnect guard in RunUnusualActivityAsync). The readout wraps the value in <strong>.
         var eForm = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "Last submitted:" });
-        await Expect(eForm.Locator("input[name=name]")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(eForm.Locator("button[type=submit]")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await eForm.Locator("input[name=name]").FillAsync("Ada");
+        await eForm.Locator("button[type=submit]").ClickAsync();
+        await Expect(eForm).ToContainTextAsync("Last submitted: Ada", contains);
 
         // Full surface demo: OnDoubleClick (MouseEventArgs) + OnFocus (parameterless) reach C# and re-render
         // — proving the universal event store dispatches over both transports, not just OnClick.
@@ -1195,11 +1194,21 @@ public abstract partial class SharedSmokeTests
             await clicks.ClickAsync();
             await Expect(clicks).ToContainTextAsync("Clicks: 2",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+            // An *uncontrolled* input's value is client-owned (the framework renders no `value` attribute
+            // for it). A reconnect forces a full-HTML resend that morphs the whole document — and that
+            // morph must NOT reset the uncontrolled input to "" (regression: it did, wiping any in-progress
+            // typed value on every full reply — scoped-CSS delivery, reconnect, …). The events-form demo's
+            // name field is uncontrolled; type into it, then reconnect and assert the value survived.
+            var uncontrolled = Page.Locator(".guide-demo")
+                .Filter(new LocatorFilterOptions { HasText = "Last submitted:" }).Locator("input[name=name]");
+            await uncontrolled.FillAsync("survive-the-reconnect");
             await Page.Context.SetOfflineAsync(true);
             await Page.Context.SetOfflineAsync(false);
             await clicks.ClickAsync();
             await Expect(clicks).ToContainTextAsync("Clicks: 3",
-                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+                new LocatorAssertionsToContainTextOptions { Timeout = 15_000 }); // server-held state survived
+            await Expect(uncontrolled).ToHaveValueAsync("survive-the-reconnect",
+                new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });   // client-owned value survived the resync morph
         }
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
