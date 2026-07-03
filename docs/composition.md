@@ -267,6 +267,13 @@ is the same reconciliation identity the diff uses everywhere — not a reactive 
 
 <!-- demo:keyed-lists-reorder -->
 
+A **master-detail** grid is the same identity trick at work: each order row carries a `Key`, and expanding
+one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that as an in-place keyed insert
+(collapse → remove), so the other open rows keep their own independently-sorted inner grid across the change
+— no wholesale re-render of the table:
+
+<!-- demo:master-detail -->
+
 ---
 
 ## Flash messages
