@@ -4,7 +4,8 @@ namespace Rask.Bootstrap;
 
 // One column of a BsDataGrid<T>. Value gives the cell text (ToString'd); Template overrides it with a
 // custom cell. Sortable makes the header a sort toggle, ordering by SortKey (falling back to Value when
-// it is IComparable). Class is applied to both the header and the cells (e.g. Txt.End() for numbers).
+// it is IComparable). Class is applied to the header, the cells and the footer cell (e.g. Txt.End() for
+// numbers). Footer/FooterTemplate render a summary cell in the table footer (computed over all rows).
 public sealed class BsColumn<T>
 {
     public string Title { get; init; } = "";
@@ -14,18 +15,32 @@ public sealed class BsColumn<T>
     public Func<T, IComparable?>? SortKey { get; init; }
     public string? Class { get; init; }
 
+    // Footer summary for this column, computed over the full row set (e.g. a column total). Footer gives
+    // text; FooterTemplate overrides it with a custom cell. A grid renders a <tfoot> when any column sets
+    // either.
+    public Func<IReadOnlyList<T>, object?>? Footer { get; init; }
+    public Func<IReadOnlyList<T>, Component>? FooterTemplate { get; init; }
+
+    internal bool HasFooter => Footer is not null || FooterTemplate is not null;
+
     internal IComparable? Sort(T row) =>
         SortKey is not null ? SortKey(row) : Value?.Invoke(row) as IComparable;
 
     internal Component Cell(T row) =>
         Template is not null ? Template(row) : (Value?.Invoke(row)?.ToString() ?? "");
+
+    internal Component FooterCell(IReadOnlyList<T> rows) =>
+        FooterTemplate is not null ? FooterTemplate(rows)
+        : Footer is not null ? (Footer(rows)?.ToString() ?? "")
+        : "";
 }
 
-// A data grid over an in-memory sequence: typed columns, click-to-sort headers, and optional client-side
-// paging (PageSize > 0). Server-rendered — sorting and paging mutate component state and re-render, so it
-// suits small/medium result sets; for large sets, page in the query and pass one page as Data. Cells bind
-// straight to T (no view-model). The richer feature set (filtering, selection, master-detail) is layered
-// on later; this is the BsTable replacement for list screens.
+// A data grid over an in-memory sequence: typed columns, click-to-sort headers, optional client-side
+// paging (PageSize > 0), optional per-column footer totals, and optional master-detail (an expandable
+// detail row per row via ExpandedContent). Server-rendered — sorting, paging and expansion mutate
+// component state and re-render, so it suits small/medium result sets; for large sets, page in the query
+// and pass one page as Data. Cells bind straight to T (no view-model). This is the BsTable replacement for
+// list screens.
 public sealed class BsDataGrid<T> : Component
 {
     public IReadOnlyList<T>? Data { get; set; }
@@ -43,9 +58,16 @@ public sealed class BsDataGrid<T> : Component
     public Func<T, object?>? RowKey { get; set; }
     public Component? Empty { get; set; }
 
+    // When set, each row gets a leading expander toggle and, when expanded, a full-width detail row built
+    // by this callback (master-detail). Requires RowKey for stable expansion across sort/paging.
+    public Func<T, Component?>? ExpandedContent { get; set; }
+
     private int _page;
     private int _sortColumn = -1;
     private bool _sortDescending;
+    private readonly HashSet<object> _expanded = [];
+
+    private bool Expandable => ExpandedContent is not null;
 
     private void ToggleSort(int column)
     {
@@ -60,6 +82,14 @@ public sealed class BsDataGrid<T> : Component
         }
 
         _page = 0;
+    }
+
+    private void ToggleExpand(object key)
+    {
+        if (!_expanded.Add(key))
+        {
+            _expanded.Remove(key);
+        }
     }
 
     protected override Component? Render()
@@ -88,11 +118,14 @@ public sealed class BsDataGrid<T> : Component
             ? rows.Skip(_page * PageSize).Take(PageSize).ToList()
             : rows;
 
+        bool hasFooter = columns.Any(c => c.HasFooter);
+
         return
         [
             BsTable(Striped: Striped, Hover: Hover, Small: Small, Responsive: Responsive)[
                 Thead()[Tr()[HeaderCells(columns)]],
-                Tbody()[BodyRows(columns, pageRows)]
+                Tbody()[BodyRows(columns, pageRows)],
+                hasFooter ? Tfoot()[Tr()[FooterCells(columns, data)]] : null
             ],
             PageSize > 0 && pageCount > 1 ? Pager(pageCount, rows.Count) : null
         ];
@@ -100,6 +133,9 @@ public sealed class BsDataGrid<T> : Component
 
     private IEnumerable<Component> HeaderCells(IReadOnlyList<BsColumn<T>> columns)
     {
+        if (Expandable)
+            yield return Th()[""];
+
         for (var i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
@@ -127,14 +163,39 @@ public sealed class BsDataGrid<T> : Component
         {
             var row = pageRows[r];
             var key = RowKey?.Invoke(row) ?? r;
-            yield return Tr(Key: key)[Cells(columns, row)];
+            yield return Tr(Key: key)[Cells(columns, row, key)];
+
+            if (Expandable && _expanded.Contains(key))
+            {
+                var detail = ExpandedContent!(row);
+                if (detail is not null)
+                    yield return Tr(Key: $"{key}:detail")[
+                        Td(Colspan: columns.Count + 1)[detail]
+                    ];
+            }
         }
     }
 
-    private static IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> columns, T row)
+    private IEnumerable<Component> Cells(IReadOnlyList<BsColumn<T>> columns, T row, object key)
     {
+        if (Expandable)
+            yield return Td()[ExpanderButton(key)];
+
         for (var c = 0; c < columns.Count; c++)
             yield return Td(Class: columns[c].Class)[columns[c].Cell(row)];
+    }
+
+    private Component ExpanderButton(object key) =>
+        BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => ToggleExpand(key))[
+            BsIcon(Name: _expanded.Contains(key) ? BsIconName.ChevronDown : BsIconName.ChevronRight)];
+
+    private IEnumerable<Component> FooterCells(IReadOnlyList<BsColumn<T>> columns, IReadOnlyList<T> data)
+    {
+        if (Expandable)
+            yield return Td()[""];
+
+        foreach (var column in columns)
+            yield return Td(Class: column.Class)[column.FooterCell(data)];
     }
 
     // A range summary next to a compact pager (prev / windowed page numbers / next), all via Bs components
