@@ -28,6 +28,13 @@ them until tagged releases begin.
   optional package like the validation libraries.
 
 ### Changed
+- **Docs — guides-first migration wrap-up (phase 4).** With every foldable example page now living inside a
+  `docs/*.md` guide as an inline live demo, the doc index is reconciled: `llms.txt` gains the missing
+  **Elements & the DSL** entry (all 24 guides indexed), the README documentation table adds **HTTP & files**
+  and **CQRS**, and `docs/ai-agents.md`'s guide list is refreshed to a representative-not-exhaustive form so it
+  stops going stale. Verified no doc/artifact references a deleted example route, and `GuideCatalog` ↔ `docs/`
+  ↔ `llms.txt` ↔ README all line up. Only `TodosPage` and the unlisted `[QueryParam]` `/table` example remain
+  standalone. This closes the guides-first epic.
 - **Examples site — fold the data-grid pages (phase 3, final cluster).** The **Master-detail** page
   (`/master-detail`) is removed; its grid becomes a new `MasterDetailDemo` embedded in **`docs/composition.md`**
   under "Keyed lists" (registered `master-detail`) — it's a keyed-reconciliation showcase (expand inserts a
