@@ -767,13 +767,15 @@
     });
 
     document.addEventListener("click", (e) => {
-        // A submit/reset button is driven by native form submission (handled by the dedicated submit
-        // listener). Don't hijack the click: firing an ancestor click handler (e.g. a modal's
-        // .modal-dialog shield) and cancelling the default would break the form submit.
-        const btn = e.target.closest("button, input");
-        if (btn && (btn.type === "submit" || btn.type === "reset")) return;
         const t = e.target.closest("[data-rask-on-click]");
         if (!t || !inRoot(t)) return;
+        // A submit/reset button is driven by native form submission (handled by the dedicated submit
+        // listener). Don't let an ANCESTOR click handler (e.g. a modal's .modal-dialog shield) hijack it
+        // and cancel the default — that would break the form submit. A handler on the button itself
+        // still runs: note `button.type` defaults to "submit" for a bare <button>, so gating on the
+        // ancestor (t !== btn) is what keeps a plain Button(OnClick:) working here.
+        const btn = e.target.closest("button, input");
+        if (btn && btn !== t && (btn.type === "submit" || btn.type === "reset")) return;
         e.preventDefault();
         flushInputsNow();
         send({
