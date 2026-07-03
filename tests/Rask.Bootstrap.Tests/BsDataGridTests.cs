@@ -69,4 +69,40 @@ public class BsDataGridTests
         Assert.Contains("class=\"pagination pagination-sm mb-0\"", html);
         Assert.Contains("1-2 / 3", html);
     }
+
+    [Fact]
+    public void Footer_RendersTfootWithColumnTotals_OverAllRows()
+    {
+        BsColumn<Row>[] columns =
+        [
+            new BsColumn<Row> { Title = "Name", Value = r => r.Name },
+            new BsColumn<Row> { Title = "Qty", Class = "text-end", Value = r => r.Qty,
+                Footer = rows => rows.Sum(r => r.Qty) },
+        ];
+
+        var html = BsDataGrid<Row>(Data: Rows, Columns: columns).ToHtml();
+
+        Assert.Contains("<tfoot>", html);
+        Assert.Contains("<td class=\"text-end\">9</td>", html); // 3 + 5 + 1
+    }
+
+    [Fact]
+    public void NoFooter_IsRendered_WhenNoColumnDefinesOne()
+    {
+        var html = BsDataGrid<Row>(Data: Rows, Columns: Columns()).ToHtml();
+
+        Assert.DoesNotContain("<tfoot>", html);
+    }
+
+    [Fact]
+    public void ExpandedContent_RendersAnExpanderPerRow_AndHidesDetailUntilExpanded()
+    {
+        var html = BsDataGrid<Row>(Data: Rows, Columns: Columns(),
+            RowKey: r => r.Name,
+            ExpandedContent: r => BsAlert(Color: BsColor.Info)[$"detail-{r.Name}"]).ToHtml();
+
+        // A collapsed chevron toggle renders per row; the detail content stays hidden until expanded.
+        Assert.Contains("bi-chevron-right", html);
+        Assert.DoesNotContain("detail-Banana", html);
+    }
 }
