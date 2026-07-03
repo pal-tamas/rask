@@ -1,20 +1,16 @@
 using System.Globalization;
-using Rask.Core.Routing;
 
 namespace Rask.Example.Shared.Features;
 
-// Master-detail datagrid. The sibling Data table page drives all of its state through the URL query
-// string; this page is the deliberate contrast — expand/collapse and both grids' sort live in plain
-// component fields. A click mutates a field and StateHasChanged() re-renders the page.
+// Master-detail datagrid, embedded in docs/composition.md's "Keyed lists" section (its standalone
+// /master-detail page folded in). Expand/collapse and both grids' sort live in plain component fields.
 //
-// Expanding a row inserts a second, keyed <tr> ("detail-{id}") right after the keyed main row
-// ("{id}"). Because every row carries a stable Key, the live diff treats expand as an in-place keyed
-// Insert and collapse as a keyed Remove — sibling expanded rows keep their own inner sort across the
-// reconcile. Each detail panel hosts its own plain <table> of line items with an independent sort, so
-// the page owns three pieces of state: the expanded set, the outer sort, and a per-order inner sort.
-[Route("master-detail")]
-[ParentRoute(typeof(ShowcaseLayout))]
-public sealed class OrdersPage : Component
+// Expanding a row inserts a second, keyed <tr> ("detail-{id}") right after the keyed main row ("{id}").
+// Because every row carries a stable Key, the live diff treats expand as an in-place keyed Insert and
+// collapse as a keyed Remove — sibling expanded rows keep their own inner sort across the reconcile. Each
+// detail panel hosts its own plain <table> of line items with an independent sort, so the demo owns three
+// pieces of state: the expanded set, the outer sort, and a per-order inner sort.
+public sealed class MasterDetailDemo : Component
 {
     private static readonly Order[] _orders = BuildOrders();
 
@@ -44,52 +40,22 @@ public sealed class OrdersPage : Component
     private readonly Dictionary<int, (string Col, bool Asc)> _itemSort = new();
     private (string Col, bool Asc) _orderSort = ("", true);
 
-    protected override Component? Head => Title()["Master-detail — Rask"];
-
     protected override Component? Render()
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return
-        [
-            PageHeader.Render(
-                "Master-detail",
-                "Collapsible rows with a nested datagrid. Click a row to reveal its line items in an inner, " +
-                "independently sortable table. Expand/collapse and both grids' sort are held in plain component " +
-                "fields — the deliberate contrast with the URL-driven Data table."),
-            BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
-                Div(Class: "table-responsive")[
-                    Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
-                        Thead(Class: "table-light")[
-                            Tr()[_orderColumns.Select(c =>
-                                c.Sortable
-                                    ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
-                                    : Th(Scope: "col", Key: c.Id))]
-                        ],
-                        Tbody()[BuildOrderRows(orders)]
-                    ]
+        return BsCard(Class: Bs.Join(Shadow.Sm, Border.None))[
+            Div(Class: "table-responsive")[
+                Table(Id: "md-orders", Class: "table table-hover align-middle mb-0")[
+                    Thead(Class: "table-light")[
+                        Tr()[_orderColumns.Select(c =>
+                            c.Sortable
+                                ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
+                                : Th(Scope: "col", Key: c.Id))]
+                    ],
+                    Tbody()[BuildOrderRows(orders)]
                 ]
-            ],
-            P(Class: "small text-secondary mt-3 mb-0")[
-                "Expand state is a ",
-                Code()["HashSet<int>"],
-                " on the page; toggling it calls ",
-                Code()["StateHasChanged()"],
-                ". Each open row inserts a keyed ",
-                Code()["<tr>"],
-                " detail row, so the live diff reconciles it as an in-place insert/remove and the other open rows " +
-                "keep their own inner sort. The detail panel hosts a second plain ",
-                Code()["Table"],
-                " of line items with its own sort."
-            ],
-            CodeSample(
-                ["OrdersPage.cs"],
-                Title: "Source",
-                Notes:
-                "The whole page above, verbatim. Expand state is a HashSet<int>, the outer sort and each order's " +
-                "inner sort are plain fields — a click mutates one and StateHasChanged() re-renders. Open rows " +
-                "insert a keyed detail <tr>, so the live diff reconciles them as in-place insert/remove and sibling " +
-                "open rows keep their own inner sort.")
+            ]
         ];
     }
 

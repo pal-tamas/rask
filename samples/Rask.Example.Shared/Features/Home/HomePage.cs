@@ -22,8 +22,8 @@ public sealed class HomePage(Navigator nav) : Component
         ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", "/guides/bootstrap"),
         ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", "/guides/composition"),
         ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
-        ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
-        ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
+        ("Components", "bi-table", "Data table", "Sortable, paginated, URL-driven table.", "/guides/routing"),
+        ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/guides/composition"),
         ("Components", "bi-graph-up-arrow", "Live ticker", "Lifecycle hooks + a zero-JS SVG chart.", "/guides/lifecycle"),
         ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/guides/authentication"),
 
