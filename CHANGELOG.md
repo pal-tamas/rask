@@ -53,6 +53,13 @@ them until tagged releases begin.
   (`elements.md`, `building-form-controls.md`, `live-rendering.md`, `llms.txt`): the primitives are now
   `Text` / `Raw` / `Doctype`, and multi-root / sibling content is described as a `[...]` collection
   expression returning a `Component`.
+- **A constant member initializer now becomes the factory parameter's default value instead of
+  excluding the property.** A prop written `public string Tag { get; set; } = "x";` (or `= 3`,
+  `= true`, `= BsColor.Danger`) is emitted as an optional factory parameter defaulting to that
+  literal, so callers override it by name and omit it otherwise. Only *constant* initializers
+  qualify — a `new(...)` initializer still excludes the property — and **`init`-only properties are
+  excluded**: the factory reassigns every parameter on the reused persisted-component path
+  (`__c.Prop = prop;`), which an init-only setter cannot satisfy (CS8852).
 
 ### Fixed
 - **WASM `WasmHostBuilder.BaseAddress` is now the app root, independent of the current route.** It read

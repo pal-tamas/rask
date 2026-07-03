@@ -656,6 +656,11 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 // A constant member initializer (`= "x"`, `= BsColor.Danger`) becomes the factory
                 // param's DEFAULT value instead of excluding the property; non-constant initializers
                 // (`= new List<>()`) stay excluded. Formatted for the generated file (no usings there).
+                // Restricted to a regular `set` accessor: an `init`-only property cannot be reassigned
+                // post-construction, and the factory reassigns every param on the reused persisted-
+                // component path (`__c.Prop = prop;`), so promoting an init-only initializer to a param
+                // would emit code that fails CS8852. Init-only-with-initializer stays excluded (as before).
+                var isInitOnly = prop.SetMethod.IsInitOnly;
                 string? initializerDefault = null;
                 if (prop.DeclaringSyntaxReferences.Length > 0)
                 {
@@ -666,7 +671,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
                     {
                         hasInitializer = pds.Initializer is not null;
-                        if (pds.Initializer is { } init)
+                        if (pds.Initializer is { } init && !isInitOnly)
                         {
                             var constant = compilation.GetSemanticModel(init.SyntaxTree)
                                 .GetConstantValue(init.Value);
