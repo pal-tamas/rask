@@ -54,7 +54,6 @@ public abstract partial class SharedSmokeTests
 
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
-        await WalkInteractiveComponentPagesAsync();
         await TestCompositionGuideAsync();
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
@@ -111,7 +110,9 @@ public abstract partial class SharedSmokeTests
         var open = await Page.Locator(".side-nav .collapse.show").CountAsync();
         Assert.True(open >= 5, $"expected the guide groups expanded by default, got {open}");
         var groups = await Page.Locator(".side-nav .nav-group-toggle").CountAsync();
-        Assert.True(groups > 8, $"expected the nav split into many collapsible groups, got {groups}");
+        // The five guide groups (Overview + the four GuideCatalog categories) plus the surviving Examples
+        // groups (most example pages are now folded into guides). Keep this a "many groups" floor.
+        Assert.True(groups >= 6, $"expected the nav split into many collapsible groups, got {groups}");
 
         // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
         // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
@@ -269,61 +270,6 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkInteractiveComponentPagesAsync()
-    {
-        // Live ticker (lifecycle hooks + zero-JS SVG chart) moved to the Lifecycle guide
-        // (WalkLifecycleGuideAsync).
-
-        // Events (the full GlobalEventHandlers surface) moved to the Composition guide
-        // (TestCompositionGuideAsync). Virtualize and Keyed lists likewise.
-
-        // Data table: every interaction is a URL query-param mutation → rebind → re-render.
-        await SideAsync("Data table", "Data table");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(10,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Page.Locator("th button:has-text('Name')").First.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Page.Locator("input[type='search']").FillAsync("Linus");
-        await Page.WaitForTimeoutAsync(300);
-        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        var filtered = await Page.Locator("tbody tr").CountAsync();
-        Assert.True(filtered is > 0 and < 10, $"filter should reduce rows; got {filtered}");
-        await Page.Locator("input[type='search']").FillAsync("");
-        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
-        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
-        // Every showcase page shows its own source: the page-source CodeSample card is present.
-        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // Master-detail: expand state is local; toggling inserts a keyed detail <tr> hosting a nested,
-        // independently sortable plain <table>. Collapse removes it via the same keyed diff.
-        await SideAsync("Master-detail", "Master-detail");
-        await Expect(Page.Locator("#md-orders tbody tr.md-row")).ToHaveCountAsync(14,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Page.Locator("[data-testid='expander-1']").ClickAsync();
-        await Expect(Page.Locator("[data-testid='inner-1']")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var innerRows = await Page.Locator("[data-testid='inner-1'] tbody tr").CountAsync();
-        Assert.True(innerRows > 0, $"expanded order should reveal line items; got {innerRows}");
-        // Sort the nested grid by Qty — the inner grid reacts on its own controlled state.
-        await Page.Locator("[data-testid='inner-1'] th button:has-text('Qty')").First.ClickAsync();
-        await Page.WaitForTimeoutAsync(200);
-        var firstQtyAfter = await Page.Locator("[data-testid='inner-1'] tbody tr").First
-            .Locator("td").Nth(2).InnerTextAsync();
-        Assert.False(string.IsNullOrWhiteSpace(firstQtyAfter), "inner grid should still render after sort");
-        // Collapse: the keyed detail row is removed.
-        await Page.Locator("[data-testid='expander-1']").ClickAsync();
-        await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
-        // Page-source CodeSample card is present.
-        await Expect(Page.Locator("main .sample-card").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-
-        // Drag & drop and Error boundary moved to the Composition guide (TestCompositionGuideAsync).
-    }
 
     // Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, and error boundaries
     // — their standalone example pages folded into docs/composition.md as inline live demos. Open the
@@ -334,8 +280,8 @@ public abstract partial class SharedSmokeTests
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
 
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 12,
-            "expected the Composition guide to embed the demos (incl. the folded events + flash) as live demos");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 13,
+            "expected the Composition guide to embed the demos (incl. the folded events, flash + master-detail) as live demos");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the guide still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -408,6 +354,26 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#kl-reverse").ClickAsync();
         await Expect(Page.Locator("#kl-list li").First.Locator("span.fw-semibold"))
             .ToContainTextAsync("Elderberry", contains);
+
+        // Master-detail (its /master-detail page folded into this section): expanding a row inserts a keyed
+        // detail <tr> hosting a nested, independently sortable table; collapse removes it via the keyed diff.
+        // The #md-orders / expander-{id} / inner-{id} ids are unique on the guide page.
+        await Expect(Page.Locator("#md-orders tbody tr.md-row")).ToHaveCountAsync(14,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.True(await Page.Locator("[data-testid='inner-1'] tbody tr").CountAsync() > 0,
+            "expanded order should reveal line items");
+        await Page.Locator("[data-testid='inner-1'] th button:has-text('Qty')").First.ClickAsync();
+        await Page.WaitForTimeoutAsync(200);
+        Assert.False(
+            string.IsNullOrWhiteSpace(await Page.Locator("[data-testid='inner-1'] tbody tr").First
+                .Locator("td").Nth(2).InnerTextAsync()),
+            "inner grid should still render after sort");
+        await Page.Locator("[data-testid='expander-1']").ClickAsync();
+        await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
         await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
@@ -1078,12 +1044,35 @@ public abstract partial class SharedSmokeTests
     private async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
     {
         // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
-        await SideAsync("Data table", "Data table");
+        await SideAsync("Todos", "Todos");
         await Page.GoBackAsync();
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
         await Page.GoForwardAsync();
-        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Todos",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
+        // Data table: a [QueryParam]-driven grid — every interaction is a URL query mutation → rebind →
+        // re-render. Its /table route is unlisted (folded code-only into routing.md) but still a real page;
+        // exercise it here (post-sentinel) since reaching it is a hard nav. Sort → ?sort=name, filter →
+        // ?filter=…, page-size → 25 rows.
+        await Page.GotoAsync("/table");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(10,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Page.Locator("th button:has-text('Name')").First.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]sort=name"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        await Page.Locator("input[type='search']").FillAsync("Linus");
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(Page).ToHaveURLAsync(new Regex(".*[\\?&]filter=Linus"),
+            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+        var filteredRows = await Page.Locator("tbody tr").CountAsync();
+        Assert.True(filteredRows is > 0 and < 10, $"filter should reduce rows; got {filteredRows}");
+        await Page.Locator("input[type='search']").FillAsync("");
+        await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
+        await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         if (opts.DeepLink)
         {
@@ -1241,8 +1230,11 @@ public abstract partial class SharedSmokeTests
     {
         // --- a forward nav resets scroll to the top ---------------------------------------------
         // The data table at 25 rows is reliably taller than the viewport; scroll to the bottom and
-        // confirm the document actually moved before navigating away.
-        await SideAsync("Data table", "Data table");
+        // confirm the document actually moved before navigating away. (Its /table route is unlisted now —
+        // folded code-only into routing.md — so reach it directly.)
+        await Page.GotoAsync("/table");
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Data table",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 30_000 });
         await Page.Locator("select.form-select-sm").SelectOptionAsync("25");
         await Expect(Page.Locator("tbody tr")).ToHaveCountAsync(25,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
