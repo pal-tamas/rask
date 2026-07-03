@@ -4,9 +4,9 @@ using Rask.Example.Shared.Features;
 
 namespace Rask.Example.Shared.Tests.Pages;
 
-// EventsFormDemo (embedded in the Composition guide) collects a FormData on submit. The submit itself is
-// timing-fragile to drive through the co-mounted guide in E2E, so the OnSubmit → FormData behaviour is
-// asserted here at the unit level.
+// EventsFormDemo (embedded in the Composition guide) collects a FormData on submit. The end-to-end
+// fill → submit → echo path is exercised by the Composition guide walk; these unit tests pin the
+// OnSubmit → FormData mapping (named value vs blank) directly.
 public sealed class EventsFormDemoTests
 {
     [Fact]

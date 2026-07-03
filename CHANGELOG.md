@@ -107,6 +107,14 @@ them until tagged releases begin.
   expression returning a `Component`.
 
 ### Fixed
+- **An uncontrolled `<input>`'s value is no longer wiped by a full-document morph.** A full-HTML reply
+  (initial paint, scoped-CSS delivery, or a reconnect resync) reconciles the whole page through `morph()`,
+  which reset **every** input to the rendered `value` — treating a *missing* `value` attribute as `value=""`.
+  But an input with no rendered `value` is *uncontrolled* (the framework isn't managing it), so any full reply
+  that landed while the user had typed into one silently cleared their text (e.g. a form's `FormData` then read
+  blank). The morph now only syncs an input when the render actually provides a `value` (controlled/bound
+  inputs always render one, even `value=""`), leaving uncontrolled inputs' client-owned values alone. Guarded
+  by an E2E that types into an uncontrolled field, forces a reconnect resync, and asserts the value survives.
 - **WASM `WasmHostBuilder.BaseAddress` is now the app root, independent of the current route.** It read
   `document.baseURI`, which — once the SPA has navigated and the `<base>` element is no longer in the
   live DOM — reflects the *current route*. A singleton `HttpClient` whose `BaseAddress` is resolved

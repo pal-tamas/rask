@@ -170,11 +170,17 @@ function morph(from, to) {
         if (!streaming || document.activeElement !== from) {
             let newVal = to.getAttribute("value");
             if (newVal === null && to.tagName === "TEXTAREA") newVal = to.textContent;
-            if (newVal === null) newVal = "";
-            // raskShouldSuppressValue runs first so it can clear a confirmed echo
-            // even when from.value already equals newVal; a still-pending user edit
-            // (incoming !== the value the user committed) is left untouched.
-            if (!raskShouldSuppressValue(from, newVal) && from.value !== newVal) from.value = newVal;
+            // No rendered `value` (an <input> with no `value` attribute) means the input is
+            // *uncontrolled* — the framework isn't managing its value, so a re-render (including a
+            // full-document morph on a full reply — scoped-CSS delivery, reconnect, …) must leave the
+            // user's typed DOM value alone rather than reset it to "". A controlled/bound input always
+            // renders a `value` attribute (even `value=""`), so it still syncs below.
+            // raskShouldSuppressValue runs first so it can clear a confirmed echo even when from.value
+            // already equals newVal; a still-pending user edit (incoming !== the committed value) is
+            // left untouched.
+            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && from.value !== newVal) {
+                from.value = newVal;
+            }
             // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can
             // clear the guard even when from.checked already matches — a lagging frame carrying the
             // pre-click checked is left to the browser's just-applied native state.
