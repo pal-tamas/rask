@@ -114,6 +114,13 @@ them until tagged releases begin.
   (`__c.Prop = prop;`), which an init-only setter cannot satisfy (CS8852).
 
 ### Fixed
+- **A plain `Button(OnClick:)` with no explicit `type` again fires its click handler on the Server host.**
+  The recent submit/reset guard in the Server client (added so a modal's backdrop-shield click handler can't
+  hijack a native form submit) keyed off `button.type` — but a bare `<button>` reports `type === "submit"`
+  by default, so the guard swallowed the click on *any* button that didn't set `type="button"`, including a
+  button carrying its own `data-rask-on-click` (e.g. a master-detail expander toggle). The guard now bails
+  only when the resolved handler lives on an **ancestor** of the submit/reset button (the actual hijack case),
+  so a handler on the button itself still runs. WASM was unaffected (its client has no such guard).
 - **An uncontrolled `<input>`'s value is no longer wiped by a full-document morph.** A full-HTML reply
   (initial paint, scoped-CSS delivery, or a reconnect resync) reconciles the whole page through `morph()`,
   which reset **every** input to the rendered `value` — treating a *missing* `value` attribute as `value=""`.
