@@ -60,8 +60,12 @@ public class FactoryAttributeTests
             output);
         Assert.Contains("where TModel : class", output);
 
-        // Body collapses the sync/async pair into a single Delegate? and forwards.
-        Assert.Contains("(global::System.Delegate?)OnValidSubmit ?? OnValidSubmitAsync", output);
+        // Body collapses the sync/async pair into a single Delegate? and forwards, wrapping each
+        // typed delegate with AutoCallback so invoking it re-renders the providing component.
+        Assert.Contains(
+            "(global::System.Delegate?)global::Rask.Core.AutoCallback.Wrap(OnValidSubmit) " +
+            "?? global::Rask.Core.AutoCallback.Wrap(OnValidSubmitAsync)",
+            output);
     }
 
     [Fact]
