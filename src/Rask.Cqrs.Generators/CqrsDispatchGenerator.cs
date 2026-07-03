@@ -352,8 +352,17 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine();
     }
 
+    // FullyQualifiedFormat drops nullable reference annotations, so a handler for IQuery<string?>
+    // would be registered as IQueryHandler<TQuery, string> — whose `where TQuery : IQuery<TResult>`
+    // constraint then mismatches the query's IQuery<string?> and warns CS8631 at the typeof(...) site.
+    // Preserve the `?` so the emitted service type matches the declared handler exactly.
+    private static readonly SymbolDisplayFormat FqnFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+            | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     private static string Fqn(ITypeSymbol symbol) =>
-        symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        symbol.ToDisplayString(FqnFormat);
 
     private enum HandlerKind
     {
