@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-03
+
 ### Added
 - **Source-generated CQRS/mediator (`Rask.Cqrs`)** — a new opt-in, standalone package for structuring
   work as queries, commands and notifications. Define `IQuery<TResult>` / `ICommand` / `ICommand<TResult>`
