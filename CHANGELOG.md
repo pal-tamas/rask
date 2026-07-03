@@ -105,8 +105,34 @@ them until tagged releases begin.
   (`elements.md`, `building-form-controls.md`, `live-rendering.md`, `llms.txt`): the primitives are now
   `Text` / `Raw` / `Doctype`, and multi-root / sibling content is described as a `[...]` collection
   expression returning a `Component`.
+- **A constant member initializer now becomes the factory parameter's default value instead of
+  excluding the property.** A prop written `public string Tag { get; set; } = "x";` (or `= 3`,
+  `= true`, `= BsColor.Danger`) is emitted as an optional factory parameter defaulting to that
+  literal, so callers override it by name and omit it otherwise. Only *constant* initializers
+  qualify — a `new(...)` initializer still excludes the property — and **`init`-only properties are
+  excluded**: the factory reassigns every parameter on the reused persisted-component path
+  (`__c.Prop = prop;`), which an init-only setter cannot satisfy (CS8852).
 
 ### Fixed
+- **Bootstrap form controls now repaint their `.invalid-feedback` when validation runs on submit.**
+  `BsInput`/`BsSelect`/`BsTextarea` bake the per-field message straight into their own render output from
+  the `EditContext`'s mutable message list — state the render cache doesn't observe. Submitting a form with
+  no `OnInvalidSubmit` (the common case) populated the messages but left the controls cache-pinned to the
+  pre-submit empty state, so the errors never appeared. `BsFormControl` now sets `BypassRenderCache` (the
+  same opt-out `ValidationMessage`/`ValidationSummary`/`ValidatingIndicator` already use), so a submit-time
+  validation pass paints its field messages.
+- **`BsFormControl` boxes each field (label + control + help + `.invalid-feedback`) in one wrapper `<div>`.**
+  Previously the feedback was a bare sibling of the control, so in a flex/grid form
+  (`.d-flex.flex-column.gap-3`) it became a separate gap-spaced item a full row below its input; it now sits
+  tight under the control. `Required: true` additionally marks the field's `<label>` with a red asterisk
+  (`<span class="text-danger ms-1">*</span>`).
+- **A plain `Button(OnClick:)` with no explicit `type` again fires its click handler on the Server host.**
+  The recent submit/reset guard in the Server client (added so a modal's backdrop-shield click handler can't
+  hijack a native form submit) keyed off `button.type` — but a bare `<button>` reports `type === "submit"`
+  by default, so the guard swallowed the click on *any* button that didn't set `type="button"`, including a
+  button carrying its own `data-rask-on-click` (e.g. a master-detail expander toggle). The guard now bails
+  only when the resolved handler lives on an **ancestor** of the submit/reset button (the actual hijack case),
+  so a handler on the button itself still runs. WASM was unaffected (its client has no such guard).
 - **An uncontrolled `<input>`'s value is no longer wiped by a full-document morph.** A full-HTML reply
   (initial paint, scoped-CSS delivery, or a reconnect resync) reconciles the whole page through `morph()`,
   which reset **every** input to the rendered `value` — treating a *missing* `value` attribute as `value=""`.

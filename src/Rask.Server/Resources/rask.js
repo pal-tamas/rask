@@ -1,6 +1,17 @@
 (function () {
     "use strict";
 
+    // Singleton guard. The runtime is a per-document singleton that binds global document-level event
+    // listeners (click/input/change/submit) and owns the WS. A client-side navigation that applies a
+    // full-HTML reply can re-insert the runtime <script src> (morph re-adds it), re-executing this IIFE
+    // in the SAME document — every extra instance binds another set of document listeners, so a single
+    // click/input then dispatches to the server once per instance (handlers double-fire; e.g. a dropdown
+    // toggle opens then immediately closes). Bail if we have already booted this document; a real full
+    // page load resets window, so this only dedupes spurious in-document re-execution, never a
+    // legitimately fresh page.
+    if (window.__raskBooted) return;
+    window.__raskBooted = true;
+
     // Shared framework interop helpers (__raskEl, __raskApi) spliced from
     // Rask.Core/Resources/rask-api.js at build time — single source across both transports.
     // @@RASK_API@@
@@ -758,6 +769,13 @@
     document.addEventListener("click", (e) => {
         const t = e.target.closest("[data-rask-on-click]");
         if (!t || !inRoot(t)) return;
+        // A submit/reset button is driven by native form submission (handled by the dedicated submit
+        // listener). Don't let an ANCESTOR click handler (e.g. a modal's .modal-dialog shield) hijack it
+        // and cancel the default — that would break the form submit. A handler on the button itself
+        // still runs: note `button.type` defaults to "submit" for a bare <button>, so gating on the
+        // ancestor (t !== btn) is what keeps a plain Button(OnClick:) working here.
+        const btn = e.target.closest("button, input");
+        if (btn && btn !== t && (btn.type === "submit" || btn.type === "reset")) return;
         e.preventDefault();
         flushInputsNow();
         send({
