@@ -40,4 +40,27 @@ public class BsFormControlTests
         Assert.Contains("role=\"switch\"", html);
         Assert.Contains("<label class=\"form-check-label\" for=\"s\">On</label>", html);
     }
+
+    [Fact]
+    public void Input_Required_MarksLabelWithAsterisk()
+    {
+        var html = BsInput<string>(Value: "x", Label: "Name", Id: "n", Required: true).ToHtml();
+        Assert.Contains("Name<span class=\"text-danger ms-1\">*</span>", html);
+        Assert.Contains("required", html);
+    }
+
+    [Fact]
+    public void Input_NotRequired_LabelHasNoAsterisk() =>
+        Assert.DoesNotContain("text-danger", BsInput<string>(Value: "x", Label: "Name", Id: "n").ToHtml());
+
+    [Fact]
+    public void Field_WrapsControlAndFeedbackInOneContainer()
+    {
+        // The label/control/feedback live inside a single wrapper <div> so a flex/grid form keeps the
+        // .invalid-feedback tight under its input instead of gap-spacing it a row below.
+        var html = BsInput<string>(Value: "x", Label: "Name", Id: "n", HelpText: "Hint").ToHtml();
+        Assert.StartsWith("<div>", html);
+        Assert.Contains("<label class=\"form-label\" for=\"n\">Name</label>", html);
+        Assert.Contains("<div class=\"form-text\">Hint</div>", html);
+    }
 }
