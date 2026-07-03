@@ -67,14 +67,20 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
-    public void PropertyWithInitializer_NotAFactoryParam()
+    public void PropertyWithConstantInitializer_IsOptionalParamDefaultingToThatValue()
     {
+        // A constant member initializer contributes its value as the factory param default rather
+        // than excluding the property — so app authors override it by name and omit it otherwise.
         var src = """
                   using Rask.Core;
                   namespace Demo;
+                  public enum Hue { Primary, Danger }
                   public sealed class Widget : Component
                   {
                       public string Tag { get; set; } = "x";
+                      public int Size { get; set; } = 3;
+                      public bool Flag { get; set; } = true;
+                      public Hue Color { get; set; } = Hue.Danger;
                       public override Component? Render() => this;
                   }
                   """;
@@ -82,8 +88,57 @@ public class ComponentFactoryGeneratorTests
         var run = GeneratorDriverFixture.Run(src);
         var output = run.GeneratedSource("Demo.Generated.g.cs");
 
-        Assert.Contains("Widget()", output);
-        Assert.DoesNotContain("Tag", output);
+        Assert.Contains("string Tag = \"x\"", output);
+        Assert.Contains("int Size = 3", output);
+        Assert.Contains("bool Flag = true", output);
+        Assert.Contains("global::Demo.Hue Color = (global::Demo.Hue)1", output);
+        Assert.Contains("__c.Tag = Tag;", output);
+    }
+
+    [Fact]
+    public void PropertyWithNonConstantInitializer_StaysExcluded()
+    {
+        // Only *constant* initializers become defaults; a `new(...)` initializer can't be a param
+        // default, so the property is excluded from the factory as before.
+        var src = """
+                  using System.Collections.Generic;
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public List<int> Items { get; set; } = new();
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains("Widget(object? Key = null)", output);
+        Assert.DoesNotContain("Items", output);
+    }
+
+    [Fact]
+    public void InitOnlyPropertyWithConstantInitializer_StaysExcluded()
+    {
+        // An init-only property cannot be reassigned post-construction, and the factory reassigns
+        // every param on the reused persisted-component path — so an init-only initializer must NOT
+        // be promoted to a param (doing so emits `__c.Prop = ...` which fails to compile, CS8852).
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public sealed class Widget : Component
+                  {
+                      public int Capacity { get; init; } = 8;
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.Run(src);
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+
+        Assert.Contains("Widget(object? Key = null)", output);
+        Assert.DoesNotContain("__c.Capacity", output);
     }
 
     [Fact]

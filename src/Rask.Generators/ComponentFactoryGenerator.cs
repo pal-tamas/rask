@@ -131,7 +131,7 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         var hasDICtor = HasDIConstructor(symbol);
         var isPublic = IsExternallyVisible(symbol);
         var formControl = GetFormControlInfo(symbol);
-        var properties = GetFactoryProperties(symbol, formControl is not null);
+        var properties = GetFactoryProperties(symbol, formControl is not null, ctx.SemanticModel.Compilation);
         var typeParams = symbol.IsGenericType
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
@@ -570,7 +570,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol, bool isFormControl)
+    private static List<PropInfo> GetFactoryProperties(INamedTypeSymbol symbol, bool isFormControl,
+        Compilation compilation)
     {
         var result = new List<PropInfo>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -652,6 +653,15 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                 var spanStart = 0;
                 var spanLength = 0;
                 var hasInitializer = false;
+                // A constant member initializer (`= "x"`, `= BsColor.Danger`) becomes the factory
+                // param's DEFAULT value instead of excluding the property; non-constant initializers
+                // (`= new List<>()`) stay excluded. Formatted for the generated file (no usings there).
+                // Restricted to a regular `set` accessor: an `init`-only property cannot be reassigned
+                // post-construction, and the factory reassigns every param on the reused persisted-
+                // component path (`__c.Prop = prop;`), so promoting an init-only initializer to a param
+                // would emit code that fails CS8852. Init-only-with-initializer stays excluded (as before).
+                var isInitOnly = prop.SetMethod.IsInitOnly;
+                string? initializerDefault = null;
                 if (prop.DeclaringSyntaxReferences.Length > 0)
                 {
                     var syntaxRef = prop.DeclaringSyntaxReferences[0];
@@ -661,6 +671,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
                     {
                         hasInitializer = pds.Initializer is not null;
+                        if (pds.Initializer is { } init && !isInitOnly)
+                        {
+                            var constant = compilation.GetSemanticModel(init.SyntaxTree)
+                                .GetConstantValue(init.Value);
+                            if (constant.HasValue)
+                                initializerDefault = FormatConstantDefault(constant.Value, prop.Type);
+                        }
                     }
                 }
 
@@ -708,7 +725,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
                     isAutoRerenderDelegate,
                     isTypeParameter,
                     isBoundInterfaceProp,
-                    isDelegate));
+                    isDelegate,
+                    initializerDefault));
             }
         }
 
@@ -753,10 +771,47 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static string DefaultLiteralFor(PropInfo p)
     {
-        // Only optional params reach this; the optional set is exactly the nullable props (a
-        // non-nullable prop with no initializer is a required factory param with no default).
-        // A type-parameter prop must use `default` — `null` has no conversion to an unconstrained T.
+        // A property with a constant member initializer contributes its value as the param default.
+        if (p.InitializerDefault is { } init)
+            return init;
+
+        // Otherwise the optional set is exactly the nullable props (a non-nullable prop with no
+        // initializer is a required factory param with no default). A type-parameter prop must use
+        // `default` — `null` has no conversion to an unconstrained T.
         return p.IsNullable && !p.IsTypeParameter ? "null" : "default";
+    }
+
+    // Formats a constant initializer value as a C# default-parameter literal usable in the generated
+    // file (which has no `using`s): enums cast from their underlying constant to the fully-qualified
+    // type; strings/chars use escaped literals; floating/long values carry their type suffix.
+    private static string? FormatConstantDefault(object? value, ITypeSymbol type)
+    {
+        if (value is null)
+            return "null";
+
+        var underlying = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } n
+            ? n.TypeArguments[0]
+            : type;
+
+        if (underlying.TypeKind == TypeKind.Enum)
+        {
+            var enumFqn = underlying.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            return "(" + enumFqn + ")" +
+                   Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return value switch
+        {
+            string s => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true),
+            char ch => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(ch, true),
+            bool b => b ? "true" : "false",
+            float f => f.ToString(System.Globalization.CultureInfo.InvariantCulture) + "F",
+            double d => d.ToString(System.Globalization.CultureInfo.InvariantCulture) + "D",
+            decimal m => m.ToString(System.Globalization.CultureInfo.InvariantCulture) + "M",
+            long l => l.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L",
+            ulong ul => ul.ToString(System.Globalization.CultureInfo.InvariantCulture) + "UL",
+            _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
+        };
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool emitNavigation)
@@ -871,7 +926,9 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         !p.IsNullable && !p.HasInitializer;
 
     private static bool IsParamProperty(PropInfo p) =>
-        !p.HasInitializer; // properties with initializers are excluded entirely
+        // A property with a constant member initializer is an optional param defaulting to that value;
+        // a non-constant initializer (InitializerDefault == null) is still excluded entirely.
+        !p.HasInitializer || p.InitializerDefault is not null;
 
     // Emits the per-factory header trivia: a `<see cref>` doc breadcrumb that links to the
     // component type (Quick-Doc / hover navigation; gated by RaskFactoryNavigation) and an
@@ -1501,8 +1558,12 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var dp in typedDelegates)
         {
-            sb.Append("        var __").Append(dp).Append(" = (global::System.Delegate?)").Append(dp)
-                .Append(" ?? ").Append(dp).AppendLine("Async;");
+            // Wrap the typed sync/async delegates so invoking them re-renders the providing component
+            // (parent→child callback parity). The base factory's prop is `Delegate?`, which isn't
+            // auto-wrapped, so the wrapping must happen here on the concrete Action<T>/Func<T,Task>.
+            sb.Append("        var __").Append(dp)
+                .Append(" = (global::System.Delegate?)global::Rask.Core.AutoCallback.Wrap(").Append(dp)
+                .Append(") ?? global::Rask.Core.AutoCallback.Wrap(").Append(dp).AppendLine("Async);");
         }
 
         sb.Append("        return ").Append(c.TypeName).AppendLine("(");
@@ -1752,7 +1813,8 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsAutoRerenderDelegate,
         bool IsTypeParameter,
         bool IsBoundInterfaceProp,
-        bool IsDelegate)
+        bool IsDelegate,
+        string? InitializerDefault)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

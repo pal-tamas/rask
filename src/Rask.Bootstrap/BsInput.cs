@@ -19,11 +19,15 @@ public sealed class BsInput<T> : BsFormControl<T>
         var controlId = ControlId(b);
         var cls = BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null, Class);
 
+        // Floating labels only animate when the control has a placeholder (the :placeholder-shown
+        // selector drives the effect); fall back to the label text when none is given.
+        var placeholder = Floating is true ? Placeholder ?? Label ?? " " : Placeholder;
+
         var control = Input<string>(
             Type: DeriveType(),
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
-            Placeholder: Placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
+            Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
             Autocomplete: Autocomplete, Class: cls, Id: controlId,
             OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
 

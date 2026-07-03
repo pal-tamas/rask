@@ -81,7 +81,9 @@ public abstract class Component
     // list as auto-created Text nodes. Value types render with InvariantCulture so the HTML stays
     // locale-independent and byte-stable for the diff codec — matching Forms/BindingHelpers and
     // RouteValueParser. Narrower integer types widen to `int`; `char` renders the character.
-    public static implicit operator Component(string text) => new Text { Value = text };
+    // Accepts string? so a nullable expression (e.g. `entity.Value?.ToString()`) can flow straight into
+    // a children list; null becomes an empty text node rather than forcing callers to write `?? ""`.
+    public static implicit operator Component(string? text) => new Text { Value = text ?? "" };
     public static implicit operator Component(int value) => Format(value);
     public static implicit operator Component(long value) => Format(value);
     public static implicit operator Component(double value) => Format(value);
