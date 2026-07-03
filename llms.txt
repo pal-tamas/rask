@@ -11,6 +11,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 ## Docs
 - [Getting started](docs/getting-started.md): install, first app, project layout.
 - [Best practices](docs/best-practices.md): production patterns + common pitfalls across components, state, forms, data, security, accessibility, performance, testing (each links the deep dive).
+- [Elements & the DSL](docs/elements.md): the render surface — the primitives (`Text` HTML-encodes, `Raw` is verbatim, `Doctype`) and the `[...]` collection expression for sibling fragments; a generator-emitted factory for every HTML and SVG element; the universal props (`Id`/`Class`/`Style`/`Data`/`Role`/`TabIndex`/`Aria`, fixed attribute render order) on every tag; typed SVG components (no `Raw()`); and the full HTML-element catalog by category.
 - [Routing](docs/routing.md): `[Route]`, params, `Router()`/`Outlet()`, navigation.
 - [Lifecycle](docs/lifecycle.md): OnMount/OnPropsChanged/OnRendered/OnUnmount, async hooks.
 - [Composition](docs/composition.md): children, context (provide/consume), callbacks, flash messages (Rails-style `IFlash` — scoped-per-session, consumed-once transient messages that survive a client-side navigation; drained by a headless `FlashOutlet`, or `Rask.Bootstrap`'s ready-made `BsFlash`), the full DOM `GlobalEventHandlers` event surface on every element (mouse/pointer/touch/wheel/focus/keyboard/clipboard/drag as typed `OnX`+`OnXAsync` pairs; Audio/Video add the `HTMLMediaElement` events), headless primitives (`VirtualizeModel<T>`), drag-and-drop.
