@@ -59,7 +59,9 @@ public sealed class ShowcaseLayoutTests
         var open = Regex.Matches(html, "class=\"collapse show\"").Count;
         var closed = Regex.Matches(html, "class=\"collapse\"").Count;
         Assert.True(open >= 5, $"expected the guide groups expanded by default, only {open} open");
-        Assert.True(closed >= 3, $"expected the Examples groups collapsed, only {closed} closed");
+        // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
+        // stay collapsed. The guides-expanded assertion above is the primary contract.
+        Assert.True(closed >= 1, $"expected the Examples groups collapsed, only {closed} closed");
     }
 
     [Fact]
@@ -118,19 +120,9 @@ public sealed class ShowcaseLayoutTests
         Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
     }
 
-    [Fact]
-    public void RenderThroughApp_RealtimeEthPath_KeepsLiveTickerNavActive()
-    {
-        // The actual bug surface: when the route is /realtime/ETH (after switching from BTC inside
-        // the LiveTickerPage), the sidebar's "Live ticker" item must still render active — now via
-        // NavLink's Match (the section root) with Prefix matching.
-        var routeState = new RouteState { Path = "/realtime/ETH" };
-        var html = new Shared.App()
-            .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
-
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-graph-up-arrow",
-            CollapseWhitespace(html));
-    }
+    // (The former render-through-App "Live ticker stays active on /realtime/ETH" test is gone with the
+    // Live ticker sidebar entry — its /realtime page folded into the Lifecycle guide. The MatchPrefix
+    // active-link logic it exercised stays covered by IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix.)
 
     [Fact]
     public void BypassRenderCache_Default_NotBypassed()
@@ -149,7 +141,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void OnMount_SubscribesToRouteChanged_ActiveLinkRefreshesOnNav()
     {
-        // Behavioural test: navigate from "/" to "/components", then re-render App with the
+        // Behavioural test: navigate from "/" to "/todos", then re-render App with the
         // same RouteState. The layout's active-link computation must reflect the new
         // path — which requires its Render() to re-execute after the path change.
         var routeState = new RouteState { Path = "/" };
@@ -161,11 +153,11 @@ public sealed class ShowcaseLayoutTests
         Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-house",
             CollapseWhitespace(htmlAtRoot));
 
-        routeState.Path = "/components";
-        var htmlAtComponents = app.RenderAsLiveRoot(services);
-        // After nav, the active link should be the User-components one (bi-boxes icon).
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-boxes",
-            CollapseWhitespace(htmlAtComponents));
+        routeState.Path = "/todos";
+        var htmlAtTodos = app.RenderAsLiveRoot(services);
+        // After nav, the active link should be the Todos one (bi-check2-square icon).
+        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-check2-square",
+            CollapseWhitespace(htmlAtTodos));
     }
 
     private static string CollapseWhitespace(string s) =>

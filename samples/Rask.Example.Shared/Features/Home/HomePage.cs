@@ -18,19 +18,21 @@ public sealed class HomePage(Navigator nav) : Component
         ("DSL", "bi-gear", "Universal props", "Id, Class, Style, Data, Ref on every tag.", "/guides/elements"),
         ("DSL", "bi-vector-pen", "SVG", "Typed SVG components.", "/guides/elements"),
 
-        ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/components"),
-        ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", Routes.ToastPage()),
-        ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", Routes.FlashPage()),
-        ("Components", "bi-mouse", "Events", "DOM event handlers.", "/events"),
-        ("Components", "bi-table", "Data table", "Sortable, paginated table.", "/table"),
-        ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/master-detail"),
-        ("Components", "bi-graph-up-arrow", "Live ticker", "Server-pushed live updates.", "/realtime/BTC"),
-        ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/user"),
+        ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/guides/getting-started"),
+        ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", "/guides/bootstrap"),
+        ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", "/guides/composition"),
+        ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
+        ("Components", "bi-table", "Data table", "Sortable, paginated, URL-driven table.", "/guides/routing"),
+        ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/guides/composition"),
+        ("Components", "bi-graph-up-arrow", "Live ticker", "Lifecycle hooks + a zero-JS SVG chart.", "/guides/lifecycle"),
+        ("Components", "bi-person-lock", "User & auth", "Gate UI on the current user.", "/guides/authentication"),
 
         ("Data & files", "bi-cloud-arrow-down", "HttpClient + DI", "Inject HttpClient, fetch in OnMountAsync.",
-            "/http"),
-        ("Data & files", "bi-upload", "File upload", "Staged multipart uploads.", "/upload"),
-        ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.", "/download"),
+            "/guides/http-and-files"),
+        ("Data & files", "bi-upload", "File upload", "A typed file picker and RaskFile metadata.",
+            "/guides/http-and-files"),
+        ("Data & files", "bi-cloud-download", "File download", "One-shot secure downloads.",
+            "/guides/http-and-files"),
 
         ("Apps", "bi-check2-square", "Todos", "A small end-to-end app.", "/todos")
 
