@@ -29,6 +29,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- PrivateAssets="all" keeps the (unpublished) Rask.Core "package" out of the nuspec
+         dependency list. Unlike the host packages (Rask.Server/Rask.Wasm), we deliberately do
+         NOT re-pack Rask.Core.dll here: Rask.Bootstrap is always consumed alongside a host,
+         which already bundles Rask.Core.dll into lib/, so bundling it again would ship a
+         duplicate assembly. Rask.Core is only distributed via a host — Bootstrap has no
+         host-less consumption path by design. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
