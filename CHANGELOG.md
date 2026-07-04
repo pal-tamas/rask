@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`Rask.Bootstrap` no longer declares a phantom `Rask.Core` package dependency.** Its `Rask.Core`
+  `ProjectReference` was missing `PrivateAssets="all"`, so `dotnet pack` emitted a NuGet dependency on
+  `Rask.Core 1.0.0` — a package that does not exist (`Rask.Core` is `IsPackable=false`; its DLL ships
+  bundled inside the host packages `Rask.Server`/`Rask.Wasm`). An external consumer restoring
+  `Rask.Bootstrap` alongside a host package hit `NU1101: Unable to find package Rask.Core`. Adding
+  `PrivateAssets="all"` (as `Rask.Server`/`Rask.Wasm` already have) drops the phantom dependency;
+  `Rask.Core` continues to flow in bundled with the host package.
+
 ## [0.12.0] - 2026-07-03
 
 ### Added
