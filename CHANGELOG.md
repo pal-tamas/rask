@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-07-04
+
 ### Fixed
 - **`Rask.Bootstrap` no longer declares a phantom `Rask.Core` package dependency.** Its `Rask.Core`
   `ProjectReference` was missing `PrivateAssets="all"`, so `dotnet pack` emitted a NuGet dependency on
