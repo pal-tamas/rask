@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-06
+
 ### Added
 - **Opt-in full WASM AOT.** Publish with `-p:RaskWasmAot=true` (needs the `wasm-tools` workload) to
   AOT-compile the browser bundle IL→WASM; the default keeps the Mono interpreter, so existing builds
