@@ -17,6 +17,12 @@ them until tagged releases begin.
   step is ~2× faster; the one remaining copy is a JS-side `.slice()` that materialises the frame for
   `TextDecoder`. Intermediate publish-renders are fully allocation-free; the two byte-returning entry
   points (`InitialRenderAsync`/`DispatchAsync`) keep a single `ToArray` for their unit-test seam.
+- **Unified the double-buffered send between the Server and WASM hosts.** The dedup-and-swap mechanic
+  (skip byte-identical frames, hand the buffer to the transport, swap the sent buffer to the dedup
+  baseline) now lives once in `LiveSessionBase.TryEmitFrameAsync`, with the transport as an abstract
+  `SendFrameAsync` seam — a WebSocket send on Server, a zero-copy `MemoryView` `applyRender` on WASM.
+  Internal refactor, no behavior or public-API change; removes the duplicated buffer bookkeeping the
+  WASM zero-copy work had introduced. WASM's send stays synchronous (allocation-free).
 
 ## [0.13.0] - 2026-07-06
 
