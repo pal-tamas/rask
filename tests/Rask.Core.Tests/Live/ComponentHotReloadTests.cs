@@ -127,5 +127,8 @@ public class ComponentHotReloadTests
         }
 
         protected override Task RenderInScopeCoreAsync() => Task.CompletedTask;
+
+        // No transport in this test double — the render-request recorder never emits a frame.
+        protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) => default;
     }
 }

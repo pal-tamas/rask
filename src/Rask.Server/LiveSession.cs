@@ -46,11 +46,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // reconnect always renders.
     private bool _hasAttachedBefore;
 
-    // Previous-frame buffer for the zero-copy send dedup: after SendAsync, _writeBuffer (base) and
-    // this swap, so the just-sent bytes become the dedup baseline without a copy. Server-specific —
-    // WASM ToArrays each frame for the JSImport boundary instead.
-    private ArrayBufferWriter<byte>? _lastSentBuffer;
-
     // Set true whenever a render request lands with no live socket — async lifecycle
     // continuations from OnMountAsync / OnRenderedAsync that resolve during the HTTP-GET-
     // to-WS-hello handoff window, or while a session is between sockets across a
@@ -366,6 +361,12 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
+    // Host transport for LiveSessionBase.TryEmitFrameAsync: write the frame's bytes to the WebSocket
+    // (ReadOnlyMemory<byte>, zero-copy). RenderAndSendAsync guards _socket non-null/Open before the
+    // shared send runs, and the render lock serialises teardown, so _socket is valid here.
+    protected override ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame) =>
+        _socket!.SendAsync(frame, WebSocketMessageType.Text, true, _socketCt);
+
     internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
     {
@@ -407,22 +408,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
                 commitCache: true, auth, Id);
 
-            // Skip the frame when the payload is byte-identical to the previous one AND nothing
-            // out-of-band (navigation, auth instruction) needs to flow. Catches handler invocations
-            // that ended up not modifying tracked state. SequenceEqual is SIMD-accelerated and
-            // Utf8JsonWriter is deterministic, so byte equality is equivalent to the previous
-            // string-Ordinal compare.
-            if (historyUrl is null && auth is null && download is null
-                && _lastSentBuffer is not null
-                && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
-            {
-                return;
-            }
-
+            // Emit via the shared double-buffered send (dedup + swap in LiveSessionBase). Force the
+            // send when something out-of-band (navigation, auth, download) must flow even if the
+            // rendered bytes are byte-identical to the previous frame — otherwise the dedup skips it.
+            var force = historyUrl is not null || auth is not null || download is not null;
+            bool sent;
             try
             {
-                await _socket.SendAsync(_writeBuffer.WrittenMemory, WebSocketMessageType.Text, true, _socketCt)
-                    .ConfigureAwait(false);
+                sent = await TryEmitFrameAsync(force).ConfigureAwait(false);
             }
             catch (Exception ex) when (jsInvokes is not null)
             {
@@ -435,10 +428,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 throw;
             }
 
-            // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous
-            // baseline (or a fresh writer on first send) is reused as the next write target.
-            (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
-            _lastAppliedHtml = html;
+            if (sent)
+            {
+                _lastAppliedHtml = html;
+            }
         }
         finally
         {
