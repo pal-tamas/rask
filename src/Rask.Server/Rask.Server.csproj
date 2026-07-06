@@ -7,6 +7,7 @@
     <RootNamespace>Rask.Server</RootNamespace>
 
     <PackageId>Rask.Server</PackageId>
+    <Title>Rask — ASP.NET Server Host</Title>
     <Description>Rask server host. Renders Rask components from ASP.NET with live updates over a WebSocket. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
@@ -105,6 +106,10 @@
   -->
   <ItemGroup>
     <None Include="$(OutputPath)Rask.Core.dll"
+          Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
+    <!-- Ship Rask.Core's XML docs next to its bundled DLL so Core's public API (Component,
+         Element, factories, forms, routing) surfaces IntelliSense for consumers too. -->
+    <None Include="$(OutputPath)Rask.Core.xml"
           Pack="true" PackagePath="lib/net10.0/" Visible="false"/>
     <None Include="..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll"
           Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>

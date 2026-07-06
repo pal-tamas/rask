@@ -4,7 +4,7 @@ namespace Rask.Core.Live;
 
 /// <summary>
 ///     Tag distinguishing the role of a frame in a render-tree stream. The stream is
-///     emitted by <see cref="HtmlSerializer.Serialize(Component, System.Text.StringBuilder, FrameWriter?)" />
+///     emitted by <see cref="HtmlSerializer.Serialize(Component, System.Text.StringBuilder)" />
 ///     alongside the rendered HTML and consumed by <see cref="FrameDiffer" /> when
 ///     comparing successive renders to emit a minimal edit-op payload.
 /// </summary>
@@ -26,7 +26,7 @@ public enum RenderFrameKind : byte
     /// </summary>
     Text = 3,
 
-    /// <summary>Verbatim markup (no encoding). Corresponds to <see cref="Generated.Raw" />.</summary>
+    /// <summary>Verbatim markup (no encoding). Corresponds to <see cref="Rask.Core.Components.Raw" />.</summary>
     Raw = 4,
 
     /// <summary>Doctype declaration.</summary>

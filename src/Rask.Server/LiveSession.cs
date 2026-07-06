@@ -449,7 +449,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// <summary>
     ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls into a
     ///     single outbound payload. The first send emits the captured navigation/auth
-    ///     state; if an in-handler StateHasChanged set <see cref="_pendingRenderInScope" />
+    ///     state; if an in-handler StateHasChanged set <c>_pendingRenderInScope</c>
     ///     (e.g. <c>RouteState.Changed</c> subscribers on a layout above the Router),
     ///     rebuild up to twice — re-threading <paramref name="historyUrl" />,
     ///     <paramref

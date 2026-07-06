@@ -111,7 +111,7 @@ public static class LivePayload
     /// <summary>
     ///     Pooled-writer overload of
     ///     <see
-    ///         cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload,string,IReadOnlyList{ScopedJsInvoke},IReadOnlyList{PendingJsInvoke})" />
+    ///         cref="BuildPayloadUtf8(string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />
     ///     .
     ///     Writes the JSON payload into the caller-supplied buffer; callers reuse the writer
     ///     across frames (Clear / ResetWrittenCount) to avoid the per-frame 4 KiB allocation.
@@ -136,7 +136,7 @@ public static class LivePayload
     ///     UTF-16 char-by-char scan), splices <c>data-rask-root="..."</c> on the opening tag,
     ///     and writes the JSON payload containing **only the body**. Replaces the prior
     ///     <see cref="InjectRootAttr" /> + <see cref="ExtractBody" /> +
-    ///     <see cref="BuildPayloadUtf8(string,string,bool,string,AuthInstruction,PendingDownload)" />
+    ///     <see cref="BuildPayloadUtf8(string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />
     ///     chain in one pass.
     /// </summary>
     public static byte[] BuildPayloadUtf8WithBody(
@@ -155,7 +155,7 @@ public static class LivePayload
 
     /// <summary>
     ///     Pooled-writer overload of
-    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)" />.
+    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />.
     ///     Writes the JSON payload into <paramref name="output" />; the caller owns the buffer
     ///     and is expected to <c>ResetWrittenCount()</c> between frames so the rented array is
     ///     reused. Lets
@@ -177,7 +177,7 @@ public static class LivePayload
 
     /// <summary>
     ///     WASM live-path payload builder. Same UTF-8 splice as
-    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,string,AuthInstruction,PendingDownload)" />,
+    ///     <see cref="BuildPayloadUtf8WithBody(string,string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />,
     ///     but emits the **whole document** (Doctype, Html, Head, Body) so the JS-side morph
     ///     against <c>document.documentElement</c> can update head children too — title,
     ///     stylesheet <c>&lt;link&gt;</c>s, the scoped-css link. The data-rask-root marker is
@@ -199,7 +199,7 @@ public static class LivePayload
 
     /// <summary>
     ///     Pooled-writer overload of
-    ///     <see cref="BuildPayloadUtf8WithRoot(string,string,string,bool,string,AuthInstruction,PendingDownload)" />.
+    ///     <see cref="BuildPayloadUtf8WithRoot(string,string,string,bool,AuthInstruction,PendingDownload,IReadOnlyList{PendingJsInvoke})" />.
     /// </summary>
     public static void BuildPayloadUtf8WithRoot(
         ArrayBufferWriter<byte> output,
@@ -215,7 +215,7 @@ public static class LivePayload
 
     /// <summary>
     ///     Diff-mode payload: writes <c>{ "kind": "diff", "ops": [...] }</c> directly
-    ///     into <paramref name="output" />. Each op is a positional JSON array whose
+    ///     into <c>output</c>. Each op is a positional JSON array whose
     ///     shape is fixed per <see cref="EditOpKind" /> — the client dispatches on
     ///     <c>op[0]</c> (the kind) and reads the remaining slots by position:
     ///     <code>

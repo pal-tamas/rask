@@ -51,13 +51,13 @@ public static class RaskWasmEndpointExtensions
     ///     </para>
     /// </summary>
     /// <summary>
-    ///     Generic form of <see cref="UseRask(IEndpointRouteBuilder, string?)" /> that
+    ///     Generic form of <see cref="UseRask(IEndpointRouteBuilder, string?, string)" /> that
     ///     additionally touches <typeparamref name="TApp" /> so the runtime loads the
     ///     consumer's component assembly. The assembly's source-generator-emitted
     ///     <c>__RaskScopedCssRegistration</c> / <c>__RaskScopedJsRegistration</c> classes
     ///     carry <c>[ModuleInitializer]</c>, which only fires on assembly load. Without
     ///     that touch the host process never realises the assembly exists (only
-    ///     <c>Rask.Wasm.Hosting</c> is referenced from <see cref="Program" /> in a typical
+    ///     <c>Rask.Wasm.Hosting</c> is referenced from <c>Program</c> in a typical
     ///     WASM-host project), <see cref="Rask.Core.ScopedAssets.ScopedAssetRegistry" />
     ///     stays empty, and every browser-side <c>GET /_rask/a/{hash}.{ext}</c> returns 404
     ///     because the hashes the browser computed (from the in-WASM-runtime registry) are

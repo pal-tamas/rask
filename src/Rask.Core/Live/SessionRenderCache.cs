@@ -24,7 +24,7 @@ namespace Rask.Core.Live;
 ///             <item>
 ///                 <description>
 ///                     <see cref="PrepareCurrentBuffer" /> +
-///                     <see cref="TryComputeDiff" />: caller drives the render however it
+///                     <c>TryComputeDiff</c>: caller drives the render however it
 ///                     likes (typically through <c>RenderAsLiveRoot</c>) while pushing
 ///                     the returned buffer onto <see cref="FrameSinkScope" /> first. Use
 ///                     this from <c>LiveSession</c>, which has its own render flow.
@@ -70,7 +70,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     Returns <c>true</c> when a diff was produced (caller may ship it),
     ///     <c>false</c> on the first render of the session (no prior to diff
     ///     against — caller must ship full HTML). Passing <paramref name="newHtml" />
-    ///     lets <see cref="FrameDiffer.Diff" /> attach HTML fragments to
+    ///     lets <c>FrameDiffer.Diff</c> attach HTML fragments to
     ///     <see cref="EditOpKind.InsertSubtree" /> ops for the client interpreter.
     /// </summary>
     public bool TryComputeDiff(List<EditOp> output, string? newHtml = null)
@@ -134,7 +134,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     applied to a DOM the client has already moved past.
     /// </summary>
     /// <summary>
-    ///     True when the last <see cref="TryComputeDiff" /> touched a sibling level that mixed a Raw
+    ///     True when the last <c>TryComputeDiff</c> touched a sibling level that mixed a Raw
     ///     frame with other siblings and emitted ops there — the positional paths are unreliable, so
     ///     the session must ship full HTML (the morph reparses the Raw markup) rather than the diff.
     /// </summary>
@@ -145,7 +145,7 @@ public sealed class SessionRenderCache : IDisposable
     /// <summary>
     ///     One-shot render + diff. Mostly useful for tests and the
     ///     <c>payload-bytes</c> report; production callers use
-    ///     <see cref="PrepareCurrentBuffer" /> + <see cref="TryComputeDiff" />
+    ///     <see cref="PrepareCurrentBuffer" /> + <c>TryComputeDiff</c>
     ///     so they keep control of the render path.
     /// </summary>
     public bool Render(

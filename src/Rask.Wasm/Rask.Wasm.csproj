@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <PackageId>Rask.Wasm</PackageId>
+    <Title>Rask — Browser WASM Runtime</Title>
     <Description>Rask browser-WASM runtime. Boots a Rask App in the browser via dotnet WASM. Ships the JS boot scripts, the framework page shell, and an MSBuild integration that wires them into a WasmGenerateAppBundle project. Includes Rask.Core and the Rask source generators.</Description>
   </PropertyGroup>
 
@@ -163,6 +164,14 @@
                               PackagePath="lib/net10.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0' "/>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll"
+                              PackagePath="lib/net10.0-browser1.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
+      <!-- Ship Rask.Core's XML docs next to its bundled DLL so Core's public API surfaces
+           IntelliSense for consumers too. -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml"
+                              PackagePath="lib/net10.0/"
+                              Condition=" '$(TargetFramework)' == 'net10.0' "/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml"
                               PackagePath="lib/net10.0-browser1.0/"
                               Condition=" '$(TargetFramework)' == 'net10.0-browser' "/>
     </ItemGroup>

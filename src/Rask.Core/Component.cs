@@ -306,7 +306,7 @@ public abstract class Component
     ///     (stylesheets, scripts, meta tags, the document title). The framework collects the
     ///     output from every component currently in the tree, dedupes top-level children by
     ///     their rendered HTML, and substitutes the result for the
-    ///     <see cref="Generated.RaskHeadAssets" /> placeholder. When a component goes away on
+    ///     <c>Generated.RaskHeadAssets</c> placeholder. When a component goes away on
     ///     a subsequent render, its head contribution drops out automatically — the registry
     ///     is rebuilt from scratch each pass.
     ///     <para>
@@ -423,6 +423,10 @@ public abstract class Component
     protected virtual Component? Render() => this;
 
     /// <summary>
+    /// Renders this component and its subtree to a standalone HTML string — a one-shot,
+    /// static render with no live-update wiring. Uses a pooled <see cref="System.Text.StringBuilder"/>.
+    /// </summary>
+    /// <returns>The serialized HTML for this component's subtree.</returns>
     public string ToHtml()
     {
         // Rent a StringBuilder from the shared pool instead of allocating per call. The

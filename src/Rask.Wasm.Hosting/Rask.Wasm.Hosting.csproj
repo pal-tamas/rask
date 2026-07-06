@@ -7,6 +7,7 @@
     <RootNamespace>Rask.Wasm.Hosting</RootNamespace>
 
     <PackageId>Rask.Wasm.Hosting</PackageId>
+    <Title>Rask — WASM Static-File Host</Title>
     <Description>ASP.NET helper for serving a Rask WASM AppBundle as a SPA. `app.UseRask()` mounts the published bundle with the right MIME types, no-cache revalidation, and a SPA fallback so client-side routes resolve. Depends on Rask.Wasm.</Description>
   </PropertyGroup>
 
