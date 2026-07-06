@@ -153,6 +153,15 @@ public readonly struct EditOp
 /// </summary>
 public static class FrameDiffer
 {
+    // Above this many surviving keyed children the move loop swaps its O(n) List&lt;int&gt; `live` for
+    // the O(log n) order-statistics PositionIndex, so a large full/near-full reversal stays O(n log n)
+    // instead of O(n²). At or below it the List is faster (cache-friendly, no tree overhead) and the
+    // quadratic term is negligible — measured crossover is a few hundred rows (a 100-row full reversal
+    // is ~17 µs on the treap vs ~14 µs on the List; a 1000-row one is ~209 µs vs ~251 µs). 256 keeps
+    // typical lists on the List path with no regression while catching the large reorders. The
+    // FullReverse tests (n=500/1000) exercise the treap path; PositionIndexTests fuzz it directly.
+    private const int LargeReorderThreshold = 256;
+
     /// <summary>
     ///     Invoked with the offending <c>data-rask-key</c> value when the diff codec finds two
     ///     sibling elements sharing a key. A duplicate key defeats keyed reconciliation, so the
@@ -797,52 +806,79 @@ public static class FrameDiffer
                     newIndexToSurv[targets[i]] = i;
                 }
 
-                // `live` holds surviving-indices in current DOM order. Steps 1-3 already aligned
-                // `surviving` to the post-insert order, so this starts as 0..n-1 and we mutate it
-                // in lockstep with the moves the client will apply (detach at src, insert at dst).
-                var live = bundle.Live;
-                for (var i = 0; i < n; i++)
-                {
-                    live.Add(i);
-                }
-
-                // Accumulate the run's moves as flat [dst0, src0, dst1, src1, …] pairs instead of
-                // emitting one MoveSubtree op each — every op would re-emit the full parent path,
-                // which dominates the wire bytes of a large reorder. After the loop we ship a single
-                // PermutationBatch op carrying the shared parent path once. The flat array MUST stay
-                // in emission order: each dst/src is computed against `live` as mutated by all
-                // preceding pairs, so the client replays it left-to-right (see EditOpKind docs).
+                // The loop mutates `live` (surviving-indices in current DOM order, starting 0..n-1) in
+                // lockstep with the moves the client replays: for each off-LIS row, detach it
+                // (rank → remove) and re-insert before its anchor (rank → insert), emitting the
+                // (dst, src) positions. Accumulated as a flat [dst0, src0, …] array shipped as one
+                // PermutationBatch (a per-row op would re-emit the full parent path); it MUST stay in
+                // emission order — each pair is computed against the already-mutated `live`, so the
+                // client replays it left-to-right (see EditOpKind docs). Re-insert even on the
+                // dst == src no-op so `live` stays consistent for the remaining lookups.
+                //
+                // Two backings, identical semantics + identical emitted positions (the tests replay
+                // them to the target, so both are validated): a plain List<int> for typical small
+                // lists, where its O(n) IndexOf/RemoveAt/Insert are cache-friendly and cheap; and the
+                // order-statistics PositionIndex above the threshold, whose O(log n) ops keep a large
+                // full/near-full reversal from going O(n²) (~3 ms → tens of µs at 5000 rows).
                 var moves = bundle.MovesBuffer;
-                for (var j = n - 1; j >= 0; j--)
+                if (n <= LargeReorderThreshold)
                 {
-                    var id = newIndexToSurv[j];
-                    if (lis.Contains(id))
+                    var live = bundle.Live;
+                    for (var i = 0; i < n; i++)
                     {
-                        continue;
+                        live.Add(i);
                     }
 
-                    // NOTE: IndexOf/RemoveAt/Insert on `live` are each O(n), so a permutation with
-                    // ~n off-LIS rows (a full/near-full reversal) makes this loop O(n²) — ~3 ms at
-                    // 5000 rows (FrameDifferBenchmarks.ReverseReorder). Reworking `live` into an
-                    // allocation-free order-statistics structure (rank + insert-at-rank in O(log n))
-                    // would make it O(n log n); the tests replay these moves and assert final order,
-                    // so any correct minimal move sequence is valid. Deferred — see the benchmark.
-                    var src = live.IndexOf(id);
-                    live.RemoveAt(src);
-
-                    // Destination = current (post-detach) index of the anchor at new index j+1,
-                    // or the end of the list when this is the last new index (no anchor).
-                    var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
-
-                    if (dst != src)
+                    for (var j = n - 1; j >= 0; j--)
                     {
-                        moves.Add(dst);
-                        moves.Add(src);
-                    }
+                        var id = newIndexToSurv[j];
+                        if (lis.Contains(id))
+                        {
+                            continue;
+                        }
 
-                    // Re-insert even on the no-op (dst == src) case so `live` stays consistent for
-                    // the remaining iterations' src/dst lookups.
-                    live.Insert(dst, id);
+                        var src = live.IndexOf(id);
+                        live.RemoveAt(src);
+                        var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
+                        if (dst != src)
+                        {
+                            moves.Add(dst);
+                            moves.Add(src);
+                        }
+
+                        live.Insert(dst, id);
+                    }
+                }
+                else
+                {
+                    var live = new PositionIndex();
+                    live.InitSequence(n);
+                    try
+                    {
+                        for (var j = n - 1; j >= 0; j--)
+                        {
+                            var id = newIndexToSurv[j];
+                            if (lis.Contains(id))
+                            {
+                                continue;
+                            }
+
+                            var src = live.RankOf(id);
+                            live.RemoveAt(src);
+                            var dst = j + 1 < n ? live.RankOf(newIndexToSurv[j + 1]) : live.Count;
+                            if (dst != src)
+                            {
+                                moves.Add(dst);
+                                moves.Add(src);
+                            }
+
+                            live.InsertAt(dst, id);
+                        }
+                    }
+                    finally
+                    {
+                        live.Return();
+                    }
                 }
 
                 if (moves.Count > 0)
