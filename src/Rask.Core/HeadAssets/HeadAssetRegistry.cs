@@ -191,37 +191,66 @@ internal sealed class HeadAssetRegistry
     /// </param>
     public string ApplyTo(string html, int sentinelIdx, IServiceProvider? services = null)
     {
-        _ = services; // see XML comment: parameter retained for ABI; no host strategy needed.
         if (sentinelIdx < 0)
         {
             return html;
         }
 
-        // Scoped-asset emission: one <link> for the whole scoped-CSS bundle and one <script defer>
-        // for the whole scoped-JS bundle (ScopedAssetRegistry concatenates every registered entry
-        // into a single content-hashed asset). Emitting the entire bundle up front means a later
-        // client-side mount finds its styles/script already present — no navigation FOUC — so the
-        // previous per-component <link>s + the rel="prefetch" pre-warming block are both gone.
-        // Bundle hashes read straight off the registry (no LiveRenderContext needed); empty when no
-        // scoped asset of that kind is registered. Built through a pooled StringBuilder.
-        string? scopedHtml = null;
-        var scopedSb = RaskStringBuilderPool.Shared.Get();
-        EmitScopedBundles(scopedSb);
-        if (scopedSb.Length > 0)
+        // Delegate to the in-place splice so there is a single splice implementation: the live-root
+        // render path (ApplyInPlace, no whole-page copy) and this string entry point (used by the
+        // head-asset unit tests) share the same Remove+Insert body and AppendHeadBlock, so they
+        // cannot drift. The whole-page copy here is paid only by the string overload, never the
+        // live hot path.
+        var page = RaskStringBuilderPool.Shared.Get();
+        page.Append(html);
+        ApplyInPlace(page, sentinelIdx, services);
+        var result = page.ToString();
+        RaskStringBuilderPool.Shared.Return(page);
+        return result;
+    }
+
+    /// <summary>
+    ///     Splices the deduplicated head-asset block into the <see cref="StringBuilder" /> that
+    ///     already holds the freshly serialized page (with the sentinel still present), replacing
+    ///     the sentinel in place instead of copying the whole page into a second builder. The
+    ///     live-root render path uses this so the page is materialized to a <c>string</c> exactly
+    ///     once (the final <c>ToString</c>) rather than twice — the serialize output and the
+    ///     post-splice copy were both full-page allocations.
+    /// </summary>
+    /// <param name="page">The serialized page; mutated in place (sentinel replaced by the block).</param>
+    /// <param name="sentinelIdx">
+    ///     Offset of <see cref="Sentinel" /> in <paramref name="page" /> (recorded during
+    ///     serialization). Negative → no-op, matching an absent sentinel.
+    /// </param>
+    /// <param name="services">Accepted for symmetry with <see cref="ApplyTo(string, int, IServiceProvider?)" />; not consulted.</param>
+    public void ApplyInPlace(StringBuilder page, int sentinelIdx, IServiceProvider? services = null)
+    {
+        ArgumentNullException.ThrowIfNull(page);
+        _ = services;
+        if (sentinelIdx < 0)
         {
-            scopedHtml = scopedSb.ToString();
+            return;
         }
 
-        RaskStringBuilderPool.Shared.Return(scopedSb);
-
-        if (_orderedHtml.Count == 0 && scopedHtml is null)
+        var block = RaskStringBuilderPool.Shared.Get();
+        AppendHeadBlock(block);
+        page.Remove(sentinelIdx, Sentinel.Length);
+        if (block.Length > 0)
         {
-            return html.Remove(sentinelIdx, Sentinel.Length);
+            // No StringBuilder.Insert(int, StringBuilder) overload exists; the block is small
+            // (a handful of <head> tags), so materializing it once is far cheaper than the
+            // whole-page copy this method replaces.
+            page.Insert(sentinelIdx, block.ToString());
         }
 
-        var sb = RaskStringBuilderPool.Shared.Get();
-        sb.Append(html, 0, sentinelIdx);
+        RaskStringBuilderPool.Shared.Return(block);
+    }
 
+    // Appends the deduplicated head-asset block — user-declared Component.Head contributions
+    // (each keyed for the client morph) followed by the scoped-CSS/JS bundle tags — to the
+    // target builder. Shared by ApplyTo (copy-splice) and ApplyInPlace (in-place splice).
+    private void AppendHeadBlock(StringBuilder sb)
+    {
         // Key each user-declared entry. Singleton entries (title, base) use the singleton key
         // so the morph matches them across renders even when their content/attrs change; other
         // entries get a content-derived hash so an unchanged asset (Bootstrap link, viewport
@@ -237,16 +266,9 @@ internal sealed class HeadAssetRegistry
         }
 
         // The scoped bundle emits AFTER user Head contributions so scoped CSS overrides
-        // global CDN imports declared via Component.Head.
-        if (scopedHtml is not null)
-        {
-            sb.Append(scopedHtml);
-        }
-
-        sb.Append(html, sentinelIdx + Sentinel.Length, html.Length - sentinelIdx - Sentinel.Length);
-        var result = sb.ToString();
-        RaskStringBuilderPool.Shared.Return(sb);
-        return result;
+        // global CDN imports declared via Component.Head. Empty when no scoped asset of that
+        // kind is registered — reads bundle hashes straight off ScopedAssetRegistry.
+        EmitScopedBundles(sb);
     }
 
     // Appends html with data-rask-key="..." spliced in right after the opening tag name. The

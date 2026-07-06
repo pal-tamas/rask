@@ -1349,27 +1349,46 @@ public abstract class Component
         // root, never re-binding closure-captured state or reading external mutable state.
         Live.StateDirty = true;
         RaiseLifecycleBeforeRender(false);
-        var html = ToHtml();
-        // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
-        // The registry was populated by HtmlSerializer as it descended through user
-        // components; we resolve the active context (still live before the using-disposal
-        // below) and apply once.
-        if (LiveRenderContext.Current is { } liveCtx)
+
+        // Serialize straight into a pooled builder and splice the head-asset block in place,
+        // so the page materializes to a string exactly once (the final ToString). The previous
+        // path allocated the page TWICE — ToHtml() produced one full-page string, then ApplyTo
+        // copied the whole page into a second builder to inject the head assets.
+        var pageBuilder = RaskStringBuilderPool.Shared.Get();
+        string html;
+        try
         {
-            // ApplyTo replaces the head-asset sentinel in place, shifting every byte position
-            // after it. The diff codec's frame offsets were captured against the pre-splice
-            // HTML, so when a frame stream is being captured (diff path) we must move the
-            // offsets past the sentinel by the same delta — otherwise an InsertSubtree fragment
-            // (sliced from this post-splice HTML via those offsets) reads the wrong bytes.
-            var sentinelIdx = html.IndexOf(HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
-            var preLen = html.Length;
-            html = liveCtx.HeadAssets.ApplyTo(html, sentinelIdx, liveCtx.Services);
-            if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
+            HtmlSerializer.Serialize(this, pageBuilder);
+
+            // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
+            // The registry was populated by HtmlSerializer as it descended through user
+            // components; we resolve the active context (still live before the using-disposal
+            // below) and apply once. The sentinel offset was recorded during serialization
+            // (HeadSentinelIndex), so no whole-page IndexOf scan is needed here.
+            if (LiveRenderContext.Current is { } liveCtx)
             {
-                frameSink.AdjustOffsetsFrom(
-                    sentinelIdx + HeadAssetRegistry.Sentinel.Length,
-                    html.Length - preLen);
+                // ApplyInPlace replaces the head-asset sentinel in place, shifting every byte
+                // position after it. The diff codec's frame offsets were captured against the
+                // pre-splice HTML, so when a frame stream is being captured (diff path) we must
+                // move the offsets past the sentinel by the same delta — otherwise an
+                // InsertSubtree fragment (sliced from this post-splice HTML via those offsets)
+                // reads the wrong bytes.
+                var sentinelIdx = liveCtx.HeadSentinelIndex;
+                var preLen = pageBuilder.Length;
+                liveCtx.HeadAssets.ApplyInPlace(pageBuilder, sentinelIdx, liveCtx.Services);
+                if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
+                {
+                    frameSink.AdjustOffsetsFrom(
+                        sentinelIdx + HeadAssetRegistry.Sentinel.Length,
+                        pageBuilder.Length - preLen);
+                }
             }
+
+            html = pageBuilder.ToString();
+        }
+        finally
+        {
+            RaskStringBuilderPool.Shared.Return(pageBuilder);
         }
 
         // Fail-fast backstop for a malformed root: the App must render the full page shell

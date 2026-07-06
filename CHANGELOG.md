@@ -7,6 +7,21 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The live-root render no longer allocates the whole page twice.** Every server/WASM live
+  render — the initial GET, every event re-render, reconnect recovery, and hot reload — went
+  through `Component.ToHtml()` (one full-page `string`) and then `HeadAssetRegistry.ApplyTo`,
+  which copied the entire page into a second builder to splice the deduplicated `<head>` assets
+  in at the sentinel (a second full-page `string` + a whole-body `IndexOf` scan). The path now
+  serializes straight into a pooled `StringBuilder`, records the sentinel offset as it is written
+  (no scan), and splices the head-asset block in place (`ApplyInPlace`), so the page is
+  materialized to a `string` exactly once. Measured on the live-root benchmark (ShortRun,
+  net10.0): per-render allocation drops **~48%** on a small page (7.7 KB → 4.0 KB), **~50%** on a
+  500-row page (171.8 KB → 86.0 KB), and **~33%** on a 1500-row page (788.7 KB → 528.1 KB), with
+  ~16–17% less wall-clock on the large pages. Output HTML and diff-frame offsets are byte-identical
+  (existing serializer/diff replay tests validate both). A new `RenderPageXLarge` benchmark isolates
+  the per-render cost at scale.
+
 ## [0.13.0] - 2026-07-06
 
 ### Added
