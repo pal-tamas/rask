@@ -46,6 +46,14 @@ them until tagged releases begin.
   Internal refactor, no behavior or public-API change; removes the duplicated buffer bookkeeping the
   WASM zero-copy work had introduced. WASM's send stays synchronous (allocation-free).
 
+### Fixed
+- **`Rask.Server` no longer crashes at static-init under NativeAOT.** `RaskEndpointExtensions` built its
+  constant "session unknown" WebSocket payload with `JsonSerializer.Serialize(anonymous)`, which throws
+  `InvalidOperationException` under NativeAOT (reflection-based JSON is disabled) and took down `UseRask`
+  before the host started. It is now a UTF-8 string literal — byte-identical, no serializer, no
+  reflection. (This removes the *first* NativeAOT startup blocker; full AOT boot additionally requires
+  the framework's in-library endpoint registrations to be AOT-safe — tracked separately.)
+
 ## [0.13.0] - 2026-07-06
 
 ### Added
