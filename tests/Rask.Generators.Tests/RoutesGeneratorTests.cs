@@ -315,6 +315,85 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
+    public void RegistryInitializer_RegistersCustomParsableParamType_ForAot()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  using System;
+                  namespace Demo;
+                  public readonly record struct Sku(string Code) : IParsable<Sku>
+                  {
+                      public static Sku Parse(string s, IFormatProvider? p) => new(s);
+                      public static bool TryParse(string? s, IFormatProvider? p, out Sku r) { r = new(s ?? ""); return s is not null; }
+                  }
+                  [Route("/products/{sku}")]
+                  public sealed class ProductPage : Component
+                  {
+                      [RouteParam] public Sku Sku { get; set; }
+                      [QueryParam] public int Page { get; set; }
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
+
+        // Custom IParsable type is registered so a full-AOT build can bind it without MakeGenericMethod.
+        Assert.Contains("global::Rask.Core.Forms.RaskBinding.RegisterParsable<global::Demo.Sku>();", output);
+        // BCL primitives are seeded by the framework — never emitted.
+        Assert.DoesNotContain("RegisterParsable<int>", output);
+        Assert.DoesNotContain("RegisterParsable<global::System.Int32>", output);
+    }
+
+    [Fact]
+    public void RegistryInitializer_RegistersNonPrimitiveBclParsableParamType()
+    {
+        // Registration keys off SpecialType (not the namespace), so any non-primitive IParsable type
+        // is registered even when it lives under System.* — e.g. System.Net.IPAddress, which the
+        // framework does not seed. This keeps a future unseeded BCL parsable from silently failing to
+        // bind under full AOT, without the generator having to mirror the registry's seed list.
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  using System.Net;
+                  namespace Demo;
+                  [Route("/host/{ip}")]
+                  public sealed class HostPage : Component
+                  {
+                      [RouteParam] public IPAddress Ip { get; set; } = null!;
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
+
+        Assert.Contains("global::Rask.Core.Forms.RaskBinding.RegisterParsable<global::System.Net.IPAddress>();", output);
+    }
+
+    [Fact]
+    public void RegistryInitializer_NoCustomParsableParams_EmitsNoRegistrations()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      [RouteParam] public int Id { get; set; }
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var output = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
+
+        Assert.DoesNotContain("RegisterParsable", output);
+    }
+
+    [Fact]
     public void OrphanRouteParam_RaisesRask008()
     {
         var src = """

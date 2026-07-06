@@ -39,6 +39,26 @@ jobs:
           dotnet test Rask.slnx -c Release --no-build
           --filter "FullyQualifiedName!~Rask.Examples.E2E"
 
+  # Prove the opt-in full WASM AOT publish (-p:RaskWasmAot=true) stays clean end-to-end. The
+  # Emscripten relink is slow, so it runs nightly only — per-PR AOT-safety is enforced by the trim +
+  # AOT Roslyn analysers (IsAotCompatible / EnableAotAnalyzer) that run on every build. The build
+  # is warnings-as-errors, so any RequiresDynamicCode/trim regression fails this job.
+  aot-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+      - name: Restore
+        run: dotnet restore samples/Rask.Example.Wasm
+      - name: Publish (full WASM AOT)
+        run: dotnet publish samples/Rask.Example.Wasm -c Release -p:RaskWasmAot=true --no-restore
+
   # Browser journeys — one comprehensive journey per hosting project, sharded one host
   # per runner (mirrors ci.yml). Nightly must not publish unless every journey is green.
   e2e:
@@ -106,7 +126,7 @@ jobs:
             **/bin/**/test-artifacts/**
 
   publish-nightly:
-    needs: [unit, e2e]
+    needs: [unit, aot-publish, e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

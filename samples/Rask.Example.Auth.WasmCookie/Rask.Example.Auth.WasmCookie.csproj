@@ -13,7 +13,9 @@
     <!-- Explicit no-AOT, gated off the fast no-native build: the SDK's runtime-pack default for
          this property is empty, so even 'false' is a relink trigger conflicting with
          -p:WasmBuildNative=false (AOT is off by default regardless). -->
-    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+    <!-- Full WASM AOT opt-in: publish with -p:RaskWasmAot=true (needs wasm-tools); default keeps the interpreter. -->
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' == 'true' ">true</RunAOTCompilation>
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
     <!-- Gated off the fast no-native build (-p:WasmBuildNative=false): the SDK forces a native

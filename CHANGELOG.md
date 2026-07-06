@@ -7,7 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **Opt-in full WASM AOT.** Publish with `-p:RaskWasmAot=true` (needs the `wasm-tools` workload) to
+  AOT-compile the browser bundle IL→WASM; the default keeps the Mono interpreter, so existing builds
+  are unchanged. The framework is now trim + AOT analyzer-clean: a reflection-free `TypedParserRegistry`
+  seeds every BCL `IParsable` primitive and resolves route/query/form values without runtime generics;
+  the `RoutesGenerator` auto-registers custom `IParsable` route/query param types; and a new public
+  `RaskBinding.RegisterParsable<T>()` registers custom form-model value types. The runtime assemblies
+  build under `IsAotCompatible` and the WASM sample under `EnableAotAnalyzer`, so every
+  warnings-as-errors build enforces AOT-safety. See [docs/aot.md](docs/aot.md).
+
 ### Changed
+- **Form binding no longer compiles a lambda per render.** `ExpressionAccessor.Parse` (run inside
+  `WriteAttributes` for every bound `Input`/`Select`/`Textarea`/`Bs*` control, on every render) used to
+  call `Expression.Compile()` to read the bind target once, then discard the delegate. It now walks the
+  expression with reflection instead — same result, no runtime code generation. Measured on the parse
+  hot path: **~600–680× faster and ~20× less allocation** (simple bind 21.7 µs / 4.4 KB → 33 ns /
+  216 B; nested chain 27 µs → 44 ns; list-indexer 58 µs / 4.8 KB → 86 ns / 272 B). Undocumented
+  expression shapes fall back to `Expression.Compile()`, so behavior is unchanged.
 - **The WASM live runtime no longer allocates a `byte[]` per rendered frame.** `WasmLiveSession` used
   to `ToArray()` its write buffer on every frame to hand the payload across the `applyRender` JS
   boundary and to dedup against the previous frame. It now double-buffers two `ArrayBufferWriter`s and
