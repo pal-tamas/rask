@@ -32,13 +32,11 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     public string? HelpText { get; set; }
     public string? Name { get; set; }
 
-    // Field() bakes the per-field .invalid-feedback straight into this control's own render output
-    // from the EditContext's mutable message list — state the render cache doesn't observe. Without
-    // opting out, the cache pins whichever message state an earlier render saw (e.g. the empty state
-    // captured before submit), so validation produced during the submit pipeline never repaints. Same
-    // rationale as ValidationMessage/ValidationSummary/ValidatingIndicator, which bundle the feedback
-    // as a separate bypassing component; the Bootstrap controls inline it, so they bypass here.
-    protected override bool BypassRenderCache => true;
+    // Field() bakes the per-field .invalid-feedback straight into this control's own render output from
+    // the EditContext's mutable message list. No manual BypassRenderCache: Resolve() reads
+    // EditContext.GetValidationMessages during Render(), which auto-latches the render-cache opt-out
+    // (see EditContext.MarkReader / Component._consumesContext), so validation produced during the submit
+    // pipeline always repaints instead of being served stale from a pre-submit cache.
 
     // Bootstrap floating label (https://getbootstrap.com/docs/5.0/forms/floating-labels/): wraps the
     // control + label in a .form-floating with the label AFTER the control, so the label floats over an

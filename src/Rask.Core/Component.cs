@@ -38,11 +38,13 @@ public abstract class Component
         ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
     };
 
-    // Set the first time this component reads a context value (Context.Get/Required/Has-via-Get).
-    // Such a component depends on ambient state the framework doesn't diff, so — like
-    // BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
+    // Set the first time this component reads untracked ambient state during Render: a context value
+    // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
+    // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —
+    // like BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
+    // This is why form controls that read validation state need no manual BypassRenderCache override.
     // Latched on: once a consumer, always a consumer (its Render path can read different
-    // context types across renders).
+    // context/edit-context state across renders).
     private bool _consumesContext;
     private CancellationTokenSource? _lifetimeCts;
 

@@ -64,6 +64,7 @@ public sealed class EditContext : IDisposable
     {
         get
         {
+            MarkReader();
             foreach (var s in _states.Values)
             {
                 if (s.PendingCount > 0)
@@ -179,8 +180,18 @@ public sealed class EditContext : IDisposable
     // Form-level inline Validate delegate. Null clears.
     public void RegisterFormValidator(Delegate? validate) => _formDelegate = validate;
 
-    public bool IsValidating(FieldIdentifier field) =>
-        _states.TryGetValue(field, out var s) && s.PendingCount > 0;
+    // Latches the component currently mid-Render() as reading untracked EditContext state, so it
+    // permanently opts out of the render cache (Component.RenderForLive) and re-executes Render() to
+    // observe later validation-message / validating-state changes. Exactly the mechanism Context.Get
+    // uses (Context.MarkConsumer). CurrentSync is non-null only during an active live render, so calls
+    // from the validation/submit pipeline are no-ops — no over-marking, no allocation on the hot path.
+    private static void MarkReader() => Live.LiveRenderContext.CurrentSync?.MarkCurrentConsumesContext();
+
+    public bool IsValidating(FieldIdentifier field)
+    {
+        MarkReader();
+        return _states.TryGetValue(field, out var s) && s.PendingCount > 0;
+    }
 
     /// <summary>
     ///     <see cref="IsValidating(FieldIdentifier)" /> extended with a short
@@ -198,6 +209,7 @@ public sealed class EditContext : IDisposable
     /// </summary>
     public bool ShouldShowValidatingIndicator(FieldIdentifier field)
     {
+        MarkReader();
         if (!_states.TryGetValue(field, out var s))
         {
             return false;
@@ -211,26 +223,44 @@ public sealed class EditContext : IDisposable
         return s.StickyUntilUtc is { } until && until > DateTimeOffset.UtcNow;
     }
 
-    public bool IsModified(FieldIdentifier field) =>
-        _states.TryGetValue(field, out var s) && s.Modified;
+    public bool IsModified(FieldIdentifier field)
+    {
+        MarkReader();
+        return _states.TryGetValue(field, out var s) && s.Modified;
+    }
 
-    public bool IsTouched(FieldIdentifier field) =>
-        _states.TryGetValue(field, out var s) && s.Touched;
+    public bool IsTouched(FieldIdentifier field)
+    {
+        MarkReader();
+        return _states.TryGetValue(field, out var s) && s.Touched;
+    }
 
-    public IReadOnlyList<string> GetValidationMessages(FieldIdentifier field) =>
-        _states.TryGetValue(field, out var s) ? s.Messages : Array.Empty<string>();
+    public IReadOnlyList<string> GetValidationMessages(FieldIdentifier field)
+    {
+        MarkReader();
+        return _states.TryGetValue(field, out var s) ? s.Messages : Array.Empty<string>();
+    }
 
     public IEnumerable<string> GetValidationMessages()
     {
-        foreach (var s in _states.Values)
-            foreach (var m in s.Messages)
-            {
-                yield return m;
-            }
+        // Mark before returning the iterator: MarkReader() inside the yield body would only run on
+        // first MoveNext (deferred), missing a render that enumerates lazily or not at all.
+        MarkReader();
+        return Enumerate();
+
+        IEnumerable<string> Enumerate()
+        {
+            foreach (var s in _states.Values)
+                foreach (var m in s.Messages)
+                {
+                    yield return m;
+                }
+        }
     }
 
     public IReadOnlyList<ValidationEntry> GetValidationEntries()
     {
+        MarkReader();
         var entries = new List<ValidationEntry>();
         foreach (var pair in _states)
             foreach (var m in pair.Value.Messages)
@@ -241,8 +271,11 @@ public sealed class EditContext : IDisposable
         return entries;
     }
 
-    public bool HasValidationMessages() =>
-        _states.Values.Any(s => s.Messages.Count > 0);
+    public bool HasValidationMessages()
+    {
+        MarkReader();
+        return _states.Values.Any(s => s.Messages.Count > 0);
+    }
 
     // Records the consumer that owns a field's bind expression so a write can re-render it. Idempotent per
     // render; null owners (bindings closed over a non-component root) are ignored.

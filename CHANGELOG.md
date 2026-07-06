@@ -28,6 +28,15 @@ them until tagged releases begin.
 - **The `rask-server` template README points to the WASM variants** — since the bare `dotnet new rask`
   alias resolves to the server template, the generated README now notes `rask-wasm` / `rask-wasm-hosted`
   for a client-side app.
+- **Form controls auto-opt-out of the render cache when they read validation state.** Reading an
+  `EditContext`'s per-field validation messages / entries / validating flags during `Render()` now
+  latches the same render-cache opt-out that `Context.Get` consumers get (`Component._consumesContext`),
+  so a control that bakes feedback into its own output always repaints when a message is produced later
+  in the submit pipeline — instead of serving a stale pre-submit frame. This removes the need for the
+  manual `BypassRenderCache` override on `ValidationMessage` / `ValidationSummary` / `ValidatingIndicator`
+  and the `Rask.Bootstrap` form controls, and — the DX win — means **custom** form controls that read
+  validation state need no `StateHasChanged()` or `BypassRenderCache` of their own. No public API change;
+  behavior is unchanged, the correctness now comes for free.
 
 ### Fixed
 - **Corrected pre-existing malformed XML doc comments** exposed once `GenerateDocumentationFile` turned
