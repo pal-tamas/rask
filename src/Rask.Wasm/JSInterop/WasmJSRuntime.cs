@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.JSInterop;
@@ -48,7 +49,16 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         // fallback — so they survive PublishTrimmed without the caller wiring up a context.
         JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.Browser.RaskBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(Browser.RaskWasmBrowserJsonContext.Default);
-        JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
+
+        // The reflection resolver (RequiresDynamicCode) is only added when the runtime can generate
+        // code — i.e. the Mono interpreter. Under a full interp-free AOT publish this branch is
+        // trimmed away, so the framework's source-gen contexts above still resolve InvokeAsync<T>
+        // for the built-in browser-API types, and a user calling InvokeAsync<TCustom> must supply a
+        // JsonSerializerContext for TCustom (exactly as Blazor WASM requires under AOT).
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
+            JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
+        }
     }
 
     /// <summary>Bind the session this runtime queues calls onto (called from the session ctor).</summary>

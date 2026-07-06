@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 
 namespace Rask.Core.Forms;
 
@@ -82,10 +84,7 @@ public static class ExpressionAccessor
                 nameof(expression));
         }
 
-        var targetGetter = Expression.Lambda<Func<object>>(
-            Expression.Convert(me.Expression, typeof(object))).Compile();
-
-        var target = targetGetter()
+        var target = EvaluateTarget(me.Expression)
                      ?? throw new InvalidOperationException(
                          $"Bind expression target evaluated to null: {expression}");
 
@@ -98,6 +97,111 @@ public static class ExpressionAccessor
             Owner = FindRootConstant(me),
         };
     }
+
+    // Evaluates the target sub-expression (everything left of the terminal property) with plain
+    // reflection — no Expression.Compile(). Parse runs on every render of every bound control
+    // (Input/Select/Textarea/Bs*), so compiling a throwaway lambda per render was pure overhead;
+    // this walks the tree once instead, and needs no runtime code generation under AOT. Covers every
+    // documented Bind/For shape: captured closure constants, member chains, foreach-captured locals,
+    // and array / list / dictionary indexers. An undocumented shape (e.g. arithmetic inside an index,
+    // a method call mid-chain) falls back to compiling the sub-expression — Compile() self-interprets
+    // on Mono and is not a RequiresDynamicCode site, so backward compatibility is preserved.
+    private static object? EvaluateTarget(Expression e)
+    {
+        try
+        {
+            return TryEvaluate(e, out var value) ? value : CompileEvaluate(e);
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is { } inner)
+        {
+            // A property getter / indexer reached by reflection (PropertyInfo.GetValue,
+            // MethodInfo.Invoke) wraps its exception in TargetInvocationException; the old
+            // Expression.Compile() path surfaced the original (e.g. KeyNotFoundException on a missing
+            // dictionary key). Unwrap one level so error handling sees the same exception as before.
+            ExceptionDispatchInfo.Throw(inner);
+            return null; // unreachable — Throw always throws.
+        }
+    }
+
+    private static bool TryEvaluate(Expression e, out object? value)
+    {
+        switch (e)
+        {
+            case ConstantExpression c:
+                value = c.Value;
+                return true;
+
+            case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } u:
+                return TryEvaluate(u.Operand, out value);
+
+            case MemberExpression m:
+            {
+                object? owner = null;
+                if (m.Expression is not null && !TryEvaluate(m.Expression, out owner))
+                {
+                    value = null;
+                    return false;
+                }
+
+                switch (m.Member)
+                {
+                    case FieldInfo f:
+                        value = f.GetValue(owner);
+                        return true;
+                    case PropertyInfo p:
+                        value = p.GetValue(owner);
+                        return true;
+                    default:
+                        value = null;
+                        return false;
+                }
+            }
+
+            // Array element: p.Items[i] where Items is T[].
+            case BinaryExpression { NodeType: ExpressionType.ArrayIndex } b
+                when TryEvaluate(b.Left, out var arrObj) && arrObj is Array arr
+                     && TryEvaluate(b.Right, out var idxObj) && idxObj is not null:
+                value = arr.GetValue(Convert.ToInt32(idxObj, CultureInfo.InvariantCulture));
+                return true;
+
+            // Custom indexer via Expression.MakeIndex.
+            case IndexExpression { Indexer: { } indexer, Object: { } indexed } ix
+                when TryEvaluate(indexed, out var idxObj) && idxObj is not null
+                     && TryEvaluateAll(ix.Arguments, out var idxArgs):
+                value = indexer.GetValue(idxObj, idxArgs);
+                return true;
+
+            // List<T> / Dictionary indexer: the C# compiler lowers these to a get_Item call.
+            case MethodCallExpression { Method: { IsSpecialName: true, Name: "get_Item" }, Object: { } receiver } mc
+                when TryEvaluate(receiver, out var obj) && obj is not null
+                     && TryEvaluateAll(mc.Arguments, out var args):
+                value = mc.Method.Invoke(obj, args);
+                return true;
+
+            default:
+                value = null;
+                return false;
+        }
+    }
+
+    private static bool TryEvaluateAll(System.Collections.Generic.IReadOnlyList<Expression> exprs, out object?[] values)
+    {
+        values = new object?[exprs.Count];
+        for (var i = 0; i < exprs.Count; i++)
+        {
+            if (!TryEvaluate(exprs[i], out values[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Fallback for the rare undocumented shape. Not a RequiresDynamicCode/IL3050 site — Expression
+    // .Compile() falls back to the expression interpreter when the runtime can't emit code.
+    private static object? CompileEvaluate(Expression e) =>
+        Expression.Lambda<Func<object>>(Expression.Convert(e, typeof(object))).Compile()();
 
     // Walks an expression chain down to its root captured constant and returns its value. For a binding
     // authored in a component as `() => _model.Field`, the field/`this` access compiles to a chain ending
