@@ -27,7 +27,7 @@ public sealed class RaskServerOptions
     /// <summary>
     ///     Hard cap (bytes) on a single reassembled inbound WebSocket frame. Client→server messages
     ///     are small (event dispatch / jsResult / navigate) and file uploads use the HTTP endpoint, so
-    ///     the 8&nbsp;MB default is generous headroom; it bounds a per-socket memory DoS where a client
+    ///     the 8&#160;MB default is generous headroom; it bounds a per-socket memory DoS where a client
     ///     streams an unbounded fragmented frame. Must be positive — a frame-size cap is mandatory, so
     ///     unlike the other caps there is no <c>0 = off</c>.
     /// </summary>
@@ -52,7 +52,7 @@ public sealed class RaskServerOptions
     /// <summary>
     ///     How long a session is retained after its WebSocket disconnects, so a reconnecting client
     ///     resumes against the same component tree. Longer survives flakier networks at the cost of
-    ///     holding a DI scope + tree per disconnected client. Default 30&nbsp;seconds.
+    ///     holding a DI scope + tree per disconnected client. Default 30&#160;seconds.
     /// </summary>
     public TimeSpan SessionGracePeriod { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -61,7 +61,7 @@ public sealed class RaskServerOptions
     ///     <c>hello</c> arrives. The runtime connects within a second of page load, so a much shorter
     ///     window than <see cref="SessionGracePeriod" /> suffices — and it stops a flood of GETs that
     ///     never open a socket (scanners, prefetchers) from pinning a scope + tree. Default
-    ///     10&nbsp;seconds.
+    ///     10&#160;seconds.
     /// </summary>
     public TimeSpan UnconnectedSessionGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
 

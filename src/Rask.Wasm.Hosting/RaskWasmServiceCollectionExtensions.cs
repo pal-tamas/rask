@@ -9,7 +9,7 @@ public static class RaskWasmServiceCollectionExtensions
 {
     /// <summary>
     ///     Registers response compression with brotli + gzip providers and the MIME types the
-    ///     dotnet WASM AppBundle ships. Opt-in: if you call this <see cref="UseRask" /> wires
+    ///     dotnet WASM AppBundle ships. Opt-in: if you call this <c>UseRask</c> wires
     ///     <c>UseResponseCompression()</c> ahead of <c>UseStaticFiles</c> automatically; if you
     ///     don't, the host still works but every byte ships uncompressed.
     ///     <para>

@@ -16,7 +16,7 @@ namespace Rask.Server.JSInterop;
 ///         serialisation of args and return values (including <see cref="IJSObjectReference" />
 ///         and <see cref="DotNetObjectReference{T}" /> marshalling), and the JSON converters
 ///         that round-trip handle ids. This class only plugs in the transport:
-///         <see cref="BeginInvokeJS(long, string, string?, JSCallResultType, long)" /> queues
+///         the base runtime's <c>BeginInvokeJS</c> queues
 ///         the call onto the current <see cref="LiveSession" />'s pending interop list and
 ///         requests a render so the next outbound WS frame ships it;
 ///         <see cref="EndInvokeDotNet" /> ships a <c>[JSInvokable]</c> result back to the

@@ -11,7 +11,7 @@ public delegate Task<TResult> RequestHandlerDelegate<TResult>();
 /// A decorator that wraps the handling of a request. Behaviors are the extension point for
 /// cross-cutting concerns (logging, validation, transactions, caching, retries); Rask.Cqrs ships
 /// none, you implement your own. Behaviors run as an onion in <b>registration order</b> — the
-/// first-registered wraps outermost. Call <paramref name="next"/> to continue the pipeline, or
+/// first-registered wraps outermost. Call <c>next</c> to continue the pipeline, or
 /// return without calling it to short-circuit.
 /// </summary>
 /// <typeparam name="TRequest">

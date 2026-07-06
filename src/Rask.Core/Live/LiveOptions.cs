@@ -1,7 +1,7 @@
 namespace Rask.Core.Live;
 
 /// <summary>
-///     How <see cref="LiveSession" /> / <see cref="WasmLiveSession" /> picks the wire
+///     How <c>LiveSession</c> / <c>WasmLiveSession</c> picks the wire
 ///     payload shape on each render.
 /// </summary>
 public enum LiveDiffMode

@@ -7,6 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.WebPush</PackageId>
+    <Title>Rask.WebPush — Web Push (VAPID) Sender</Title>
     <Description>Server-side Web Push sender for Rask. Signs VAPID (RFC&#160;8292) and encrypts (RFC&#160;8291 aes128gcm) push messages, then POSTs them to a browser PushSubscription endpoint — the send half that pairs with Rask.Wasm's IWebPush client. Transport-neutral: usable from a Rask.Server app or any ASP.NET backend behind a WASM PWA. No external dependencies beyond Microsoft.Extensions.* — all crypto is in-box System.Security.Cryptography.</Description>
   </PropertyGroup>
 

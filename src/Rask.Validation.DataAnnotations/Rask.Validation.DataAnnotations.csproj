@@ -7,6 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Validation.DataAnnotations</PackageId>
+    <Title>Rask — DataAnnotations Validation</Title>
     <Description>Rask validator that runs System.ComponentModel.DataAnnotations over the form model. Drop `DataAnnotationsValidator()` inside a `Form&lt;T&gt;` to wire attribute-based validation (`[Required]`, `[Range]`, `IValidatableObject`, …) into Rask's EditContext. No external dependencies beyond Rask.Core.</Description>
   </PropertyGroup>
 

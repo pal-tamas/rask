@@ -90,7 +90,7 @@ public sealed class LiveRenderContext : IDisposable
 
     /// <summary>
     ///     Per-render collector for <see cref="Component.Head" /> contributions. The
-    ///     <see cref="Generated.RaskHeadAssets" /> placeholder is replaced with this
+    ///     <c>Generated.RaskHeadAssets</c> placeholder is replaced with this
     ///     registry's content during <see cref="Component.RenderAsLiveRoot()" />.
     /// </summary>
     internal HeadAssetRegistry HeadAssets { get; }
@@ -99,7 +99,7 @@ public sealed class LiveRenderContext : IDisposable
     ///     Every user-component type observed during this render walk. Populated
     ///     unconditionally by <see cref="PushScope" /> on each component entry — covers
     ///     components with scoped CSS, scoped JS, both, and neither. Read by
-    ///     <see cref="HeadAssetRegistry.ApplyTo" /> to emit one
+    ///     <c>HeadAssetRegistry.ApplyTo</c> to emit one
     ///     <c>&lt;link&gt;</c>/<c>&lt;script&gt;</c> per mounted component that has a
     ///     registered scoped asset; types with neither contribute nothing.
     ///     <para>
