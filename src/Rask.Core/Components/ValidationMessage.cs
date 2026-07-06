@@ -12,7 +12,7 @@ public sealed class ValidationMessage : Component
     public required Func<IReadOnlyList<string>, Component> Template { get; set; }
 
     // No manual BypassRenderCache: reading EditContext.GetValidationMessages in Render() auto-latches
-    // the render-cache opt-out (see EditContext.MarkReader / Component._consumesContext), so a message
+    // the render-cache opt-out (see EditContext.MarkReader / Component._readsAmbientState), so a message
     // added by a later (e.g. post-await) render is always observed instead of served stale from cache.
 
     [GenerateForwarderFactory]

@@ -30,7 +30,7 @@ them until tagged releases begin.
   for a client-side app.
 - **Form controls auto-opt-out of the render cache when they read validation state.** Reading an
   `EditContext`'s per-field validation messages / entries / validating flags during `Render()` now
-  latches the same render-cache opt-out that `Context.Get` consumers get (`Component._consumesContext`),
+  latches the same render-cache opt-out that `Context.Get` consumers get (`Component._readsAmbientState`),
   so a control that bakes feedback into its own output always repaints when a message is produced later
   in the submit pipeline — instead of serving a stale pre-submit frame. This removes the need for the
   manual `BypassRenderCache` override on `ValidationMessage` / `ValidationSummary` / `ValidatingIndicator`

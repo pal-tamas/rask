@@ -48,7 +48,7 @@ public class ValidationMessageTests
         // ValidationMessage carries no manual BypassRenderCache override anymore. Its first render
         // reads EditContext.GetValidationMessages (no messages yet) and populates the render cache with
         // the empty result; that read auto-latches the component as a cache opt-out (EditContext
-        // .MarkReader -> Component._consumesContext). So when a message is added out-of-band and the
+        // .MarkReader -> Component._readsAmbientState). So when a message is added out-of-band and the
         // same pooled view is re-rendered with nothing marked prop/state-dirty, the second walk must
         // still re-execute Render() and surface the message rather than serve the stale empty frame.
         var p = new Person { Name = "" };
