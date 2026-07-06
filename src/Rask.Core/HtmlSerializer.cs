@@ -244,6 +244,19 @@ internal static class HtmlSerializer
                 // slip past the RASK019 analyzer) render first; the sentinel follows.
                 if (tagName == "head" && live is not null)
                 {
+                    // Record where the sentinel lands so RenderAsLiveRoot splices the head-asset
+                    // block in place (StringBuilder.Insert) without re-scanning the whole page for
+                    // the sentinel. The sentinel is byte-stable, so its start offset is all the
+                    // splice needs. Record only the FIRST head — the framework shell renders exactly
+                    // one <head> (RASK019/021), but a stray nested <head> from a component that
+                    // slipped the analyzer would emit a second sentinel; first-wins matches the
+                    // previous html.IndexOf(Sentinel) behaviour (splice the shell head, leave any
+                    // duplicate sentinel as a literal) rather than mis-splicing the stray one.
+                    if (live.HeadSentinelIndex < 0)
+                    {
+                        live.HeadSentinelIndex = sb.Length;
+                    }
+
                     sb.Append(HeadAssetRegistry.Sentinel);
 
                     // Host-registered head markup (e.g. the Server PWA <link rel="manifest"> +

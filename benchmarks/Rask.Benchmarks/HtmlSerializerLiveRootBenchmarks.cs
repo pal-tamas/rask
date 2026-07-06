@@ -18,6 +18,7 @@ public class HtmlSerializerLiveRootBenchmarks
 {
     private Component _small = null!;
     private Component _large = null!;
+    private Component _xlarge = null!;
     private IServiceProvider _services = null!;
 
     [GlobalSetup]
@@ -30,6 +31,7 @@ public class HtmlSerializerLiveRootBenchmarks
 
         _small = BuildPage(20);
         _large = BuildPage(500);
+        _xlarge = BuildPage(1500);
     }
 
     [Benchmark]
@@ -37,6 +39,14 @@ public class HtmlSerializerLiveRootBenchmarks
 
     [Benchmark]
     public string RenderPageLarge() => _large.RenderAsLiveRoot(_services);
+
+    // A large page re-render: RenderAsLiveRoot re-serializes the whole tree and splices the
+    // head-asset block on every call (the diff hot path pre-subtree-short-circuit). At 1500
+    // rows the page string dominates allocation, so the head-splice change — page materialized
+    // to a string once (in-place splice) instead of twice (serialize + copy) — is visible as a
+    // large Allocated drop that scales with page size.
+    [Benchmark]
+    public string RenderPageXLarge() => _xlarge.RenderAsLiveRoot(_services);
 
     private static Component BuildPage(int rowCount)
     {
