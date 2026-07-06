@@ -114,7 +114,17 @@
     <None Include="..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll"
           Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
   </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
+
+  <!--
+    Fail loud at pack time if the source generator DLL is missing from the hardcoded path above,
+    instead of silently shipping a package with no analyzer — a <None Include> of an absent file
+    packs nothing and emits no error, so consumers' factories would just never generate. Build order
+    is already ensured by Rask.Core's analyzer ProjectReference to Rask.Generators; this guard also
+    catches the path drifting (e.g. a Rask.Generators TFM change) or a no-build pack.
+  -->
+  <Target Name="_RaskVerifyGeneratorPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll')"
+           Text="Rask.Generators.dll not found at '..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll' — build Rask.Generators before packing so the source generator ships in analyzers/dotnet/cs/." />
+  </Target>
 
 </Project>

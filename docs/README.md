@@ -28,7 +28,7 @@ interactive app. Want the pitch and a quick demo first? See the project [README]
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–024)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–029)](diagnostics.md) | Every analyzer/generator diagnostic, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 
 ## Contributing

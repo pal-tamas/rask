@@ -20,6 +20,10 @@
     -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Build-only MSBuild task assembly shipped inside Rask.Wasm's build/ folder; it is never a
+         package of its own. Without this, a `dotnet pack` over the whole solution would emit a
+         stray, empty Rask.Wasm.Tasks package. -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
