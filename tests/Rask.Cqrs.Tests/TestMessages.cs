@@ -102,3 +102,37 @@ public sealed class ShortCircuitAdd(Recorder recorder) : IPipelineBehavior<Add, 
 
 // ---- A request with no registered handler (to prove the clear runtime error) ----
 public sealed record Orphan : IQuery<int>;
+
+// ---- A notification whose handlers fail, for the publish failure-mode tests. One succeeds and two
+// throw; the throwing handlers are async (record, yield, then throw) so under WhenAll every handler's
+// task is started before any of them faults. ----
+public sealed record Grumble(string Tag) : INotification;
+
+public sealed class GrumbleOk(Recorder recorder) : INotificationHandler<Grumble>
+{
+    public Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    {
+        recorder.Add($"ok:{notification.Tag}");
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class GrumbleBoomOne(Recorder recorder) : INotificationHandler<Grumble>
+{
+    public async Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    {
+        recorder.Add($"boom1:{notification.Tag}");
+        await Task.Yield();
+        throw new InvalidOperationException("boom-1");
+    }
+}
+
+public sealed class GrumbleBoomTwo(Recorder recorder) : INotificationHandler<Grumble>
+{
+    public async Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    {
+        recorder.Add($"boom2:{notification.Tag}");
+        await Task.Yield();
+        throw new InvalidOperationException("boom-2");
+    }
+}
