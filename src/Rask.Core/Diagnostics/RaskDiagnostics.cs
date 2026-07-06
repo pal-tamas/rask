@@ -46,7 +46,7 @@ internal readonly struct RaskDiagnosticEvent(
 ///     The framework's dependency-free diagnostic seam. <c>Rask.Core</c> (and the WASM host) deliberately
 ///     take no dependency on <c>Microsoft.Extensions.Logging</c>, yet still need to surface faults that
 ///     would otherwise be swallowed — a lifecycle hook that threw with no ancestor
-///     <see cref="ErrorBoundary" />, a component <c>Dispose</c> that faulted, a duplicate sibling key, a
+///     <see cref="Rask.Core.Components.ErrorBoundary" />, a component <c>Dispose</c> that faulted, a duplicate sibling key, a
 ///     JS-invoke fault. Those sites call <see cref="Report" /> / <see cref="ReportOnce" /> instead of
 ///     writing to <see cref="Console.Error" /> directly.
 ///     <para>

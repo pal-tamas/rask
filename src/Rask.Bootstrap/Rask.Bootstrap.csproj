@@ -7,6 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Bootstrap</PackageId>
+    <Title>Rask — Typed Bootstrap Components</Title>
     <Description>Typed Bootstrap 5.3 components for Rask — discoverable C# factories (BsButton, BsCard, BsModal, …) that emit correct Bootstrap markup, interactive components (Modal/Dropdown/Accordion/Tabs/Offcanvas/Toast) driven by Rask's live runtime with zero JavaScript, IFormControl-bound form controls, color modes, and a typed BsIcon. Bundles Bootstrap 5.3.8 + Bootstrap Icons 1.13.1 as static web assets served from _content/Rask.Bootstrap; link them with BootstrapStyles().</Description>
     <PackageTags>web component framework wasm net10 bootstrap css ui components</PackageTags>
 

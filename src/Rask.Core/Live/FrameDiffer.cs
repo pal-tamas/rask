@@ -74,7 +74,7 @@ public enum EditOpKind : byte
 }
 
 /// <summary>
-///     A single edit operation produced by <see cref="FrameDiffer.Diff" />. Each op
+///     A single edit operation produced by <c>FrameDiffer.Diff</c>. Each op
 ///     names the DOM node it targets via <see cref="Path" /> — a sequence of child
 ///     indices from the document root, counting only DOM-relevant nodes (elements,
 ///     text, raw, doctype). Attribute frames in the underlying render-tree stream

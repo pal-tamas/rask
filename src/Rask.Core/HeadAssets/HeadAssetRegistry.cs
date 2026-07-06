@@ -8,7 +8,7 @@ namespace Rask.Core.HeadAssets;
 /// <summary>
 ///     Per-render collector for <see cref="Component.Head" /> declarations. Components
 ///     contribute <c>&lt;link&gt;</c> / <c>&lt;script&gt;</c> / <c>&lt;meta&gt;</c> / etc.
-///     declarations while the tree is serialized; <see cref="RaskHeadAssets" /> emits a
+///     declarations while the tree is serialized; <c>RaskHeadAssets</c> emits a
 ///     sentinel placeholder, and <see cref="Component.RenderAsLiveRoot()" /> post-processes
 ///     the final HTML to replace the sentinel with the deduplicated asset markup.
 ///     <para>
@@ -177,10 +177,17 @@ internal sealed class HeadAssetRegistry
         => ApplyTo(html, html.IndexOf(Sentinel, StringComparison.Ordinal), services);
 
     /// <inheritdoc cref="ApplyTo(string, IServiceProvider?)" />
+    /// <param name="html">
+    ///     The full page HTML containing the head-assets sentinel placeholder to replace.
+    /// </param>
     /// <param name="sentinelIdx">
     ///     Pre-computed index of <see cref="Sentinel" /> in <paramref name="html" /> (the caller
     ///     already locates it to adjust diff-frame offsets), so this method skips a second
     ///     whole-body <c>IndexOf</c> scan. Negative when the sentinel is absent.
+    /// </param>
+    /// <param name="services">
+    ///     Accepted for binary compatibility but no longer consulted; scoped-asset emission reads
+    ///     <see cref="ScopedAssetRegistry" /> directly.
     /// </param>
     public string ApplyTo(string html, int sentinelIdx, IServiceProvider? services = null)
     {

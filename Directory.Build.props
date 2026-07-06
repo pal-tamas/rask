@@ -8,6 +8,9 @@
     <!-- A concise, nuget.org-friendly README (absolute image/link URLs); the 75KB root
          README with relative links does not render well on the gallery. -->
     <PackageReadmeFile>NUGET.md</PackageReadmeFile>
+    <!-- Square gallery/IDE icon (NuGet rejects SVG, so a PNG derived from assets/rask-icon.svg).
+         Packed for every packable project by the IsPackable ItemGroup below. -->
+    <PackageIcon>rask-icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/pal-tamas/rask</PackageProjectUrl>
     <RepositoryUrl>https://github.com/pal-tamas/rask.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -32,6 +35,16 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!--
+      Emit the XML doc file so the public API's /// comments reach consumer IntelliSense (tooltips,
+      parameter hints) via the NuGet package. Only framework/library projects need it — test,
+      benchmark, and sample projects are never consumed as packages, so generating (and validating)
+      their doc comments is pure noise. CS1591 (missing XML comment on a public member) is suppressed
+      rather than escalated: we ship the docs we have without forcing a full-coverage documentation
+      sweep across every public member under warnings-as-errors.
+    -->
+    <GenerateDocumentationFile Condition=" !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.StartsWith('Rask.Benchmarks')) AND !$(MSBuildProjectName.StartsWith('Rask.Example')) ">true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <!--
     AnalysisLevel stays at the SDK default mode: the repo builds clean there, so warnings-as-errors
@@ -56,6 +69,7 @@
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
     <None Include="$(MSBuildThisFileDirectory)NUGET.md" Pack="true" PackagePath="" Visible="false"/>
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" Visible="false"/>
+    <None Include="$(MSBuildThisFileDirectory)assets\rask-icon.png" Pack="true" PackagePath="" Visible="false"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">

@@ -7,6 +7,22 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **NuGet packages now ship XML documentation, an icon, and per-package titles.** Every framework
+  package emits its `///` API docs (`GenerateDocumentationFile`), so `AddRask`/`UseRask`, the `Bs*`
+  factories, forms and the rest of the public surface now light up IntelliSense tooltips and parameter
+  hints for consumers. The host packages (`Rask.Server`/`Rask.Wasm`) additionally bundle `Rask.Core.xml`
+  next to the `Rask.Core.dll` they already carry, so the Core public API (`Component`, `Element`,
+  factories, forms, routing) surfaces docs too. Each package also gains a square gallery/IDE icon
+  (`rask-icon.png`) and a human-readable `<Title>`. `CS1591` (missing doc on a public member) is
+  suppressed so partial doc coverage ships as-is without forcing a full-coverage sweep.
+
+### Fixed
+- **Corrected pre-existing malformed XML doc comments** exposed once `GenerateDocumentationFile` turned
+  on doc validation — a dangling `<summary>` on `Component.ToHtml`, `paramref`s to non-existent
+  parameters, an `&nbsp;` entity undefined in XML, and several unresolved/ambiguous `cref`s across
+  `Rask.Core`, `Rask.Server`, `Rask.Wasm` and `Rask.Wasm.Hosting`.
+
 ## [0.12.1] - 2026-07-04
 
 ### Fixed

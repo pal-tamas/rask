@@ -7,6 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Cqrs</PackageId>
+    <Title>Rask.Cqrs — Source-Generated CQRS/Mediator</Title>
     <Description>Source-generated, reflection-free CQRS/mediator for .NET. Define `IQuery&lt;T&gt;`, `ICommand`, `ICommand&lt;T&gt;` and `INotification` messages with their handlers, then dispatch through `IDispatcher` with the response type inferred — no runtime reflection and no assembly scanning, so it publishes clean under the WASM/AOT trimmer. Pipeline behaviors provide the decorator hook for cross-cutting logging/validation/transactions. Standalone: depends only on Microsoft.Extensions.DependencyInjection.Abstractions.</Description>
   </PropertyGroup>
 

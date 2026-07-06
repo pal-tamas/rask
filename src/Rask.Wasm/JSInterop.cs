@@ -137,8 +137,8 @@ internal static partial class JSInterop
     /// <summary>
     ///     Browser sub-path prefix derived from <c>&lt;base href&gt;</c>. Returns the
     ///     directory portion (e.g. <c>"/Rask/"</c> when hosted at <c>/Rask/index.html</c>
-    ///     or <c>"/"</c> at the origin root). <see cref="WasmHostBuilder.CreateDefault" />
-    ///     uses this to seed <see cref="LiveOptions.PathBase" /> so head-emitted asset
+    ///     or <c>"/"</c> at the origin root). <see cref="WasmHostBuilder.CreateDefault()" />
+    ///     uses this to seed <see cref="Rask.Core.Live.RaskLiveOptions.PathBase" /> so head-emitted asset
     ///     URLs honour the deployment sub-path without explicit configuration.
     /// </summary>
     [JSImport("getBasePath", ModuleName)]

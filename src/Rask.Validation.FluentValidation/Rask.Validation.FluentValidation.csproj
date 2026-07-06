@@ -7,6 +7,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Validation.FluentValidation</PackageId>
+    <Title>Rask — FluentValidation Validation</Title>
     <Description>Rask validator that delegates to a `FluentValidation.IValidator`. Drop `FluentValidationValidator(new MyValidator())` inside a `Form&lt;T&gt;` to wire FluentValidation rules into Rask's EditContext, including async per-field validation. Depends on FluentValidation 12.x.</Description>
   </PropertyGroup>
 

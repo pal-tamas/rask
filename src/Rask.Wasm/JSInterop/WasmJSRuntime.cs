@@ -10,8 +10,8 @@ namespace Rask.Wasm;
 /// <summary>
 ///     <see cref="JSRuntime" /> implementation backed by the WASM <c>[JSImport]</c> /
 ///     <c>[JSExport]</c> bridge. Mirrors <c>Rask.Server.JSInterop.RaskJSRuntime</c>'s
-///     contract: every <c>IJSRuntime.InvokeAsync</c> call lands in
-///     <see cref="BeginInvokeJS(long, string, string?, JSCallResultType, long)" />, which
+///     contract: every <c>IJSRuntime.InvokeAsync</c> call lands in the base runtime's
+///     <c>BeginInvokeJS</c>, which
 ///     hands the call to <c>rask.wasm.js</c>'s <c>dispatchJsInvoke</c>. Results return
 ///     through the <c>endInvokeJSResult</c> <c>[JSExport]</c> in
 ///     <see cref="JSInterop" /> (which calls <see cref="DotNetDispatcher.EndInvokeJS" />).
