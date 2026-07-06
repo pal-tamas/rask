@@ -9,7 +9,17 @@
     <PackageId>Rask.Cqrs</PackageId>
     <Title>Rask.Cqrs — Source-Generated CQRS/Mediator</Title>
     <Description>Source-generated, reflection-free CQRS/mediator for .NET. Define `IQuery&lt;T&gt;`, `ICommand`, `ICommand&lt;T&gt;` and `INotification` messages with their handlers, then dispatch through `IDispatcher` with the response type inferred — no runtime reflection and no assembly scanning, so it publishes clean under the WASM/AOT trimmer. Pipeline behaviors provide the decorator hook for cross-cutting logging/validation/transactions. Standalone: depends only on Microsoft.Extensions.DependencyInjection.Abstractions.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — Rask.Cqrs is a standalone,
+         host-agnostic mediator with no web/UI coupling. -->
+    <PackageTags>cqrs mediator dispatcher source-generator reflection-free aot trimming dotnet net10</PackageTags>
   </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
