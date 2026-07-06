@@ -9,6 +9,8 @@
     <PackageId>Rask.Validation.FluentValidation</PackageId>
     <Title>Rask — FluentValidation Validation</Title>
     <Description>Rask validator that delegates to a `FluentValidation.IValidator`. Drop `FluentValidationValidator(new MyValidator())` inside a `Form&lt;T&gt;` to wire FluentValidation rules into Rask's EditContext, including async per-field validation. Depends on FluentValidation 12.x.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — this is a forms-validation adapter. -->
+    <PackageTags>validation fluentvalidation forms model-validation rask dotnet net10</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
