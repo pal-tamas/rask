@@ -17,6 +17,15 @@ them until tagged releases begin.
   (`rask-icon.png`) and a human-readable `<Title>`. `CS1591` (missing doc on a public member) is
   suppressed so partial doc coverage ships as-is without forcing a full-coverage sweep.
 
+### Changed
+- **Per-package NuGet identity for the standalone packages.** `Rask.Cqrs`, `Rask.WebPush` and both
+  `Rask.Validation.*` packages now carry their own `PackageTags` instead of inheriting the framework
+  default (`web component framework wasm net10`), which mis-signalled scope and hurt search — e.g.
+  `Rask.Cqrs` (a reflection-free mediator) and `Rask.WebPush` (a transport-neutral server sender) are
+  no longer tagged `wasm`/`component`. `Rask.Cqrs` and `Rask.WebPush` also ship a **package-specific
+  `NUGET.md`** (install + quickstart for that package) rather than the shared framework overview a
+  consumer landed on before.
+
 ### Fixed
 - **Corrected pre-existing malformed XML doc comments** exposed once `GenerateDocumentationFile` turned
   on doc validation — a dangling `<summary>` on `Component.ToHtml`, `paramref`s to non-existent
