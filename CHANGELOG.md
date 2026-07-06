@@ -39,7 +39,17 @@ them until tagged releases begin.
   behavior is unchanged, the correctness now comes for free.
 
 ### Fixed
-- **Corrected pre-existing malformed XML doc comments** exposed once `GenerateDocumentationFile` turned
+- **An event handler that captures a loop variable *and* `this` now re-renders the component that
+  defined it, even when nested inside a composite.** A per-row handler like
+  `items.Select(x => BsButton(OnClick: () => Handle(x)))` is lowered by Roslyn to *nested* display
+  classes — the delegate's immediate target holds the loop item, while the captured `this` lives on an
+  outer closure. `DelegateOwner.Resolve` only inspected the immediate target's `<>4__this`, so it
+  missed the owner and fell back to the element's render-owner (the composite wrapper, e.g. the
+  `BsButton`). Firing the handler then dirty-marked only the wrapper, so the page that owns the state
+  never re-rendered and the button appeared dead — most visibly, edit/delete buttons inside a `BsTabs`
+  table row (a row rendered inside a `BsButton` inside a tab pane) did nothing when clicked. Resolve now
+  walks the captured closures to recover the defining component. Fast paths (method group, this-only
+  lambda, directly-captured `this`) are unchanged; the walk runs only when the direct lookup misses.
   on doc validation — a dangling `<summary>` on `Component.ToHtml`, `paramref`s to non-existent
   parameters, an `&nbsp;` entity undefined in XML, and several unresolved/ambiguous `cref`s across
   `Rask.Core`, `Rask.Server`, `Rask.Wasm` and `Rask.Wasm.Hosting`.
