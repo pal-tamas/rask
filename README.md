@@ -136,11 +136,11 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Getting started](docs/getting-started.md)** | Scaffold, first component, interactivity, routing — the end-to-end path. |
 | **[Best practices](docs/best-practices.md)** | The patterns and pitfalls that keep an app correct, secure, and fast. |
 | **[Elements & the DSL](docs/elements.md)** | Primitives, tag factories, universal props, and typed SVG — the render surface. |
-| **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** | Context, callbacks, children; mount/update/dispose. |
+| **[Composition](docs/composition.md)** · **[Lifecycle](docs/lifecycle.md)** | Component tiers (static/stateless/stateful), context, callbacks, children; mount/update/dispose. |
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **[Authentication](docs/authentication.md)** · **[Data access](docs/data-access.md)** · **[HTTP & files](docs/http-and-files.md)** · **[CQRS](docs/cqrs.md)** | Cookie/JWT on Server & WASM; EF Core + SQLite; a DI'd `HttpClient` + file upload/download; source-generated CQRS. |
 | **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** | 43 typed Web-API wrappers; installable, offline apps. |
+| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** · **[AOT](docs/aot.md)** | 43 typed Web-API wrappers; installable, offline apps; opt-in full WASM AOT. |
 | **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; unit + E2E. |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
 | **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |

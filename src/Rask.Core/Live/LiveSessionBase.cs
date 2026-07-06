@@ -15,8 +15,12 @@ namespace Rask.Core.Live;
 internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 {
     // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented backing
-    // array hot. Non-readonly: Server swaps it with its previous-frame buffer for zero-copy dedup.
+    // array hot. Non-readonly: TryEmitFrameAsync swaps it with the previous-frame buffer for zero-copy dedup.
     protected ArrayBufferWriter<byte> _writeBuffer = new(4096);
+
+    // The buffer holding the last frame we sent — the double-buffer dedup baseline. TryEmitFrameAsync
+    // swaps it with _writeBuffer after each send, so neither the baseline nor the emit copies a byte[].
+    protected ArrayBufferWriter<byte>? _lastSentBuffer;
 
     // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in — the default
     // (DisabledFull) path pays nothing for these.
@@ -134,6 +138,42 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     /// <summary>The framework's mid-await intermediate render (see Component.InvokeWithRenderingAsync).</summary>
     protected abstract Task RenderInScopeCoreAsync();
+
+    /// <summary>
+    ///     Double-buffered zero-copy send, shared by both hosts. Skips the frame currently in
+    ///     <see cref="_writeBuffer" /> when it's byte-identical to the last one sent (dedup), otherwise
+    ///     hands its bytes to the host transport via <see cref="SendFrameAsync" /> and swaps the buffers
+    ///     so the sent frame becomes the next dedup baseline and the old baseline is recycled as the
+    ///     next write target (<see cref="WritePayload" /> resets its <c>WrittenCount</c> before writing).
+    ///     <paramref name="force" /> bypasses the dedup for frames that must flow even when the rendered
+    ///     output is unchanged (navigation / auth / download). Returns whether a frame was sent.
+    /// </summary>
+    protected async ValueTask<bool> TryEmitFrameAsync(bool force)
+    {
+        if (_writeBuffer.WrittenCount == 0)
+        {
+            return false;
+        }
+
+        if (!force
+            && _lastSentBuffer is not null
+            && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
+        {
+            return false;
+        }
+
+        await SendFrameAsync(_writeBuffer.WrittenMemory).ConfigureAwait(false);
+
+        (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
+        return true;
+    }
+
+    /// <summary>
+    ///     Push one built frame's bytes to the host transport: Server writes them to the WebSocket
+    ///     (<c>ReadOnlyMemory&lt;byte&gt;</c>, zero-copy); WASM pushes them to JS via a zero-copy
+    ///     <c>MemoryView</c>. WASM's is synchronous — it returns a completed <see cref="ValueTask" />.
+    /// </summary>
+    protected abstract ValueTask SendFrameAsync(ReadOnlyMemory<byte> frame);
 
     /// <summary>
     ///     Render the component tree to HTML, capturing the parallel <c>RenderFrame</c> stream when

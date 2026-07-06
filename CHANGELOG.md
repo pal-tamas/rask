@@ -8,6 +8,55 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Opt-in full WASM AOT.** Publish with `-p:RaskWasmAot=true` (needs the `wasm-tools` workload) to
+  AOT-compile the browser bundle IL→WASM; the default keeps the Mono interpreter, so existing builds
+  are unchanged. The framework is now trim + AOT analyzer-clean: a reflection-free `TypedParserRegistry`
+  seeds every BCL `IParsable` primitive and resolves route/query/form values without runtime generics;
+  the `RoutesGenerator` auto-registers custom `IParsable` route/query param types; and a new public
+  `RaskBinding.RegisterParsable<T>()` registers custom form-model value types. The runtime assemblies
+  build under `IsAotCompatible` and the WASM sample under `EnableAotAnalyzer`, so every
+  warnings-as-errors build enforces AOT-safety. See [docs/aot.md](docs/aot.md).
+- **New "Component tiers" section in the Composition guide** contrasting the three ways to author a
+  reusable unit — a Tier-0 static method, a Tier-1 stateless `Component`, and a Tier-2 stateful
+  `Component` — with a decision table, the static-method context caveat, and a rule of thumb. Backed
+  by a live, code-embedded showcase demo (`component-tiers`) that renders all three side by side; only
+  the stateful counter holds state and re-renders on click with no `StateHasChanged()`.
+
+### Changed
+- **Form binding no longer compiles a lambda per render.** `ExpressionAccessor.Parse` (run inside
+  `WriteAttributes` for every bound `Input`/`Select`/`Textarea`/`Bs*` control, on every render) used to
+  call `Expression.Compile()` to read the bind target once, then discard the delegate. It now walks the
+  expression with reflection instead — same result, no runtime code generation. Measured on the parse
+  hot path: **~600–680× faster and ~20× less allocation** (simple bind 21.7 µs / 4.4 KB → 33 ns /
+  216 B; nested chain 27 µs → 44 ns; list-indexer 58 µs / 4.8 KB → 86 ns / 272 B). Undocumented
+  expression shapes fall back to `Expression.Compile()`, so behavior is unchanged.
+- **The WASM live runtime no longer allocates a `byte[]` per rendered frame.** `WasmLiveSession` used
+  to `ToArray()` its write buffer on every frame to hand the payload across the `applyRender` JS
+  boundary and to dedup against the previous frame. It now double-buffers two `ArrayBufferWriter`s and
+  compares spans directly (mirroring `Rask.Server`), and pushes the payload to JS zero-copy via a
+  `MemoryView` (`ApplyRender(Span<byte>)`) instead of a marshalled `byte[]`. The per-frame allocation
+  drops to **0 B** (was the full payload size — e.g. ~4 KB for a document frame) and the emit/dedup
+  step is ~2× faster; the one remaining copy is a JS-side `.slice()` that materialises the frame for
+  `TextDecoder`. Intermediate publish-renders are fully allocation-free; the two byte-returning entry
+  points (`InitialRenderAsync`/`DispatchAsync`) keep a single `ToArray` for their unit-test seam.
+- **Unified the double-buffered send between the Server and WASM hosts.** The dedup-and-swap mechanic
+  (skip byte-identical frames, hand the buffer to the transport, swap the sent buffer to the dedup
+  baseline) now lives once in `LiveSessionBase.TryEmitFrameAsync`, with the transport as an abstract
+  `SendFrameAsync` seam — a WebSocket send on Server, a zero-copy `MemoryView` `applyRender` on WASM.
+  Internal refactor, no behavior or public-API change; removes the duplicated buffer bookkeeping the
+  WASM zero-copy work had introduced. WASM's send stays synchronous (allocation-free).
+
+### Fixed
+- **`Rask.Server` no longer crashes at static-init under NativeAOT.** `RaskEndpointExtensions` built its
+  constant "session unknown" WebSocket payload with `JsonSerializer.Serialize(anonymous)`, which throws
+  `InvalidOperationException` under NativeAOT (reflection-based JSON is disabled) and took down `UseRask`
+  before the host started. It is now a UTF-8 string literal — byte-identical, no serializer, no
+  reflection. (This removes the *first* NativeAOT startup blocker; full AOT boot additionally requires
+  the framework's in-library endpoint registrations to be AOT-safe — tracked separately.)
+
+## [0.13.0] - 2026-07-06
+
+### Added
 - **NuGet packages now ship XML documentation, an icon, and per-package titles.** Every framework
   package emits its `///` API docs (`GenerateDocumentationFile`), so `AddRask`/`UseRask`, the `Bs*`
   factories, forms and the rest of the public surface now light up IntelliSense tooltips and parameter

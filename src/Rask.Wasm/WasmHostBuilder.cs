@@ -213,13 +213,10 @@ public sealed class WasmHostBuilder
         var session = new WasmLiveSession(root, provider);
         JSInterop.Init(session);
 
+        // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);
+        // the returned bytes are just for the diagnostic below.
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);
         Console.WriteLine($"[Rask.Wasm] first render payload bytes={payload.Length}");
-        if (payload.Length > 0)
-        {
-            JSInterop.ApplyRender(payload);
-        }
-
         Console.WriteLine("[Rask.Wasm] first render applied");
 
         // Inject the typed web app manifest (if configured) — a data: URL <link rel="manifest"> with

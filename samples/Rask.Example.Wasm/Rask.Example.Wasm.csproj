@@ -14,10 +14,18 @@
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders
          at publish (Microsoft.NET.Sdk.WebAssembly). Makes static-host redeploys cache-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <!-- Explicit no-AOT, but gated off the fast no-native build: the SDK records this property's
+    <!-- Full WASM AOT is opt-in: publish with -p:RaskWasmAot=true (needs the wasm-tools workload)
+         to AOT-compile IL->WASM; the default keeps the Mono interpreter. Both are gated off the fast
+         no-native build (-p:WasmBuildNative=false, used by the CI unit gate): the SDK records the
          runtime-pack default as empty, so even 'false' counts as a relink trigger that conflicts
-         with -p:WasmBuildNative=false (AOT is off by default regardless). -->
-    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+         with WasmBuildNative=false. -->
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' == 'true' ">true</RunAOTCompilation>
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+    <!-- Continuously enforce AOT-safety on every build (not just at publish): the trim + AOT Roslyn
+         analysers run under warnings-as-errors, so a new RequiresDynamicCode/trim hazard fails the
+         build long before the slow emscripten relink. -->
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <!-- Trimming is safe: page types reach the runtime via the route registry's generated
          module initialiser, which emits [DynamicDependency] per registered page; the reflection
          sites in RouteChainRenderer / PageBinder / RouteValueParser are either DAM-annotated or

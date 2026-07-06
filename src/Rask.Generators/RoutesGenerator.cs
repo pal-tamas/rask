@@ -368,6 +368,18 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
             var isParsable = IsBindableType(prop.Type);
 
+            var underlyingSymbol = GetUnderlying(prop.Type);
+            var underlyingTypeFqn = underlyingSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            // Register every parsable type that is NOT a compiler primitive with TypedParserRegistry so
+            // a full-AOT (no MakeGenericMethod) build can bind it. SpecialType.None deliberately covers
+            // more than user types — Guid, the date/time types, Int128/UInt128/Half and System.Version
+            // are all non-special IParsable structs. Testing SpecialType (not the namespace) is what
+            // keeps a System-namespace type like Version, which is NOT in the registry's primitive
+            // seed, from silently falling through the gap. Re-registering a type the registry already
+            // seeds is an idempotent no-op, and registrations are deduped by FQN at emit time.
+            var needsAotRegistration = isParsable && underlyingSymbol.SpecialType == SpecialType.None;
+
             var loc = prop.Locations.FirstOrDefault();
 
             result.Add(new RoutePropInfo(
@@ -380,6 +392,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 hasRouteParam,
                 routeParamName,
                 isParsable,
+                underlyingTypeFqn,
+                needsAotRegistration,
                 new LocationInfo(loc)));
         }
 
@@ -482,27 +496,27 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
     }
 
-    private static string GetUnderlyingTypeName(ITypeSymbol type)
+    // Unwraps Nullable<T> to T (leaves every other type unchanged) — the single source of truth for
+    // "what type actually gets parsed", shared by the display-name, bindability and AOT-registration
+    // paths so they can never disagree about the underlying type.
+    private static ITypeSymbol GetUnderlying(ITypeSymbol type)
     {
-        var underlying = type;
         if (type.IsValueType && type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
             type is INamedTypeSymbol named && named.TypeArguments.Length == 1)
         {
-            underlying = named.TypeArguments[0];
+            return named.TypeArguments[0];
         }
 
-        return underlying.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-            .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+        return type;
     }
+
+    private static string GetUnderlyingTypeName(ITypeSymbol type) =>
+        GetUnderlying(type).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+            .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
 
     private static bool IsBindableType(ITypeSymbol type)
     {
-        var underlying = type;
-        if (type.IsValueType && type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-            type is INamedTypeSymbol named && named.TypeArguments.Length == 1)
-        {
-            underlying = named.TypeArguments[0];
-        }
+        var underlying = GetUnderlying(type);
 
         if (underlying.SpecialType == SpecialType.System_String)
         {
@@ -700,6 +714,25 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        });");
+
+        // Register every non-primitive IParsable<T> route/query param type with the reflection-free
+        // parser registry so a full-AOT publish (no MakeGenericMethod) can still bind it. Compiler
+        // primitives are always seeded by the framework, so they are skipped; deduped by FQN.
+        var aotRegisteredTypes = candidates
+            .SelectMany(c => c.Properties)
+            .Where(p => (p.HasRouteParam || p.HasQueryParam) && p.NeedsAotRegistration)
+            .Select(p => p.UnderlyingTypeFqn)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(fqn => fqn, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var fqn in aotRegisteredTypes)
+        {
+            sb.Append("        global::Rask.Core.Forms.RaskBinding.RegisterParsable<")
+                .Append(fqn)
+                .AppendLine(">();");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine("}");
 
@@ -1208,6 +1241,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         bool HasRouteParam,
         string? RouteParamName,
         bool IsParsable,
+        string UnderlyingTypeFqn,
+        bool NeedsAotRegistration,
         LocationInfo Location);
 
     private sealed record OrphanCandidate(
