@@ -85,6 +85,11 @@ internal static class DelegateOwner
             "captured `this`. The compiler emits and preserves these fields on the closure type it also " +
             "instantiates; a trimmed-away field simply isn't found and the caller falls back to the " +
             "element's render-owner — no crash, just the pre-existing behaviour.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The `target.GetType().GetFields()` call reflects over a Roslyn-generated display " +
+            "class to recover the captured `this`. The compiler emits and preserves those fields on the " +
+            "closure type it also instantiates; a trimmed-away field simply isn't found and the caller " +
+            "falls back to the element's render-owner — no crash, just the pre-existing behaviour.")]
     private static Component? FindThisInNestedClosures(object target, int depth)
     {
         if (depth > MaxClosureDepth)
