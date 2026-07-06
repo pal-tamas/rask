@@ -7,6 +7,10 @@ These come from the Rask source generator and analyzers (`Rask.Generators`). The
 factories don't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
 build once.
 
+Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`): **RASK001** adds the
+`required` modifier, **RASK023** inserts `Alt: ""`. These are delivered by `Rask.Generators.CodeFixes`,
+packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
+
 | ID | Severity | Summary |
 |----|----------|---------|
 | [RASK001](#rask001) | Hidden | Property is treated as a required factory parameter |
@@ -57,7 +61,8 @@ public sealed class Badge : Component
 }
 ```
 
-**Fix (optional):** add `required` for language-level enforcement, or make the property nullable
+**Fix (optional):** add `required` for language-level enforcement (**quick-fix available** — the IDE
+lightbulb inserts it), or make the property nullable
 (`string? Label`) if it should be optional. HTML-attribute props are intentionally declared nullable
 to stay ergonomic. See [factory generation rules](getting-started.md).
 
@@ -268,7 +273,8 @@ announcing the file name (or nothing), failing [WCAG 1.1.1](https://www.w3.org/W
 ```
 
 **Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
-assistive technology skips it. See [accessibility](accessibility.md).
+assistive technology skips it (**quick-fix available** — the IDE lightbulb inserts `Alt: ""`, which you
+then fill in for informative images). See [accessibility](accessibility.md).
 
 ## RASK024
 **`UseAuthentication()` must precede `UseRask()`** · Warning

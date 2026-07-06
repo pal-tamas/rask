@@ -27,6 +27,14 @@ them until tagged releases begin.
   pages without a `[ParentRoute]` (whose template is the full path); parent-composed paths aren't
   resolved, so the check under-reports rather than risk a false positive.
   See [docs/diagnostics.md](docs/diagnostics.md#rask031).
+- **IDE quick-fixes for Rask diagnostics.** A new `Rask.Generators.CodeFixes` assembly ships Roslyn
+  `CodeFixProvider`s (the lightbulb / `Ctrl`+`.`) for two diagnostics: **RASK001** adds the `required`
+  modifier to a property the generator already treats as a required factory parameter, and **RASK023**
+  inserts `Alt: ""` on an `Img` missing its alt text. The code-fix assembly is packed alongside the
+  analyzers in the `Rask.Server` and `Rask.Wasm` packages, so consumers get the fixes with no extra
+  reference. It is a separate assembly from `Rask.Generators` (code fixes reference
+  `Microsoft.CodeAnalysis.Workspaces`, which an analyzer assembly must not) and is wired in build-order
+  only, so the warnings-as-errors build is unaffected. See [docs/diagnostics.md](docs/diagnostics.md).
 
 ## [0.14.1] - 2026-07-07
 

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators.CodeFixes\Rask.Generators.CodeFixes.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <!-- Rask.Server (and, transitively, the ASP.NET Core shared framework) so AuthBeforeRaskAnalyzer
          tests can resolve the real UseRask / UseAuthentication symbols in their test compilations. -->

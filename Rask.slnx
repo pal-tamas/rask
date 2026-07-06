@@ -22,6 +22,7 @@
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
+        <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.Templates/Rask.Templates.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
