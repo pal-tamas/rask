@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO.Compression;
+using System.Runtime.Versioning;
 
 namespace Rask.Core.ScopedAssets;
 
@@ -62,6 +63,11 @@ public static class ScopedAssetCompression
     ///     on first use. Returns <c>null</c> when the hash is unknown for the kind, so the caller can
     ///     fall back to a 404 exactly as the identity path does.
     /// </summary>
+    // Server-side only: BrotliStream is unsupported in the browser runtime, and this compression path
+    // is reached only from the ASP.NET hosts (RaskEndpointExtensions, RaskAssetEndpoint) — never from
+    // the in-browser WASM client, which serves baked assets. The annotation lets Core compile clean
+    // for net10.0-browser (so the AOT analyser can run) without a CA1416 platform warning.
+    [UnsupportedOSPlatform("browser")]
     public static (byte[] Bytes, string Etag)? GetEncoded(string hash, AssetKind kind, string encoding)
     {
         var ext = kind == AssetKind.Css ? "css" : "js";
@@ -84,6 +90,7 @@ public static class ScopedAssetCompression
         return (compressed, etag);
     }
 
+    [UnsupportedOSPlatform("browser")]
     private static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
     {
         using var ms = new MemoryStream();
