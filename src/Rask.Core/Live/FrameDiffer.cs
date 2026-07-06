@@ -821,6 +821,12 @@ public static class FrameDiffer
                         continue;
                     }
 
+                    // NOTE: IndexOf/RemoveAt/Insert on `live` are each O(n), so a permutation with
+                    // ~n off-LIS rows (a full/near-full reversal) makes this loop O(n²) — ~3 ms at
+                    // 5000 rows (FrameDifferBenchmarks.ReverseReorder). Reworking `live` into an
+                    // allocation-free order-statistics structure (rank + insert-at-rank in O(log n))
+                    // would make it O(n log n); the tests replay these moves and assert final order,
+                    // so any correct minimal move sequence is valid. Deferred — see the benchmark.
                     var src = live.IndexOf(id);
                     live.RemoveAt(src);
 
