@@ -119,6 +119,32 @@ internal static class BsClass
     // Invariant numeric text for style widths / aria values (never culture-formatted in markup).
     internal static string Num(double value) => value.ToString(CultureInfo.InvariantCulture);
 
+    // The aria bag for a form control's validation state: aria-invalid when the field failed, and
+    // aria-describedby wiring the control to its help/error text. Shared by every Bs* form control
+    // (BsInput/BsTextarea/BsSelect via BsFormControl.FieldAria, and BsCheck) so the aria-* contract
+    // lives in one place. Null when the field is valid and has nothing to describe — the common case,
+    // so no attribute is emitted.
+    internal static IReadOnlyDictionary<string, string?>? FieldAria(bool invalid, string? describedBy)
+    {
+        if (!invalid && describedBy is null)
+        {
+            return null;
+        }
+
+        var aria = new Dictionary<string, string?>(2, StringComparer.Ordinal);
+        if (invalid)
+        {
+            aria["invalid"] = "true";
+        }
+
+        if (describedBy is not null)
+        {
+            aria["describedby"] = describedBy;
+        }
+
+        return aria;
+    }
+
     // Returns a copy of an ARIA bag with one extra entry, so a wrapper can add aria-pressed/current
     // on top of a caller-supplied Aria map without mutating the caller's dictionary.
     internal static IReadOnlyDictionary<string, string?> WithAria(

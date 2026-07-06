@@ -1,3 +1,7 @@
+#pragma warning disable RASK014 // StubComponent constructed directly in tests
+
+using System.Text.Json;
+
 namespace Rask.Bootstrap.Tests;
 
 public class BsFormControlTests
@@ -61,6 +65,84 @@ public class BsFormControlTests
         var html = BsInput<string>(Value: "x", Label: "Name", Id: "n", HelpText: "Hint").ToHtml();
         Assert.StartsWith("<div>", html);
         Assert.Contains("<label class=\"form-label\" for=\"n\">Name</label>", html);
-        Assert.Contains("<div class=\"form-text\">Hint</div>", html);
+        // Help text now carries the id the control's aria-describedby points at.
+        Assert.Contains("<div id=\"n-help\" class=\"form-text\">Hint</div>", html);
+    }
+
+    [Fact]
+    public void Input_HelpText_WiresAriaDescribedbyToHelp()
+    {
+        // A control with help text is described by it (announced by screen readers) even when valid.
+        var html = BsInput<string>(Value: "x", Id: "n", HelpText: "Hint").ToHtml();
+        Assert.Contains("aria-describedby=\"n-help\"", html);
+        Assert.Contains("<div id=\"n-help\" class=\"form-text\">Hint</div>", html);
+        // No error → no aria-invalid.
+        Assert.DoesNotContain("aria-invalid", html);
+    }
+
+    [Fact]
+    public void Input_Valid_EmitsNoAriaInvalidOrDescribedby()
+    {
+        var html = BsInput<string>(Value: "x", Id: "n").ToHtml();
+        Assert.DoesNotContain("aria-invalid", html);
+        Assert.DoesNotContain("aria-describedby", html);
+    }
+
+    [Fact]
+    public async Task Input_Invalid_WiresAriaInvalidDescribedbyAndAlertFeedback()
+    {
+        // A bound field that fails validation must expose the failure to assistive tech:
+        // aria-invalid on the control, aria-describedby tying it to the error, and the error
+        // rendered as a role="alert" live region with the matching id.
+        var model = new Model { Name = "" };
+        var view = new StubComponent(() => Form(model)[
+            BsInput(() => model.Name, Label: "Name",
+                Validate: v => v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit")!;
+        using var payload = JsonDocument.Parse("{\"form\":{\"Name\":\"\"}}");
+        await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
+
+        var after = view.RenderAsLiveRoot();
+        Assert.Contains("is-invalid", after);
+        Assert.Contains("aria-invalid=\"true\"", after);
+        Assert.Contains("aria-describedby=\"Name-error\"", after);
+        Assert.Contains(
+            "<div id=\"Name-error\" class=\"invalid-feedback d-block\" role=\"alert\">too short</div>",
+            after);
+    }
+
+    [Fact]
+    public async Task Check_Invalid_WiresAriaInvalidAndAlertFeedback()
+    {
+        var model = new Terms { Accept = false };
+        var view = new StubComponent(() => Form(model)[
+            BsCheck(() => model.Accept, Label: "Accept",
+                Validate: v => v ? Array.Empty<string>() : new[] { "required" })
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit")!;
+        using var payload = JsonDocument.Parse("{\"form\":{\"Accept\":\"\"}}");
+        await view.TryInvokeHandlerAsync(submitId, payload.RootElement);
+
+        var after = view.RenderAsLiveRoot();
+        Assert.Contains("aria-invalid=\"true\"", after);
+        Assert.Contains("aria-describedby=\"Accept-error\"", after);
+        Assert.Contains(
+            "<div id=\"Accept-error\" class=\"invalid-feedback d-block\" role=\"alert\">required</div>",
+            after);
+    }
+
+    private sealed class Model
+    {
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class Terms
+    {
+        public bool Accept { get; set; }
     }
 }
