@@ -103,8 +103,11 @@ public static class RaskEndpointExtensions
     // the queue count. Seeded from RaskServerOptions.MaxPendingHandlerBytes. 0 = off.
     internal static long MaxPendingHandlerBytes;
 
+    // A fixed, content-free payload — written as a literal rather than JsonSerializer.Serialize(anonymous)
+    // so it needs no reflection-based serialization. Under NativeAOT (reflection JSON disabled) the
+    // serializer call threw at static-init and crashed UseRask before the host could start.
     private static readonly byte[] SessionUnknownPayload =
-        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type = "session", status = "unknown" }));
+        Encoding.UTF8.GetBytes("""{"type":"session","status":"unknown"}""");
 
     // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
     // (or a single hot-reload UpdateApplication burst that re-registers every component
