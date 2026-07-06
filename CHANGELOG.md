@@ -25,12 +25,25 @@ them until tagged releases begin.
   no longer tagged `wasm`/`component`. `Rask.Cqrs` and `Rask.WebPush` also ship a **package-specific
   `NUGET.md`** (install + quickstart for that package) rather than the shared framework overview a
   consumer landed on before.
+- **The `rask-server` template README points to the WASM variants** — since the bare `dotnet new rask`
+  alias resolves to the server template, the generated README now notes `rask-wasm` / `rask-wasm-hosted`
+  for a client-side app.
 
 ### Fixed
 - **Corrected pre-existing malformed XML doc comments** exposed once `GenerateDocumentationFile` turned
   on doc validation — a dangling `<summary>` on `Component.ToHtml`, `paramref`s to non-existent
   parameters, an `&nbsp;` entity undefined in XML, and several unresolved/ambiguous `cref`s across
   `Rask.Core`, `Rask.Server`, `Rask.Wasm` and `Rask.Wasm.Hosting`.
+- **`dotnet pack` now fails loud if the source generator DLL is missing** from the host packages
+  (`Rask.Server`/`Rask.Wasm`) instead of silently shipping a package with no analyzer — a `<None>`
+  include of an absent file packs nothing and emits no error, which would leave a consumer's factories
+  never generating. A pack-time guard errors clearly if the hardcoded `Rask.Generators.dll` path is
+  empty (build-order itself is already ensured via `Rask.Core`'s analyzer reference).
+- **`Rask.Wasm.Tasks` is now `IsPackable=false`** — a `dotnet pack` over the whole solution no longer
+  emits a stray, empty package for the build-only MSBuild task assembly.
+- **Diagnostic-range references now read `RASK001–029`** (the current maximum), fixing stale
+  `RASK001–024`/`–026`/`–022` strings in `docs/README.md`, `docs/best-practices.md`, `llms.txt`,
+  `CONTRIBUTING.md` and `CLAUDE.md`.
 
 ## [0.12.1] - 2026-07-04
 
