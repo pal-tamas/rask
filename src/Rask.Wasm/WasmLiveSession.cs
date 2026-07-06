@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,9 +27,39 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // multi-session / re-init path.
     private readonly IUserProvider? _userProvider;
 
-    // The last payload bytes ApplyRender pushed — WASM's dedup baseline (it ToArrays each frame for
-    // the JSExport boundary, where the Server double-buffers instead).
-    private byte[]? _lastAppliedPayload;
+    // The buffer holding the last frame ApplyRender pushed — WASM's dedup baseline. Mirrors the
+    // Rask.Server double-buffer: the sent frame is retained here (no per-frame byte[] copy), the
+    // next render writes into _writeBuffer, and EmitFrame swaps the two after each send.
+    private ArrayBufferWriter<byte>? _lastSentBuffer;
+
+    // Push the frame currently in _writeBuffer to JS zero-copy (a MemoryView over the buffer, no
+    // per-frame byte[]), unless it's byte-identical to the last frame we sent (dedup) — mirrors
+    // Rask.Server's double-buffered send. `force` bypasses the dedup for navigation frames that must
+    // flow even when the rendered output is unchanged. Returns whether a frame was actually sent.
+    private bool EmitFrame(bool force)
+    {
+        if (_writeBuffer.WrittenCount == 0)
+        {
+            return false;
+        }
+
+        if (!force
+            && _lastSentBuffer is not null
+            && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
+        {
+            return false;
+        }
+
+        // MemoryView marshals a view over the buffer's bytes; the JS applyRender reads them
+        // synchronously (decode + JSON.parse) within this call, so the view never outlives it.
+        JSInterop.ApplyRender(MemoryMarshal.AsMemory(_writeBuffer.WrittenMemory).Span);
+
+        // Swap: the buffer we just sent becomes next frame's dedup baseline; the previous baseline
+        // (or a fresh writer on first send) is recycled as the next write target (WritePayload resets
+        // its WrittenCount before writing).
+        (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>(4096));
+        return true;
+    }
 
     // Set by BuildPayloadAsync when the frame it built carries queued IJSRuntime calls. The
     // publish-render noop guard must NOT drop such a frame even when the HTML is unchanged — the
@@ -78,15 +109,11 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
+            var html = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            if (EmitFrame(force: false))
             {
-                return;
+                _lastAppliedHtml = html;
             }
-
-            JSInterop.ApplyRender(payload);
-            _lastAppliedPayload = payload;
-            _lastAppliedHtml = html;
         }
         finally
         {
@@ -110,7 +137,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         InHandlerScope = true;
         try
         {
-            var (payload, html) = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
+            var html = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
 
             // Noop publish-render guard: an auto-publish triggered by a completed
@@ -127,17 +154,13 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 return;
             }
 
-            // Skip the JS interop call when nothing changed since the last apply. Catches
-            // StateHasChanged calls that didn't ultimately modify any visible output.
-            // SequenceEqual is SIMD-accelerated on byte[] — equivalent to the prior string compare.
-            if (_lastAppliedPayload is not null && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
+            // Push the built frame unless it's byte-identical to the last sent frame. EmitFrame's
+            // double-buffered span compare (SIMD-accelerated) catches StateHasChanged calls that
+            // didn't change visible output — no per-frame byte[].
+            if (EmitFrame(force: false))
             {
-                return;
+                _lastAppliedHtml = html;
             }
-
-            JSInterop.ApplyRender(payload);
-            _lastAppliedPayload = payload;
-            _lastAppliedHtml = html;
         }
         finally
         {
@@ -154,10 +177,15 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         InHandlerScope = true;
         try
         {
-            var (payload, html) = await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            _lastAppliedPayload = payload;
+            var html = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            if (!EmitFrame(force: true))
+            {
+                return Array.Empty<byte>();
+            }
+
             _lastAppliedHtml = html;
-            return payload;
+            // The bootstrap caller wants the initial frame bytes; ToArray once per page load.
+            return _lastSentBuffer!.WrittenSpan.ToArray();
         }
         finally
         {
@@ -225,20 +253,19 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                         historyReplace = replace;
                     }
 
-                    var (payload, html) = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
+                    var html = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
                         .ConfigureAwait(false);
-                    // Suppress the JS-side apply when nothing changed AND no navigation needs to flow.
-                    // The JS host treats an empty byte array as "no-op." Always send when historyUrl is set.
-                    if (historyUrl is null
-                        && _lastAppliedPayload is not null
-                        && payload.AsSpan().SequenceEqual(_lastAppliedPayload))
+                    // EmitFrame pushes the frame (zero-copy) unless it's byte-identical to the last
+                    // sent one; force the send when a navigation URL must flow even if the rendered
+                    // output is unchanged. No send → no-op (empty byte array to the test seam).
+                    if (!EmitFrame(force: historyUrl is not null))
                     {
                         return Array.Empty<byte>();
                     }
 
-                    _lastAppliedPayload = payload;
                     _lastAppliedHtml = html;
-                    return payload;
+                    // Return the sent frame's bytes for the test seam; ToArray once per event.
+                    return _lastSentBuffer!.WrittenSpan.ToArray();
                 }
             }
             catch (Exception ex)
@@ -289,11 +316,16 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 
             try
             {
-                var (payload, html) =
+                var html =
                     await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
-                _lastAppliedPayload = payload;
+                // Navigation always flows — force the send even when the rendered output is unchanged.
+                if (!EmitFrame(force: true))
+                {
+                    return Array.Empty<byte>();
+                }
+
                 _lastAppliedHtml = html;
-                return payload;
+                return _lastSentBuffer!.WrittenSpan.ToArray();
             }
             catch (Exception ex)
             {
@@ -312,7 +344,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         }
     }
 
-    private async Task<(byte[] Payload, string Html)> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
+    private async Task<string> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
         bool replace, bool publishOnly = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
@@ -370,7 +402,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
     // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
     // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
-    internal async Task<(byte[] Payload, string Html)> BuildPayloadAsync(string? historyUrl, bool replace,
+    internal async Task<string> BuildPayloadAsync(string? historyUrl, bool replace,
         bool publishOnly = false, bool commitCache = true)
     {
         await Task.Yield();
@@ -421,7 +453,8 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
             commitCache, auth: null, sessionId: "wasm");
 
-        // ToArray for the JSExport byte[] boundary (PR6 will swap that for ReadOnlyMemory<byte>).
-        return (_writeBuffer.WrittenSpan.ToArray(), html);
+        // The built frame lives in _writeBuffer; EmitFrame pushes it zero-copy. Return only the HTML
+        // (used for the publish-render noop guard and as the diff-cache baseline).
+        return html;
     }
 }

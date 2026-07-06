@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The WASM live runtime no longer allocates a `byte[]` per rendered frame.** `WasmLiveSession` used
+  to `ToArray()` its write buffer on every frame to hand the payload across the `applyRender` JS
+  boundary and to dedup against the previous frame. It now double-buffers two `ArrayBufferWriter`s and
+  compares spans directly (mirroring `Rask.Server`), and pushes the payload to JS zero-copy via a
+  `MemoryView` (`ApplyRender(Span<byte>)`) instead of a marshalled `byte[]`. The per-frame allocation
+  drops to **0 B** (was the full payload size — e.g. ~4 KB for a document frame) and the emit/dedup
+  step is ~2× faster; the one remaining copy is a JS-side `.slice()` that materialises the frame for
+  `TextDecoder`. Intermediate publish-renders are fully allocation-free; the two byte-returning entry
+  points (`InitialRenderAsync`/`DispatchAsync`) keep a single `ToArray` for their unit-test seam.
+
 ## [0.13.0] - 2026-07-06
 
 ### Added
