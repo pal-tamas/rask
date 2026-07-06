@@ -497,6 +497,11 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
 - They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
   the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)
+- **Reading validation state in a custom control just works.** If you bake feedback straight into your
+  own `Render()` — reading `EditContext.GetValidationMessages(field)` / `GetValidationEntries()` /
+  `ShouldShowValidatingIndicator(field)` — the framework detects the read and opts that control out of
+  its render cache automatically, so a message produced later in the submit pipeline always repaints. No
+  `StateHasChanged()`, no `BypassRenderCache` override (the same auto-opt-out `Context.Get` consumers get).
 
 `RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
 

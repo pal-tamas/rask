@@ -38,12 +38,14 @@ public abstract class Component
         ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
     };
 
-    // Set the first time this component reads a context value (Context.Get/Required/Has-via-Get).
-    // Such a component depends on ambient state the framework doesn't diff, so — like
-    // BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
-    // Latched on: once a consumer, always a consumer (its Render path can read different
-    // context types across renders).
-    private bool _consumesContext;
+    // Set the first time this component reads untracked ambient state during Render: a context value
+    // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
+    // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —
+    // like BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
+    // This is why form controls that read validation state need no manual BypassRenderCache override.
+    // Latched on: once a reader, always a reader (its Render path can read different
+    // context/edit-context state across renders).
+    private bool _readsAmbientState;
     private CancellationTokenSource? _lifetimeCts;
 
     // All live-render-only state — handlers, child reconciliation, root alive sets,
@@ -320,7 +322,7 @@ public abstract class Component
     protected virtual Component? Head => null;
 
     internal Component? HeadInternal => Head;
-    internal void MarkConsumesContextInternal() => _consumesContext = true;
+    internal void MarkReadsAmbientStateInternal() => _readsAmbientState = true;
 
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Component?> RenderChildrenInternal() => RenderChildren();
@@ -745,7 +747,7 @@ public abstract class Component
         // what lets composite wrappers (a Bs* card around dynamic content) behave like the inline
         // elements they replace without opting out of caching by hand.
         if (Live.CachedRenderResult is not null && !Live.PropsDirty && !Live.StateDirty
-            && !BypassRenderCache && !_consumesContext
+            && !BypassRenderCache && !_readsAmbientState
             && (Children is null || this is Element))
         {
             return Live.CachedRenderResult;
