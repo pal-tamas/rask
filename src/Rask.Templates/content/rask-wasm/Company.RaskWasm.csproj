@@ -13,10 +13,12 @@
     <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders on
          publish so static-host (GitHub Pages) redeploys stay subresource-integrity-safe. -->
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <!-- Explicit no-AOT, gated off the fast no-native build: the SDK's runtime-pack default for
-         this property is empty, so even 'false' is a relink trigger conflicting with
-         -p:WasmBuildNative=false (AOT is off by default regardless). -->
-    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+    <!-- Full WASM AOT is opt-in: publish with -p:RaskWasmAot=true (needs the wasm-tools workload)
+         to AOT-compile IL->WASM; the default keeps the Mono interpreter. Both are gated off the fast
+         no-native build: the SDK's runtime-pack default for this property is empty, so even 'false'
+         is a relink trigger conflicting with -p:WasmBuildNative=false. -->
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' == 'true' ">true</RunAOTCompilation>
+    <RunAOTCompilation Condition=" '$(RaskWasmAot)' != 'true' and '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
     <!-- Trimming is trim-safe: page types reach the runtime via the route registry's generated
          module initialiser, which emits a [DynamicDependency] per registered page. -->
     <PublishTrimmed>true</PublishTrimmed>

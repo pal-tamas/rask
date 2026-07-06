@@ -67,6 +67,12 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
+Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
+`Guid`, `DateOnly`/`DateTime`/`TimeOnly`, `bool`, …) binds with no setup, and so does a **custom**
+`IParsable<T>` value type under the default interpreter build. For a full [WASM AOT](aot.md) build,
+register your custom form-field types once at startup with `RaskBinding.RegisterParsable<Money>()` —
+custom route/query param types are registered automatically by the generator.
+
 <!-- demo:binding-nullable -->
 
 <!-- demo:binding-clear-default -->
