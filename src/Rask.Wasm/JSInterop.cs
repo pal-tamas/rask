@@ -39,16 +39,10 @@ internal static partial class JSInterop
     {
         if (_session is null) return;
 
-        // Push the result back through the existing applyRender JSImport instead of
-        // returning Task<byte[]> (unsupported by the JSExport source generator). One
-        // boundary crossing each way, both byte[] — total interop cost is the same as
-        // the prior Task<string> pull model but without the per-event JSON.stringify in
-        // JS + UTF-16 transcode in the marshalling layer.
-        var payload = await _session.DispatchAsync(json).ConfigureAwait(false);
-        if (payload.Length > 0)
-        {
-            ApplyRender(payload);
-        }
+        // DispatchAsync builds the frame and pushes it to JS itself — zero-copy via applyRender
+        // (a MemoryView over its write buffer), with a double-buffered dedup. There is nothing to
+        // apply here; the byte[] it returns is retained only as a unit-test seam.
+        await _session.DispatchAsync(json).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -125,8 +119,10 @@ internal static partial class JSInterop
     [JSImport("setExports", ModuleName)]
     public static partial void SetExports(JSObject exports);
 
+    // MemoryView marshals a zero-copy view over the caller's buffer (no byte[] per frame); the JS
+    // applyRender reads it synchronously within this call.
     [JSImport("applyRender", ModuleName)]
-    public static partial void ApplyRender(byte[] payload);
+    public static partial void ApplyRender([JSMarshalAs<JSType.MemoryView>] Span<byte> payload);
 
     [JSImport("getLocation", ModuleName)]
     public static partial string GetLocation();
@@ -188,7 +184,7 @@ internal static partial class JSInterop
         return _session?.DispatchAsync(json) ?? Task.CompletedTask;
     }
 
-    public static void ApplyRender(byte[] payload) { }
+    public static void ApplyRender(Span<byte> payload) { }
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
     public static void PushHistory(string url, bool replace) { }

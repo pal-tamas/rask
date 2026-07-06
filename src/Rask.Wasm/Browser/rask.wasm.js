@@ -2183,17 +2183,19 @@ export function setExports(exports) {
 }
 
 // Called by .NET (via [JSImport]) for both the initial paint and subsequent
-// background re-renders. `payload` is a Uint8Array carrying the UTF-8 JSON
-// frame the C# side built via LivePayload.BuildPayloadUtf8WithRoot — same
-// shape as the WS frame the server emits. One TextDecoder pass + JSON.parse
-// replaces the previous 5-string marshal across the JS boundary.
+// background re-renders. `payload` is a MemoryView — a zero-copy view over the
+// UTF-8 JSON frame in the C# write buffer (built via LivePayload.BuildPayloadUtf8WithRoot,
+// same shape as the WS frame the server emits). `.slice()` materialises a Uint8Array
+// copy on the JS side (the one unavoidable copy, replacing the prior per-frame byte[]
+// the C# side used to allocate); TextDecoder + JSON.parse then run on that. `.slice()`
+// is also valid on a Uint8Array, so this stays correct if ever called with one directly.
 const _payloadDecoder = new TextDecoder("utf-8");
 
 export function applyRender(payload) {
     if (!payload || payload.length === 0) return;
     let reply;
     try {
-        reply = JSON.parse(_payloadDecoder.decode(payload));
+        reply = JSON.parse(_payloadDecoder.decode(payload.slice()));
     } catch (e) {
         console.error("[Rask] applyRender: malformed payload", e);
         return;
