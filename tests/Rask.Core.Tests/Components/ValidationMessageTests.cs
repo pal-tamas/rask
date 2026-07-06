@@ -43,6 +43,64 @@ public class ValidationMessageTests
     }
 
     [Fact]
+    public void ValidationMessage_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
+    {
+        // ValidationMessage carries no manual BypassRenderCache override anymore. Its first render
+        // reads EditContext.GetValidationMessages (no messages yet) and populates the render cache with
+        // the empty result; that read auto-latches the component as a cache opt-out (EditContext
+        // .MarkReader -> Component._readsAmbientState). So when a message is added out-of-band and the
+        // same pooled view is re-rendered with nothing marked prop/state-dirty, the second walk must
+        // still re-execute Render() and surface the message rather than serve the stale empty frame.
+        var p = new Person { Name = "" };
+        var ctx = new EditContext(p);
+        var field = new FieldIdentifier(p, nameof(Person.Name));
+
+        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
+            ValidationMessage(() => p.Name, msgs => Div(Class: "validation-message")[msgs[0]])
+        ]);
+
+        var first = view.RenderAsLiveRoot();
+        Assert.DoesNotContain("validation-message", first);
+
+        ctx.AddValidationMessage(field, "Name is required");
+
+        var second = view.RenderAsLiveRoot();
+        Assert.Contains("class=\"validation-message\"", second);
+        Assert.Contains("Name is required", second);
+    }
+
+    [Fact]
+    public void ValidationSummary_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
+    {
+        // Same auto-latch guarantee for the GetValidationEntries read path (ValidationSummary). It
+        // must start non-empty so the first render caches a non-null <ul> (a null/empty render is never
+        // cached and would repaint regardless, proving nothing): render one message, add a second
+        // out-of-band, and require the stale one-item cache to be replaced by the two-item summary.
+        var p = new Person { Name = "" };
+        var ctx = new EditContext(p);
+        var name = new FieldIdentifier(p, nameof(Person.Name));
+        var email = new FieldIdentifier(p, nameof(Person.Email));
+        ctx.AddValidationMessage(name, "Name is required");
+
+        var view = new StubComponent(() => Form(Context: ctx, Model: p)[
+            ValidationSummary(entries =>
+                Ul(Class: "validation-summary")[
+                    entries.Select((e, i) => Li(Key: i)[e.Message])
+                ])
+        ]);
+
+        var first = view.RenderAsLiveRoot();
+        Assert.Contains("Name is required", first);
+        Assert.DoesNotContain("Email is required", first);
+
+        ctx.AddValidationMessage(email, "Email is required");
+
+        var second = view.RenderAsLiveRoot();
+        Assert.Contains("Name is required", second);
+        Assert.Contains("Email is required", second);
+    }
+
+    [Fact]
     public void ValidationSummary_WithMessages_RendersTemplate()
     {
         var p = new Person { Name = "" };
@@ -176,6 +234,7 @@ public class ValidationMessageTests
     private sealed class Person
     {
         public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
     }
 
     private sealed class GatedValidator(Task wait) : IAsyncFieldValidator
