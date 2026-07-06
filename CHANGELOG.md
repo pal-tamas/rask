@@ -61,7 +61,19 @@ them until tagged releases begin.
   `InvalidOperationException` under NativeAOT (reflection-based JSON is disabled) and took down `UseRask`
   before the host started. It is now a UTF-8 string literal — byte-identical, no serializer, no
   reflection. (This removes the *first* NativeAOT startup blocker; full AOT boot additionally requires
-  the framework's in-library endpoint registrations to be AOT-safe — tracked separately.)
+  the framework's in-library endpoint registrations to be AOT-safe — see the next entry.)
+- **A Rask Server app now NativeAOT-compiles, boots, and renders.** The framework's own endpoints
+  (WebSocket, runtime script, PWA manifest/service-worker, content-addressed assets, upload/download,
+  auth redeem) were registered via the minimal-API `Map*(…, Delegate)` overloads, which route through
+  `RequestDelegateFactory` (`RequiresDynamicCode`). Since the Request Delegate Generator only covers the
+  app assembly, these library endpoints fell back to the runtime factory and a `Task`-returning handler
+  crashed at startup under NativeAOT. They are now registered as `RequestDelegate`s (services resolved
+  from `HttpContext.RequestServices`, route values from `RouteValues`), which also clears the 16 `Map*`
+  `IL3050` warnings. `UseRask<TApp>` additionally annotates `TApp` with
+  `[DynamicallyAccessedMembers(PublicConstructors)]` so the app component's constructor survives trimming
+  for `ActivatorUtilities.CreateInstance`. `Rask.Server` is now IL-warning-clean under the AOT analyzer;
+  verified end-to-end — `dotnet publish -p:PublishAot=true` produces a native binary that boots and
+  serves `HTTP 200`.
 
 ## [0.13.0] - 2026-07-06
 
