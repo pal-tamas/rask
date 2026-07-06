@@ -149,4 +149,46 @@ public sealed class DispatcherTests
         // The behavior wrapped the handler exactly once, not twice.
         Assert.Equal(new[] { "trace-in:Add", "trace-out:Add" }, recorder.Entries);
     }
+
+    [Fact]
+    public async Task Sequential_publish_stops_on_the_first_handler_failure_and_rethrows()
+    {
+        var recorder = new Recorder();
+        // Default fan-out: Sequential + StopOnFirstNotificationException = true.
+        await using var sp = Build(recorder: recorder);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+
+        Assert.StartsWith("boom-", ex.Message); // the handler's own exception, rethrown as-is
+        // Halted: the run stopped at the first failure, so not every handler recorded.
+        Assert.True(
+            recorder.Entries.Count < 3,
+            $"Expected the run to halt before all three handlers ran; saw [{string.Join(", ", recorder.Entries)}].");
+    }
+
+    [Fact]
+    public async Task Sequential_publish_without_stop_runs_all_handlers_and_aggregates_failures()
+    {
+        var recorder = new Recorder();
+        await using var sp = Build(o => o.StopOnFirstNotificationException = false, recorder);
+
+        var ex = await Assert.ThrowsAsync<AggregateException>(
+            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+
+        Assert.Equal(2, ex.InnerExceptions.Count); // both throwing handlers surfaced
+        Assert.Equal(3, recorder.Entries.Count);   // every handler ran despite the earlier failure
+    }
+
+    [Fact]
+    public async Task WhenAll_publish_starts_every_handler_then_surfaces_a_failure()
+    {
+        var recorder = new Recorder();
+        await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+
+        Assert.Equal(3, recorder.Entries.Count); // all handlers were started before any faulted
+    }
 }
