@@ -96,6 +96,16 @@ public sealed class LiveRenderContext : IDisposable
     internal HeadAssetRegistry HeadAssets { get; }
 
     /// <summary>
+    ///     Byte offset of the <see cref="HeadAssetRegistry.Sentinel" /> within the freshly
+    ///     serialized page, recorded by <c>HtmlSerializer</c> the moment it emits the sentinel
+    ///     (the <c>&lt;head&gt;</c> branch). <see cref="Component.RenderAsLiveRoot()" /> reads it
+    ///     to splice the head-asset block in place without a second whole-body <c>IndexOf</c>
+    ///     scan. <c>-1</c> when no framework-managed <c>&lt;head&gt;</c> was serialized (e.g. the
+    ///     partial-tree test path), matching an absent sentinel.
+    /// </summary>
+    internal int HeadSentinelIndex { get; set; } = -1;
+
+    /// <summary>
     ///     Every user-component type observed during this render walk. Populated
     ///     unconditionally by <see cref="PushScope" /> on each component entry — covers
     ///     components with scoped CSS, scoped JS, both, and neither. Read by

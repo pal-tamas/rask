@@ -1,5 +1,6 @@
 #pragma warning disable RASK014 // private test Component subclass — no generated factory needed
 
+using System.Text;
 using Rask.Core.HeadAssets;
 
 namespace Rask.Core.Tests.HeadAssets;
@@ -192,6 +193,35 @@ public class HeadAssetRegistryTests
         var registry = new HeadAssetRegistry();
         var input = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         Assert.Equal("<head></head>", registry.ApplyTo(input));
+    }
+
+    // Regression for the in-place splice: RenderAsLiveRoot records the FIRST head's sentinel
+    // offset and ApplyInPlace must replace exactly that one occurrence, leaving any later
+    // sentinel (a stray nested <head> that slipped the RASK019 analyzer) as a literal — matching
+    // the old html.IndexOf(Sentinel) first-occurrence behaviour rather than mis-splicing a
+    // duplicate. Both the live-root path and ApplyTo funnel through ApplyInPlace, so this locks
+    // the shared splice body's "one sentinel at the given index" contract.
+    [Fact]
+    public void ApplyInPlace_SplicesOnlyTheSentinelAtTheGivenIndex()
+    {
+        var registry = new HeadAssetRegistry();
+        registry.Add(Link(Rel: "stylesheet", Href: "/a.css"));
+
+        var raw = $"<head>{HeadAssetRegistry.Sentinel}</head>"
+                  + $"<body><head>{HeadAssetRegistry.Sentinel}</head></body>";
+        var firstIdx = raw.IndexOf(HeadAssetRegistry.Sentinel, StringComparison.Ordinal);
+        var page = new StringBuilder(raw);
+
+        registry.ApplyInPlace(page, firstIdx);
+        var result = page.ToString();
+
+        // The first sentinel became the asset; exactly one (the later, un-targeted) sentinel remains.
+        Assert.Equal(1, CountOccurrences(result, HeadAssetRegistry.Sentinel));
+        Assert.Contains("/a.css", result);
+        Assert.True(
+            result.IndexOf("/a.css", StringComparison.Ordinal)
+            < result.IndexOf(HeadAssetRegistry.Sentinel, StringComparison.Ordinal),
+            "asset should splice at the first head; the surviving sentinel is the later one");
     }
 
     private static int CountOccurrences(string haystack, string needle)
