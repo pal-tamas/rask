@@ -3,6 +3,9 @@
 A server-side [Rask](https://github.com/pal-tamas/rask) app. The browser holds a thin
 client; renders and events flow over a WebSocket and Rask ships a minimal diff per update.
 
+> Scaffolded from the `rask-server` template — also what the bare `dotnet new rask` selects.
+> For a client-side WebAssembly app instead, use `dotnet new rask-wasm` (or `rask-wasm-hosted`).
+
 ## Run
 
 ```bash
