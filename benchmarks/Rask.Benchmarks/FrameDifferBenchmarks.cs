@@ -48,7 +48,11 @@ public class FrameDifferBenchmarks
     private RenderFrame[] _afterFull = null!;
     private string _fullHtml = "";
 
-    [Params(100, 1000)] public int RowCount { get; set; }
+    // 5000 exposes the ReverseReorder move loop's O(n²) at scale (a full reversal has an LIS of 1,
+    // so ~n rows are off-LIS and each emits a move via live.IndexOf/RemoveAt/Insert — each O(n)).
+    // Guards the scale claim; the sub-quadratic rework (an order-statistics structure over `live`) is
+    // deferred — see the loop in FrameDiffer.cs.
+    [Params(100, 1000, 5000)] public int RowCount { get; set; }
 
     [GlobalSetup]
     public void Setup()
