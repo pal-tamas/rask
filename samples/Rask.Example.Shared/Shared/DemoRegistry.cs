@@ -167,6 +167,11 @@ public static class DemoRegistry
 
             // --- Composition guide: context, callbacks, virtualize, keyed lists, drag & drop, error
             //     boundaries (their standalone example pages folded into docs/composition.md). ---
+            // The three ways to author a reusable unit — static method, stateless component, stateful
+            // component — shown side by side; the three code tabs are the tiers themselves.
+            ["component-tiers"] = () => CodeSample(
+                ["TierStaticHelperDemo.cs", "TierStatelessGreetingDemo.cs", "TierStatefulCounterDemo.cs"],
+                Result: ComponentTiersDemo()),
             ["context-theme"] = () => CodeSample(["ContextThemeDemo.cs"], Result: ContextThemeDemo()),
             ["callback-rating"] = () => CodeSample(["CallbackRatingDemo.cs"], Result: CallbackRatingDemo()),
             ["virtualize-items"] = () => CodeSample(["VirtualizeItemsDemo.cs"], Result: VirtualizeItemsDemo()),

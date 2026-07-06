@@ -50,6 +50,78 @@ protected override Component? Render() =>
 
 ---
 
+## Component tiers: static method · stateless · stateful
+
+There are **three ways** to author a reusable unit of UI, in ascending order of cost and
+capability. Reach for the cheapest one that does the job.
+
+<!-- demo:component-tiers -->
+
+**Tier 0 — a plain static method.** Just a function that returns markup:
+
+```csharp
+internal static class Ui
+{
+    public static Component Badge(string label) => Span(Class: "badge")[label];
+}
+// call it like any method — Ui.Badge("new")
+```
+
+There is no `Component` instance, so it has **no state, no lifecycle hooks, and no independent
+render cache** — its markup is inlined into whichever component calls it, on every render of that
+caller. It is the leanest way to factor out repeated markup. Two things it *cannot* do: hold
+mutable state, and safely consume ambient context — a static helper has no instance to carry the
+"re-run me when context changes" latch, so a `Context.Get<T>()` inside one only refreshes when its
+caller happens to re-render. The moment you need either, promote to Tier 1.
+
+**Tier 1 — a stateless component.** A `Component` subclass whose `Render()` is a pure function of
+its props, with **no mutable fields**:
+
+```csharp
+public sealed class Greeting : Component
+{
+    public required string Name { get; set; }   // non-nullable, no initializer → required factory param
+    protected override Component? Render() => P()["Hello, ", Strong()[Name], "!"];
+}
+// call the generated factory by its bare name — Greeting(Name: "Ada")
+```
+
+Public settable props become a generated bare-name factory (see the factory rules in
+[the README](../README.md) and [lifecycle.md](lifecycle.md)). Over a static method it gains a
+reconciliation identity, the [lifecycle hooks](lifecycle.md), render caching, `<head>`
+contribution, and safe context reads — it simply carries no local state.
+
+**Tier 2 — a stateful component.** A `Component` subclass that keeps local state in **private
+fields** and mutates them in handlers:
+
+```csharp
+public sealed class Counter : Component
+{
+    private int _count;
+    protected override Component? Render() =>
+        Button(OnClick: () => _count++)[$"Clicked {_count} times"];
+}
+```
+
+The instance persists across renders (Rask reconciles it by `(type, sibling-position)` or by an
+explicit `Key`), so the field survives. The `OnClick` lambda captures `this`, so after it runs the
+framework re-renders this component **automatically — no `StateHasChanged()`** (the same auto-wrap
+that powers [callbacks](#callbacks-child--parent)). You only call `StateHasChanged()` when the
+mutation happens *off* the event-dispatch path (e.g. a background poll loop — see
+[lifecycle.md](lifecycle.md)).
+
+| Tier | You write | State | Lifecycle | Render cache | Factory | Context reads |
+|------|-----------|-------|-----------|--------------|---------|----------------|
+| **0 · static method** | `static Component Foo(…)` | none (inlined) | none | none | none — call it | ⚠️ only refreshes with the caller |
+| **1 · stateless component** | subclass, props → `Render()`, no fields | none | ✅ | ✅ | ✅ generated | ✅ |
+| **2 · stateful component** | subclass with private fields | private fields | ✅ | ✅ | ✅ generated | ✅ |
+
+**Rule of thumb:** start with a static method; promote to a stateless component when you need an
+identity, lifecycle, `<head>` assets, context-driven re-render, or a clean factory API; promote to
+a stateful component when you need mutable local state.
+
+---
+
 ## Callbacks: child → parent
 
 **For parent callbacks, Rask has no Blazor-style `EventCallback` wrapper.** A child raises an
