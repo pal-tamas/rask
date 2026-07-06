@@ -23,6 +23,15 @@ them until tagged releases begin.
   the stateful counter holds state and re-renders on click with no `StateHasChanged()`.
 
 ### Changed
+- **Large keyed-list reorders no longer scale O(n²).** The keyed-reconciliation move loop in
+  `FrameDiffer` mutated a `List<int>` with `IndexOf`/`RemoveAt`/`Insert` (each O(n)) per moved row, so a
+  full/near-full reversal of a large keyed list (a data-grid sort/reverse) was O(n²) — ~3 ms for a
+  5000-row reversal, on the render→diff→send hot path. Above a 256-row threshold it now uses an
+  allocation-free order-statistics treap (`PositionIndex` — rank and insert-at-rank in O(log n)),
+  making the loop O(n log n): a 5000-row reversal drops to ~1.3 ms (**~2.4× faster**) and a 1000-row
+  one to ~199 µs, with the allocation profile unchanged. Smaller lists keep the cache-friendly `List`
+  path (no regression). The emitted move positions are identical, so the existing replay-to-target
+  tests validate both paths.
 - **Form binding no longer compiles a lambda per render.** `ExpressionAccessor.Parse` (run inside
   `WriteAttributes` for every bound `Input`/`Select`/`Textarea`/`Bs*` control, on every render) used to
   call `Expression.Compile()` to read the bind target once, then discard the delegate. It now walks the
