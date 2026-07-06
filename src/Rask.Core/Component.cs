@@ -322,7 +322,7 @@ public abstract class Component
     protected virtual Component? Head => null;
 
     internal Component? HeadInternal => Head;
-    internal void MarkConsumesContextInternal() => _readsAmbientState = true;
+    internal void MarkReadsAmbientStateInternal() => _readsAmbientState = true;
 
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Component?> RenderChildrenInternal() => RenderChildren();

@@ -185,7 +185,7 @@ public sealed class EditContext : IDisposable
     // observe later validation-message / validating-state changes. Exactly the mechanism Context.Get
     // uses (Context.MarkConsumer). CurrentSync is non-null only during an active live render, so calls
     // from the validation/submit pipeline are no-ops — no over-marking, no allocation on the hot path.
-    private static void MarkReader() => Live.LiveRenderContext.CurrentSync?.MarkCurrentConsumesContext();
+    private static void MarkReader() => Live.LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
 
     public bool IsValidating(FieldIdentifier field)
     {

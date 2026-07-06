@@ -196,11 +196,12 @@ public sealed class LiveRenderContext : IDisposable
     public void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);
 
-    // Called from Context.Get/Required while a component is mid-Render (so the component sits on
-    // top of the parent stack). Flags it as a context consumer, which permanently opts it out of
-    // the render cache — a later change to a provided value must re-execute its Render() for it
-    // to observe the new value (same rationale as Router/ErrorBoundary's BypassRenderCache).
-    internal void MarkCurrentConsumesContext() => CurrentParent.MarkConsumesContextInternal();
+    // Called from Context.Get/Required and EditContext.MarkReader while a component is mid-Render (so
+    // the component sits on top of the parent stack). Flags it as reading untracked ambient state,
+    // which permanently opts it out of the render cache — a later change to a provided context value or
+    // to the EditContext's validation state must re-execute its Render() for it to observe the change
+    // (same rationale as Router/ErrorBoundary's BypassRenderCache).
+    internal void MarkCurrentReadsAmbientState() => CurrentParent.MarkReadsAmbientStateInternal();
 
     public EditContext GetOrCreateEditContext(object model, Func<EditContext>? factory = null)
     {
