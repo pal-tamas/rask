@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-07-06
+
 ### Added
 - **NuGet packages now ship XML documentation, an icon, and per-package titles.** Every framework
   package emits its `///` API docs (`GenerateDocumentationFile`), so `AddRask`/`UseRask`, the `Bs*`
