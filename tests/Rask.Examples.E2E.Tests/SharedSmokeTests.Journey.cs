@@ -280,8 +280,8 @@ public abstract partial class SharedSmokeTests
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
 
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 13,
-            "expected the Composition guide to embed the demos (incl. the folded events, flash + master-detail) as live demos");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 14,
+            "expected the Composition guide to embed the demos (incl. component-tiers, the folded events, flash + master-detail) as live demos");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the guide still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -300,6 +300,18 @@ public abstract partial class SharedSmokeTests
         var cb = Page.Locator("#callback-rating");
         await cb.Locator("button").Nth(3).ClickAsync();
         await Expect(cb.Locator("p")).ToContainTextAsync("You rated: 4/5", contains);
+
+        // Component tiers: the three ways to author a unit (static method · stateless · stateful) side
+        // by side. Tier 0's inlined badge and Tier 1's stateless greeting render statically; only the
+        // Tier-2 counter holds state — clicking it re-renders in place with no StateHasChanged. Scoped
+        // by the demo's #component-tiers container.
+        var tiers = Page.Locator("#component-tiers");
+        await Expect(tiers).ToContainTextAsync("inlined", contains);   // Tier 0 static helper badge
+        await Expect(tiers).ToContainTextAsync("Hello, Ada", contains); // Tier 1 stateless greeting
+        var tierCounter = tiers.Locator("button:has-text('Clicked')");
+        await tierCounter.ClickAsync();
+        await tierCounter.ClickAsync();
+        await Expect(tierCounter).ToContainTextAsync("Clicked 2 times", contains);
 
         // Events (the full GlobalEventHandlers surface — its standalone /events page folded into this
         // guide). Scope each interaction to its own .guide-demo; result panes/inputs repeat across demos.

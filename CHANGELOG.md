@@ -16,6 +16,11 @@ them until tagged releases begin.
   `RaskBinding.RegisterParsable<T>()` registers custom form-model value types. The runtime assemblies
   build under `IsAotCompatible` and the WASM sample under `EnableAotAnalyzer`, so every
   warnings-as-errors build enforces AOT-safety. See [docs/aot.md](docs/aot.md).
+- **New "Component tiers" section in the Composition guide** contrasting the three ways to author a
+  reusable unit — a Tier-0 static method, a Tier-1 stateless `Component`, and a Tier-2 stateful
+  `Component` — with a decision table, the static-method context caveat, and a rule of thumb. Backed
+  by a live, code-embedded showcase demo (`component-tiers`) that renders all three side by side; only
+  the stateful counter holds state and re-renders on click with no `StateHasChanged()`.
 
 ### Changed
 - **Form binding no longer compiles a lambda per render.** `ExpressionAccessor.Parse` (run inside
