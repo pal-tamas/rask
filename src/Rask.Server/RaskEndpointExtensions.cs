@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Security.Claims;
@@ -292,7 +293,7 @@ public static class RaskEndpointExtensions
     ///     (e.g. <c>/app1</c>). Overrides any path base set via <see cref="AddRask" />.
     /// </param>
     /// <returns>The same <paramref name="app" /> instance, for chaining.</returns>
-    public static WebApplication UseRask<TApp>(
+    public static WebApplication UseRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         this WebApplication app,
         string pattern = "/{**path}",
         string pathBase = "")
@@ -329,7 +330,7 @@ public static class RaskEndpointExtensions
     /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
     /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
     /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
-    public static IEndpointRouteBuilder UseRask<TApp>(
+    public static IEndpointRouteBuilder UseRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         this IEndpointRouteBuilder endpoints,
         string pattern = "/{**path}",
         string pathBase = "")
@@ -354,8 +355,9 @@ public static class RaskEndpointExtensions
             ? pattern
             : pathBaseNormalized + (pattern.StartsWith('/') ? pattern : "/" + pattern);
 
-        endpoints.MapGet(scopedPattern, async (HttpContext httpContext, LiveSessionStore store) =>
+        endpoints.MapGet(scopedPattern, (RequestDelegate)(async httpContext =>
         {
+            var store = httpContext.RequestServices.GetRequiredService<LiveSessionStore>();
             var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
             var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
@@ -425,7 +427,7 @@ public static class RaskEndpointExtensions
             // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
             // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
             store.ScheduleRemoval(session.Id, UnconnectedSessionGracePeriod);
-        });
+        }));
         return endpoints;
     }
 
@@ -487,9 +489,14 @@ public static class RaskEndpointExtensions
 
         marker.RuntimeMapped = true;
 
-        endpoints.Map(pathBase + WebSocketPath,
-            async (HttpContext ctx, LiveSessionStore store, IHostApplicationLifetime lifetime) =>
+        // Registered as a RequestDelegate (services resolved from ctx.RequestServices) rather than a
+        // minimal-API Delegate, so it does NOT go through RequestDelegateFactory — which is
+        // RequiresDynamicCode and, for a library-registered endpoint (not covered by the app's Request
+        // Delegate Generator), crashes at startup under NativeAOT. See the other framework endpoints below.
+        endpoints.Map(pathBase + WebSocketPath, (RequestDelegate)(async ctx =>
             {
+                var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+                var lifetime = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>();
                 if (!ctx.WebSockets.IsWebSocketRequest)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -521,10 +528,11 @@ public static class RaskEndpointExtensions
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, lifetime.ApplicationStopping);
                 await RunSocketLoop(ws, store, wsUser, linked.Token, lifetime.ApplicationStopping);
-            });
+            }));
 
         var script = LoadEmbeddedScript();
-        endpoints.MapGet(pathBase + RuntimePath, () => Results.Text(script, "text/javascript; charset=utf-8"));
+        endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
+            Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
 
         // PWA endpoints — wired only when AddRaskPwa registered a manifest (off by default). The manifest
         // JSON is rooted at pathBase here (a manifest's members resolve relative to the manifest's own URL,
@@ -533,12 +541,12 @@ public static class RaskEndpointExtensions
         if (endpoints.ServiceProvider.GetService<RaskPwaState>() is { } pwa)
         {
             var manifestJson = pwa.Manifest.ToJson(pathBase);
-            endpoints.MapGet(pathBase + ManifestPath,
-                () => Results.Text(manifestJson, "application/manifest+json; charset=utf-8"));
+            endpoints.MapGet(pathBase + ManifestPath, (RequestDelegate)(ctx =>
+                Results.Text(manifestJson, "application/manifest+json; charset=utf-8").ExecuteAsync(ctx)));
 
             var serviceWorker = LoadEmbeddedServiceWorker();
-            endpoints.MapGet(pathBase + ServiceWorkerPath,
-                () => Results.Text(serviceWorker, "text/javascript; charset=utf-8"));
+            endpoints.MapGet(pathBase + ServiceWorkerPath, (RequestDelegate)(ctx =>
+                Results.Text(serviceWorker, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
         }
 
         // Per-component content-addressed asset endpoint. URL is immutable (hash is a
@@ -556,20 +564,24 @@ public static class RaskEndpointExtensions
                 static ctx => ServeAssetAsync(ctx, AssetKind.Js))
             .AllowAnonymous();
 
-        endpoints.MapPost(pathBase + "/_rask/auth/redeem",
-                (HttpContext ctx, IAuthTicketStore tickets) => RedeemAuthTicketAsync(ctx, tickets))
+        endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
+                RedeemAuthTicketAsync(ctx, ctx.RequestServices.GetRequiredService<IAuthTicketStore>())))
             .DisableAntiforgery();
 
-        endpoints.MapPost(pathBase + "/_rask/upload/{sessionId}",
-                (HttpContext ctx, string sessionId, LiveSessionStore sessionStore,
-                        SessionUploadStore uploadStore, RaskUploadOptions options) =>
-                    HandleUploadAsync(ctx, sessionId, sessionStore, uploadStore, options))
+        endpoints.MapPost(pathBase + "/_rask/upload/{sessionId}", (RequestDelegate)(ctx =>
+                HandleUploadAsync(ctx,
+                    (string)ctx.Request.RouteValues["sessionId"]!,
+                    ctx.RequestServices.GetRequiredService<LiveSessionStore>(),
+                    ctx.RequestServices.GetRequiredService<SessionUploadStore>(),
+                    ctx.RequestServices.GetRequiredService<RaskUploadOptions>())))
             .DisableAntiforgery();
 
-        endpoints.MapGet(pathBase + "/_rask/download/{sessionId}/{token}",
-            (HttpContext ctx, string sessionId, string token, LiveSessionStore sessionStore,
-                    SessionDownloadStore downloads) =>
-                HandleDownloadAsync(ctx, sessionId, token, sessionStore, downloads));
+        endpoints.MapGet(pathBase + "/_rask/download/{sessionId}/{token}", (RequestDelegate)(ctx =>
+            HandleDownloadAsync(ctx,
+                (string)ctx.Request.RouteValues["sessionId"]!,
+                (string)ctx.Request.RouteValues["token"]!,
+                ctx.RequestServices.GetRequiredService<LiveSessionStore>(),
+                ctx.RequestServices.GetRequiredService<SessionDownloadStore>())));
 
         var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
         SubscribeAssetChangedDebounced(sessionStore);
