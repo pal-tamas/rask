@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **RASK031 — two pages resolving to the same route are now flagged.** Two different top-level pages that
+  resolve to the same URL made the active one arbitrary — a silent bug the generator didn't catch (it
+  only deduped by type name and enforced a single `[NotFound]`). The `RoutesGenerator` now warns
+  (`RASK031`) on every colliding page after the first, naming the page it collides with. Templates are
+  compared the way the runtime router matches them — case-insensitive literals, trimmed slashes, and
+  parameter names/`:constraints` ignored — so `/Products` ↔ `/products`, `/x` ↔ `x/`, and
+  `/item/{id:int}` ↔ `/item/{id:guid}` all collide. It's a **warning**, not an error, so upgrading never
+  hard-breaks a build that compiled before (the app still runs, just picks arbitrarily). Restricted to
+  pages without a `[ParentRoute]` (whose template is the full path); parent-composed paths aren't
+  resolved, so the check under-reports rather than risk a false positive.
+  See [docs/diagnostics.md](docs/diagnostics.md#rask031).
+
 ## [0.14.1] - 2026-07-07
 
 ### Fixed
