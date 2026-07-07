@@ -9,7 +9,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
 - **rask-ship** — definition-of-done gate before any commit/PR: `dotnet format` (.editorconfig) →
   `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → PR.
-- **add-html-tag** · **add-diagnostic** — scaffolding (component+test / RASK0xx+docs+test).
+- **add-html-tag** · **add-diagnostic** · **add-codefix** — scaffolding (component+test / RASK0xx+docs+test / IDE quick-fix+test).
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **open-pr** — branch off main, Conventional-Commit, **no AI-attribution footers**, delete branch after merge.
