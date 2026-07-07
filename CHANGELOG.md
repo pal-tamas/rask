@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK030 — prefer named arguments on factory calls with many positional args.** A new Hidden analyzer
+  flags a Rask factory call that passes three or more leading positional arguments (e.g.
+  `Div("main", "container", "color:red")`). Beyond one or two, positional calls read poorly and are
+  fragile: Rask orders generated factory parameters by inheritance depth then file ordinal + span, so a
+  later edit — adding a base-class property, renaming a partial file — can reorder parameters and
+  silently rebind such a call. The first one or two positional arguments (the primary content) stay
+  idiomatic. Hidden severity: no build output and no effect on the warnings-as-errors build — the IDE
+  surfaces it as a suggestion. See [docs/diagnostics.md](docs/diagnostics.md#rask030).
 - **RASK031 — two pages resolving to the same route are now flagged.** Two different top-level pages that
   resolve to the same URL made the active one arbitrary — a silent bug the generator didn't catch (it
   only deduped by type name and enforced a single `[NotFound]`). The `RoutesGenerator` now warns

@@ -1,7 +1,7 @@
 # Rask diagnostics (RASK001–RASK031)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
-but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
+but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
 
 These come from the Rask source generator and analyzers (`Rask.Generators`). The generated
 factories don't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
@@ -38,6 +38,7 @@ build once.
 | [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic or no public constructor) |
+| [RASK030](#rask030) | Hidden | Prefer named arguments on a factory call with 3+ positional args |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 
 ---
@@ -399,6 +400,25 @@ public sealed class PrivateHandler : IQueryHandler<GetValue, int>
 **Fix:** give the handler a public constructor, or make it a closed (non-generic) type. A request with
 *no* handler at all is not flagged (the handler may live in another assembly) — it throws a clear
 `InvalidOperationException` when dispatched.
+
+## RASK030
+**Prefer named arguments on Rask factories** · Hidden
+
+A Rask factory call passes **three or more leading positional arguments**. Beyond one or two, positional
+calls both read poorly and are fragile: Rask orders generated factory parameters by inheritance depth,
+then by file ordinal + span, so a later edit — adding a property to a base class, renaming a partial
+file — can reorder parameters and silently rebind such a call. The first one or two positional arguments
+(the primary content — `A(href)`, `Div(id, class)`) are left alone as idiomatic.
+
+```csharp
+// ✗ Div("main", "container", "color:red")                 // three positional — order-fragile, hard to read
+// ✓ Div(Id: "main", Class: "container", Style: "color:red") // explicit, refactor-proof
+```
+
+**Fix:** name the arguments (`Prop: value`). Hidden by default (no build output, no effect on the
+warnings-as-errors build) — the IDE surfaces it as a suggestion. Suppress per call with
+`#pragma warning disable RASK030`, or globally in `.editorconfig`
+(`dotnet_diagnostic.RASK030.severity = none`) if you prefer a positional style.
 
 ## RASK031
 **Two pages resolve to the same route** · Warning
