@@ -33,3 +33,73 @@
 .table-responsive:has(.dropdown-menu.show) {
   overflow: visible;
 }
+
+/* Date/time pickers (BsDatePicker/BsTimePicker/BsDateTimePicker). The popover is a plain
+   .dropdown-menu we position with live-diff state (no Popper); these rules only style the calendar
+   grid and time columns. All colours use Bootstrap CSS variables, so light/dark themes track
+   automatically. */
+.bs-cal {
+  --bs-cal-cell: 2.25rem;
+}
+.bs-cal [role="row"] {
+  display: grid;
+  grid-template-columns: repeat(7, var(--bs-cal-cell));
+}
+.bs-cal-head {
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+.bs-cal-cell {
+  height: var(--bs-cal-cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--bs-border-radius);
+  cursor: pointer;
+  user-select: none;
+}
+.bs-cal-cell:hover:not(.disabled):not(.active) {
+  background: var(--bs-tertiary-bg);
+}
+.bs-cal-muted {
+  color: var(--bs-tertiary-color);
+}
+.bs-cal-today {
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+.bs-cal-cell.active {
+  background: var(--bs-primary);
+  color: #fff;
+}
+.bs-cal-cell.bs-cal-focus {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+.bs-cal-cell.disabled {
+  color: var(--bs-tertiary-color);
+  cursor: default;
+  opacity: 0.5;
+}
+.bs-picker-caret {
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+}
+.bs-time {
+  --bs-cal-cell: 2.25rem;
+}
+.bs-time-col {
+  max-height: calc(6 * var(--bs-cal-cell));
+  overflow-y: auto;
+  min-width: 3rem;
+}
+.bs-time-sep {
+  align-self: center;
+  font-weight: 600;
+}
+.bs-time-item {
+  text-align: center;
+}
