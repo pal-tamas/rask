@@ -80,6 +80,20 @@ them until tagged releases begin.
   runs on every keystroke, 60 Hz scroll tick, and click, so the per-frame string was pure waste. The
   type-match step drops to **0 B allocated** (was 40 B) and is ~34% faster (8.5 ns → 5.7 ns); behavior
   is unchanged (`handlerId` still resolves via `GetString`, which is a genuine dictionary key).
+- **Reconnect UX no longer flashes on blips, stalls silently, or wipes state without warning.** The
+  Server live-runtime reconnect overlay had three rough edges: it threw a full-screen blurred `inert`
+  freeze over the app on the *first* socket `close` (so a sub-second network blip flashed a heavy modal),
+  it showed an identical "Reconnecting…" spinner forever with no escalation or manual control, and on
+  session eviction (a drop outlasting `SessionGracePeriod`) it did a silent `location.reload()` that
+  wiped all in-progress UI state with no warning. Now: the **visible** blur overlay is **debounced**
+  (~700 ms grace) so a fast reconnect never flashes a modal (interaction is still frozen immediately, so
+  the debounce cannot open a double-submit window); it **escalates** after repeated failures or when
+  `navigator.onLine` is false to an explanatory message plus a **Retry now** button, and collapses the
+  backoff to reconnect on the `online` event (without resetting the attempt counter, so a flapping
+  network still backs off); and session expiry surfaces **"Your session timed out. Reload to continue."**
+  with a Reload button (plus a fallback auto-reload) instead of yanking the page. `connect()` is now
+  single-flight so the retry/online paths can't spawn a duplicate socket. Auth handshakes still show
+  "Authenticating…" up front. See [docs/configuration.md](docs/configuration.md#reconnect-ux).
 
 ### Fixed
 - **RASK002 no longer fires for a component that has a DI constructor and a `required` factory
