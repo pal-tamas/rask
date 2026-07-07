@@ -186,6 +186,20 @@ floating-label markup with the label derived from the bound property, and surfac
 
 <!-- demo:floating-labels -->
 
+### Accessible validation
+
+The `Rask.Bootstrap` controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`) expose validation to
+assistive tech automatically — no extra props. When a bound field has messages, the control renders
+`aria-invalid="true"`, an `aria-describedby` that points at the error message's `id` (and the help-text
+`id` when `HelpText:` is set), and the `.invalid-feedback` as a `role="alert"` live region so screen
+readers announce the error the moment it appears, associated with the field rather than detached from
+it. Valid fields with `HelpText:` still get `aria-describedby` to the help text.
+
+If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
+three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
+the control to the message `id`, and `role="alert"` on the message container. See
+[accessibility.md](accessibility.md#form-validation).
+
 ---
 
 ## 3. Inline validation (no extra package)

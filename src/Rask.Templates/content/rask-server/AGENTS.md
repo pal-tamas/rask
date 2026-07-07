@@ -22,7 +22,8 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Text vs raw:** `Text("..")` / a bare string HTML-encodes; `Raw("..")` is verbatim (XSS risk — avoid for user input).
 - **Accessibility:** set ARIA via the `Aria` dictionary on any element — `Button(Aria: new() { ["label"] = "Close" })`
   renders `aria-label="Close"`. `Role:` / `TabIndex:` are typed params. `Img` needs `Alt:` (or `Alt: ""`
-  for decorative images) or RASK023 warns. See `docs/accessibility.md`.
+  for decorative images) or RASK023 warns. The `Bs*` form controls auto-wire `aria-invalid` +
+  `aria-describedby` + a `role="alert"` error region when a bound field is invalid. See `docs/accessibility.md`.
 - **Observability:** framework faults flow into your `ILogger` automatically; metrics publish on the
   `Rask.Server` meter (`dotnet-counters --counters Rask.Server` or `AddMeter(...)`), traces on the
   `Rask.Server` activity source. Add `services.AddHealthChecks().AddRaskLiveSessions()` for a

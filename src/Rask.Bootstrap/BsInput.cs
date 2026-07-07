@@ -28,7 +28,7 @@ public sealed class BsInput<T> : BsFormControl<T>
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Placeholder: placeholder, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Autocomplete: Autocomplete, Class: cls, Id: controlId,
+            Autocomplete: Autocomplete, Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
             OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);

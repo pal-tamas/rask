@@ -35,6 +35,16 @@ them until tagged releases begin.
   reference. It is a separate assembly from `Rask.Generators` (code fixes reference
   `Microsoft.CodeAnalysis.Workspaces`, which an analyzer assembly must not) and is wired in build-order
   only, so the warnings-as-errors build is unaffected. See [docs/diagnostics.md](docs/diagnostics.md).
+- **Bootstrap form controls are now accessible to screen readers when invalid.** `BsInput`,
+  `BsTextarea`, `BsSelect`, and `BsCheck` previously signalled validation failure with the visual
+  `.is-invalid` border only — no programmatic state, no announcement, no association between the error
+  text and its field. A bound field with validation messages now also renders `aria-invalid="true"` on
+  the control, an `aria-describedby` linking it to the error message's `id` (and to the help-text `id`
+  when `HelpText:` is set), and the `.invalid-feedback` message as a `role="alert"` live region so
+  assistive tech announces the error the moment validation fails. Valid fields with `HelpText:` gain
+  `aria-describedby` to the help text. No API or visual change; attributes emit in the canonical
+  `aria-*` slot so the documented attribute order is preserved. See
+  [docs/accessibility.md](docs/accessibility.md#form-validation).
 
 ## [0.14.1] - 2026-07-07
 
