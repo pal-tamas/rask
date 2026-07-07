@@ -22,7 +22,8 @@ https://github.com/pal-tamas/rask/tree/main/docs
 - **Text vs raw:** `Text("..")` / a bare string HTML-encodes; `Raw("..")` is verbatim (XSS risk — avoid for user input).
 - **Accessibility:** set ARIA via the `Aria` dictionary on any element — `Button(Aria: new() { ["label"] = "Close" })`
   renders `aria-label="Close"`. `Role:` / `TabIndex:` are typed params. `Img` needs `Alt:` (or `Alt: ""`
-  for decorative images) or RASK023 warns. See `docs/accessibility.md`.
+  for decorative images) or RASK023 warns. The `Bs*` form controls auto-wire `aria-invalid` +
+  `aria-describedby` + a `role="alert"` error region when a bound field is invalid. See `docs/accessibility.md`.
 
 ## Routing & lifecycle
 - Route with an attribute: `[Route("/users/{id:int}")]` + `[RouteParam] public int Id { get; set; }`

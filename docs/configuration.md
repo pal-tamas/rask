@@ -64,6 +64,21 @@ WebSocket safety caps and session grace periods — only the ASP.NET host has th
 | `MaxPendingHandlerBytes` | `0` (off) | Aggregate-bytes companion to `MaxPendingHandlers` — bounds the queued cloned-payload *memory*, not just the queue length. |
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 
+### Reconnect UX
+
+When the WebSocket drops, the client reconnects with exponential backoff. The framework's built-in
+overlay handles the user-facing side automatically — nothing to configure:
+
+- **Debounced.** A sub-second blip reconnects before the overlay ever appears (≈700 ms grace), so a
+  brief hiccup never flashes a full-screen freeze over the app.
+- **Escalating.** If reconnection keeps failing — or the browser reports itself offline — the overlay
+  escalates from a neutral spinner to an explanatory message ("You're offline…" / "Still trying…") with
+  a manual **Retry now** button. Regaining connectivity (the `online` event) reconnects immediately.
+- **Session-expiry aware.** If the drop outlasts `SessionGracePeriod` the server discards the session;
+  the client then shows "Your session timed out. Reload to continue." with a **Reload** button (and a
+  fallback auto-reload) instead of silently reloading and wiping in-progress UI state. Raise
+  `SessionGracePeriod` if your users routinely background the tab longer than the 30 s default.
+
 > **Using `HandlerTimeout`:** thread `Component.CancellationToken` into the cancellable async work your
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token
 > reflects the dispatch; in a lifecycle hook it's just the component's lifetime token.

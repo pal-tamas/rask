@@ -15,7 +15,7 @@ public sealed class BsSelect<T> : BsFormControl<T>
         var control = Select<string>(
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
-            Disabled: Disabled, Required: Required, Class: cls, Id: controlId,
+            Disabled: Disabled, Required: Required, Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
             OnChangeAsync: Disabled == true ? null : StringChangeHandler(b))[Items];
 
         return Field(controlId, b, control);

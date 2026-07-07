@@ -66,11 +66,10 @@ public class CodeFixProviderTests
     }
 
     [Fact]
-    public async Task Rask001_NotOffered_WhenAddingRequiredWouldTripRask002()
+    public async Task Rask001_Offered_WithDIConstructorAndNoParameterless()
     {
-        // The component has a DI constructor and no parameterless ctor, so the generated factory builds it
-        // via ActivatorUtilities and cannot set a `required` property. Adding `required` would trade the
-        // Hidden RASK001 for a RASK002 warning (null services), so the fix must be withheld.
+        // A DI ctor with no parameterless ctor builds via ActivatorUtilities and post-assigns the prop,
+        // so a required no-initializer prop is honored and RASK002 does not fire. The fix stays available.
         var source = """
             using Rask.Core;
             namespace Demo;
@@ -83,7 +82,7 @@ public class CodeFixProviderTests
             """;
         var offered = await CodeFixHarness.IsGeneratorFixOfferedAsync(
             new ComponentFactoryGenerator(), new RequiredFactoryParamCodeFixProvider(), "RASK001", source);
-        Assert.False(offered);
+        Assert.True(offered);
     }
 
     [Fact]

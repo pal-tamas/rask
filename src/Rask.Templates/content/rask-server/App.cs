@@ -27,6 +27,11 @@ public sealed class App : Component
                         NavLink(Counter())["Counter"],
                         " | ",
                         NavLink(Weather())["Weather"]
+                        //#if (cqrs)
+                        ,
+                        " | ",
+                        NavLink(GreetingPage())["Greeting"]
+                        //#endif
                     ],
                     Hr(),
                     Router()

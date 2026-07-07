@@ -20,7 +20,7 @@ public sealed class BsTextarea<T> : BsFormControl<T>
             Name: Name ?? b.Accessor?.PropertyName,
             Value: BindingHelpers.FormatValue(b.Current),
             Placeholder: Placeholder, Rows: Rows, Disabled: Disabled, ReadOnly: ReadOnly, Required: Required,
-            Class: cls, Id: controlId,
+            Class: cls, Id: controlId, Aria: FieldAria(b, controlId),
             OnInputAsync: Disabled == true ? null : StringChangeHandler(b));
 
         return Field(controlId, b, control);

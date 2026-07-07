@@ -83,6 +83,30 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     // The id used to tie the <label for> to the control.
     private protected string? ControlId(in Bound b) => Id ?? b.Accessor?.PropertyName ?? Name;
 
+    // Stable ids for the help text and error feedback, derived from the control id so the control's
+    // aria-describedby can point at them. Null when there is no control id to anchor to (a purely
+    // controlled control with no Id/Name/PropertyName) or the target markup isn't rendered.
+    private protected string? HelpTextId(string? controlId) =>
+        controlId is not null && HelpText is not null ? controlId + "-help" : null;
+
+    private protected static string? ErrorId(string? controlId, in Bound b) =>
+        controlId is not null && b.Invalid ? controlId + "-error" : null;
+
+    // The aria-* attributes for the control: aria-invalid when the field has validation messages, and
+    // aria-describedby wiring the control to its help text and/or its error feedback so assistive tech
+    // announces both alongside the field. Built via the shared BsClass.FieldAria so all four Bs form
+    // controls emit the same aria-* contract; returned as the framework Aria dictionary (keys without
+    // the "aria-" prefix), so the serializer emits them in the canonical aria-* attribute slot.
+    private protected IReadOnlyDictionary<string, string?>? FieldAria(in Bound b, string? controlId)
+    {
+        var helpId = HelpTextId(controlId);
+        var errorId = ErrorId(controlId, b);
+        var describedBy = helpId is not null
+            ? errorId is not null ? helpId + " " + errorId : helpId
+            : errorId;
+        return BsClass.FieldAria(b.Invalid, describedBy);
+    }
+
     private protected string? SizeClass(string prefix) =>
         Size is { } s && s.Suffix() is { } suffix ? $"{prefix}-{suffix}" : null;
 
@@ -93,8 +117,13 @@ public abstract class BsFormControl<T> : BsBlock, IFormControl<T>
     // of becoming a separate gap-spaced sibling one row below.
     private protected Component Field(string? controlId, in Bound b, Component control)
     {
-        var help = HelpText is not null ? Div(Class: "form-text")[HelpText] : null;
-        var feedback = b.Invalid ? Div(Class: "invalid-feedback d-block")[b.Messages[0]] : null;
+        // Help text and error feedback carry the ids the control's aria-describedby points at, and the
+        // error container is a role="alert" live region so a screen reader announces the message the
+        // moment validation fails (on submit/blur), associated with — not detached from — the field.
+        var help = HelpText is not null ? Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText] : null;
+        var feedback = b.Invalid
+            ? Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[b.Messages[0]]
+            : null;
 
         if (Floating is true && Label is not null)
         {
