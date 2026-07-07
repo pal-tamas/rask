@@ -115,6 +115,18 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         true,
         helpLinkUri: DiagnosticHelp.Link("RASK012"));
 
+    private static readonly DiagnosticDescriptor Rask031 = new(
+        "RASK031",
+        "Duplicate route template",
+        "Route template '{0}' matches the same URL as another page ('{1}') — which one renders is "
+        + "arbitrary; give this page a distinct route",
+        "Rask.Generators",
+        // Warning, not Error: a route collision is a real bug, but promoting it to Error would hard-break
+        // apps that compile today the moment they upgrade (and the app still runs, just picks arbitrarily).
+        DiagnosticSeverity.Warning,
+        true,
+        helpLinkUri: DiagnosticHelp.Link("RASK031"));
+
     private static readonly DiagnosticDescriptor Rask013 = new(
         "RASK013",
         "[NotFound] cannot be combined with [Route]",
@@ -286,6 +298,46 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             new LocationInfo(firstRouteAttrLocation),
             false,
             true);
+    }
+
+    // Normalize a route template to the shape the runtime router matches on (mirrors
+    // Rask.Core.Routing.RoutePattern, which can't be referenced from this netstandard2.0 generator):
+    // trim surrounding slashes, lowercase literal segments (literals match OrdinalIgnoreCase), and
+    // collapse each parameter to a positional placeholder — the router ignores the parameter's name and
+    // its `:constraint`, and distinguishes only required vs optional vs catch-all. Two templates that
+    // normalize equal match the same set of URLs.
+    private static string NormalizeTemplate(string template)
+    {
+        var raw = template.Trim('/');
+        if (raw.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var parts = raw.Split('/');
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var p = parts[i];
+            if (p.Length >= 2 && p[0] == '{' && p[p.Length - 1] == '}')
+            {
+                var inner = p.Substring(1, p.Length - 2);
+                if (inner.StartsWith("**", StringComparison.Ordinal)
+                    || (inner.Length > 0 && inner[0] == '*'))
+                {
+                    parts[i] = "{**}"; // catch-all — name ignored
+                }
+                else
+                {
+                    parts[i] = inner.Length > 0 && inner[inner.Length - 1] == '?' ? "{?}" : "{}";
+                }
+            }
+            else
+            {
+                parts[i] = p.ToLowerInvariant(); // literal — matched case-insensitively
+            }
+        }
+
+        return string.Join("/", parts);
     }
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
@@ -588,6 +640,58 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             filtered = filtered
                 .Where(c => !c.IsNotFound || c.FullyQualifiedName == keepFqn)
                 .ToList();
+        }
+
+        // RASK031: two different top-level pages must not resolve to the same route — both would match
+        // the same URL and the winner would be arbitrary. Group by the NORMALIZED pattern the runtime
+        // router actually matches on (see NormalizeTemplate — case-insensitive literals, trimmed slashes,
+        // parameter name/constraint ignored), not the verbatim [Route] string, so /Products vs /products,
+        // /x vs x/, and /{id:int} vs /{id:guid} are all caught. Restricted to pages WITHOUT a
+        // [ParentRoute], whose full path IS the template; parent-composed paths aren't resolved here, so
+        // this deliberately under-reports rather than risk a false positive on a nested route.
+        var collisions = new Dictionary<string, List<(Candidate Page, string Template)>>(StringComparer.Ordinal);
+        var seenFqns = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var c in filtered)
+        {
+            if (c.IsNotFound || c.ParentTypeFqn is not null)
+            {
+                continue;
+            }
+
+            foreach (var template in c.Templates)
+            {
+                var key = NormalizeTemplate(template);
+                if (!seenFqns.TryGetValue(key, out var fqns))
+                {
+                    fqns = new HashSet<string>(StringComparer.Ordinal);
+                    seenFqns[key] = fqns;
+                    collisions[key] = new List<(Candidate, string)>();
+                }
+
+                // A partial class re-declares the same FQN — only distinct pages count as a collision.
+                if (fqns.Add(c.FullyQualifiedName))
+                {
+                    collisions[key].Add((c, template));
+                }
+            }
+        }
+
+        foreach (var entry in collisions.OrderBy(e => e.Key, StringComparer.Ordinal))
+        {
+            if (entry.Value.Count < 2)
+            {
+                continue;
+            }
+
+            // Report on every colliding page after the first (ordered by fully-qualified name for a
+            // stable canonical page), naming this page's own template and the page it collides with.
+            var ordered = entry.Value.OrderBy(x => x.Page.FullyQualifiedName, StringComparer.Ordinal).ToList();
+            var firstFqn = ordered[0].Page.FullyQualifiedName;
+            foreach (var dup in ordered.Skip(1))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask031, dup.Page.RouteAttrLocation.ToLocation(),
+                    dup.Template, firstFqn));
+            }
         }
 
         if (filtered.Count == 0)
