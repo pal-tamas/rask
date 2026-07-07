@@ -83,6 +83,18 @@ public class BsComponentTests
             BsModal(Open: true, Title: "Hi")["body"].ToHtml());
 
     [Fact]
+    public void Modal_Fullscreen_AddsFullscreenClass() =>
+        Assert.Contains(
+            "<div class=\"modal-dialog modal-fullscreen\">",
+            BsModal(Open: true, Title: "Hi", Fullscreen: true)["body"].ToHtml());
+
+    [Fact]
+    public void Modal_FullscreenBelow_AddsBreakpointDownClassAndComposesWithSize() =>
+        Assert.Contains(
+            "<div class=\"modal-dialog modal-fullscreen-sm-down modal-lg\">",
+            BsModal(Open: true, Title: "Hi", FullscreenBelow: Bp.Sm, Size: BsSize.Lg)["body"].ToHtml());
+
+    [Fact]
     public void Icon_RendersBiClassesAndHiddenByDefault() =>
         Assert.Equal(
             "<i class=\"bi bi-heart-fill\" aria-hidden=\"true\"></i>",

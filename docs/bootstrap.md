@@ -46,6 +46,7 @@ runtime, no `bootstrap.js`.
 ```csharp
 BsButton(Color: BsColor.Primary, Size: BsSize.Lg)["Save"]
 BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]
+BsModal(Open: _open, FullscreenBelow: Bp.Sm)[ /* edge-to-edge on phones, sized dialog at sm+ */ ]
 BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-invalid + .invalid-feedback built in
 BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)
 

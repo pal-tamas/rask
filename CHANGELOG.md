@@ -7,6 +7,12 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`BsModal` full-screen dialogs.** `Fullscreen: true` renders an edge-to-edge `.modal-fullscreen` at
+  every width; `FullscreenBelow: Bp.Sm` (or any `Bp`) renders `.modal-fullscreen-{bp}-down` so the dialog
+  fills the screen below that breakpoint and stays a sized, centered dialog above it — ideal for forms on
+  phones. Composes with `Size` (sized at/above the breakpoint, full-screen below).
+
 ### Changed
 - **The live-root render no longer allocates the whole page twice.** Every server/WASM live
   render — the initial GET, every event re-render, reconnect recovery, and hot reload — went
