@@ -75,6 +75,37 @@ Img(Src: "/divider.png", Alt: "")          // decorative: empty alt hides it fro
 Pass `Alt: ""` for purely decorative images so screen readers skip them; pass a meaningful string
 for everything else.
 
+## Form validation
+
+The Bootstrap form controls (`BsInput`, `BsTextarea`, `BsSelect`, `BsCheck`) wire validation state to
+assistive tech automatically — you don't add anything. When a bound field has validation messages the
+control renders:
+
+- `aria-invalid="true"` on the input/select/textarea, so the failed state is exposed programmatically
+  (not just the visual `.is-invalid` red border);
+- `aria-describedby` pointing at the error message's `id` (and the help-text `id` when `HelpText:` is
+  set), so a screen reader reads the error together with the field; and
+- the `.invalid-feedback` message as a `role="alert"` live region, so the error is announced the moment
+  validation fails on submit/blur.
+
+```csharp
+BsInput(() => model.Email, Label: "Email", HelpText: "We never share it.")
+// valid   → <input id="Email" aria-describedby="Email-help" …>
+// invalid → <input id="Email" class="form-control is-invalid"
+//                  aria-invalid="true" aria-describedby="Email-help Email-error" …>
+//           <div id="Email-error" class="invalid-feedback d-block" role="alert">Enter a valid email</div>
+```
+
+The help/error element ids (and the `aria-describedby` that points at them) derive from the control id —
+`Id:` if you set one, otherwise the bound property name or `Name:`. That id also anchors the `<label for>`
+association, so the same rule has always applied: **if you render the same bound field more than once on a
+page** (a repeated form, a list of rows), give each control an explicit unique `Id:` so the ids stay
+document-unique and every `aria-describedby`/`for` resolves to the right field.
+
+Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same three
+attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
+the message in a `Div(Id: errorId, Role: "alert")`. See [forms.md](forms.md#accessible-validation).
+
 ## What's not covered yet
 
 This is the framework primitive layer. Higher-level affordances — a focus-trapping modal dialog
