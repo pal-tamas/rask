@@ -2905,6 +2905,156 @@ function applyFrameInvokes(reply, dispatchOne) {
     }
 }
 
+// ----- Focus trap (data-rask-focus-trap) ---------------------------------
+// Generic accessible-overlay focus management, driven declaratively so any overlay (Rask.Bootstrap's
+// BsModal, or your own) opts in with a single attribute. For as long as an element carrying
+// data-rask-focus-trap is in the DOM:
+//   * focus moves into it on appear (the [autofocus] element, else the element itself), remembering
+//     what had focus so it can be restored on close;
+//   * Tab / Shift+Tab cycle within it — focus can't escape to the inert page behind;
+//   * Escape closes it by clicking its own / a descendant [data-rask-dismiss] control (a real Rask
+//     click handler), so there is no per-keystroke server round-trip;
+//   * focus returns to the previously-focused element when the trap leaves the DOM.
+// A single document MutationObserver tracks appear/disappear (works with the diff morph that adds and
+// removes the overlay); keydown is handled at capture so it fires wherever focus currently sits.
+(function installRaskFocusTrap() {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined"
+        || window.__raskFocusTrap) {
+        return;
+    }
+    window.__raskFocusTrap = true;
+
+    // No escaped quotes in this selector on purpose: the WASM client-JS splice mangles a backslash in a
+    // spliced body, so the negative-tabindex exclusion is done in focusables() via el.tabIndex instead of
+    // a [tabindex="-1"] attribute selector (which also correctly excludes tabindex=-1 on any element).
+    const FOCUSABLE = "a[href],area[href],button:not([disabled]),"
+        + "input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),"
+        + "[tabindex],[contenteditable=true]";
+
+    let currentTrap = null;
+    let restoreTo = null;
+
+    // The topmost trap in the DOM (last in document order) wins when several are open (stacked modals).
+    function activeTrap() {
+        const traps = document.querySelectorAll("[data-rask-focus-trap]");
+        return traps.length ? traps[traps.length - 1] : null;
+    }
+
+    function focusables(trap) {
+        return Array.prototype.filter.call(
+            trap.querySelectorAll(FOCUSABLE),
+            (el) => el.tabIndex >= 0
+                && (el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement));
+    }
+
+    function enter(trap) {
+        // Focus the [autofocus] element if the author marked one, else the trap itself (it carries
+        // tabindex=-1 so screen readers announce the dialog). Deferred to rAF so the just-morphed-in
+        // element is laid out before we move focus.
+        const target = trap.querySelector("[autofocus]") || trap;
+        requestAnimationFrame(function () {
+            try {
+                target.focus();
+            } catch (e) {
+                // element may have been removed again already
+            }
+        });
+    }
+
+    function restore() {
+        const el = restoreTo;
+        restoreTo = null;
+        if (el && typeof el.focus === "function") {
+            try {
+                el.focus();
+            } catch (e) {
+                // previously-focused element is gone
+            }
+        }
+    }
+
+    function sync() {
+        const trap = activeTrap();
+        if (trap === currentTrap) {
+            return;
+        }
+
+        if (!currentTrap && trap) {
+            restoreTo = document.activeElement; // first trap opened over the page
+        }
+
+        currentTrap = trap;
+        if (trap) {
+            enter(trap);
+        } else {
+            restore(); // last trap closed
+        }
+    }
+
+    document.addEventListener("keydown", function (e) {
+        const trap = currentTrap;
+        if (!trap) {
+            return;
+        }
+
+        if (e.key === "Escape") {
+            const dismiss = trap.hasAttribute("data-rask-dismiss")
+                ? trap
+                : trap.querySelector("[data-rask-dismiss]");
+            if (dismiss) {
+                e.preventDefault();
+                dismiss.click();
+            }
+            return;
+        }
+
+        if (e.key !== "Tab") {
+            return;
+        }
+
+        const items = focusables(trap);
+        if (!items.length) {
+            e.preventDefault(); // nothing to move to — keep focus off the page behind
+            return;
+        }
+
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || active === trap || !trap.contains(active))) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && (active === last || !trap.contains(active))) {
+            e.preventDefault();
+            first.focus();
+        }
+    }, true);
+
+    // Only re-scan when a mutation actually adds or removes a trap (or a subtree containing one), so the
+    // observer stays cheap on the frequent unrelated morphs.
+    function touchesTrap(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (n.nodeType === 1
+                && (n.matches("[data-rask-focus-trap]") || n.querySelector("[data-rask-focus-trap]"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const observer = new MutationObserver(function (records) {
+        for (let i = 0; i < records.length; i++) {
+            if (touchesTrap(records[i].addedNodes) || touchesTrap(records[i].removedNodes)) {
+                sync();
+                return;
+            }
+        }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    sync(); // a trap already present at load
+})();
+
 
 function handle(reply) {
     if (!reply || typeof reply !== "object") return;
