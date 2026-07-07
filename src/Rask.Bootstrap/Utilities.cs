@@ -244,6 +244,8 @@ public static class Sizing
     public const string MaxH100 = "mh-100";
     public const string VW100 = "vw-100";
     public const string VH100 = "vh-100";
+    public const string MinVW100 = "min-vw-100";
+    public const string MinVH100 = "min-vh-100";
 }
 
 // Bootstrap grid: the .row container and its column spans (.col / .col-auto / .col-{bp?}-{1..12}).

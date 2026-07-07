@@ -12,6 +12,8 @@ them until tagged releases begin.
   every width; `FullscreenBelow: Bp.Sm` (or any `Bp`) renders `.modal-fullscreen-{bp}-down` so the dialog
   fills the screen below that breakpoint and stays a sized, centered dialog above it — ideal for forms on
   phones. Composes with `Size` (sized at/above the breakpoint, full-screen below).
+- **`Sizing.MinVW100` / `Sizing.MinVH100`** typed utility tokens (`min-vw-100` / `min-vh-100`) — completes
+  the viewport-sizing family (alongside `VW100`/`VH100`) for min-height layouts such as a sticky footer.
 
 ### Changed
 - **The live-root render no longer allocates the whole page twice.** Every server/WASM live
