@@ -835,11 +835,12 @@ public static class RaskEndpointExtensions
                 {
                     continue;
                 }
-                var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
-                    ? t.GetString()
-                    : null;
+                // Match the frame "type" against the UTF-8 literals directly (ValueEquals) instead of
+                // materializing a string per frame — this runs on every inbound frame (keystroke,
+                // 60 Hz scroll, click), and the string was allocated only to == four constants.
+                var hasType = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String;
 
-                if (type == "hello")
+                if (hasType && t.ValueEquals("hello"u8))
                 {
                     var sessionId = root.TryGetProperty("session", out var sid) && sid.ValueKind == JsonValueKind.String
                         ? sid.GetString()
@@ -881,13 +882,13 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                if (type == "navigate")
+                if (hasType && t.ValueEquals("navigate"u8))
                 {
                     await HandleNavigateAsync(session, root, ct);
                     continue;
                 }
 
-                if (type == "jsResult")
+                if (hasType && t.ValueEquals("jsResult"u8))
                 {
                     // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base
                     // JSRuntime class manages its own pending-task dictionary keyed by the
@@ -898,7 +899,7 @@ public static class RaskEndpointExtensions
                     continue;
                 }
 
-                if (type == "dotNetInvoke")
+                if (hasType && t.ValueEquals("dotNetInvoke"u8))
                 {
                     // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method.
                     // Hand off to the public DotNetDispatcher; the runtime completes the
