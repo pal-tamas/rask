@@ -165,4 +165,24 @@ public class BsComponentTests
         Assert.Contains("class=\"offcanvas-md offcanvas-start show\"", html);
         Assert.Contains("class=\"offcanvas-backdrop fade show d-md-none\"", html);
     }
+
+    [Fact]
+    public void BootstrapStyles_LinksBootstrapIconsAndRaskFixesLast()
+    {
+        var html = BootstrapStyles().ToHtml();
+        Assert.Contains("_content/Rask.Bootstrap/css/bootstrap.min.css", html);
+        Assert.Contains("_content/Rask.Bootstrap/icons/bootstrap-icons.min.css", html);
+        Assert.Contains("_content/Rask.Bootstrap/css/rask-bootstrap.css", html);
+        // rask-bootstrap.css must come after Bootstrap so it wins the cascade.
+        Assert.True(html.IndexOf("rask-bootstrap.css", StringComparison.Ordinal)
+            > html.IndexOf("bootstrap.min.css", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void BootstrapStyles_IconsFalse_OmitsIconsButKeepsRaskFixes()
+    {
+        var html = BootstrapStyles(Icons: false).ToHtml();
+        Assert.Contains("_content/Rask.Bootstrap/css/rask-bootstrap.css", html);
+        Assert.DoesNotContain("bootstrap-icons", html);
+    }
 }

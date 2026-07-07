@@ -1,0 +1,15 @@
+/* Rask.Bootstrap — supplemental styles for the zero-JS (Popper-less) components, layered on top of
+   the bundled Bootstrap by BootstrapStyles(). Keep this minimal: only fixes that a consumer would
+   otherwise have to re-add in every app. */
+
+/* A dropdown menu inside a scrollable table is clipped by the scroll container: Bootstrap's
+   .table-responsive sets overflow-x:auto, and per the CSS overflow spec a non-visible value on one
+   axis forces the other axis to auto — so the menu, which overflows downward, is cut off. Rask
+   dropdowns are Popper-less (no JS to portal the menu out), so fix it in CSS: while a menu is open,
+   let the container overflow vertically so the menu shows, and clip horizontally so a wide table
+   still can't spill or trigger page scroll. (`overflow: clip` is the one value that does NOT force
+   the other axis to auto, so this pairing is valid.) */
+.table-responsive:has(.dropdown-menu.show) {
+  overflow-x: clip;
+  overflow-y: visible;
+}
