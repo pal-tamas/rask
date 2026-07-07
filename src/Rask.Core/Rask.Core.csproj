@@ -29,6 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Rask.Testing is a SHIPPED package that wraps Core's internal live-render + handler-invoke seam
+         (RenderAsLiveRoot / TryInvokeHandlerAsync) into a supported public testing API. -->
+    <InternalsVisibleTo Include="Rask.Testing"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>

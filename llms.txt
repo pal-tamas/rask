@@ -31,7 +31,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Accessibility](docs/accessibility.md): ARIA via the `Aria` dictionary, `Role`/`TabIndex`, the `Img` alt-text analyzer (RASK023).
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
 - [Diagnostics](docs/diagnostics.md): RASK001–031 compile-time diagnostics + fixes, including IDE quick-fixes (lightbulb) for RASK001 (add `required`) and RASK023 (insert `Alt: ""`), shipped in `Rask.Generators.CodeFixes`.
-- [Testing](docs/testing.md): unit + Playwright E2E patterns.
+- [Testing](docs/testing.md): the `Rask.Testing` package (`RaskTest.Render(component)` → `RenderedComponent`; `.ClickAsync()`/`.InvokeAsync(handlerId, json?)` dispatch handlers + re-render; `.Html`/`.HandlerId`/`.Attr` query) for in-process component unit tests, plus Playwright E2E patterns.
 
 ## Contributing to Rask itself
 - [AGENTS.md](AGENTS.md): repo conventions for AI assistants + the `.claude/skills/` workflows.

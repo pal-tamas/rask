@@ -112,6 +112,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
+| `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
 
 `Rask.Server` and `Rask.Wasm` pull in `Rask.Core` and the source generators transitively. Full setup, host trade-offs,
 and sub-path hosting are covered in **[getting started](docs/getting-started.md)** and the **[docs ↗](docs/)**.

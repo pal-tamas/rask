@@ -50,4 +50,6 @@ https://github.com/pal-tamas/rask/tree/main/docs
 dotnet run        # then open the printed URL
 dotnet test       # if the project has tests
 ```
+- **Unit-testing components:** add `Rask.Testing` to your test project, then `RaskTest.Render(new MyComponent())` and drive it via `.ClickAsync()`/`.InputAsync()`/`.SubmitAsync()`, asserting on `.Html` — no browser or server. See docs/testing.md.
+
 If you hit a `RASKxxx` compile error, see https://github.com/pal-tamas/rask/blob/main/docs/diagnostics.md

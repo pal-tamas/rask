@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Rask.Testing` — a public package for unit-testing components.** Until now the live-render + handler-
+  dispatch seam that makes component tests possible (`RenderAsLiveRoot` / `TryInvokeHandlerAsync`) was
+  `internal`, and the in-repo `Rask.TestSupport` harness was non-packable — so a consumer had **no
+  supported way to test a Rask component's behavior** (only static `ToHtml()`). The new `Rask.Testing`
+  package closes that gap: `RaskTest.Render(component, services?)` returns a `RenderedComponent` whose
+  `.Html` reflects the current state, and `.ClickAsync()` / `.InvokeAsync(handlerId, jsonPayload?)`
+  dispatch a handler (optionally with a JSON event payload) and re-render — so a consumer can render a
+  stateful component, simulate a click/input/submit, and assert on the resulting markup, with no browser
+  or server. `.HandlerId(domEvent)` / `.Attr(name)` query the current HTML. Validated by a
+  consumer-shaped test project that uses only the public API (it is deliberately *not* in Core's
+  `InternalsVisibleTo` allowlist). See [docs/testing.md](docs/testing.md).
 - **RASK030 — prefer named arguments on factory calls with many positional args.** A new Hidden analyzer
   flags a Rask factory call that passes three or more leading positional arguments (e.g.
   `Div("main", "container", "color:red")`). Beyond one or two, positional calls read poorly and are

@@ -10,6 +10,52 @@ and when to reach for end-to-end (E2E) tests instead.
 
 ---
 
+## 0. The `Rask.Testing` package (start here)
+
+Reference **`Rask.Testing`** from your test project and you can render a component, invoke its handlers,
+and assert on the re-rendered HTML through a small public API — no browser, server, or WebSocket:
+
+```csharp
+using Rask.Testing;
+
+public sealed class Counter : Component
+{
+    private int _count;
+    protected override Component? Render() =>
+        Button(Type: "button", OnClick: () => _count++)[$"Count: {_count}"];
+}
+
+[Fact]
+public async Task Clicking_increments()
+{
+    var page = RaskTest.Render(new Counter());     // renders + wires event handlers
+    Assert.Contains("Count: 0", page.Html);
+
+    await page.ClickAsync();                        // dispatch the click handler, then re-render
+    Assert.Contains("Count: 1", page.Html);
+}
+```
+
+- **`RaskTest.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
+  component constructor-injects framework services or your own registrations.
+- **`.Html`** — the current markup. **`.Render()`** re-renders after you mutate external state it reads.
+- **`.ClickAsync(json?)` / `.InputAsync(json?)` / `.ChangeAsync(json?)` / `.SubmitAsync(json?)`** — dispatch
+  the **first** element wired to that event (optionally with a JSON event payload, e.g.
+  `"{\"value\":\"hi\"}"` for an input), then re-render; returns the new `Html`.
+- **`.InvokeAsync(handlerId, json?)`** — dispatch a specific handler by id.
+- **`.HandlerId(domEvent)`** / **`.Attr(name)`** — read a handler id / attribute off the current `Html`.
+  Handler ids are reissued every render, so read one from the current `Html` right before invoking rather
+  than reusing a captured id. To target one of several same-event elements, give it an `Id` and read its
+  handler from `.Html`.
+
+`Rask.Core` comes transitively from the app under test (via its `Rask.Server` / `Rask.Wasm` reference),
+so a test project only references `Rask.Testing` and the app.
+
+The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSupport`) and deeper patterns
+(forms, validation, DI). For app authors, the `Rask.Testing` API above is the supported surface.
+
+---
+
 ## 1. The test stack
 
 Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) collects the
