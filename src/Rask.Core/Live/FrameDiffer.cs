@@ -167,20 +167,23 @@ public static class FrameDiffer
     ///     sibling elements sharing a key. A duplicate key defeats keyed reconciliation, so the
     ///     codec falls back to a positional walk that can graft a surviving node's DOM state
     ///     (focus, input value, scroll) onto the wrong sibling when the list reorders — a silent
-    ///     correctness bug. Defaults to a deduplicated writer (<see cref="WarnDuplicateKeyOnce" />)
+    ///     correctness bug. Defaults to a deduplicated writer (<see cref="ReportDuplicateKeyOnce" />)
     ///     routed through the <see cref="RaskDiagnostics" /> seam; set to <c>null</c> to silence, or
     ///     replace to route into a logger or test sink. Only ever fires on the already-broken path, so
     ///     it adds no cost to a correctly-keyed render.
     /// </summary>
-    internal static Action<string>? OnDuplicateKey = WarnDuplicateKeyOnce;
+    internal static Action<string>? OnDuplicateKey = ReportDuplicateKeyOnce;
 
-    // Warn at most once per distinct key (bounded), routed through the shared diagnostics seam so a
-    // host can capture it. A correct app never reaches here; a buggy one that churns unbounded
-    // distinct duplicate keys stops being warned past the seam's cap rather than growing without limit.
-    private static void WarnDuplicateKeyOnce(string key) =>
+    // Report at most once per distinct key (bounded), routed through the shared diagnostics seam so a
+    // host can capture it. Logged at Error, not Warning: a duplicate key is a latent state-corruption
+    // bug (the positional fallback can graft a node's DOM state onto the wrong sibling on reorder), not
+    // a cosmetic nit, so surface it loudly. A correct app never reaches here; a buggy one that churns
+    // unbounded distinct duplicate keys stops being reported past the seam's cap rather than growing
+    // without limit.
+    private static void ReportDuplicateKeyOnce(string key) =>
         RaskDiagnostics.ReportOnce(
             "dupkey:" + key,
-            RaskLogLevel.Warning,
+            RaskLogLevel.Error,
             "Rask.Diff",
             () => $"Rask live diff: two sibling elements share data-rask-key=\"{key}\". Keys must be " +
                   "unique among siblings; the duplicate disables keyed reconciliation for that list and " +
