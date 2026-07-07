@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK029)
+# Rask diagnostics (RASK001–RASK031)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; one is hidden (informational, surfaced only as an IDE suggestion).
@@ -38,6 +38,7 @@ build once.
 | [RASK027](#rask027) | Error | Both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic or no public constructor) |
+| [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 
 ---
 
@@ -398,3 +399,25 @@ public sealed class PrivateHandler : IQueryHandler<GetValue, int>
 **Fix:** give the handler a public constructor, or make it a closed (non-generic) type. A request with
 *no* handler at all is not flagged (the handler may live in another assembly) — it throws a clear
 `InvalidOperationException` when dispatched.
+
+## RASK031
+**Two pages resolve to the same route** · Warning
+
+Two different top-level pages resolve to the same route, so both match the same URL and which one renders
+is arbitrary. Templates are compared the way the **runtime router** matches them, not by raw string — so
+these all collide: `/Products` ↔ `/products` (literals match case-insensitively), `/products` ↔
+`products/` (surrounding slashes trimmed), and `/item/{id:int}` ↔ `/item/{id:guid}` ↔ `/item/{slug}`
+(the router ignores parameter names and `:constraints`). The check covers pages **without** a
+`[ParentRoute]` (whose template is the full path); parent-composed paths are not resolved here, so
+nested-route collisions are not flagged (the check under-reports rather than risk a false positive).
+
+```csharp
+[Route("/products")] public sealed class ProductList : Component { }   // first — canonical
+[Route("/Products")] public sealed class ProductGrid : Component { }   // ✗ RASK031: same URL as ProductList
+```
+
+A warning, not an error — a collision is a real bug, but the app still runs (it just picks arbitrarily),
+so upgrading Rask never hard-breaks a build that compiled before.
+
+**Fix:** give one page a distinct route, or merge the two. Reported on every colliding page after the
+first (ordered by fully-qualified name), naming the page it collides with.

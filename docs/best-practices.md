@@ -5,7 +5,7 @@ collects the patterns that keep a Rask app correct, secure, and fast as it grows
 framework rewards, the foot-guns it can't stop for you, and where each one is enforced.
 
 Every item is short on purpose: a rule, *why* it matters, and a link to the deep dive. Many of these
-are also compile-time diagnostics ([RASK001–029](diagnostics.md)) — when the analyzer can catch a
+are also compile-time diagnostics ([RASK001–031](diagnostics.md)) — when the analyzer can catch a
 mistake, the rule notes the ID.
 
 - [Component design](#component-design)

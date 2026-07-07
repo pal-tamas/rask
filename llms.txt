@@ -30,7 +30,7 @@ This file helps AI coding assistants build apps with Rask. Start with AGENTS.md 
 - [Configuration](docs/configuration.md): `RaskLiveOptions` (shared: diff mode, path base, session cap) + `RaskServerOptions` (server-only WS/grace/idle/backpressure limits) + `RaskUploadOptions` (upload size + per-session quota), appsettings binding + startup validation.
 - [Accessibility](docs/accessibility.md): ARIA via the `Aria` dictionary, `Role`/`TabIndex`, the `Img` alt-text analyzer (RASK023).
 - [Migration from Blazor](docs/migration-from-blazor.md): mapping Blazor concepts to Rask.
-- [Diagnostics](docs/diagnostics.md): RASK001–029 compile-time diagnostics + fixes.
+- [Diagnostics](docs/diagnostics.md): RASK001–031 compile-time diagnostics + fixes.
 - [Testing](docs/testing.md): unit + Playwright E2E patterns.
 
 ## Contributing to Rask itself
