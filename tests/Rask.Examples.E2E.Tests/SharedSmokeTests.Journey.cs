@@ -230,13 +230,21 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Modal — open + close driven by Rask state, no bootstrap.js loaded.
-        await Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First.ClickAsync();
-        await Expect(Page.Locator("div.modal.show").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Page.Locator("div.modal .btn-close").First.ClickAsync();
+        // Modal — open + close driven by Rask state, no bootstrap.js loaded. The runtime focus trap
+        // (data-rask-focus-trap in rask-dom.js) moves focus into the dialog on open, Escape dismisses
+        // it via the backdrop-close handler, and focus returns to the trigger on close.
+        var launchModal = Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First;
+        await launchModal.ClickAsync();
+        var dialog = Page.Locator("div.modal.show").First;
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        // Focus was trapped into the dialog — the trap focuses the modal element itself (tabindex=-1).
+        await Expect(dialog).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+        // Escape closes it — no bootstrap.js, no btn-close click.
+        await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        // Focus returned to the trigger button.
+        await Expect(launchModal).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
 
         // Full-screen-below-sm modal — FullscreenBelow: Bp.Sm adds .modal-fullscreen-sm-down.
         await Page.Locator(".guide-demo button:has-text(\"Full-screen on phones\")").First.ClickAsync();

@@ -45,6 +45,18 @@ them until tagged releases begin.
   `aria-describedby` to the help text. No API or visual change; attributes emit in the canonical
   `aria-*` slot so the documented attribute order is preserved. See
   [docs/accessibility.md](docs/accessibility.md#form-validation).
+- **Accessible focus trapping for overlays, and `BsModal` opts in.** A new runtime behavior (in the
+  shared `rask-dom.js`, so it works on both the Server and WASM hosts) manages focus for any element
+  carrying `data-rask-focus-trap`: focus moves into it on open (its `[autofocus]` element, else the
+  element itself), `Tab`/`Shift+Tab` cycle within it so focus can't reach the inert page behind, focus
+  returns to the previously-focused element on close, and `Escape` dismisses it by clicking a
+  `data-rask-dismiss` control (no per-keystroke server round-trip). A single document `MutationObserver`
+  tracks appear/disappear and only re-scans when a trap is actually added/removed, so it stays cheap on
+  unrelated diff morphs. `BsModal` now opts in automatically — an open modal traps focus, is labelled
+  (`aria-labelledby` its title when an `Id` is set, else `aria-label` from the title text), and closes on
+  `Escape` (kept inert for a static backdrop, matching Bootstrap). Previously a keyboard or screen-reader
+  user could `Tab` straight out of an open modal into the page behind, had no `Escape` to close it, and
+  lost their place when it closed. See [docs/accessibility.md](docs/accessibility.md#focus-trapping-overlays).
 
 ## [0.14.1] - 2026-07-07
 

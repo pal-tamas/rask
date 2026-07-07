@@ -32,9 +32,6 @@ public sealed class BsModal : BsBlock
     // Shields clicks inside the dialog from the outer close handler (nearest-handler delegation).
     private static readonly Callback Shield = () => { };
 
-    private static readonly IReadOnlyDictionary<string, string?> ModalAria =
-        new Dictionary<string, string?> { ["modal"] = "true" };
-
     protected override Component? Render()
     {
         if (Open is not true)
@@ -53,10 +50,33 @@ public sealed class BsModal : BsBlock
         var staticBackdrop = StaticBackdrop is true;
         var showHeader = Title is not null || HideClose is not true;
 
+        // Label the dialog for assistive tech: reference the visible title by id when we have one to
+        // anchor to, otherwise fall back to aria-label carrying the title text.
+        var titleId = Title is not null && Id is not null ? Id + "-title" : null;
+        var aria = new Dictionary<string, string?> { ["modal"] = "true" };
+        if (titleId is not null)
+        {
+            aria["labelledby"] = titleId;
+        }
+        else if (Title is not null)
+        {
+            aria["label"] = Title;
+        }
+
+        // Opt into the runtime focus trap (autofocus in, Tab cycling, focus restore on close, Escape to
+        // dismiss). data-rask-dismiss marks the click target Escape fires — the modal itself, whose
+        // backdrop-close handler is OnClose — and is omitted for a static backdrop, which (per Bootstrap)
+        // also disables Escape while keeping the close button working.
+        var data = new Dictionary<string, string?> { ["rask-focus-trap"] = "" };
+        if (!staticBackdrop)
+        {
+            data["rask-dismiss"] = "";
+        }
+
         var content = Div(Class: "modal-content")[
             showHeader
                 ? Div(Class: "modal-header")[
-                    Title is not null ? H5(Class: "modal-title")[Title] : null,
+                    Title is not null ? H5(Id: titleId, Class: "modal-title")[Title] : null,
                     HideClose is not true
                         ? BsCloseButton(OnClick: OnClose, OnClickAsync: OnCloseAsync)
                         : null]
@@ -65,7 +85,7 @@ public sealed class BsModal : BsBlock
             Footer is { } footer ? Div(Class: "modal-footer")[footer] : null];
 
         var modal = Div(Id: Id, Class: "modal fade show", Style: "display:block", TabIndex: -1,
-            Role: "dialog", Aria: ModalAria,
+            Role: "dialog", Aria: aria, Data: data,
             OnClick: staticBackdrop ? null : OnClose, OnClickAsync: staticBackdrop ? null : OnCloseAsync)[
                 Div(Class: dialogCls, OnClick: staticBackdrop ? null : Shield)[content]];
 
