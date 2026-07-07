@@ -410,6 +410,120 @@
     let pendingVisible = false;
     const pendingBar = installPendingBar();
 
+    // Navigation reuses the same top progress bar as a handler round-trip, tracked separately so a slow
+    // route render surfaces progress even though a `navigate` frame carries no handler seq/ack. The bar
+    // stays up while EITHER a handler seq or a navigation is outstanding (see hideBarIfIdle).
+    let navInFlight = false;
+    let navBarTimer = null;
+    let navHardTimer = null;
+    // Polite live region that announces the new page on a forward navigation (keyboard/SR users get told
+    // the route changed; the visible bar alone is silent to assistive tech).
+    const routeAnnouncer = installRouteAnnouncer();
+
+    function beginNav() {
+        navInFlight = true;
+        if (navBarTimer === null && !pendingVisible) {
+            navBarTimer = setTimeout(showPendingBar, PENDING_LATENCY_MS);
+        }
+        // Backstop, mirroring the handler forcePendingTimeout: if no navigation reply ever arrives (the
+        // route render threw server-side and sent no frame, or deduped to nothing), settle so the bar
+        // can't wedge navigation AND every subsequent handler round-trip.
+        if (navHardTimer !== null) {
+            clearTimeout(navHardTimer);
+        }
+        navHardTimer = setTimeout(endNav, PENDING_HARD_TIMEOUT_MS);
+    }
+
+    function endNav() {
+        navInFlight = false;
+        if (navHardTimer !== null) {
+            clearTimeout(navHardTimer);
+            navHardTimer = null;
+        }
+        hideBarIfIdle();
+    }
+
+    // Retire the progress bar only when nothing needs it — a handler round-trip (ackedSeq < outstandingSeq)
+    // or an in-flight navigation keeps it visible.
+    function hideBarIfIdle() {
+        if (ackedSeq < outstandingSeq || navInFlight) {
+            return;
+        }
+
+        if (navBarTimer !== null) {
+            clearTimeout(navBarTimer);
+            navBarTimer = null;
+        }
+
+        hidePendingBar();
+    }
+
+    function installRouteAnnouncer() {
+        const el = document.createElement("div");
+        el.setAttribute("data-rask-managed", "");
+        el.setAttribute("aria-live", "polite");
+        el.setAttribute("aria-atomic", "true");
+        el.className = "rask-route-announcer";
+        el.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;"
+            + "clip:rect(0 0 0 0);white-space:nowrap;border:0;";
+        document.documentElement.appendChild(el);
+        return el;
+    }
+
+    // Forward navigation committed: announce the new page (its <title>, morphed in) and move focus into
+    // the new page so keyboard/SR users continue from it rather than the now-removed link. `preferred` is
+    // the in-page anchor a fragment nav scrolled to (focus it), else the main content is used.
+    function focusAndAnnounceRoute(preferred) {
+        if (routeAnnouncer) {
+            routeAnnouncer.textContent = "";
+            const title = document.title || location.pathname;
+            // Defer so the reset registers before the new text (some SRs coalesce same-tick changes).
+            setTimeout(function () { routeAnnouncer.textContent = title; }, 50);
+        }
+
+        const target = preferred
+            || document.querySelector("main, [role=main]")
+            || document.querySelector("h1");
+        if (!target) {
+            return;
+        }
+
+        // Make it programmatically focusable if it isn't already. Add the blur cleanup only AFTER a
+        // successful focus, and back the tabindex out if focus throws, so a detached target can't leak a
+        // client-injected tabindex + dangling listener onto server-owned DOM.
+        const addedTabindex = !target.hasAttribute("tabindex");
+        if (addedTabindex) {
+            target.setAttribute("tabindex", "-1");
+        }
+
+        let focused = false;
+        try {
+            target.focus({preventScroll: true});
+            focused = true;
+        } catch (e) {
+            try {
+                target.focus();
+                focused = true;
+            } catch (e2) {
+                // focus target vanished
+            }
+        }
+
+        if (!focused) {
+            if (addedTabindex) {
+                target.removeAttribute("tabindex");
+            }
+            return;
+        }
+
+        if (addedTabindex) {
+            target.addEventListener("blur", function onBlur() {
+                target.removeAttribute("tabindex");
+                target.removeEventListener("blur", onBlur);
+            });
+        }
+    }
+
     function stampSeq(payload) {
         // Only genuine handler events get a seq: they carry an `id` and dispatch through
         // the server's handler chain, which acks the seq. jsResult also carries an id but
@@ -440,13 +554,16 @@
             clearTimeout(pendingHardTimer);
             pendingHardTimer = null;
         }
-        hidePendingBar();
+        // A navigation may still need the bar even though this handler round-trip settled.
+        hideBarIfIdle();
     }
 
     function resetPending() {
         // On disconnect the reconnect overlay takes over; drop the bar and treat every
-        // outstanding handler as settled so a pre-drop seq can't wedge the next session.
+        // outstanding handler AND any in-flight navigation as settled so a pre-drop seq/nav
+        // can't wedge the next session.
         ackedSeq = outstandingSeq = seqCounter;
+        navInFlight = false;
         clearPending();
     }
 
@@ -654,26 +771,36 @@
     // carried a "#fragment" matching an element, scroll there instead of the top.
     // Call this only after the new body has committed so the anchor target exists.
     function applyNavScroll(history) {
+        // A navigation reply committed (push or replace) — retire the loading bar. Only when `history`
+        // is present: an out-of-band / non-nav frame (no history) must NOT clear an in-flight nav's bar.
+        if (history && navInFlight) {
+            endNav();
+        }
+
         if (!history || history.action === "replace") {
             _pendingScrollHash = "";
             return;
         }
         const hash = _pendingScrollHash;
         _pendingScrollHash = "";
+        let anchor = null;
         if (hash && hash.length > 1) {
-            let el = null;
             try {
-                el = document.querySelector(hash) ||
+                anchor = document.querySelector(hash) ||
                     document.getElementById(decodeURIComponent(hash.slice(1)));
             } catch (e) {
-                el = null;
-            }
-            if (el) {
-                el.scrollIntoView();
-                return;
+                anchor = null;
             }
         }
-        window.scrollTo(0, 0);
+
+        if (anchor) {
+            anchor.scrollIntoView();
+        } else {
+            window.scrollTo(0, 0);
+        }
+        // Forward navigation: focus the anchor the link targeted (else the main content) and announce the
+        // route — a fragment deep-link is still a route change for keyboard/SR users.
+        focusAndAnnounceRoute(anchor);
     }
 
     // Diff-mode render application (wire format matches LivePayload.BuildPayloadUtf8Diff).
@@ -904,11 +1031,13 @@
         // the new page commits (the fragment is not sent to the server).
         _pendingScrollHash = url.hash || "";
         flushInputsNow();
+        beginNav();
         send({type: "navigate", path: stripBase(url.pathname), query: url.search});
     });
 
     window.addEventListener("popstate", () => {
         flushInputsNow();
+        beginNav();
         send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
     });
 

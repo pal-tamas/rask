@@ -161,6 +161,18 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("CQRS",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
+        // Forward navigation moves focus into the new page's <main> and announces the route via the
+        // aria-live region, so keyboard/screen-reader users continue from the new page (not the stale
+        // nav link) and hear the change. Server live-runtime only (rask.js) for now; the WASM host's
+        // navigation path is a follow-up.
+        if (FixtureName == "Server")
+        {
+            await Expect(Page.Locator("main.page-main")).ToBeFocusedAsync(
+                new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+            await Expect(Page.Locator(".rask-route-announcer")).Not.ToBeEmptyAsync(
+                new LocatorAssertionsToBeEmptyOptions { Timeout = 3_000 });
+        }
+
         var count = Page.Locator("#cqrs-count");
         await Expect(count).ToHaveTextAsync("0", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
 
