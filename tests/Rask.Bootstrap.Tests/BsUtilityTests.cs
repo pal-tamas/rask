@@ -47,4 +47,11 @@ public class BsUtilityTests
         Assert.Equal("text-md-center", Txt.Center(Bp.Md));
         Assert.Equal("fw-bold rounded-pill w-100", Bs.Join(Font.Bold, Rounded.Pill, Sizing.W(100)));
     }
+
+    [Fact]
+    public void Sizing_MinViewport()
+    {
+        Assert.Equal("min-vh-100", Sizing.MinVH100);
+        Assert.Equal("min-vw-100", Sizing.MinVW100);
+    }
 }
