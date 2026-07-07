@@ -75,6 +75,19 @@ them until tagged releases begin.
   type-match step drops to **0 B allocated** (was 40 B) and is ~34% faster (8.5 ns → 5.7 ns); behavior
   is unchanged (`handlerId` still resolves via `GetString`, which is a genuine dictionary key).
 
+### Fixed
+- **RASK002 no longer fires for a component that has a DI constructor and a `required` factory
+  parameter.** The diagnostic wrongly treated "DI constructor, no parameterless constructor" as unable
+  to honor `required`. In fact the generated factory builds such a component with
+  `ActivatorUtilities.CreateInstance` (which runs the DI constructor, so injected services are set) and
+  then post-assigns every factory parameter — so a `required` property with no member initializer *is*
+  honored at runtime. RASK002 now fires only in the genuinely broken shape: a component with **both** a
+  DI constructor and a parameterless constructor **and** a `required` property carrying a member
+  initializer (the factory emits `new C() { … }` whose object initializer excludes the initializer-
+  carrying property, so the consumer build hits `CS9035`). The RASK001 quick-fix, which was withheld in
+  the mis-flagged case, is now offered there too. See
+  [docs/diagnostics.md](docs/diagnostics.md#rask002).
+
 ## [0.14.1] - 2026-07-07
 
 ### Fixed
