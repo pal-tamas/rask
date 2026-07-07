@@ -106,10 +106,24 @@ Building your own control from the core `Input`/`ValidationMessage` primitives? 
 attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
 the message in a `Div(Id: errorId, Role: "alert")`. See [forms.md](forms.md#accessible-validation).
 
+## Focus trapping (overlays)
+
+Any element that carries `data-rask-focus-trap` gets accessible-overlay focus management from the
+runtime — no `bootstrap.js`, no per-component wiring. While the element is in the DOM, focus moves into
+it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Tab` cycle **within** it
+(focus can't reach the inert page behind), and focus returns to the previously-focused element when it
+closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
+element's click handler — no per-keystroke server round-trip.
+
+`Rask.Bootstrap`'s `BsModal` opts in automatically: an open modal traps focus, is labelled (`aria-labelledby`
+its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,
+which keeps `Escape` inert per Bootstrap). Build your own overlay the same way — add `data-rask-focus-trap`
+(via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.
+
 ## What's not covered yet
 
-This is the framework primitive layer. Higher-level affordances — a focus-trapping modal dialog
-primitive, skip links, ARIA `tablist`/`tab` widgets, and automated axe-core scans in the sample E2E
-suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
-primitives above plus standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
+This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
+keyboard widgets (roving tabindex for `BsTabs`/`BsDropdown`), and automated axe-core scans in the sample
+E2E suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
+primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
 `Th(Scope:)`, …).
