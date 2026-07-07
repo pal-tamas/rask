@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Composition;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -24,28 +23,14 @@ public sealed class RequiredFactoryParamCodeFixProvider : RaskCodeFixProvider<Pr
 
     protected override string EquivalenceKey => "RASK001_AddRequired";
 
-    protected override async Task<bool> CanFixAsync(CodeFixContext context, PropertyDeclarationSyntax property)
+    protected override Task<bool> CanFixAsync(CodeFixContext context, PropertyDeclarationSyntax property)
     {
-        if (property.Modifiers.Any(SyntaxKind.RequiredKeyword))
-        {
-            return false;
-        }
-
-        // Guard against trading RASK001 (a benign hint) for RASK002: when the component is built through
-        // a dependency-injected constructor with no public parameterless ctor, the generated factory uses
-        // ActivatorUtilities.CreateInstance and cannot set a `required` property — the generator would then
-        // emit RASK002 and the DI constructor's services would be null. Only offer the fix when `required`
-        // can actually be honored (mirrors the RASK002 trigger in ComponentFactoryGenerator).
-        var model = await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
-        if (model?.GetDeclaredSymbol(property, context.CancellationToken) is not { ContainingType: { } type })
-        {
-            return true; // no semantic info — best-effort offer, matching the always-on prior behavior
-        }
-
-        var instanceCtors = type.InstanceConstructors.Where(c => !c.IsStatic).ToArray();
-        var hasParameterless = instanceCtors.Any(c => c.Parameters.Length == 0);
-        var hasDIConstructor = instanceCtors.Any(c => c.Parameters.Length > 0);
-        return !(hasDIConstructor && !hasParameterless);
+        // RASK001 only targets a non-nullable, no-initializer factory param, and the generated factory
+        // always honors `required` on such a prop — the DI-ctor path builds via ActivatorUtilities and
+        // post-assigns it, the object-init path sets it in the initializer. RASK002 only fires for a
+        // required prop carrying a member initializer, which is never the RASK001 case, so adding
+        // `required` here can never trade the hint for a RASK002 warning. Always offer the fix.
+        return Task.FromResult(!property.Modifiers.Any(SyntaxKind.RequiredKeyword));
     }
 
     protected override Task<Document> FixAsync(

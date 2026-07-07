@@ -61,10 +61,16 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
 
         var invalid = messages.Count > 0;
         var controlId = Id ?? acc?.PropertyName ?? Name;
+        var errorId = controlId is not null && invalid ? controlId + "-error" : null;
 
         CallbackAsync<string>? change = acc is not null
             ? BindingHelpers.BoolSetHandler(acc, ctx, fid, BindingHelpers.BuildAfterBind(acc, AfterBind, AfterBindAsync))
             : (CallbackAsync<string>?)((IFormControl<bool>)this).ControlledChangeHandler();
+
+        // aria-invalid marks the failed state programmatically; aria-describedby ties the input to its
+        // role="alert" feedback so a screen reader announces the error with the checkbox. Same shared
+        // BsClass.FieldAria builder the other Bs form controls use.
+        var aria = BsClass.FieldAria(invalid, errorId);
 
         var input = Input<string>(
             Type: InputType.Checkbox,
@@ -72,6 +78,7 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
             Checked: current,
             Disabled: Disabled, Required: Required,
             Role: Switch is true ? "switch" : null,
+            Aria: aria,
             Class: BsClass.Join("form-check-input", invalid ? "is-invalid" : null),
             Id: controlId,
             OnChangeAsync: Disabled == true ? null : change);
@@ -88,6 +95,6 @@ public sealed class BsCheck : BsBlock, IFormControl<bool>
             Label is not null
                 ? Rask.Core.Components.Generated.Label(For: controlId, Class: "form-check-label")[Label]
                 : null,
-            invalid ? Div(Class: "invalid-feedback d-block")[messages[0]] : null];
+            invalid ? Div(Id: errorId, Class: "invalid-feedback d-block", Role: "alert")[messages[0]] : null];
     }
 }

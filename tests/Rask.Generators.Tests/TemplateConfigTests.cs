@@ -138,6 +138,45 @@ public class TemplateConfigTests
             File.ReadAllText(Path.Combine(dir, "Program.cs")), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void CqrsSymbol_IsBoolean_DefaultsFalse()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(TemplatesRoot, "rask-server", ".template.config", "template.json")));
+
+        var cqrs = doc.RootElement.GetProperty("symbols").GetProperty("cqrs");
+        Assert.Equal("parameter", cqrs.GetProperty("type").GetString());
+        Assert.Equal("bool", cqrs.GetProperty("datatype").GetString());
+        Assert.Equal("false", cqrs.GetProperty("defaultValue").GetString());
+    }
+
+    [Fact]
+    public void ServerCqrs_ExcludesCqrsFolder_WhenCqrsOff_AndProgramAndCsprojHaveConditionals()
+    {
+        var dir = Path.Combine(TemplatesRoot, "rask-server");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(dir, ".template.config", "template.json")));
+        var cqrsExclusion = doc.RootElement.GetProperty("sources").EnumerateArray()
+            .SelectMany(s => s.GetProperty("modifiers").EnumerateArray())
+            .FirstOrDefault(m => m.TryGetProperty("condition", out var c) && c.GetString() == "(!cqrs)");
+        Assert.True(cqrsExclusion.ValueKind == JsonValueKind.Object, "expected a (!cqrs) source modifier");
+        var excludes = cqrsExclusion.GetProperty("exclude").EnumerateArray().Select(e => e.GetString());
+        Assert.Contains(excludes, e => e!.Contains("Cqrs", StringComparison.Ordinal));
+
+        // The Cqrs/** sources excluded by (!cqrs) — the query+handler and the demo page — must ship.
+        Assert.NotEmpty(Directory.GetFiles(dir, "GreetingQuery.cs", SearchOption.AllDirectories));
+        Assert.NotEmpty(Directory.GetFiles(dir, "GreetingPage.cs", SearchOption.AllDirectories));
+
+        // Program.cs wires AddRaskCqrs behind //#if (cqrs); the csproj adds the package ref behind
+        // <!--#if (cqrs)-->. Both are stripped when cqrs is off.
+        Assert.Contains("#if (cqrs)",
+            File.ReadAllText(Path.Combine(dir, "Program.cs")), StringComparison.Ordinal);
+        var csproj = File.ReadAllText(Path.Combine(dir, "Company.RaskServer.csproj"));
+        Assert.Contains("#if (cqrs)", csproj, StringComparison.Ordinal);
+        Assert.Contains("Rask.Cqrs", csproj, StringComparison.Ordinal);
+    }
+
     [Theory]
     [MemberData(nameof(WasmPwaTemplates))]
     public void Sources_ExcludeIcon_WhenPwaOff(string shortName)

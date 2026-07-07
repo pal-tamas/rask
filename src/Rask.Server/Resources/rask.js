@@ -119,14 +119,35 @@
     let authInProgress = false;
     const RECONNECT_MSG = "Reconnecting…";
     const AUTH_MSG = "Authenticating…";
+    // Wait this long after a drop before showing the full-screen overlay, so a sub-second network blip
+    // that reconnects fast never flashes the blur + inert freeze over the whole app.
+    const OVERLAY_GRACE_MS = 700;
+    // After this many failed reconnect attempts (~7.5s of backoff), escalate the overlay from the
+    // neutral "Reconnecting…" to a "still trying / you're offline" state with a manual Retry button.
+    const ESCALATE_AFTER_ATTEMPTS = 4;
+    // Fallback auto-reload delay after the server reports the session is gone (see showSessionExpired).
+    const SESSION_EXPIRED_RELOAD_MS = 4000;
+    let overlayTimer = null;
+    let sessionExpired = false;
 
     function setOverlayMessage(text) {
         if (overlayMsg) overlayMsg.textContent = text;
     }
 
+    function setInert(value) {
+        if ("inert" in document.body) document.body.inert = value;
+    }
+
     connect();
 
     function connect() {
+        // Single-flight: never open a second socket while one is CONNECTING or OPEN. The online event
+        // and the Retry button both funnel here, and during the CONNECTING window `open` is still false,
+        // so without this guard they would spawn a duplicate session that double-dispatches every frame.
+        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+            return;
+        }
+
         ws = new WebSocket(buildWsUrl());
 
         ws.addEventListener("open", () => {
@@ -151,8 +172,13 @@
             } catch (err) {
                 return;
             }
+            // Once the session is known-gone, ignore any late frames still in flight — they would apply
+            // against a session the server has already discarded, flashing inconsistent UI before reload.
+            if (sessionExpired) {
+                return;
+            }
             if (data.type === "session" && data.status === "unknown") {
-                location.reload();
+                showSessionExpired();
                 return;
             }
             // Handler ack: resolve the slow-link pending bar. Handled synchronously here
@@ -178,10 +204,19 @@
     }
 
     function scheduleReconnect() {
-        if (reconnectTimer !== null) return;
+        if (reconnectTimer !== null || sessionExpired) return;
         open = false;
         resetPending();
-        showOverlay();
+        // Freeze interaction immediately (inert) so events during the outage can't queue up and replay
+        // as duplicate submits on reconnect. The *visible* blur overlay, by contrast, is debounced: an
+        // auth handshake is deliberate (show at once), but an unexpected drop waits OVERLAY_GRACE_MS so a
+        // fast reconnect never flashes the modal. connect()'s open handler cancels the pending show.
+        setInert(true);
+        if (authInProgress) {
+            showOverlay();
+        } else if (overlayTimer === null && !overlay.hasAttribute("data-show")) {
+            overlayTimer = setTimeout(showOverlay, OVERLAY_GRACE_MS);
+        }
         const delays = [500, 1000, 2000, 4000, 5000];
         const delay = delays[Math.min(attempt, delays.length - 1)];
         attempt++;
@@ -189,6 +224,76 @@
             reconnectTimer = null;
             connect();
         }, delay);
+        updateOverlayState();
+    }
+
+    // Reflect the current reconnect state in the (already-visible) overlay: after a few failed attempts,
+    // or while the browser reports itself offline, escalate from the neutral spinner message to an
+    // explanatory one and reveal a manual "Retry now" button. Left alone during an auth handshake and
+    // once the session has expired (both own the overlay message).
+    function updateOverlayState() {
+        if (authInProgress || sessionExpired) return;
+        const offline = ("onLine" in navigator) && !navigator.onLine;
+        const escalated = offline || attempt > ESCALATE_AFTER_ATTEMPTS;
+        setOverlayMessage(escalated
+            ? (offline ? "You're offline — waiting to reconnect…" : "Still trying to reconnect…")
+            : RECONNECT_MSG);
+        setRetryButton(escalated ? "Retry now" : null);
+    }
+
+    // Retry immediately: cancel the backoff wait, reset the attempt counter, and reconnect now.
+    function retryNow() {
+        if (sessionExpired) {
+            location.reload();
+            return;
+        }
+        if (reconnectTimer !== null) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        attempt = 0;
+        updateOverlayState();
+        connect();
+    }
+
+    // The server evicted this session (idle past RaskServerOptions.SessionGracePeriod), so the in-memory
+    // UI state is gone and a reload is unavoidable. Warn the user and give them the click instead of
+    // yanking the page out from under them mid-action; auto-reload as a fallback after a few seconds.
+    function showSessionExpired() {
+        sessionExpired = true;
+        if (reconnectTimer !== null) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        if (overlayTimer !== null) {
+            clearTimeout(overlayTimer);
+            overlayTimer = null;
+        }
+        // Close the dead socket so no further frames arrive (the message handler also drops them via the
+        // sessionExpired guard) and the close→scheduleReconnect path early-returns on sessionExpired.
+        try {
+            if (ws) ws.close(1000, "session-expired");
+        } catch (e) {
+            // ignore
+        }
+        showOverlay();
+        setOverlayMessage("Your session timed out. Reload to continue.");
+        setRetryButton("Reload");
+        setTimeout(function () { location.reload(); }, SESSION_EXPIRED_RELOAD_MS);
+    }
+
+    // Toggle the overlay's manual action button. Pass a label to show it, or null to hide it. A single
+    // click handler routes to retryNow(), which reloads when the session has expired and otherwise
+    // forces an immediate reconnect.
+    function setRetryButton(label) {
+        const btn = overlay.querySelector(".rask-overlay__retry");
+        if (!btn) return;
+        if (label) {
+            btn.textContent = label;
+            btn.hidden = false;
+        } else {
+            btn.hidden = true;
+        }
     }
 
     function installOverlay() {
@@ -209,7 +314,11 @@
             "display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);}" +
             ".rask-overlay__spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);" +
             "border-top-color:#fff;border-radius:50%;animation:rask-spin .8s linear infinite;}" +
-            "@keyframes rask-spin{to{transform:rotate(360deg);}}";
+            "@keyframes rask-spin{to{transform:rotate(360deg);}}" +
+            ".rask-overlay__retry{margin-left:6px;padding:6px 12px;border:1px solid rgba(255,255,255,.4);" +
+            "background:rgba(255,255,255,.12);color:#fff;border-radius:6px;font:inherit;cursor:pointer;}" +
+            ".rask-overlay__retry:hover{background:rgba(255,255,255,.24);}" +
+            ".rask-overlay__retry[hidden]{display:none;}";
         document.head.appendChild(style);
 
         const el = document.createElement("div");
@@ -228,23 +337,60 @@
         const msg = document.createElement("span");
         msg.className = "rask-overlay__msg";
         msg.textContent = "Reconnecting…";
+        // Manual action button — hidden until the reconnect escalates (Retry now) or the session
+        // expires (Reload). One handler routes both via retryNow().
+        const retry = document.createElement("button");
+        retry.className = "rask-overlay__retry";
+        retry.type = "button";
+        retry.hidden = true;
+        retry.addEventListener("click", function () { retryNow(); });
         card.appendChild(spinner);
         card.appendChild(msg);
+        card.appendChild(retry);
         el.appendChild(card);
         document.documentElement.appendChild(el);
         return el;
     }
 
     function showOverlay() {
+        if (overlayTimer !== null) {
+            clearTimeout(overlayTimer);
+            overlayTimer = null;
+        }
         overlay.setAttribute("data-show", "");
         overlay.setAttribute("aria-hidden", "false");
-        if ("inert" in document.body) document.body.inert = true;
+        setInert(true);
+        updateOverlayState();
     }
 
     function hideOverlay() {
+        if (overlayTimer !== null) {
+            clearTimeout(overlayTimer);
+            overlayTimer = null;
+        }
         overlay.removeAttribute("data-show");
         overlay.setAttribute("aria-hidden", "true");
-        if ("inert" in document.body) document.body.inert = false;
+        setRetryButton(null);
+        setInert(false);
+    }
+
+    // A regained network connection should collapse the backoff wait and try to reconnect now, rather
+    // than sitting out the remaining delay. It does NOT reset the attempt counter (a flapping connection
+    // must keep backing off) and relies on connect()'s single-flight guard so it can't spawn a second
+    // socket while one is already in flight. The offline transition just refreshes the overlay copy.
+    if (typeof window !== "undefined" && window.addEventListener) {
+        window.addEventListener("online", function () {
+            if (open || sessionExpired) return;
+            if (reconnectTimer !== null) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+            connect();
+            updateOverlayState();
+        });
+        window.addEventListener("offline", function () {
+            if (overlay.hasAttribute("data-show")) updateOverlayState();
+        });
     }
 
     // Slow-link pending-action indicator. A handler event (click/input/change/submit)

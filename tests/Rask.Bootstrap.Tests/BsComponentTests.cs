@@ -74,13 +74,39 @@ public class BsComponentTests
     [Fact]
     public void Modal_Open_RendersDialogAndBackdrop() =>
         Assert.Equal(
-            "<div class=\"modal fade show\" style=\"display:block\" role=\"dialog\" tabindex=\"-1\" aria-modal=\"true\">"
+            "<div class=\"modal fade show\" style=\"display:block\" data-rask-focus-trap=\"\" "
+            + "data-rask-dismiss=\"\" role=\"dialog\" tabindex=\"-1\" aria-modal=\"true\" aria-label=\"Hi\">"
             + "<div class=\"modal-dialog\"><div class=\"modal-content\">"
             + "<div class=\"modal-header\"><h5 class=\"modal-title\">Hi</h5>"
             + "<button class=\"btn-close\" aria-label=\"Close\" type=\"button\"></button></div>"
             + "<div class=\"modal-body\">body</div></div></div></div>"
             + "<div class=\"modal-backdrop fade show\"></div>",
             BsModal(Open: true, Title: "Hi")["body"].ToHtml());
+
+    [Fact]
+    public void Modal_LabelledByTitle_WhenIdGiven()
+    {
+        var html = BsModal(Open: true, Title: "Edit", Id: "m")["body"].ToHtml();
+        Assert.Contains("aria-labelledby=\"m-title\"", html);
+        Assert.Contains("<h5 id=\"m-title\" class=\"modal-title\">Edit</h5>", html);
+        Assert.DoesNotContain("aria-label=", html.Split("btn-close")[0]); // no aria-label fallback on the dialog
+    }
+
+    [Fact]
+    public void Modal_FocusTrap_AndEscapeDismiss_ByDefault()
+    {
+        var html = BsModal(Open: true, Title: "Hi")["body"].ToHtml();
+        Assert.Contains("data-rask-focus-trap=\"\"", html);
+        Assert.Contains("data-rask-dismiss=\"\"", html); // Escape dismisses via the backdrop-close handler
+    }
+
+    [Fact]
+    public void Modal_StaticBackdrop_OmitsDismiss_KeepingEscapeInert()
+    {
+        var html = BsModal(Open: true, Title: "Hi", StaticBackdrop: true)["body"].ToHtml();
+        Assert.Contains("data-rask-focus-trap=\"\"", html);   // still traps focus
+        Assert.DoesNotContain("data-rask-dismiss", html);      // but Escape is inert (matches Bootstrap)
+    }
 
     [Fact]
     public void Modal_Fullscreen_AddsFullscreenClass() =>

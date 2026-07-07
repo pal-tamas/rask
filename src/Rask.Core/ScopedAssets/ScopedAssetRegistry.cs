@@ -85,6 +85,11 @@ public static class ScopedAssetRegistry
 
     public static event Action<Type, AssetKind>? AssetChanged;
 
+    // True when at least one component has registered scoped CSS (so a scope id exists to push). A
+    // lock-free ConcurrentDictionary.IsEmpty check the per-component render walk uses to skip the by-type
+    // scope lookup entirely on the common app that has no scoped CSS — the lookup would always miss.
+    internal static bool HasAnyScopedCss => !_scopeIdByType.IsEmpty;
+
     private static long _version;
 
     /// <summary>

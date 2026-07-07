@@ -352,8 +352,11 @@ public class ComponentFactoryGeneratorTests
     }
 
     [Fact]
-    public void UserMarkedRequiredWithDI_RaisesRask002()
+    public void UserMarkedRequiredWithDI_NoRask002()
     {
+        // A DI ctor with no parameterless ctor builds via ActivatorUtilities.CreateInstance
+        // (reflection bypasses the CS9035 `required` check) and then post-assigns every factory
+        // param — so a required no-initializer prop IS honored. RASK002 must not fire.
         var src = """
                   using Rask.Core;
                   namespace Demo;
@@ -366,7 +369,12 @@ public class ComponentFactoryGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.Run(src);
-        Assert.Contains(run.Diagnostics, d => d.Id == "RASK002");
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK002");
+
+        // The value is honored at runtime via post-construction assignment after ActivatorUtilities.
+        var output = run.GeneratedSource("Demo.Generated.g.cs");
+        Assert.Contains("ActivatorUtilities.CreateInstance", output);
+        Assert.Contains("__c.Name = Name;", output);
     }
 
     [Fact]

@@ -22,9 +22,10 @@ protected override Component? Head =>
 ```
 
 `BootstrapStyles(Icons: false)` skips the Bootstrap Icons stylesheet. It also always links a tiny
-`rask-bootstrap.css` (after Bootstrap, so it wins the cascade) with fixes for the zero-JS components —
-e.g. a `BsDropdown` inside a `BsTable(Responsive: true)` would otherwise be clipped by the scroll
-container's overflow. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
+`rask-bootstrap.css` (after Bootstrap, so it wins the cascade) with fixes for the zero-JS components:
+a `BsDropdown` inside a `BsTable(Responsive: true)` would otherwise be clipped by the scroll
+container's overflow, and `BsDropdown(AlignEnd: true)` would otherwise be a no-op because Bootstrap
+gates its alignment classes on a Popper-only attribute. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
 `app.MapStaticAssets()` on Server; the WASM static-web-asset pipeline bakes them into the published
 `wwwroot` automatically).
 
@@ -48,7 +49,7 @@ runtime, no `bootstrap.js`.
 
 ```csharp
 BsButton(Color: BsColor.Primary, Size: BsSize.Lg)["Save"]
-BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]
+BsModal(Open: _open, Title: "Hi", OnClose: () => _open = false)[ /* body */ ]  // traps focus, Escape-closes, labelled — see accessibility.md
 BsModal(Open: _open, FullscreenBelow: Bp.Sm)[ /* edge-to-edge on phones, sized dialog at sm+ */ ]
 BsInput(() => model.Email, Label: "Email", Type: InputType.Email)   // .is-invalid + .invalid-feedback built in
 BsIcon(Name: BsIconName.HeartFill, Color: BsColor.Danger)

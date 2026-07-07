@@ -9,6 +9,9 @@
   <ItemGroup>
     <PackageReference Include="Rask.Server" Version="RASK_PKG_VERSION"/>
     <PackageReference Include="Rask.Bootstrap" Version="RASK_PKG_VERSION"/>
+    <!--#if (cqrs)-->
+    <PackageReference Include="Rask.Cqrs" Version="RASK_PKG_VERSION"/>
+    <!--#endif-->
   </ItemGroup>
 
 </Project>
