@@ -827,11 +827,14 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             foreach (var p in c.Properties)
             {
                 var location = MakeLocation(p);
-                // A parameterless ctor only rescues `required` props that are actually factory
-                // params. A `required` property carrying a member initializer is excluded from the
-                // factory params (IsParamProperty), so the generated object initializer never
-                // assigns it and the consumer build fails with CS9035 — keep warning in that case.
-                if (p.UserMarkedRequired && c.HasDIConstructor && (!c.HasParameterlessCtor || p.HasInitializer))
+                // RASK002 only fires when the generated factory genuinely cannot honor `required`.
+                // A DI ctor alone is fine: with no parameterless ctor the factory builds via
+                // ActivatorUtilities.CreateInstance (reflection bypasses the CS9035 check) and then
+                // post-assigns every factory param, so a required no-initializer prop IS set. The one
+                // broken shape is a parameterless ctor present *and* a required prop carrying a member
+                // initializer: the factory then emits `new T() { … }` whose object initializer excludes
+                // the initializer-carrying prop (IsParamProperty), so the consumer build hits CS9035.
+                if (p.UserMarkedRequired && c.HasDIConstructor && c.HasParameterlessCtor && p.HasInitializer)
                 {
                     spc.ReportDiagnostic(Diagnostic.Create(Rask002, location, c.FullyQualifiedName, p.Name));
                 }
