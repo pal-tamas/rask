@@ -67,6 +67,13 @@ them until tagged releases begin.
   ~30k eliminated probes/second on a 500-component page at 60 fps). The `MountedTypes` set is still
   populated for every component (a public per-render contract), so behavior is unchanged; the saving
   is per-component wasted work rather than a single measurable render delta.
+- **Inbound WebSocket dispatch no longer allocates a string per frame.** The server dispatch loop
+  (`RaskEndpointExtensions`) called `JsonElement.GetString()` on every inbound frame's `type` field —
+  a fresh heap string — only to `==`-compare it against four constants (`hello`/`navigate`/`jsResult`/
+  `dotNetInvoke`). It now matches the UTF-8 bytes in place with `JsonElement.ValueEquals(...u8)`. This
+  runs on every keystroke, 60 Hz scroll tick, and click, so the per-frame string was pure waste. The
+  type-match step drops to **0 B allocated** (was 40 B) and is ~34% faster (8.5 ns → 5.7 ns); behavior
+  is unchanged (`handlerId` still resolves via `GetString`, which is a genuine dictionary key).
 
 ## [0.14.1] - 2026-07-07
 
