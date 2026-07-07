@@ -25,6 +25,12 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Make the app an installable PWA: AddRaskPwa serves a web app manifest + Rask's service worker and registers it. Installable + push-capable (Web Push), not an offline app — offline navigations show a static offline.html."
+    },
+    "cqrs": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Scaffold the Rask.Cqrs mediator: a sample IQuery + handler, a /greeting page that injects IDispatcher and dispatches it, the Rask.Cqrs package reference, and the AddRaskCqrs() wiring."
     }
   },
   "sources": [
@@ -37,6 +43,10 @@
         {
           "condition": "(!pwa)",
           "exclude": [ "wwwroot/**" ]
+        },
+        {
+          "condition": "(!cqrs)",
+          "exclude": [ "Cqrs/**" ]
         }
       ]
     }

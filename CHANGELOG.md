@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`dotnet new rask-server --cqrs` scaffolds the Rask.Cqrs mediator.** The Server template gained a
+  `--cqrs` switch: it adds a sample `GreetingQuery` + handler and a `/greeting` page that injects
+  `IDispatcher` and dispatches it (under `Cqrs/`), the `Rask.Cqrs` package reference, and the
+  `AddRaskCqrs()` wiring in `Program.cs` — turning the already-shipped, tested `Rask.Cqrs` package into a
+  one-flag starting point. Without the flag nothing changes (default `false`). See
+  [docs/cqrs.md](docs/cqrs.md) and [docs/getting-started.md](docs/getting-started.md).
+- **RASK030 — prefer named arguments on factory calls with many positional args.** A new Hidden analyzer
+  flags a Rask factory call that passes three or more leading positional arguments (e.g.
+  `Div("main", "container", "color:red")`). Beyond one or two, positional calls read poorly and are
+  fragile: Rask orders generated factory parameters by inheritance depth then file ordinal + span, so a
+  later edit — adding a base-class property, renaming a partial file — can reorder parameters and
+  silently rebind such a call. The first one or two positional arguments (the primary content) stay
+  idiomatic. Hidden severity: no build output and no effect on the warnings-as-errors build — the IDE
+  surfaces it as a suggestion. See [docs/diagnostics.md](docs/diagnostics.md#rask030).
 - **RASK031 — two pages resolving to the same route are now flagged.** Two different top-level pages that
   resolve to the same URL made the active one arbitrary — a silent bug the generator didn't catch (it
   only deduped by type name and enforced a single `[NotFound]`). The `RoutesGenerator` now warns
@@ -19,6 +33,80 @@ them until tagged releases begin.
   pages without a `[ParentRoute]` (whose template is the full path); parent-composed paths aren't
   resolved, so the check under-reports rather than risk a false positive.
   See [docs/diagnostics.md](docs/diagnostics.md#rask031).
+- **IDE quick-fixes for Rask diagnostics.** A new `Rask.Generators.CodeFixes` assembly ships Roslyn
+  `CodeFixProvider`s (the lightbulb / `Ctrl`+`.`) for two diagnostics: **RASK001** adds the `required`
+  modifier to a property the generator already treats as a required factory parameter, and **RASK023**
+  inserts `Alt: ""` on an `Img` missing its alt text. The code-fix assembly is packed alongside the
+  analyzers in the `Rask.Server` and `Rask.Wasm` packages, so consumers get the fixes with no extra
+  reference. It is a separate assembly from `Rask.Generators` (code fixes reference
+  `Microsoft.CodeAnalysis.Workspaces`, which an analyzer assembly must not) and is wired in build-order
+  only, so the warnings-as-errors build is unaffected. See [docs/diagnostics.md](docs/diagnostics.md).
+- **Bootstrap form controls are now accessible to screen readers when invalid.** `BsInput`,
+  `BsTextarea`, `BsSelect`, and `BsCheck` previously signalled validation failure with the visual
+  `.is-invalid` border only — no programmatic state, no announcement, no association between the error
+  text and its field. A bound field with validation messages now also renders `aria-invalid="true"` on
+  the control, an `aria-describedby` linking it to the error message's `id` (and to the help-text `id`
+  when `HelpText:` is set), and the `.invalid-feedback` message as a `role="alert"` live region so
+  assistive tech announces the error the moment validation fails. Valid fields with `HelpText:` gain
+  `aria-describedby` to the help text. No API or visual change; attributes emit in the canonical
+  `aria-*` slot so the documented attribute order is preserved. See
+  [docs/accessibility.md](docs/accessibility.md#form-validation).
+- **Accessible focus trapping for overlays, and `BsModal` opts in.** A new runtime behavior (in the
+  shared `rask-dom.js`, so it works on both the Server and WASM hosts) manages focus for any element
+  carrying `data-rask-focus-trap`: focus moves into it on open (its `[autofocus]` element, else the
+  element itself), `Tab`/`Shift+Tab` cycle within it so focus can't reach the inert page behind, focus
+  returns to the previously-focused element on close, and `Escape` dismisses it by clicking a
+  `data-rask-dismiss` control (no per-keystroke server round-trip). A single document `MutationObserver`
+  tracks appear/disappear and only re-scans when a trap is actually added/removed, so it stays cheap on
+  unrelated diff morphs. `BsModal` now opts in automatically — an open modal traps focus, is labelled
+  (`aria-labelledby` its title when an `Id` is set, else `aria-label` from the title text), and closes on
+  `Escape` (kept inert for a static backdrop, matching Bootstrap). Previously a keyboard or screen-reader
+  user could `Tab` straight out of an open modal into the page behind, had no `Escape` to close it, and
+  lost their place when it closed. See [docs/accessibility.md](docs/accessibility.md#focus-trapping-overlays).
+
+### Changed
+- **The per-component render walk skips a guaranteed-miss scope lookup when no scoped CSS exists.**
+  `LiveRenderContext.PushScope` runs for every user component on every render and called
+  `ScopedAssetRegistry.TryGetScopeId` (a `ConcurrentDictionary` probe) unconditionally — but on the
+  common app with no scoped CSS that probe always misses. It now short-circuits behind a lock-free
+  `ScopedAssetRegistry.HasAnyScopedCss` (`IsEmpty`) check, removing the probe on the hot path (e.g.
+  ~30k eliminated probes/second on a 500-component page at 60 fps). The `MountedTypes` set is still
+  populated for every component (a public per-render contract), so behavior is unchanged; the saving
+  is per-component wasted work rather than a single measurable render delta.
+- **Inbound WebSocket dispatch no longer allocates a string per frame.** The server dispatch loop
+  (`RaskEndpointExtensions`) called `JsonElement.GetString()` on every inbound frame's `type` field —
+  a fresh heap string — only to `==`-compare it against four constants (`hello`/`navigate`/`jsResult`/
+  `dotNetInvoke`). It now matches the UTF-8 bytes in place with `JsonElement.ValueEquals(...u8)`. This
+  runs on every keystroke, 60 Hz scroll tick, and click, so the per-frame string was pure waste. The
+  type-match step drops to **0 B allocated** (was 40 B) and is ~34% faster (8.5 ns → 5.7 ns); behavior
+  is unchanged (`handlerId` still resolves via `GetString`, which is a genuine dictionary key).
+- **Reconnect UX no longer flashes on blips, stalls silently, or wipes state without warning.** The
+  Server live-runtime reconnect overlay had three rough edges: it threw a full-screen blurred `inert`
+  freeze over the app on the *first* socket `close` (so a sub-second network blip flashed a heavy modal),
+  it showed an identical "Reconnecting…" spinner forever with no escalation or manual control, and on
+  session eviction (a drop outlasting `SessionGracePeriod`) it did a silent `location.reload()` that
+  wiped all in-progress UI state with no warning. Now: the **visible** blur overlay is **debounced**
+  (~700 ms grace) so a fast reconnect never flashes a modal (interaction is still frozen immediately, so
+  the debounce cannot open a double-submit window); it **escalates** after repeated failures or when
+  `navigator.onLine` is false to an explanatory message plus a **Retry now** button, and collapses the
+  backoff to reconnect on the `online` event (without resetting the attempt counter, so a flapping
+  network still backs off); and session expiry surfaces **"Your session timed out. Reload to continue."**
+  with a Reload button (plus a fallback auto-reload) instead of yanking the page. `connect()` is now
+  single-flight so the retry/online paths can't spawn a duplicate socket. Auth handshakes still show
+  "Authenticating…" up front. See [docs/configuration.md](docs/configuration.md#reconnect-ux).
+
+### Fixed
+- **RASK002 no longer fires for a component that has a DI constructor and a `required` factory
+  parameter.** The diagnostic wrongly treated "DI constructor, no parameterless constructor" as unable
+  to honor `required`. In fact the generated factory builds such a component with
+  `ActivatorUtilities.CreateInstance` (which runs the DI constructor, so injected services are set) and
+  then post-assigns every factory parameter — so a `required` property with no member initializer *is*
+  honored at runtime. RASK002 now fires only in the genuinely broken shape: a component with **both** a
+  DI constructor and a parameterless constructor **and** a `required` property carrying a member
+  initializer (the factory emits `new C() { … }` whose object initializer excludes the initializer-
+  carrying property, so the consumer build hits `CS9035`). The RASK001 quick-fix, which was withheld in
+  the mis-flagged case, is now offered there too. See
+  [docs/diagnostics.md](docs/diagnostics.md#rask002).
 
 ### Fixed
 - **`BsDropdown` menus now show in Safari and `AlignEnd` works.** Two Popper-less dropdown bugs in the
