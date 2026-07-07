@@ -76,6 +76,12 @@ them until tagged releases begin.
   lost their place when it closed. See [docs/accessibility.md](docs/accessibility.md#focus-trapping-overlays).
 
 ### Changed
+- **Routing diagnostics now tell you how to fix them, not just what's wrong.** The route/param analyzers
+  RASK004–RASK010 and RASK012 previously stated the problem but stopped there (e.g. *"Route segment
+  '{seg}' has no matching public settable property"*). Each message now ends with the remedy — add the
+  property, adjust the constraint, remove the conflicting attribute, break the `[ParentRoute]` cycle,
+  etc. — so the fix is visible in the IDE error list and build output without opening the docs. Message
+  text only; the diagnostic IDs, severities, and `docs/diagnostics.md` `**Fix:**` guidance are unchanged.
 - **The per-component render walk skips a guaranteed-miss scope lookup when no scoped CSS exists.**
   `LiveRenderContext.PushScope` runs for every user component on every render and called
   `ScopedAssetRegistry.TryGetScopeId` (a `ConcurrentDictionary` probe) unconditionally — but on the
