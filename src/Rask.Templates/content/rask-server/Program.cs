@@ -6,11 +6,21 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 //#if (pwa)
 using Rask.Core.Browser;
 //#endif
+//#if (cqrs)
+using Rask.Cqrs;
+//#endif
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRask();
 builder.Services.AddScoped<IWeatherForecastService, LocalWeatherForecastService>();
+//#if (cqrs)
+
+// CQRS mediator: one call registers every IQueryHandler/ICommandHandler/INotificationHandler in
+// this assembly (source-generated, reflection-free — trim/AOT-safe). Inject IDispatcher to send
+// messages; add pipeline behaviors with o.AddOpenBehavior(...). See docs/cqrs.md.
+builder.Services.AddRaskCqrs();
+//#endif
 //#if (pwa)
 
 // Installable PWA: AddRaskPwa serves the manifest + service worker and emits the manifest link +
