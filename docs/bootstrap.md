@@ -132,7 +132,7 @@ Bs.Join(Display.Flex(Bp.Lg), Margin.Bottom(4, Bp.Md))   // → "d-lg-flex mb-md-
 | `Rounded` | `Default` `None` `Pill` `Circle` `Top/End/Bottom/Start` `Size(int)` |
 | `Txt` | `Start/Center/End(Bp?)` `Color(BsColor)` `Muted` `Truncate/Wrap/Nowrap/Break` `Uppercase/Lowercase/Capitalize` `DecorationNone/Underline` |
 | `Font` | `Bold/Bolder/Semibold/Medium/Normal/Light/Lighter` `Italic/NotItalic` `Size(int)` (→ `fw-*`, `fst-*`, `fs-{n}`) |
-| `Sizing` | `W(int)` `H(int)` `WAuto` `HAuto` `MaxW100` `MaxH100` `VW100` `VH100` |
+| `Sizing` | `W(int)` `H(int)` `WAuto` `HAuto` `MaxW100` `MaxH100` `VW100` `VH100` `MinVW100` `MinVH100` |
 | `Position` | `Static/Relative/Absolute/Fixed/Sticky` `Top0/Top50/Bottom0/Start0/…` `TranslateMiddle(+X/Y)` |
 | `Bg` | `Color(BsColor)` `Body` `BodyTertiary` `White` `Transparent` |
 
