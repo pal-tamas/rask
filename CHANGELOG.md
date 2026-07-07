@@ -58,6 +58,16 @@ them until tagged releases begin.
   user could `Tab` straight out of an open modal into the page behind, had no `Escape` to close it, and
   lost their place when it closed. See [docs/accessibility.md](docs/accessibility.md#focus-trapping-overlays).
 
+### Changed
+- **The per-component render walk skips a guaranteed-miss scope lookup when no scoped CSS exists.**
+  `LiveRenderContext.PushScope` runs for every user component on every render and called
+  `ScopedAssetRegistry.TryGetScopeId` (a `ConcurrentDictionary` probe) unconditionally — but on the
+  common app with no scoped CSS that probe always misses. It now short-circuits behind a lock-free
+  `ScopedAssetRegistry.HasAnyScopedCss` (`IsEmpty`) check, removing the probe on the hot path (e.g.
+  ~30k eliminated probes/second on a 500-component page at 60 fps). The `MountedTypes` set is still
+  populated for every component (a public per-render contract), so behavior is unchanged; the saving
+  is per-component wasted work rather than a single measurable render delta.
+
 ## [0.14.1] - 2026-07-07
 
 ### Fixed

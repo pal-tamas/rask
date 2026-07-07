@@ -135,12 +135,13 @@ public sealed class LiveRenderContext : IDisposable
     internal ContextScope PushScope(Component instance)
     {
         var type = instance.GetType();
-        // Record the type unconditionally — head emission iterates this set and decides
-        // per-type whether to emit a <link>/<script> based on registry hit. Doing the add
-        // before the scope-id lookup keeps JS-only and asset-free components in the set.
+        // Record the type unconditionally — MountedTypes is a public per-render contract populated for
+        // every user component (with or without assets), so it can't be short-circuited.
         MountedTypes.Add(type);
 
-        if (!ScopedAssetRegistry.TryGetScopeId(type, out var scopeId))
+        // The by-type scope lookup, however, always misses when no component has registered scoped CSS
+        // (the common case), so skip the ConcurrentDictionary probe behind a cheap IsEmpty check.
+        if (!ScopedAssetRegistry.HasAnyScopedCss || !ScopedAssetRegistry.TryGetScopeId(type, out var scopeId))
         {
             return default;
         }
