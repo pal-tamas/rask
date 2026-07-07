@@ -69,23 +69,20 @@ to stay ergonomic. See [factory generation rules](getting-started.md).
 ## RASK002
 **`required` property cannot be honored by the generated factory** · Warning
 
-A property is marked `required`, but the generated factory can't set it. This fires when the
-component has a dependency-injected constructor **and** either:
+A property is marked `required`, but the generated factory can't set it. This fires in exactly one
+shape: the component has **both** a dependency-injected constructor **and** a parameterless
+constructor, **and** the `required` property carries a member initializer. The factory then builds
+the component with `new C() { … }`, but an initializer-carrying property is excluded from the factory
+parameters, so the object initializer never assigns it and the consumer build fails with `CS9035`.
 
-- it has no parameterless constructor — the factory builds the component with
-  `ActivatorUtilities.CreateInstance`, which can't satisfy a `required` member; or
-- the `required` property carries a member initializer — that excludes it from the factory
-  parameters, so the generated object initializer never assigns it (the consumer build then fails
-  with `CS9035`).
+> A DI constructor with **no** parameterless constructor is fine: the factory builds the component
+> with `ActivatorUtilities.CreateInstance` (which runs your DI constructor, so injected services are
+> set) and then post-assigns each factory param — so a `required` property with no member initializer
+> is honored. RASK002 does **not** fire in that case.
 
-> **Adding a parameterless constructor is _not_ a safe fix while you keep the DI constructor.** The
-> factory prefers the parameterless ctor, so it builds the component with `new C()` and the DI
-> constructor never runs — your injected services stay `null` at render time. Only add a
-> parameterless constructor if you also remove the DI constructor.
-
-**Fix:** remove `required`, **or** move the value to a constructor parameter (with no member
-initializer on it), **or** drop the DI constructor. Framework services (`RouteState`, `Navigator`,
-`HttpClient`, `IJSRuntime`) should come through the constructor, never as settable properties.
+**Fix:** remove the member initializer so the `required` property becomes a plain factory parameter,
+**or** remove `required`. Framework services (`RouteState`, `Navigator`, `HttpClient`, `IJSRuntime`)
+should come through the constructor, never as settable properties.
 
 ## RASK003
 **Malformed route template** · Error
