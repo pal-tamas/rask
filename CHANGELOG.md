@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-07-07
+
 ### Fixed
 - **`BsDropdown` inside a scrollable `BsTable` is no longer clipped.** A row-level dropdown menu was cut
   off by the `.table-responsive` scroll container (Bootstrap's `overflow-x:auto` forces `overflow-y:auto`,
