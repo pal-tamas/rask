@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-07
+
 ### Added
 - **`BsModal` full-screen dialogs.** `Fullscreen: true` renders an edge-to-edge `.modal-fullscreen` at
   every width; `FullscreenBelow: Bp.Sm` (or any `Bp`) renders `.modal-fullscreen-{bp}-down` so the dialog
