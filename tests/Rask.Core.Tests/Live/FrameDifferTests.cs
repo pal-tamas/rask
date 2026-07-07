@@ -601,7 +601,7 @@ public class FrameDifferTests
     }
 
     [Fact]
-    public void Diff_KeyedList_DuplicateKeys_WarnsWithTheOffendingKey()
+    public void Diff_KeyedList_DuplicateKeys_ReportsTheOffendingKey()
     {
         var before = Frames(Ul()[
             Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
@@ -612,14 +612,14 @@ public class FrameDifferTests
             Li(Data: new Dictionary<string, string?> { ["rask-key"] = "row-7" })["b"]
         ]);
 
-        var warned = new List<string>();
+        var reported = new List<string>();
         var previous = FrameDiffer.OnDuplicateKey;
-        FrameDiffer.OnDuplicateKey = warned.Add;
+        FrameDiffer.OnDuplicateKey = reported.Add;
         try
         {
             FrameDiffer.Diff(before, after, new List<EditOp>(), out var usedKeyed);
             Assert.False(usedKeyed);
-            Assert.Contains("row-7", warned);
+            Assert.Contains("row-7", reported);
         }
         finally
         {
@@ -628,7 +628,7 @@ public class FrameDifferTests
     }
 
     [Fact]
-    public void Diff_KeyedList_UniqueKeys_DoesNotWarn()
+    public void Diff_KeyedList_UniqueKeys_DoesNotReport()
     {
         var before = Frames(Ul()[
             Li(Data: new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
@@ -639,14 +639,14 @@ public class FrameDifferTests
             Li(Data: new Dictionary<string, string?> { ["rask-key"] = "b" })["2"]
         ]);
 
-        var warned = new List<string>();
+        var reported = new List<string>();
         var previous = FrameDiffer.OnDuplicateKey;
-        FrameDiffer.OnDuplicateKey = warned.Add;
+        FrameDiffer.OnDuplicateKey = reported.Add;
         try
         {
             FrameDiffer.Diff(before, after, new List<EditOp>(), out var usedKeyed);
             Assert.True(usedKeyed);
-            Assert.Empty(warned);
+            Assert.Empty(reported);
         }
         finally
         {
