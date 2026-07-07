@@ -51,7 +51,8 @@ mistake, the rule notes the ID.
 - **Give every list item a stable, unique `Key:`.** Keys are the reconciliation identity the live
   diff uses to *move* a row instead of rebuilding it — preserving focus, input value, and scroll on
   reorder. A keyless list item is **RASK022**; duplicate sibling keys make the diff fall back to a
-  positional walk (and emit a one-time `data-rask-key` warning to stderr — treat it as a bug). Use
+  positional walk (and report a one-time `data-rask-key` error via the diagnostics seam — treat it as
+  a bug). Use
   entity IDs, not loop indices. See [composition](composition.md#children--fragments).
 - **Trust `Text` for anything user-supplied; reserve `Raw` for markup you control.** A plain string
   becomes a `Text` node and is **HTML-encoded**; `Raw(...)` emits verbatim. User input through `Raw`

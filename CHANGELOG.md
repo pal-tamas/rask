@@ -36,6 +36,14 @@ them until tagged releases begin.
   `Microsoft.CodeAnalysis.Workspaces`, which an analyzer assembly must not) and is wired in build-order
   only, so the warnings-as-errors build is unaffected. See [docs/diagnostics.md](docs/diagnostics.md).
 
+### Changed
+- **Duplicate `data-rask-key` siblings are now reported at Error, not Warning.** When the live diff finds
+  two sibling elements sharing a `Key:`, keyed reconciliation is disabled for that list and it falls back
+  to a positional walk that can graft a node's DOM state (focus, input value, scroll) onto the wrong
+  sibling on reorder — a latent state-corruption bug, not a cosmetic nit. The one-time diagnostic
+  (routed through the `RaskDiagnostics` seam, deduplicated per key) now logs at `Error` so it surfaces
+  loudly. No behavior change beyond the log level; fix the duplicate keys to silence it.
+
 ## [0.14.1] - 2026-07-07
 
 ### Fixed
