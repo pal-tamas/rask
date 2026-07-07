@@ -238,6 +238,14 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
 
+        // Full-screen-below-sm modal — FullscreenBelow: Bp.Sm adds .modal-fullscreen-sm-down.
+        await Page.Locator(".guide-demo button:has-text(\"Full-screen on phones\")").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show .modal-dialog.modal-fullscreen-sm-down").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Page.Locator("div.modal .btn-close").First.ClickAsync();
+        await Expect(Page.Locator("div.modal.show")).ToHaveCountAsync(0,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+
         // Toast (its standalone /toast page folded in) — shown and dismissed entirely by live-diff state
         // (no bootstrap.js, no data-bs-dismiss). Showing renders class="toast show"; the × removes it.
         await Page.Locator(".guide-demo button:has-text('Show toast')").First.ClickAsync();

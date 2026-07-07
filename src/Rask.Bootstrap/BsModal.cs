@@ -12,6 +12,14 @@ public sealed class BsModal : BsBlock
     public BsSize? Size { get; set; }
     public bool? Centered { get; set; }
     public bool? Scrollable { get; set; }
+
+    // Full-screen dialog (edge-to-edge, no margins/border-radius). Fullscreen=true is full-screen at
+    // every width (.modal-fullscreen); FullscreenBelow makes it full-screen only below the given
+    // breakpoint (.modal-fullscreen-{bp}-down, e.g. Bp.Sm for phones) and supersedes Fullscreen when
+    // both are set. Composes with Size: the dialog is sized at/above the breakpoint, full-screen below.
+    public bool? Fullscreen { get; set; }
+    public Bp? FullscreenBelow { get; set; }
+
     public bool? StaticBackdrop { get; set; }
     public bool? HideClose { get; set; }
 
@@ -36,6 +44,8 @@ public sealed class BsModal : BsBlock
 
         var dialogCls = BsClass.Join(
             "modal-dialog",
+            FullscreenBelow is { } below ? $"modal-fullscreen-{below.Token()}-down"
+                : Fullscreen is true ? "modal-fullscreen" : null,
             Centered is true ? "modal-dialog-centered" : null,
             Scrollable is true ? "modal-dialog-scrollable" : null,
             Size is { } s && s.Suffix() is { } suffix ? $"modal-{suffix}" : null);
