@@ -21,9 +21,12 @@ protected override Component? Head =>
 ];
 ```
 
-`BootstrapStyles(Icons: false)` skips the Bootstrap Icons stylesheet. The assets are served by the
-host's static-file pipeline (`app.UseStaticFiles()` / `app.MapStaticAssets()` on Server; the WASM
-static-web-asset pipeline bakes them into the published `wwwroot` automatically).
+`BootstrapStyles(Icons: false)` skips the Bootstrap Icons stylesheet. It also always links a tiny
+`rask-bootstrap.css` (after Bootstrap, so it wins the cascade) with fixes for the zero-JS components —
+e.g. a `BsDropdown` inside a `BsTable(Responsive: true)` would otherwise be clipped by the scroll
+container's overflow. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
+`app.MapStaticAssets()` on Server; the WASM static-web-asset pipeline bakes them into the published
+`wwwroot` automatically).
 
 The `Bs*` factories are available unqualified — the package ships a `build/*.props` that adds the
 global `using static Rask.Bootstrap.Generated`, exactly like the validation packages.

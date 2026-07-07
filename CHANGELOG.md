@@ -7,6 +7,14 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **`BsDropdown` inside a scrollable `BsTable` is no longer clipped.** A row-level dropdown menu was cut
+  off by the `.table-responsive` scroll container (Bootstrap's `overflow-x:auto` forces `overflow-y:auto`,
+  and Rask dropdowns are Popper-less so the menu can't be portalled out). `BootstrapStyles()` now also
+  links a small supplemental `rask-bootstrap.css` that lets the container overflow vertically while a menu
+  is open (clipping horizontally so wide tables can't spill). No consumer change beyond picking up the
+  release.
+
 ## [0.14.0] - 2026-07-07
 
 ### Added
