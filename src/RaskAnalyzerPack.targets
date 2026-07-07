@@ -1,0 +1,41 @@
+<Project>
+
+  <!--
+    Shared packing of the Rask Roslyn analyzers + generator + IDE code-fixes into analyzers/dotnet/cs/.
+    Imported by the host packages (Rask.Server, Rask.Wasm). Both live at src/<Name>/, so the
+    ..\Rask.Generators* relative paths (evaluated relative to the IMPORTING project's directory) resolve
+    identically from either — keeping the two packages' analyzer payload in lockstep from one place.
+  -->
+  <ItemGroup>
+    <None Include="..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+    <!-- IDE-only code-fix providers (the lightbulb quick-fixes) ship next to the generator. They live in
+         a SEPARATE assembly because they reference Microsoft.CodeAnalysis.Workspaces, which an analyzer
+         assembly must not (RS1038 / csc load failure). -->
+    <None Include="..\Rask.Generators.CodeFixes\bin\$(Configuration)\netstandard2.0\Rask.Generators.CodeFixes.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs/" Visible="false"/>
+  </ItemGroup>
+
+  <!--
+    Build-order-only reference so the code-fix DLL exists before pack WITHOUT csc loading a
+    Workspaces-referencing assembly (which would break the warnings-as-errors build). The generator's
+    build order is already ensured via Rask.Core's analyzer ProjectReference to Rask.Generators.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Generators.CodeFixes\Rask.Generators.CodeFixes.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <!--
+    Fail loud at pack time if either analyzer DLL is missing from the hardcoded path above, instead of
+    silently shipping a package with no analyzer/quick-fixes — a <None Include> of an absent file packs
+    nothing and emits no error. Also catches the path drifting (e.g. a TFM change) or a no-build pack.
+  -->
+  <Target Name="_RaskVerifyAnalyzersPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll')"
+           Text="Rask.Generators.dll not found at '..\Rask.Generators\bin\$(Configuration)\netstandard2.0\Rask.Generators.dll' — build Rask.Generators before packing so the source generator ships in analyzers/dotnet/cs/." />
+    <Error Condition="!Exists('..\Rask.Generators.CodeFixes\bin\$(Configuration)\netstandard2.0\Rask.Generators.CodeFixes.dll')"
+           Text="Rask.Generators.CodeFixes.dll not found at '..\Rask.Generators.CodeFixes\bin\$(Configuration)\netstandard2.0\Rask.Generators.CodeFixes.dll' — build Rask.Generators.CodeFixes before packing so the code-fix providers ship in analyzers/dotnet/cs/." />
+  </Target>
+
+</Project>

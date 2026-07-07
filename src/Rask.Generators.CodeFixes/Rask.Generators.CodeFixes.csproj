@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    IDE-only code-fix providers for the Rask analyzers/generators (the lightbulb quick-fixes).
+    A SEPARATE assembly from Rask.Generators on purpose: code fixes reference
+    Microsoft.CodeAnalysis.Workspaces, and an analyzer assembly that references Workspaces trips
+    RS1038 and can fail to load under csc. This assembly contains NO analyzers/generators, only
+    CodeFixProviders, so csc never instantiates its types — it is loaded by the IDE, which has
+    Workspaces. Packed into analyzers/dotnet/cs/ alongside Rask.Generators.dll by the host packages
+    (Rask.Server / Rask.Wasm), so NuGet consumers get the quick-fixes automatically.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
+  </ItemGroup>
+
+</Project>
