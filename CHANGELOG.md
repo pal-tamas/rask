@@ -108,6 +108,17 @@ them until tagged releases begin.
   the mis-flagged case, is now offered there too. See
   [docs/diagnostics.md](docs/diagnostics.md#rask002).
 
+### Fixed
+- **`BsDropdown` menus now show in Safari and `AlignEnd` works.** Two Popper-less dropdown bugs in the
+  supplemental `rask-bootstrap.css`: (1) the `0.14.1` table clip fix used `overflow-x: clip;
+  overflow-y: visible`, which Chromium honours but WebKit/Safari clips on the "visible" axis too — so a
+  dropdown opened inside a scrollable `BsTable(Responsive: true)` vanished in Safari. It now uses plain
+  `overflow: visible` while a menu is open, which every engine honours. (2) `BsDropdown(AlignEnd: true)`
+  (and `AlignStart`) was inert because Bootstrap 5.3 gates `.dropdown-menu-end` / `-start` on a
+  `[data-bs-popper]` attribute only Popper's JS sets; the alignment is now applied statically, so a menu
+  anchored to a right-hand toggle right-aligns and stays within the row instead of opening off the right
+  edge. No consumer change beyond picking up the release.
+
 ## [0.14.1] - 2026-07-07
 
 ### Fixed

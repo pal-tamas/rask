@@ -2,14 +2,34 @@
    the bundled Bootstrap by BootstrapStyles(). Keep this minimal: only fixes that a consumer would
    otherwise have to re-add in every app. */
 
+/* Dropdown menu alignment without Popper. Bootstrap 5.3 gates the .dropdown-menu-end / -start
+   alignment on a [data-bs-popper] attribute that only Popper's JS sets, so on a Rask (Popper-less)
+   dropdown those classes are inert — BsDropdown(AlignEnd: true) has no effect and a menu anchored to a
+   right-hand toggle stays left-aligned and opens off the right edge. Re-apply the alignment statically
+   (the menu is already position:absolute inside the position:relative .dropdown) so AlignEnd/AlignStart
+   work as documented. */
+.dropdown-menu-end {
+  right: 0;
+  left: auto;
+}
+
+.dropdown-menu-start {
+  right: auto;
+  left: 0;
+}
+
 /* A dropdown menu inside a scrollable table is clipped by the scroll container: Bootstrap's
    .table-responsive sets overflow-x:auto, and per the CSS overflow spec a non-visible value on one
    axis forces the other axis to auto — so the menu, which overflows downward, is cut off. Rask
-   dropdowns are Popper-less (no JS to portal the menu out), so fix it in CSS: while a menu is open,
-   let the container overflow vertically so the menu shows, and clip horizontally so a wide table
-   still can't spill or trigger page scroll. (`overflow: clip` is the one value that does NOT force
-   the other axis to auto, so this pairing is valid.) */
+   dropdowns are Popper-less (no JS to portal the menu out), so while a menu is open let the container
+   overflow so the menu shows.
+
+   This must be `overflow: visible` (both axes). The narrower `overflow-x: clip; overflow-y: visible`
+   is tempting — it would keep a wide table from spilling horizontally — and it works in Chromium, but
+   WebKit/Safari clips the "visible" axis too and the menu vanishes. `overflow: visible` is honoured
+   everywhere; pair it with a right-aligned menu (AlignEnd, above) so the menu itself stays within the
+   row. A very wide table can momentarily spill horizontally while a menu is open — keep
+   `overflow-x: hidden` on the page body if that matters to your layout. */
 .table-responsive:has(.dropdown-menu.show) {
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: visible;
 }
