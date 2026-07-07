@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`dotnet new rask-server --cqrs` scaffolds the Rask.Cqrs mediator.** The Server template gained a
+  `--cqrs` switch: it adds a sample `GreetingQuery` + handler and a `/greeting` page that injects
+  `IDispatcher` and dispatches it (under `Cqrs/`), the `Rask.Cqrs` package reference, and the
+  `AddRaskCqrs()` wiring in `Program.cs` — turning the already-shipped, tested `Rask.Cqrs` package into a
+  one-flag starting point. Without the flag nothing changes (default `false`). See
+  [docs/cqrs.md](docs/cqrs.md) and [docs/getting-started.md](docs/getting-started.md).
 - **RASK030 — prefer named arguments on factory calls with many positional args.** A new Hidden analyzer
   flags a Rask factory call that passes three or more leading positional arguments (e.g.
   `Div("main", "container", "color:red")`). Beyond one or two, positional calls read poorly and are

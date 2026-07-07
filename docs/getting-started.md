@@ -51,7 +51,9 @@ dotnet new rask-server -o MyApp      # create a server app in ./MyApp
 
 All three emit the same starter pages, so the rest of this guide applies whichever you chose. Each also
 accepts a `--auth` switch that scaffolds a working login flow — see [authentication](authentication.md)
-when you need it.
+when you need it. The `rask-server` template additionally accepts `--cqrs`, which scaffolds the
+[Rask.Cqrs](cqrs.md) mediator (a sample query + handler and a `/greeting` page that dispatches it), and
+`--pwa`, which makes it an installable [PWA](pwa.md).
 
 ## 2. Run it
 
