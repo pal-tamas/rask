@@ -39,7 +39,7 @@ global `using static Rask.Bootstrap.Generated`, exactly like the validation pack
 | Content | `BsButton` `BsButtonGroup` `BsBadge` `BsAlert` `BsCard` (+`BsCardHeader/Body/Footer/Title/Subtitle/Text/Image`) `BsSpinner` `BsProgress` `BsListGroup`(+item) `BsPagination`(+`BsPageItem`) `BsBreadcrumb`(+item) `BsPlaceholder` `BsTable` `BsCloseButton` `BsIcon` |
 | Navigation | `BsNavbar` `BsNav` `BsNavItem` (each `BsNavItem` with `Href` renders a SPA-routed `NavLink` that auto-highlights the active route) |
 | Interactive (zero-JS, controlled) | `BsModal` `BsOffcanvas` (set `Responsive: Bp.Md` for a drawer-below / static-above sidebar) `BsCollapse` `BsAccordion`(+item) `BsTabs`(+`BsTabItem`) `BsDropdown`(+item) `BsToast` |
-| Forms (`IFormControl<T>`) | `BsInput<T>` `BsTextarea<T>` `BsSelect<T>` `BsCheck` `BsRadioGroup<T>` `BsCheckboxGroup<T>` `BsMultiSelect<T>` `BsFormGroup` `BsFormLabel` `BsInputGroup`(+`BsInputGroupText`) |
+| Forms (`IFormControl<T>`) | `BsInput<T>` `BsTextarea<T>` `BsSelect<T>` `BsCheck` `BsRadioGroup<T>` `BsCheckboxGroup<T>` `BsMultiSelect<T>` `BsDatePicker<T>` `BsTimePicker<T>` `BsDateTimePicker<T>` `BsFormGroup` `BsFormLabel` `BsInputGroup`(+`BsInputGroupText`) |
 
 Typed enums replace stringly-typed variants everywhere: `BsColor` (Primary…Dark), `BsSize` (Sm/Md/Lg),
 `BsTheme` (Light/Dark, via `data-bs-theme`), `BsPlacement`, `BsSpinnerKind`, `BsPlaceholderAnimation`,
@@ -104,6 +104,17 @@ Every component below is driven entirely by Rask's live runtime — **no `bootst
 **Forms** — `IFormControl<T>`-bound controls with built-in validation:
 
 <!-- demo:bootstrap-forms -->
+
+**Date & time pickers** — `BsDatePicker<T>`/`BsTimePicker<T>`/`BsDateTimePicker<T>` open a custom
+calendar/clock **popover** (a month grid + hour/minute lists) driven entirely by Rask live-diff state —
+no `bootstrap.js`. They bind `DateOnly`/`TimeOnly`/`DateTime` (and their nullable + `DateTimeOffset`
+forms), are fully keyboard-navigable (arrows move a virtual cursor via `aria-activedescendant`,
+Page Up/Down change month, Enter selects, Esc closes) with ARIA grid roles, localize the weekday
+order/names and month label from `CultureInfo.CurrentCulture`, and constrain selection with
+`Min`/`Max`/`Disable`. A nullable value gets a clear (×) button; `Native: true` degrades to the native
+`<input type=date|time|datetime-local>`:
+
+<!-- demo:bootstrap-pickers -->
 
 ## Utility classes
 

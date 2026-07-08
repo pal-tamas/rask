@@ -246,6 +246,7 @@ public static class DemoRegistry
             ["bootstrap-modal"] = () => CodeSample(["BsModalDemo.cs"], Result: BsModalDemo()),
             ["bootstrap-tabs"] = () => CodeSample(["BsTabsDemo.cs"], Result: BsTabsDemo()),
             ["bootstrap-forms"] = () => CodeSample(["BsFormsDemo.cs"], Result: BsFormsDemo()),
+            ["bootstrap-pickers"] = () => CodeSample(["BsPickersDemo.cs"], Result: BsPickersDemo()),
             ["bootstrap-utilities"] = () => CodeSample(["BsUtilitiesDemo.cs"], Result: BsUtilitiesDemo()),
 
             // --- Elements & the DSL guide: primitives, tag factories, universal props, SVG, and the
