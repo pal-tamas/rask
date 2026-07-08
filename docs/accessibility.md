@@ -120,6 +120,21 @@ its title, or `aria-label` from the title text), and dismisses on `Escape` (exce
 which keeps `Escape` inert per Bootstrap). Build your own overlay the same way — add `data-rask-focus-trap`
 (via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.
 
+## Navigation
+
+Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
+
+- **Progress.** A slow server-side route render surfaces the top progress bar (the same one a slow
+  handler round-trip uses), after a ~300 ms grace so a fast navigation never flashes it.
+- **Focus.** A forward, whole-page navigation moves focus into the new page's `<main>` (or its first
+  `<h1>`), so a keyboard user continues from the new page instead of the now-removed nav link at the top
+  of the document. Give your layout a `<main>` (`Main(...)`) to anchor this.
+- **Announcement.** The new page's `<title>` is announced through a polite `aria-live` region, so a
+  screen-reader user hears the route changed.
+
+Back/Forward (popstate) navigation leaves focus and scroll to the browser's native restoration. (Server
+host today; the WASM navigation path is a follow-up.)
+
 ## What's not covered yet
 
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`

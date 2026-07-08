@@ -154,6 +154,15 @@ them until tagged releases begin.
   sibling on reorder — a latent state-corruption bug, not a cosmetic nit. The one-time diagnostic
   (routed through the `RaskDiagnostics` seam, deduplicated per key) now logs at `Error` so it surfaces
   loudly. No behavior change beyond the log level; fix the duplicate keys to silence it.
+- **Navigation now shows progress and is accessible.** On the Server live runtime, a client-side route
+  change (`navigate`) carries no handler seq/ack, so a slow server-side render used to show **no progress
+  indicator at all**, and on commit focus stayed on the now-removed nav link with no announcement — a
+  screen-reader user got no "navigated to X". Now a forward or back/forward navigation reuses the top
+  progress bar (after the same ~300 ms grace as a slow handler round-trip, so a fast nav never flashes
+  it), and a forward, whole-page navigation moves focus into the new page's `<main>` (or first `<h1>`) and
+  announces the new page title through a polite `aria-live` region. The bar stays up while either a
+  handler round-trip or a navigation is outstanding. Server host only for now (the WASM navigation path is
+  a follow-up). See [docs/accessibility.md](docs/accessibility.md#navigation).
 
 ## [0.14.1] - 2026-07-07
 
