@@ -19,15 +19,27 @@ public static class Markup
     public static string? Attr(string html, string name)
     {
         var marker = name + "=\"";
-        var i = html.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
+        var from = 0;
+        while (true)
         {
-            return null;
-        }
+            var i = html.IndexOf(marker, from, StringComparison.Ordinal);
+            if (i < 0)
+            {
+                return null;
+            }
 
-        var start = i + marker.Length;
-        var end = html.IndexOf('"', start);
-        return end < 0 ? null : html.Substring(start, end - start);
+            // Require an attribute boundary before the name (start / ASCII whitespace) so a short name
+            // (e.g. "label") doesn't match inside a longer one ("aria-label").
+            var before = i == 0 ? ' ' : html[i - 1];
+            if (before is ' ' or '\t' or '\n' or '\r' or '\f')
+            {
+                var start = i + marker.Length;
+                var end = html.IndexOf('"', start);
+                return end < 0 ? null : html.Substring(start, end - start);
+            }
+
+            from = i + marker.Length;
+        }
     }
 
     /// <summary>

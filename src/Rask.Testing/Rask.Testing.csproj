@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Testing</PackageId>
+    <Title>Rask.Testing — unit-test Rask components</Title>
+    <Description>Render a Rask component to HTML in a unit test, invoke its event handlers (clicks, input, submit), and assert on the re-rendered markup — no browser, no server, no WebSocket. RaskTest.Render(component) returns a RenderedComponent whose Html reflects the current state; InvokeAsync/ClickAsync dispatch a handler by its data-rask-on-* id and return the re-rendered HTML. Wraps Rask.Core's live-render + handler-dispatch seam. Reference from your test project; Rask.Core comes transitively from your app's Rask.Server / Rask.Wasm.</Description>
+    <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview
+       that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" keeps the (unpublished, IsPackable=false) Rask.Core "package" out of the
+         nuspec: Rask.Testing is consumed alongside a host that already bundles Rask.Core.dll, so it
+         resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time
+         (and its InternalsVisibleTo grants the live-render/handler-dispatch access this wraps). -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+</Project>
