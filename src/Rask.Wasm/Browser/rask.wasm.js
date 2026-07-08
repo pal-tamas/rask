@@ -3055,6 +3055,200 @@ function applyFrameInvokes(reply, dispatchOne) {
     sync(); // a trap already present at load
 })();
 
+// ----- Overflow-escaping popover (data-rask-popover) ---------------------
+// The Popper-less .dropdown-menu components (BsDatePicker/BsTimePicker/BsDateTimePicker, BsDropdown,
+// BsMultiSelect) render their menu as position:absolute inside a .dropdown wrapper, so any ancestor
+// with overflow:hidden/auto (a card, a scroll region) clips it — the menu opens but is cut off. This
+// helper re-anchors an open menu with position:fixed + viewport-computed coordinates, which resolves
+// against the viewport and so escapes every overflow-clipping ancestor. A component opts in by marking
+// its .dropdown wrapper with data-rask-popover and its trigger with data-rask-anchor; while the
+// wrapper's .dropdown-menu carries .show the menu is placed below the trigger (flipping above when it
+// doesn't fit), clamped into the viewport, right-aligned when data-rask-popover-align="end". A single
+// document MutationObserver watches the .show class toggle (the menus persist in the DOM), and
+// capture-phase scroll + resize keep the menu pinned to the trigger.
+//
+// Caveat: position:fixed only escapes overflow when NO ancestor establishes a fixed containing block
+// (a non-none transform / filter / perspective / backdrop-filter / will-change of those, or contain:
+// paint/layout/strict/content). Inside such an ancestor the menu is clamped to that box instead of the
+// viewport — a browser rule, not a Rask bug. Selectors here carry no escaped quotes/backslashes (the
+// WASM client-JS splice mangles them, as noted on the focus trap above).
+(function installRaskPopover() {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined"
+        || window.__raskPopover) {
+        return;
+    }
+    window.__raskPopover = true;
+
+    const GAP = 2;      // px between the trigger and the menu
+    const MARGIN = 8;   // min px kept between the menu and every viewport edge
+    const Z = 1000;     // above the components' fixed click-outside backdrop (z-index 999)
+
+    // Every opted-in wrapper that currently has an open (.show) menu, paired with that menu.
+    function openMenus() {
+        const pairs = [];
+        const wraps = document.querySelectorAll("[data-rask-popover]");
+        for (let i = 0; i < wraps.length; i++) {
+            const menu = wraps[i].querySelector(".dropdown-menu.show");
+            if (menu) {
+                pairs.push({ wrap: wraps[i], menu: menu });
+            }
+        }
+        return pairs;
+    }
+
+    function anchorOf(wrap) {
+        return wrap.querySelector("[data-rask-anchor]")
+            || wrap.querySelector(".dropdown-toggle")
+            || wrap.firstElementChild;
+    }
+
+    function place(wrap, menu) {
+        const anchor = anchorOf(wrap);
+        if (!anchor) {
+            return;
+        }
+        // Clear our own height cap before measuring so the menu's natural size drives placement — else
+        // each reposition would feed the previous frame's cap back in. (Width is pinned and stable below,
+        // so it needs no such reset.)
+        menu.style.maxHeight = "";
+        // Measure BEFORE switching to fixed: a menu sized with w-100 (BsMultiSelect) still reports the
+        // trigger width here, but would stretch to the viewport once position:fixed — so pin that width.
+        const a = anchor.getBoundingClientRect();
+        const m = menu.getBoundingClientRect();
+        const natH = menu.scrollHeight; // full content height, unaffected by the maxHeight we apply below
+        const vw = document.documentElement.clientWidth;
+        const vh = document.documentElement.clientHeight;
+        const alignEnd = wrap.getAttribute("data-rask-popover-align") === "end";
+
+        // Vertical: below by default; flip above only when it doesn't fit below and there is more room up.
+        const roomBelow = vh - a.bottom - GAP - MARGIN;
+        const roomAbove = a.top - GAP - MARGIN;
+        let top = (natH <= roomBelow || roomBelow >= roomAbove)
+            ? a.bottom + GAP
+            : a.top - GAP - natH;
+        if (top < MARGIN) {
+            top = MARGIN;
+        }
+
+        // Horizontal: align to the trigger's start (or end), then clamp into the viewport.
+        let left = alignEnd ? (a.right - m.width) : a.left;
+        if (left + m.width > vw - MARGIN) {
+            left = vw - MARGIN - m.width;
+        }
+        if (left < MARGIN) {
+            left = MARGIN;
+        }
+
+        menu.style.position = "fixed";
+        menu.style.margin = "0";
+        menu.style.zIndex = "" + Z;
+        menu.style.width = m.width + "px";
+        menu.style.left = left + "px";
+        menu.style.top = top + "px";
+        // Cap the height to the space between the menu top and the viewport bottom and scroll internally,
+        // so a menu taller than the viewport (a long list, a calendar on a short window) stays fully
+        // reachable instead of overflowing off-screen — a fixed element can't be revealed by page scroll
+        // the way the old position:absolute menu could.
+        menu.style.maxHeight = (vh - top - MARGIN) + "px";
+        menu.style.overflowY = "auto";
+        // A fixed menu no longer clips together with its trigger, so hide it while the trigger is scrolled
+        // entirely out of the viewport rather than leaving it floating detached over unrelated content.
+        menu.style.visibility =
+            (a.bottom <= 0 || a.top >= vh || a.right <= 0 || a.left >= vw) ? "hidden" : "";
+    }
+
+    // Return a closed menu to its normal in-flow (position:absolute) rendering.
+    function reset(menu) {
+        menu.style.position = "";
+        menu.style.margin = "";
+        menu.style.zIndex = "";
+        menu.style.width = "";
+        menu.style.left = "";
+        menu.style.top = "";
+        menu.style.maxHeight = "";
+        menu.style.overflowY = "";
+        menu.style.visibility = "";
+    }
+
+    // Re-place every open menu; returns how many were open so callers can track whether any remain.
+    function reposition() {
+        const pairs = openMenus();
+        for (let i = 0; i < pairs.length; i++) {
+            place(pairs[i].wrap, pairs[i].menu);
+        }
+        return pairs.length;
+    }
+
+    // True while at least one popover menu is open. Kept so the observer can cheaply skip idle morphs
+    // (no open menu, nothing popover-related changed) without a document query.
+    let hasOpen = false;
+
+    // Coalesce the high-frequency scroll/resize path to one run per animation frame so a burst doesn't
+    // thrash layout (each place() reads geometry then writes styles).
+    let scheduled = false;
+    function scheduleReposition() {
+        if (scheduled) {
+            return;
+        }
+        scheduled = true;
+        requestAnimationFrame(function () {
+            scheduled = false;
+            hasOpen = reposition() > 0;
+        });
+    }
+
+    // Scroll doesn't bubble, but a capture-phase listener on window still receives it from any ancestor
+    // scroller, so the menu tracks the trigger when a card / scroll region (not just the page) scrolls.
+    window.addEventListener("scroll", scheduleReposition, true);
+    window.addEventListener("resize", scheduleReposition);
+
+    // Does a mutation batch touch a popover (a menu's class toggled, or a subtree add/remove containing
+    // one)? Used only to detect the open transition when nothing was open before.
+    function touchesPopover(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (n.nodeType === 1
+                && (n.matches("[data-rask-popover],.dropdown-menu")
+                    || n.querySelector("[data-rask-popover],.dropdown-menu"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The live-diff morph reconciles each element's attributes back to the rendered output, and the
+    // rendered menu carries no inline style — so ANY re-render of a component with an open menu strips the
+    // fixed positioning we wrote (an unrelated style-attribute write the class-only observer never sees).
+    // So while a menu is open we must re-place after every morph batch, not only when the menu node itself
+    // changed — hence `hasOpen` in the gate. When nothing is open and nothing popover-related changed, the
+    // gate skips the document query entirely, so idle live-diff churn stays free. Runs synchronously (in
+    // the mutation microtask) so a just-opened menu is fixed before anything can read it as absolute.
+    const observer = new MutationObserver(function (records) {
+        let touched = false;
+        for (let i = 0; i < records.length; i++) {
+            const r = records[i];
+            if (r.type === "attributes") {
+                const t = r.target;
+                if (t.nodeType === 1 && t.classList && t.classList.contains("dropdown-menu")) {
+                    touched = true;
+                    if (!t.classList.contains("show") && t.closest("[data-rask-popover]")) {
+                        reset(t); // just closed — drop the fixed inline styles
+                    }
+                }
+            } else if (touchesPopover(r.addedNodes) || touchesPopover(r.removedNodes)) {
+                touched = true;
+            }
+        }
+        if (touched || hasOpen) {
+            hasOpen = reposition() > 0;
+        }
+    });
+    observer.observe(document.documentElement,
+        { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+
+    hasOpen = reposition() > 0; // a menu already open at load
+})();
+
 // ----- Recovery affordance (data-rask-reload) ----------------------------
 // A click on any element carrying data-rask-reload reloads the page. Used by the default error page so a
 // user stranded on an uncaught fault has an in-app way back without hunting for the browser's reload.

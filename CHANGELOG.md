@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Bs dropdown-family popovers no longer get clipped by an `overflow` ancestor.** The Popper-less
+  `.dropdown-menu` of `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker`, `BsDropdown`, and `BsMultiSelect`
+  was `position: absolute`, so opening one inside a card or scroll region (anything with
+  `overflow: hidden/auto`) cut it off. A tiny declarative runtime helper (`data-rask-popover`, alongside
+  the focus trap) now re-anchors an open menu with `position: fixed` and viewport-computed coordinates —
+  below the trigger, flipping above when it doesn't fit, clamped into the viewport, right-aligned for
+  `BsDropdown(AlignEnd: true)` — so it escapes every overflow-clipping ancestor and tracks the trigger on
+  scroll/resize. (Caveat: an ancestor with a CSS `transform`/`filter`/`contain` becomes the fixed
+  containing block and re-clips the popover — a browser rule.) Added a `BsDropdown` showcase demo.
+
 ## [0.15.1] - 2026-07-08
 
 ### Changed

@@ -285,8 +285,29 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#pick-date").First.ClickAsync();
         await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The popover escapes the .sample-card { overflow:hidden } wrapper: the runtime helper
+        // (data-rask-popover in rask-dom.js, spliced into both hosts) re-anchors the open .dropdown-menu
+        // with position:fixed. Under the old position:absolute the card would clip it. Assert the menu is
+        // fixed and within the viewport — the regression guard for the overflow-clipping bug.
+        var pickMenu = Page.Locator(".dropdown-menu.show:has(#pick-date-cal)").First;
+        Assert.Equal("fixed", await pickMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(pickMenu).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
+        // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
+        // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
+        await Page.Locator("#demo-dropdown .dropdown-toggle").First.ClickAsync();
+        var ddMenu = Page.Locator("#demo-dropdown .dropdown-menu.show").First;
+        await Expect(ddMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal("fixed", await ddMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(ddMenu).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
+        await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
@@ -829,6 +850,8 @@ public abstract partial class SharedSmokeTests
         // The menu stays open across selections; Escape closes it (the focusable box handles keydown — no JS).
         var openMenu = Page.Locator("#ms-interests .dropdown-menu.show");
         await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Same overflow-escape helper: the open menu is re-anchored position:fixed (data-rask-popover).
+        Assert.Equal("fixed", await openMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
         await multi.Locator(".form-select").FocusAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(openMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
