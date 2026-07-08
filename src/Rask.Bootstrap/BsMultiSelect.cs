@@ -110,6 +110,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         var boxDiv = Div(
             Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
                 Flex.Align(BsAlign.Center), Flex.Gap(1), disabled ? "disabled pe-none" : null),
+            Data: BsPopover.Anchor,
             TabIndex: disabled ? null : 0,
             OnClick: disabled ? null : () => _open = !_open,
             OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
@@ -146,7 +147,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                 msgs => Div(Class: BsClass.Join("invalid-feedback", Display.Block()))[msgs[0]]));
         }
 
-        return Div(Class: BsClass.Join("dropdown", Class), Id: Id)[children];
+        return Div(Class: BsClass.Join("dropdown", Class), Id: Id, Data: BsPopover.Wrapper)[children];
     }
 
     private void OnBoxKeyDown(KeyboardEventArgs e)

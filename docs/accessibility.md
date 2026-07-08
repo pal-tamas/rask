@@ -120,6 +120,11 @@ its title, or `aria-label` from the title text), and dismisses on `Escape` (exce
 which keeps `Escape` inert per Bootstrap). Build your own overlay the same way — add `data-rask-focus-trap`
 (via the `Data` dictionary) and mark your close control with `data-rask-dismiss`.
 
+A sibling runtime helper keys off `data-rask-popover` to place the Bs dropdown-family menus (the
+date/time pickers, `BsDropdown`, `BsMultiSelect`) with `position: fixed` while open, so the menu escapes
+any `overflow: hidden/auto` ancestor instead of being clipped. It is placement only — the components'
+keyboard navigation, ARIA roles, and focus behavior are unchanged.
+
 ## Navigation
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
