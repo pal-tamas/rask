@@ -112,6 +112,28 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
+    public void Rask004_Message_StatesHowToFix()
+    {
+        var src = """
+                  using Rask.Core;
+                  using Rask.Core.Routing;
+                  namespace Demo;
+                  [Route("/users/{id:int}")]
+                  public sealed class UserPage : Component
+                  {
+                      public override Component? Render() => this;
+                  }
+                  """;
+
+        var run = GeneratorDriverFixture.RunRoutes(src);
+        var message = run.Diagnostics.First(d => d.Id == "RASK004").GetMessage();
+
+        // The message must carry the remedy, not just the problem (D6 actionable-clause audit).
+        Assert.Contains(" — ", message);
+        Assert.Contains("add a public settable property", message);
+    }
+
+    [Fact]
     public void QueryParam_EmitsOptionalParameter()
     {
         var src = """

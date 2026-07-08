@@ -37,7 +37,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask004 = new(
         "RASK004",
         "Route segment has no matching property",
-        "Route segment '{{{0}}}' on '{1}' has no matching public settable property",
+        "Route segment '{{{0}}}' on '{1}' has no matching public settable property — add a public "
+        + "settable property named '{0}' to '{1}', or remove '{{{0}}}' from the route template",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -46,7 +47,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask005 = new(
         "RASK005",
         "Property type does not match route constraint",
-        "Property '{0}.{1}' has type '{2}', incompatible with route constraint '{3}'",
+        "Property '{0}.{1}' has type '{2}', incompatible with route constraint '{3}' — change the property "
+        + "type to one the '{3}' constraint accepts, or adjust the constraint in the route template",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -55,7 +57,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask006 = new(
         "RASK006",
         "[QueryParam] applied to a path-segment property",
-        "Property '{0}.{1}' has [QueryParam] but is also bound by path segment '{{{2}}}'",
+        "Property '{0}.{1}' has [QueryParam] but is also bound by path segment '{{{2}}}' — a value can't "
+        + "come from both; remove [QueryParam] to bind it from the path, or rename the property or segment "
+        + "so they don't collide",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -64,7 +68,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask007 = new(
         "RASK007",
         "[ParentRoute] cycle",
-        "[ParentRoute] forms a cycle starting at '{0}'",
+        "[ParentRoute] forms a cycle starting at '{0}' — break the cycle so the [ParentRoute] chain ends "
+        + "at a page with no parent",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -73,7 +78,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask008 = new(
         "RASK008",
         "[RouteParam] without matching path segment",
-        "Property '{0}.{1}' has [RouteParam] but no path segment matches '{2}'",
+        "Property '{0}.{1}' has [RouteParam] but no path segment matches '{2}' — add a '{{{2}}}' segment "
+        + "to the route template, or remove [RouteParam] from the property",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -82,7 +88,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask009 = new(
         "RASK009",
         "[RouteParam] on a non-routed class",
-        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2})",
+        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
+        + "[Route] (a concrete Component subclass), or remove [RouteParam]",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -91,7 +98,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask010 = new(
         "RASK010",
         "[QueryParam] on a non-routed class",
-        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2})",
+        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — mark '{0}' with "
+        + "[Route] (a concrete Component subclass), or remove [QueryParam]",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
@@ -109,7 +117,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask012 = new(
         "RASK012",
         "Multiple [NotFound] components",
-        "Multiple [NotFound] components found in this assembly; only one is allowed ('{0}' is a duplicate)",
+        "Multiple [NotFound] components found in this assembly; only one is allowed ('{0}' is a duplicate) "
+        + "— remove [NotFound] from all but one component",
         "Rask.Generators",
         DiagnosticSeverity.Error,
         true,
