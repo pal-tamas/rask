@@ -22,7 +22,8 @@ public sealed class BsDropdown : BsBlock
         var open = Open is true;
         var expanded = new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" };
 
-        return Div(Id: Id, Class: BsClass.Join("dropdown", Class))[
+        return Div(Id: Id, Class: BsClass.Join("dropdown", Class),
+            Data: BsPopover.WrapperFor(AlignEnd is true))[
             BsButton(Color: Color, Outline: Outline, Size: Size, Class: "dropdown-toggle",
                 Aria: expanded, OnClick: OnToggle, OnClickAsync: OnToggleAsync)[Label ?? ""],
             Ul(Class: BsClass.Join("dropdown-menu", AlignEnd is true ? "dropdown-menu-end" : null,

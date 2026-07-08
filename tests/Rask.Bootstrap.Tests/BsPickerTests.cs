@@ -44,6 +44,16 @@ public class BsPickerTests
     }
 
     [Fact]
+    public void Date_OptsIntoTheFixedPopoverHelper()
+    {
+        // The .dropdown wrapper is marked data-rask-popover and the combobox box data-rask-anchor, so the
+        // runtime re-anchors the open popover with position:fixed (escapes overflow-clipping ancestors).
+        var html = Html(Us, () => BsDatePicker<DateOnly>(Value: Jul7, Id: "d"));
+        Assert.Contains("class=\"dropdown position-relative\" data-rask-popover=\"\"", html);
+        Assert.Contains("data-rask-anchor=\"\" role=\"combobox\"", html);
+    }
+
+    [Fact]
     public void Date_Grid_HasGridRolesSelectedDayAndSevenHeaders()
     {
         var html = Html(Us, () => BsDatePicker<DateOnly>(Value: Jul7, Id: "d"));

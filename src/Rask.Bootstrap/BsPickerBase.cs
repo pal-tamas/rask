@@ -111,6 +111,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
                 Display.Flex(), Flex.Align(BsAlign.Center),
                 b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null, Class),
             Id: controlId,
+            Data: BsPopover.Anchor,
             Role: "combobox",
             TabIndex: disabled ? null : 0,
             Aria: boxAria,
@@ -140,7 +141,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
 
         // The popover is always in the DOM (like BsMultiSelect's menu); the picker toggles .show/.d-block
         // from Open, so a closed picker still renders the grid (hidden) and its markup is testable.
-        var control = Div(Class: BsClass.Join("dropdown", Position.Relative))[
+        var control = Div(Class: BsClass.Join("dropdown", Position.Relative), Data: BsPopover.Wrapper)[
             box,
             clear,
             popover,

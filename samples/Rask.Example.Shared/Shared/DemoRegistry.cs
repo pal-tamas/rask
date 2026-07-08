@@ -245,6 +245,7 @@ public static class DemoRegistry
             ["bootstrap-icons"] = () => CodeSample(["BsIconsDemo.cs"], Result: BsIconsDemo()),
             ["bootstrap-modal"] = () => CodeSample(["BsModalDemo.cs"], Result: BsModalDemo()),
             ["bootstrap-tabs"] = () => CodeSample(["BsTabsDemo.cs"], Result: BsTabsDemo()),
+            ["bootstrap-dropdown"] = () => CodeSample(["BsDropdownDemo.cs"], Result: BsDropdownDemo()),
             ["bootstrap-forms"] = () => CodeSample(["BsFormsDemo.cs"], Result: BsFormsDemo()),
             ["bootstrap-pickers"] = () => CodeSample(["BsPickersDemo.cs"], Result: BsPickersDemo()),
             ["bootstrap-utilities"] = () => CodeSample(["BsUtilitiesDemo.cs"], Result: BsUtilitiesDemo()),

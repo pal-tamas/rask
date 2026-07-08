@@ -6,7 +6,7 @@ public class BsDropdownTests
     [Fact]
     public void Dropdown_Closed_RendersToggleAndHiddenMenu() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
             "<button class=\"btn btn-primary dropdown-toggle\" aria-expanded=\"false\" type=\"button\">Menu</button>" +
             "<ul class=\"dropdown-menu\">" +
             "<li><a class=\"dropdown-item\" href=\"/a\">A</a></li>" +
@@ -22,7 +22,7 @@ public class BsDropdownTests
     [Fact]
     public void Dropdown_Open_ShowsMenuAndExpandsToggle() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
             "<button class=\"btn btn-secondary dropdown-toggle\" aria-expanded=\"true\" type=\"button\">Actions</button>" +
             "<ul class=\"dropdown-menu show\"></ul></div>",
             BsDropdown(Label: "Actions", Color: BsColor.Secondary, Open: true).ToHtml());
@@ -30,7 +30,7 @@ public class BsDropdownTests
     [Fact]
     public void Dropdown_AlignEnd_RightAlignsMenu() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\" data-rask-popover-align=\"end\">" +
             "<button class=\"btn btn-primary dropdown-toggle\" aria-expanded=\"false\" type=\"button\">M</button>" +
             "<ul class=\"dropdown-menu dropdown-menu-end\"></ul></div>",
             BsDropdown(Label: "M", Color: BsColor.Primary, AlignEnd: true).ToHtml());
