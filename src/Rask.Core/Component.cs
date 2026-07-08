@@ -12,13 +12,13 @@ namespace Rask.Core;
 
 // [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
 // can be written as `Render() => [Doctype(), Html(...)]` (the items are built into a Fragment by
-// Create below). The builder is self-referential (typeof(Component)) and public so collection
+// __Fragment below). The builder is self-referential (typeof(Component)) and public so collection
 // expressions in *other* assemblies bind to it even though Fragment itself is internal. The
 // required iteration type comes from the *pattern* GetEnumerator below — Component deliberately
 // does NOT implement IEnumerable<Component>, because that would make the `this[IEnumerable<Component>]`
 // children indexer applicable to a bare component and silently rebind `Div()[Span()[...]]` from
 // "one child" to "the span's own children", collapsing nesting.
-[CollectionBuilder(typeof(Component), nameof(Create))]
+[CollectionBuilder(typeof(Component), "__Fragment")]
 public abstract class Component
 {
     // Pre-built "h0".."h255" so handler registration in the common case (small forms,
@@ -75,8 +75,9 @@ public abstract class Component
     // `Render()`/`Head` body written as `[Doctype(), Html(...)]` lands here and is wrapped in a
     // (tagless, internal) Fragment so the whole render pipeline keeps operating on a single
     // Component. Public because the compiler emits this call at each collection-expression site,
-    // including in user assemblies where Fragment is not visible.
-    public static Component Create(ReadOnlySpan<Component?> items) => new Fragment(items.ToArray());
+    // including in user assemblies where Fragment is not visible. NOT named `Create`: that would
+    // shadow a user component named `Create` (its generated factory) via base-member lookup.
+    public static Component __Fragment(ReadOnlySpan<Component?> items) => new Fragment(items.ToArray());
 
     // Heterogeneous-literal children: `Div()["Score: ", 42, Span()]`. These implicit conversions
     // (formerly on the deleted `Component` struct) let strings/primitives/dates flow into a children
