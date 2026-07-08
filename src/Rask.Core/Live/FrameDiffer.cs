@@ -337,10 +337,11 @@ public static class FrameDiffer
                     var newChildStart = ni + 1;
                     var newChildEnd = ni + newFrame.SubtreeLength;
 
-                    // Attributes diff against the current element path.
+                    // Attributes diff against the current element path (built lazily inside
+                    // DiffAttributes only if an attribute op is actually emitted).
                     DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
                         newFrames, ref newChildStart, newChildEnd,
-                        PathPlus(path, domSlot), output);
+                        path, domSlot, output);
 
                     // Recurse into children. Push domSlot onto path, then diff inside.
                     path.Add(domSlot);
@@ -466,13 +467,23 @@ public static class FrameDiffer
     private static void DiffAttributes(
         ReadOnlySpan<RenderFrame> oldFrames, ref int oldCursor, int oldEnd,
         ReadOnlySpan<RenderFrame> newFrames, ref int newCursor, int newEnd,
-        int[] elementPath,
+        List<int> basePath, int slot,
         List<EditOp> output)
     {
         var oldAttrStart = oldCursor;
         var newAttrStart = newCursor;
         var oldAttrs = CountLeadingAttributes(oldFrames, oldAttrStart, oldEnd);
         var newAttrs = CountLeadingAttributes(newFrames, newAttrStart, newEnd);
+
+        // The element's path array is built lazily on the FIRST emitted op and reused for
+        // any further ops on this same element. The overwhelmingly common case is an element
+        // whose attributes are unchanged across renders — it emits nothing, so materialising
+        // its path up front (a fresh int[] per element, every render) was pure waste: on a
+        // large page where one text node mutated, that speculative allocation dominated the
+        // whole diff's managed footprint. Deferring it makes an idle element's attribute pass
+        // allocation-free while keeping the emitted ops byte-identical (all ops on one element
+        // still share one path instance, exactly as before).
+        int[]? elementPath = null;
 
         // Name-keyed reconcile — NOT positional. Attributes can be conditionally present
         // (e.g. `checked` on a checkbox appears/disappears as it toggles, and it's emitted
@@ -489,7 +500,8 @@ public static class FrameDiffer
             var oldValue = FindAttribute(oldFrames, oldAttrStart, oldAttrs, na.Name, out var inOld);
             if (!inOld || !string.Equals(oldValue, na.Value, StringComparison.Ordinal))
             {
-                output.Add(new EditOp(EditOpKind.SetAttribute, elementPath, na.Name, na.Value));
+                output.Add(new EditOp(EditOpKind.SetAttribute, elementPath ??= PathPlus(basePath, slot),
+                    na.Name, na.Value));
             }
         }
 
@@ -499,7 +511,8 @@ public static class FrameDiffer
             FindAttribute(newFrames, newAttrStart, newAttrs, oa.Name, out var inNew);
             if (!inNew)
             {
-                output.Add(new EditOp(EditOpKind.RemoveAttribute, elementPath, oa.Name, null));
+                output.Add(new EditOp(EditOpKind.RemoveAttribute, elementPath ??= PathPlus(basePath, slot),
+                    oa.Name, null));
             }
         }
 
@@ -952,7 +965,7 @@ public static class FrameDiffer
 
             DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
                 newFrames, ref newChildStart, newChildEnd,
-                PathPlus(path, j), output);
+                path, j, output);
 
             path.Add(j);
             DiffSiblings(oldFrames, oldChildStart, oldChildEnd,

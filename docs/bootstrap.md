@@ -23,9 +23,8 @@ protected override Component? Head =>
 
 `BootstrapStyles(Icons: false)` skips the Bootstrap Icons stylesheet. It also always links a tiny
 `rask-bootstrap.css` (after Bootstrap, so it wins the cascade) with fixes for the zero-JS components:
-a `BsDropdown` inside a `BsTable(Responsive: true)` would otherwise be clipped by the scroll
-container's overflow, and `BsDropdown(AlignEnd: true)` would otherwise be a no-op because Bootstrap
-gates its alignment classes on a Popper-only attribute. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
+`BsDropdown(AlignEnd: true)` would otherwise be a no-op because Bootstrap gates its alignment classes
+on a Popper-only attribute. The assets are served by the host's static-file pipeline (`app.UseStaticFiles()` /
 `app.MapStaticAssets()` on Server; the WASM static-web-asset pipeline bakes them into the published
 `wwwroot` automatically).
 
@@ -115,6 +114,19 @@ order/names and month label from `CultureInfo.CurrentCulture`, and constrain sel
 `<input type=date|time|datetime-local>`:
 
 <!-- demo:bootstrap-pickers -->
+
+**Dropdowns** — `BsDropdown`(+`BsDropdownItem`) is a controlled, Popper-less menu: you own the `Open`
+state and wire `OnToggle`, and each item's handler closes it on selection. `AlignEnd` right-aligns the
+menu:
+
+<!-- demo:bootstrap-dropdown -->
+
+Every Bs `.dropdown-menu` popover — the pickers, `BsDropdown`, and `BsMultiSelect` — is re-anchored with
+`position: fixed` while open by a tiny runtime helper (declarative, opt-in via `data-rask-popover`), so
+it escapes any `overflow: hidden/auto` ancestor (a card, a scroll region) instead of being clipped, and
+tracks the trigger on scroll/resize. The one exception is a browser rule, not a Rask bug: an ancestor
+with a CSS `transform`/`filter`/`perspective`/`will-change`/`contain` becomes the containing block for
+`position: fixed`, so a popover inside it is clamped to that box rather than the viewport.
 
 ## Utility classes
 
