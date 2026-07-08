@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-07-08
+
+### Changed
+- **The `Component` collection-expression builder is renamed `Create` → `__Fragment`.** The
+  `[CollectionBuilder]` target has to be a public static, but named `Create` it was reachable via
+  base-member lookup and **shadowed the generated factory of a user component named `Create`** — the
+  call bound to the fragment builder instead of the component. The double-underscore name keeps it a
+  valid builder while freeing `Create` (and other terse verbs) for user component names. `[a, b]`
+  render bodies are unaffected (the compiler emits the call from the attribute); the only break is for
+  code that called `Component.Create(...)` explicitly — use `Component.__Fragment(...)`.
+
 ## [0.15.0] - 2026-07-08
 
 ### Added
