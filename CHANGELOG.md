@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **The live-diff codec no longer allocates a path array for every element it walks.** `DiffAttributes`
+  received a freshly-built `int[]` element path on each call — one per element, every render — even
+  though the overwhelmingly common case is an element whose attributes are unchanged, which emits no op
+  and never uses the path. On a large page where a single text node mutates, that speculative
+  allocation dominated the whole diff's managed footprint. The path is now built lazily on the first
+  emitted attribute op and reused for any further ops on the same element, so an idle element's
+  attribute pass is allocation-free. The emitted op stream is byte-identical (all ops on one element
+  still share one path instance). Measured on the 200-row counter-update benchmark: the diff step's
+  allocation drops ~96% (25.2 KB → 1.1 KB per update) and the end-to-end serialize+diff+payload cycle
+  drops ~35% (69.4 KB → 45.3 KB per update).
+
 ### Fixed
 - **Bs dropdown-family popovers no longer get clipped by an `overflow` ancestor.** The Popper-less
   `.dropdown-menu` of `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker`, `BsDropdown`, and `BsMultiSelect`
