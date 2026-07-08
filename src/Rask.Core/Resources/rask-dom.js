@@ -430,3 +430,23 @@ function applyFrameInvokes(reply, dispatchOne) {
     observer.observe(document.documentElement, { childList: true, subtree: true });
     sync(); // a trap already present at load
 })();
+
+// ----- Recovery affordance (data-rask-reload) ----------------------------
+// A click on any element carrying data-rask-reload reloads the page. Used by the default error page so a
+// user stranded on an uncaught fault has an in-app way back without hunting for the browser's reload.
+// Delegated + CSP-clean (no inline handler); a no-op if the runtime never loaded (the browser's own
+// reload remains the ultimate fallback).
+(function installRaskReload() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskReload) {
+        return;
+    }
+    window.__raskReload = true;
+    document.addEventListener("click", function (e) {
+        const t = e.target;
+        if (t && t.closest && t.closest("[data-rask-reload]")) {
+            e.preventDefault();
+            location.reload();
+        }
+    });
+})();
