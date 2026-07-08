@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-07-08
+
 ### Added
 - **`Rask.Testing` — a public package for unit-testing components.** Until now the live-render + handler-
   dispatch seam that makes component tests possible (`RenderAsLiveRoot` / `TryInvokeHandlerAsync`) was
@@ -129,31 +131,6 @@ them until tagged releases begin.
   single-flight so the retry/online paths can't spawn a duplicate socket. Auth handshakes still show
   "Authenticating…" up front. See [docs/configuration.md](docs/configuration.md#reconnect-ux).
 
-### Fixed
-- **RASK002 no longer fires for a component that has a DI constructor and a `required` factory
-  parameter.** The diagnostic wrongly treated "DI constructor, no parameterless constructor" as unable
-  to honor `required`. In fact the generated factory builds such a component with
-  `ActivatorUtilities.CreateInstance` (which runs the DI constructor, so injected services are set) and
-  then post-assigns every factory parameter — so a `required` property with no member initializer *is*
-  honored at runtime. RASK002 now fires only in the genuinely broken shape: a component with **both** a
-  DI constructor and a parameterless constructor **and** a `required` property carrying a member
-  initializer (the factory emits `new C() { … }` whose object initializer excludes the initializer-
-  carrying property, so the consumer build hits `CS9035`). The RASK001 quick-fix, which was withheld in
-  the mis-flagged case, is now offered there too. See
-  [docs/diagnostics.md](docs/diagnostics.md#rask002).
-
-### Fixed
-- **`BsDropdown` menus now show in Safari and `AlignEnd` works.** Two Popper-less dropdown bugs in the
-  supplemental `rask-bootstrap.css`: (1) the `0.14.1` table clip fix used `overflow-x: clip;
-  overflow-y: visible`, which Chromium honours but WebKit/Safari clips on the "visible" axis too — so a
-  dropdown opened inside a scrollable `BsTable(Responsive: true)` vanished in Safari. It now uses plain
-  `overflow: visible` while a menu is open, which every engine honours. (2) `BsDropdown(AlignEnd: true)`
-  (and `AlignStart`) was inert because Bootstrap 5.3 gates `.dropdown-menu-end` / `-start` on a
-  `[data-bs-popper]` attribute only Popper's JS sets; the alignment is now applied statically, so a menu
-  anchored to a right-hand toggle right-aligns and stays within the row instead of opening off the right
-  edge. No consumer change beyond picking up the release.
-
-### Changed
 - **Duplicate `data-rask-key` siblings are now reported at Error, not Warning.** When the live diff finds
   two sibling elements sharing a `Key:`, keyed reconciliation is disabled for that list and it falls back
   to a positional walk that can graft a node's DOM state (focus, input value, scroll) onto the wrong
@@ -169,6 +146,29 @@ them until tagged releases begin.
   announces the new page title through a polite `aria-live` region. The bar stays up while either a
   handler round-trip or a navigation is outstanding. Server host only for now (the WASM navigation path is
   a follow-up). See [docs/accessibility.md](docs/accessibility.md#navigation).
+
+### Fixed
+- **RASK002 no longer fires for a component that has a DI constructor and a `required` factory
+  parameter.** The diagnostic wrongly treated "DI constructor, no parameterless constructor" as unable
+  to honor `required`. In fact the generated factory builds such a component with
+  `ActivatorUtilities.CreateInstance` (which runs the DI constructor, so injected services are set) and
+  then post-assigns every factory parameter — so a `required` property with no member initializer *is*
+  honored at runtime. RASK002 now fires only in the genuinely broken shape: a component with **both** a
+  DI constructor and a parameterless constructor **and** a `required` property carrying a member
+  initializer (the factory emits `new C() { … }` whose object initializer excludes the initializer-
+  carrying property, so the consumer build hits `CS9035`). The RASK001 quick-fix, which was withheld in
+  the mis-flagged case, is now offered there too. See
+  [docs/diagnostics.md](docs/diagnostics.md#rask002).
+
+- **`BsDropdown` menus now show in Safari and `AlignEnd` works.** Two Popper-less dropdown bugs in the
+  supplemental `rask-bootstrap.css`: (1) the `0.14.1` table clip fix used `overflow-x: clip;
+  overflow-y: visible`, which Chromium honours but WebKit/Safari clips on the "visible" axis too — so a
+  dropdown opened inside a scrollable `BsTable(Responsive: true)` vanished in Safari. It now uses plain
+  `overflow: visible` while a menu is open, which every engine honours. (2) `BsDropdown(AlignEnd: true)`
+  (and `AlignStart`) was inert because Bootstrap 5.3 gates `.dropdown-menu-end` / `-start` on a
+  `[data-bs-popper]` attribute only Popper's JS sets; the alignment is now applied statically, so a menu
+  anchored to a right-hand toggle right-aligns and stays within the row instead of opening off the right
+  edge. No consumer change beyond picking up the release.
 
 ## [0.14.1] - 2026-07-07
 
