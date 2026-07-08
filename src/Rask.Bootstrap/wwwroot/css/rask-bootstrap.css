@@ -18,21 +18,12 @@
   left: 0;
 }
 
-/* A dropdown menu inside a scrollable table is clipped by the scroll container: Bootstrap's
-   .table-responsive sets overflow-x:auto, and per the CSS overflow spec a non-visible value on one
-   axis forces the other axis to auto — so the menu, which overflows downward, is cut off. Rask
-   dropdowns are Popper-less (no JS to portal the menu out), so while a menu is open let the container
-   overflow so the menu shows.
-
-   This must be `overflow: visible` (both axes). The narrower `overflow-x: clip; overflow-y: visible`
-   is tempting — it would keep a wide table from spilling horizontally — and it works in Chromium, but
-   WebKit/Safari clips the "visible" axis too and the menu vanishes. `overflow: visible` is honoured
-   everywhere; pair it with a right-aligned menu (AlignEnd, above) so the menu itself stays within the
-   row. A very wide table can momentarily spill horizontally while a menu is open — keep
-   `overflow-x: hidden` on the page body if that matters to your layout. */
-.table-responsive:has(.dropdown-menu.show) {
-  overflow: visible;
-}
+/* (A dropdown menu inside a scrollable ancestor — .table-responsive, a card, any overflow:auto/hidden
+   region — used to be clipped, and was un-clipped here by forcing the container to overflow:visible.
+   That is superseded by the runtime popover helper (data-rask-popover in rask-dom.js), which re-anchors
+   an open menu with position:fixed so it escapes every overflow ancestor without the container having to
+   spill. No CSS override is needed — and forcing overflow:visible on a wide responsive table would have
+   let it spill horizontally for no benefit now that the menu is fixed.) */
 
 /* Date/time pickers (BsDatePicker/BsTimePicker/BsDateTimePicker). The popover is a plain
    .dropdown-menu we position with live-diff state (no Popper); these rules only style the calendar

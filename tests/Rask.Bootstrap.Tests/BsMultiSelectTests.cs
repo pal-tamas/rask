@@ -8,8 +8,9 @@ public class BsMultiSelectTests
     [Fact]
     public void MultiSelect_Empty_ShowsPlaceholderAndUncheckedOptions() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
-            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" tabindex=\"0\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
+            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" " +
+            "data-rask-anchor=\"\" tabindex=\"0\">" +
             "<span class=\"text-secondary\">Select&#x2026;</span></div>" +
             "<div class=\"dropdown-menu\">" +
             "<button class=\"dropdown-item d-flex align-items-center gap-2\" data-rask-key=\"0\" type=\"button\">" +
@@ -22,8 +23,9 @@ public class BsMultiSelectTests
     [Fact]
     public void MultiSelect_WithSelection_RendersChipsAndChecksSelectedOptions() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
-            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" tabindex=\"0\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
+            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" " +
+            "data-rask-anchor=\"\" tabindex=\"0\">" +
             "<span class=\"badge text-bg-primary d-inline-flex align-items-center\" data-rask-key=\"0\">a" +
             "<button class=\"btn-close btn-close-white ms-1\" aria-label=\"Close\" type=\"button\"></button></span>" +
             "<span class=\"badge text-bg-primary d-inline-flex align-items-center\" data-rask-key=\"1\">c" +
@@ -42,9 +44,10 @@ public class BsMultiSelectTests
     [Fact]
     public void MultiSelect_Label_SitsAboveTheControl() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
             "<label class=\"form-label\">Tags</label>" +
-            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" tabindex=\"0\">" +
+            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" " +
+            "data-rask-anchor=\"\" tabindex=\"0\">" +
             "<span class=\"text-secondary\">Select&#x2026;</span></div>" +
             "<div class=\"dropdown-menu\"></div></div>",
             BsMultiSelect<string>(Options: [], Value: new List<string>(), Label: "Tags").ToHtml());
@@ -52,8 +55,9 @@ public class BsMultiSelectTests
     [Fact]
     public void MultiSelect_CustomPlaceholder_ReplacesDefault() =>
         Assert.Equal(
-            "<div class=\"dropdown\">" +
-            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" tabindex=\"0\">" +
+            "<div class=\"dropdown\" data-rask-popover=\"\">" +
+            "<div class=\"form-select h-auto d-flex flex-wrap align-items-center gap-1\" " +
+            "data-rask-anchor=\"\" tabindex=\"0\">" +
             "<span class=\"text-secondary\">Pick tags</span></div>" +
             "<div class=\"dropdown-menu\"></div></div>",
             BsMultiSelect<string>(Options: [], Value: new List<string>(), Placeholder: "Pick tags").ToHtml());
