@@ -33,6 +33,12 @@ them until tagged releases begin.
   silently rebind such a call. The first one or two positional arguments (the primary content) stay
   idiomatic. Hidden severity: no build output and no effect on the warnings-as-errors build — the IDE
   surfaces it as a suggestion. See [docs/diagnostics.md](docs/diagnostics.md#rask030).
+- **The default error page now offers a recovery affordance.** After an uncaught fault the root error
+  boundary rendered "Something went wrong" (plus the exception, and in development a stack) but no way
+  back — the user was stranded and had to hunt for the browser's reload. It now shows a **"Reload this
+  page"** button; the runtime wires any `data-rask-reload` element to `location.reload()` (delegated and
+  CSP-clean, on both the Server and WASM hosts), and if the runtime never loaded the browser's own reload
+  remains the fallback. Present in production too, where it's the primary recovery (no stack is shown).
 - **RASK031 — two pages resolving to the same route are now flagged.** Two different top-level pages that
   resolve to the same URL made the active one arbitrary — a silent bug the generator didn't catch (it
   only deduped by type name and enforced a single `[NotFound]`). The `RoutesGenerator` now warns

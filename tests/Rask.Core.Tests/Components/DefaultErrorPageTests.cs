@@ -37,6 +37,17 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
+    public void Always_OffersAReloadRecoveryButton()
+    {
+        // A user stranded on the fault needs an in-app way back — the runtime wires data-rask-reload to
+        // location.reload(). Present in production too (the primary recovery when no stack is shown).
+        var html = Render(Thrown("boom"), isDevelopment: false);
+        Assert.Contains("data-rask-reload", html);
+        Assert.Contains("Reload this page", html);
+        Assert.Contains("<button", html);
+    }
+
+    [Fact]
     public void Development_RendersParsedStackFrames()
     {
         var html = Render(Thrown("dev-boom"), isDevelopment: true);

@@ -25,6 +25,10 @@ public sealed class DefaultErrorPage : Component
     private const string CausedByStyle =
         "cursor:pointer;margin-top:1rem;font-size:0.85rem;color:#7f1d1d;font-weight:600;";
 
+    private const string ReloadButtonStyle =
+        "margin:0.25rem 0 1rem;padding:0.5rem 1rem;border:1px solid #b42323;border-radius:0.375rem;"
+        + "background:#b42323;color:#fff;font:inherit;font-size:0.9rem;cursor:pointer;";
+
     // How many source lines to show on each side of the throwing line.
     private const int SourceRadius = 5;
 
@@ -52,7 +56,14 @@ public sealed class DefaultErrorPage : Component
     {
         var children = new List<Component>
         {
-            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"]
+            Generated.H1(Style: "margin:0 0 0.75rem;font-size:1.5rem;color:#b42323;")["Something went wrong"],
+            // In-app recovery so the user isn't stranded on the fault: the runtime wires data-rask-reload
+            // to location.reload() (CSP-clean, both hosts). If the runtime never loaded, the browser's own
+            // reload is the fallback.
+            Generated.Button(
+                Type: "button",
+                Style: ReloadButtonStyle,
+                Data: new Dictionary<string, string?> { ["rask-reload"] = "" })["Reload this page"]
         };
 
         var chain = Unwind(_error);
