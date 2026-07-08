@@ -263,6 +263,19 @@ public abstract partial class SharedSmokeTests
         await toast.Locator(".btn-close").ClickAsync();
         await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Date picker (custom popover) — the calendar opens, is navigated and a day picked entirely from
+        // Rask live-diff state (no bootstrap.js). Picking the 1st of the current month writes the bound
+        // model; the readout rendered OUTSIDE the Form updates, proving the two-way bind round-trips with
+        // no StateHasChanged. Cell ids are invariant (yyyyMMdd), so this is deterministic on any date.
+        var ym = DateTime.Today.ToString("yyyyMM");
+        var firstIso = DateTime.Today.ToString("yyyy-MM") + "-01";
+        await Page.Locator("#pick-date").First.ClickAsync();
+        await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
     private async Task WalkUserComponentsGuideAsync()

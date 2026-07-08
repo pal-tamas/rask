@@ -44,6 +44,17 @@ them until tagged releases begin.
   pages without a `[ParentRoute]` (whose template is the full path); parent-composed paths aren't
   resolved, so the check under-reports rather than risk a false positive.
   See [docs/diagnostics.md](docs/diagnostics.md#rask031).
+- **`BsDatePicker<T>` / `BsTimePicker<T>` / `BsDateTimePicker<T>` — custom-popover date/time pickers.**
+  Each opens a calendar/clock popover (a month grid + hour/minute lists) driven entirely by Rask
+  live-diff view state — no `bootstrap.js` — and binds `DateOnly`/`TimeOnly`/`DateTime` (plus their
+  nullable and `DateTimeOffset` forms) through `IFormControl<T>`, so two-way binding, validation and the
+  `.invalid-feedback` display come for free. Fully keyboard-navigable (arrow keys move a virtual cursor
+  via `aria-activedescendant`, Page Up/Down change month, Home/End the week, Enter selects, Esc closes)
+  with ARIA grid/listbox roles; the weekday order/names and month label localize from
+  `CultureInfo.CurrentCulture` while the bound value round-trips invariant. `Min`/`Max`/`Disable` grey out
+  unavailable days, a nullable value gains a clear (×) button, and `Native: true` degrades to the native
+  `<input type=date|time|datetime-local>`. A supplemental `rask-bootstrap.css` styles the grid/columns
+  using Bootstrap CSS variables (light/dark aware).
 - **IDE quick-fixes for Rask diagnostics.** A new `Rask.Generators.CodeFixes` assembly ships Roslyn
   `CodeFixProvider`s (the lightbulb / `Ctrl`+`.`) for two diagnostics: **RASK001** adds the `required`
   modifier to a property the generator already treats as a required factory parameter, and **RASK023**
