@@ -10,6 +10,14 @@ updates:
     commit-message:
       prefix: build
       include: scope
+    ignore:
+      # The Roslyn compiler API consumed by the source generators (Rask.Generators,
+      # Rask.Cqrs.Generators) must not exceed the compiler shipped with the build SDK — an
+      # analyzer that references a newer Roslyn than the running csc fails with CS9057, and it
+      # would raise the compiler floor for every downstream Rask consumer. Keep these pinned to
+      # the SDK's Roslyn version; bump them by hand alongside a global.json / SDK-band update.
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
     groups:
       microsoft-extensions:
         patterns:
