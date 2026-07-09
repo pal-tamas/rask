@@ -218,7 +218,29 @@ sandbox, and real background execution — without giving up "the same component
    scripts with a 30s backstop, Server skips them with a 5s timeout; reconciling changes error-boundary
    timing and needs its own pass) and file input/download (WASM JSExport pull vs Server `fetch` upload
    vs a not-yet-built native file bridge).
-4. **Showcase sample** — a `Rask.Example.Native` app under `samples/` that exercises the feature pages
-   end-to-end (Local + Server heads), so native is covered by the same showcase + E2E net as the other hosts.
+4. **Showcase sample + E2E** — ✅ *done (Native + Local).* `samples/Rask.Example.Native` mounts the
+   **same** `Rask.Example.Shared.App` showcase the Server and WASM hosts mount, onto a `NativeAppHost`
+   (see its `NativeExampleHost`). It's covered by the same Playwright E2E net **headlessly, with no
+   emulator**: `NativeExampleTests` (in `Rask.Examples.E2E.Tests`) drives the *real* `rask.native.js`
+   client + `RunLocalAsync` pipeline in Chromium (the WebView engine class Android ships) via a
+   Playwright-backed `INativeWebView` (`PlaywrightNativeWebView`) whose route handler
+   (`NativeOriginServer`) serves the shell + client + scoped `/_rask/a/*` assets + `global.css` +
+   Bootstrap — the E2E stand-in for a device head's scheme handler. The journey reuses the shared
+   showcase walks (rendering, in-SPA navigation, composition, lifecycle, scoped CSS/JS, elements,
+   CQRS, forms + keyboard, Bootstrap components, guides). It's a native shard in CI alongside
+   Server/WASM. **Two native traits surfaced by the E2E (tracked as item 6):** the native client
+   has no browser address bar, so route changes aren't pushed to browser history/URL (in-SPA nav
+   itself works; `SetQuery`/deep-link-URL and popstate assertions don't apply); and an interaction
+   that **awaits an `IJSRuntime` result inside an event handler** (element-ref focus, the
+   sessionStorage set/read demo) stalls — fire-and-forget scoped-JS interop (the `OnRendered` hooks
+   that populate `window.Rask`) works.
+   *(Native + Server needs no separate suite: in that mode the WebView loads a remote Rask Server and
+   speaks the ordinary Server (`rask.js`/WS) protocol — the native client isn't involved — so it's
+   already covered by `ServerExampleTests`; its only native-specific surface, the real platform
+   WebView, is a device-only concern.)*
 5. **Native device backends** — CoreLocation/Android geolocation, native share, biometrics, native push,
    behind the existing `Rask.Core.Browser` interfaces + new native-only ones.
+6. **In-process interop + history** — resolve the two traits item 4's E2E surfaced: let a handler
+   `await` an `IJSRuntime` result over the bridge (the `jsResult` reply must resume the awaiting
+   handler), and give the native host an in-app history/back-stack so URL-driven UI (the Todos
+   dialog, `Navigator.SetQuery`) and hardware Back work.

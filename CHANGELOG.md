@@ -8,6 +8,22 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Rask.Example.Native` showcase + headless native E2E.** The native host now sits under the same
+  showcase + E2E net as Server and WASM. `samples/Rask.Example.Native` mounts the *same*
+  `Rask.Example.Shared.App` onto a `NativeAppHost` (its `NativeExampleHost` composition root), and a new
+  `NativeExampleTests` E2E shard drives the **real** `rask.native.js` client + `RunLocalAsync` pipeline
+  in headless Chromium — no emulator — through a Playwright-backed `INativeWebView`
+  (`PlaywrightNativeWebView`) whose route handler (`NativeOriginServer`) serves the shell + client +
+  scoped `/_rask/a/*` assets + `global.css` + Bootstrap (the E2E stand-in for a device head's scheme
+  handler). The journey reuses the shared showcase walks — rendering, in-SPA navigation, composition,
+  lifecycle, scoped CSS/JS interop, elements, CQRS, forms + keyboard, Bootstrap components, guides. Two
+  native traits the E2E surfaced are tracked as follow-ups in `docs/native.md`: the native client
+  doesn't push routes to a browser address bar (in-SPA nav works; URL/history/popstate assertions
+  don't apply), and an interaction that *awaits* an `IJSRuntime` result inside a handler stalls over the
+  bridge (fire-and-forget scoped-JS interop works). A separate `NativeServerSmokeTests` shard covers the
+  **Native + Server** mode (`NativeAppHost.ConnectToServer`): it asserts the shell-URL contract and loads
+  the Server showcase in a mobile-emulated WebView context, confirming the thin-native-shell scenario
+  renders and reacts live over the WebSocket.
 - **`Rask.Native` — native mobile host (foundation).** A new host that runs a Rask app on iOS/Android
   inside a platform WebView, driven by the *same* render → diff → payload pipeline as the Server and WASM
   hosts (it subclasses `LiveSessionBase`). Two modes: **Native + Local** (`NativeAppHost.RunLocalAsync<App>`)
