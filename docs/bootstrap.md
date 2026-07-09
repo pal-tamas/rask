@@ -100,7 +100,10 @@ Every component below is driven entirely by Rask's live runtime — **no `bootst
 
 <!-- demo:bootstrap-toast -->
 
-**Forms** — `IFormControl<T>`-bound controls with built-in validation:
+**Forms** — `IFormControl<T>`-bound controls with built-in validation. `BsSelect<T>` renders a custom
+`.dropdown-menu` listbox by default — a single-select twin of `BsMultiSelect` (data-driven `Options` +
+`OptionLabel`, zero-JS live-diff open/close + click-outside backdrop, keyboard navigation and ARIA
+`combobox`/`listbox` roles); `Native: true` drops back to the plain OS `<select>` (handy on mobile):
 
 <!-- demo:bootstrap-forms -->
 
@@ -121,7 +124,7 @@ menu:
 
 <!-- demo:bootstrap-dropdown -->
 
-Every Bs `.dropdown-menu` popover — the pickers, `BsDropdown`, and `BsMultiSelect` — is re-anchored with
+Every Bs `.dropdown-menu` popover — the pickers, `BsDropdown`, `BsMultiSelect`, and `BsSelect` — is re-anchored with
 `position: fixed` while open by a tiny runtime helper (declarative, opt-in via `data-rask-popover`), so
 it escapes any `overflow: hidden/auto` ancestor (a card, a scroll region) instead of being clipped, and
 tracks the trigger on scroll/resize. The one exception is a browser rule, not a Rask bug: an ancestor

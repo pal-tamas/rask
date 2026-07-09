@@ -309,6 +309,30 @@ public abstract partial class SharedSmokeTests
         await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
         await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Single-select (BsSelect custom dropdown) — the same custom popover as BsMultiSelect but single
+        // value. The .form-select box (role=combobox) opens the .dropdown-menu listbox from Rask live-diff
+        // state (no bootstrap.js); the menu is re-anchored position:fixed by the same overflow-escape helper.
+        // Picking an option writes the bound model and re-renders the control (the chosen label shows in the
+        // box) with no StateHasChanged, then closes the menu. Component markup is unit-tested in BsSelectTests.
+        var plan = Page.Locator("#bs-plan");
+        await Expect(plan).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await plan.ClickAsync();
+        var planMenu = Page.Locator("#bs-plan-list.dropdown-menu.show");
+        await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal("fixed", await planMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await planMenu.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "Pro" }).First.ClickAsync();
+        await Expect(plan).ToContainTextAsync("Pro", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Native fallback (Native: true) renders a real OS <select> (data-fed from the same Options), so
+        // it degrades cleanly where the custom popover is unwanted (e.g. the native mobile host).
+        var tier = Page.Locator("select#bs-tier");
+        await Expect(tier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(tier.Locator("option")).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(tier.Locator("option").Filter(new LocatorFilterOptions { HasText = "Team" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
     }
 
     private async Task WalkUserComponentsGuideAsync()

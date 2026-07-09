@@ -29,6 +29,12 @@ them until tagged releases begin.
   follow-up; the host is preview / pre-1.0.
 
 ### Changed
+- **`Rask.Bootstrap` `BsSelect<T>` is now a custom dropdown by default, matching `BsMultiSelect`.** It
+  renders a `.form-select` combobox box that opens a zero-JS `.dropdown-menu` listbox (live-diff open/close,
+  click-outside backdrop, Esc/arrow-key navigation, ARIA `combobox`/`listbox` + `aria-activedescendant`),
+  the single-value twin of `BsMultiSelect`. Set `Native: true` to fall back to the plain OS `<select>`.
+  **Breaking:** options are now data-driven — pass `Options` (+ optional `OptionLabel`/`Placeholder`)
+  instead of `Option(...)` children: `BsSelect(() => model.Plan, plans, OptionLabel: p => p.Name)`.
 - **Conditional content now ships a diff instead of the whole page.** Toggling an element in or out
   (a validation message appearing, a "show details" panel, a row appended to a list) emits a positional
   `InsertSubtree`/`RemoveSubtree`. Previously *all* positional structural ops were untrusted and routed

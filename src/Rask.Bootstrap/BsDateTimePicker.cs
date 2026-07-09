@@ -96,8 +96,10 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
     };
 
     // Box the composed DateTime as the bound type (plain DateTime, or a DateTimeOffset preserving offset).
-    private object BoxValue(DateTime value, TimeSpan offset) =>
-        Underlying == typeof(DateTimeOffset)
+    // The target type comes from the accessor's real property type when bound (reflection — always the
+    // model's actual type), so the boxed value can never mismatch the property under reflection SetValue.
+    private static object BoxValue(DateTime value, TimeSpan offset, ExpressionAccessor.Accessor? acc) =>
+        TargetUnderlying(acc) == typeof(DateTimeOffset)
             ? new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Unspecified), offset)
             : value;
 
@@ -208,7 +210,7 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
     private Task WriteComposedAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
         DateOnly date, TimeOnly time, TimeSpan offset) =>
-        WriteBoxedAsync(acc, ctx, fid, BoxValue(ClampValue(date.ToDateTime(time)), offset));
+        WriteBoxedAsync(acc, ctx, fid, BoxValue(ClampValue(date.ToDateTime(time)), offset, acc));
 
     private DateOnly ClampCursor(DateOnly d)
     {

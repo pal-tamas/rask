@@ -24,7 +24,11 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     private protected bool Open;
 
     // A nullable T (DateOnly?/TimeOnly?/DateTime?) gets a clear affordance; a non-nullable one never does.
-    private protected static readonly bool CanClear = Nullable.GetUnderlyingType(typeof(T)) is not null;
+    // Computed fresh from typeof(T) on each read rather than cached in a `static readonly` field: under the
+    // Mono WASM AOT build a generic base's cached static initializer could resolve typeof(T) against the
+    // wrong instantiation (it surfaced as a DateTimeOffset boxed into a DateTime property — see Underlying),
+    // and a property re-resolves T in the correct runtime generic context every time.
+    private protected static bool CanClear => Nullable.GetUnderlyingType(typeof(T)) is not null;
 
     // A per-instance suffix so two id-less pickers (controlled mode, no Id, no bound property name) still
     // emit unique grid/cell ids — otherwise their aria-controls/aria-activedescendant would collide. Stable
@@ -36,8 +40,19 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     private protected string FallbackPrefix(string kind) =>
         $"{kind}{_instanceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
-    // The underlying (non-nullable) value type — DateOnly, TimeOnly, DateTime or DateTimeOffset.
-    private protected static readonly Type Underlying = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+    // The underlying (non-nullable) value type — DateOnly, TimeOnly, DateTime or DateTimeOffset. A property
+    // (not a `static readonly` field) so typeof(T) is resolved fresh: see the CanClear note — a cached
+    // static field mis-resolved under Mono WASM AOT and made BsDateTimePicker<DateTime> take the
+    // DateTimeOffset box branch, throwing "DateTimeOffset cannot be converted to DateTime" on write.
+    private protected static Type Underlying => Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+
+    // The non-nullable type actually targeted by a write: the bound property's real type (reflection —
+    // always correct) when bound, else typeof(T) for the controlled callback. Preferring the property type
+    // means the composed value is boxed to match the model even if a cached generic lookup were ever wrong.
+    private protected static Type TargetUnderlying(ExpressionAccessor.Accessor? acc) =>
+        acc is not null
+            ? Nullable.GetUnderlyingType(acc.PropertyType) ?? acc.PropertyType
+            : Underlying;
 
     // Display/parse culture. CurrentCulture drives month/weekday names and first-day-of-week; the bound
     // value still round-trips invariant ISO because we write the typed value, never a formatted string.
