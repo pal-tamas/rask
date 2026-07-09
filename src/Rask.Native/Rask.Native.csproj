@@ -35,6 +35,13 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
+    <!-- Rask.Core's package dependencies must be surfaced at THIS package boundary: Core is bundled with
+         PrivateAssets="all" (its DLL is packed into lib/ directly, not as a nuget dep), so its transitive
+         deps don't flow to consumers. Without these, a native app fails at runtime with FileNotFoundException
+         (e.g. Microsoft.JSInterop at NativeAppHost.CreateDefault). Mirrors Rask.Wasm/Rask.Server. -->
+    <PackageReference Include="Microsoft.JSInterop"/>
+    <PackageReference Include="Microsoft.Extensions.Primitives"/>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool"/>
     <!-- Rask.Core uses Microsoft.AspNetCore.Authorization (RouteAuthorizationGuard); surface it at
          the package boundary so native heads (no Microsoft.AspNetCore.App) can restore it. -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
