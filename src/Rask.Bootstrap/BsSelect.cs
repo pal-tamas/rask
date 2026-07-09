@@ -20,10 +20,10 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     // Shown in the trigger box (custom) / as a leading disabled option (native) when nothing is selected.
     public string? Placeholder { get; set; }
 
-    // The text each option is matched against when the user types to filter (contains, case-insensitive).
-    // Defaults to item?.ToString() — supply this when the searchable text isn't the item's ToString (e.g.
-    // OptionLabel renders a rich label): FilterText: p => p.Name.
-    public Func<TItem, string>? FilterText { get; set; }
+    // The predicate that decides whether an option matches the text typed into the dropdown's search field.
+    // Defaults to a case-insensitive contains on item?.ToString(); supply a custom one to match any field(s):
+    // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
+    public Func<TItem, string, bool>? Filter { get; set; }
 
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
@@ -92,10 +92,10 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         return Field(controlId, b, control);
     }
 
-    // The custom dropdown: a searchable .form-select combobox INPUT + a .dropdown-menu listbox +
-    // click-outside backdrop. Typing filters the options (contains, case-insensitive); the popover opens on
-    // focus. Assembled like BsMultiSelect so the label/help/invalid-feedback and Floating come out identical.
-    // Bound is taken by value (not `in`) so the box/menu event lambdas can capture it.
+    // The custom dropdown: a .form-select DISPLAY box (rich OptionLabel) that opens a .dropdown-menu listbox
+    // + click-outside backdrop. When a Filter predicate is supplied the menu grows a search field at the top
+    // (typing narrows the options); with no Filter it is a plain dropdown. Assembled like BsMultiSelect so
+    // label/help/invalid-feedback and Floating match. Bound is by value (not `in`) so lambdas can capture it.
     private Component RenderCustom(Bound b, string? controlId)
     {
         var opts = Options as IReadOnlyList<TItem> ?? Options.ToList();
@@ -105,20 +105,22 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         var selectedIdx = SelectedIndex(b, opts);
         var floating = Floating is true && Label is not null;
 
-        // While the user is typing (_filter set), show only options whose searchable text contains it.
-        var filtered = string.IsNullOrEmpty(_filter)
-            ? opts
-            : opts.Where(o => FilterOf(o).Contains(_filter, StringComparison.OrdinalIgnoreCase)).ToList();
+        // Filtering is opt-in: only a supplied Filter predicate shows the search field and narrows the list.
+        var searchable = Filter is not null;
+        var filtered = searchable && !string.IsNullOrEmpty(_filter)
+            ? opts.Where(o => Filter!(o, _filter)).ToList()
+            : opts;
 
-        // The input shows the live filter while typing, else the selected value's text (empty when none).
-        var selectedText = selectedIdx >= 0 ? FilterOf(opts[selectedIdx]) : string.Empty;
+        // The box shows the selected option's (rich) label, or the muted placeholder; blank while floating+empty.
+        Component? content = selectedIdx >= 0
+            ? LabelOf(opts[selectedIdx])
+            : floating ? null : Span(Class: "text-secondary")[Placeholder ?? "Select…"];
 
         var aria = new Dictionary<string, string?>
         {
             ["haspopup"] = "listbox",
             ["expanded"] = _open ? "true" : "false",
             ["controls"] = listId,
-            ["autocomplete"] = "list",
         };
         if (_open && _cursor >= 0 && _cursor < filtered.Count)
         {
@@ -137,23 +139,16 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         // sits left of the .form-select caret; the box gains right padding so the value never runs under it.
         var showClear = CanClear && selectedIdx >= 0 && !disabled;
 
-        // The box is a real text input now (searchable combobox): typing filters, focus opens.
-        var box = Input<string>(
-            Type: InputType.Text,
+        var box = Div(
             Class: BsClass.Join("form-select", showClear ? "bs-select-clearable" : null,
-                b.Invalid ? "is-invalid" : null),
+                b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null),
             Id: controlId,
-            Value: _filter ?? selectedText,
-            Placeholder: floating ? null : Placeholder ?? "Select…",
-            Disabled: Disabled,
-            Autocomplete: "off",
             Data: BsPopover.Anchor,
             Role: "combobox",
+            TabIndex: disabled ? null : 0,
             Aria: aria,
-            OnFocus: disabled ? null : () => _open = true,
-            OnClick: disabled ? null : () => _open = true,
-            OnInput: disabled ? null : raw => { _filter = raw; _cursor = 0; },
-            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, filtered, e));
+            OnClick: disabled ? null : () => Toggle(b, opts),
+            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, filtered, e))[content];
 
         var clear = showClear
             ? BsCloseButton(
@@ -162,8 +157,26 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
                 OnClickAsync: () => PickAsync(b, default!))
             : null;
 
-        var rows = new List<Component>();
-        if (filtered.Count == 0)
+        var rows = new List<Component?>();
+        // Opt-in search field pinned at the top of the menu — only rendered while open, so it autofocuses on
+        // open; its value is always the typed filter, so the client never fights it.
+        if (searchable && _open)
+        {
+            rows.Add(Div(Class: BsClass.Join("px-2", "pt-1", "pb-2"))[
+                Input<string>(
+                    Type: InputType.Text,
+                    Class: "form-control form-control-sm",
+                    Id: prefix + "-search",
+                    Value: _filter ?? string.Empty,
+                    Placeholder: "Search…",
+                    Autocomplete: "off",
+                    Autofocus: true,
+                    Aria: new Dictionary<string, string?> { ["label"] = "Search" },
+                    OnInput: raw => { _filter = raw; _cursor = 0; },
+                    OnKeyDownAsync: e => OnKeyAsync(b, filtered, e))]);
+        }
+
+        if (searchable && filtered.Count == 0)
         {
             rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
         }
@@ -243,7 +256,19 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         return Div(Class: BsClass.Join("dropdown", Class), Data: BsPopover.Wrapper)[children];
     }
 
-    private string FilterOf(TItem item) => FilterText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+    // Clicking the display box toggles the popover; opening seeds the keyboard cursor to the selected option.
+    private void Toggle(Bound b, IReadOnlyList<TItem> opts)
+    {
+        if (_open)
+        {
+            CloseAndReset();
+            return;
+        }
+
+        var s = SelectedIndex(b, opts);
+        _cursor = s >= 0 ? s : 0;
+        _open = true;
+    }
 
     private static string OptId(string prefix, int idx) =>
         prefix + "-opt-" + idx.ToString(CultureInfo.InvariantCulture);
@@ -279,10 +304,11 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     {
         if (!_open)
         {
-            if (e.Key is "ArrowDown" or "ArrowUp" or "Enter")
+            if (e.Key is "ArrowDown" or "ArrowUp" or "Enter" or " ")
             {
+                var s = SelectedIndex(b, filtered);
+                _cursor = s >= 0 ? s : 0;
                 _open = true;
-                _cursor = 0;
             }
 
             return;

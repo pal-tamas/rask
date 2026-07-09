@@ -22,16 +22,20 @@ public sealed class BsFormsDemo : Component
         _ => plan,
     };
 
+    private static string SeatLabel(int? n) => $"{n} seat{(n == 1 ? "" : "s")}";
+
     protected override Component? Render() =>
     [
         Form<Signup>(_model, m => _result = $"Welcome, {m.Name}!", Class: "vstack gap-3")[
             DataAnnotationsValidator(),
             BsInput(() => _model.Name, Label: "Name", Placeholder: "Jane Doe"),
             BsInput(() => _model.Email, Label: "Email", Type: InputType.Email, HelpText: "We never share it."),
-            BsSelect(() => _model.Plan, Plans, OptionLabel: p => PlanLabel(p),
+            // Searchable: a Filter predicate adds a search field in the dropdown that narrows the options.
+            BsSelect(() => _model.Plan, Plans, OptionLabel: p => Text(PlanLabel(p)),
+                Filter: (p, t) => PlanLabel(p).Contains(t, StringComparison.OrdinalIgnoreCase),
                 Placeholder: "— choose —", Label: "Plan", Floating: true, Id: "bs-plan"),
             // Nullable (int?) → an × clears it back to null; the null state shows the Placeholder.
-            BsSelect(() => _model.Seats, Seats, OptionLabel: n => $"{n} seat{(n == 1 ? "" : "s")}",
+            BsSelect(() => _model.Seats, Seats, OptionLabel: n => Text(SeatLabel(n)),
                 Placeholder: "Any", Label: "Seats (optional)", Id: "bs-seats"),
             BsSelect(() => _model.Tier, Plans, OptionLabel: p => PlanLabel(p), Native: true,
                 Label: "Tier (native <select>)", Id: "bs-tier"),

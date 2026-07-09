@@ -1,31 +1,30 @@
 namespace Rask.Bootstrap.Tests;
 
-// Rendered-HTML assertions for BsSelect (controlled mode). By default it renders a searchable custom
-// combobox — a .form-select-styled <input> that opens a .dropdown-menu listbox of role=option buttons
-// (typing filters them); Native: true drops to the plain native <select>. ToHtml() renders static markup
-// with the menu closed and no active filter, so an explicit Id keeps the option ids deterministic.
+// Rendered-HTML assertions for BsSelect (controlled mode). The custom box is a `.form-select` display
+// combobox `<div>` (showing the selected option's rich label, or a placeholder) that opens a `.dropdown-menu`
+// listbox of role=option buttons; supplying a Filter predicate adds a search field in the dropdown (only
+// present while open, so not in this static closed markup). Native: true drops to the plain `<select>`.
 public class BsSelectTests
 {
     [Fact]
-    public void Select_Empty_RendersComboboxInputAndOptionButtons()
+    public void Select_Empty_RendersComboboxBoxWithPlaceholderAndOptionButtons()
     {
         var html = BsSelect<string>(Options: ["a", "b"], Value: null, Id: "s").ToHtml();
         Assert.Contains(
-            "<input id=\"s\" class=\"form-select\" data-rask-anchor=\"\" role=\"combobox\" " +
-            "aria-haspopup=\"listbox\" aria-expanded=\"false\" aria-controls=\"s-list\" aria-autocomplete=\"list\" " +
-            "type=\"text\" value=\"\" placeholder=\"Select&#x2026;\" autocomplete=\"off\" />", html);
+            "<div id=\"s\" class=\"form-select\" data-rask-anchor=\"\" role=\"combobox\" tabindex=\"0\" " +
+            "aria-haspopup=\"listbox\" aria-expanded=\"false\" aria-controls=\"s-list\">" +
+            "<span class=\"text-secondary\">Select&#x2026;</span></div>", html);
         Assert.Contains(
             "<div id=\"s-list\" class=\"dropdown-menu\" role=\"listbox\">" +
-            "<button id=\"s-opt-0\" class=\"dropdown-item\" data-rask-key=\"0\" role=\"option\" type=\"button\">a</button>" +
-            "<button id=\"s-opt-1\" class=\"dropdown-item\" data-rask-key=\"1\" role=\"option\" type=\"button\">b</button>",
+            "<button id=\"s-opt-0\" class=\"dropdown-item\" data-rask-key=\"0\" role=\"option\" type=\"button\">a</button>",
             html);
     }
 
     [Fact]
-    public void Select_WithSelection_ShowsValueTextInInputAndMarksActiveOption()
+    public void Select_WithSelection_ShowsLabelInBoxAndMarksActiveOption()
     {
         var html = BsSelect<string>(Options: ["a", "b", "c"], Value: "b", Id: "s").ToHtml();
-        Assert.Contains("type=\"text\" value=\"b\"", html);
+        Assert.Contains("aria-controls=\"s-list\">b</div>", html);
         Assert.Contains(
             "<button id=\"s-opt-1\" class=\"dropdown-item active\" data-rask-key=\"1\" role=\"option\" " +
             "aria-selected=\"true\" type=\"button\">b</button>", html);
@@ -36,7 +35,7 @@ public class BsSelectTests
     {
         var html = BsSelect<string>(Options: [], Value: null, Label: "Plan", Placeholder: "Pick one", Id: "p").ToHtml();
         Assert.Contains("<label class=\"form-label\" for=\"p\">Plan</label>", html);
-        Assert.Contains("placeholder=\"Pick one\"", html);
+        Assert.Contains("<span class=\"text-secondary\">Pick one</span>", html);
     }
 
     [Fact]
@@ -46,14 +45,13 @@ public class BsSelectTests
             BsSelect<string>(Options: [], Value: null, Label: "Plan", Required: true, Id: "s").ToHtml());
 
     [Fact]
-    public void Select_Floating_WrapsInputAndLabelInFormFloatingWithNoPlaceholder()
+    public void Select_Floating_WrapsBoxAndLabelInFormFloatingWithBlankBox()
     {
-        // Float-only-when-filled: the empty input carries no placeholder attr (the label is the placeholder),
+        // Float-only-when-filled: the empty box carries no placeholder text (the label is the placeholder),
         // the wrapper is .form-floating.bs-floating, and .bs-floating-filled is absent.
         var html = BsSelect<string>(Options: [], Value: null, Label: "Plan", Floating: true, Id: "s").ToHtml();
         Assert.Contains("<div class=\"form-floating bs-floating position-relative\">", html);
-        Assert.DoesNotContain("placeholder=", html);
-        Assert.Contains("<label for=\"s\">Plan</label>", html);
+        Assert.Contains("aria-controls=\"s-list\"></div><label for=\"s\">Plan</label>", html);
     }
 
     [Fact]
@@ -63,20 +61,20 @@ public class BsSelectTests
             BsSelect<string>(Options: ["a"], Value: "a", Label: "Plan", Floating: true, Id: "s").ToHtml());
 
     [Fact]
-    public void Select_Disabled_DisablesInputAndOptions()
+    public void Select_Disabled_DropsInteractivityAndDisablesOptions()
     {
         var html = BsSelect<string>(Options: ["a"], Value: null, Disabled: true, Id: "s").ToHtml();
-        Assert.Contains("<input id=\"s\" class=\"form-select\"", html);
-        Assert.Contains("placeholder=\"Select&#x2026;\" disabled autocomplete=\"off\" />", html);
+        Assert.Contains("class=\"form-select disabled pe-none\"", html);
+        Assert.DoesNotContain("tabindex=\"0\"", html);
         Assert.Contains("role=\"option\" type=\"button\" disabled>a</button>", html);
     }
 
     [Fact]
     public void Select_NullableWithValue_ShowsClearButtonAndPadsBox()
     {
-        // A nullable (Nullable<T>) select with a value pads the input and adds the × clear (btn-close).
+        // A nullable (Nullable<T>) select with a value pads the box and adds the × clear (btn-close).
         var html = BsSelect<int?>(Options: new int?[] { 1, 2 }, Value: 2, Id: "s").ToHtml();
-        Assert.Contains("<input id=\"s\" class=\"form-select bs-select-clearable\"", html);
+        Assert.Contains("<div id=\"s\" class=\"form-select bs-select-clearable\"", html);
         Assert.Contains(
             "<button class=\"btn-close position-absolute top-50 translate-middle-y bs-select-clear\" " +
             "aria-label=\"Clear\" type=\"button\"></button>", html);

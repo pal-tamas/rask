@@ -33,22 +33,12 @@
 }
 .bs-select-clear {
   right: 2.25rem;
-  z-index: 4;
+  /* Above the open popover's full-screen backdrop (z-index 999) so it stays clickable while open. */
+  z-index: 1000;
 }
-
-/* BsMultiSelect inline search field — a borderless text input that sits after the chips inside the
-   .form-select box and grows to fill the row, so typing filters the options without a separate control. */
-.bs-multiselect-search {
-  border: 0;
-  outline: 0;
-  background: transparent;
-  padding: 0;
-  min-width: 4rem;
-  color: inherit;
-}
-.bs-multiselect-search:focus {
-  outline: 0;
-  box-shadow: none;
+/* The date/time pickers' clear (×) — same: keep it above the backdrop so an open picker can be cleared. */
+.bs-picker-clear {
+  z-index: 1000;
 }
 
 /* Floating labels for the custom div-based controls (BsSelect / BsMultiSelect / pickers). Bootstrap's own

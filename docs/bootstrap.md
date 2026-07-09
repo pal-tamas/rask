@@ -100,20 +100,23 @@ Every component below is driven entirely by Rask's live runtime — **no `bootst
 
 <!-- demo:bootstrap-toast -->
 
-**Forms** — `IFormControl<T>`-bound controls with built-in validation. `BsSelect<T>` renders a custom
-`.dropdown-menu` listbox by default — a single-select twin of `BsMultiSelect` (data-driven `Options` +
-`OptionLabel`, zero-JS live-diff open/close + click-outside backdrop, keyboard navigation and ARIA
-`combobox`/`listbox` roles); `Native: true` drops back to the plain OS `<select>` (handy on mobile):
+**Forms** — `IFormControl<T>`-bound controls with built-in validation. `BsSelect<T>` is a custom combobox —
+a `.form-select` display box (showing the option's rich `OptionLabel`) that opens a `.dropdown-menu` listbox
+(data-driven `Options` + `OptionLabel`). Pass a **`Filter` predicate** (`(item, text) => bool`) to add a
+**search field in the dropdown** that narrows the options as you type; a nullable binding gets an `×` clear.
+`BsMultiSelect<T>` is the same but multi-value, with the chosen items shown as chips (and the same opt-in
+`Filter`). Both are zero-JS live-diff, keyboard-navigable, ARIA `combobox`/`listbox`; `Native: true` drops
+`BsSelect` back to the plain OS `<select>` (handy on mobile):
 
 <!-- demo:bootstrap-forms -->
 
-**Date & time pickers** — `BsDatePicker<T>`/`BsTimePicker<T>`/`BsDateTimePicker<T>` open a custom
-calendar/clock **popover** (a month grid + hour/minute lists) driven entirely by Rask live-diff state —
-no `bootstrap.js`. They bind `DateOnly`/`TimeOnly`/`DateTime` (and their nullable + `DateTimeOffset`
-forms), are fully keyboard-navigable (arrows move a virtual cursor via `aria-activedescendant`,
-Page Up/Down change month, Enter selects, Esc closes) with ARIA grid roles, localize the weekday
-order/names and month label from `CultureInfo.CurrentCulture`, and constrain selection with
-`Min`/`Max`/`Disable`. A nullable value gets a clear (×) button; `Native: true` degrades to the native
+**Date & time pickers** — `BsDatePicker<T>`/`BsTimePicker<T>`/`BsDateTimePicker<T>` are **hand-editable**:
+the box is a text `<input>` you can type into (parsed live per keystroke in `CultureInfo.CurrentCulture`;
+a partial/invalid entry is kept, not reverted, and blur normalises it), and focusing it opens a custom
+calendar/clock **popover** (a month grid + hour/minute lists) driven entirely by Rask live-diff state — no
+`bootstrap.js`. They bind `DateOnly`/`TimeOnly`/`DateTime` (and their nullable + `DateTimeOffset` forms),
+localize the weekday order/names and month label from `CultureInfo.CurrentCulture`, and constrain selection
+with `Min`/`Max`/`Disable`. A nullable value gets a clear (×) button; `Native: true` degrades to the native
 `<input type=date|time|datetime-local>`:
 
 <!-- demo:bootstrap-pickers -->

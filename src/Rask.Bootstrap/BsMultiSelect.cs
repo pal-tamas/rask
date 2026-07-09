@@ -28,9 +28,10 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
-    // The text each option is matched against when the user types in the inline search field (contains,
-    // case-insensitive). Defaults to item?.ToString(); supply this when the searchable text isn't ToString.
-    public Func<TItem, string>? FilterText { get; set; }
+    // The predicate that decides whether an option matches the text typed into the dropdown's search field.
+    // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
+    // Filter: (t, text) => t.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
+    public Func<TItem, string, bool>? Filter { get; set; }
 
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
@@ -76,16 +77,17 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         Component LabelOf(TItem item) =>
             OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
 
-        // Filter the options as the user types in the inline search field (contains, case-insensitive).
-        var filtered = string.IsNullOrEmpty(_filter)
-            ? Options
-            : Options.Where(o => FilterOf(o).Contains(_filter, StringComparison.OrdinalIgnoreCase));
+        // Filtering is opt-in: only a supplied Filter predicate shows the dropdown's search field and narrows
+        // the options by what the user has typed.
+        var searchable = Filter is not null;
+        var filtered = searchable && !string.IsNullOrEmpty(_filter)
+            ? Options.Where(o => Filter!(o, _filter))
+            : Options;
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
         var hasChips = selected is not null && selected.Count > 0;
 
-        // The control box holds the selected chips (BsBadge + BsCloseButton) followed by an inline text
-        // input: typing filters, focus opens. When nothing is selected the input carries the placeholder.
+        // The control box holds the selected chips (BsBadge + BsCloseButton), or a placeholder when empty.
         var box = new List<Component>();
         if (hasChips)
         {
@@ -101,21 +103,29 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                 i++;
             }
         }
+        else
+        {
+            box.Add(Span(Class: "text-secondary")[Placeholder ?? "Select…"]);
+        }
 
-        box.Add(Input<string>(
-            Type: InputType.Text,
-            Class: BsClass.Join("bs-multiselect-search", "flex-grow-1"),
-            Value: _filter ?? string.Empty,
-            Placeholder: hasChips ? null : Placeholder ?? "Select…",
-            Disabled: Disabled,
-            Autocomplete: "off",
-            Aria: new Dictionary<string, string?> { ["label"] = Label ?? "Search" },
-            OnFocus: disabled ? null : () => _open = true,
-            OnInput: disabled ? null : raw => _filter = raw,
-            OnKeyDown: disabled ? null : OnBoxKeyDown));
+        var rows = new List<Component?>();
+        // Opt-in search field pinned at the top of the menu — only while open, so it autofocuses on open.
+        if (searchable && _open)
+        {
+            rows.Add(Div(Class: BsClass.Join("px-2", "pt-1", "pb-2"))[
+                Input<string>(
+                    Type: InputType.Text,
+                    Class: "form-control form-control-sm",
+                    Value: _filter ?? string.Empty,
+                    Placeholder: "Search…",
+                    Autocomplete: "off",
+                    Autofocus: true,
+                    Aria: new Dictionary<string, string?> { ["label"] = "Search" },
+                    OnInput: raw => _filter = raw,
+                    OnKeyDown: OnBoxKeyDown)]);
+        }
 
-        var rows = new List<Component>();
-        if (filteredList.Count == 0)
+        if (searchable && filteredList.Count == 0)
         {
             rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
         }
@@ -141,7 +151,10 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
                 Flex.Align(BsAlign.Center), Flex.Gap(1), disabled ? "disabled pe-none" : null),
             Data: BsPopover.Anchor,
-            OnClick: disabled ? null : () => _open = true)[box];
+            Role: "combobox",
+            TabIndex: disabled ? null : 0,
+            OnClick: disabled ? null : () => { _open = !_open; if (!_open) { _filter = null; } },
+            OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
 
         var floating = Floating is true && Label is not null;
         var labelNode = Label is null
@@ -190,8 +203,6 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             _filter = null;
         }
     }
-
-    private string FilterOf(TItem item) => FilterText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
     private async Task ToggleAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
