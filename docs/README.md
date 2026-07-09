@@ -26,6 +26,14 @@ interactive app. Want the pitch and a quick demo first? See the project [README]
 | [Migrating from Blazor](migration-from-blazor.md) | Concept mapping, behavioural gotchas, and what stays the same. |
 | [Building with AI assistants](ai-agents.md) | The `AGENTS.md` / `llms.txt` artifacts that let AI tools scaffold and extend Rask apps. |
 
+## Bootstrap components
+
+The optional `Rask.Bootstrap` package — typed Bootstrap 5.3 component factories, layered on top of core.
+
+| Guide | What it covers |
+|-------|----------------|
+| [Bootstrap components](bootstrap.md) | Typed Bootstrap 5.3 factories (`BsButton`/`BsCard`/`BsModal`/…), zero-JS interactive components, the searchable `BsSelect`/`BsMultiSelect` comboboxes (opt-in `Filter`), hand-editable date/time pickers, `IFormControl<T>` inputs, SPA-routed navigation, `BsIcon`, and typed utility classes. |
+
 ## Reference
 
 | Reference | What it covers |

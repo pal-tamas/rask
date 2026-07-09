@@ -529,7 +529,9 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
 
 **Multi-select.** `MultiSelect<TItem>` (and the `Rask.Bootstrap` `BsMultiSelect<T>`) binds an
 `ICollection<TItem>` through a dropdown of chips — bound and controlled, with checkbox and radio
-option renderings:
+option renderings. The single-value twin is `BsSelect<T>`: same data-driven API (`Options` +
+`OptionLabel`) and custom `.dropdown-menu` listbox (zero-JS, keyboard + ARIA `combobox`/`listbox`),
+binding one `TItem`; `Native: true` falls back to the plain OS `<select>`.
 
 <!-- demo:multi-select -->
 

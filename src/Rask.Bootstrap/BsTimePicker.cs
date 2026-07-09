@@ -31,8 +31,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
         var ctx = b.Context;
         var fid = b.Field;
 
-        var content = Span(Class: selected is null ? Txt.Muted : null)[
-            selected is { } t ? t.ToString("t", Culture) : Placeholder ?? Culture.DateTimeFormat.ShortTimePattern];
+        var formatted = selected is { } t ? t.ToString("t", Culture) : string.Empty;
 
         var boxAria = new Dictionary<string, string?>
         {
@@ -47,9 +46,9 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
                 minute => WriteTimeAsync(acc, ctx, fid, selected, null, minute))
         ];
 
-        return RenderShell(b, controlId, gridId, content, boxAria,
-            () => Open = !Open,
-            e => OnKeyAsync(acc, ctx, fid, selected, step, e),
+        return RenderShell(b, controlId, gridId, formatted, boxAria,
+            raw => ParseAsync(acc, ctx, fid, raw),
+            OnKeyAsync,
             selected is not null, popover,
             () => WriteBoxedAsync(acc, ctx, fid, null));
     }
@@ -57,40 +56,30 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
     private static TimeOnly? ReadTime(in Bound b) =>
         (object?)b.Current is TimeOnly t ? t : null;
 
-    private async Task OnKeyAsync(
-        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
-        TimeOnly? selected, int step, KeyboardEventArgs e)
+    // The box is an editable input; typing commits live, so keyboard here is just Escape/Enter to close.
+    private Task OnKeyAsync(KeyboardEventArgs e)
     {
-        if (!Open)
+        if (e.Key is "Escape" or "Enter")
         {
-            if (e.Key is "Enter" or " " or "ArrowDown")
-            {
-                Open = true;
-            }
-
-            return;
+            Open = false;
+            Text = null;
         }
 
-        var current = selected ?? new TimeOnly(0, 0);
-        switch (e.Key)
+        return Task.CompletedTask;
+    }
+
+    // Live per-keystroke parse of the typed text in the current culture; empty clears a nullable picker.
+    private Task ParseAsync(
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            case "Escape":
-            case "Enter":
-                Open = false;
-                break;
-            case "ArrowUp":
-                await WriteAsync(acc, ctx, fid, current.AddMinutes(step)).ConfigureAwait(false);
-                break;
-            case "ArrowDown":
-                await WriteAsync(acc, ctx, fid, current.AddMinutes(-step)).ConfigureAwait(false);
-                break;
-            case "PageUp":
-                await WriteAsync(acc, ctx, fid, current.AddHours(1)).ConfigureAwait(false);
-                break;
-            case "PageDown":
-                await WriteAsync(acc, ctx, fid, current.AddHours(-1)).ConfigureAwait(false);
-                break;
+            return CanClear ? WriteBoxedAsync(acc, ctx, fid, null) : Task.CompletedTask;
         }
+
+        return TimeOnly.TryParse(raw, Culture, out var t)
+            ? WriteBoxedAsync(acc, ctx, fid, t)
+            : Task.CompletedTask;
     }
 
     private Task WriteTimeAsync(
@@ -99,10 +88,7 @@ public sealed class BsTimePicker<T> : BsPickerBase<T>
     {
         var current = selected ?? new TimeOnly(0, 0);
         var next = new TimeOnly(hour ?? current.Hour, minute ?? current.Minute);
-        return WriteAsync(acc, ctx, fid, next);
+        Text = null;
+        return WriteBoxedAsync(acc, ctx, fid, next);
     }
-
-    private Task WriteAsync(
-        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, TimeOnly value) =>
-        WriteBoxedAsync(acc, ctx, fid, value);
 }
