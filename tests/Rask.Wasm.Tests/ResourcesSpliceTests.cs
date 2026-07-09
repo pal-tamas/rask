@@ -13,6 +13,8 @@ public sealed class ResourcesSpliceTests
         var eventsPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-events.js");
         var pwaPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-pwa.js");
         var wasmApiPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Resources", "rask-wasm-api.js");
+        var inputPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-input.js");
+        var scopedPath = Path.Combine(repoRoot, "src", "Rask.Core", "Resources", "rask-scoped.js");
         var browserPath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
 
         var template = File.ReadAllText(templatePath);
@@ -22,19 +24,25 @@ public sealed class ResourcesSpliceTests
         var events = File.ReadAllText(eventsPath);
         var pwa = File.ReadAllText(pwaPath);
         var wasmApi = File.ReadAllText(wasmApiPath);
+        var input = File.ReadAllText(inputPath);
+        var scoped = File.ReadAllText(scopedPath);
         var committed = File.ReadAllText(browserPath);
 
         // Mirror the marker splice order in _RaskSpliceClientJs (Rask.Wasm.csproj): the diff codec
         // (rask-dom.js), the full-HTML morph (rask-morph.js), the shared interop helpers (rask-api.js),
-        // the extended event delegation (rask-events.js), the transport-agnostic PWA helpers (rask-pwa.js —
-        // shared with the Server client), then the WASM-only helpers (rask-wasm-api.js).
+        // the extended event delegation + keyboard/drag (rask-events.js), the transport-agnostic PWA
+        // helpers (rask-pwa.js — shared with the Server client), the WASM-only helpers (rask-wasm-api.js),
+        // then the shared rAF input/scroll coalescing (rask-input.js) and scoped-CSS FOUC gating
+        // (rask-scoped.js) — the last two shared with rask.js + rask.native.js.
         var spliced = template
             .Replace("// @@RASK_DOM@@", dom)
             .Replace("// @@RASK_MORPH@@", morph)
             .Replace("// @@RASK_API@@", api)
             .Replace("// @@RASK_EVENTS@@", events)
             .Replace("// @@RASK_PWA@@", pwa)
-            .Replace("// @@RASK_WASM_API@@", wasmApi);
+            .Replace("// @@RASK_WASM_API@@", wasmApi)
+            .Replace("// @@RASK_INPUT@@", input)
+            .Replace("// @@RASK_SCOPED@@", scoped);
 
         Assert.True(
             spliced == committed,

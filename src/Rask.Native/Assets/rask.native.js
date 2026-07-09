@@ -1984,6 +1984,88 @@ function morph(from, to) {
 }
 
 
+// ----- Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
+//       preloadNewHeadStylesheets (full-HTML path) — Rask.Core/Resources/rask-scoped.js -----
+// rask-scoped.js — scoped-CSS FOUC (flash-of-unstyled-content) gating, shared by all three clients.
+//
+// Spliced (at "// @@RASK_SCOPED@@") into the Server runtime (rask.js), the WASM runtime
+// (rask.wasm.js) and the native runtime (rask.native.js). A newly mounted component ships its
+// scoped stylesheet as a keyed <link href="/_rask/a/{hash}.css" data-rask-key="rsk-…">; without
+// this gate the swapped body paints before that just-inserted sheet parses + applies, flashing
+// unstyled. Both entry points return a Promise the host chains its render commit on (or null when
+// there's nothing new to wait for, preserving today's single-pass timing).
+//
+// Relies only on the global `document` + standard timers — no transport coupling. Modern-ES
+// (const/let/arrow), matching rask-dom.js / rask-morph.js. No export/import, no backslash regex.
+//
+// NOTE: the scoped-JS `Rask.*` invoke gate (trackHeadAsset / ensureRaskNamespacePoll /
+// beginInvokeJS deferral) is deliberately NOT here — it has genuinely diverged between the Server
+// (skips rsk- assets, 5s timeout) and WASM (tracks rsk- scripts, 30s backstop) hosts, so it stays
+// inline per host until a dedicated reconciliation pass. See docs/native.md roadmap.
+
+// Hard cap on how long a render defers the body swap waiting for a newly mounted page's scoped
+// stylesheet to apply. A warm, content-addressed /_rask/a/{hash}.css load resolves in a few ms;
+// the cap only ever applies to a genuinely slow/failed sheet, where we'd rather show the (briefly
+// unstyled) page than stall navigation.
+const CSS_FOUC_GUARD_MS = 500;
+
+// Return a Promise that resolves once every <head> stylesheet still being applied has
+// reached a terminal state (load / error / CSS_FOUC_GUARD_MS timeout), or null when
+// there's nothing to wait for. The readiness signal is the <link>'s .sheet property —
+// non-null only once the CSSOM stylesheet has been parsed and APPLIED. We deliberately
+// do NOT use Resource Timing (responseEnd): the eager <link rel="prefetch"> warms the
+// HTTP cache and creates a timing entry, but bytes downloaded is not the same as a
+// stylesheet applied — trusting it would skip the wait and reintroduce the very flash
+// prefetch is meant to remove. A link already applied (kept across renders, or just
+// resolved) has a non-null .sheet and is skipped; a freshly inserted one has
+// .sheet === null and is awaited (its load fires within ~1 frame on warm cache).
+function waitForUnappliedHeadCss() {
+    const pending = [];
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+        if (!l.href || l.sheet) return;
+        pending.push(new Promise((resolve) => {
+            const done = () => resolve();
+            l.addEventListener("load", done, {once: true});
+            l.addEventListener("error", done, {once: true});
+            setTimeout(done, CSS_FOUC_GUARD_MS);
+        }));
+    });
+    return pending.length ? Promise.all(pending) : null;
+}
+
+// FOUC guard for the full-document path. A full reply morphs <head> and the styled <body> in one
+// pass, so a newly mounted component's scoped <link> would be inserted alongside the body it styles
+// — and the body paints before the just-inserted sheet parses + applies. Pre-empt it: for every NEW
+// scoped stylesheet the incoming document adds to <head> (keyed by data-rask-key, so not already
+// live), append a clone NOW and return a Promise that resolves once each has applied (.sheet) —
+// load / error / CSS_FOUC_GUARD_MS timeout. The subsequent morph matches each clone to the incoming
+// <link> by key (keyed reconciliation), so it's kept rather than duplicated, and the body it morphs
+// in paints already-styled. Only keyed scoped links are preloaded — render-blocking globals (no
+// data-rask-key) are already applied. Returns null when the document adds no new scoped stylesheet
+// (the common case), so a navigation that mounts nothing new keeps today's single-pass, no-wait timing.
+function preloadNewHeadStylesheets(freshHtml) {
+    const freshHead = freshHtml.querySelector("head");
+    if (!freshHead) return null;
+    const liveKeys = {};
+    document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
+        liveKeys[l.getAttribute("data-rask-key")] = true;
+    });
+    const pending = [];
+    freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
+        if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
+        const clone = fl.cloneNode(true);
+        document.head.appendChild(clone);
+        pending.push(new Promise((resolve) => {
+            const done = () => resolve();
+            clone.addEventListener("load", done, {once: true});
+            clone.addEventListener("error", done, {once: true});
+            setTimeout(done, CSS_FOUC_GUARD_MS);
+        }));
+    });
+    return pending.length ? Promise.all(pending) : null;
+}
+
+
 // The "#fragment" of an intercepted nav-link click is stashed here on click and consumed on the
 // matching push reply (scroll to the anchor, else the top). Kept for parity with the other clients.
 let _pendingScrollHash = "";
@@ -2005,11 +2087,12 @@ function inRoot(el) {
 // Model: one capture-phase document listener per event routes to the nearest ancestor carrying
 // `data-rask-on-<event>`, then ships a per-category JSON payload tagged with that element's handler id.
 // Capture phase is used so non-bubbling events (focus/blur) still reach the delegated listener. Click,
-// scroll, keydown/keyup, the four core drag events, input/change/submit keep their own dedicated
-// listeners in each host — this file covers everything else (mouse, pointer, touch, wheel, focus,
-// clipboard, the remaining drag/form events, and the HTMLMediaElement events). Kept ES5 (var/function)
-// because it is spliced verbatim into both hosts. Written defensively: every builder tolerates a
-// partial event object.
+// scroll and input/change/submit keep their own dedicated listeners in each host (their coalescing /
+// form / file behaviour is host-specific) — this file covers everything else: mouse, pointer, touch,
+// wheel, focus, clipboard, the HTMLMediaElement events, AND (see the tail of this file) keyboard
+// (keydown/keyup) + the four core drag events (dragstart/dragover/drop/dragend), which used to be
+// hand-copied into each host. Kept ES5 (var/function) because it is spliced verbatim into all three
+// hosts. Written defensively: every builder tolerates a partial event object.
 
 // --- Per-category payload builders. Each maps a DOM event to the flat object its C# *EventArgs.FromJson
 //     reads. Keys mirror the DOM property names so the readers stay one-liners. ---
@@ -2139,6 +2222,75 @@ raskEnterLeave("mouseout", "mouseleave", raskMouse);
 raskEnterLeave("pointerover", "pointerenter", raskPointer);
 raskEnterLeave("pointerout", "pointerleave", raskPointer);
 
+// ----- Drag & drop -----------------------------------------------------------
+// HTML5 native DnD bound to parameterless C# handlers (same dispatch path as click). The dragged
+// item's identity rides the handler's closure, not the payload, so messages carry only {id,type}.
+// dragstart seeds dataTransfer so the drag is valid in Firefox; dragover must preventDefault on a
+// drop target or the browser rejects the drop. The optional data-rask-on-dragover round-trip
+// drives a server-rendered drop-target highlight — deduped to one message per hovered element.
+// (drag/dragenter/dragleave are covered by the parameterless table above.)
+var lastDragOverEl = null;
+
+document.addEventListener("dragstart", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-dragstart]") : null;
+    if (!t || !inRoot(t)) { return; }
+    if (e.dataTransfer) {
+        try {
+            e.dataTransfer.setData("text/plain", "");
+        } catch (err) { /* some browsers throw if setData is disallowed — ignore */ }
+        e.dataTransfer.effectAllowed = "move";
+    }
+    lastDragOverEl = null;
+    send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
+});
+
+document.addEventListener("dragover", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]") : null;
+    if (!t || !inRoot(t)) { return; }
+    // preventDefault is what marks this element as a valid drop target.
+    e.preventDefault();
+    if (e.dataTransfer) { e.dataTransfer.dropEffect = "move"; }
+    if (!t.hasAttribute("data-rask-on-dragover")) { return; }
+    if (t === lastDragOverEl) { return; } // dedupe: only notify when the hovered target changes
+    lastDragOverEl = t;
+    send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
+});
+
+document.addEventListener("drop", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-drop]") : null;
+    if (!t || !inRoot(t)) { return; }
+    e.preventDefault();
+    lastDragOverEl = null;
+    send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
+});
+
+document.addEventListener("dragend", function (e) {
+    lastDragOverEl = null;
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-dragend]") : null;
+    if (!t || !inRoot(t)) { return; }
+    send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
+});
+
+// ----- Keyboard --------------------------------------------------------------
+// keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped, like click).
+// Never preventDefault — a key handler composes with normal typing; the C# side decides what a key
+// means. flushInputsNow() first (when present — rask-input.js is spliced ahead of this file) so an
+// Enter-to-submit handler reads the value the user just typed, not the pre-flush one. Modifier flags
+// + repeat ride along for shortcuts.
+function raskSendKey(e, attr, type) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[" + attr + "]") : null;
+    if (!t || !inRoot(t)) { return; }
+    if (typeof flushInputsNow === "function") { flushInputsNow(); }
+    send({
+        id: t.getAttribute(attr), type: type,
+        key: e.key, code: e.code, repeat: e.repeat,
+        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+    });
+}
+
+document.addEventListener("keydown", function (e) { raskSendKey(e, "data-rask-on-keydown", "keydown"); });
+document.addEventListener("keyup", function (e) { raskSendKey(e, "data-rask-on-keyup", "keyup"); });
+
 
 // ----- Native transport primitives ------------------------------------------------------------
 
@@ -2197,23 +2349,47 @@ function dispatchNativeInvoke(inv) {
 }
 
 function applyDiffReply(reply) {
+    // Morph <head> FIRST so a newly mounted component's scoped <link> is present, then defer the
+    // body ops until that stylesheet applies (waitForUnappliedHeadCss) so the swapped body never
+    // paints unstyled (FOUC) — the same gating rask.js / rask.wasm.js do. Returns the wait Promise
+    // so _renderQueue holds the next frame until the body has committed.
+    const applyBody = () => {
+        applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
+        applyFrameInvokes(reply, dispatchNativeInvoke);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    };
     if (typeof reply.head === "string") {
         const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
-        if (freshHead) morph(document.head, freshHead);
+        if (freshHead) {
+            morph(document.head, freshHead);
+            const wait = waitForUnappliedHeadCss();
+            if (wait) return wait.then(applyBody);
+        }
     }
-    applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
-    applyFrameInvokes(reply, dispatchNativeInvoke);
-    if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    return applyBody();
 }
 
 function applyFullReply(reply) {
+    let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
-        const doc = new DOMParser().parseFromString(reply.html, "text/html");
-        morph(document.documentElement, doc.documentElement);
-        root = document.querySelector("[data-rask-root]") || document.body;
+        freshHtml = new DOMParser().parseFromString(reply.html, "text/html").documentElement;
     }
-    applyFrameInvokes(reply, dispatchNativeInvoke);
-    if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    // FOUC guard: preload + await any new scoped stylesheet the incoming document adds so the morph
+    // paints the styled body only once its sheet has applied (preloadNewHeadStylesheets). Returns
+    // null — commit synchronously at today's timing — when the render mounts no new scoped CSS.
+    const applyDom = () => {
+        if (freshHtml) {
+            morph(document.documentElement, freshHtml);
+            root = document.querySelector("[data-rask-root]") || document.body;
+        }
+        applyFrameInvokes(reply, dispatchNativeInvoke);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    };
+    if (freshHtml) {
+        const wait = preloadNewHeadStylesheets(freshHtml);
+        if (wait) return wait.then(applyDom);
+    }
+    return applyDom();
 }
 
 // ----- Primary event handlers (ported from rask.wasm.js) --------------------------------------
@@ -2226,33 +2402,135 @@ document.addEventListener("click", function (e) {
         e.preventDefault();
         const url = new URL(link.href, document.baseURI);
         _pendingScrollHash = url.hash || "";
+        if (typeof flushInputsNow === "function") flushInputsNow();
         send({ type: "navigate", path: url.pathname, query: url.search, replace: false });
         return;
     }
     const el = e.target && e.target.closest ? e.target.closest("[data-rask-on-click]") : null;
     if (!el || !inRoot(el)) return;
+    if (typeof flushInputsNow === "function") flushInputsNow();
     send({
         id: el.getAttribute("data-rask-on-click"), type: "click",
         shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
     });
 });
 
-// Input / change — report the control's value.
+// Input & scroll — rAF-coalesced dispatch shared with rask.js / rask.wasm.js (rask-input.js). This
+// provides the `input` + `scroll` listeners and flushInputsNow(); the change/submit/click handlers
+// flush through it so the host processes a pending coalesced input before the dependent action.
+// flushInputsNow is a hoisted function, so the keyboard handler spliced above (@@RASK_EVENTS@@) can
+// call it regardless of splice order.
+// rask-input.js — rAF-coalesced input & scroll dispatch, shared by all three client runtimes.
+//
+// Spliced (at "// @@RASK_INPUT@@") into the Server runtime (rask.js), the WASM runtime
+// (rask.wasm.js) and the native runtime (rask.native.js) so the three clients can never drift.
+// It relies only on three symbols every host defines in the surrounding scope: `send(payload)`,
+// `inRoot(el)` and the global `document` (plus the standard requestAnimationFrame/
+// cancelAnimationFrame). This module MUST be spliced BEFORE rask-events.js, whose keyboard handler
+// calls flushInputsNow().
+//
+// Written in modern-ES (const/let/arrow), matching rask-dom.js / rask-morph.js — the other shared
+// modules already spliced into all three hosts. No export/import, no backslash regex literals (the
+// splice is a raw string .Replace).
+
+// Input events fire per keystroke — on fast typing that's 5–10 messages over the
+// transport per second per input. Coalesce per-element with rAF: the same element typed into
+// multiple times within one frame produces a single outgoing message carrying the latest value
+// at flush time. The element itself is the de-duping key — multiple inputs in the same frame
+// each get one message. flushInputsNow() is called at the top of every other event handler
+// (change, submit, click, navigate, keydown) so the host always processes input events before
+// the subsequent action that depends on them — without this, a change event triggered
+// immediately after typing reaches the host BEFORE the coalesced input, and any validator the
+// change kicks off reads the stale model value.
+const inputPending = new Set();
+let inputRaf = 0;
+
+function flushInputs() {
+    inputRaf = 0;
+    inputPending.forEach((el) => {
+        if (!el.isConnected) return;
+        const id = el.getAttribute("data-rask-on-input");
+        if (!id) return;
+        send({id, type: "input", value: el.value});
+    });
+    inputPending.clear();
+}
+
+function flushInputsNow() {
+    if (inputRaf) {
+        cancelAnimationFrame(inputRaf);
+        inputRaf = 0;
+    }
+    if (inputPending.size > 0) flushInputs();
+}
+
+function queueInput(el) {
+    inputPending.add(el);
+    if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
+}
+
+document.addEventListener("input", (e) => {
+    const t = e.target.closest("[data-rask-on-input]");
+    if (!t || !inRoot(t)) return;
+    // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the change
+    // event typically fires in the same task (Playwright fill, browser commit on blur),
+    // and a downstream validator triggered by change reads the model state set by the
+    // matching input. Coalescing the input would put the change event ahead of it on
+    // the .NET dispatcher and the validator would observe stale state. Only standalone
+    // input handlers (no change wired) get the rAF coalescing win.
+    if (t.hasAttribute("data-rask-on-change")) {
+        send({id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value});
+        return;
+    }
+    queueInput(t);
+});
+
+// scroll events don't bubble — listen in capture phase at the document level so we
+// observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
+// rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
+const scrollPending = new Set();
+let scrollRaf = 0;
+
+function flushScroll() {
+    scrollRaf = 0;
+    scrollPending.forEach((el) => {
+        if (!el.isConnected) return;
+        const id = el.getAttribute("data-rask-on-scroll");
+        if (!id) return;
+        send({
+            id,
+            type: "scroll",
+            scrollTop: el.scrollTop | 0,
+            clientHeight: el.clientHeight | 0,
+            scrollHeight: el.scrollHeight | 0
+        });
+    });
+    scrollPending.clear();
+}
+
+document.addEventListener("scroll", (e) => {
+    const t = e.target;
+    if (!t || t.nodeType !== 1) return;
+    if (!t.hasAttribute || !t.hasAttribute("data-rask-on-scroll")) return;
+    if (!inRoot(t)) return;
+    scrollPending.add(t);
+    if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll);
+}, true);
+
+
+// Change — report the control's value (checkbox → checked). Flush any pending coalesced input first
+// so a change-triggered validator reads the freshly-typed value, not the pre-flush one.
 function valueOf(el) {
     if (el.type === "checkbox") return el.checked ? "true" : "false";
     return el.value == null ? "" : String(el.value);
 }
-document.addEventListener("input", function (e) {
-    const el = e.target;
-    if (!el || !el.getAttribute) return;
-    const id = el.getAttribute("data-rask-on-input");
-    if (id && inRoot(el)) send({ id: id, type: "input", value: valueOf(el) });
-});
 document.addEventListener("change", function (e) {
     const el = e.target;
     if (!el || !el.getAttribute) return;
     const id = el.getAttribute("data-rask-on-change");
-    if (id && inRoot(el)) send({ id: id, type: "change", value: valueOf(el) });
+    if (!id || !inRoot(el)) return;
+    if (typeof flushInputsNow === "function") flushInputsNow();
+    send({ id: id, type: "change", value: valueOf(el) });
 });
 
 // Submit — serialize the form fields into a flat { name: value } bag.
@@ -2262,6 +2540,7 @@ document.addEventListener("submit", function (e) {
     const id = form.getAttribute("data-rask-on-submit");
     if (!id || !inRoot(form)) return;
     e.preventDefault();
+    if (typeof flushInputsNow === "function") flushInputsNow();
     const data = {};
     const fd = new FormData(form);
     fd.forEach(function (v, k) { if (typeof v === "string") data[k] = v; });
