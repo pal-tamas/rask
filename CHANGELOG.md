@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Rask.Native` — native mobile host (foundation).** A new host that runs a Rask app on iOS/Android
+  inside a platform WebView, driven by the *same* render → diff → payload pipeline as the Server and WASM
+  hosts (it subclasses `LiveSessionBase`). Two modes: **Native + Local** (`NativeAppHost.RunLocalAsync<App>`)
+  runs the app in-process on the device for an offline, store-distributable app; **Native + Server**
+  (`NativeAppHost.ConnectToServer`) points the WebView at a remote Rask Server over `wss://`. The platform
+  WebView is abstracted behind the `INativeWebView` bridge (implemented per-platform in the app head), so
+  the library builds and unit-tests on plain `net10.0` with no iOS/Android SDK workloads. Ships the native
+  client dialect `rask.native.js` (the shared diff/morph/interop modules spliced with a native transport
+  shim) and the boot shell. This release lays the transport-agnostic foundation; the platform app heads
+  (`WKWebView` / Android `WebView`), the `dotnet new rask-native` template, the sample, and native
+  device-API backends land in follow-ups. See `docs/native.md`.
+
 ### Changed
 - **Conditional content now ships a diff instead of the whole page.** Toggling an element in or out
   (a validation message appearing, a "show details" panel, a row appended to a list) emits a positional
