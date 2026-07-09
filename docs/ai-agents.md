@@ -6,14 +6,14 @@ Rask app correctly without you re-explaining the conventions.
 ## What's included
 
 - **`AGENTS.md`** — every project created with `dotnet new rask-server | rask-wasm |
-  rask-wasm-hosted` contains an `AGENTS.md` at its root. It's the cross-tool standard most AI
+  rask-wasm-hosted | rask-native` contains an `AGENTS.md` at its root. It's the cross-tool standard most AI
   coding assistants read automatically; it captures the rules that make Rask code compile
   (factories not `new`, the children indexer, factory-param props, the full-shell root,
   routing/lifecycle, scoped CSS/JS, callbacks, forms, auth).
 - **`llms.txt`** (repo root) — the emerging standard index that points AI tools at the docs.
 - **The `docs/` set** — a task guide for each subsystem (getting-started, elements & the DSL, routing,
   lifecycle, composition, forms, js-interop, browser APIs, authentication, data access, HTTP & files,
-  PWA, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the
+  PWA, native mobile, CQRS, diagnostics, testing, … — the full curated list is in the on-site guides index) plus the
   optional `Rask.Bootstrap` reference (`docs/bootstrap.md`: typed Bootstrap 5.3 components, zero-JS
   interactivity, typed utility classes). Each guide embeds its examples as live demos, so the source
   a user reads on GitHub and the running showcase stay in lockstep.
