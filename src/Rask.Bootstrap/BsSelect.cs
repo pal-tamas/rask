@@ -20,13 +20,20 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     // Shown in the trigger box (custom) / as a leading disabled option (native) when nothing is selected.
     public string? Placeholder { get; set; }
 
+    // The text each option is matched against when the user types to filter (contains, case-insensitive).
+    // Defaults to item?.ToString() — supply this when the searchable text isn't the item's ToString (e.g.
+    // OptionLabel renders a rich label): FilterText: p => p.Name.
+    public Func<TItem, string>? FilterText { get; set; }
+
     // Opt out of the custom popover and render the native <select> instead. Guarantees a working control
     // (and the OS picker on mobile) where the custom UI is unwanted.
     public bool? Native { get; set; }
 
-    // Selection lives in the bound model / controlled Value; these are pure live-diff view state.
+    // Selection lives in the bound model / controlled Value; these are pure live-diff view state. _filter is
+    // the text the user is currently typing to search (null when not editing → the box shows the value).
     private bool _open;
     private int _cursor;
+    private string? _filter;
 
     private static readonly IEqualityComparer<TItem> Comparer = EqualityComparer<TItem>.Default;
     private static readonly IReadOnlyDictionary<string, string?> SelectedAria =
@@ -85,8 +92,9 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         return Field(controlId, b, control);
     }
 
-    // The custom dropdown: a .form-select combobox box + a .dropdown-menu listbox + click-outside backdrop,
-    // assembled like BsMultiSelect (so the label/help/invalid-feedback and Floating come out identical).
+    // The custom dropdown: a searchable .form-select combobox INPUT + a .dropdown-menu listbox +
+    // click-outside backdrop. Typing filters the options (contains, case-insensitive); the popover opens on
+    // focus. Assembled like BsMultiSelect so the label/help/invalid-feedback and Floating come out identical.
     // Bound is taken by value (not `in`) so the box/menu event lambdas can capture it.
     private Component RenderCustom(Bound b, string? controlId)
     {
@@ -97,19 +105,22 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         var selectedIdx = SelectedIndex(b, opts);
         var floating = Floating is true && Label is not null;
 
-        // Floating shows the label as the in-box placeholder while empty, so the box itself stays blank
-        // (no separate placeholder text); otherwise a muted placeholder span fills the empty box.
-        Component? content = selectedIdx >= 0
-            ? LabelOf(opts[selectedIdx])
-            : floating ? null : Span(Class: "text-secondary")[Placeholder ?? "Select…"];
+        // While the user is typing (_filter set), show only options whose searchable text contains it.
+        var filtered = string.IsNullOrEmpty(_filter)
+            ? opts
+            : opts.Where(o => FilterOf(o).Contains(_filter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        // The input shows the live filter while typing, else the selected value's text (empty when none).
+        var selectedText = selectedIdx >= 0 ? FilterOf(opts[selectedIdx]) : string.Empty;
 
         var aria = new Dictionary<string, string?>
         {
             ["haspopup"] = "listbox",
             ["expanded"] = _open ? "true" : "false",
             ["controls"] = listId,
+            ["autocomplete"] = "list",
         };
-        if (_open && _cursor >= 0 && _cursor < opts.Count)
+        if (_open && _cursor >= 0 && _cursor < filtered.Count)
         {
             aria["activedescendant"] = OptId(prefix, _cursor);
         }
@@ -126,16 +137,23 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         // sits left of the .form-select caret; the box gains right padding so the value never runs under it.
         var showClear = CanClear && selectedIdx >= 0 && !disabled;
 
-        var box = Div(
+        // The box is a real text input now (searchable combobox): typing filters, focus opens.
+        var box = Input<string>(
+            Type: InputType.Text,
             Class: BsClass.Join("form-select", showClear ? "bs-select-clearable" : null,
-                b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null),
+                b.Invalid ? "is-invalid" : null),
             Id: controlId,
+            Value: _filter ?? selectedText,
+            Placeholder: floating ? null : Placeholder ?? "Select…",
+            Disabled: Disabled,
+            Autocomplete: "off",
             Data: BsPopover.Anchor,
             Role: "combobox",
-            TabIndex: disabled ? null : 0,
             Aria: aria,
-            OnClick: disabled ? null : () => Toggle(b, opts),
-            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, opts, e))[content];
+            OnFocus: disabled ? null : () => _open = true,
+            OnClick: disabled ? null : () => _open = true,
+            OnInput: disabled ? null : raw => { _filter = raw; _cursor = 0; },
+            OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, filtered, e));
 
         var clear = showClear
             ? BsCloseButton(
@@ -145,20 +163,27 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             : null;
 
         var rows = new List<Component>();
-        for (var i = 0; i < opts.Count; i++)
+        if (filtered.Count == 0)
         {
-            var idx = i;
-            var item = opts[i];
-            var isSelected = idx == selectedIdx;
-            rows.Add(Button(
-                Type: "button",
-                Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
-                Id: OptId(prefix, idx),
-                Role: "option",
-                Aria: isSelected ? SelectedAria : null,
-                Disabled: Disabled,
-                Key: idx,
-                OnClickAsync: disabled ? null : () => PickAsync(b, item))[LabelOf(item)]);
+            rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
+        }
+        else
+        {
+            for (var i = 0; i < filtered.Count; i++)
+            {
+                var idx = i;
+                var item = filtered[i];
+                var isSelected = b.Current is not null && Comparer.Equals(item, b.Current);
+                rows.Add(Button(
+                    Type: "button",
+                    Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
+                    Id: OptId(prefix, idx),
+                    Role: "option",
+                    Aria: isSelected ? SelectedAria : null,
+                    Disabled: Disabled,
+                    Key: idx,
+                    OnClickAsync: disabled ? null : () => PickAsync(b, item))[LabelOf(item)]);
+            }
         }
 
         var menu = Div(
@@ -202,7 +227,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             children.Add(Div(
                 Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0, Sizing.W(100), Sizing.H(100)),
                 Style: "z-index: 999;",
-                OnClick: () => _open = false));
+                OnClick: CloseAndReset));
         }
 
         if (HelpText is not null)
@@ -217,6 +242,8 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
 
         return Div(Class: BsClass.Join("dropdown", Class), Data: BsPopover.Wrapper)[children];
     }
+
+    private string FilterOf(TItem item) => FilterText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
     private static string OptId(string prefix, int idx) =>
         prefix + "-opt-" + idx.ToString(CultureInfo.InvariantCulture);
@@ -239,28 +266,23 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         return -1;
     }
 
-    private void Toggle(Bound b, IReadOnlyList<TItem> opts)
+    // Closes the popover and drops the in-progress filter so the box reverts to the selected value's text.
+    private void CloseAndReset()
     {
-        if (!_open)
-        {
-            var s = SelectedIndex(b, opts);
-            _cursor = s >= 0 ? s : 0;
-        }
-
-        _open = !_open;
+        _open = false;
+        _filter = null;
     }
 
-    // Combobox keyboard: closed → Enter/Space/Arrow opens and seeds the cursor; open → arrows move the
-    // cursor over the options, Home/End jump, Enter/Space pick it, Escape closes.
-    private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> opts, KeyboardEventArgs e)
+    // Combobox keyboard over the FILTERED list: arrows move the cursor, Home/End jump, Enter picks the
+    // cursor, Escape closes. Space is left to type into the filter. Focus already opened the popover.
+    private async Task OnKeyAsync(Bound b, IReadOnlyList<TItem> filtered, KeyboardEventArgs e)
     {
         if (!_open)
         {
-            if (e.Key is "Enter" or " " or "ArrowDown" or "ArrowUp")
+            if (e.Key is "ArrowDown" or "ArrowUp" or "Enter")
             {
-                var s = SelectedIndex(b, opts);
-                _cursor = s >= 0 ? s : 0;
                 _open = true;
+                _cursor = 0;
             }
 
             return;
@@ -269,10 +291,10 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         switch (e.Key)
         {
             case "Escape":
-                _open = false;
+                CloseAndReset();
                 break;
             case "ArrowDown":
-                _cursor = Math.Min(_cursor + 1, opts.Count - 1);
+                _cursor = Math.Min(_cursor + 1, filtered.Count - 1);
                 break;
             case "ArrowUp":
                 _cursor = Math.Max(_cursor - 1, 0);
@@ -281,23 +303,24 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
                 _cursor = 0;
                 break;
             case "End":
-                _cursor = opts.Count - 1;
+                _cursor = filtered.Count - 1;
                 break;
             case "Enter":
-            case " ":
-                if (_cursor >= 0 && _cursor < opts.Count)
+                if (_cursor >= 0 && _cursor < filtered.Count)
                 {
-                    await PickAsync(b, opts[_cursor]).ConfigureAwait(false);
+                    await PickAsync(b, filtered[_cursor]).ConfigureAwait(false);
                 }
 
                 break;
         }
     }
 
-    // Writes the chosen item back to the model (bound) or notifies the parent (controlled), then closes.
+    // Writes the chosen item back to the model (bound) or notifies the parent (controlled), then closes and
+    // drops the filter so the box shows the picked value.
     private async Task PickAsync(Bound b, TItem item)
     {
         _open = false;
+        _filter = null;
         if (b.Accessor is { } acc)
         {
             acc.Setter(item);
