@@ -35,6 +35,10 @@ let root = null;
 // ----- The full-HTML morph: morph(target, fresh) + reviveScript — rask-morph.js -----
 // @@RASK_MORPH@@
 
+// ----- Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
+//       preloadNewHeadStylesheets (full-HTML path) — Rask.Core/Resources/rask-scoped.js -----
+// @@RASK_SCOPED@@
+
 // The "#fragment" of an intercepted nav-link click is stashed here on click and consumed on the
 // matching push reply (scroll to the anchor, else the top). Kept for parity with the other clients.
 let _pendingScrollHash = "";
@@ -106,23 +110,47 @@ function dispatchNativeInvoke(inv) {
 }
 
 function applyDiffReply(reply) {
+    // Morph <head> FIRST so a newly mounted component's scoped <link> is present, then defer the
+    // body ops until that stylesheet applies (waitForUnappliedHeadCss) so the swapped body never
+    // paints unstyled (FOUC) — the same gating rask.js / rask.wasm.js do. Returns the wait Promise
+    // so _renderQueue holds the next frame until the body has committed.
+    const applyBody = () => {
+        applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
+        applyFrameInvokes(reply, dispatchNativeInvoke);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    };
     if (typeof reply.head === "string") {
         const freshHead = new DOMParser().parseFromString(reply.head, "text/html").head;
-        if (freshHead) morph(document.head, freshHead);
+        if (freshHead) {
+            morph(document.head, freshHead);
+            const wait = waitForUnappliedHeadCss();
+            if (wait) return wait.then(applyBody);
+        }
     }
-    applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
-    applyFrameInvokes(reply, dispatchNativeInvoke);
-    if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    return applyBody();
 }
 
 function applyFullReply(reply) {
+    let freshHtml = null;
     if (typeof reply.html === "string" && reply.html.length > 0) {
-        const doc = new DOMParser().parseFromString(reply.html, "text/html");
-        morph(document.documentElement, doc.documentElement);
-        root = document.querySelector("[data-rask-root]") || document.body;
+        freshHtml = new DOMParser().parseFromString(reply.html, "text/html").documentElement;
     }
-    applyFrameInvokes(reply, dispatchNativeInvoke);
-    if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    // FOUC guard: preload + await any new scoped stylesheet the incoming document adds so the morph
+    // paints the styled body only once its sheet has applied (preloadNewHeadStylesheets). Returns
+    // null — commit synchronously at today's timing — when the render mounts no new scoped CSS.
+    const applyDom = () => {
+        if (freshHtml) {
+            morph(document.documentElement, freshHtml);
+            root = document.querySelector("[data-rask-root]") || document.body;
+        }
+        applyFrameInvokes(reply, dispatchNativeInvoke);
+        if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
+    };
+    if (freshHtml) {
+        const wait = preloadNewHeadStylesheets(freshHtml);
+        if (wait) return wait.then(applyDom);
+    }
+    return applyDom();
 }
 
 // ----- Primary event handlers (ported from rask.wasm.js) --------------------------------------
@@ -135,33 +163,39 @@ document.addEventListener("click", function (e) {
         e.preventDefault();
         const url = new URL(link.href, document.baseURI);
         _pendingScrollHash = url.hash || "";
+        if (typeof flushInputsNow === "function") flushInputsNow();
         send({ type: "navigate", path: url.pathname, query: url.search, replace: false });
         return;
     }
     const el = e.target && e.target.closest ? e.target.closest("[data-rask-on-click]") : null;
     if (!el || !inRoot(el)) return;
+    if (typeof flushInputsNow === "function") flushInputsNow();
     send({
         id: el.getAttribute("data-rask-on-click"), type: "click",
         shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
     });
 });
 
-// Input / change — report the control's value.
+// Input & scroll — rAF-coalesced dispatch shared with rask.js / rask.wasm.js (rask-input.js). This
+// provides the `input` + `scroll` listeners and flushInputsNow(); the change/submit/click handlers
+// flush through it so the host processes a pending coalesced input before the dependent action.
+// flushInputsNow is a hoisted function, so the keyboard handler spliced above (@@RASK_EVENTS@@) can
+// call it regardless of splice order.
+// @@RASK_INPUT@@
+
+// Change — report the control's value (checkbox → checked). Flush any pending coalesced input first
+// so a change-triggered validator reads the freshly-typed value, not the pre-flush one.
 function valueOf(el) {
     if (el.type === "checkbox") return el.checked ? "true" : "false";
     return el.value == null ? "" : String(el.value);
 }
-document.addEventListener("input", function (e) {
-    const el = e.target;
-    if (!el || !el.getAttribute) return;
-    const id = el.getAttribute("data-rask-on-input");
-    if (id && inRoot(el)) send({ id: id, type: "input", value: valueOf(el) });
-});
 document.addEventListener("change", function (e) {
     const el = e.target;
     if (!el || !el.getAttribute) return;
     const id = el.getAttribute("data-rask-on-change");
-    if (id && inRoot(el)) send({ id: id, type: "change", value: valueOf(el) });
+    if (!id || !inRoot(el)) return;
+    if (typeof flushInputsNow === "function") flushInputsNow();
+    send({ id: id, type: "change", value: valueOf(el) });
 });
 
 // Submit — serialize the form fields into a flat { name: value } bag.
@@ -171,6 +205,7 @@ document.addEventListener("submit", function (e) {
     const id = form.getAttribute("data-rask-on-submit");
     if (!id || !inRoot(form)) return;
     e.preventDefault();
+    if (typeof flushInputsNow === "function") flushInputsNow();
     const data = {};
     const fd = new FormData(form);
     fd.forEach(function (v, k) { if (typeof v === "string") data[k] = v; });

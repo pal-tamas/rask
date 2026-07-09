@@ -36,11 +36,8 @@
     // url has no hash), so we stash it here on click and consume it when the matching
     // push reply commits — scroll to that anchor, else to the top. Cleared on consume.
     let _pendingScrollHash = "";
-    // Hard cap on how long a navigation diff defers the body swap waiting for a newly
-    // mounted page's scoped stylesheet to load. A warm content-addressed
-    // /_rask/a/{hash}.css load resolves in a few ms; the cap only ever applies to a
-    // genuinely slow/failed sheet, where we'd rather show the page than stall nav.
-    const CSS_FOUC_GUARD_MS = 500;
+    // CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
+    // preloadNewHeadStylesheets) are spliced in below from rask-scoped.js (@@RASK_SCOPED@@).
 
     // Read once from an explicit <base href> element so the runtime can host
     // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
@@ -706,64 +703,10 @@
         return pendingHeadAssets.size === 0;
     }
 
-    // Return a Promise that resolves once every <head> stylesheet still being applied has
-    // reached a terminal state (load / error / CSS_FOUC_GUARD_MS timeout), or null when
-    // there's nothing to wait for. The readiness signal is the <link>'s .sheet property —
-    // non-null only once the CSSOM stylesheet has been parsed and APPLIED. We deliberately
-    // do NOT use isAssetAlreadyLoaded (Resource Timing responseEnd): the eager
-    // <link rel="prefetch"> warms the HTTP cache and creates a timing entry, but bytes
-    // downloaded is not the same as a stylesheet applied — trusting it would skip the wait
-    // and reintroduce the very flash prefetch is meant to remove. A link already applied
-    // (kept across renders, or just resolved) has a non-null .sheet and is skipped; a
-    // freshly inserted one has .sheet === null and is awaited (its load fires within ~1
-    // frame on warm cache).
-    function waitForUnappliedHeadCss() {
-        const pending = [];
-        document.head.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
-            if (!l.href || l.sheet) return;
-            pending.push(new Promise((resolve) => {
-                const done = () => resolve();
-                l.addEventListener("load", done, {once: true});
-                l.addEventListener("error", done, {once: true});
-                setTimeout(done, CSS_FOUC_GUARD_MS);
-            }));
-        });
-        return pending.length ? Promise.all(pending) : null;
-    }
-
-    // FOUC guard for the full-document path. A full reply morphs <head> and the styled
-    // <body> in one pass, so a newly mounted component's scoped <link> would be inserted
-    // alongside the body it styles — and the body paints before the just-inserted sheet
-    // parses + applies. Pre-empt it: for every NEW scoped stylesheet the incoming document
-    // adds to <head> (keyed by data-rask-key, so not already live), append a clone NOW and
-    // return a Promise that resolves once each has applied (.sheet) — load / error /
-    // CSS_FOUC_GUARD_MS timeout. The subsequent morph matches each clone to the incoming
-    // <link> by key (keyed reconciliation), so it's kept rather than duplicated, and the
-    // body it morphs in paints already-styled. Only keyed scoped links are preloaded —
-    // render-blocking globals (no data-rask-key) are already applied from the initial load.
-    // Returns null when the document adds no new scoped stylesheet (the common case), so a
-    // navigation that mounts nothing new keeps today's single-pass, no-wait timing.
-    function preloadNewHeadStylesheets(freshHtml) {
-        const freshHead = freshHtml.querySelector("head");
-        if (!freshHead) return null;
-        const liveKeys = {};
-        document.head.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((l) => {
-            liveKeys[l.getAttribute("data-rask-key")] = true;
-        });
-        const pending = [];
-        freshHead.querySelectorAll('link[rel="stylesheet"][data-rask-key]').forEach((fl) => {
-            if (liveKeys[fl.getAttribute("data-rask-key")] || !fl.getAttribute("href")) return;
-            const clone = fl.cloneNode(true);
-            document.head.appendChild(clone);
-            pending.push(new Promise((resolve) => {
-                const done = () => resolve();
-                clone.addEventListener("load", done, {once: true});
-                clone.addEventListener("error", done, {once: true});
-                setTimeout(done, CSS_FOUC_GUARD_MS);
-            }));
-        });
-        return pending.length ? Promise.all(pending) : null;
-    }
+    // Scoped-CSS FOUC gating: CSS_FOUC_GUARD_MS + waitForUnappliedHeadCss (diff path) +
+    // preloadNewHeadStylesheets (full-HTML path) — spliced from Rask.Core/Resources/rask-scoped.js,
+    // shared with rask.wasm.js + rask.native.js.
+    // @@RASK_SCOPED@@
 
     // Reset scroll on forward navigation only (history.action "push" — a nav-link click
     // or Navigator.Navigate). "replace" (Back/Forward popstate, SetQuery, auth redirect)
@@ -1059,59 +1002,10 @@
         });
     });
 
-    // Input events fire per keystroke — on fast typing that's 5–10 WS frames per
-    // second per input. Coalesce per-element with rAF: the same element typed into
-    // multiple times within one frame produces a single outgoing message carrying
-    // the latest value at flush time. The element itself is the de-duping key —
-    // multiple inputs in the same frame each get one message. flushInputsNow() is
-    // called at the top of every other event handler (change, submit, click,
-    // navigate) so the server always processes input events before the subsequent
-    // action that depends on them — without this, a change event triggered
-    // immediately after typing reaches the server BEFORE the coalesced input, and
-    // any validator the change kicks off reads the stale model value.
-    const inputPending = new Set();
-    let inputRaf = 0;
-
-    function flushInputs() {
-        inputRaf = 0;
-        inputPending.forEach((el) => {
-            if (!el.isConnected) return;
-            const id = el.getAttribute("data-rask-on-input");
-            if (!id) return;
-            send({id, type: "input", value: el.value});
-        });
-        inputPending.clear();
-    }
-
-    function flushInputsNow() {
-        if (inputRaf) {
-            cancelAnimationFrame(inputRaf);
-            inputRaf = 0;
-        }
-        if (inputPending.size > 0) flushInputs();
-    }
-
-    function queueInput(el) {
-        inputPending.add(el);
-        if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
-    }
-
-    document.addEventListener("input", (e) => {
-        const t = e.target.closest("[data-rask-on-input]");
-        if (!t || !inRoot(t)) return;
-        // Inputs paired with data-rask-on-change need to dispatch SYNCHRONOUSLY: the
-        // change event typically fires in the same task (Playwright fill, browser commit
-        // on blur), and a downstream validator triggered by change reads the model state
-        // set by the matching input. Coalescing the input would put the change event
-        // ahead of it on the .NET dispatcher and the validator would observe stale
-        // state. Only standalone input handlers (no change wired) get the rAF
-        // coalescing win.
-        if (t.hasAttribute("data-rask-on-change")) {
-            send({id: t.getAttribute("data-rask-on-input"), type: "input", value: t.value});
-            return;
-        }
-        queueInput(t);
-    });
+    // rAF-coalesced input & scroll dispatch (inputPending/flushInputsNow/queueInput + the input and
+    // scroll listeners) — spliced from Rask.Core/Resources/rask-input.js, shared with rask.wasm.js +
+    // rask.native.js. MUST precede @@RASK_EVENTS@@ (its keyboard handler calls flushInputsNow).
+    // @@RASK_INPUT@@
 
     document.addEventListener("change", (e) => {
         const t = e.target.closest("[data-rask-on-change], [data-rask-on-files]");
@@ -1205,38 +1099,6 @@
         }, 0);
     }
 
-    // scroll events don't bubble — listen in capture phase at the document level so we
-    // observe scroll on any descendant with [data-rask-on-scroll]. Coalesce bursts via
-    // rAF: one outgoing message per frame per element, even if scroll fires 5–10x.
-    const scrollPending = new Set();
-    let scrollRaf = 0;
-
-    function flushScroll() {
-        scrollRaf = 0;
-        scrollPending.forEach((el) => {
-            if (!el.isConnected) return;
-            const id = el.getAttribute("data-rask-on-scroll");
-            if (!id) return;
-            send({
-                id,
-                type: "scroll",
-                scrollTop: el.scrollTop | 0,
-                clientHeight: el.clientHeight | 0,
-                scrollHeight: el.scrollHeight | 0
-            });
-        });
-        scrollPending.clear();
-    }
-
-    document.addEventListener("scroll", (e) => {
-        const t = e.target;
-        if (!t || t.nodeType !== 1) return;
-        if (!t.hasAttribute || !t.hasAttribute("data-rask-on-scroll")) return;
-        if (!inRoot(t)) return;
-        scrollPending.add(t);
-        if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll);
-    }, true);
-
     document.addEventListener("submit", (e) => {
         const t = e.target.closest("[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
@@ -1269,74 +1131,8 @@
         });
     }
 
-    // ----- Drag & drop -------------------------------------------------------
-    // HTML5 native DnD bound to parameterless C# handlers (same dispatch path as click). The
-    // dragged item's identity rides the handler's closure, not the payload, so messages carry
-    // only {id, type}. dragstart must seed dataTransfer so the drag is valid in Firefox; dragover
-    // must preventDefault on a drop target or the browser rejects the drop. The optional
-    // data-rask-on-dragover round-trip drives a server-rendered drop-target highlight — deduped
-    // to one message per hovered element so a continuous dragover stream doesn't flood the socket.
-    let lastDragOverEl = null;
-
-    document.addEventListener("dragstart", (e) => {
-        const t = e.target.closest("[data-rask-on-dragstart]");
-        if (!t || !inRoot(t)) return;
-        if (e.dataTransfer) {
-            try {
-                e.dataTransfer.setData("text/plain", "");
-            } catch (err) {
-            }
-            e.dataTransfer.effectAllowed = "move";
-        }
-        lastDragOverEl = null;
-        send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
-    });
-
-    document.addEventListener("dragover", (e) => {
-        const t = e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]");
-        if (!t || !inRoot(t)) return;
-        // preventDefault is what marks this element as a valid drop target.
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-        if (!t.hasAttribute("data-rask-on-dragover")) return;
-        if (t === lastDragOverEl) return; // dedupe: only notify when the hovered target changes
-        lastDragOverEl = t;
-        send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
-    });
-
-    document.addEventListener("drop", (e) => {
-        const t = e.target.closest("[data-rask-on-drop]");
-        if (!t || !inRoot(t)) return;
-        e.preventDefault();
-        lastDragOverEl = null;
-        send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
-    });
-
-    document.addEventListener("dragend", (e) => {
-        lastDragOverEl = null;
-        const t = e.target.closest("[data-rask-on-dragend]");
-        if (!t || !inRoot(t)) return;
-        send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
-    });
-
-    // Keyboard: keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped,
-    // like click). Never preventDefault — a key handler composes with normal typing; the C# side
-    // decides what a key means. flushInputsNow first so an Enter-to-submit handler reads the value
-    // the user just typed, not the pre-flush one. Modifier flags + repeat ride along for shortcuts.
-    function sendKey(e, attr, type) {
-        const t = e.target.closest ? e.target.closest(`[${attr}]`) : null;
-        if (!t || !inRoot(t)) return;
-        flushInputsNow();
-        send({
-            id: t.getAttribute(attr), type,
-            key: e.key, code: e.code, repeat: e.repeat,
-            shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-        });
-    }
-
-    document.addEventListener("keydown", (e) => sendKey(e, "data-rask-on-keydown", "keydown"));
-    document.addEventListener("keyup", (e) => sendKey(e, "data-rask-on-keyup", "keyup"));
-
+    // Extended GlobalEventHandlers delegation + keyboard (keydown/keyup) + the four core drag events
+    // (dragstart/dragover/drop/dragend) — spliced from Rask.Core/Resources/rask-events.js.
     // @@RASK_EVENTS@@
 
     // ----- IJSRuntime global-JS dispatcher -----------------------------------

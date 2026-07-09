@@ -29,6 +29,16 @@ them until tagged releases begin.
   follow-up; the host is preview / pre-1.0.
 
 ### Changed
+- **Client parity — the three JS client dialects now share the transport-neutral DOM helpers.** The
+  rAF input/scroll coalescing, scoped-CSS FOUC gating, and keyboard + core drag handlers were inline
+  and duplicated across `rask.js` (Server) and `rask.wasm.js` (WASM), and only partially hand-ported
+  to the newer `rask.native.js`. They are now single-source shared modules
+  (`Rask.Core/Resources/rask-input.js`, `rask-scoped.js`, and the keyboard/drag handlers folded into
+  `rask-events.js`) spliced into all three clients at build time — so the **native client reaches
+  parity** (it gains input/scroll coalescing, scoped-CSS FOUC gating, and keyboard + drag it lacked)
+  and the former Server↔WASM copy collapses to one. Behaviour is unchanged on Server/WASM (verbatim
+  extraction). The scoped-JS `Rask.*` invoke gate and file input/download stay host-specific for now
+  (they have genuinely diverged / are transport-coupled) — tracked in the `docs/native.md` roadmap.
 - **Conditional content now ships a diff instead of the whole page.** Toggling an element in or out
   (a validation message appearing, a "show details" panel, a row appended to a list) emits a positional
   `InsertSubtree`/`RemoveSubtree`. Previously *all* positional structural ops were untrusted and routed
