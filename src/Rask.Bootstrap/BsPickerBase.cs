@@ -205,8 +205,9 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         }
 
         // Floating wraps box + label (+ the absolutely-placed caret/×) in a position-relative .form-floating;
-        // the popover/backdrop stay direct children of the .dropdown. Non-floating: box + caret/× sit in the
-        // .dropdown (position-relative), so the caret/× anchor to the box (popover/backdrop are out of flow).
+        // the popover/backdrop stay direct children of the .dropdown. Non-floating: box + caret/× go in their
+        // OWN position-relative wrapper so the caret/× centre on the box alone — anchoring them to the whole
+        // .dropdown would centre them over the label-above + box stack, dropping them onto the box's top edge.
         if (floating)
         {
             children.Add(Div(
@@ -215,9 +216,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         }
         else
         {
-            children.Add(box);
-            children.Add(caret);
-            children.Add(clear);
+            children.Add(Div(Class: Position.Relative)[box, caret, clear]);
         }
 
         // The popover is always in the DOM (like BsMultiSelect's menu); the picker toggles .show/.d-block

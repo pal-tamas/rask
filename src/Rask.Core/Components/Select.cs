@@ -83,6 +83,12 @@ public sealed class Select<T> : Element, IFormControl<T>
 
         return new Option
         {
+            // Preserve Key: the marked option must keep the same reconciliation identity as the original,
+            // otherwise the selected option's key shifts every render (the marked one loses its key while
+            // the previously-marked one regains it). Keyed reconciliation then mismatches and the browser's
+            // live `selected` IDL property is never synced — the <select> visually snaps back to the old
+            // value even though the `selected` attribute is written to the right option.
+            Key = opt.Key,
             Value = opt.Value,
             Selected = true,
             Disabled = opt.Disabled,
@@ -106,6 +112,8 @@ public sealed class Select<T> : Element, IFormControl<T>
             c is Option o ? MarkOption(o, current) : c).ToArray();
         return new Optgroup
         {
+            // Preserve Key for stable reconciliation identity (see MarkOption).
+            Key = og.Key,
             Disabled = og.Disabled,
             Label = og.Label,
             Id = og.Id,

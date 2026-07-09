@@ -109,6 +109,17 @@ public class BsPickerTests
         Assert.Contains("btn-close", Html(Us, () => BsDatePicker<DateOnly?>(Value: Jul7)));
 
     [Fact]
+    public void Date_NonFloating_WrapsBoxAndCaretInPositionRelative()
+    {
+        // The caret/× are absolutely placed; a position-relative wrapper around the box (inside the .dropdown)
+        // anchors them to the box alone. Without it they'd centre over the label-above + box stack and land on
+        // the box's top edge instead of vertically centred in it.
+        var html = Html(Us, () => BsDatePicker<DateOnly>(Value: Jul7, Label: "Day", Id: "d"));
+        Assert.Contains("<div class=\"position-relative\"><input", html);
+        Assert.Contains("bs-picker-caret", html);
+    }
+
+    [Fact]
     public void Date_NonNullableWithValue_HasNoClearButton() =>
         Assert.DoesNotContain("btn-close", Html(Us, () => BsDatePicker<DateOnly>(Value: Jul7)));
 
