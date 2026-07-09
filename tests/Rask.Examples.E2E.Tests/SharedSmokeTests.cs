@@ -56,9 +56,27 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
                 _console.Add($"[pageerror] {err}");
             }
         };
+
+        // Hook for hosts that must wire the page BEFORE the journey navigates. The browser-served hosts
+        // (Server/Wasm) need nothing here — they GET a live HTTP host. The native host runs IN-PROCESS,
+        // so NativeExampleTests uses this to install its Playwright-backed INativeWebView (route the shell +
+        // client + scoped/static assets, expose the __raskSend bridge) and start NativeAppHost.RunLocalAsync
+        // on this exact page, so the client's boot `ready` reaches the in-process session.
+        await ConfigurePageAsync();
     }
 
-    public async Task DisposeAsync() => await _ctx.DisposeAsync();
+    public async Task DisposeAsync()
+    {
+        await TeardownAsync();
+        await _ctx.DisposeAsync();
+    }
+
+    // Default no-op: the HTTP-served hosts need no per-page wiring. Native overrides it (see above).
+    protected virtual Task ConfigurePageAsync() => Task.CompletedTask;
+
+    // Default no-op: paired with ConfigurePageAsync so a host that spun up in-process resources (the
+    // native NativeApp) can tear them down before the browser context closes.
+    protected virtual Task TeardownAsync() => Task.CompletedTask;
 
     // Default = direct deep link. Overridden by hosts (e.g. WasmAppHost) that don't install
     // a SPA fallback; those must navigate via the home shell + sidebar instead.

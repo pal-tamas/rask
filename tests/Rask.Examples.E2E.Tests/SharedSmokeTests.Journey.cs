@@ -79,7 +79,7 @@ public abstract partial class SharedSmokeTests
 
     // In-SPA navigation via the sidebar + heading assertion. Works on every host once the shell is
     // loaded; on StandaloneWasm the sidebar click is the only navigation path available.
-    private async Task SideAsync(string label, string heading, string headingSelector = "main h1.h2")
+    protected async Task SideAsync(string label, string heading, string headingSelector = "main h1.h2")
     {
         await ClickSidebar(label);
         await Expect(Page.Locator(headingSelector).First).ToContainTextAsync(heading,
@@ -96,12 +96,12 @@ public abstract partial class SharedSmokeTests
     // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
     // merely contains the phrase — e.g. the Toast and Flash demos' CodeSample shows ToastDemo.cs /
     // FlashDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
-    private async Task AssertNoGlobalCrashAsync() =>
+    protected async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
     // The redesigned sidebar: collapsible groups (only the active route's group open by default), a
     // search filter, and — below md — a hamburger-driven offcanvas drawer. Exercised once per host.
-    private async Task TestSidebarNavAsync()
+    protected async Task TestSidebarNavAsync()
     {
         // Guides-first: the guide category groups are expanded by default (the narrative spine), while the
         // demoted Examples/Bootstrap groups stay collapsed so the ~90-item list isn't dumped at once.
@@ -155,7 +155,7 @@ public abstract partial class SharedSmokeTests
     // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
     // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
     // would throw "No handler is registered" and trip the root error boundary instead.
-    private async Task WalkCqrsGuideAsync()
+    protected async Task WalkCqrsGuideAsync()
     {
         await ClickSidebar("CQRS");
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("CQRS",
@@ -194,7 +194,7 @@ public abstract partial class SharedSmokeTests
     // Rails-guides-style chrome (Chapters TOC, on-this-page rail, prev/next) with live demos embedded
     // inline via <!-- demo:key --> markers. Verify a guide renders to a .markdown-body, cross-links are
     // SPA-routed, the Chapters TOC is present, and an embedded demo actually mounted its live result.
-    private async Task TestGuidesAsync()
+    protected async Task TestGuidesAsync()
     {
         await SideAsync("All guides", "Guides");
         // A guide card links to /guides/{slug}; open the Routing guide.
@@ -223,7 +223,7 @@ public abstract partial class SharedSmokeTests
     // Bootstrap guide: the 9 Rask.Bootstrap component example pages folded into docs/bootstrap.md as
     // inline live demos. Open the guide once, hydration-gate on the interactive modal demo, and drive
     // the representative components in place — all live via Rask state, no bootstrap.js.
-    private async Task WalkBootstrapGuideAsync()
+    protected async Task WalkBootstrapGuideAsync()
     {
         await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 10,
@@ -426,7 +426,7 @@ public abstract partial class SharedSmokeTests
         await Expect(msMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkUserComponentsGuideAsync()
+    protected async Task WalkUserComponentsGuideAsync()
     {
         // User components (generated factories, DI-via-ctor, [SkipFactory]) — the standalone /components
         // page was folded into the Getting started guide's factory-generation section as live demos.
@@ -452,7 +452,7 @@ public abstract partial class SharedSmokeTests
     // — their standalone example pages folded into docs/composition.md as inline live demos. Open the
     // guide once and drive each demo in place; locators are scoped by unique #id or by the enclosing
     // .guide-demo (badges/result panes repeat across demos on the one page).
-    private async Task TestCompositionGuideAsync()
+    protected async Task TestCompositionGuideAsync()
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
 
@@ -588,7 +588,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkAuthGuideAsync()
+    protected async Task WalkAuthGuideAsync()
     {
         // The Toast, Flash and User & auth example pages were folded into their guides: Toast →
         // WalkBootstrapGuideAsync, Flash + events → TestCompositionGuideAsync. This walks the
@@ -620,7 +620,7 @@ public abstract partial class SharedSmokeTests
     // Lifecycle guide: the Lifecycle / Disposal / Cancellation / Background-service example pages were
     // folded into docs/lifecycle.md as inline live demos, so the whole cluster is one guide page now.
     // Open it once and drive each demo in place — locators are scoped by unique #id.
-    private async Task WalkLifecycleGuideAsync()
+    protected async Task WalkLifecycleGuideAsync()
     {
         await SideAsync("Lifecycle", "Lifecycle", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 8,
@@ -697,7 +697,7 @@ public abstract partial class SharedSmokeTests
     // Routing guide: the Routing / Route+query / Navigator example pages folded into docs/routing.md.
     // The guide is otherwise code-only (navigating the showcase itself IS the live routing); the one
     // live demo is the Navigator query mutators, which operate on this guide's own URL.
-    private async Task WalkRoutingGuideAsync()
+    protected async Task WalkRoutingGuideAsync()
     {
         await SideAsync("Routing", "Routing", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 1,
@@ -719,7 +719,7 @@ public abstract partial class SharedSmokeTests
     // JS-interop guide: the Element refs / Scoped CSS / IJSRuntime / Asset-loading example pages folded
     // into docs/js-interop.md as inline live demos. Open the guide once, hydration-gate on a late demo
     // (the lazy-mount toggle near the end), then drive each demo by #id / scoped locator.
-    private async Task WalkJsInteropGuideAsync()
+    protected async Task WalkJsInteropGuideAsync()
     {
         await ClearJsRuntimeStorageAsync();
         await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
@@ -813,7 +813,7 @@ public abstract partial class SharedSmokeTests
     // Elements guide: the DSL primitives, tag factories, universal props, SVG, and the HTML-element
     // catalog folded into docs/elements.md (26 demos). Open the guide once, hydration-gate on a late
     // demo, then spot-check representative demos by their distinctive rendered elements.
-    private async Task WalkElementsGuideAsync()
+    protected async Task WalkElementsGuideAsync()
     {
         await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 26,
@@ -853,7 +853,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkHttpAndFilesGuideAsync()
+    protected async Task WalkHttpAndFilesGuideAsync()
     {
         // The HttpClient+DI, file-upload and file-download example pages were folded into
         // docs/http-and-files.md as inline live demos. Drive the guide and assert each demo mounted.
@@ -876,7 +876,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkFormsPagesAsync()
+    protected async Task WalkFormsPagesAsync()
     {
         // Forms & validation guide: the seven standalone forms example pages (binding, form controls,
         // validation, floating labels, complex models, radio/checkbox groups, multi-select) were folded
@@ -1039,7 +1039,7 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
 
-    private async Task WalkStylingDataAndAppPagesAsync()
+    protected async Task WalkStylingDataAndAppPagesAsync()
     {
         // Global (non-scoped) styles live in wwwroot/global.css, linked from App's <Head> — not in a
         // scoped {Component}.css (there is no :global() opt-out). On WASM the App's <Head> <link>s are
@@ -1149,7 +1149,7 @@ public abstract partial class SharedSmokeTests
     // one page contends for the shared JS channel — so the guide embeds each wrapper as an inline *code
     // sample* (highlighted source, no auto-mounted live result). Verify the guide renders those samples;
     // per-wrapper behaviour is covered by the demo unit tests and the WASM PWA/hardware showcase.
-    private async Task TestBrowserApisAsync()
+    protected async Task TestBrowserApisAsync()
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
         var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
@@ -1213,7 +1213,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
     }
 
-    private async Task TestInSessionNotFoundAsync()
+    protected async Task TestInSessionNotFoundAsync()
     {
         await Page.EvaluateAsync(@"() => {
             history.pushState({ rask: true }, '', '/in-session-missing');
@@ -1233,7 +1233,7 @@ public abstract partial class SharedSmokeTests
 
     // ---- unusual user activity -----------------------------------------------------------------
 
-    private async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
+    protected async Task RunUnusualActivityAsync(ShowcaseJourneyOptions opts)
     {
         // Back / forward: history navigation must preserve the SPA sentinel and resolve both ends.
         await SideAsync("Todos", "Todos");
@@ -1428,7 +1428,7 @@ public abstract partial class SharedSmokeTests
     // "push" (a sidebar Navigator.NavigateTo or a data-rask-nav link click), and when the link
     // carried a "#fragment" it scrolls to that element instead. Both transports share the JS
     // runtime path (rask.js / rask.wasm.js applyNavScroll), so every host exercises it here.
-    private async Task AssertNavigationScrollAsync()
+    protected async Task AssertNavigationScrollAsync()
     {
         // --- a forward nav resets scroll to the top ---------------------------------------------
         // The data table at 25 rows is reliably taller than the viewport; scroll to the bottom and
@@ -1489,7 +1489,7 @@ public abstract partial class SharedSmokeTests
     private async Task<int> ReadMetricsTickAsync() =>
         ExtractRenderCount(await Page.Locator("#metrics-tick").TextContentAsync());
 
-    private async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
+    protected async Task HtmlDragDropAsync(string sourceSelector, string targetSelector)
     {
         var source = Page.Locator(sourceSelector);
         var target = Page.Locator(targetSelector);
@@ -1507,7 +1507,7 @@ public abstract partial class SharedSmokeTests
         await source.DispatchEventAsync("dragend", init);
     }
 
-    private async Task ClearJsRuntimeStorageAsync()
+    protected async Task ClearJsRuntimeStorageAsync()
     {
         try
         {
@@ -1520,7 +1520,7 @@ public abstract partial class SharedSmokeTests
         }
     }
 
-    private async Task WaitForHighlightedSpansAsync(int timeoutMs)
+    protected async Task WaitForHighlightedSpansAsync(int timeoutMs)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

@@ -162,6 +162,8 @@ jobs:
           - ServerExampleTests
           - WasmExampleTests
           - StandaloneWasmExampleTests
+          - NativeExampleTests
+          - NativeServerSmokeTests
           - WasmSubPathExampleTests
           - AuthExampleTests
           - JwtServerAuthExampleTests
