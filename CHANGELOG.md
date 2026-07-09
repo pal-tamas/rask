@@ -107,6 +107,9 @@ them until tagged releases begin.
   `Option(...)` children.
 - **`BsMultiSelect<T>` gains the same opt-in dropdown search** (via a `Filter` predicate); the box shows the
   chosen items as chips.
+- **`BsSelect<TValue, TItem>` value selector** — bind a projected field while the options are objects:
+  `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))`. The
+  bound value is `OptionValue(selectedOption)`; the label/search still see the whole object.
 - **Date/time pickers are now hand-editable.** `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker` render an
   editable `<input>`: focus opens the popover and typing commits live per keystroke via culture-aware
   parsing (a partial/invalid entry is kept as-is, not reverted; blur normalises to the value's format). The

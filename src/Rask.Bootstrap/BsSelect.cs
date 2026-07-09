@@ -4,13 +4,12 @@ using Rask.Core.Live;
 
 namespace Rask.Bootstrap;
 
-// A Bootstrap single-select: the single-value twin of BsMultiSelect. By default it renders a custom
-// dropdown — a .form-select-styled box that opens a .dropdown-menu listbox of options — so it matches the
-// multiselect and the date/time pickers. Open/close, the click-outside backdrop and Esc/arrow-key
-// navigation are pure live-diff view state (no bootstrap.js); the menu re-anchors via BsPopover. Data
-// driven like BsMultiSelect (Options + OptionLabel), bound or controlled through IFormControl<TItem>.
-// Native:true degrades to the plain native <select> (BsSelect(() => model.Plan, plans, Native: true)).
-public sealed class BsSelect<TItem> : BsFormControl<TItem>
+// Shared base for the single-select combobox. Generic over TValue (the bound value) AND TItem (the option),
+// so the concrete controls can either bind the option itself (BsSelect<TItem>) or bind a projected field of
+// an object option (BsSelect<TValue, TItem> with OptionValue: p => p.Id). Everything else — the .form-select
+// display box, the .dropdown-menu listbox, the opt-in dropdown search, nullable × clear, floating label and
+// the Native <select> fallback — lives here. The value of an option is obtained through ValueOf().
+public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 {
     public required IEnumerable<TItem> Options { get; set; }
 
@@ -21,7 +20,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     public string? Placeholder { get; set; }
 
     // The predicate that decides whether an option matches the text typed into the dropdown's search field.
-    // Defaults to a case-insensitive contains on item?.ToString(); supply a custom one to match any field(s):
+    // Only when it is supplied does the dropdown show a search field and narrow the options; e.g.
     // Filter: (p, text) => p.Name.Contains(text, StringComparison.OrdinalIgnoreCase).
     public Func<TItem, string, bool>? Filter { get; set; }
 
@@ -29,22 +28,25 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     // (and the OS picker on mobile) where the custom UI is unwanted.
     public bool? Native { get; set; }
 
+    // The bound value an option represents — the option itself, or a projected field (see the subclasses).
+    private protected abstract TValue ValueOf(TItem item);
+
     // Selection lives in the bound model / controlled Value; these are pure live-diff view state. _filter is
     // the text the user is currently typing to search (null when not editing → the box shows the value).
     private bool _open;
     private int _cursor;
     private string? _filter;
 
-    private static readonly IEqualityComparer<TItem> Comparer = EqualityComparer<TItem>.Default;
+    private static readonly IEqualityComparer<TValue> Comparer = EqualityComparer<TValue>.Default;
     private static readonly IReadOnlyDictionary<string, string?> SelectedAria =
         new Dictionary<string, string?> { ["selected"] = "true" };
 
     // A nullable value-type binding (int?/DateOnly?/…) can be cleared back to null; mirrors the pickers'
     // CanClear. Reference types can't be told from their non-nullable form at runtime, so — like the
     // pickers — only Nullable<T> is treated as clearable (a required string/enum select stays value-only).
-    // A property (not a cached `static readonly` field) so typeof(TItem) resolves fresh in the correct
+    // A property (not a cached `static readonly` field) so typeof(TValue) resolves fresh in the correct
     // runtime generic context — a cached generic static mis-resolved under Mono WASM AOT (see BsPickerBase).
-    private static bool CanClear => Nullable.GetUnderlyingType(typeof(TItem)) is not null;
+    private static bool CanClear => Nullable.GetUnderlyingType(typeof(TValue)) is not null;
 
     // A per-instance suffix so two id-less selects still emit unique option ids for aria-activedescendant.
     private static int _seq;
@@ -62,8 +64,8 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     private Component LabelOf(TItem item) =>
         OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
 
-    // The native <select>: today's plain control, fed from Options (with a leading disabled placeholder
-    // option) instead of Option children. Binding rides the same StringChangeHandler as every Bs control.
+    // The native <select>: a plain control fed from Options (each option's value string is the projected
+    // value, so binding rides the same StringChangeHandler as every Bs control), with a leading placeholder.
     private Component RenderNative(in Bound b, string? controlId)
     {
         var opts = Options as IReadOnlyList<TItem> ?? Options.ToList();
@@ -80,7 +82,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
 
         for (var i = 0; i < opts.Count; i++)
         {
-            children.Add(Option(Value: BindingHelpers.FormatValue(opts[i]), Key: i)[LabelOf(opts[i])]);
+            children.Add(Option(Value: BindingHelpers.FormatValue(ValueOf(opts[i])), Key: i)[LabelOf(opts[i])]);
         }
 
         var control = Select<string>(
@@ -154,7 +156,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             ? BsCloseButton(
                 Class: BsClass.Join(Position.Absolute, Position.Top50, Position.TranslateMiddleY, "bs-select-clear"),
                 AriaLabel: "Clear",
-                OnClickAsync: () => PickAsync(b, default!))
+                OnClickAsync: () => WriteAsync(b, default!))
             : null;
 
         var rows = new List<Component?>();
@@ -186,7 +188,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             {
                 var idx = i;
                 var item = filtered[i];
-                var isSelected = b.Current is not null && Comparer.Equals(item, b.Current);
+                var isSelected = b.Current is not null && Comparer.Equals(ValueOf(item), b.Current);
                 rows.Add(Button(
                     Type: "button",
                     Class: BsClass.Join("dropdown-item", isSelected || (_open && idx == _cursor) ? "active" : null),
@@ -195,7 +197,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
                     Aria: isSelected ? SelectedAria : null,
                     Disabled: Disabled,
                     Key: idx,
-                    OnClickAsync: disabled ? null : () => PickAsync(b, item))[LabelOf(item)]);
+                    OnClickAsync: disabled ? null : () => WriteAsync(b, ValueOf(item)))[LabelOf(item)]);
             }
         }
 
@@ -273,7 +275,8 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
     private static string OptId(string prefix, int idx) =>
         prefix + "-opt-" + idx.ToString(CultureInfo.InvariantCulture);
 
-    private static int SelectedIndex(in Bound b, IReadOnlyList<TItem> opts)
+    // Index of the option whose projected value equals the bound value, or -1.
+    private int SelectedIndex(in Bound b, IReadOnlyList<TItem> opts)
     {
         if (b.Current is null)
         {
@@ -282,7 +285,7 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
 
         for (var i = 0; i < opts.Count; i++)
         {
-            if (Comparer.Equals(opts[i], b.Current))
+            if (Comparer.Equals(ValueOf(opts[i]), b.Current))
             {
                 return i;
             }
@@ -334,28 +337,48 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             case "Enter":
                 if (_cursor >= 0 && _cursor < filtered.Count)
                 {
-                    await PickAsync(b, filtered[_cursor]).ConfigureAwait(false);
+                    await WriteAsync(b, ValueOf(filtered[_cursor])).ConfigureAwait(false);
                 }
 
                 break;
         }
     }
 
-    // Writes the chosen item back to the model (bound) or notifies the parent (controlled), then closes and
-    // drops the filter so the box shows the picked value.
-    private async Task PickAsync(Bound b, TItem item)
+    // Writes the chosen value back to the model (bound) or notifies the parent (controlled), then closes and
+    // drops the filter so the box shows the picked value. A default(TValue) is the clear (× / nullable).
+    private async Task WriteAsync(Bound b, TValue value)
     {
         _open = false;
         _filter = null;
         if (b.Accessor is { } acc)
         {
-            acc.Setter(item);
+            acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(b.Context, b.Field).ConfigureAwait(false);
-            await ((IFormControl<TItem>)this).InvokeAfterBindAsync(item).ConfigureAwait(false);
+            await ((IFormControl<TValue>)this).InvokeAfterBindAsync(value).ConfigureAwait(false);
         }
         else
         {
-            await ((IFormControl<TItem>)this).InvokeOnChangeAsync(item).ConfigureAwait(false);
+            await ((IFormControl<TValue>)this).InvokeOnChangeAsync(value).ConfigureAwait(false);
         }
     }
+}
+
+// A Bootstrap single-select bound to the option itself — the single-value twin of BsMultiSelect. Renders a
+// custom .form-select combobox by default (Options + OptionLabel; opt-in dropdown search via Filter; nullable
+// × clear; floating label); Native: true degrades to the plain OS <select>.
+//   BsSelect(() => model.Plan, plans, OptionLabel: p => Text(p), Filter: (p, t) => p.Contains(t, …))
+public sealed class BsSelect<TItem> : BsSelectBase<TItem, TItem>
+{
+    private protected override TItem ValueOf(TItem item) => item;
+}
+
+// A Bootstrap single-select whose Options are objects but whose bound value is a projected field, chosen by
+// OptionValue — so you can bind an id while rendering/searching the whole object.
+//   BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))
+public sealed class BsSelect<TValue, TItem> : BsSelectBase<TValue, TItem>
+{
+    // Projects an option to the value bound to the model (e.g. p => p.Id).
+    public required Func<TItem, TValue> OptionValue { get; set; }
+
+    private protected override TValue ValueOf(TItem item) => OptionValue(item);
 }

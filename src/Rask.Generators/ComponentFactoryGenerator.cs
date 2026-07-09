@@ -866,10 +866,13 @@ public sealed class ComponentFactoryGenerator : IIncrementalGenerator
             sb.AppendLine("public static partial class Generated");
             sb.AppendLine("{");
 
+            // Dedupe by name AND type-parameter list, so same-named generic overloads of different arity
+            // (e.g. BsSelect<TItem> and BsSelect<TValue, TItem>) each get a factory instead of the second
+            // being dropped — while genuine duplicates (a partial class seen twice) still collapse.
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var c in group.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+            foreach (var c in group.OrderBy(c => c.TypeName + c.TypeParameters, StringComparer.Ordinal))
             {
-                if (!seen.Add(c.TypeName))
+                if (!seen.Add(c.TypeName + c.TypeParameters))
                 {
                     continue;
                 }

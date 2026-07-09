@@ -325,6 +325,18 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#pick-readout"))
             .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
                 new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Also pick an hour + minute (the time columns compose with the date — same DateTime write path),
+        // and type a full value into the box (the parse path). None may throw the DateTimeOffset cast.
+        var dtMenu = Page.Locator(".dropdown-menu.show:has(#pick-datetime-cal)").First;
+        await dtMenu.Locator(".bs-time-col").Nth(0)
+            .GetByText("11", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await dtMenu.Locator(".bs-time-col").Nth(1)
+            .GetByText("30", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("-15 11:30",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#pick-datetime").First.FillAsync("2026-12-25 14:45");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
 
         // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is

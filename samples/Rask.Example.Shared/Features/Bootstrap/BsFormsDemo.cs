@@ -10,6 +10,7 @@ public sealed class BsFormsDemo : Component
 {
     private static readonly string[] Plans = ["free", "pro", "team"];
     private static readonly int?[] Seats = [1, 2, 5, 10];
+    private static readonly Team[] Teams = [new(1, "Platform"), new(2, "Growth"), new(3, "Data")];
 
     private readonly Signup _model = new();
     private string? _result;
@@ -37,6 +38,11 @@ public sealed class BsFormsDemo : Component
             // Nullable (int?) → an × clears it back to null; the null state shows the Placeholder.
             BsSelect(() => _model.Seats, Seats, OptionLabel: n => Text(SeatLabel(n)),
                 Placeholder: "Any", Label: "Seats (optional)", Id: "bs-seats"),
+            // Value selector: Options are objects, but the bound value is a projected field (OptionValue).
+            // Binds _model.TeamId (int?) while rendering/searching the whole Team.
+            BsSelect(() => _model.TeamId, Options: Teams, OptionValue: t => t.Id, OptionLabel: t => Text(t.Name),
+                Filter: (t, q) => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase),
+                Placeholder: "No team", Label: "Team (binds to id)", Id: "bs-team"),
             BsSelect(() => _model.Tier, Plans, OptionLabel: p => PlanLabel(p), Native: true,
                 Label: "Tier (native <select>)", Id: "bs-tier"),
             BsCheck(() => _model.Agree, Switch: true, Label: "I accept the terms"),
@@ -66,8 +72,13 @@ public sealed class BsFormsDemo : Component
         // Nullable, optional — a clearable (×) select that round-trips null.
         public int? Seats { get; set; }
 
+        // Bound to a projected id (OptionValue), while the options are Team objects.
+        public int? TeamId { get; set; }
+
         // Bound switch (left unvalidated — the [Range(typeof(bool), …)] "must accept" trick pulls in a
         // RequiresUnreferencedCode converter that breaks the trim-clean WASM publish).
         public bool Agree { get; set; }
     }
+
+    private sealed record Team(int Id, string Name);
 }

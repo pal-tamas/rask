@@ -106,7 +106,9 @@ a `.form-select` display box (showing the option's rich `OptionLabel`) that open
 **search field in the dropdown** that narrows the options as you type; a nullable binding gets an `×` clear.
 `BsMultiSelect<T>` is the same but multi-value, with the chosen items shown as chips (and the same opt-in
 `Filter`). Both are zero-JS live-diff, keyboard-navigable, ARIA `combobox`/`listbox`; `Native: true` drops
-`BsSelect` back to the plain OS `<select>` (handy on mobile):
+`BsSelect` back to the plain OS `<select>` (handy on mobile). To bind a **projected field** while the options
+are objects, add an `OptionValue` selector — `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id,
+OptionLabel: p => Text(p.Name))` binds the id but renders/searches the whole `Person`:
 
 <!-- demo:bootstrap-forms -->
 
