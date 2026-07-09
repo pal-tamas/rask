@@ -18,6 +18,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Native</RootNamespace>
+    <IsPackable>true</IsPackable>
     <!--
       Not AOT-analyzed here (like Rask.Server): this host uses DotNetDispatcher for JS↔.NET interop,
       the same as the Server host. iOS requires full AOT, but that is validated at the app-head publish
@@ -29,7 +30,16 @@
     <PackageId>Rask.Native</PackageId>
     <Title>Rask — Native Mobile Host</Title>
     <Description>Rask native-mobile host. Boots a Rask App on iOS/Android inside a platform WebView, driven by the same render/diff pipeline as the Server and WASM hosts — either in-process (offline, Native+Local) or over a remote WebSocket (Native+Server). Ships the native client runtime, the boot shell, and the INativeWebView bridge the app head implements per platform. Includes Rask.Core and the Rask source generators.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — Rask.Native is the native mobile host. -->
+    <PackageTags>native mobile ios android webview hybrid dotnet net10</PackageTags>
   </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
