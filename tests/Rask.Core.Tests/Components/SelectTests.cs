@@ -183,6 +183,30 @@ public class SelectTests
     }
 
     [Fact]
+    public void BoundSelect_MarkedOption_KeepsItsReconciliationKey()
+    {
+        // Marking an option selected must preserve its Key. Dropping it shifts the selected option's key on
+        // every render (the marked one loses its key while the previously-marked one regains it), so keyed
+        // reconciliation mismatches and the browser's live `selected` IDL property is never synced — the
+        // <select> visually snaps back to the old value even though the `selected` attribute is correct.
+        var model = new ColorPicker { Color = "red" };
+        var view = new StubComponent(() => Form(model)[
+            Select(() => model.Color)[
+                Option(Value: "", Key: "e")["none"],
+                Option(Value: "red", Key: "r")["red"],
+                Option(Value: "blue", Key: "b")["blue"]
+            ]
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Contains("data-rask-key=\"r\" value=\"red\" selected", html);
+        // The unselected keyed siblings still carry their keys too.
+        Assert.Contains("data-rask-key=\"e\"", html);
+        Assert.Contains("data-rask-key=\"b\"", html);
+    }
+
+    [Fact]
     public void Render_NullProps_ReturnsOpenAndCloseTags() =>
         Assert.Equal("<select></select>", Select<string>().ToHtml());
 

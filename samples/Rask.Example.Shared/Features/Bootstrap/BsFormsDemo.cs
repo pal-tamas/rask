@@ -48,6 +48,16 @@ public sealed class BsFormsDemo : Component
             BsCheck(() => _model.Agree, Switch: true, Label: "I accept the terms"),
             BsButton(Color: BsColor.Primary, Type: "submit")["Create account"]
         ],
+        // A live echo OUTSIDE the Form — every bound write (custom or native <select>) re-renders the
+        // expression's owner (this demo), so it tracks each field with no StateHasChanged.
+        BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
+            Span(Id: "bs-readout")[
+                $"Plan: {(_model.Plan is "" ? "—" : PlanLabel(_model.Plan))} · " +
+                $"Seats: {(_model.Seats is { } n ? SeatLabel(n) : "—")} · " +
+                $"Team: {(_model.TeamId is { } id ? Teams.First(t => t.Id == id).Name : "—")} · " +
+                $"Tier: {PlanLabel(_model.Tier)} · Agree: {(_model.Agree ? "yes" : "no")}"
+            ]
+        ],
         _result is null
             ? null
             : BsAlert(Color: BsColor.Success, Class: "mt-3 mb-0")[

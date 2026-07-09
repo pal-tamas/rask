@@ -28,7 +28,9 @@ public class BsFormControlTests
     {
         var html = BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true).ToHtml();
         Assert.Contains("class=\"form-select\"", html);
-        Assert.Contains("<option value=\"a\"", html);
+        // The selected option keeps its reconciliation key (data-rask-key) so keyed diffing stays stable and
+        // the browser's live `selected` property syncs — see SelectTests.BoundSelect_MarkedOption_KeepsItsKey.
+        Assert.Contains("data-rask-key=\"0\" value=\"a\" selected", html);
     }
 
     [Fact]

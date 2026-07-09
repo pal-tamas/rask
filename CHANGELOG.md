@@ -80,6 +80,12 @@ them until tagged releases begin.
   drops ~35% (69.4 KB → 45.3 KB per update).
 
 ### Fixed
+- **Bound/controlled native `<select>` no longer snaps back to its old value after a change.** When
+  marking the matching `<option>` selected, `Select<T>` cloned it but dropped its reconciliation `Key`,
+  so the selected option's key shifted on every render, keyed diffing mismatched, and the browser's live
+  `selected` IDL property was never synced — the model updated but the box reverted visually. The marked
+  `<option>`/`<optgroup>` now keeps its `Key`. Affects every bound/controlled `Select<T>` (and so
+  `BsSelect(Native: true)`).
 - **Flaky `LiveTicker` lifecycle tests no longer time out on a cold CI thread pool.** The
   background-async waits in `LiveTickerTests` gave the synthetic poll loop only 2 s to land its
   first tick; on the nightly `unit` job — which compiles every WASM sample bundle immediately
@@ -133,6 +139,16 @@ them until tagged releases begin.
   Mono AOT; it is now computed fresh, and the composed value is boxed to the bound property's actual type.
 - **Time-picker selection now uses the brand colour** (`var(--bs-primary)`) instead of Bootstrap's baked-in
   blue, with a slimmer scrollbar and tighter item padding.
+- **Picker/select UI polish.** The floating label now anchors to the top-left corner (a centred scale origin
+  made it land low/misaligned); the `×` clear on a non-floating `BsSelect`, and the caret/`×` on a
+  non-floating picker, now centre vertically in the box (they were anchored to the whole `.dropdown` — label
+  above included — so they rode up onto the box's top edge); the editable-picker caret is larger; and in the
+  `BsDateTimePicker` popover the hour/minute columns now match the calendar grid's height instead of stopping
+  short.
+- **New variant-gallery examples** for `BsSelect` (basic, floating, searchable, clearable, `OptionValue`
+  projected id, native, native-nullable, disabled), `BsMultiSelect` (basic, searchable, floating, disabled),
+  and the date/time pickers (default, floating, native, min/max/disable, nullable) — each bound with a live
+  readout, in the Bootstrap guide (`docs/bootstrap.md`).
 
 ## [0.15.1] - 2026-07-08
 

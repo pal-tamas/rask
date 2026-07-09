@@ -1,0 +1,47 @@
+namespace Rask.Example.Shared.Features;
+
+// Every BsMultiSelect<TItem> variant: a dropdown of checkable options with the picks shown as removable
+// chips, bound to a model collection. Filter adds an in-dropdown search field; Floating wraps the label like
+// a form-floating; Disabled makes it read-only. A live readout OUTSIDE the Form echoes each selection with no
+// StateHasChanged (a bound write re-renders the expression's owner).
+public sealed class BsMultiSelectDemo : Component
+{
+    private static readonly string[] Interests = ["Web", "Mobile", "AI", "Games", "DevOps", "Data"];
+
+    private readonly Model _m = new();
+
+    protected override Component? Render() =>
+    [
+        Form<Model>(_m, Class: "vstack gap-3")[
+            // 1. Basic — chips + checkable dropdown, bound to a List<string>.
+            BsMultiSelect<string>(() => _m.Basic, Interests,
+                Label: "Interests (basic)", Placeholder: "Pick a few…", Id: "ms-basic"),
+            // 2. Searchable — a Filter predicate adds a search field that narrows the options.
+            BsMultiSelect<string>(() => _m.Searchable, Interests,
+                Filter: (i, t) => i.Contains(t, StringComparison.OrdinalIgnoreCase),
+                Label: "Interests (searchable)", Placeholder: "Search…", Id: "ms-search"),
+            // 3. Floating — the label floats up once anything is picked (or while focused).
+            BsMultiSelect<string>(() => _m.Floating, Interests,
+                Label: "Interests (floating)", Floating: true, Id: "ms-float"),
+            // 4. Disabled — non-interactive, still shows its bound chips.
+            BsMultiSelect<string>(() => _m.Locked, Interests,
+                Label: "Interests (disabled)", Disabled: true, Id: "ms-locked")
+        ],
+        BsAlert(Color: BsColor.Secondary, Class: "mt-3 mb-0")[
+            Span(Id: "ms-readout")[
+                $"Basic: {Join(_m.Basic)} · Search: {Join(_m.Searchable)} · " +
+                $"Floating: {Join(_m.Floating)} · Locked: {Join(_m.Locked)}"
+            ]
+        ]
+    ];
+
+    private static string Join(ICollection<string> items) => items.Count == 0 ? "—" : string.Join(", ", items);
+
+    private sealed class Model
+    {
+        public List<string> Basic { get; } = [];
+        public List<string> Searchable { get; } = [];
+        public List<string> Floating { get; } = [];
+        public List<string> Locked { get; } = ["AI", "Data"];
+    }
+}
