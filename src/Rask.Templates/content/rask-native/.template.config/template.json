@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Tamás Pál",
+  "classifications": [ "Mobile", "Rask", "iOS", "Android", "Native" ],
+  "identity": "Rask.Templates.Native",
+  "name": "Rask Native Mobile App (iOS + Android)",
+  "description": "A native iOS/Android app that runs a Rask app in-process inside a platform WebView (WebView hybrid). The same component code as the other Rask hosts, packaged for the App Store / Play Store.",
+  "shortName": [ "rask-native" ],
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Company.RaskNative",
+  "preferNameDirectory": true,
+  "defaultName": "RaskApp",
+  "symbols": {
+  }
+}

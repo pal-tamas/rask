@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Rask.Native is the TRANSPORT-AGNOSTIC half of the native-mobile host: it boots a Rask App
+    in-process on a device (Native+Local) or points a native WebView at a remote Rask Server
+    (Native+Server), and drives the UI through the SAME render → diff → payload pipeline the
+    Server and WASM hosts use (LiveSessionBase in Rask.Core). The one thing it does NOT contain
+    is the platform WebView itself — that (WKWebView on iOS, android.webkit.WebView on Android)
+    lives behind the INativeWebView bridge and is implemented in the app head (the rask-native
+    template / Rask.Example.Native), which multi-targets net10.0-ios;net10.0-android.
+
+    Keeping this library on plain net10.0 means it builds and unit-tests in CI with no iOS/Android
+    SDK workloads installed — the platform heads that DO need those workloads are gated separately.
+    Mirrors how Rask.Wasm (browser transport) and Rask.Wasm.Hosting (static host) split concerns.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Rask.Native</RootNamespace>
+    <!--
+      Not AOT-analyzed here (like Rask.Server): this host uses DotNetDispatcher for JS↔.NET interop,
+      the same as the Server host. iOS requires full AOT, but that is validated at the app-head publish
+      level (the rask-native template's iOS project), where the reflection-free NativeJSRuntime + the
+      TypedParserRegistry route/form path keep the publish clean. Enabling the analyzer here is a
+      tracked follow-up once the head publish is proven.
+    -->
+
+    <PackageId>Rask.Native</PackageId>
+    <Title>Rask — Native Mobile Host</Title>
+    <Description>Rask native-mobile host. Boots a Rask App on iOS/Android inside a platform WebView, driven by the same render/diff pipeline as the Server and WASM hosts — either in-process (offline, Native+Local) or over a remote WebSocket (Native+Server). Ships the native client runtime, the boot shell, and the INativeWebView bridge the app head implements per platform. Includes Rask.Core and the Rask source generators.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <PackageReference Include="Microsoft.Extensions.Logging"/>
+    <!-- Rask.Core uses Microsoft.AspNetCore.Authorization (RouteAuthorizationGuard); surface it at
+         the package boundary so native heads (no Microsoft.AspNetCore.App) can restore it. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Native.Tests"/>
+  </ItemGroup>
+
+  <!--
+    The native client runtime (Resources/rask.native.js) is assembled at build the same way as
+    rask.wasm.js: splice the shared Rask.Core/Resources modules into the template at the @@RASK_*@@
+    markers, then embed the result so the platform WebView can serve it via a custom scheme handler
+    (iOS WKURLSchemeHandler) / asset loader (Android WebViewAssetLoader). index.native.html is the
+    minimal boot shell (no dotnet.js — the runtime is the host process).
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\index.native.html" LogicalName="Rask.Native.index.native.html"/>
+    <EmbeddedResource Include="Assets\rask.native.js" LogicalName="Rask.Native.rask.native.js"/>
+    <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+  <Import Project="..\..\build\Rask.MinifyJs.targets"/>
+
+  <!--
+    Splice the shared client modules (rask-dom.js diff codec @ @@RASK_DOM@@, rask-morph.js full-HTML
+    morph @ @@RASK_MORPH@@, rask-api.js interop helpers @ @@RASK_API@@, rask-events.js @ @@RASK_EVENTS@@,
+    rask-pwa.js @ @@RASK_PWA@@) into Resources/rask.native.js → Assets/rask.native.js. The generated
+    Assets/rask.native.js is the readable, source-tracked artifact contributors inspect; it is embedded
+    above and re-generated (WriteOnlyWhenDifferent) whenever a shared module or the template changes.
+  -->
+  <Target Name="_RaskSpliceNativeClientJs" BeforeTargets="PrepareForBuild;AssignTargetPaths;BeforeCompile"
+          Inputs="Resources\rask.native.js;..\Rask.Core\Resources\rask-dom.js;..\Rask.Core\Resources\rask-morph.js;..\Rask.Core\Resources\rask-api.js;..\Rask.Core\Resources\rask-events.js;..\Rask.Core\Resources\rask-pwa.js"
+          Outputs="Assets\rask.native.js">
+    <PropertyGroup>
+      <_RaskNativeTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\Resources\rask.native.js'))</_RaskNativeTemplate>
+      <_RaskDomBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-dom.js'))</_RaskDomBody>
+      <_RaskMorphBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-morph.js'))</_RaskMorphBody>
+      <_RaskApiBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-api.js'))</_RaskApiBody>
+      <_RaskEventsBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-events.js'))</_RaskEventsBody>
+      <_RaskPwaBody>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\Rask.Core\Resources\rask-pwa.js'))</_RaskPwaBody>
+      <_RaskNativeJs>$(_RaskNativeTemplate.Replace('// @@RASK_DOM@@', '$(_RaskDomBody)').Replace('// @@RASK_MORPH@@', '$(_RaskMorphBody)').Replace('// @@RASK_API@@', '$(_RaskApiBody)').Replace('// @@RASK_EVENTS@@', '$(_RaskEventsBody)').Replace('// @@RASK_PWA@@', '$(_RaskPwaBody)'))</_RaskNativeJs>
+    </PropertyGroup>
+    <MakeDir Directories="Assets"/>
+    <WriteLinesToFile File="Assets\rask.native.js" Lines="$(_RaskNativeJs)" Overwrite="true" WriteOnlyWhenDifferent="true"/>
+    <ItemGroup>
+      <FileWrites Include="Assets\rask.native.js"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

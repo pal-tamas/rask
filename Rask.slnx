@@ -23,6 +23,7 @@
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
         <Project Path="src/Rask.Generators/Rask.Generators.csproj"/>
         <Project Path="src/Rask.Generators.CodeFixes/Rask.Generators.CodeFixes.csproj"/>
+        <Project Path="src/Rask.Native/Rask.Native.csproj"/>
         <Project Path="src/Rask.Server/Rask.Server.csproj"/>
         <Project Path="src/Rask.Templates/Rask.Templates.csproj"/>
         <Project Path="src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj"/>
@@ -45,6 +46,7 @@
         <Project Path="tests/Rask.Example.Wasm.Tests/Rask.Example.Wasm.Tests.csproj"/>
         <Project Path="tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj"/>
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"/>
+        <Project Path="tests/Rask.Native.Tests/Rask.Native.Tests.csproj"/>
         <Project Path="tests/Rask.Server.Tests/Rask.Server.Tests.csproj"/>
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj"/>
         <Project Path="tests/Rask.Validation.DataAnnotations.Tests/Rask.Validation.DataAnnotations.Tests.csproj"/>
