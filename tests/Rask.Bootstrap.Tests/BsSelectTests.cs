@@ -51,14 +51,36 @@ public class BsSelectTests
             BsSelect<string>(Options: [], Value: null, Label: "Plan", Required: true, Id: "s").ToHtml());
 
     [Fact]
-    public void Select_Floating_WrapsBoxAndLabelInFormFloating() =>
+    public void Select_Floating_WrapsBoxAndLabelInFormFloatingWithBlankBox() =>
+        // Float-only-when-filled: the empty box carries no placeholder text (the label acts as the
+        // placeholder), the wrapper is .form-floating.bs-floating, and .bs-floating-filled is absent.
         Assert.Contains(
-            "<div class=\"form-floating\">" +
+            "<div class=\"form-floating bs-floating position-relative\">" +
             "<div id=\"s\" class=\"form-select\" data-rask-anchor=\"\" role=\"combobox\" tabindex=\"0\" " +
-            "aria-haspopup=\"listbox\" aria-expanded=\"false\" aria-controls=\"s-list\">" +
-            "<span class=\"text-secondary\">Select&#x2026;</span></div>" +
+            "aria-haspopup=\"listbox\" aria-expanded=\"false\" aria-controls=\"s-list\"></div>" +
             "<label for=\"s\">Plan</label></div>",
             BsSelect<string>(Options: [], Value: null, Label: "Plan", Floating: true, Id: "s").ToHtml());
+
+    [Fact]
+    public void Select_FloatingWithValue_AddsFilledMarker() =>
+        Assert.Contains(
+            "<div class=\"form-floating bs-floating bs-floating-filled position-relative\">",
+            BsSelect<string>(Options: ["a"], Value: "a", Label: "Plan", Floating: true, Id: "s").ToHtml());
+
+    [Fact]
+    public void Select_NullableWithValue_ShowsClearButtonAndPadsBox() =>
+        // A nullable (Nullable<T>) select with a value shows the × clear button (btn-close) and pads the box.
+        Assert.Contains(
+            "<div id=\"s\" class=\"form-select bs-select-clearable\" data-rask-anchor=\"\" role=\"combobox\" " +
+            "tabindex=\"0\" aria-haspopup=\"listbox\" aria-expanded=\"false\" aria-controls=\"s-list\">2</div>" +
+            "<button class=\"btn-close position-absolute top-50 translate-middle-y bs-select-clear\" " +
+            "aria-label=\"Clear\" type=\"button\"></button>",
+            BsSelect<int?>(Options: new int?[] { 1, 2 }, Value: 2, Id: "s").ToHtml());
+
+    [Fact]
+    public void Select_NonNullable_HasNoClearButton() =>
+        Assert.DoesNotContain("bs-select-clear",
+            BsSelect<string>(Options: ["a"], Value: "a", Id: "s").ToHtml());
 
     [Fact]
     public void Select_Disabled_DropsInteractivityAndDisablesOptions() =>

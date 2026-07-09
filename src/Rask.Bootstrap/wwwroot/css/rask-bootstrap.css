@@ -25,6 +25,44 @@
    spill. No CSS override is needed — and forcing overflow:visible on a wide responsive table would have
    let it spill horizontally for no benefit now that the menu is fixed.) */
 
+/* BsSelect / BsMultiSelect nullable clear (×): a nullable custom select with a value shows an × over the
+   box, sitting just left of the .form-select caret. The box gets extra right padding so the value text
+   never runs under the ×. Mirrors the date/time pickers' clear affordance. */
+.bs-select-clearable {
+  padding-right: 3.5rem;
+}
+.bs-select-clear {
+  right: 2.25rem;
+  z-index: 4;
+}
+
+/* Floating labels for the custom div-based controls (BsSelect / BsMultiSelect / pickers). Bootstrap's own
+   floating keys off :placeholder-shown / :focus — which a <div> control can't have — and it floats a
+   .form-select label unconditionally, so we drive "float only when filled" from state classes instead: the
+   wrapper is .bs-floating and gains .bs-floating-filled when the control holds a value. Empty + unfocused →
+   the label sits centred as the placeholder; filled or focused-within → it shrinks up to the top-left. The
+   higher-specificity selectors (…> .form-select ~ label) override Bootstrap's own floating rules. */
+.form-floating.bs-floating > .form-select ~ label,
+.form-floating.bs-floating > .form-control ~ label {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: none;
+  opacity: 1;
+  color: var(--bs-secondary-color);
+  transition: transform 0.1s ease-in-out, opacity 0.1s ease-in-out;
+}
+.form-floating.bs-floating.bs-floating-filled > .form-select ~ label,
+.form-floating.bs-floating.bs-floating-filled > .form-control ~ label,
+.form-floating.bs-floating:focus-within > .form-select ~ label,
+.form-floating.bs-floating:focus-within > .form-control ~ label {
+  height: auto;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  opacity: 0.65;
+}
+
 /* Date/time pickers (BsDatePicker/BsTimePicker/BsDateTimePicker). The popover is a plain
    .dropdown-menu we position with live-diff state (no Popper); these rules only style the calendar
    grid and time columns. All colours use Bootstrap CSS variables, so light/dark themes track

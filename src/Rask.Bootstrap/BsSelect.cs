@@ -95,10 +95,13 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
         var prefix = controlId ?? "bssel" + _instanceId.ToString(CultureInfo.InvariantCulture);
         var listId = prefix + "-list";
         var selectedIdx = SelectedIndex(b, opts);
+        var floating = Floating is true && Label is not null;
 
-        Component content = selectedIdx >= 0
+        // Floating shows the label as the in-box placeholder while empty, so the box itself stays blank
+        // (no separate placeholder text); otherwise a muted placeholder span fills the empty box.
+        Component? content = selectedIdx >= 0
             ? LabelOf(opts[selectedIdx])
-            : Span(Class: "text-secondary")[Placeholder ?? "Select…"];
+            : floating ? null : Span(Class: "text-secondary")[Placeholder ?? "Select…"];
 
         var aria = new Dictionary<string, string?>
         {
@@ -119,8 +122,13 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             }
         }
 
+        // A nullable select with a value gets an × that clears it back to null (matching the pickers). It
+        // sits left of the .form-select caret; the box gains right padding so the value never runs under it.
+        var showClear = CanClear && selectedIdx >= 0 && !disabled;
+
         var box = Div(
-            Class: BsClass.Join("form-select", b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null),
+            Class: BsClass.Join("form-select", showClear ? "bs-select-clearable" : null,
+                b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null),
             Id: controlId,
             Data: BsPopover.Anchor,
             Role: "combobox",
@@ -129,22 +137,14 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             OnClick: disabled ? null : () => Toggle(b, opts),
             OnKeyDownAsync: disabled ? null : e => OnKeyAsync(b, opts, e))[content];
 
-        var rows = new List<Component>();
-        // A nullable select can be cleared back to null: a leading "none" listbox option, active while
-        // nothing is selected. (A required string/enum select has no null state, so no clear row.)
-        if (CanClear)
-        {
-            rows.Add(Button(
-                Type: "button",
-                Class: BsClass.Join("dropdown-item", selectedIdx < 0 ? "active" : null),
-                Id: prefix + "-opt-none",
-                Role: "option",
-                Aria: selectedIdx < 0 ? SelectedAria : null,
-                Disabled: Disabled,
-                Key: "none",
-                OnClickAsync: disabled ? null : () => PickAsync(b, default!))[Placeholder ?? "None"]);
-        }
+        var clear = showClear
+            ? BsCloseButton(
+                Class: BsClass.Join(Position.Absolute, Position.Top50, Position.TranslateMiddleY, "bs-select-clear"),
+                AriaLabel: "Clear",
+                OnClickAsync: () => PickAsync(b, default!))
+            : null;
 
+        var rows = new List<Component>();
         for (var i = 0; i < opts.Count; i++)
         {
             var idx = i;
@@ -168,7 +168,6 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
                 ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
                 : "dropdown-menu")[rows];
 
-        var floating = Floating is true && Label is not null;
         var labelNode = Label is null
             ? null
             : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
@@ -181,7 +180,21 @@ public sealed class BsSelect<TItem> : BsFormControl<TItem>
             children.Add(labelNode);
         }
 
-        children.Add(floating ? Div(Class: "form-floating")[box, labelNode] : box);
+        // Floating wraps box + label in .form-floating (label after → the CSS floats it); the × rides along
+        // inside so it anchors to the box. Non-floating: the × is a sibling of the box in the .dropdown
+        // (whose menu/backdrop are out of flow, so .dropdown's height is the box's — the × centres on it).
+        if (floating)
+        {
+            children.Add(Div(
+                Class: BsClass.Join("form-floating bs-floating",
+                    selectedIdx >= 0 ? "bs-floating-filled" : null, Position.Relative))[box, labelNode, clear]);
+        }
+        else
+        {
+            children.Add(box);
+            children.Add(clear);
+        }
+
         children.Add(menu);
 
         if (_open && !disabled)
