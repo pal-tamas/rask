@@ -18,7 +18,10 @@ public sealed class App : Component
         Doctype(),
         Html("en")[
             Head(),
-            Body()[
+            // Pad the body by the device safe-area insets so content clears the status bar / notch /
+            // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
+            Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+                        "env(safe-area-inset-bottom) env(safe-area-inset-left)")[
                 Nav()[
                     NavLink(HomePage())["Home"],
                     " | ",
