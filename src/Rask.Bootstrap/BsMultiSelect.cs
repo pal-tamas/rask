@@ -28,13 +28,19 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
     public string? Placeholder { get; set; }
     public bool? Disabled { get; set; }
 
+    // The text each option is matched against when the user types in the inline search field (contains,
+    // case-insensitive). Defaults to item?.ToString(); supply this when the searchable text isn't ToString.
+    public Func<TItem, string>? FilterText { get; set; }
+
     // Optional field label. Floating wraps the control + label in a .form-floating (the .form-select
     // control box makes Bootstrap float the label just like a native select); otherwise it sits above.
     public string? Label { get; set; }
     public bool? Floating { get; set; }
 
-    // View state only — the selection lives in the bound model / parent Value. Toggling re-renders.
+    // View state only — the selection lives in the bound model / parent Value. Toggling re-renders. _filter
+    // is the text typed into the inline search field (null when not searching).
     private bool _open;
+    private string? _filter;
 
     protected override Component? Render()
     {
@@ -70,16 +76,21 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         Component LabelOf(TItem item) =>
             OptionLabel is not null ? OptionLabel(item) : item?.ToString() ?? string.Empty;
 
-        // The control box doubles as the dropdown toggle; chips reuse BsBadge + BsCloseButton.
+        // Filter the options as the user types in the inline search field (contains, case-insensitive).
+        var filtered = string.IsNullOrEmpty(_filter)
+            ? Options
+            : Options.Where(o => FilterOf(o).Contains(_filter, StringComparison.OrdinalIgnoreCase));
+        var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
+
+        var hasChips = selected is not null && selected.Count > 0;
+
+        // The control box holds the selected chips (BsBadge + BsCloseButton) followed by an inline text
+        // input: typing filters, focus opens. When nothing is selected the input carries the placeholder.
         var box = new List<Component>();
-        if (selected is null || selected.Count == 0)
-        {
-            box.Add(Span(Class: "text-secondary")[Placeholder ?? "Select…"]);
-        }
-        else
+        if (hasChips)
         {
             var i = 0;
-            foreach (var item in selected)
+            foreach (var item in selected!)
             {
                 var captured = item;
                 box.Add(BsBadge(Color: BsColor.Primary, Class: "d-inline-flex align-items-center", Key: i)[
@@ -91,29 +102,46 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             }
         }
 
+        box.Add(Input<string>(
+            Type: InputType.Text,
+            Class: BsClass.Join("bs-multiselect-search", "flex-grow-1"),
+            Value: _filter ?? string.Empty,
+            Placeholder: hasChips ? null : Placeholder ?? "Select…",
+            Disabled: Disabled,
+            Autocomplete: "off",
+            Aria: new Dictionary<string, string?> { ["label"] = Label ?? "Search" },
+            OnFocus: disabled ? null : () => _open = true,
+            OnInput: disabled ? null : raw => _filter = raw,
+            OnKeyDown: disabled ? null : OnBoxKeyDown));
+
         var rows = new List<Component>();
-        var idx = 0;
-        foreach (var option in Options)
+        if (filteredList.Count == 0)
         {
-            var captured = option;
-            var isChecked = selected is not null && selected.Contains(captured, comparer);
-            rows.Add(Button(
-                Type: "button", Class: "dropdown-item d-flex align-items-center gap-2", Disabled: Disabled,
-                OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
-                Key: idx)[
-                Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
-                LabelOf(captured)
-            ]);
-            idx++;
+            rows.Add(Span(Class: BsClass.Join("dropdown-item", "disabled", Txt.Muted))["No matches"]);
+        }
+        else
+        {
+            var idx = 0;
+            foreach (var option in filteredList)
+            {
+                var captured = option;
+                var isChecked = selected is not null && selected.Contains(captured, comparer);
+                rows.Add(Button(
+                    Type: "button", Class: "dropdown-item d-flex align-items-center gap-2", Disabled: Disabled,
+                    OnClickAsync: disabled ? null : () => ToggleAsync(acc, ctx, fid, captured, comparer, add: !isChecked),
+                    Key: idx)[
+                    Input<string>(InputType.Checkbox, Class: "form-check-input m-0 pe-none", Checked: isChecked),
+                    LabelOf(captured)
+                ]);
+                idx++;
+            }
         }
 
         var boxDiv = Div(
             Class: BsClass.Join("form-select", Sizing.HAuto, Display.Flex(), Flex.Wrap(),
                 Flex.Align(BsAlign.Center), Flex.Gap(1), disabled ? "disabled pe-none" : null),
             Data: BsPopover.Anchor,
-            TabIndex: disabled ? null : 0,
-            OnClick: disabled ? null : () => _open = !_open,
-            OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
+            OnClick: disabled ? null : () => _open = true)[box];
 
         var floating = Floating is true && Label is not null;
         var labelNode = Label is null
@@ -126,9 +154,13 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             children.Add(labelNode);
         }
 
-        // Floating: .form-floating wraps the .form-select box + label (label after → Bootstrap floats it);
-        // the dropdown menu stays a sibling of it inside .dropdown so it still positions correctly.
-        children.Add(floating ? Div(Class: "form-floating")[boxDiv, labelNode] : boxDiv);
+        // Floating: .form-floating.bs-floating wraps the .form-select box + label; the label floats when
+        // there are chips (.bs-floating-filled) or while the search field is focused (:focus-within). The
+        // dropdown menu stays a sibling inside .dropdown so it still positions correctly.
+        children.Add(floating
+            ? Div(Class: BsClass.Join("form-floating bs-floating", hasChips ? "bs-floating-filled" : null,
+                Position.Relative))[boxDiv, labelNode]
+            : boxDiv);
         children.Add(Div(Class: _open
             ? BsClass.Join("dropdown-menu show", Display.Block(), Sizing.W(100))
             : "dropdown-menu")[rows]);
@@ -138,7 +170,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             children.Add(Div(
                 Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0, Sizing.W(100), Sizing.H(100)),
                 Style: "z-index: 999;",
-                OnClick: () => _open = false));
+                OnClick: () => { _open = false; _filter = null; }));
         }
 
         if (bound)
@@ -155,8 +187,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         if (e.Key == "Escape")
         {
             _open = false;
+            _filter = null;
         }
     }
+
+    private string FilterOf(TItem item) => FilterText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
     private async Task ToggleAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,

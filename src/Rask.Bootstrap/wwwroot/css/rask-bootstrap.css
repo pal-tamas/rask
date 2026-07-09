@@ -36,6 +36,21 @@
   z-index: 4;
 }
 
+/* BsMultiSelect inline search field — a borderless text input that sits after the chips inside the
+   .form-select box and grows to fill the row, so typing filters the options without a separate control. */
+.bs-multiselect-search {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0;
+  min-width: 4rem;
+  color: inherit;
+}
+.bs-multiselect-search:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
 /* Floating labels for the custom div-based controls (BsSelect / BsMultiSelect / pickers). Bootstrap's own
    floating keys off :placeholder-shown / :focus — which a <div> control can't have — and it floats a
    .form-select label unconditionally, so we drive "float only when filled" from state classes instead: the
