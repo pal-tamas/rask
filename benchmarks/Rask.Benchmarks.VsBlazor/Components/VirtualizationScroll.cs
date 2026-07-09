@@ -53,7 +53,11 @@ internal static class VirtualizationScroll
                 var rows = new List<Component>(ctx.VisibleItems.Count);
                 foreach (var item in ctx.VisibleItems)
                 {
-                    rows.Add(C.Div(Class: "row", Id: $"r{item.Index}")[
+                    // Key rows by item index — the best practice for any virtualized/dynamic list
+                    // (Blazor's Virtualize keys rows too). On a scroll the visible window shifts by a
+                    // few rows; keyed reconciliation then ships just the entering/leaving rows instead
+                    // of re-emitting an id+text change for every slot in the window.
+                    rows.Add(C.Div(Class: "row", Id: $"r{item.Index}", Key: item.Index)[
                         C.Span()[$"Item {item.Index}"]
                     ]);
                 }

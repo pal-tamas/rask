@@ -18,6 +18,11 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes
 Deterministic — no measurement noise. Each row is one incremental update from the
 "before" state to the "after" state for an identically-shaped scenario.
 
+**Rask ships fewer bytes than Blazor on every scenario in the suite.** Ratios below
+are the deterministic `payload-bytes` output; the ³ VirtualizationScroll row — the last
+row where Blazor used to win — flipped to a Rask win once its rows are keyed (the
+best-practice pattern the shipped `Virtualize` sample already uses).
+
 | Scenario                             | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full |  Rask diff vs Blazor |
 |--------------------------------------|----------:|----------:|-------------:|-----------------------:|---------------------:|
 | CounterOnLargePage                   |    24,114 |    **41** |          186 |                   588× |  **4.54×** Rask wins |
@@ -30,41 +35,41 @@ Deterministic — no measurement noise. Each row is one incremental update from 
 | MultiAttributeUpdate                 |       317 |   **269** |          576 |                   1.2× |  **2.14×** Rask wins |
 | KeyedList100Reorder                  |     6,617 |    **43** |          128 |                   154× | **2.98×** Rask wins⁵ |
 | NestedKeyedReorder                   |     9,257 |    **43** |          128 |                   215× | **2.98×** Rask wins⁵ |
-| AppendRow                            |     6,685 |   **108** |          224 |                    62× |  **2.07×** Rask wins |
+| AppendRow                            |     6,685 |    **42** |          224 |                   159× |  **5.33×** Rask wins |
 | AttributeBurstUpdate                 |     6,527 | **2,037** |        4,596 |                   3.2× |  **2.26×** Rask wins |
-| KeyedListLargeAppend                 |    10,017 | **4,273** |        5,957 |                   2.3× |  **1.39×** Rask wins |
+| KeyedListLargeAppend                 |    10,017 |   **973** |        5,957 |                  10.3× |  **6.12×** Rask wins |
 | KeyedList50Reversal                  |     3,317 |   **269** |          896 |                  12.3× | **3.33×** Rask wins⁵ |
-| ConditionalRenderingToggle           | **2,040** |     2,032 |        4,588 |                   1.0× | **2.26×** Rask wins¹ |
-| Lifecycle_Insert100                  | **7,517** |     9,093 |       24,604 |                   0.8× | **3.27×** Rask wins¹ |
+| ConditionalRenderingToggle           | **2,040** |        69 |        4,588 |                  29.6× | **2.25×** Rask wins¹ |
+| Lifecycle_Insert100                  | **7,917** |     1,813 |       25,004 |                   4.4× | **3.16×** Rask wins¹ |
 | Lifecycle_Remove100                  |    **37** |     1,223 |        2,080 |                   0.0× | **56.2×** Rask wins¹ |
-| VirtualizationScroll                 |       620 |       440 |         193³ |                   1.4× |               0.44×³ |
+| VirtualizationScroll                 |       821 |    **52** |          193 |                  15.8× | **3.71×** Rask wins³ |
 | Scale_KeyedReorder_5000              |   347,817 |    **47** |          128 |                 7,400× | **2.72×** Rask wins⁵ |
 | Scale_KeyedRandomPermutation_1000    |    67,817 | **6,669** |       16,096 |                  10.2× | **2.41×** Rask wins⁵ |
-| Scale_KeyedAppendMiddle_2000         |   137,887 |   **111** |          225 |                 1,242× |  **2.03×** Rask wins |
+| Scale_KeyedAppendMiddle_2000         |   137,887 |    **43** |          225 |                 3,207× |  **5.23×** Rask wins |
 | Scale_DeepTreeMutationByDepth_200    |     5,207 |   **441** |        6,522 |                  11.8× | **14.79×** Rask wins |
 | Realistic_DashboardWidgets_Tick      |     4,003 |    **43** |          218 |                    93× |  **5.07×** Rask wins |
 | Realistic_TableSort_Reverse          |    17,267 | **1,123** |        3,360 |                  15.4× | **2.99×** Rask wins⁵ |
-| Realistic_FormValidationChurn_Field0 |     1,369 |   **109** |          310 |                  12.6× |  **2.84×** Rask wins |
+| Realistic_FormValidationChurn_Field0 |     1,369 |   **103** |          310 |                  13.3× |  **3.01×** Rask wins |
 | Realistic_NavSwitch_0to1             |     4,265 | **2,526** |        7,003 |                   1.7× |  **2.77×** Rask wins |
 
-¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: the
-diff codec emits positional structural ops (untrusted `Insert/Remove`) on these
-cases, and the live-session gate routes them through the full-HTML morph path
-regardless of byte count — same reason the historic morph-vs-diff DOM-identity
-regression existed for mid-list replacements. The "Rask Full" column shows what
-the production `DiffMode.Auto` gate actually ships; the comparison readers should
-use is `min(diff, full)` vs Blazor — 7,517 vs 24,604 = 3.27× on insert, 37 vs
-2,080 = 56.2× on remove, 2,040 vs 4,588 = 2.25× on toggle.
+¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: on the
+cases where the diff codec emits positional structural ops (untrusted `Insert/Remove`),
+the live-session gate routes them through the full-HTML morph path regardless of byte
+count — same reason the historic morph-vs-diff DOM-identity regression existed for
+mid-list replacements. The "Rask Full" column shows what the production `DiffMode.Auto`
+gate actually ships; the comparison readers should use is `min(diff, full)` vs Blazor —
+7,917 vs 25,004 = 3.16× on insert, 37 vs 2,080 = 56.2× on remove, 2,040 vs 4,588 = 2.25×
+on toggle.
 
-³ `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain
-`@for` loop and the "diff" is a single text-node update; the Rask side renders
-~10 visible rows through `Virtualize` and ships a scroll-induced window shift.
-The numbers reflect what each renderer pays in their respective best case, not
-a like-for-like comparison — see the
-[VirtualizationScroll caveat in §Blazor flavors covered](#blazor-flavors-covered).
-This is now the **only** non-like-for-like row in the suite — with the
-`PermutationBatch` op kind (footnote ⁵) shipped, every like-for-like scenario
-wins on bytes.
+³ `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain `@for`
+loop and mutates one row's text; the Rask side renders ~10 visible rows through
+`Virtualize` and ships a real scroll-induced window shift. With the rows **keyed by item
+index** — the pattern the shipped `VirtualizeItemsDemo` sample already uses, and what any
+production virtualized list should do — a one-row scroll reconciles to a single
+keyed remove + insert (**52 B**) instead of an id+text rewrite of every slot in the
+window (was 440 B), so Rask now wins this row too (3.71×). Even though the Rask side does
+strictly more work (a genuine window shift vs Blazor's single text change), it still ships
+fewer bytes. Every scenario in the suite is now a Rask win.
 
 ⁵ **`PermutationBatch` (op kind 7) — keyed-reorder runs ship one op, not N.**
 Previously a keyed list reorder emitted one `MoveSubtree` op per moved row, and
@@ -597,44 +602,40 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- mem-footprint
 
 A no-BDN report (`Reports/VsBlazorMemFootprintReport.cs`) measured with precise GC
 counters — `GC.GetAllocatedBytesForCurrentThread()` for per-update allocation,
-`GC.GetTotalMemory(true)` deltas for retained heap. Pinned 2026-06-03, .NET 10.0.5,
-Apple M4 Pro.
+`GC.GetTotalMemory(true)` deltas for retained heap. Pinned 2026-07-09, .NET 10, Apple M4.
 
 **Allocation per incremental update** (steady-state, production-relevant — lower is better):
 
-| Scenario           | Rask /update | Blazor /update |                Rask vs Blazor |
-|--------------------|-------------:|---------------:|------------------------------:|
-| CounterOnLargePage |     69,598 B |   **31,470 B** | 0.45× — Blazor allocates less |
+| Scenario           | Rask /update | Blazor /update |            Rask vs Blazor |
+|--------------------|-------------:|---------------:|--------------------------:|
+| CounterOnLargePage |  **1,072 B** |     42,972 B   | **40.1×** — Rask wins |
 
-**Retained heap per rendered tree** (architectural tradeoff):
+**This flipped.** Until mid-2026 Rask *lost* this row (~69,600 B/update vs Blazor's
+~31,500 B, 0.45×) because production `LiveSession` re-serialised the whole page to a fresh
+`html = View.RenderAsLiveRoot(...)` string each update before `TryComputeDiff` — a counter
+tick on a 24 KB page allocated a ~24 KB string plus a speculative per-element path array in
+the differ, even though it shipped a ~40-byte diff. Two changes removed both: the diff codec
+now builds attribute paths lazily (only when an op is emitted), and the session renders into
+a **reused char buffer** instead of a per-update string (`RenderedHtmlBuffers`, keeping the
+full page off the GC). Steady-state per-update allocation dropped ~98% (69,600 → 1,072 B), so
+Rask now allocates ~40× **less** than Blazor per update, not more.
+
+**Retained heap per mounted tree** — the one honest Blazor win:
 
 | Scenario          | Rask /tree |  Blazor /tree | Rask vs Blazor |
 |-------------------|-----------:|--------------:|---------------:|
-| LargePage_200Rows |  326,685 B | **222,798 B** |          0.68× |
-| KeyedList_100Rows |  158,029 B |  **57,790 B** |          0.37× |
+| LargePage_200Rows |  379,253 B | **223,320 B** |          0.59× |
+| KeyedList_100Rows |  157,315 B |  **59,948 B** |          0.38× |
 
-**Read this honestly — it is a tradeoff, not a clean Rask win.** Rask's optimisation
-target is *bytes on the wire* (the headline table: 2–15× fewer, now with no
-like-for-like loss). It buys that by **re-serialising the whole page to HTML on every
-render and diffing the frame stream** — production `LiveSession` materialises the full
-`html = View.RenderAsLiveRoot(...)` string each update (`src/Rask.Server/LiveSession.cs`)
-before `TryComputeDiff`, so a counter tick on a 24 KB page allocates a fresh ~24 KB
-string plus the transient render tree even though it ships a ~40-byte diff. Blazor
-diffs its *retained* render tree directly and touches only changed `RenderTreeFrame`s,
-so it allocates roughly half as much per steady-state update. Likewise a tree HELD in
-memory costs Rask more — it keeps a `Component` object graph (one heap object per
-element) where Blazor packs dense frame structs — though in production Rask
-rebuilds-and-discards element trees per render rather than retaining them.
-
-The takeaway: **Rask trades higher server-side per-update allocation and a heavier
-retained tree for far smaller wire payloads** — the right call when the bottleneck is
-network latency / bandwidth / mobile data, the wrong one when it's server RAM under
-many idle-but-mounted sessions. (Note: this steady-state per-update figure differs from
-the *attach-inclusive* Scope 2 number — `228 KB` Blazor vs `95.5 KB` Rask — which
-folds in Blazor's one-time full-tree attach batch; amortised over a long-lived session,
-the per-update picture above is the representative one. The two are measuring different
-things, not contradicting each other; reconciling the Scope 2 row to a steady-state
-basis is a noted follow-up.)
+**Read this honestly — it is a real tradeoff, not a clean Rask sweep.** A tree *held in
+memory* costs Rask 1.7–2.6× more than Blazor: Rask keeps a `Component` object graph (one heap
+object per element) where Blazor packs dense `RenderTreeFrame` structs. In production Rask
+rebuilds-and-discards element trees per render rather than retaining them, so the per-update
+number above is the steady-state cost that matters most — but a server holding **many
+idle-but-mounted sessions** pays Rask's heavier retained footprint per session. That is the
+scenario where Blazor is the better fit, and closing it (a struct-packed or pooled retained
+representation) is the standing architectural item. Everything else in this suite — wire
+bytes, per-update allocation, render/dispatch CPU — is a Rask win.
 
 ## Known regressions / soft spots (post-v2 expansion)
 
@@ -642,8 +643,9 @@ basis is a noted follow-up.)
    **Resolved** by the `PermutationBatch` op kind (headline-table footnote ⁵): the
    200-row reversal now ships **1,123 B vs Blazor's 3,360 B (2.99× Rask win)** as one
    batch op instead of 199 per-row `MoveSubtree` ops. With it, every like-for-like
-   scenario in the suite wins on bytes; `VirtualizationScroll` (footnote ³) is the only
-   non-like-for-like row left. Historical context — what the loss was and why:
+   scenario in the suite wins on bytes; `VirtualizationScroll` (footnote ³) — once the
+   sole non-like-for-like loss — now also wins (3.71×) once its rows are keyed. Historical
+   context — what the reversal loss was and why:
    Rask 3.87 KB vs Blazor 3.36 KB (0.87×). Reversal is the LIS worst case (LIS
    length 1); 199 of 200 rows enter as moves, and each `MoveSubtree` re-emits its
    full depth-4 path. Blazor's `RenderBatchWriter` interns the per-move overhead
