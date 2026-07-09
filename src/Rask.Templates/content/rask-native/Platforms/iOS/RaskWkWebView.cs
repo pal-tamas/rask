@@ -3,6 +3,7 @@ using System.Text.Json;
 using CoreFoundation;
 using Foundation;
 using Rask.Native;
+using UIKit;
 using WebKit;
 
 namespace Company.RaskNative;
@@ -35,7 +36,13 @@ public sealed class RaskWkWebView : NSObject, INativeWebView, IWKScriptMessageHa
         controller.AddScriptMessageHandler(this, "rask");
         config.UserContentController = controller;
 
-        View = new WKWebView(CoreGraphics.CGRect.Empty, config);
+        // Size to the screen with flexible autoresizing so the WebView fills the window (and follows
+        // rotation). Assigning a WKWebView built with an empty frame straight to a view controller's View
+        // leaves it at a default size, painting the app content into a small box on a black screen.
+        View = new WKWebView(UIScreen.MainScreen.Bounds, config)
+        {
+            AutoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight
+        };
     }
 
     /// <summary>Load the boot shell once the session is wired (called from the AppDelegate).</summary>
