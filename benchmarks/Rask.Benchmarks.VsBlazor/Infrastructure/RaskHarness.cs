@@ -25,6 +25,11 @@ public sealed class RaskHarness : IDisposable
     private readonly List<EditOp> _ops = new(32);
     private readonly ArrayBufferWriter<byte> _payloadBuffer = new(64 * 1024);
 
+    // Reused char buffer mirroring the live session's RenderedHtmlBuffers: the diff path reads the
+    // rendered page as a span, never materialising a per-update string (the dominant managed
+    // allocation before that change).
+    private char[] _htmlChars = new char[64 * 1024];
+
     public void Dispose() => _cache.Dispose();
 
     /// <summary>
@@ -62,10 +67,19 @@ public sealed class RaskHarness : IDisposable
         }
 
         _ops.Clear();
-        // newHtml lets InsertSubtree ops carry the HTML fragment for structural inserts
-        // (otherwise the caller would have to fall back to the full-HTML payload — that
-        // gate is enforced in production by LiveSession; here we just pass the HTML).
-        _cache.TryComputeDiff(_ops, _htmlBuffer.ToString());
+        // newHtml lets InsertSubtree ops carry the HTML fragment for structural inserts. Copy the page
+        // into a reused char[] and diff over the span — exactly the production path (RenderedHtmlBuffers),
+        // so this measures the diff codec without a per-update page-string allocation.
+        var len = _htmlBuffer.Length;
+        if (_htmlChars.Length < len)
+        {
+            _htmlChars = new char[len];
+        }
+
+        _htmlBuffer.CopyTo(0, _htmlChars, 0, len);
+        var html = _htmlChars.AsSpan(0, len);
+
+        _cache.TryComputeDiff(_ops, html);
 
         _payloadBuffer.ResetWrittenCount();
         LivePayload.BuildPayloadUtf8Diff(_payloadBuffer, _ops);

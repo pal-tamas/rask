@@ -1294,14 +1294,25 @@ public abstract class Component
         }
     }
 
-    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null, false);
+    internal string RenderAsLiveRoot() => RenderAsLiveRootCore(null, false, sink: null)!;
 
-    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services, false);
+    internal string RenderAsLiveRoot(IServiceProvider services) => RenderAsLiveRootCore(services, false, sink: null)!;
 
     internal string RenderAsLiveRoot(IServiceProvider services, bool publishOnly) =>
-        RenderAsLiveRootCore(services, publishOnly);
+        RenderAsLiveRootCore(services, publishOnly, sink: null)!;
 
-    private string RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly)
+    /// <summary>
+    ///     Live-update variant of <see cref="RenderAsLiveRoot(IServiceProvider, bool)" /> that renders the
+    ///     page into <paramref name="sink" />'s reused char buffer instead of a fresh string, so a live
+    ///     session's diff path allocates nothing for the page HTML. The session reads the rendered chars
+    ///     back via <see cref="RenderedHtmlBuffers.Current" />.
+    /// </summary>
+    internal void RenderAsLiveRootInto(IServiceProvider services, bool publishOnly, RenderedHtmlBuffers sink) =>
+        RenderAsLiveRootCore(services, publishOnly, sink);
+
+    // Returns the rendered page as a string when sink is null; when a sink is supplied the page is
+    // copied into it instead and null is returned (the caller reads sink.Current).
+    private string? RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly, RenderedHtmlBuffers? sink)
     {
         // Reuse the handler dictionary across renders — IDs are reissued from 0 every
         // root render, so the prior frame's contents are irrelevant. Lazy-init only on
@@ -1356,7 +1367,7 @@ public abstract class Component
         // path allocated the page TWICE — ToHtml() produced one full-page string, then ApplyTo
         // copied the whole page into a second builder to inject the head assets.
         var pageBuilder = RaskStringBuilderPool.Shared.Get();
-        string html;
+        string? html = null;
         try
         {
             HtmlSerializer.Serialize(this, pageBuilder);
@@ -1385,7 +1396,16 @@ public abstract class Component
                 }
             }
 
-            html = pageBuilder.ToString();
+            // Materialise the page exactly once: into the session's reused char buffer on the live-update
+            // path (zero GC), or into a fresh string for the first-render / test / full-HTML-fallback path.
+            if (sink is not null)
+            {
+                sink.CopyFrom(pageBuilder);
+            }
+            else
+            {
+                html = pageBuilder.ToString();
+            }
         }
         finally
         {
@@ -1402,7 +1422,7 @@ public abstract class Component
         // helper path, used to render partial component trees) are intentionally exempt.
         if (this is RootErrorBoundary)
         {
-            ValidateRootShell(html);
+            ValidateRootShell(sink is not null ? sink.CurrentSpan : html.AsSpan());
         }
 
         // Post-render alive set: union of _children across the whole tree, reachable from root.
@@ -1485,7 +1505,7 @@ public abstract class Component
         }
     }
 
-    private static void ValidateRootShell(string html)
+    private static void ValidateRootShell(ReadOnlySpan<char> html)
     {
         List<string>? missing = null;
         foreach (var (token, factory) in _requiredShell)

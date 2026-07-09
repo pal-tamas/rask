@@ -229,7 +229,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     ///     identical-state renders the same way WASM's <c>InitialRenderAsync</c> does
     ///     via <c>_lastAppliedHtml</c>.
     /// </summary>
-    internal void SeedInitialHtml(string html) => _lastAppliedHtml = html;
+    internal void SeedInitialHtml(string html) => _htmlBuffers.SeedPrevious(html);
 
     /// <summary>
     ///     Render the initial root for the HTTP-GET response, seeding BOTH the dedup
@@ -386,7 +386,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             {
                 _forceResend = false;
                 _lastSentBuffer = null;
-                _lastAppliedHtml = null;
+                _htmlBuffers.Invalidate();
             }
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
@@ -400,7 +400,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             // class) across noop publish-renders, and lets a fresh socket dedup against the GET HTML.
             if (jsInvokes is null
                 && historyUrl is null && auth is null && download is null
-                && _lastAppliedHtml is not null && string.Equals(html, _lastAppliedHtml, StringComparison.Ordinal))
+                && _htmlBuffers.CurrentEqualsPrevious())
             {
                 return;
             }
@@ -430,7 +430,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
             if (sent)
             {
-                _lastAppliedHtml = html;
+                _htmlBuffers.Commit();
             }
         }
         finally
