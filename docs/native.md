@@ -247,7 +247,14 @@ sandbox, and real background execution — without giving up "the same component
    (guarded by `NativeJsInteropTests`). (b) The native client now drives its own WebView history —
    `applyHistory` pushes/replaces each route change and a `popstate` listener feeds Back/forward into the
    router — so `location`/URL tracks the route, hardware Back works, and URL-routed UI (the Todos dialog,
-   `Navigator.SetQuery`) works. *Remaining follow-up:* a value-returning `InvokeAsync<T>` awaited inside a
-   handler (e.g. a `sessionStorage.getItem` read) is still occasionally unreliable in the headless E2E
-   even though the native-core unit test passes — under investigation; the native journey proves the
-   fixes via the void-invoke (focus) + history paths.
+   `Navigator.SetQuery`) works. *Remaining follow-up (investigated — root cause found):* the value-returning
+   `InvokeAsync<T>` itself is **fine** — a trace shows the read's result (`"hello-native"`) marshals back
+   over the bridge correctly and the handler updates the DOM. The real intermittent failure is one level
+   down: on a **complex guide page** (`Raw`/CodeSample content defeats the trusted diff, so `Auto` mode
+   falls back to a **full-HTML render**), the native **full-HTML morph** occasionally drops content — a
+   re-render's morph races the frame's scoped-JS invokes (a component's `OnRendered`/`OnUnmount` hooks,
+   e.g. `Rask.GuideChrome.stop`) and the in-dispatch render-coalescing budget, and an element (e.g.
+   `#demo-status`) can vanish. This is a native full-render robustness issue in the morph + concurrent
+   frame-invoke + coalescing pipeline, not an interop bug; the native E2E therefore proves the fixes via
+   the surgical-diff paths (element-ref focus, history/Todos) and leaves hardening the full-HTML re-render
+   of heavy pages as the next native task.
