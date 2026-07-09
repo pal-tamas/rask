@@ -518,7 +518,12 @@ function applyFrameInvokes(reply, dispatchOne) {
         menu.style.position = "fixed";
         menu.style.margin = "0";
         menu.style.zIndex = "" + Z;
-        menu.style.width = m.width + "px";
+        // Pin with !important priority: a w-100 menu (BsSelect/BsMultiSelect) carries Bootstrap's
+        // .w-100 { width: 100% !important }, which a plain inline width can't beat — so once the menu is
+        // position:fixed the 100% would resolve against the viewport (the initial containing block) and
+        // stretch it viewport-wide. An inline !important outranks the class !important, pinning the width
+        // we measured while it was still position:absolute (== the trigger width). reset() clears it.
+        menu.style.setProperty("width", m.width + "px", "important");
         menu.style.left = left + "px";
         menu.style.top = top + "px";
         // Cap the height to the space between the menu top and the viewport bottom and scroll internally,
@@ -592,6 +597,53 @@ function applyFrameInvokes(reply, dispatchOne) {
         return false;
     }
 
+    // On the open transition, move focus into the menu's [autofocus] element (the searchable BsSelect's
+    // filter input) so the user can type immediately — Rask only auto-focuses [autofocus] inside a
+    // data-rask-focus-trap (modal), which a plain dropdown is not. Idempotent via __raskOpen so a
+    // re-render that rewrites the still-open menu's class doesn't steal focus back on every keystroke.
+    // Deferred to rAF so the just-morphed-in field is laid out before we focus it. A menu with no
+    // [autofocus] (the date/time pickers) keeps focus on its editable trigger — no change.
+    function onOpen(wrap, menu) {
+        if (menu.__raskOpen) {
+            return;
+        }
+        menu.__raskOpen = true;
+        const af = menu.querySelector("[autofocus]");
+        if (!af) {
+            return;
+        }
+        menu.__raskReturn = anchorOf(wrap) || null; // where to send focus back on close
+        requestAnimationFrame(function () {
+            try {
+                af.focus();
+            } catch (e) {
+                // field removed again already
+            }
+        });
+    }
+
+    // On close, return focus to the trigger (like a native <select>) so keyboard flow continues from the
+    // box — but only when we had moved focus into the filter, and only if focus is still loose (on <body>
+    // because the filter was removed, or anywhere inside the wrapper), never yanking focus the user moved.
+    function onClose(wrap, menu) {
+        if (!menu.__raskOpen) {
+            return;
+        }
+        menu.__raskOpen = false;
+        const ret = menu.__raskReturn;
+        menu.__raskReturn = null;
+        if (ret) {
+            const ae = document.activeElement;
+            if (ae === document.body || (wrap.contains && wrap.contains(ae))) {
+                try {
+                    ret.focus();
+                } catch (e) {
+                    // trigger gone (component unmounted)
+                }
+            }
+        }
+    }
+
     // The live-diff morph reconciles each element's attributes back to the rendered output, and the
     // rendered menu carries no inline style — so ANY re-render of a component with an open menu strips the
     // fixed positioning we wrote (an unrelated style-attribute write the class-only observer never sees).
@@ -607,8 +659,14 @@ function applyFrameInvokes(reply, dispatchOne) {
                 const t = r.target;
                 if (t.nodeType === 1 && t.classList && t.classList.contains("dropdown-menu")) {
                     touched = true;
-                    if (!t.classList.contains("show") && t.closest("[data-rask-popover]")) {
-                        reset(t); // just closed — drop the fixed inline styles
+                    const pop = t.closest("[data-rask-popover]");
+                    if (pop) {
+                        if (t.classList.contains("show")) {
+                            onOpen(pop, t); // just opened — focus its [autofocus] filter
+                        } else {
+                            reset(t);       // just closed — drop the fixed inline styles
+                            onClose(pop, t);
+                        }
                     }
                 }
             } else if (touchesPopover(r.addedNodes) || touchesPopover(r.removedNodes)) {
@@ -621,6 +679,24 @@ function applyFrameInvokes(reply, dispatchOne) {
     });
     observer.observe(document.documentElement,
         { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+
+    // While a popover is open, suppress the NATIVE side-effects of the combobox navigation/commit keys so
+    // they act only inside the dropdown — most importantly Enter, which in the filter <input> would
+    // otherwise fire the surrounding <form>'s implicit submit (validating the whole form) instead of just
+    // picking the highlighted option. We only preventDefault, never stopPropagation: the C# keydown
+    // handler is dispatched on the document bubble phase (rask-events.js), so the event must still reach
+    // it to select / navigate / close. Printable keys, Space and Left/Right are left alone so typing into
+    // the filter keeps working. Capture-phase so we run before the browser commits the default action.
+    const CONTAIN = ["Enter", "Escape", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
+    document.addEventListener("keydown", function (e) {
+        if (!hasOpen || CONTAIN.indexOf(e.key) < 0) {
+            return;
+        }
+        const wrap = (e.target && e.target.closest) ? e.target.closest("[data-rask-popover]") : null;
+        if (wrap && wrap.querySelector(".dropdown-menu.show")) {
+            e.preventDefault();
+        }
+    }, true);
 
     hasOpen = reposition() > 0; // a menu already open at load
 })();
