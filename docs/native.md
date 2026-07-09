@@ -129,8 +129,12 @@ sandbox, and real background execution — without giving up "the same component
 
 1. ✅ **Foundation** — `NativeAppHost` / `NativeLiveSession` / `NativeJSRuntime`, the `INativeWebView`
    bridge, the `rask.native.js` client dialect + boot shell, unit-tested on `net10.0`.
-2. **Platform heads** — reference `WKWebView` (iOS) and `WebView` (Android) implementations of
-   `INativeWebView`, with custom-scheme / asset-loader serving and the UI-thread bridge.
+2. ✅ **Platform heads + template** — the `rask-native` template ships `WKWebView` (iOS) and `WebView`
+   (Android) implementations of `INativeWebView`, with custom-scheme / asset-loader serving and the
+   UI-thread bridge. **Verified end-to-end on Android**: a signed APK boots the app in the emulator,
+   renders the component tree over the native bridge, routes, and updates live (the Counter increments via
+   a diff on tap). The iOS head compiles against the Microsoft.iOS bindings; a full iOS build/simulator run
+   awaits an Xcode-provisioned environment.
 3. **Client parity** — lift the transport-neutral DOM helpers (rAF input/scroll coalescing, keyboard/drag/
    file events, scoped-CSS FOUC gating, scoped-JS invoke gating) shared with `rask.wasm.js` into a common
    module so the native client reaches full parity instead of re-copying them.
