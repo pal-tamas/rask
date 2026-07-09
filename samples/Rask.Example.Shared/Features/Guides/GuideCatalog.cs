@@ -33,8 +33,12 @@ public static class GuideCatalog
         new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.",
             "bi-globe", "Core"),
 
-        new("bootstrap", "Bootstrap components", "The typed Rask.Bootstrap component library.",
+        new("bootstrap", "Bootstrap components", "Setup, buttons, cards, alerts, icons, and typed utility classes.",
             "bi-bootstrap", "Bootstrap"),
+        new("bootstrap-navigation", "Bootstrap navigation & overlays",
+            "Navbars, tabs, modals, toasts, and dropdowns — all zero-JS.", "bi-window-stack", "Bootstrap"),
+        new("bootstrap-forms", "Bootstrap forms & inputs",
+            "Inputs, searchable selects/multiselect, and date/time pickers.", "bi-ui-checks-grid", "Bootstrap"),
 
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),

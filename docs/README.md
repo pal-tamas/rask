@@ -32,7 +32,9 @@ The optional `Rask.Bootstrap` package — typed Bootstrap 5.3 component factorie
 
 | Guide | What it covers |
 |-------|----------------|
-| [Bootstrap components](bootstrap.md) | Typed Bootstrap 5.3 factories (`BsButton`/`BsCard`/`BsModal`/…), zero-JS interactive components, the searchable `BsSelect`/`BsMultiSelect` comboboxes (opt-in `Filter`), hand-editable date/time pickers, `IFormControl<T>` inputs, SPA-routed navigation, `BsIcon`, and typed utility classes. |
+| [Bootstrap components](bootstrap.md) | Setup + the content/layout factories (`BsButton`/`BsCard`/`BsAlert`/`BsBadge`), the typed `BsIcon`, and the typed utility classes (`Bs.Join(...)`). |
+| [Bootstrap navigation & overlays](bootstrap-navigation.md) | The controlled, zero-JS `BsNavbar`/`BsNav`, `BsTabs`/`BsAccordion`, `BsModal`/`BsOffcanvas`, `BsToast`, and `BsDropdown` — plus the fixed-position popover helper. |
+| [Bootstrap forms & inputs](bootstrap-forms.md) | The `IFormControl<T>` controls: `BsInput`/`BsCheck`, the searchable `BsSelect`/`BsMultiSelect` comboboxes (opt-in `Filter`, keyboard-contained), and the hand-editable `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker`. |
 
 ## Reference
 
