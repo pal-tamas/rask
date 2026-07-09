@@ -2348,6 +2348,23 @@ function dispatchNativeInvoke(inv) {
         typeof inv.targetInstanceId === "number" ? String(inv.targetInstanceId) : "0");
 }
 
+// Reflect the host-authored route change in the WebView's own history/location. There is no visible
+// address bar on a device, but the WebView still keeps a history stack — so this is what makes hardware
+// Back / forward work (via the popstate listener below) and what drives URL-routed UI (e.g. a dialog
+// routed at /todos/new, Navigator.SetQuery). Mirrors applyHistory in rask.js / rask.wasm.js; there's no
+// base-path prefix on native (the app is served from the origin root).
+function applyHistory(history) {
+    if (!history || typeof history.url !== "string") return;
+    let target = history.url;
+    if (history.action === "replace") {
+        window.history.replaceState({ rask: true }, "", target);
+    } else {
+        if (_pendingScrollHash) target += _pendingScrollHash;
+        window.history.pushState({ rask: true }, "", target);
+    }
+    _pendingScrollHash = "";
+}
+
 function applyDiffReply(reply) {
     // Morph <head> FIRST so a newly mounted component's scoped <link> is present, then defer the
     // body ops until that stylesheet applies (waitForUnappliedHeadCss) so the swapped body never
@@ -2355,6 +2372,7 @@ function applyDiffReply(reply) {
     // so _renderQueue holds the next frame until the body has committed.
     const applyBody = () => {
         applyDiff(reply.ops, Array.isArray(reply.names) ? reply.names : null);
+        applyHistory(reply.history);
         applyFrameInvokes(reply, dispatchNativeInvoke);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
@@ -2382,6 +2400,7 @@ function applyFullReply(reply) {
             morph(document.documentElement, freshHtml);
             root = document.querySelector("[data-rask-root]") || document.body;
         }
+        applyHistory(reply.history);
         applyFrameInvokes(reply, dispatchNativeInvoke);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
@@ -2413,6 +2432,14 @@ document.addEventListener("click", function (e) {
         id: el.getAttribute("data-rask-on-click"), type: "click",
         shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
     });
+});
+
+// Hardware Back / forward: the WebView pops its own history entry (pushed by applyHistory), so ask the
+// host to navigate to the now-current location and re-render it. `replace` so the reply's applyHistory
+// re-syncs the entry instead of pushing a duplicate.
+window.addEventListener("popstate", function () {
+    if (typeof flushInputsNow === "function") flushInputsNow();
+    send({ type: "navigate", path: location.pathname, query: location.search, replace: true });
 });
 
 // Input & scroll — rAF-coalesced dispatch shared with rask.js / rask.wasm.js (rask-input.js). This
