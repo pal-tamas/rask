@@ -28,6 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Copied to the output dir so the payload-bytes regression check reads the committed baseline at
+         runtime regardless of the working directory (resolved from AppContext.BaseDirectory in CI). -->
+    <None Include="Baselines\vs-blazor-payload-bytes.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       Microsoft.AspNetCore.App carries Microsoft.AspNetCore.Components{,.Web,.Server} as part of
       the shared framework. Same pattern as Rask.Server / Rask.Wasm.Hosting use to pick up the
