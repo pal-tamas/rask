@@ -12,7 +12,10 @@ unchanged.
 > end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
 > bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
 > pre-1.0: APIs may shift, and **native device *backends*** (native geolocation/push/biometrics behind
-> the browser-API interfaces) plus full client-parity are the remaining follow-ups.
+> the browser-API interfaces) are the main remaining follow-up. The native client now shares the
+> transport-neutral DOM behaviour — rAF input/scroll coalescing, keyboard + drag events, and
+> scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)); only the
+> scoped-JS invoke gate and file uploads remain host-specific.
 
 - [How it fits](#how-it-fits)
 - [Get started](#get-started)
@@ -206,9 +209,15 @@ sandbox, and real background execution — without giving up "the same component
    Counter increments via a diff on click). Android: a signed APK on the emulator (verified by screenshot).
    iOS: on the simulator, verified by reading `document.body.innerText` and dispatching a click — `simctl`
    screenshots don't capture `WKWebView`'s out-of-process content, so the DOM is inspected directly.
-3. **Client parity** — lift the transport-neutral DOM helpers (rAF input/scroll coalescing, keyboard/drag/
-   file events, scoped-CSS FOUC gating, scoped-JS invoke gating) shared with `rask.wasm.js` into a common
-   module so the native client reaches full parity instead of re-copying them.
+3. **Client parity** — *mostly done.* The transport-neutral DOM helpers are now shared modules
+   (`Rask.Core/Resources/rask-input.js` — rAF input/scroll coalescing; `rask-scoped.js` — scoped-CSS
+   FOUC gating; keyboard + the four core drag events folded into `rask-events.js`), spliced into all
+   three clients (`rask.js`, `rask.wasm.js`, `rask.native.js`) instead of re-copied — so the native
+   client reached parity for them and the former Server↔WASM duplication collapsed. **Still per-host
+   (deferred):** the scoped-JS `Rask.*` invoke gate (genuinely diverged — WASM tracks scoped `rsk-`
+   scripts with a 30s backstop, Server skips them with a 5s timeout; reconciling changes error-boundary
+   timing and needs its own pass) and file input/download (WASM JSExport pull vs Server `fetch` upload
+   vs a not-yet-built native file bridge).
 4. **Showcase sample** — a `Rask.Example.Native` app under `samples/` that exercises the feature pages
    end-to-end (Local + Server heads), so native is covered by the same showcase + E2E net as the other hosts.
 5. **Native device backends** — CoreLocation/Android geolocation, native share, biometrics, native push,

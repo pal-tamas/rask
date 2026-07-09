@@ -7,11 +7,12 @@
 // Model: one capture-phase document listener per event routes to the nearest ancestor carrying
 // `data-rask-on-<event>`, then ships a per-category JSON payload tagged with that element's handler id.
 // Capture phase is used so non-bubbling events (focus/blur) still reach the delegated listener. Click,
-// scroll, keydown/keyup, the four core drag events, input/change/submit keep their own dedicated
-// listeners in each host — this file covers everything else (mouse, pointer, touch, wheel, focus,
-// clipboard, the remaining drag/form events, and the HTMLMediaElement events). Kept ES5 (var/function)
-// because it is spliced verbatim into both hosts. Written defensively: every builder tolerates a
-// partial event object.
+// scroll and input/change/submit keep their own dedicated listeners in each host (their coalescing /
+// form / file behaviour is host-specific) — this file covers everything else: mouse, pointer, touch,
+// wheel, focus, clipboard, the HTMLMediaElement events, AND (see the tail of this file) keyboard
+// (keydown/keyup) + the four core drag events (dragstart/dragover/drop/dragend), which used to be
+// hand-copied into each host. Kept ES5 (var/function) because it is spliced verbatim into all three
+// hosts. Written defensively: every builder tolerates a partial event object.
 
 // --- Per-category payload builders. Each maps a DOM event to the flat object its C# *EventArgs.FromJson
 //     reads. Keys mirror the DOM property names so the readers stay one-liners. ---
@@ -140,3 +141,72 @@ raskEnterLeave("mouseover", "mouseenter", raskMouse);
 raskEnterLeave("mouseout", "mouseleave", raskMouse);
 raskEnterLeave("pointerover", "pointerenter", raskPointer);
 raskEnterLeave("pointerout", "pointerleave", raskPointer);
+
+// ----- Drag & drop -----------------------------------------------------------
+// HTML5 native DnD bound to parameterless C# handlers (same dispatch path as click). The dragged
+// item's identity rides the handler's closure, not the payload, so messages carry only {id,type}.
+// dragstart seeds dataTransfer so the drag is valid in Firefox; dragover must preventDefault on a
+// drop target or the browser rejects the drop. The optional data-rask-on-dragover round-trip
+// drives a server-rendered drop-target highlight — deduped to one message per hovered element.
+// (drag/dragenter/dragleave are covered by the parameterless table above.)
+var lastDragOverEl = null;
+
+document.addEventListener("dragstart", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-dragstart]") : null;
+    if (!t || !inRoot(t)) { return; }
+    if (e.dataTransfer) {
+        try {
+            e.dataTransfer.setData("text/plain", "");
+        } catch (err) { /* some browsers throw if setData is disallowed — ignore */ }
+        e.dataTransfer.effectAllowed = "move";
+    }
+    lastDragOverEl = null;
+    send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
+});
+
+document.addEventListener("dragover", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-drop], [data-rask-on-dragover]") : null;
+    if (!t || !inRoot(t)) { return; }
+    // preventDefault is what marks this element as a valid drop target.
+    e.preventDefault();
+    if (e.dataTransfer) { e.dataTransfer.dropEffect = "move"; }
+    if (!t.hasAttribute("data-rask-on-dragover")) { return; }
+    if (t === lastDragOverEl) { return; } // dedupe: only notify when the hovered target changes
+    lastDragOverEl = t;
+    send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
+});
+
+document.addEventListener("drop", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-drop]") : null;
+    if (!t || !inRoot(t)) { return; }
+    e.preventDefault();
+    lastDragOverEl = null;
+    send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
+});
+
+document.addEventListener("dragend", function (e) {
+    lastDragOverEl = null;
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-on-dragend]") : null;
+    if (!t || !inRoot(t)) { return; }
+    send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
+});
+
+// ----- Keyboard --------------------------------------------------------------
+// keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped, like click).
+// Never preventDefault — a key handler composes with normal typing; the C# side decides what a key
+// means. flushInputsNow() first (when present — rask-input.js is spliced ahead of this file) so an
+// Enter-to-submit handler reads the value the user just typed, not the pre-flush one. Modifier flags
+// + repeat ride along for shortcuts.
+function raskSendKey(e, attr, type) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[" + attr + "]") : null;
+    if (!t || !inRoot(t)) { return; }
+    if (typeof flushInputsNow === "function") { flushInputsNow(); }
+    send({
+        id: t.getAttribute(attr), type: type,
+        key: e.key, code: e.code, repeat: e.repeat,
+        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
+    });
+}
+
+document.addEventListener("keydown", function (e) { raskSendKey(e, "data-rask-on-keydown", "keydown"); });
+document.addEventListener("keyup", function (e) { raskSendKey(e, "data-rask-on-keyup", "keyup"); });
