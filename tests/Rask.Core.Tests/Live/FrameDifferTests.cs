@@ -288,6 +288,91 @@ public class FrameDifferTests
         Assert.Equal(EditOpKind.RemoveSubtree, remove.Kind);
     }
 
+    // --- Trusted tail insert/remove carve-out --------------------------------------------------
+    // A pure tail append/truncate at a NESTED, replace-free level applies identically under the
+    // client's positional applyDiff and the full-HTML morph, so it ships as a trusted diff instead of
+    // forcing the whole page. These pin the exact boundary of that carve-out.
+
+    [Fact]
+    public void Diff_NestedTailInsert_IsTrustedAndClientSupported()
+    {
+        var before = Frames(Ul()[Li()["a"], Li()["b"]]);
+        var after = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        var insert = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
+        Assert.True(insert.Trusted, "a nested, replace-free tail insert is safe to ship as a diff");
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(ops));
+    }
+
+    [Fact]
+    public void Diff_NestedTailRemove_IsTrusted()
+    {
+        var before = Frames(Ul()[Li()["a"], Li()["b"], Li()["c"]]);
+        var after = Frames(Ul()[Li()["a"], Li()["b"]]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        var remove = Assert.Single(ops);
+        Assert.Equal(EditOpKind.RemoveSubtree, remove.Kind);
+        Assert.True(remove.Trusted, "a nested, replace-free tail truncate is safe to ship as a diff");
+    }
+
+    [Fact]
+    public void Diff_InsertIntoEmptyNestedParent_IsTrusted()
+    {
+        // The form-validation pattern: a message container gains its first (text) child. Pure tail
+        // insert into an empty nested parent — production should ship the diff, not the whole form.
+        var before = Frames(Div(Class: "field")[Div(Class: "msg")]);
+        var after = Frames(Div(Class: "field")[Div(Class: "msg")["required"]]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        var insert = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
+        Assert.True(insert.Trusted);
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(ops));
+    }
+
+    [Fact]
+    public void Diff_TopLevelTailInsert_IsNotTrusted()
+    {
+        // Top-level siblings (path empty) are where the WASM shell's comment nodes live, so the
+        // raw-childNodes slot the client uses can diverge from the server's relevant-node index —
+        // keep those structural ops untrusted (full-HTML morph).
+        var before = Frames([Ul()["a"], Ul()["b"]]);
+        var after = Frames([Ul()["a"], Ul()["b"], Ul()["c"]]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        var insert = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, insert.Kind);
+        Assert.False(insert.Trusted, "top-level structural ops must stay untrusted");
+        Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops));
+    }
+
+    [Fact]
+    public void Diff_MidListReplaceThenTail_KeepsTailUntrusted()
+    {
+        // A tag mismatch mid-level (span -> div) is a replace — the divergence-prone case — so even a
+        // trailing insert at that same level stays untrusted.
+        var before = Frames(Ul()[Span()["a"], Li()["b"]]);
+        var after = Frames(Ul()[Div()["a"], Li()["b"], Li()["c"]]);
+
+        var ops = new List<EditOp>();
+        FrameDiffer.Diff(before, after, ops);
+
+        Assert.Contains(ops, o => o.Kind == EditOpKind.InsertSubtree);
+        Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops),
+            "a level with a replace stays fully untrusted, tail included");
+    }
+
     [Fact]
     public void Diff_TextNodeChanged_PathLocatesTheTextNode()
     {
