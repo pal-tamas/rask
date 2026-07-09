@@ -3,8 +3,19 @@
 Reference numbers from the live-render diff codec. Each future PR touching the
 render path should compare against these and quote the delta in its description.
 
-Hardware: Apple M4 Pro (Arm64), 14 logical / 14 physical cores, .NET 10.0.5,
-BenchmarkDotNet v0.14.0, Concurrent Server GC.
+> **`payload-bytes.csv` is enforced by CI.** The `benchmarks` job in
+> `.github/workflows/ci.yml` runs
+> `dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes --check`
+> on every PR and **fails on a regression** — more diff bytes or more diff ops than the
+> committed baseline, for any scenario. These metrics are deterministic (no timing noise),
+> so the comparison is byte-exact. An *improvement* passes with a "refresh the baseline"
+> notice; when you improve the codec, regenerate the CSV (command below) in the same PR so
+> the gate keeps tracking reality. `FullPayloadBytes` is informational only (it moves
+> whenever the scenario markup or runtime script changes) and is **not** gated.
+
+Hardware: Apple M4 (Arm64), .NET 10, Concurrent Server GC. The gated columns
+(`DiffPayloadBytes`, `DiffOpCount`) are machine-independent — they're exact byte counts of
+a deterministic payload, so the CI runner reproduces them regardless of hardware.
 
 ## Headline metric — `payload-bytes.csv`
 
@@ -30,17 +41,17 @@ dotnet run -c Release --project Rask.Benchmarks -- payload-bytes
 
 | Scenario            | Full payload | Diff payload | Diff ops |  Reduction |
 |---------------------|-------------:|-------------:|---------:|-----------:|
-| CounterOnLargePage  |       62,577 |           45 |        1 | **1,391×** |
-| KeyedList100Reorder |        6,720 |           57 |        2 |   **118×** |
-| TextNodeUpdate      |       62,460 |           54 |        1 | **1,157×** |
-| AppendRowToList100  |        6,788 |          112 |        1 |    **61×** |
+| CounterOnLargePage  |       66,838 |           45 |        1 | **1,485×** |
+| KeyedList100Reorder |        6,691 |           47 |        1 |   **142×** |
+| TextNodeUpdate      |       66,721 |           54 |        1 | **1,236×** |
+| AppendRowToList100  |        6,759 |           46 |        1 |   **147×** |
 
 All four scenarios beat the plan's targets:
 
-- `CounterOnLargePage`  target ≤ **200** bytes → **45**  ✓ (positional per-op JSON shaved ~12 B)
-- `KeyedList100Reorder` target ≤ **500** bytes → **57**  ✓ (LIS-minimal `MoveSubtree` pair, positional encoded)
-- `TextNodeUpdate`      target ≤ **100** bytes → **54**  ✓
-- `AppendRowToList100`  target ≤ **300** bytes → **112** ✓ (UnsafeRelaxedJsonEscaping halved the HTML-fragment bytes)
+- `CounterOnLargePage`  target ≤ **200** bytes → **45** ✓ (positional per-op JSON shaved ~12 B)
+- `KeyedList100Reorder` target ≤ **500** bytes → **47** ✓ (keyed minimal-moves collapse the reorder to one op)
+- `TextNodeUpdate`      target ≤ **100** bytes → **54** ✓
+- `AppendRowToList100`  target ≤ **300** bytes → **46** ✓ (relaxed JSON escaping + tighter fragment slice)
 
 Full-payload bytes also dropped ~40% across the board after the WS writer switched
 to `UnsafeRelaxedJsonEscaping` — the default `Utf8JsonWriter` escaping rewrites
@@ -216,7 +227,7 @@ in the step-5 inner-attribute diff (`NoChange_ReusedScratch` sits at the same
 intentional wire-shaped allocation left untouched; a lazy-`PathPlus` follow-up
 could reclaim it.
 
-The diff **output** is unchanged: `payload-bytes.csv` (`45/1, 57/2, 54/1, 112/1`)
+The diff **output** is unchanged: `payload-bytes.csv` (diff bytes/ops per scenario)
 is byte-identical before/after, and all `FrameDifferTests` (incl. the random-
 permutation replay theory and a new nested-keyed-list recursion guard),
 `LisAlgorithmTests`, and `SessionRenderCacheTests` pass — pure allocation win, no

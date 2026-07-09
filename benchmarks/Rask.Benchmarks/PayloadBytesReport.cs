@@ -23,31 +23,127 @@ namespace Rask.Benchmarks;
 // — the targets that justify the "Rask is a real Blazor competitor" claim.
 internal static class PayloadBytesReport
 {
+    private const string Header = "Scenario,FullPayloadBytes,DiffPayloadBytes,DiffOpCount";
+
+    private readonly record struct Row(string Scenario, int FullBytes, int DiffBytes, int DiffOps);
+
     public static int Run(string[] args)
     {
         var writer = new ArrayBufferWriter<byte>(64 * 1024);
+        var check = Array.Exists(args, a => a == "--check");
 
-        Console.WriteLine("Scenario,FullPayloadBytes,DiffPayloadBytes,DiffOpCount");
+        Console.WriteLine(Header);
 
-        Report("CounterOnLargePage", writer,
-            BuildLargePageWithCounter(1),
-            BuildLargePageWithCounter(2));
-        Report("KeyedList100Reorder", writer,
-            BuildKeyedListTree(MakeKeyedOrder(100)),
-            BuildKeyedListTree(SwapKeyed(MakeKeyedOrder(100), 5, 95)));
-        Report("TextNodeUpdate", writer,
-            BuildLargePageWithDeepTextCell(1),
-            BuildLargePageWithDeepTextCell(2));
-        // Structural change: append one row to a 100-row list. Triggers an
-        // InsertSubtree op with the new row's HTML fragment as op.Value.
-        Report("AppendRowToList100", writer,
-            BuildKeyedListTree(MakeKeyedOrder(100)),
-            BuildKeyedListTree(MakeKeyedOrder(101)));
+        var rows = new List<Row>
+        {
+            Report("CounterOnLargePage", writer,
+                BuildLargePageWithCounter(1),
+                BuildLargePageWithCounter(2)),
+            Report("KeyedList100Reorder", writer,
+                BuildKeyedListTree(MakeKeyedOrder(100)),
+                BuildKeyedListTree(SwapKeyed(MakeKeyedOrder(100), 5, 95))),
+            Report("TextNodeUpdate", writer,
+                BuildLargePageWithDeepTextCell(1),
+                BuildLargePageWithDeepTextCell(2)),
+            // Structural change: append one row to a 100-row list. Triggers an
+            // InsertSubtree op with the new row's HTML fragment as op.Value.
+            Report("AppendRowToList100", writer,
+                BuildKeyedListTree(MakeKeyedOrder(100)),
+                BuildKeyedListTree(MakeKeyedOrder(101)))
+        };
 
-        return 0;
+        return check ? CheckAgainstBaseline(rows) : 0;
     }
 
-    private static void Report(
+    // Compares the deterministic diff-codec metrics (diff wire bytes + op count — the values that only
+    // move when the render/diff path itself changes) against the committed baseline, and fails the CI
+    // gate on a regression. FullPayloadBytes is informational (it moves whenever the scenario markup
+    // changes) and is not gated. An improvement (fewer bytes/ops) passes but asks for a baseline refresh
+    // so the file keeps tracking reality; a scenario missing from the baseline also fails, so a new
+    // scenario can't slip in ungated.
+    private static int CheckAgainstBaseline(List<Row> current)
+    {
+        var baselinePath = Path.Combine(AppContext.BaseDirectory, "Baselines", "payload-bytes.csv");
+        if (!File.Exists(baselinePath))
+        {
+            Console.Error.WriteLine($"::error::Baseline not found at {baselinePath}");
+            return 1;
+        }
+
+        var baseline = ParseBaseline(baselinePath);
+
+        var regressed = false;
+        var improved = false;
+        Console.WriteLine();
+        Console.WriteLine("Regression check vs Baselines/payload-bytes.csv (diff bytes / op count):");
+        foreach (var row in current)
+        {
+            if (!baseline.TryGetValue(row.Scenario, out var b))
+            {
+                Console.Error.WriteLine(
+                    $"::error::Scenario '{row.Scenario}' is missing from the baseline — " +
+                    "add it (regenerate with `payload-bytes`) so it can't regress ungated.");
+                regressed = true;
+                continue;
+            }
+
+            var byteDelta = row.DiffBytes - b.DiffBytes;
+            var opDelta = row.DiffOps - b.DiffOps;
+            var status = byteDelta > 0 || opDelta > 0 ? "REGRESSED" : byteDelta < 0 || opDelta < 0 ? "improved" : "ok";
+            Console.WriteLine(
+                $"  {row.Scenario,-22} diff {row.DiffBytes,6}B ({byteDelta,+0}) " +
+                $"ops {row.DiffOps} ({opDelta,+0})  [{status}]");
+
+            if (byteDelta > 0 || opDelta > 0)
+            {
+                Console.Error.WriteLine(
+                    $"::error::{row.Scenario} regressed: diff bytes {b.DiffBytes}→{row.DiffBytes}, " +
+                    $"ops {b.DiffOps}→{row.DiffOps}.");
+                regressed = true;
+            }
+            else if (byteDelta < 0 || opDelta < 0)
+            {
+                improved = true;
+            }
+        }
+
+        if (improved && !regressed)
+        {
+            Console.WriteLine(
+                "::notice::Diff payload improved vs baseline — refresh Baselines/payload-bytes.csv " +
+                "(`dotnet run -c Release --project benchmarks/Rask.Benchmarks -- payload-bytes`) so it keeps tracking reality.");
+        }
+
+        return regressed ? 1 : 0;
+    }
+
+    private static Dictionary<string, Row> ParseBaseline(string path)
+    {
+        var map = new Dictionary<string, Row>(StringComparer.Ordinal);
+        foreach (var line in File.ReadLines(path))
+        {
+            if (line.Length == 0 || line.StartsWith("Scenario,", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var cells = line.Split(',');
+            if (cells.Length < 4)
+            {
+                continue;
+            }
+
+            map[cells[0]] = new Row(
+                cells[0],
+                int.Parse(cells[1], CultureInfo.InvariantCulture),
+                int.Parse(cells[2], CultureInfo.InvariantCulture),
+                int.Parse(cells[3], CultureInfo.InvariantCulture));
+        }
+
+        return map;
+    }
+
+    private static Row Report(
         string name,
         ArrayBufferWriter<byte> writer,
         Component before,
@@ -76,6 +172,8 @@ internal static class PayloadBytesReport
             CultureInfo.InvariantCulture,
             "{0},{1},{2},{3}",
             name, fullBytes, diffBytes, ops.Count));
+
+        return new Row(name, fullBytes, diffBytes, ops.Count);
     }
 
     private static RenderFrame[] CaptureFrames(Component tree)
