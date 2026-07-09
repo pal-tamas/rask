@@ -14,6 +14,20 @@ namespace Rask.Example.Shared.Tests.Demos;
 // HTML rather than through an IJSRuntime stub.
 public sealed class LiveTickerTests
 {
+    // These are background-async lifecycle waits: OnMountAsync spins up a poll loop
+    // whose first tick lands only after a 50 ms Task.Delay, and WaitFor polls the
+    // rendered HTML on its own delay. On a cold/starved thread pool (e.g. the nightly
+    // unit job runs right after compiling every WASM sample bundle), the thread-pool
+    // hill-climber injects worker threads slowly, so those continuations can slip past
+    // a tight deadline even though the code is correct. WaitFor.True returns the instant
+    // the condition holds, so these generous budgets never slow a healthy run — they
+    // only keep a momentarily-starved runner from flaking.
+    private static readonly TimeSpan Settle = TimeSpan.FromSeconds(10);
+
+    // The cap test must accumulate 60 ticks (≈60 × 65 ms of real delay) before the
+    // buffer fills, so it needs a proportionally larger budget than a single-tick wait.
+    private static readonly TimeSpan FillToCapacity = TimeSpan.FromSeconds(20);
+
     [Fact]
     public async Task OnMountAsync_PopulatesHistoryFromSyntheticFeed()
     {
@@ -23,7 +37,7 @@ public sealed class LiveTickerTests
         host.RenderAsLiveRoot();
         await WaitFor.True(
             () => PointCount(host.RenderAsLiveRoot()) >= 1,
-            TimeSpan.FromSeconds(2),
+            Settle,
             "the synthetic feed never populated the history");
 
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnMount:"));
@@ -40,11 +54,11 @@ public sealed class LiveTickerTests
         var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnPropsChangedAsync"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => host.Log.Contains("OnPropsChangedAsync"), Settle);
 
         symbol.Value = "ETH";
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("Symbol BTC → ETH"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => host.Log.Contains("Symbol BTC → ETH"), Settle);
 
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnPropsChanged: Symbol BTC → ETH"));
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnPropsChangedAsync: switched to ETH"));
@@ -57,11 +71,11 @@ public sealed class LiveTickerTests
         var host = BuildHost(symbol, 30);
 
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnMountAsync"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => host.Log.Contains("OnMountAsync"), Settle);
 
         host.Mounted = false;
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), Settle);
 
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnUnmount: stopping"));
         Assert.Contains(host.Log.Snapshot(), l => l.Contains("OnUnmountAsync: flushed"));
@@ -78,14 +92,14 @@ public sealed class LiveTickerTests
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, TimeSpan.FromSeconds(2),
+            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
             "the poll loop never produced a tick");
 
         host.Mounted = false;
         host.RenderAsLiveRoot();
-        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => host.Log.Contains("OnUnmountAsync: flushed"), Settle);
         await WaitFor.True(
-            () => host.Log.Contains("poll loop cancelled"), TimeSpan.FromSeconds(2),
+            () => host.Log.Contains("poll loop cancelled"), Settle,
             "the poll loop did not stop after unmount");
     }
 
@@ -103,7 +117,7 @@ public sealed class LiveTickerTests
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 60, TimeSpan.FromSeconds(8),
+            () => PointCount(host.RenderAsLiveRoot()) >= 60, FillToCapacity,
             "the history never filled to capacity");
 
         Assert.Equal(60, PointCount(host.RenderAsLiveRoot()));
@@ -112,7 +126,7 @@ public sealed class LiveTickerTests
         // the increasing feed) yet the count stays pinned at 60 — the oldest rolled off.
         var price = PriceFromHtml(host.RenderAsLiveRoot());
         await WaitFor.True(
-            () => PriceFromHtml(host.RenderAsLiveRoot()) > price + 5m, TimeSpan.FromSeconds(4),
+            () => PriceFromHtml(host.RenderAsLiveRoot()) > price + 5m, Settle,
             "the poll loop stopped ticking after reaching capacity");
 
         Assert.Equal(60, PointCount(host.RenderAsLiveRoot()));
@@ -138,7 +152,7 @@ public sealed class LiveTickerTests
         host.RenderAsLiveRoot();
 
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, TimeSpan.FromSeconds(2),
+            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
             "the symbol switch did not wake the poll loop");
 
         // The only price that landed is ETH-magnitude (seed ≈2 500); a stale
@@ -159,7 +173,7 @@ public sealed class LiveTickerTests
 
         host.RenderAsLiveRoot();
         await WaitFor.True(
-            () => PointCount(host.RenderAsLiveRoot()) >= 1, TimeSpan.FromSeconds(2),
+            () => PointCount(host.RenderAsLiveRoot()) >= 1, Settle,
             "first poll never ran");
 
         symbol.Value = "ETH";
@@ -172,7 +186,7 @@ public sealed class LiveTickerTests
                 var html = host.RenderAsLiveRoot();
                 return PointCount(html) >= 1 && PriceFromHtml(html) < 10_000m;
             },
-            TimeSpan.FromSeconds(2),
+            Settle,
             "symbol switch did not wake the poll loop for an immediate tick");
     }
 
@@ -189,7 +203,7 @@ public sealed class LiveTickerTests
         host.RenderAsLiveRoot();
         await WaitFor.True(
             () => host.RenderAsLiveRoot().Contains("Feed error: feed offline"),
-            TimeSpan.FromSeconds(2),
+            Settle,
             "a throwing price source never surfaced the #ticker-error alert");
 
         var html = host.RenderAsLiveRoot();

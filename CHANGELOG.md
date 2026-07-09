@@ -49,6 +49,13 @@ them until tagged releases begin.
   drops ~35% (69.4 KB → 45.3 KB per update).
 
 ### Fixed
+- **Flaky `LiveTicker` lifecycle tests no longer time out on a cold CI thread pool.** The
+  background-async waits in `LiveTickerTests` gave the synthetic poll loop only 2 s to land its
+  first tick; on the nightly `unit` job — which compiles every WASM sample bundle immediately
+  before running tests — the thread-pool hill-climber injects workers slowly, so a correct-but-slow
+  continuation occasionally slipped past that deadline and failed the run. The waits now use
+  generous named budgets (`Settle` 10 s, `FillToCapacity` 20 s); since `WaitFor.True` returns the
+  instant the condition holds, a healthy run is unaffected. Test-only change — no framework code touched.
 - **Bs dropdown-family popovers no longer get clipped by an `overflow` ancestor.** The Popper-less
   `.dropdown-menu` of `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker`, `BsDropdown`, and `BsMultiSelect`
   was `position: absolute`, so opening one inside a card or scroll region (anything with
