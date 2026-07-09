@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Conditional content now ships a diff instead of the whole page.** Toggling an element in or out
+  (a validation message appearing, a "show details" panel, a row appended to a list) emits a positional
+  `InsertSubtree`/`RemoveSubtree`. Previously *all* positional structural ops were untrusted and routed
+  to the full-HTML morph — so a keystroke that flipped one field's validation state re-sent the entire
+  form. The diff codec now trusts the safe subset: a **pure tail append/truncate at a nested,
+  replace-free level**, where the client's positional apply is provably identical to the full-HTML morph
+  (Rask serialises nested content without the whitespace/comment nodes that would shift the client's
+  `childNodes` slot). Mid-list replacements, top-level ops (where the WASM shell's comment nodes live),
+  and `Raw`-tainted levels still take the full-HTML path, so DOM identity is preserved exactly as before.
+  Measured effect: a form-validation-churn update drops from ~1.4 KB (full form) to ~110 B on the wire.
 - **Leaf elements retain less memory: three cold reference fields moved off the base `Component`.** The
   error-boundary pointer, render handle, and lifetime-token source are only ever set on live-render
   roots and user components (which already allocate a lazy `LiveState`), yet every `Element` in a mounted

@@ -87,6 +87,50 @@ public sealed class RaskHarness : IDisposable
     }
 
     /// <summary>
+    ///     Production-accurate wire bytes for one update: what <c>LiveSession</c> actually ships. A diff
+    ///     is shipped only when its ops are all client-supported (trusted) and it isn't forced to full
+    ///     HTML — otherwise the session morphs the full page — and even a shippable diff loses to full
+    ///     HTML when it's larger (the choose-smaller gate). Mirrors <see cref="LiveSessionBase" />'s
+    ///     WritePayload decision, so unkeyed structural churn (untrusted positional Insert/Remove) is
+    ///     billed at its real full-HTML cost rather than the raw diff bytes.
+    /// </summary>
+    public int RenderAndBuildProductionPayloadBytes(Component tree)
+    {
+        var writer = _cache.PrepareCurrentBuffer();
+        _htmlBuffer.Clear();
+        using (FrameSinkScope.Push(writer))
+        {
+            HtmlSerializer.Serialize(tree, _htmlBuffer);
+        }
+
+        _ops.Clear();
+        var len = _htmlBuffer.Length;
+        if (_htmlChars.Length < len)
+        {
+            _htmlChars = new char[len];
+        }
+
+        _htmlBuffer.CopyTo(0, _htmlChars, 0, len);
+        var html = _htmlChars.AsSpan(0, len);
+
+        _cache.TryComputeDiff(_ops, html);
+
+        _payloadBuffer.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8Diff(_payloadBuffer, _ops, newHtml: html);
+        var diffBytes = _payloadBuffer.WrittenCount;
+
+        var canShipDiff = _ops.Count > 0
+                          && LiveDiffGate.DiffOpsAreClientSupported(_ops)
+                          && !_cache.LastDiffForcedFullHtml;
+
+        _payloadBuffer.ResetWrittenCount();
+        LivePayload.BuildPayloadUtf8WithRoot(_payloadBuffer, new string(html), "session-bench", null, false);
+        var fullBytes = _payloadBuffer.WrittenCount;
+
+        return canShipDiff && diffBytes < fullBytes ? diffBytes : fullBytes;
+    }
+
+    /// <summary>
     ///     Variant: returns the full-HTML payload byte count for this tree — the bytes
     ///     Rask would have shipped before the diff codec existed. Used by Scope 2 to
     ///     report the "full vs diff" reduction ratio side-by-side with Blazor's batch.

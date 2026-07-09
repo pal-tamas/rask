@@ -305,6 +305,16 @@ public static class FrameDiffer
         var ni = newStart;
         var domSlot = 0;
 
+        // A positional Insert/Remove is normally untrusted (routed to the full-HTML morph) because the
+        // client applies it by RAW childNodes[slot] and a mid-list replace can diverge from what the
+        // morph would preserve. But a PURE TAIL append/truncate at a NESTED, replace-free level is safe:
+        // Rask serialises nested content without whitespace/comment nodes, so the relevant-node slot the
+        // server computes equals the raw childNodes index the client uses, and a genuine tail add/remove
+        // is exactly what the morph does anyway. `levelHadReplace` disqualifies a level the moment a
+        // tag-mismatch replace appears (that's the mid-list-divergence case); the top level (path empty,
+        // where the WASM shell's comment nodes live) is also excluded.
+        var levelHadReplace = false;
+
         while (oi < oldEnd && ni < newEnd)
         {
             ref readonly var oldFrame = ref oldFrames[oi];
@@ -316,6 +326,7 @@ public static class FrameDiffer
                 // InsertSubtree carries the HTML fragment for the new subtree (when
                 // newHtml was supplied) so the client can apply the structural change
                 // without re-rendering.
+                levelHadReplace = true;
                 output.Add(new EditOp(EditOpKind.RemoveSubtree, PathPlus(path, domSlot), null, null,
                     DomNodeCount(oldFrames, oi, oi + oldFrame.SubtreeLength)));
                 var (replStart, replEnd) = InsertHtmlRange(newHtml, newFrame);
@@ -392,11 +403,16 @@ public static class FrameDiffer
             }
         }
 
+        // Tail append/truncate is safe to ship as a trusted diff at a nested, replace-free level (see
+        // the levelHadReplace note above). Only reachable once the main walk has consumed all matched
+        // pairs, so levelHadReplace is final here.
+        var trustedTail = !levelHadReplace && path.Count >= 1;
+
         while (oi < oldEnd)
         {
             ref readonly var oldFrame = ref oldFrames[oi];
             output.Add(new EditOp(EditOpKind.RemoveSubtree, PathPlus(path, domSlot), null, null,
-                DomNodeCount(oldFrames, oi, oi + oldFrame.SubtreeLength)));
+                DomNodeCount(oldFrames, oi, oi + oldFrame.SubtreeLength), trusted: trustedTail));
             oi += oldFrame.SubtreeLength;
             // domSlot intentionally NOT advanced — RemoveSubtree shifts subsequent
             // siblings up by one slot in the parent's children list, so the next
@@ -409,7 +425,7 @@ public static class FrameDiffer
             var (tailStart, tailEnd) = InsertHtmlRange(newHtml, newFrame);
             output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null, null,
                 DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength),
-                htmlStart: tailStart, htmlEnd: tailEnd));
+                trusted: trustedTail, htmlStart: tailStart, htmlEnd: tailEnd));
             ni += newFrame.SubtreeLength;
             domSlot++;
         }
