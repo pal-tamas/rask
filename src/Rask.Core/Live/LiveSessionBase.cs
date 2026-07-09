@@ -27,9 +27,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     protected List<EditOp>? _diffOps;
     protected SessionRenderCache? _renderCache;
 
-    // Last rendered HTML, the dedup baseline that suppresses noop renders which would otherwise
-    // re-morph identical HTML and strip JS-applied DOM state (e.g. hljs's `.hljs` class).
-    protected string? _lastAppliedHtml;
+    // Double-buffered rendered-page chars: the current render + the last-applied baseline. Backs the
+    // noop-render dedup (suppresses re-morphing identical HTML, which would strip JS-applied DOM state
+    // like hljs's `.hljs` class) and the diff-vs-full head-compare, both read-only over the chars — so
+    // the page is rendered into a reused buffer instead of a fresh per-update string. Committed (swapped)
+    // by the hosts only when a frame is actually sent, mirroring _writeBuffer/_lastSentBuffer.
+    protected readonly RenderedHtmlBuffers _htmlBuffers = new();
 
     // Set when an in-handler StateHasChanged lands mid-dispatch (InHandlerScope=true); the coalescing
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
@@ -181,7 +184,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     ///     Default (DisabledFull) bypasses entirely — null frame sink, a single null check per
     ///     HtmlSerializer branch.
     /// </summary>
-    protected string RenderTreeToHtml(bool publishOnly, out FrameWriter? frameWriter)
+    protected ReadOnlyMemory<char> RenderTreeToHtml(bool publishOnly, out FrameWriter? frameWriter)
     {
         frameWriter = null;
         FrameSinkScope.Popper popper = default;
@@ -194,7 +197,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
         try
         {
-            return View.RenderAsLiveRoot(Services, publishOnly);
+            // Render into the session's reused char buffer (no per-update page string); the caller
+            // consumes the chars synchronously before the next render overwrites them.
+            View.RenderAsLiveRootInto(Services, publishOnly, _htmlBuffers);
+            return _htmlBuffers.Current;
         }
         finally
         {
@@ -217,7 +223,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     ///     <paramref name="commitCache" /> (false during a coalescing loop, so intermediate rebuilds
     ///     diff against the stable last-sent baseline and the caller Snapshots once after).
     /// </summary>
-    protected void WritePayload(string html, FrameWriter? frameWriter, PendingDownload? download,
+    protected void WritePayload(ReadOnlyMemory<char> html, FrameWriter? frameWriter, PendingDownload? download,
         PendingJsInvoke[]? jsInvokes, string? historyUrl, bool replace, bool commitCache,
         AuthInstruction? auth, string sessionId)
     {
@@ -234,18 +240,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         {
             _diffOps ??= new List<EditOp>();
             diffPathEntered = true;
-            var headChanged = _lastAppliedHtml is not null && !LiveDiffGate.HeadUnchanged(html, _lastAppliedHtml);
+            var headChanged = _htmlBuffers.HasPrevious && !LiveDiffGate.HeadUnchanged(html.Span, _htmlBuffers.PreviousSpan);
             // Ship the diff when it carries DOM ops, OR when it carries none but a navigation or a
             // head change must still flow (a query-only nav pushes the URL; a head-only change ships
             // the head fragment). Zero ops + no history + unchanged head means nothing to send.
-            if (_renderCache.TryComputeDiff(_diffOps, commitCache, html)
+            if (_renderCache.TryComputeDiff(_diffOps, commitCache, html.Span)
                 && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
                 && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
                 && !_renderCache.LastDiffForcedFullHtml)
             {
-                var headHtml = headChanged ? LiveDiffGate.ExtractHead(html) : null;
+                var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                    headHtml, html);
+                    headHtml, html.Span);
 
                 // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
                 // under Forced. Only the pathological case (nearly every node changed on a tiny page,
@@ -263,8 +269,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
         if (!usedDiff)
         {
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html, sessionId, historyUrl, replace,
-                auth, download, jsInvokes);
+            // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
+            // this ships the whole body anyway, so materialising it as a string here is not wasted.
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, new string(html.Span), sessionId, historyUrl,
+                replace, auth, download, jsInvokes);
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the

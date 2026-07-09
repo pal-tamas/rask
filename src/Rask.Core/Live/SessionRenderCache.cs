@@ -73,7 +73,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     lets <c>FrameDiffer.Diff</c> attach HTML fragments to
     ///     <see cref="EditOpKind.InsertSubtree" /> ops for the client interpreter.
     /// </summary>
-    public bool TryComputeDiff(List<EditOp> output, string? newHtml = null)
+    public bool TryComputeDiff(List<EditOp> output, ReadOnlySpan<char> newHtml = default)
         => TryComputeDiff(output, out _, newHtml);
 
     /// <summary>
@@ -86,7 +86,7 @@ public sealed class SessionRenderCache : IDisposable
     ///     without promoting <c>_current</c>; the caller commits exactly once via
     ///     <see cref="Snapshot" /> after the loop settles.
     /// </summary>
-    public bool TryComputeDiff(List<EditOp> output, bool rotate, string? newHtml = null)
+    public bool TryComputeDiff(List<EditOp> output, bool rotate, ReadOnlySpan<char> newHtml = default)
         => TryComputeDiff(output, out _, newHtml, rotate);
 
     /// <summary>
@@ -97,10 +97,10 @@ public sealed class SessionRenderCache : IDisposable
     ///     identity on surviving nodes (focus, IDL state, listeners), so they're safe to
     ///     ship as diff; positional structural ops still route to the full-HTML morph path.
     /// </summary>
-    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml = null)
+    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, ReadOnlySpan<char> newHtml = default)
         => TryComputeDiff(output, out usedKeyedPath, newHtml, true);
 
-    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, string? newHtml, bool rotate)
+    public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, ReadOnlySpan<char> newHtml, bool rotate)
     {
         output.Clear();
         usedKeyedPath = false;

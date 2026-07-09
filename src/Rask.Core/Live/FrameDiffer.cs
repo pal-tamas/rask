@@ -206,7 +206,7 @@ public static class FrameDiffer
         ReadOnlySpan<RenderFrame> oldFrames,
         ReadOnlySpan<RenderFrame> newFrames,
         List<EditOp> output,
-        string? newHtml = null)
+        ReadOnlySpan<char> newHtml = default)
         => Diff(oldFrames, newFrames, output, out _, newHtml);
 
     /// <summary>
@@ -222,7 +222,7 @@ public static class FrameDiffer
         ReadOnlySpan<RenderFrame> newFrames,
         List<EditOp> output,
         out bool usedKeyedPath,
-        string? newHtml = null)
+        ReadOnlySpan<char> newHtml = default)
         => Diff(oldFrames, newFrames, output, new DiffScratch(), out usedKeyedPath, newHtml);
 
     /// <summary>
@@ -240,7 +240,7 @@ public static class FrameDiffer
         List<EditOp> output,
         DiffScratch scratch,
         out bool usedKeyedPath,
-        string? newHtml = null)
+        ReadOnlySpan<char> newHtml = default)
     {
         var startCount = output.Count;
         scratch.ResetForDiff();
@@ -255,7 +255,7 @@ public static class FrameDiffer
         ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
         ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
         List<EditOp> output,
-        string? newHtml,
+        ReadOnlySpan<char> newHtml,
         DiffScratch scratch)
     {
         var path = scratch.Path;
@@ -452,11 +452,11 @@ public static class FrameDiffer
     // deferred slice" — when no render HTML was supplied (one-shot / test callers that inspect
     // ops without a wire build) or the frame's offsets are degenerate, so the codec then ships a
     // null fragment exactly as the old null-Value path did.
-    private static (int Start, int End) InsertHtmlRange(string? newHtml, in RenderFrame frame)
+    private static (int Start, int End) InsertHtmlRange(ReadOnlySpan<char> newHtml, in RenderFrame frame)
     {
         var start = frame.HtmlStart;
         var end = frame.HtmlEnd;
-        if (newHtml is null || end <= start || (uint)end > (uint)newHtml.Length)
+        if (newHtml.IsEmpty || end <= start || (uint)end > (uint)newHtml.Length)
         {
             return (-1, -1);
         }
@@ -697,7 +697,7 @@ public static class FrameDiffer
     private static void DiffKeyedSiblings(
         ReadOnlySpan<RenderFrame> oldFrames,
         ReadOnlySpan<RenderFrame> newFrames,
-        List<EditOp> output, string? newHtml,
+        List<EditOp> output, ReadOnlySpan<char> newHtml,
         DiffScratch scratch, KeyedBundle bundle)
     {
         // All working collections come from the pooled bundle (cleared on rent), so a keyed
