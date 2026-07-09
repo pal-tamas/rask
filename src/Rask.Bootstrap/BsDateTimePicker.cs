@@ -41,8 +41,7 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
         var fid = b.Field;
         var offset = CurrentOffset(b);
 
-        var content = Span(Class: selected is null ? Txt.Muted : null)[
-            selected is { } dt ? dt.ToString("g", Culture) : Placeholder ?? Culture.DateTimeFormat.ShortDatePattern];
+        var formatted = selected is { } dt ? dt.ToString("g", Culture) : string.Empty;
 
         var boxAria = new Dictionary<string, string?>
         {
@@ -74,9 +73,9 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
             ]
         ];
 
-        return RenderShell(b, controlId, gridId, content, boxAria,
-            () => Toggle(selected),
-            e => OnKeyAsync(acc, ctx, fid, selected, offset, e),
+        return RenderShell(b, controlId, gridId, formatted, boxAria,
+            raw => ParseAsync(acc, ctx, fid, offset, raw),
+            OnKeyAsync,
             selected is not null, popover,
             () => WriteBoxedAsync(acc, ctx, fid, null));
     }
@@ -96,8 +95,10 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
     };
 
     // Box the composed DateTime as the bound type (plain DateTime, or a DateTimeOffset preserving offset).
-    private object BoxValue(DateTime value, TimeSpan offset) =>
-        Underlying == typeof(DateTimeOffset)
+    // The target type comes from the accessor's real property type when bound (reflection — always the
+    // model's actual type), so the boxed value can never mismatch the property under reflection SetValue.
+    private static object BoxValue(DateTime value, TimeSpan offset, ExpressionAccessor.Accessor? acc) =>
+        TargetUnderlying(acc) == typeof(DateTimeOffset)
             ? new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Unspecified), offset)
             : value;
 
@@ -112,69 +113,35 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
         _seeded = true;
     }
 
-    private void Toggle(DateTime? selected)
+    // The box is an editable input; typing commits live, so keyboard here is just Escape/Enter to close.
+    private Task OnKeyAsync(KeyboardEventArgs e)
     {
-        if (!Open)
+        if (e.Key is "Escape" or "Enter")
         {
-            SeedCursor(selected, force: true);
+            Open = false;
+            Text = null;
         }
 
-        Open = !Open;
+        return Task.CompletedTask;
     }
 
-    private async Task OnKeyAsync(
-        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
-        DateTime? selected, TimeSpan offset, KeyboardEventArgs e)
+    // Live per-keystroke parse of the typed text in the current culture: a valid date-time commits (boxed to
+    // the bound type via the AOT-safe BoxValue) and moves the calendar cursor; empty clears a nullable picker.
+    private Task ParseAsync(
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, TimeSpan offset, string raw)
     {
-        if (!Open)
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            if (e.Key is "Enter" or " " or "ArrowDown")
-            {
-                SeedCursor(selected, force: true);
-                Open = true;
-            }
-
-            return;
+            return CanClear ? WriteBoxedAsync(acc, ctx, fid, null) : Task.CompletedTask;
         }
 
-        switch (e.Key)
+        if (DateTime.TryParse(raw, Culture, out var dt))
         {
-            case "Escape":
-                Open = false;
-                break;
-            case "ArrowLeft":
-                _cursor = ClampCursor(_cursor.AddDays(-1));
-                break;
-            case "ArrowRight":
-                _cursor = ClampCursor(_cursor.AddDays(1));
-                break;
-            case "ArrowUp":
-                _cursor = ClampCursor(_cursor.AddDays(-7));
-                break;
-            case "ArrowDown":
-                _cursor = ClampCursor(_cursor.AddDays(7));
-                break;
-            case "PageUp":
-                _cursor = ClampCursor(_cursor.AddMonths(e.Shift ? -12 : -1));
-                break;
-            case "PageDown":
-                _cursor = ClampCursor(_cursor.AddMonths(e.Shift ? 12 : 1));
-                break;
-            case "Home":
-                _cursor = ClampCursor(PickerParts.WeekStart(_cursor, Culture));
-                break;
-            case "End":
-                _cursor = ClampCursor(PickerParts.WeekEnd(_cursor, Culture));
-                break;
-            case "Enter":
-            case " ":
-                if (Selectable(_cursor))
-                {
-                    await PickDayAsync(acc, ctx, fid, selected, offset, _cursor).ConfigureAwait(false);
-                }
-
-                break;
+            _cursor = ClampCursor(DateOnly.FromDateTime(dt));
+            return WriteBoxedAsync(acc, ctx, fid, BoxValue(ClampValue(dt), offset, acc));
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task PickDayAsync(
@@ -207,8 +174,11 @@ public sealed class BsDateTimePicker<T> : BsPickerBase<T>
     // out-of-range DateTime on a boundary day, then write it back as the bound type.
     private Task WriteComposedAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
-        DateOnly date, TimeOnly time, TimeSpan offset) =>
-        WriteBoxedAsync(acc, ctx, fid, BoxValue(ClampValue(date.ToDateTime(time)), offset));
+        DateOnly date, TimeOnly time, TimeSpan offset)
+    {
+        Text = null;
+        return WriteBoxedAsync(acc, ctx, fid, BoxValue(ClampValue(date.ToDateTime(time)), offset, acc));
+    }
 
     private DateOnly ClampCursor(DateOnly d)
     {

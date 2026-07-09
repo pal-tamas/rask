@@ -297,6 +297,48 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Hand-editable: the picker box is a text <input>. Typing a date commits live per keystroke (culture
+        // parse; ISO yyyy-MM-dd is accepted in any culture), so the bound readout updates with no calendar.
+        var dateInput = Page.Locator("#pick-date").First;
+        await dateInput.FillAsync("2026-12-25");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // An unparseable entry keeps the raw text (no mid-typing revert) and leaves the value unchanged.
+        await dateInput.FillAsync("not a date");
+        await Expect(dateInput).ToHaveValueAsync("not a date",
+            new LocatorAssertionsToHaveValueOptions { Timeout = 5_000 });
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25",
+            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+        // Close the opened picker so its full-viewport backdrop doesn't intercept later clicks. (The nullable
+        // picker's × clear is unit-tested; the ×-clears-to-null click is E2E-covered on #bs-seats below.)
+        await Page.Locator(".dropdown:has(#pick-date) .position-fixed").DispatchEventAsync("click");
+
+        // Date-time picker (#pick-datetime, bound to a DateTime): open the calendar and pick a day. The
+        // composed value must write back as a DateTime — regression guard for the "Object of type
+        // DateTimeOffset cannot be converted to type DateTime" write crash (BoxValue could box the wrong
+        // date/time type; WriteBoxedAsync now coerces to the property's real type). A crash surfaces as the
+        // Rask error boundary; the readout's third segment updating proves the write succeeded.
+        await Page.Locator("#pick-datetime").First.ClickAsync();
+        await Expect(Page.Locator("#pick-datetime-cal.bs-cal[role=\"grid\"]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator($"#pick-datetime-d-{ym}15").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout"))
+            .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Also pick an hour + minute (the time columns compose with the date — same DateTime write path),
+        // and type a full value into the box (the parse path). None may throw the DateTimeOffset cast.
+        var dtMenu = Page.Locator(".dropdown-menu.show:has(#pick-datetime-cal)").First;
+        await dtMenu.Locator(".bs-time-col").Nth(0)
+            .GetByText("11", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await dtMenu.Locator(".bs-time-col").Nth(1)
+            .GetByText("30", new LocatorGetByTextOptions { Exact = true }).First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("-15 11:30",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator("#pick-datetime").First.FillAsync("2026-12-25 14:45");
+        await Expect(Page.Locator("#pick-readout")).ToContainTextAsync("2026-12-25 14:45",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
+
         // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
         // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
         // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
@@ -309,6 +351,43 @@ public abstract partial class SharedSmokeTests
         await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
         await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // Single-select (BsSelect) — a .form-select DISPLAY combobox <div>. Clicking opens the .dropdown-menu
+        // listbox (re-anchored position:fixed by the overflow-escape helper). A Filter predicate adds a SEARCH
+        // FIELD in the dropdown: typing there narrows the options; picking writes the bound model and the box
+        // shows the option's label, then closes. Component markup is unit-tested in BsSelectTests.
+        var plan = Page.Locator("#bs-plan");
+        await Expect(plan).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await plan.ClickAsync();
+        var planMenu = Page.Locator("#bs-plan-list.dropdown-menu.show");
+        await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal("fixed", await planMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        // Type in the dropdown's search field — only the option whose label contains "Te" (Team) survives.
+        await Page.Locator("#bs-plan-search").FillAsync("Te");
+        await Expect(planMenu.Locator(".dropdown-item")).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await planMenu.Locator(".dropdown-item").First.ClickAsync();
+        await Expect(plan).ToContainTextAsync("Team", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Native fallback (Native: true) renders a real OS <select> (data-fed from the same Options), so
+        // it degrades cleanly where the custom popover is unwanted (e.g. the native mobile host).
+        var tier = Page.Locator("select#bs-tier");
+        await Expect(tier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(tier.Locator("option")).ToHaveCountAsync(3,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(tier.Locator("option").Filter(new LocatorFilterOptions { HasText = "Team" }))
+            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Nullable select (#bs-seats, int?) — a plain dropdown (no Filter → no search field). Pick a value;
+        // the × clear then resets it to null so the box shows the "Any" placeholder again.
+        var seats = Page.Locator("#bs-seats");
+        await seats.ClickAsync();
+        await Page.Locator("#bs-seats-list .dropdown-item").Filter(new LocatorFilterOptions { HasText = "2 seats" })
+            .First.ClickAsync();
+        await Expect(seats).ToContainTextAsync("2 seats", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#bs-seats) .bs-select-clear").First.ClickAsync();
+        await Expect(seats).ToContainTextAsync("Any", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     }
 
     private async Task WalkUserComponentsGuideAsync()
@@ -847,7 +926,9 @@ public abstract partial class SharedSmokeTests
         await Expect(multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" }))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // The menu stays open across selections; Escape closes it (the focusable box handles keydown — no JS).
+        // The menu stays open across selections; Escape from the focusable box closes it (no bootstrap.js).
+        // (Type-to-filter is opt-in via a Filter predicate and shares BsSelect's dropdown search field, which
+        // is exercised on #bs-plan above.)
         var openMenu = Page.Locator("#ms-interests .dropdown-menu.show");
         await Expect(openMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // Same overflow-escape helper: the open menu is re-anchored position:fixed (data-rask-popover).

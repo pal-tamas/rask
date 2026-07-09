@@ -96,6 +96,34 @@ them until tagged releases begin.
   pack and push `Rask.Native`, and the project is marked `IsPackable` with a package-specific `NUGET.md`
   — matching the other host packages.
 
+### Bootstrap
+
+- **`BsSelect<T>` is now a custom combobox by default (single-value twin of `BsMultiSelect`).** The box is a
+  `.form-select` display `<div role="combobox">` (showing the option's rich `OptionLabel`) that opens a
+  zero-JS `.dropdown-menu` listbox. Pass a **`Filter` predicate** (`(item, text) => bool`) to add a **search
+  field inside the dropdown** that narrows the options as you type (with a "No matches" row); with no
+  `Filter` it is a plain dropdown. `Native: true` falls back to the plain OS `<select>`. **Breaking:**
+  options are data-driven — pass `Options` (+ optional `OptionLabel`/`Filter`/`Placeholder`) instead of
+  `Option(...)` children.
+- **`BsMultiSelect<T>` gains the same opt-in dropdown search** (via a `Filter` predicate); the box shows the
+  chosen items as chips.
+- **`BsSelect<TValue, TItem>` value selector** — bind a projected field while the options are objects:
+  `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id, OptionLabel: p => Text(p.Name))`. The
+  bound value is `OptionValue(selectedOption)`; the label/search still see the whole object.
+- **Date/time pickers are now hand-editable.** `BsDatePicker`/`BsTimePicker`/`BsDateTimePicker` render an
+  editable `<input>`: focus opens the popover and typing commits live per keystroke via culture-aware
+  parsing (a partial/invalid entry is kept as-is, not reverted; blur normalises to the value's format). The
+  calendar/clock popover still works for pointer selection.
+- **Nullable selects/pickers get an `×` clear** in the box that resets the value to null (the null state
+  shows the `Placeholder`); and a **float-only-when-filled** floating-label mode across
+  `BsSelect`/`BsMultiSelect`/pickers (the label sits as the in-box placeholder when empty, floats up when
+  filled or focused).
+- **Fixed a `BsDateTimePicker` crash on the trimmed/AOT WASM build** (`System.ArgumentException: … DateTimeOffset
+  … DateTime` on write). A generic base's cached `static readonly` type field mis-resolved `typeof(T)` under
+  Mono AOT; it is now computed fresh, and the composed value is boxed to the bound property's actual type.
+- **Time-picker selection now uses the brand colour** (`var(--bs-primary)`) instead of Bootstrap's baked-in
+  blue, with a slimmer scrollbar and tighter item padding.
+
 ## [0.15.1] - 2026-07-08
 
 ### Changed

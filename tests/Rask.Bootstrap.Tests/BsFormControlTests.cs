@@ -24,9 +24,9 @@ public class BsFormControlTests
         Assert.Contains("<div class=\"form-text\">Hint</div>", BsInput<string>(Value: "x", HelpText: "Hint").ToHtml());
 
     [Fact]
-    public void Select_RendersFormSelectWithOptions()
+    public void Select_Native_RendersFormSelectWithOptions()
     {
-        var html = BsSelect<string>(Value: "a")[Option("a")["A"], Option("b")["B"]].ToHtml();
+        var html = BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true).ToHtml();
         Assert.Contains("class=\"form-select\"", html);
         Assert.Contains("<option value=\"a\"", html);
     }

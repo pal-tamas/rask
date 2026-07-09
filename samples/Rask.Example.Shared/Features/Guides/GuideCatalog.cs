@@ -33,8 +33,9 @@ public static class GuideCatalog
         new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.",
             "bi-globe", "Core"),
 
-        new("bootstrap", "Bootstrap", "The typed Rask.Bootstrap component library.",
-            "bi-bootstrap", "Integration"),
+        new("bootstrap", "Bootstrap components", "The typed Rask.Bootstrap component library.",
+            "bi-bootstrap", "Bootstrap"),
+
         new("authentication", "Authentication", "Cookie/JWT/OIDC on Server and WASM, route guards.",
             "bi-shield-lock", "Integration"),
         new("http-and-files", "HTTP & files", "Fetch JSON with a DI'd HttpClient; upload and download files.",
@@ -62,7 +63,7 @@ public static class GuideCatalog
             "bi-exclamation-diamond", "Advanced")
     ];
 
-    public static readonly string[] GroupOrder = ["Start here", "Core", "Integration", "Advanced"];
+    public static readonly string[] GroupOrder = ["Start here", "Core", "Bootstrap", "Integration", "Advanced"];
 
     public static string TitleFor(string slug)
     {
