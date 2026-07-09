@@ -220,14 +220,23 @@ public abstract partial class SharedSmokeTests
         await AssertNoGlobalCrashAsync();
     }
 
-    // Bootstrap guide: the 9 Rask.Bootstrap component example pages folded into docs/bootstrap.md as
-    // inline live demos. Open the guide once, hydration-gate on the interactive modal demo, and drive
-    // the representative components in place — all live via Rask state, no bootstrap.js.
+    // Bootstrap guide: the Rask.Bootstrap component example pages, folded into three docs pages under the
+    // "Bootstrap" sidebar group (overview & layout, navigation & overlays, forms & inputs) as inline live
+    // demos. Walk each page in turn, hydration-gate on one of its interactive demos, and drive the
+    // representative components in place — all live via Rask state, no bootstrap.js.
     protected async Task WalkBootstrapGuideAsync()
     {
-        await SideAsync("Bootstrap", "Rask.Bootstrap", "main .markdown-body h1");
-        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 10,
-            "expected the Bootstrap guide to embed the component demos (incl. the folded toast) as live demos");
+        // === Page 1: Bootstrap components — overview & layout (buttons, cards, alerts, icons, utilities) ===
+        await SideAsync("Bootstrap components", "Rask.Bootstrap", "main .markdown-body h1");
+        Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 4,
+            "expected the Bootstrap overview page to embed the layout component demos as live demos");
+        // Buttons — Bootstrap CSS applied (the _content bundle served): .btn-primary renders. Gate on it so
+        // the co-mounted page has hydrated before we assert.
+        await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
+
+        // === Page 2: Bootstrap navigation & overlays (nav, tabs, modal, toast, dropdown) ===
+        await SideAsync("Bootstrap navigation", "navigation & overlays", "main .markdown-body h1");
         await Expect(Page.Locator(".guide-demo button:has-text(\"Launch demo modal\")").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -237,10 +246,6 @@ public abstract partial class SharedSmokeTests
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         Assert.True(
             await Page.Locator(".guide-demo .sample-result-body .nav .nav-link[data-rask-nav]").CountAsync() > 0);
-
-        // Buttons — Bootstrap CSS applied (the _content bundle served): .btn-primary renders.
-        await Expect(Page.Locator(".guide-demo .sample-result-body button.btn.btn-primary").First)
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Modal — open + close driven by Rask state, no bootstrap.js loaded. The runtime focus trap
         // (data-rask-focus-trap in rask-dom.js) moves focus into the dialog on open, Escape dismisses
@@ -275,6 +280,24 @@ public abstract partial class SharedSmokeTests
         await toast.Locator(".btn-close").ClickAsync();
         await Expect(Page.Locator(".guide-demo .sample-result-body .toast.show")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
+        // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
+        // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
+        await Page.Locator("#demo-dropdown .dropdown-toggle").First.ClickAsync();
+        var ddMenu = Page.Locator("#demo-dropdown .dropdown-menu.show").First;
+        await Expect(ddMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Equal("fixed", await ddMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(ddMenu).ToBeInViewportAsync(
+            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
+        await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // === Page 3: Bootstrap forms & inputs (forms, select, multiselect, pickers) ===
+        await SideAsync("Bootstrap forms", "forms & inputs", "main .markdown-body h1");
+        await Expect(Page.Locator("#pick-date").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
         // Date picker (custom popover) — the calendar opens, is navigated and a day picked entirely from
         // Rask live-diff state (no bootstrap.js). Picking the 1st of the current month writes the bound
@@ -339,19 +362,6 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
 
-        // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
-        // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
-        // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
-        await Page.Locator("#demo-dropdown .dropdown-toggle").First.ClickAsync();
-        var ddMenu = Page.Locator("#demo-dropdown .dropdown-menu.show").First;
-        await Expect(ddMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.Equal("fixed", await ddMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
-        await Expect(ddMenu).ToBeInViewportAsync(
-            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-        await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
-        await Expect(Page.Locator("#demo-dropdown-out")).ToContainTextAsync("Archive",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-
         // Single-select (BsSelect) — a .form-select DISPLAY combobox <div>. Clicking opens the .dropdown-menu
         // listbox (re-anchored position:fixed by the overflow-escape helper). A Filter predicate adds a SEARCH
         // FIELD in the dropdown: typing there narrows the options; picking writes the bound model and the box
@@ -369,6 +379,27 @@ public abstract partial class SharedSmokeTests
         await planMenu.Locator(".dropdown-item").First.ClickAsync();
         await Expect(plan).ToContainTextAsync("Team", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+        // Re-open to assert the combobox popover behaviours wired in rask-dom.js's installRaskPopover:
+        await plan.ClickAsync();
+        await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // (1) WIDTH: the fixed menu is pinned to the trigger box, not stretched to the viewport. A w-100
+        // menu carries .w-100 { width:100% !important }, which — once position:fixed — would resolve 100%
+        // against the viewport unless the inline pin is written !important. Allow 2px for rounding.
+        var planBox = await plan.BoundingBoxAsync();
+        var planMenuBox = await planMenu.BoundingBoxAsync();
+        Assert.True(planBox is not null && planMenuBox is not null
+            && Math.Abs(planBox.Width - planMenuBox.Width) <= 2,
+            $"open menu width {planMenuBox?.Width} should match the trigger {planBox?.Width}, not the viewport");
+        // (2) FILTER FOCUS: opening a searchable select moves focus into its filter so the user types at once.
+        await Expect(Page.Locator("#bs-plan-search"))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+        // (3) KEY CONTAINMENT: Enter in the filter picks the highlighted option and must NOT submit/validate
+        // the surrounding <form> (whose other required fields would otherwise surface .invalid-feedback).
+        await Page.Locator("#bs-plan-search").PressAsync("Enter");
+        await Expect(planMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("form:has(#bs-plan) .invalid-feedback"))
+            .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         // Native fallback (Native: true) renders a real OS <select> (data-fed from the same Options), so
         // it degrades cleanly where the custom popover is unwanted (e.g. the native mobile host).

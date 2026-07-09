@@ -175,6 +175,20 @@ them until tagged releases begin.
   projected id, native, native-nullable, disabled), `BsMultiSelect` (basic, searchable, floating, disabled),
   and the date/time pickers (default, floating, native, min/max/disable, nullable) — each bound with a live
   readout, in the Bootstrap guide (`docs/bootstrap.md`).
+- **The Bootstrap guide is split into three pages.** The single co-mounting guide (which mounted all 14
+  live component demos on one long page) is now **Bootstrap components** (setup, content/layout, utilities),
+  **Bootstrap navigation & overlays** (navbar/nav, tabs, modal, toast, dropdown), and **Bootstrap forms &
+  inputs** (inputs, selects, multiselect, date/time pickers) — three entries under the Bootstrap sidebar
+  group (`docs/bootstrap.md`, `docs/bootstrap-navigation.md`, `docs/bootstrap-forms.md`).
+- **Open combobox dropdown fixes.** An open `BsSelect`/`BsMultiSelect` menu no longer **stretches to the
+  viewport width** — a `.w-100` menu carries `width:100% !important`, which beat the popover helper's inline
+  width pin once the menu went `position:fixed`, so `100%` resolved against the viewport; the pin is now
+  written `!important` and matches the trigger. Opening a **searchable** select now **moves focus into its
+  filter input** so you can type immediately (and returns focus to the trigger on close). And the combobox
+  navigation/commit keys (**Enter**, Esc, arrows, Home/End, PageUp/Down) now act **only inside the open
+  dropdown** — in particular **Enter picks the highlighted option instead of submitting/validating the
+  surrounding form**. All three live in the shared popover helper (`rask-dom.js`), so every
+  `data-rask-popover` control (selects, multiselects, date/time pickers) benefits.
 
 ## [0.15.1] - 2026-07-08
 

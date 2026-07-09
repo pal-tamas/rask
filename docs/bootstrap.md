@@ -63,13 +63,18 @@ BsNav(Vertical: true, Pills: true)[
 BsOffcanvas(Responsive: Bp.Md, Open: _open, OnClose: () => _open = false)[ /* nav */ ]
 ```
 
+`Rask.Bootstrap` is split across three guides:
+
+- **This page** — setup, the content/layout components (buttons, badges, cards, alerts, icons) and the
+  typed utility classes.
+- **[Navigation & overlays](bootstrap-navigation.md)** — the navbar/nav, tabs & accordion, modal, toast
+  and dropdown (all controlled, zero-JS).
+- **[Forms & inputs](bootstrap-forms.md)** — the `IFormControl<T>` controls: inputs, the searchable
+  `BsSelect`/`BsMultiSelect` comboboxes, and the hand-editable date/time pickers.
+
 ### Live examples
 
 Every component below is driven entirely by Rask's live runtime — **no `bootstrap.js`** is loaded.
-
-**Navigation** — a navbar shell + a vertical nav whose items SPA-route and self-highlight:
-
-<!-- demo:bootstrap-nav -->
 
 **Buttons & badges:**
 
@@ -86,66 +91,6 @@ Every component below is driven entirely by Rask's live runtime — **no `bootst
 **Icons** — the typed `BsIcon` over every Bootstrap Icons glyph:
 
 <!-- demo:bootstrap-icons -->
-
-**Modal** — open and close driven by Rask state:
-
-<!-- demo:bootstrap-modal -->
-
-**Tabs & accordion** — controlled active/expanded state:
-
-<!-- demo:bootstrap-tabs -->
-
-**Toasts** — shown, stacked, dismissed and auto-hidden entirely from Rask state (no `bootstrap.js`, no
-`data-bs-dismiss`, no `setTimeout`):
-
-<!-- demo:bootstrap-toast -->
-
-**Forms** — `IFormControl<T>`-bound controls with built-in validation. `BsSelect<T>` is a custom combobox —
-a `.form-select` display box (showing the option's rich `OptionLabel`) that opens a `.dropdown-menu` listbox
-(data-driven `Options` + `OptionLabel`). Pass a **`Filter` predicate** (`(item, text) => bool`) to add a
-**search field in the dropdown** that narrows the options as you type; a nullable binding gets an `×` clear.
-`BsMultiSelect<T>` is the same but multi-value, with the chosen items shown as chips (and the same opt-in
-`Filter`). Both are zero-JS live-diff, keyboard-navigable, ARIA `combobox`/`listbox`; `Native: true` drops
-`BsSelect` back to the plain OS `<select>` (handy on mobile). To bind a **projected field** while the options
-are objects, add an `OptionValue` selector — `BsSelect(() => model.PersonId, people, OptionValue: p => p.Id,
-OptionLabel: p => Text(p.Name))` binds the id but renders/searches the whole `Person`:
-
-<!-- demo:bootstrap-forms -->
-
-**`BsSelect<T>` variants** — the same control across every option: basic (binds the option), `Floating`
-label, searchable (`Filter`), nullable + `×` clear, `OptionValue` projected-id binding, `Native` OS
-`<select>`, native + nullable, and `Disabled`. Each is bound and echoed by a live readout:
-
-<!-- demo:bootstrap-select -->
-
-**`BsMultiSelect<T>` variants** — chips + a checkable dropdown bound to a collection: basic, searchable
-(`Filter`), `Floating`, and `Disabled`:
-
-<!-- demo:bootstrap-multiselect -->
-
-**Date & time pickers** — `BsDatePicker<T>`/`BsTimePicker<T>`/`BsDateTimePicker<T>` are **hand-editable**:
-the box is a text `<input>` you can type into (parsed live per keystroke in `CultureInfo.CurrentCulture`;
-a partial/invalid entry is kept, not reverted, and blur normalises it), and focusing it opens a custom
-calendar/clock **popover** (a month grid + hour/minute lists) driven entirely by Rask live-diff state — no
-`bootstrap.js`. They bind `DateOnly`/`TimeOnly`/`DateTime` (and their nullable + `DateTimeOffset` forms),
-localize the weekday order/names and month label from `CultureInfo.CurrentCulture`, and constrain selection
-with `Min`/`Max`/`Disable`. A nullable value gets a clear (×) button; `Native: true` degrades to the native
-`<input type=date|time|datetime-local>`:
-
-<!-- demo:bootstrap-pickers -->
-
-**Dropdowns** — `BsDropdown`(+`BsDropdownItem`) is a controlled, Popper-less menu: you own the `Open`
-state and wire `OnToggle`, and each item's handler closes it on selection. `AlignEnd` right-aligns the
-menu:
-
-<!-- demo:bootstrap-dropdown -->
-
-Every Bs `.dropdown-menu` popover — the pickers, `BsDropdown`, `BsMultiSelect`, and `BsSelect` — is re-anchored with
-`position: fixed` while open by a tiny runtime helper (declarative, opt-in via `data-rask-popover`), so
-it escapes any `overflow: hidden/auto` ancestor (a card, a scroll region) instead of being clipped, and
-tracks the trigger on scroll/resize. The one exception is a browser rule, not a Rask bug: an ancestor
-with a CSS `transform`/`filter`/`perspective`/`will-change`/`contain` becomes the containing block for
-`position: fixed`, so a popover inside it is clamped to that box rather than the viewport.
 
 ## Utility classes
 
