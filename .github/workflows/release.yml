@@ -162,6 +162,9 @@ jobs:
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
+      - name: Pack Rask.Native
+        run: dotnet pack src/Rask.Native/Rask.Native.csproj -c Release --no-build -o ./artifacts
+
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts
 
