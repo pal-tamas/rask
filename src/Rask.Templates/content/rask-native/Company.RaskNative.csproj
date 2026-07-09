@@ -30,6 +30,7 @@
 
   <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,10 +43,6 @@
   </ItemGroup>
   <ItemGroup Condition="!$(TargetFramework.Contains('-android'))">
     <Compile Remove="Platforms/Android/**/*.cs"/>
-  </ItemGroup>
-
-  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-    <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
   </ItemGroup>
 
 </Project>
