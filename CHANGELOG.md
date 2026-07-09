@@ -90,6 +90,11 @@ them until tagged releases begin.
   requests an edge-to-edge viewport (`viewport-fit=cover`), so the template's `App.cs` now pads `Body`
   by the device safe-area insets — `padding:env(safe-area-inset-top) … env(safe-area-inset-left)` — to
   clear the status bar, notch / Dynamic Island, and home indicator.
+- **`Rask.Native` is now packed and published.** The package was never in the release/nightly pack
+  lists, so `dotnet add package Rask.Native` (and `dotnet new rask-native`, whose generated project
+  references it) would fail to restore from nuget.org. The `release.yml` and `nightly.yml` pipelines now
+  pack and push `Rask.Native`, and the project is marked `IsPackable` with a package-specific `NUGET.md`
+  — matching the other host packages.
 
 ## [0.15.1] - 2026-07-08
 
