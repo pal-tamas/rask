@@ -19,9 +19,14 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     // Placeholder shown in the trigger box when there is no value.
     public string? Placeholder { get; set; }
 
-    // Popover visibility — pure live-diff view state, toggled by the box click / keyboard, closed by the
-    // backdrop or Escape. The value itself lives in the bound model / controlled Value, never here.
+    // Popover visibility — pure live-diff view state, opened on focus, closed by the backdrop or Escape.
+    // The value itself lives in the bound model / controlled Value, never here.
     private protected bool Open;
+
+    // The text the user is currently typing into the box (null when not editing → the box shows the value's
+    // canonical formatted string). Holds partial/invalid input so a live-committed model can't revert it
+    // mid-keystroke; cleared on blur and on every popover pick so the display re-syncs to the value.
+    private protected string? Text;
 
     // A nullable T (DateOnly?/TimeOnly?/DateTime?) gets a clear affordance; a non-nullable one never does.
     // Computed fresh from typeof(T) on each read rather than cached in a `static readonly` field: under the
@@ -103,16 +108,17 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         }
     }
 
-    // Assembles the .dropdown shell: the .form-control combobox trigger (label-linked, focusable, with a
-    // caret or a clear button), the popover (already built by the picker), and the full-screen backdrop.
-    // Wrapped by Field() so the label + help-text + .invalid-feedback come out identical to BsInput.
+    // Assembles the .dropdown shell: an editable .form-control combobox INPUT (type the value; focus opens
+    // the popover), a caret / clear button, the popover (built by the picker), the backdrop, and the
+    // label/help/invalid-feedback — built here (not via Field) so floating wraps just the box + label in a
+    // .form-floating.bs-floating (Field would wrap the whole .dropdown, which breaks Bootstrap's selector).
     private protected Component RenderShell(
         in Bound b,
         string? controlId,
         string gridId,
-        Component valueContent,
+        string formatted,
         IReadOnlyDictionary<string, string?> boxAria,
-        Callback onToggle,
+        CallbackAsync<string> onParse,
         CallbackAsync<KeyboardEventArgs> onKeyDown,
         bool hasValue,
         Component? popover,
@@ -120,23 +126,31 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     {
         var disabled = Disabled == true;
         var showClear = CanClear && hasValue && !disabled;
+        var floating = Floating is true && Label is not null;
 
-        var box = Div(
-            Class: BsClass.Join("form-control", SizeClass("form-control"),
-                Display.Flex(), Flex.Align(BsAlign.Center),
-                b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null, Class),
+        var box = Input<string>(
+            Type: InputType.Text,
+            Class: BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null),
             Id: controlId,
+            Value: Text ?? formatted,
+            Placeholder: floating ? null : Placeholder,
+            Disabled: Disabled,
+            Autocomplete: "off",
             Data: BsPopover.Anchor,
             Role: "combobox",
-            TabIndex: disabled ? null : 0,
             Aria: boxAria,
-            OnClick: disabled ? null : onToggle,
-            OnKeyDownAsync: disabled ? null : onKeyDown)[
-            valueContent,
-            showClear
-                ? null
-                : Span(Class: BsClass.Join(Margin.StartAuto, "ps-2", "bs-picker-caret"), Aria: Hidden)["▾"]
-        ];
+            OnFocus: disabled ? null : () => Open = true,
+            OnClick: disabled ? null : () => Open = true,
+            OnBlur: disabled ? null : () => Text = null,
+            OnInputAsync: disabled ? null : raw => { Text = raw; return onParse(raw); },
+            OnKeyDownAsync: disabled ? null : onKeyDown);
+
+        var caret = showClear
+            ? null
+            : Span(
+                Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
+                    Position.TranslateMiddleY, Margin.End(3), "bs-picker-caret"),
+                Aria: Hidden)["▾"];
 
         var clear = showClear
             ? BsCloseButton(
@@ -151,19 +165,54 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
                 Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0,
                     Sizing.W(100), Sizing.H(100)),
                 Style: "z-index: 999;",
-                OnClick: () => Open = false)
+                OnClick: () => { Open = false; Text = null; })
             : null;
+
+        var labelNode = Label is null
+            ? null
+            : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
+                Label,
+                Required is true ? Span(Class: "text-danger ms-1")["*"] : null];
+
+        var children = new List<Component?>();
+        if (labelNode is not null && !floating)
+        {
+            children.Add(labelNode);
+        }
+
+        // Floating wraps box + label (+ the absolutely-placed caret/×) in a position-relative .form-floating;
+        // the popover/backdrop stay direct children of the .dropdown. Non-floating: box + caret/× sit in the
+        // .dropdown (position-relative), so the caret/× anchor to the box (popover/backdrop are out of flow).
+        if (floating)
+        {
+            children.Add(Div(
+                Class: BsClass.Join("form-floating bs-floating", hasValue ? "bs-floating-filled" : null,
+                    Position.Relative))[box, labelNode, caret, clear]);
+        }
+        else
+        {
+            children.Add(box);
+            children.Add(caret);
+            children.Add(clear);
+        }
 
         // The popover is always in the DOM (like BsMultiSelect's menu); the picker toggles .show/.d-block
         // from Open, so a closed picker still renders the grid (hidden) and its markup is testable.
-        var control = Div(Class: BsClass.Join("dropdown", Position.Relative), Data: BsPopover.Wrapper)[
-            box,
-            clear,
-            popover,
-            backdrop
-        ];
+        children.Add(popover);
+        children.Add(backdrop);
 
-        return Field(controlId, b, control);
+        if (HelpText is not null)
+        {
+            children.Add(Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText]);
+        }
+
+        if (b.Invalid)
+        {
+            children.Add(Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[
+                b.Messages[0]]);
+        }
+
+        return Div(Class: BsClass.Join("dropdown", Position.Relative, Class), Data: BsPopover.Wrapper)[children];
     }
 
     private protected static readonly IReadOnlyDictionary<string, string?> Hidden =
