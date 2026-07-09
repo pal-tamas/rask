@@ -19,9 +19,19 @@ namespace Rask.Benchmarks.VsBlazor.Reports;
 /// </summary>
 internal static class VsBlazorPayloadBytesReport
 {
+    private const string Header =
+        "Scenario,RaskFullBytes,RaskDiffBytes,BlazorBatchBytes,RaskDiffVsRaskFull,RaskDiffVsBlazor";
+
+    private readonly record struct Row(string Scenario, long RaskFull, long RaskDiff, long BlazorBytes);
+
+    private static readonly List<Row> _rows = new();
+
     public static int Run(string[] args)
     {
-        Console.WriteLine("Scenario,RaskFullBytes,RaskDiffBytes,BlazorBatchBytes,RaskDiffVsRaskFull,RaskDiffVsBlazor");
+        var check = Array.Exists(args, a => a == "--check");
+        _rows.Clear();
+
+        Console.WriteLine(Header);
 
         ReportCounterOnLargePage();
         ReportTextNodeUpdate();
@@ -54,7 +64,89 @@ internal static class VsBlazorPayloadBytesReport
         ReportRealisticFormFieldChurn();
         ReportRealisticNavSwitch();
 
-        return 0;
+        return check ? CheckAgainstBaseline() : 0;
+    }
+
+    // CI regression gate. Fails when (a) any scenario's Rask diff bytes grew vs the committed baseline,
+    // or (b) any scenario stopped being a Rask win (Blazor batch <= Rask diff). Blazor's own bytes are
+    // deterministic per referenced Blazor version, so they are the fixed comparison target, not gated.
+    private static int CheckAgainstBaseline()
+    {
+        var baselinePath = Path.Combine(AppContext.BaseDirectory, "Baselines", "vs-blazor-payload-bytes.csv");
+        if (!File.Exists(baselinePath))
+        {
+            Console.Error.WriteLine($"::error::vs-Blazor baseline not found at {baselinePath}");
+            return 1;
+        }
+
+        var baseline = ParseBaseline(baselinePath);
+        var failed = false;
+        Console.WriteLine();
+        Console.WriteLine("Regression check vs Baselines/vs-blazor-payload-bytes.csv:");
+        foreach (var row in _rows)
+        {
+            // Hard gate 1 — Rask must beat Blazor on every scenario. Rask ships fewer wire bytes than
+            // Blazor on all of them today; this keeps it that way, so a change that lets Blazor draw
+            // level or ahead on any row fails the PR. (A Blazor package bump that shifts its bytes shows
+            // up here too — that's a real "we no longer win" signal worth surfacing, not noise.)
+            if (row.RaskDiff > 0 && row.BlazorBytes <= row.RaskDiff)
+            {
+                Console.Error.WriteLine(
+                    $"::error::{row.Scenario}: Blazor now ships <= Rask ({row.BlazorBytes} vs {row.RaskDiff}) — Rask no longer wins this row.");
+                failed = true;
+            }
+
+            // Hard gate 2 — Rask diff bytes must not regress vs the committed baseline.
+            if (baseline.TryGetValue(row.Scenario, out var b))
+            {
+                if (row.RaskDiff > b.RaskDiff)
+                {
+                    Console.Error.WriteLine(
+                        $"::error::{row.Scenario}: Rask diff bytes regressed {b.RaskDiff} -> {row.RaskDiff}.");
+                    failed = true;
+                }
+            }
+            else
+            {
+                Console.Error.WriteLine(
+                    $"::error::{row.Scenario} missing from the baseline — regenerate vs-blazor-payload-bytes.csv.");
+                failed = true;
+            }
+        }
+
+        if (!failed)
+        {
+            Console.WriteLine(
+                $"  OK — all {_rows.Count} scenarios beat Blazor and hold or beat their baseline diff bytes.");
+        }
+
+        return failed ? 1 : 0;
+    }
+
+    private static Dictionary<string, Row> ParseBaseline(string path)
+    {
+        var map = new Dictionary<string, Row>(StringComparer.Ordinal);
+        foreach (var line in File.ReadLines(path))
+        {
+            if (line.Length == 0 || line.StartsWith("Scenario,", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var cells = line.Split(',');
+            if (cells.Length < 4)
+            {
+                continue;
+            }
+
+            map[cells[0]] = new Row(
+                cells[0],
+                long.Parse(cells[1], CultureInfo.InvariantCulture),
+                long.Parse(cells[2], CultureInfo.InvariantCulture),
+                long.Parse(cells[3], CultureInfo.InvariantCulture));
+        }
+
+        return map;
     }
 
     private static void ReportScaleKeyedReorderLarge()
@@ -784,6 +876,7 @@ internal static class VsBlazorPayloadBytesReport
 
     private static void EmitRow(string name, long raskFull, long raskDiff, long blazorBytes)
     {
+        _rows.Add(new Row(name, raskFull, raskDiff, blazorBytes));
         var raskReduction = raskDiff > 0 ? raskFull / (double)raskDiff : 0;
         var vsBlazor = raskDiff > 0 ? blazorBytes / (double)raskDiff : 0;
         Console.WriteLine(string.Format(
