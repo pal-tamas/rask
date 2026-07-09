@@ -18,10 +18,16 @@ dotnet run -c Release --project Rask.Benchmarks.VsBlazor -- payload-bytes
 Deterministic — no measurement noise. Each row is one incremental update from the
 "before" state to the "after" state for an identically-shaped scenario.
 
-**Rask ships fewer bytes than Blazor on every scenario in the suite.** Ratios below
-are the deterministic `payload-bytes` output; the ³ VirtualizationScroll row — the last
-row where Blazor used to win — flipped to a Rask win once its rows are keyed (the
-best-practice pattern the shipped `Virtualize` sample already uses).
+**Rask ships fewer bytes than Blazor on every scenario in the suite.** The `Rask Diff`
+column is now **production-accurate** — the bytes `LiveSession` actually puts on the wire,
+including the full-HTML-morph fallback when a positional structural op is untrusted — and
+is enforced byte-for-byte by the `benchmarks` CI gate against
+`Baselines/vs-blazor-payload-bytes.csv` (that CSV is the authoritative source; the table
+here is illustrative and may lag by a few bytes). Two changes closed the last gaps: keying
+the `VirtualizationScroll` rows (footnote ³), and a codec fix that lets a **nested,
+replace-free tail insert/remove** ship as a trusted diff (footnote ¹) — so conditional
+content (a validation message toggling, a row appended to a list) diffs in place instead of
+re-sending the page.
 
 | Scenario                             | Rask Full | Rask Diff | Blazor batch | Rask diff vs Rask full |  Rask diff vs Blazor |
 |--------------------------------------|----------:|----------:|-------------:|-----------------------:|---------------------:|
@@ -35,31 +41,33 @@ best-practice pattern the shipped `Virtualize` sample already uses).
 | MultiAttributeUpdate                 |       317 |   **269** |          576 |                   1.2× |  **2.14×** Rask wins |
 | KeyedList100Reorder                  |     6,617 |    **43** |          128 |                   154× | **2.98×** Rask wins⁵ |
 | NestedKeyedReorder                   |     9,257 |    **43** |          128 |                   215× | **2.98×** Rask wins⁵ |
-| AppendRow                            |     6,685 |    **42** |          224 |                   159× |  **5.33×** Rask wins |
+| AppendRow                            |     6,685 |   **108** |          224 |                  61.9× |  **2.07×** Rask wins |
 | AttributeBurstUpdate                 |     6,527 | **2,037** |        4,596 |                   3.2× |  **2.26×** Rask wins |
-| KeyedListLargeAppend                 |    10,017 |   **973** |        5,957 |                  10.3× |  **6.12×** Rask wins |
+| KeyedListLargeAppend                 |    10,017 | **4,273** |        5,957 |                   2.3× |  **1.39×** Rask wins |
 | KeyedList50Reversal                  |     3,317 |   **269** |          896 |                  12.3× | **3.33×** Rask wins⁵ |
-| ConditionalRenderingToggle           | **2,040** |        69 |        4,588 |                  29.6× | **2.25×** Rask wins¹ |
-| Lifecycle_Insert100                  | **7,917** |     1,813 |       25,004 |                   4.4× | **3.16×** Rask wins¹ |
-| Lifecycle_Remove100                  |    **37** |     1,223 |        2,080 |                   0.0× | **56.2×** Rask wins¹ |
-| VirtualizationScroll                 |       821 |    **52** |          193 |                  15.8× | **3.71×** Rask wins³ |
+| ConditionalRenderingToggle           |     2,040 | **2,040** |        4,588 |                   1.0× | **2.25×** Rask wins¹ |
+| Lifecycle_Insert100                  |     7,917 | **7,917** |       25,004 |                   1.0× | **3.16×** Rask wins¹ |
+| Lifecycle_Remove100                  |        37 |    **37** |        2,080 |                   1.0× | **56.2×** Rask wins¹ |
+| VirtualizationScroll                 |       821 |   **127** |          193 |                   6.5× | **1.52×** Rask wins³ |
 | Scale_KeyedReorder_5000              |   347,817 |    **47** |          128 |                 7,400× | **2.72×** Rask wins⁵ |
 | Scale_KeyedRandomPermutation_1000    |    67,817 | **6,669** |       16,096 |                  10.2× | **2.41×** Rask wins⁵ |
-| Scale_KeyedAppendMiddle_2000         |   137,887 |    **43** |          225 |                 3,207× |  **5.23×** Rask wins |
+| Scale_KeyedAppendMiddle_2000         |   137,887 |   **111** |          225 |                 1,242× |  **2.03×** Rask wins |
 | Scale_DeepTreeMutationByDepth_200    |     5,207 |   **441** |        6,522 |                  11.8× | **14.79×** Rask wins |
 | Realistic_DashboardWidgets_Tick      |     4,003 |    **43** |          218 |                    93× |  **5.07×** Rask wins |
 | Realistic_TableSort_Reverse          |    17,267 | **1,123** |        3,360 |                  15.4× | **2.99×** Rask wins⁵ |
-| Realistic_FormValidationChurn_Field0 |     1,369 |   **103** |          310 |                  13.3× |  **3.01×** Rask wins |
+| Realistic_FormValidationChurn_Field0 |     1,369 |   **109** |          310 |                  12.6× |  **2.84×** Rask wins |
 | Realistic_NavSwitch_0to1             |     4,265 | **2,526** |        7,003 |                   1.7× |  **2.77×** Rask wins |
 
-¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: on the
-cases where the diff codec emits positional structural ops (untrusted `Insert/Remove`),
-the live-session gate routes them through the full-HTML morph path regardless of byte
-count — same reason the historic morph-vs-diff DOM-identity regression existed for
-mid-list replacements. The "Rask Full" column shows what the production `DiffMode.Auto`
-gate actually ships; the comparison readers should use is `min(diff, full)` vs Blazor —
-7,917 vs 25,004 = 3.16× on insert, 37 vs 2,080 = 56.2× on remove, 2,040 vs 4,588 = 2.25×
-on toggle.
+¹ `Lifecycle_Insert100` / `Lifecycle_Remove100` / `ConditionalRenderingToggle`: these are
+**mid-list replacements** (a node at slot N changes tag, e.g. a panel inserted between a
+header and footer). Those positional structural ops stay untrusted — the client's raw
+`childNodes` apply can diverge from the full-HTML morph there — so the live-session gate
+ships the full page (`Rask Diff` == `Rask Full`): 7,917 vs Blazor's 25,004 = 3.16× on
+insert, 37 vs 2,080 = 56.2× on remove, 2,040 vs 4,588 = 2.25× on toggle. Rask still wins
+all three; it just doesn't get the diff's tighter number. The safe subset — a **pure tail
+append/truncate at a nested, replace-free level** — *does* now ship as a trusted diff (that's
+what took `Realistic_FormValidationChurn` from a full-form re-send to ~110 B), because there
+the positional apply is provably identical to the morph.
 
 ³ `VirtualizationScroll`: the Blazor side renders all 1,000 rows through a plain `@for`
 loop and mutates one row's text; the Rask side renders ~10 visible rows through

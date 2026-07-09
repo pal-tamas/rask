@@ -164,7 +164,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(before));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(after));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(after));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(after));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -194,7 +194,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(identity));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(permuted));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(permuted));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(permuted));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -234,7 +234,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(shortArr));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(longArr));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(longArr));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(longArr));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -271,7 +271,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(Build(0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(Build(1));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(Build(1));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(Build(1));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -299,7 +299,7 @@ internal static class VsBlazorPayloadBytesReport
 #pragma warning restore RASK014
         rask.SeedPrevious(stateful);
         stateful.Tick();
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(stateful);
         var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -332,7 +332,7 @@ internal static class VsBlazorPayloadBytesReport
 #pragma warning restore RASK014
         rask.SeedPrevious(stateful);
         stateful.ReverseSort();
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(stateful);
         var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -364,7 +364,7 @@ internal static class VsBlazorPayloadBytesReport
 #pragma warning restore RASK014
         rask.SeedPrevious(stateful);
         stateful.MutateField(0);
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(stateful);
         var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -391,7 +391,7 @@ internal static class VsBlazorPayloadBytesReport
 #pragma warning restore RASK014
         rask.SeedPrevious(stateful);
         stateful.Switch(1);
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(stateful);
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(stateful);
         var raskFull = rask.RenderAndBuildFullPayloadBytes(stateful);
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -412,7 +412,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(AttributeBurstUpdate.BuildRask(false));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(AttributeBurstUpdate.BuildRask(true));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(AttributeBurstUpdate.BuildRask(true));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(AttributeBurstUpdate.BuildRask(true));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -433,7 +433,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(ThemeSwitch.BuildRask(false));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ThemeSwitch.BuildRask(true));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(ThemeSwitch.BuildRask(true));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(ThemeSwitch.BuildRask(true));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -457,7 +457,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(ClassToggle.BuildRask(fromIndex));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ClassToggle.BuildRask(toIndex));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(ClassToggle.BuildRask(toIndex));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(ClassToggle.BuildRask(toIndex));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -478,7 +478,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(ConditionalPanel.BuildRask(false));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(ConditionalPanel.BuildRask(true));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(ConditionalPanel.BuildRask(true));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(ConditionalPanel.BuildRask(true));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -502,7 +502,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(FormInputTyping.BuildRask("abc", fieldB, fieldC));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(FormInputTyping.BuildRask("abcd", fieldB, fieldC));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(FormInputTyping.BuildRask("abcd", fieldB, fieldC));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(FormInputTyping.BuildRask("abcd", fieldB, fieldC));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -527,7 +527,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(DeepTreeCounter.BuildRask(0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(DeepTreeCounter.BuildRask(1));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(DeepTreeCounter.BuildRask(1));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(DeepTreeCounter.BuildRask(1));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -557,7 +557,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(forwardOrder));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(reverseOrder));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(reverseOrder));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(reverseOrder));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -587,7 +587,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(NestedKeyedList.BuildRask(orderBefore));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(NestedKeyedList.BuildRask(orderAfter));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(NestedKeyedList.BuildRask(orderAfter));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(NestedKeyedList.BuildRask(orderAfter));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -613,7 +613,7 @@ internal static class VsBlazorPayloadBytesReport
         rask.SeedPrevious(raskRoot);
 
         VirtualizationScroll.SetScrollTop(raskVirt, VirtualizationScroll.ItemSizePx);
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(raskRoot);
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(raskRoot);
         var raskFull = rask.RenderAndBuildFullPayloadBytes(raskRoot);
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -638,7 +638,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(LifecycleChurn.BuildRask(0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(LifecycleChurn.BuildRask(active));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(LifecycleChurn.BuildRask(active));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(LifecycleChurn.BuildRask(active));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -661,7 +661,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(LifecycleChurn.BuildRask(active));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(LifecycleChurn.BuildRask(0));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(LifecycleChurn.BuildRask(0));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(LifecycleChurn.BuildRask(0));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -692,7 +692,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(AppendDeleteRowChurn.BuildRask(baseOrder));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(appendedOrder));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(AppendDeleteRowChurn.BuildRask(appendedOrder));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(AppendDeleteRowChurn.BuildRask(appendedOrder));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -727,7 +727,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(baseOrder));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(largeOrder));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(largeOrder));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(largeOrder));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -758,7 +758,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(AppendDeleteRowChurn.BuildRask(fullOrder));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(AppendDeleteRowChurn.BuildRask(missingMiddleOrder));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(AppendDeleteRowChurn.BuildRask(missingMiddleOrder));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(AppendDeleteRowChurn.BuildRask(missingMiddleOrder));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -780,7 +780,7 @@ internal static class VsBlazorPayloadBytesReport
         const int attrCount = 20;
         using var rask = new RaskHarness();
         rask.SeedPrevious(AttributeHeavyElements.BuildRaskMutateOne(attrCount, 0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(AttributeHeavyElements.BuildRaskMutateOne(attrCount, 1));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(AttributeHeavyElements.BuildRaskMutateOne(attrCount, 1));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(AttributeHeavyElements.BuildRaskMutateOne(attrCount, 1));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -804,7 +804,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(LargePageWithCounter.BuildRask(0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(LargePageWithCounter.BuildRask(1));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(LargePageWithCounter.BuildRask(1));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(LargePageWithCounter.BuildRask(1));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -826,7 +826,7 @@ internal static class VsBlazorPayloadBytesReport
     {
         using var rask = new RaskHarness();
         rask.SeedPrevious(LargePageWithCounter.BuildRaskWithDeepTextCell(0));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(LargePageWithCounter.BuildRaskWithDeepTextCell(1));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(LargePageWithCounter.BuildRaskWithDeepTextCell(1));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(LargePageWithCounter.BuildRaskWithDeepTextCell(1));
 
         using var blazor = new BlazorRenderBatchCapture();
@@ -857,7 +857,7 @@ internal static class VsBlazorPayloadBytesReport
 
         using var rask = new RaskHarness();
         rask.SeedPrevious(KeyedList.BuildRask(orderBefore));
-        var raskDiff = rask.RenderAndBuildDiffPayloadBytes(KeyedList.BuildRask(orderAfter));
+        var raskDiff = rask.RenderAndBuildProductionPayloadBytes(KeyedList.BuildRask(orderAfter));
         var raskFull = rask.RenderAndBuildFullPayloadBytes(KeyedList.BuildRask(orderAfter));
 
         using var blazor = new BlazorRenderBatchCapture();
