@@ -35,6 +35,13 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
+    <!-- Rask.Core's package dependencies must be surfaced at THIS package boundary: Core is bundled with
+         PrivateAssets="all" (its DLL is packed into lib/ directly, not as a nuget dep), so its transitive
+         deps don't flow to consumers. Without these, a native app fails at runtime with FileNotFoundException
+         (e.g. Microsoft.JSInterop at NativeAppHost.CreateDefault). Mirrors Rask.Wasm/Rask.Server. -->
+    <PackageReference Include="Microsoft.JSInterop"/>
+    <PackageReference Include="Microsoft.Extensions.Primitives"/>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool"/>
     <!-- Rask.Core uses Microsoft.AspNetCore.Authorization (RouteAuthorizationGuard); surface it at
          the package boundary so native heads (no Microsoft.AspNetCore.App) can restore it. -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
@@ -43,6 +50,27 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Native.Tests"/>
   </ItemGroup>
+
+  <!--
+    Deliver Rask.Core + the Rask source generators to consumers of this package, exactly like Rask.Wasm
+    and Rask.Server: the generator/analyzer/code-fixes are packed to analyzers/dotnet/cs/ (so a consuming
+    app gets the Generated.{Tag}() factories, the Routes registry, and the RASK diagnostics), and
+    Rask.Core.dll/.xml are bundled into lib/net10.0/. PrivateAssets="all" on the Core ProjectReference
+    keeps Rask.Core out of the nuspec dependency list — we pack its DLL explicitly here. Without this,
+    `dotnet new rask-native` + build cannot resolve Component, the element factories, or [Route].
+  -->
+  <Import Project="..\RaskAnalyzerPack.targets"/>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="_RaskAddCoreToLib">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll" PackagePath="lib/net10.0/"/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml" PackagePath="lib/net10.0/"/>
+    </ItemGroup>
+  </Target>
 
   <!--
     The native client runtime (Resources/rask.native.js) is assembled at build the same way as
