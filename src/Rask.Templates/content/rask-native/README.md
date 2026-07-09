@@ -22,7 +22,9 @@ dotnet build -t:Run -f net10.0-ios         # iOS simulator (macOS + Xcode)
 
 ## What's here
 
-- `App.cs`, `HomePage.cs`, `Counter.cs` — your Rask components (shared across both platforms).
+- `App.cs`, `HomePage.cs`, `Counter.cs` — your Rask components (shared across both platforms). `App.cs`
+  pads `Body` by `env(safe-area-inset-*)` (with a `viewport-fit=cover` viewport) so content clears the
+  notch / status bar / home indicator — keep both if you restructure it.
 - `Platforms/iOS/` — the iOS head: `AppDelegate` boots a `NativeAppHost`, and `RaskWkWebView` implements
   `INativeWebView` over a `WKWebView` (custom `raskapp://` scheme + script-message bridge).
 - `Platforms/Android/` — the Android head: `MainActivity` boots the host, and `RaskAndroidWebView`

@@ -2,7 +2,7 @@
 
 <img alt="Rask" src="https://raw.githubusercontent.com/pal-tamas/rask/main/assets/rask-logo.svg" width="280">
 
-### Live web apps in C#. One codebase — server-rendered over WebSockets, or client-side in the browser via WebAssembly.
+### Live apps in C#. One codebase — server-rendered over WebSockets, client-side in the browser via WebAssembly, or a native iOS/Android app.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pal-tamas/rask/blob/main/LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
@@ -31,11 +31,12 @@ public sealed class Counter : Component
 ## Install
 
 > **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
-> (`dotnet workload install wasm-tools`) for the WASM templates only.
+> (`dotnet workload install wasm-tools`) for the WASM templates, or `ios android`
+> (`dotnet workload install ios android`) for the native template.
 
 ```bash
 dotnet new install Rask.Templates        # scaffolding
-dotnet new rask-server -o MyApp          # or: rask-wasm, rask-wasm-hosted
+dotnet new rask-server -o MyApp          # or: rask-wasm, rask-wasm-hosted, rask-native
 ```
 
 Or add to an existing project:
@@ -44,6 +45,7 @@ Or add to an existing project:
 dotnet add package Rask.Server            # server-rendered over WebSockets
 dotnet add package Rask.Wasm              # client-side WebAssembly
 dotnet add package Rask.Wasm.Hosting      # host a published WASM bundle on ASP.NET
+dotnet add package Rask.Native            # native iOS/Android app head (WebView hybrid, preview)
 dotnet add package Rask.Bootstrap          # optional: typed Bootstrap 5.3 components
 dotnet add package Rask.WebPush           # send Web Push notifications from the backend
 dotnet add package Rask.Cqrs              # source-generated CQRS/mediator (queries, commands, notifications)
@@ -56,7 +58,7 @@ back in C# without `.razor` mixing markup and code. So Rask makes a component a 
 the *same* code on Server or WASM, and treats the network as the bottleneck (a state change ships a minimal diff, not
 the page). It's a craft project built in the open, deep on Roslyn source generators and tree diffing.
 
-- **One component model, two runtimes** — the same C# component runs Server (live diff over WS) or WASM.
+- **One component model, three hosts** — the same C# component runs Server (live diff over WS), WASM, or a native iOS/Android app (`Rask.Native`, preview).
 - **Compile-time factories** — a Roslyn generator emits `Div(...)`, `Counter(...)`, type-safe routes.
 - **Scoped CSS & JS** — sibling `Component.css`/`Component.js`, content-addressed and cached.
 - **Routing, lifecycle, forms, validation, auth** — batteries included, no JavaScript required.

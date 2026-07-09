@@ -7,13 +7,16 @@ the *same* render → diff pipeline as the Server and WASM hosts. Your C# runs *
 a WebView. Every existing Rask component — `Div()[Span(), …]`, forms, routing, scoped CSS/JS — works
 unchanged.
 
-> **Status.** This page documents the **foundation** shipped in `Rask.Native`: the transport-agnostic
-> host, the `INativeWebView` bridge, and the native client runtime, all unit-tested on `net10.0`. The
-> platform app heads (`WKWebView` / Android `WebView`), the `dotnet new rask-native` template, the sample,
-> and native device-API backends are **in-progress follow-ups** (see [Roadmap](#roadmap)). If you're
-> here to understand the design or start a platform head, read on.
+> **Status — preview / pre-1.0.** The host, the `dotnet new rask-native` template (with the iOS
+> `WKWebView` and Android `WebView` app heads), and the native client runtime **ship and run
+> end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
+> bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
+> pre-1.0: APIs may shift, and **native device *backends*** (native geolocation/push/biometrics behind
+> the browser-API interfaces) plus full client-parity are the remaining follow-ups.
 
 - [How it fits](#how-it-fits)
+- [Get started](#get-started)
+- [Safe-area insets (notch / status bar)](#safe-area-insets-notch--status-bar)
 - [Two modes: Local and Server](#two-modes-local-and-server)
 - [The `INativeWebView` bridge](#the-inativewebview-bridge)
 - [Wiring a platform head](#wiring-a-platform-head)
@@ -40,6 +43,73 @@ and turns WebView events back into handler/navigate dispatches — structurally 
 `WasmLiveSession`. Because the C# host is transport-agnostic, the `Rask.Native` library targets plain
 `net10.0` and builds/tests with **no iOS/Android SDK workloads**; the WebView itself is abstracted behind
 [`INativeWebView`](#the-inativewebview-bridge), implemented per platform in the app head.
+
+## Get started
+
+Scaffold a native app from the template, then run it on an emulator/simulator:
+
+```bash
+dotnet new install Rask.Templates
+dotnet new rask-native -n MyApp
+cd MyApp
+
+dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
+dotnet build -t:Run -f net10.0-android       # Android emulator
+dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
+```
+
+`dotnet new rask-native` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
+
+```
+MyApp.csproj                  # multi-targets net10.0-ios;net10.0-android; refs Rask.Native
+App.cs, HomePage.cs, Counter.cs   # your Rask components — shared across both platforms
+Platforms/
+  iOS/       AppDelegate.cs · RaskWkWebView.cs (INativeWebView over WKWebView) · Info.plist
+  Android/   MainActivity.cs · RaskAndroidWebView.cs (INativeWebView over WebView) · AndroidManifest.xml
+```
+
+The shared components (`App.cs` and your pages) are ordinary Rask components — identical in shape to
+any other host. Only the two `Platforms/…` heads are platform-specific; each boots a `NativeAppHost`,
+calls `RunLocalAsync<App>(webView)`, and provides the WebView bridge.
+
+Two ordering rules the generated heads already follow — keep them if you edit a head:
+
+- **Register app services on `host.Services` *before* `RunLocalAsync`.** `RunLocalAsync` builds the DI
+  provider, so registrations made after it won't take effect.
+- **Wire the session *before* loading the shell.** The first render fires when the WebView's client
+  posts its `ready` message, so `RunLocalAsync<App>(webView)` must run before the head loads the boot
+  shell — otherwise the shell load races the handshake.
+
+## Safe-area insets (notch / status bar)
+
+The boot shell requests an **edge-to-edge viewport** (`viewport-fit=cover`), so without padding the
+UI would render *under* the status bar, notch / Dynamic Island, and home indicator. The template's
+`App.cs` pads `Body` by the device safe-area insets so content always clears them:
+
+```csharp
+protected override Component? Head =>
+[
+    Title()["Rask App"],
+    Meta("utf-8"),
+    Meta(Name: "viewport", Content: "width=device-width, initial-scale=1, viewport-fit=cover")
+];
+
+protected override Component? Render() =>
+[
+    Doctype(),
+    Html("en")[
+        Head(),
+        // Pad the body by the device safe-area insets so content clears the status bar / notch /
+        // home indicator (the boot shell requests an edge-to-edge viewport with viewport-fit=cover).
+        Body(Style: "margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) " +
+                    "env(safe-area-inset-bottom) env(safe-area-inset-left)")[
+            /* nav, router, … */
+        ]
+    ];
+```
+
+If you restructure `App.cs`, keep the `viewport-fit=cover` meta and the `env(safe-area-inset-*)`
+padding together — dropping either brings content back under the notch.
 
 ## Two modes: Local and Server
 
@@ -139,7 +209,7 @@ sandbox, and real background execution — without giving up "the same component
 3. **Client parity** — lift the transport-neutral DOM helpers (rAF input/scroll coalescing, keyboard/drag/
    file events, scoped-CSS FOUC gating, scoped-JS invoke gating) shared with `rask.wasm.js` into a common
    module so the native client reaches full parity instead of re-copying them.
-4. **`dotnet new rask-native` template + sample** — an app head multi-targeting `net10.0-ios;net10.0-android`
-   that builds an `.ipa`/`.apk` from shared components (`Rask.Example.Native`, Local + Server heads).
+4. **Showcase sample** — a `Rask.Example.Native` app under `samples/` that exercises the feature pages
+   end-to-end (Local + Server heads), so native is covered by the same showcase + E2E net as the other hosts.
 5. **Native device backends** — CoreLocation/Android geolocation, native share, biometrics, native push,
    behind the existing `Rask.Core.Browser` interfaces + new native-only ones.

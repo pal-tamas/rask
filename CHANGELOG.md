@@ -16,9 +16,17 @@ them until tagged releases begin.
   WebView is abstracted behind the `INativeWebView` bridge (implemented per-platform in the app head), so
   the library builds and unit-tests on plain `net10.0` with no iOS/Android SDK workloads. Ships the native
   client dialect `rask.native.js` (the shared diff/morph/interop modules spliced with a native transport
-  shim) and the boot shell. This release lays the transport-agnostic foundation; the platform app heads
-  (`WKWebView` / Android `WebView`), the `dotnet new rask-native` template, the sample, and native
-  device-API backends land in follow-ups. See `docs/native.md`.
+  shim) and the boot shell. This release lays the transport-agnostic foundation. See `docs/native.md`.
+- **`dotnet new rask-native` template — a runnable native iOS + Android app.** The template scaffolds a
+  project that multi-targets `net10.0-ios;net10.0-android` with shared Rask components and two platform
+  heads: `Platforms/iOS` (an `INativeWebView` over `WKWebView` with a `raskapp://` scheme handler +
+  script-message bridge) and `Platforms/Android` (an `INativeWebView` over `android.webkit.WebView` with
+  an asset-serving `WebViewClient` + a `@JavascriptInterface` bridge). Both heads boot a `NativeAppHost`,
+  serve the embedded shell + client from a real app origin (so secure-context device APIs work), and run
+  end-to-end — verified booting, rendering, routing, and updating live on both an Android emulator and an
+  iOS simulator. Build/run with `dotnet workload install ios android` then
+  `dotnet build -t:Run -f net10.0-android` (or `-f net10.0-ios`). Native device *backends* remain a
+  follow-up; the host is preview / pre-1.0.
 
 ### Changed
 - **Conditional content now ships a diff instead of the whole page.** Toggling an element in or out
@@ -78,6 +86,10 @@ them until tagged releases begin.
   `BsDropdown(AlignEnd: true)` — so it escapes every overflow-clipping ancestor and tracks the trigger on
   scroll/resize. (Caveat: an ancestor with a CSS `transform`/`filter`/`contain` becomes the fixed
   containing block and re-clips the popover — a browser rule.) Added a `BsDropdown` showcase demo.
+- **`rask-native` template: content no longer renders under the notch / status bar.** The boot shell
+  requests an edge-to-edge viewport (`viewport-fit=cover`), so the template's `App.cs` now pads `Body`
+  by the device safe-area insets — `padding:env(safe-area-inset-top) … env(safe-area-inset-left)` — to
+  clear the status bar, notch / Dynamic Island, and home indicator.
 
 ## [0.15.1] - 2026-07-08
 
