@@ -59,6 +59,10 @@ dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deplo
 
 **[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/)**
 
+<sub>Going further than a PWA? **`Rask.Native`** (preview) runs the *same* component code as a real
+**native iOS/Android app** — a WebView hybrid where your C# runs natively on the device, for App Store /
+Play Store distribution. **[Native mobile with Rask →](docs/native.md)**</sub>
+
 </div>
 
 ---
