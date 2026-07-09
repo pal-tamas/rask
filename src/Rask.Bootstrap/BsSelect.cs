@@ -221,18 +221,23 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
         }
 
         // Floating wraps box + label in .form-floating (label after → the CSS floats it); the × rides along
-        // inside so it anchors to the box. Non-floating: the × is a sibling of the box in the .dropdown
-        // (whose menu/backdrop are out of flow, so .dropdown's height is the box's — the × centres on it).
+        // inside so it anchors to the box. Non-floating with a clear ×: box + × go in their OWN
+        // position-relative wrapper so the absolutely-placed × centres on the box alone — anchoring it to the
+        // whole .dropdown would centre it over the label-above + box stack, dropping it onto the box's top
+        // edge. With no ×, the box needs no wrapper.
         if (floating)
         {
             children.Add(Div(
                 Class: BsClass.Join("form-floating bs-floating",
                     selectedIdx >= 0 ? "bs-floating-filled" : null, Position.Relative))[box, labelNode, clear]);
         }
+        else if (clear is not null)
+        {
+            children.Add(Div(Class: Position.Relative)[box, clear]);
+        }
         else
         {
             children.Add(box);
-            children.Add(clear);
         }
 
         children.Add(menu);

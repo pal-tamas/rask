@@ -378,6 +378,13 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(tier.Locator("option").Filter(new LocatorFilterOptions { HasText = "Team" }))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Picking an option two-way-binds: the model updates (the readout echoes it) AND the <select> HOLDS
+        // the new value — it must not snap back. (Regression: the selected <option> used to lose its
+        // reconciliation key, desyncing the browser's live `selected` property so the box reverted.)
+        await tier.SelectOptionAsync("team");
+        await Expect(Page.Locator("#bs-readout")).ToContainTextAsync("Tier: Team",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(tier).ToHaveValueAsync("team", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
 
         // Nullable select (#bs-seats, int?) — a plain dropdown (no Filter → no search field). Pick a value;
         // the × clear then resets it to null so the box shows the "Any" placeholder again.
@@ -388,6 +395,35 @@ public abstract partial class SharedSmokeTests
         await Expect(seats).ToContainTextAsync("2 seats", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Page.Locator(".dropdown:has(#bs-seats) .bs-select-clear").First.ClickAsync();
         await Expect(seats).ToContainTextAsync("Any", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // BsSelect variant gallery — the native variant binds and holds its pick; a custom basic pick writes
+        // the model. Both are echoed by the gallery's own readout.
+        var selTier = Page.Locator("select#sel-tier");
+        await Expect(selTier).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await selTier.SelectOptionAsync("team");
+        await Expect(selTier).ToHaveValueAsync("team", new LocatorAssertionsToHaveValueOptions { Timeout = 10_000 });
+        var selPlan = Page.Locator("#sel-plan");
+        await selPlan.ClickAsync();
+        await Page.Locator(".dropdown:has(#sel-plan) .dropdown-menu.show .dropdown-item").First.ClickAsync();
+        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("Plan: Free",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("Tier: Team",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // BsMultiSelect variant gallery — ticking two options in the basic control shows them as chips and
+        // the gallery readout lists them.
+        var msBasic = Page.Locator("#ms-basic");
+        await msBasic.ClickAsync();
+        var msMenu = Page.Locator("#ms-basic .dropdown-menu.show");
+        await Expect(msMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await msMenu.Locator(".dropdown-item").Nth(0).ClickAsync();
+        await msMenu.Locator(".dropdown-item").Nth(1).ClickAsync();
+        await Expect(Page.Locator("#ms-readout")).ToContainTextAsync("Web, Mobile",
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // A multiselect stays open while you tick items — close it so its full-viewport backdrop doesn't
+        // intercept the next navigation click.
+        await Page.Locator("#ms-basic .position-fixed").DispatchEventAsync("click");
+        await Expect(msMenu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
     }
 
     private async Task WalkUserComponentsGuideAsync()

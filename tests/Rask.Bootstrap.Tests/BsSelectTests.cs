@@ -110,11 +110,26 @@ public class BsSelectTests
 
     [Fact]
     public void Select_Native_RendersPlainSelectWithSelectedOptionAndPlaceholder() =>
+        // The selected option KEEPS its reconciliation key (data-rask-key="0"): dropping it when marking the
+        // option selected shifts every option's key across renders, breaks keyed diffing, and leaves the
+        // browser's live `selected` property desynced so the <select> snaps back to the old value.
         Assert.Equal(
             "<div><select id=\"t\" class=\"form-select\">" +
             "<option data-rask-key=\"placeholder\" value=\"\" disabled>Pick</option>" +
-            "<option value=\"a\" selected>a</option>" +
+            "<option data-rask-key=\"0\" value=\"a\" selected>a</option>" +
             "<option data-rask-key=\"1\" value=\"b\">b</option>" +
             "</select></div>",
             BsSelect<string>(Options: ["a", "b"], Value: "a", Native: true, Placeholder: "Pick", Id: "t").ToHtml());
+
+    [Fact]
+    public void Select_Nullable_NonFloating_WrapsBoxAndClearInPositionRelative()
+    {
+        // The × is absolutely placed; wrapping just the box + × in a position-relative div anchors it to the
+        // box alone. Without the wrapper it would centre over the label-above + box and land on the box's top
+        // edge. (A non-clearable select needs no wrapper — see Select_Empty_… which has the box bare.)
+        var html = BsSelect<int?>(Options: new int?[] { 1, 2 }, Value: 2, Label: "Seats", Id: "s").ToHtml();
+        Assert.Contains(
+            "<div class=\"position-relative\"><div id=\"s\" class=\"form-select bs-select-clearable\"", html);
+        Assert.Contains("bs-select-clear", html);
+    }
 }

@@ -63,7 +63,12 @@
 .form-floating.bs-floating.bs-floating-filled > .form-control ~ label,
 .form-floating.bs-floating:focus-within > .form-select ~ label,
 .form-floating.bs-floating:focus-within > .form-control ~ label {
+  /* Drop the empty-state flex centering and pin the scale origin to the top-left corner so the
+     shrunk label straddles the top border exactly like a native .form-floating label (a centred
+     origin scaled it inwards from the middle → it landed too low/misaligned). */
+  display: block;
   height: auto;
+  transform-origin: 0 0;
   transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
   opacity: 0.65;
 }
@@ -119,14 +124,26 @@
 }
 .bs-picker-caret {
   pointer-events: none;
-  /* Roughly matches the size of the native .form-select caret glyph. */
-  font-size: 0.9rem;
+  /* Sized to read clearly as a dropdown affordance, a touch larger than the native .form-select
+     caret glyph so the editable pickers don't look like a plain text input. */
+  font-size: 1.25rem;
   line-height: 1;
   color: var(--bs-secondary-color);
 }
 .bs-time {
   /* Fixed per-item height so the two columns line up and the popover height is stable (6 items visible). */
   --bs-time-item-h: 2rem;
+}
+/* In the BsDateTimePicker popover the calendar and the time columns sit side by side, so the time
+   list must be exactly as tall as the calendar grid — otherwise it stops short and leaves a gap.
+   The grid is the weekday header (1.75rem, see .bs-cal-head) plus 6 week rows of --bs-cal-cell
+   (2.25rem). The standalone BsTimePicker keeps the default 6-item height above. */
+.bs-datetime {
+  --bs-cal-grid-h: calc(1.75rem + (6 * 2.25rem));
+  align-items: stretch;
+}
+.bs-datetime .bs-time-col {
+  max-height: var(--bs-cal-grid-h);
 }
 .bs-time-col {
   max-height: calc(6 * var(--bs-time-item-h));

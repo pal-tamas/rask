@@ -112,6 +112,17 @@ OptionLabel: p => Text(p.Name))` binds the id but renders/searches the whole `Pe
 
 <!-- demo:bootstrap-forms -->
 
+**`BsSelect<T>` variants** — the same control across every option: basic (binds the option), `Floating`
+label, searchable (`Filter`), nullable + `×` clear, `OptionValue` projected-id binding, `Native` OS
+`<select>`, native + nullable, and `Disabled`. Each is bound and echoed by a live readout:
+
+<!-- demo:bootstrap-select -->
+
+**`BsMultiSelect<T>` variants** — chips + a checkable dropdown bound to a collection: basic, searchable
+(`Filter`), `Floating`, and `Disabled`:
+
+<!-- demo:bootstrap-multiselect -->
+
 **Date & time pickers** — `BsDatePicker<T>`/`BsTimePicker<T>`/`BsDateTimePicker<T>` are **hand-editable**:
 the box is a text `<input>` you can type into (parsed live per keystroke in `CultureInfo.CurrentCulture`;
 a partial/invalid entry is kept, not reverted, and blur normalises it), and focusing it opens a custom
