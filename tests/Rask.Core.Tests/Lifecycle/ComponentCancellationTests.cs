@@ -88,15 +88,26 @@ public class ComponentCancellationTests
     public void CancellationToken_NeverAccessed_NoCtsAllocated()
     {
         var c = new CancellationProbe();
-        var field = typeof(Component)
-            .GetField("_lifetimeCts", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.NotNull(field);
-
-        Assert.Null(field!.GetValue(c));
+        // The lifetime CTS is hoisted into the lazy LiveState container. A component that never
+        // touches its token (nor any other live-render path) allocates no LiveState at all up front —
+        // a stronger guarantee than the pre-hoist "field stays null": there is no container to hold it.
+        var liveField = typeof(Component)
+            .GetField("_live", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(liveField);
+        Assert.Null(liveField!.GetValue(c));
 
         ComponentLifecycle.DisposeComponentTree(c);
 
-        Assert.Null(field.GetValue(c));
+        // Dispose stamps lifecycle flags, so a LiveState may now exist — but it must never have
+        // allocated a CancellationTokenSource for a token that was never observed.
+        var live = liveField.GetValue(c);
+        if (live is not null)
+        {
+            var cts = live.GetType()
+                .GetField("LifetimeCts", BindingFlags.Instance | BindingFlags.Public)!
+                .GetValue(live);
+            Assert.Null(cts);
+        }
     }
 
     [Fact]

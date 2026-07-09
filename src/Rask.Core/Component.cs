@@ -46,15 +46,13 @@ public abstract class Component
     // Latched on: once a reader, always a reader (its Render path can read different
     // context/edit-context state across renders).
     private bool _readsAmbientState;
-    private CancellationTokenSource? _lifetimeCts;
 
-    // All live-render-only state — handlers, child reconciliation, root alive sets,
-    // edit-context pool, the dirty/lifecycle flags — is hoisted off the base Component
-    // class into a lazy container. Plain Elements (Div, Span, …) never engage any of
-    // these paths and so keep `_live` null forever: their per-instance footprint drops
-    // to ~24 B (object header + Children + Boundary refs) versus the pre-hoist ~96 B.
-    // User components and live-render roots pay one LiveState allocation on first use;
-    // subsequent renders reuse it via the pooled dictionaries inside.
+    // All live-render-only state — handlers, child reconciliation, root alive sets, the error
+    // boundary + render handle + lifetime token, edit-context pool, the dirty/lifecycle flags — is
+    // hoisted off the base Component class into a lazy container. Plain Elements (Div, Span, …) never
+    // engage any of these paths and so keep `_live` null forever: their per-instance footprint is just
+    // the object header + a Children ref. User components and live-render roots pay one LiveState
+    // allocation on first use; subsequent renders reuse it via the pooled dictionaries inside.
     private LiveState? _live;
 
     private LiveState Live => _live ??= new LiveState();
@@ -205,8 +203,22 @@ public abstract class Component
 
     // Nearest enclosing ErrorBoundary, stamped during the render walk (HtmlSerializer
     // default branch). Async lifecycle continuations + dispatcher catch sites consult this
-    // pointer to trip the right boundary; null means no ancestor boundary registered.
-    internal ErrorBoundary? Boundary { get; set; }
+    // pointer to trip the right boundary; null means no ancestor boundary registered. Hoisted
+    // into LiveState — only user components get one stamped, and the null-guard keeps a
+    // boundaryless component (or a plain Element) from allocating a LiveState just to store null.
+    internal ErrorBoundary? Boundary
+    {
+        get => _live?.Boundary;
+        set
+        {
+            if (value is null && _live is null)
+            {
+                return;
+            }
+
+            Live.Boundary = value;
+        }
+    }
 
     // Components that read mutable state the framework doesn't observe (e.g. RouteState in
     // Router/Outlet) must opt out of render caching: without this their cached subtree gets
@@ -298,9 +310,24 @@ public abstract class Component
     // The raw, stable lifetime token — cancelled once on unmount. Used internally to seed the linked
     // per-dispatch token without re-entering the context-aware CancellationToken getter above.
     private CancellationToken LifetimeToken =>
-        LazyInitializer.EnsureInitialized(ref _lifetimeCts, () => new CancellationTokenSource()).Token;
+        LazyInitializer.EnsureInitialized(ref Live.LifetimeCts, () => new CancellationTokenSource()).Token;
 
-    internal IRenderHandle? RenderHandle { get; set; }
+    // Hoisted into LiveState like Boundary: set only on the live-render root and on GetOrCreate'd
+    // user components (both of which already carry a LiveState); the null-guard keeps a `?? =` with a
+    // null handle, or a plain Element, from allocating one.
+    internal IRenderHandle? RenderHandle
+    {
+        get => _live?.RenderHandle;
+        set
+        {
+            if (value is null && _live is null)
+            {
+                return;
+            }
+
+            Live.RenderHandle = value;
+        }
+    }
 
     internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _live?.Children ?? _emptyChildren;
 
@@ -576,7 +603,9 @@ public abstract class Component
 
     internal void CancelLifetimeToken()
     {
-        var cts = Volatile.Read(ref _lifetimeCts);
+        // No LiveState → LifetimeToken was never accessed → no CTS to cancel (plain Elements never
+        // reach here). Read the ref off LiveState only once we know it exists.
+        var cts = _live is null ? null : Volatile.Read(ref _live.LifetimeCts);
         if (cts is null)
         {
             return;
@@ -588,7 +617,7 @@ public abstract class Component
 
     internal void DisposeLifetimeToken()
     {
-        var cts = Interlocked.Exchange(ref _lifetimeCts, null);
+        var cts = _live is null ? null : Interlocked.Exchange(ref _live.LifetimeCts, null);
         cts?.Dispose();
     }
 
@@ -1653,6 +1682,11 @@ public abstract class Component
     {
         public HashSet<Component>? AliveNow;
         public HashSet<Component>? AlivePrev;
+        // Hoisted off the base Component: only ever set on live-render roots and user components
+        // (which allocate a LiveState anyway), so plain Elements shed these three refs entirely.
+        public ErrorBoundary? Boundary;
+        public IRenderHandle? RenderHandle;
+        public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
         public int ChildPositions;
         public Dictionary<(Type, int), Component>? Children;
