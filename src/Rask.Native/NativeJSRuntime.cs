@@ -61,7 +61,11 @@ internal sealed class NativeJSRuntime : RaskJSRuntimeBase
             "window.__raskNative.beginInvokeJS(" +
             invoke.TaskId.ToString() + "," +
             Quote(invoke.Identifier) + "," +
-            invoke.ArgsJson + "," +
+            // argsJson must arrive as a STRING for the client's JSON.parse(argsJson) — the same shape the
+            // frame-invoke path ships it as. Embedding it raw would hand beginInvokeJS a JS array/object
+            // literal (JSON.parse then chokes on the coerced "a,b" text), breaking every out-of-render
+            // IJSRuntime call that carries arguments (sessionStorage, element-ref focus, …).
+            (invoke.ArgsJson is null ? "null" : Quote(invoke.ArgsJson)) + "," +
             (int)invoke.ResultType + "," +
             Quote(invoke.TargetInstanceId.ToString()) + ")");
 

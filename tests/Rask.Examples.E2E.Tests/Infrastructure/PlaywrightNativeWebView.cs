@@ -27,6 +27,14 @@ internal sealed class PlaywrightNativeWebView : INativeWebView
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly IPage _page;
 
+    // Serializes the START of message processing so messages are delivered to OnMessage in the exact order
+    // the client posted them — a real WKScriptMessageHandler / JavascriptInterface delivers them in order on
+    // the UI thread, and out-of-order delivery would let a `click` outrun the coalesced `input` it depends on
+    // (the handler would then read a stale value). Each link starts the handler and returns WITHOUT awaiting
+    // its completion, so a dispatch that parks awaiting a jsResult still lets the following jsResult message
+    // run (mirrors the UI thread pumping the next message while a handler is suspended).
+    private Task _deliverChain = Task.CompletedTask;
+
     private PlaywrightNativeWebView(IPage page) => _page = page;
 
     public Func<byte[], Task>? OnMessage { get; set; }
@@ -73,11 +81,12 @@ internal sealed class PlaywrightNativeWebView : INativeWebView
         var view = new PlaywrightNativeWebView(page);
         await page.ExposeFunctionAsync<string>("__raskSend", json =>
         {
-            var handler = view.OnMessage;
-            if (handler is not null)
-            {
-                _ = handler(Encoding.UTF8.GetBytes(json));
-            }
+            var bytes = Encoding.UTF8.GetBytes(json);
+            // Chain the STARTS in delivery order (the continuation kicks off the next handler only after the
+            // previous one has started), but fire-and-forget each so a parked dispatch doesn't stall the pump.
+            view._deliverChain = view._deliverChain.ContinueWith(
+                prev => { _ = view.OnMessage?.Invoke(bytes); },
+                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         });
         return view;
     }
