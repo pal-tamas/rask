@@ -15,15 +15,25 @@ them until tagged releases begin.
   in headless Chromium — no emulator — through a Playwright-backed `INativeWebView`
   (`PlaywrightNativeWebView`) whose route handler (`NativeOriginServer`) serves the shell + client +
   scoped `/_rask/a/*` assets + `global.css` + Bootstrap (the E2E stand-in for a device head's scheme
-  handler). The journey reuses the shared showcase walks — rendering, in-SPA navigation, composition,
-  lifecycle, scoped CSS/JS interop, elements, CQRS, forms + keyboard, Bootstrap components, guides. Two
-  native traits the E2E surfaced are tracked as follow-ups in `docs/native.md`: the native client
-  doesn't push routes to a browser address bar (in-SPA nav works; URL/history/popstate assertions
-  don't apply), and an interaction that *awaits* an `IJSRuntime` result inside a handler stalls over the
-  bridge (fire-and-forget scoped-JS interop works). A separate `NativeServerSmokeTests` shard covers the
-  **Native + Server** mode (`NativeAppHost.ConnectToServer`): it asserts the shell-URL contract and loads
-  the Server showcase in a mobile-emulated WebView context, confirming the thin-native-shell scenario
-  renders and reacts live over the WebSocket.
+  handler). `NativeExampleTests` runs a focused native journey — boot + render, the sidebar (collapsible
+  groups + mobile drawer), a showcase render walk, scoped CSS/JS applied over the bridge, element-ref
+  focus through `IJSRuntime`, and WebView history (route→URL push, Back/forward, the URL-routed Todos
+  dialog) — deliberately focused rather than the browser hosts' full gauntlet, since each interaction is
+  an async bridge round-trip. A separate `NativeServerSmokeTests` shard covers the **Native + Server**
+  mode (`NativeAppHost.ConnectToServer`): it asserts the shell-URL contract and loads the Server showcase
+  in a mobile-emulated WebView context, confirming the thin-native-shell scenario renders and reacts live
+  over the WebSocket.
+
+### Fixed
+- **Native `IJSRuntime` invokes with arguments, and native WebView history.** Both were bugs the new
+  native E2E surfaced. (1) An out-of-render `IJSRuntime` invoke (one issued from an event handler that
+  awaits its result) embedded `argsJson` into the bridge call as a raw JS literal instead of a string, so
+  the client's `JSON.parse(argsJson)` failed — every handler-issued invoke carrying arguments (element-ref
+  focus, storage set/get, …) broke. `NativeJSRuntime.DispatchOutsideRender` now quotes it, matching the
+  frame-invoke path (regression-guarded by `NativeJsInteropTests`). (2) The native client
+  (`rask.native.js`) now drives its own WebView history: `applyHistory` pushes/replaces each route change
+  and a `popstate` listener feeds hardware Back/forward into the router, so `location`/URL tracks the
+  route and URL-routed UI (the Todos dialog, `Navigator.SetQuery`) works.
 - **`Rask.Native` — native mobile host (foundation).** A new host that runs a Rask app on iOS/Android
   inside a platform WebView, driven by the *same* render → diff → payload pipeline as the Server and WASM
   hosts (it subclasses `LiveSessionBase`). Two modes: **Native + Local** (`NativeAppHost.RunLocalAsync<App>`)

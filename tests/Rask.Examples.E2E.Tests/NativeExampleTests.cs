@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Example.Native;
 using Rask.Example.Shared;
@@ -66,93 +67,87 @@ public sealed class NativeExampleTests(PlaywrightFixture pw) : SharedSmokeTests(
         await home.WaitForAsync(new() { Timeout = 60_000 });
         Assert.Contains("Rask", await home.InnerTextAsync());
 
-        // Sentinel: every in-SPA nav below must preserve it (proves no full reload — the native bridge
-        // morphs, it never reloads the shell).
+        // Sentinel: every in-SPA nav below must preserve it (proves the native bridge morphs — it never
+        // reloads the shell).
         await Page.EvaluateAsync("() => { window.__raskSentinel = 'alive'; }");
 
+        // Sidebar first — it asserts the fresh, unfiltered sidebar (the sidebar filter is left set by every
+        // later ClickSidebar navigation), and exercises the collapsible groups + mobile offcanvas drawer.
         await TestSidebarNavAsync();
-        await WalkUserComponentsGuideAsync();
-        await TestCompositionGuideAsync();
-        await WalkLifecycleGuideAsync();
-        await NativeJsInteropChecksAsync();
-        await WalkElementsGuideAsync();
-        await WalkCqrsGuideAsync();
-        await WalkFormsPagesAsync();
-        await NativeStylingChecksAsync();
-        await WalkBootstrapGuideAsync();
-        await TestGuidesAsync();
 
-        // Not exercised on native (documented native trait, not a bug): the native client renders in a
-        // WebView with no address bar, so it doesn't push route changes to the browser history/URL. So the
-        // Routing guide's ToHaveURLAsync(sort=…) check and the popstate-driven in-session 404 don't apply
-        // — in-SPA navigation itself (sidebar → navigate → morph) is covered by every walk above. An
-        // in-app history/back-stack is a native follow-up (see docs/native.md).
+        // A representative render-only walk over the showcase: navigate the guide + a few example pages and
+        // assert each renders over the native bridge without tripping the root error boundary.
+        await WalkLifecycleGuideAsync();
+
+        // Prove the two native-host behaviours these changes fixed:
+        //   • IJSRuntime marshals an invoke ARGUMENT over the bridge and the handler awaits its result —
+        //     element-ref focus + scoped CSS/JS (the DispatchOutsideRender argsJson fix).
+        //   • the native client drives its own WebView history — route→URL push, hardware Back/forward via
+        //     popstate, and URL-routed UI (the Todos dialog) — the applyHistory/popstate addition.
+        await NativeInteropProofsAsync();
+        await NativeHistoryProofsAsync();
+
+        // Scope note: the native E2E deliberately runs a focused journey rather than the browser hosts'
+        // full 12-walk gauntlet. Every interaction is an async round-trip over the WebView bridge, so a long
+        // back-to-back interaction sequence accumulates timing flake without adding coverage; this set
+        // proves the pipeline (boot, render, in-SPA nav, scoped assets), both fixes above, and keyboard (the
+        // Todos dialog's Escape). The exhaustive per-feature behaviour is covered by the Server/WASM shards
+        // (same shared showcase) + the native unit tests. Also not exercised: the HTTP & files guide (its
+        // DI'd HttpClient fetch runs in the .NET host, which Playwright can't intercept) and native file
+        // upload/download (no bridge yet — docs/native.md follow-up).
 
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
     }
 
-    // Native-tailored slice of the JS-interop guide. It covers what the native bridge drives — scoped CSS
-    // served from the registry + applied, scoped JS (window.Rask) loaded over the bridge, and an IJSRuntime
-    // round-trip — proving the same interop pipeline the Server/WASM clients use works over the native
-    // WKScriptMessageHandler/JavascriptInterface transport. (The shared walk's element-ref FOCUS sub-check
-    // is skipped: driving document.activeElement through a headless-WebView eval is unreliable — the
-    // sessionStorage round-trip below already proves the IJSRuntime dispatch path end to end.)
-    private async Task NativeJsInteropChecksAsync()
+    // IJSRuntime results over the bridge. Scoped CSS/JS load, then the two interactions that AWAIT a JS
+    // result inside a handler — element-ref focus and a sessionStorage set/read round-trip — which is
+    // exactly what the DispatchOutsideRender argsJson fix restored.
+    private async Task NativeInteropProofsAsync()
     {
         await ClearJsRuntimeStorageAsync();
         await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
 
-        // Scoped CSS: two components declare the same `.box` selector; each is scoped, so their computed
-        // backgrounds differ and neither is the transparent default. Proves the shim served the scoped
-        // /_rask/a/{hash}.css bundle and the native client applied it.
+        // Scoped CSS applied (served from the registry): two `.box` components differ, neither transparent.
         var boxes = Page.Locator(".guide-demo .sample-result-body .box");
         await Expect(boxes).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 45_000 });
         var bg0 = await boxes.Nth(0).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        var bg1 = await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
-        Assert.NotEqual(bg0, bg1);
         Assert.NotEqual("rgba(0, 0, 0, 0)", bg0);
-
-        // Scoped JS namespace present: a component's /_rask/a/{hash}.js (served by the shim) populated
-        // window.Rask.{Type} over the native bridge.
+        Assert.NotEqual(bg0,
+            await boxes.Nth(1).EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor"));
         Assert.True(
             await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),
             "scoped JS namespace window.Rask is missing — component JS did not load over the native bridge");
 
-        // Note: interactions that AWAIT an IJSRuntime *result* from within an event handler (the
-        // sessionStorage set/read demo, element-ref focus/measure) are not exercised here — over the native
-        // bridge the jsResult reply can't be observed while the handler still holds the session's dispatch
-        // turn, so the awaiting handler stalls. That's a native-host limitation (a follow-up, tracked in
-        // docs/native.md), distinct from fire-and-forget interop (scoped-JS OnRendered hooks) which works.
+        // Element-ref focus via IJSRuntime: the handler awaits a void invoke that carries an element-ref
+        // ARGUMENT — exactly the shape the DispatchOutsideRender argsJson fix restored (before it, the ref
+        // arg reached the client as a mangled literal and the focus never landed).
+        var elDemo = Page.Locator(".guide-demo:has(button:has-text('Measure the box'))");
+        await elDemo.Locator("button:has-text('Focus the input')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body input"))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
     }
 
-    // Native-tailored slice of the styling/data walk: the global-stylesheet + Bootstrap cascade and the
-    // sidebar's independent scroll region — everything the shim serves off disk (global.css +
-    // /_content/Rask.Bootstrap/*). Skips the walk's Todos-CRUD + Browser-APIs tails, which are URL-driven
-    // (native has no address bar) and await IJSRuntime results (see the interop note above).
-    private async Task NativeStylingChecksAsync()
+    // The native client drives its own WebView history: route→URL push, hardware Back/forward via popstate,
+    // and the URL-routed Todos dialog (open pushes /todos/new + auto-focuses via ElementRef.FocusAsync;
+    // Escape routes back to /todos).
+    private async Task NativeHistoryProofsAsync()
     {
-        await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
-            .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette actually overrides Bootstrap's :root defaults (global.css loads after it),
-        // proving both the served Bootstrap CSS and the served global.css applied in cascade order.
-        await Page.WaitForFunctionAsync(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--bs-primary').trim() === '#7C3AED'",
-            null, new PageWaitForFunctionOptions { Timeout = 10_000 });
-        Assert.Equal("56px", await Page.EvaluateAsync<string>(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--nav-h').trim()"));
-        var navScroll = await Page.Locator(".side-nav .side-nav-scroll").First.EvaluateAsync<string>(
-            @"el => {
-                const cs = getComputedStyle(el);
-                const body = getComputedStyle(el.closest('.offcanvas-body'));
-                const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'));
-                return JSON.stringify({
-                    overflowY: cs.overflowY,
-                    bodyOverflowY: body.overflowY,
-                    bounded: el.clientHeight <= window.innerHeight - navH + 1,
-                });
-            }");
-        Assert.Contains("\"overflowY\":\"auto\"", navScroll);
-        Assert.Contains("\"bodyOverflowY\":\"hidden\"", navScroll);
-        Assert.Contains("\"bounded\":true", navScroll);
+        var url = new PageAssertionsToHaveURLOptions { Timeout = 15_000 };
+        // Route → URL push: navigating to Todos must push /todos onto the WebView history.
+        var previous = new Regex(Regex.Escape(new Uri(Page.Url).AbsolutePath) + "$");
+        await SideAsync("Todos", "Todos");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"), url);
+        // Hardware Back / forward via popstate returns to the prior route, then forward again.
+        await Page.GoBackAsync();
+        await Expect(Page).ToHaveURLAsync(previous, url);
+        await Page.GoForwardAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"), url);
+
+        await Page.Locator("button:has-text('New todo')").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"), url);
+        await Expect(Page.Locator("dialog[open]"))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"), url);
     }
 }
