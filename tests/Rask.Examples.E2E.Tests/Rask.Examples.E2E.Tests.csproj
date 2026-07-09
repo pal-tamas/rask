@@ -38,6 +38,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Native runs the host IN-PROCESS (behind a Playwright-backed INativeWebView), so unlike the other
+         hosts this is a REAL assembly reference, not a build-order-only one. -->
+    <ProjectReference Include="..\..\samples\Rask.Example.Native\Rask.Example.Native.csproj"/>
     <ProjectReference Include="..\..\samples\Rask.Example.Server\Rask.Example.Server.csproj"
                       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="..\..\samples\Rask.Example.EfCore\Rask.Example.EfCore.csproj"

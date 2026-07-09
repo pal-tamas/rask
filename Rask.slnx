@@ -11,6 +11,7 @@
         <Project Path="samples/Rask.Example.Auth.WasmJwt/Rask.Example.Auth.WasmJwt.csproj"/>
         <Project Path="samples/Rask.Example.Auth.WasmJwt.Host/Rask.Example.Auth.WasmJwt.Host.csproj"/>
         <Project Path="samples/Rask.Example.EfCore/Rask.Example.EfCore.csproj"/>
+        <Project Path="samples/Rask.Example.Native/Rask.Example.Native.csproj"/>
         <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>

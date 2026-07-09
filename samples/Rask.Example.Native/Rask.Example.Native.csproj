@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The native showcase host. Unlike Rask.Example.Server (an ASP.NET web app) and Rask.Example.Wasm
+    (a browser-wasm exe), the native host runs the app IN-PROCESS behind an INativeWebView bridge — so
+    on a real device it lives inside the `rask-native` template's iOS/Android app heads. This project is
+    a plain net10.0 library holding the native composition root: it reuses the same
+    Rask.Example.Shared.App showcase every other host mounts, wired onto NativeAppHost with a
+    native-appropriate service set. The E2E suite drives it headlessly through a Playwright-backed
+    INativeWebView (Rask.Examples.E2E.Tests/NativeExampleTests), so native is covered by the same
+    showcase + E2E net as Server and WASM without a device or emulator in CI. See docs/native.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Example.Native</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
+    <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+  </ItemGroup>
+
+</Project>

@@ -62,3 +62,20 @@ public sealed class WasmJwtAuthExampleCollection
 {
     public const string Name = "WasmJwtAuthExample";
 }
+
+// Native runs the host IN-PROCESS behind a Playwright-backed INativeWebView, so there's no out-of-process
+// app fixture to pair — just the shared browser. The NativeApp is created per-test in
+// SharedSmokeTests.ConfigurePageAsync and torn down in TeardownAsync.
+[CollectionDefinition(Name)]
+public sealed class NativeExampleCollection : ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "NativeExample";
+}
+
+// Native + Server mode: a WebView pointed at a remote Rask Server. Pairs the Server host with the browser.
+[CollectionDefinition(Name)]
+public sealed class NativeServerSmokeCollection
+    : ICollectionFixture<NativeServerSmokeAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "NativeServerSmoke";
+}
