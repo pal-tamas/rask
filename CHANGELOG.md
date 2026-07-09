@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Leaf elements retain less memory: three cold reference fields moved off the base `Component`.** The
+  error-boundary pointer, render handle, and lifetime-token source are only ever set on live-render
+  roots and user components (which already allocate a lazy `LiveState`), yet every `Element` in a mounted
+  tree — the bulk of a rendered page — carried all three as mostly-null references. They now live in
+  `LiveState`, so a plain `Div`/`Span`/text node sheds 24 bytes each and a component that never touches
+  its cancellation token allocates no `LiveState` at all. Reduces retained heap for a mounted tree
+  (~9% on the 100-row keyed-list footprint benchmark), narrowing the one axis where Blazor's dense frame
+  structs still lead. No behavioural change — the fields are read through the same members, now backed by
+  `LiveState`.
 - **A live update no longer allocates the whole page as a string.** Every render materialised the full
   document via `StringBuilder.ToString()` — the dominant managed allocation of a small update on a large
   page — even when the shipped payload was one `UpdateText` op that never reads the HTML. The session now
