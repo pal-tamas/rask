@@ -17,7 +17,9 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
 
 ## Native structure — don't restructure these
 - **Shared components** (`App.cs`, `HomePage.cs`, `Counter.cs`) compile for both `net10.0-ios` and
-  `net10.0-android`. Keep platform-specific types OUT of them.
+  `net10.0-android`. Keep platform-specific types OUT of them. `App.cs` pads `Body` by
+  `env(safe-area-inset-*)` (paired with the `viewport-fit=cover` viewport meta) so content clears the
+  notch / status bar / home indicator — keep both together if you edit the shell.
 - **Platform heads** live under `Platforms/iOS/` and `Platforms/Android/`. Each boots a
   `NativeAppHost`, calls `host.RunLocalAsync<App>(webView)`, and provides the `INativeWebView`
   implementation for its WebView (`WKWebView` on iOS, `android.webkit.WebView` on Android). Register app

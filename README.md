@@ -5,10 +5,11 @@
   <img alt="Rask" src="assets/rask-logo.svg" width="300">
 </picture>
 
-### Live web apps in C#. One codebase — server-rendered over WebSockets, or client-side in the browser via WebAssembly.
+### Live apps in C#. One codebase — server-rendered over WebSockets, client-side in the browser via WebAssembly, or a native iOS/Android app.
 
 [![NuGet Rask.Server](https://img.shields.io/nuget/v/Rask.Server.svg?label=Rask.Server)](https://www.nuget.org/packages/Rask.Server)
 [![NuGet Rask.Wasm](https://img.shields.io/nuget/v/Rask.Wasm.svg?label=Rask.Wasm)](https://www.nuget.org/packages/Rask.Wasm)
+[![NuGet Rask.Native](https://img.shields.io/nuget/v/Rask.Native.svg?label=Rask.Native)](https://www.nuget.org/packages/Rask.Native)
 [![NuGet Rask.Templates](https://img.shields.io/nuget/v/Rask.Templates.svg?label=Rask.Templates)](https://www.nuget.org/packages/Rask.Templates)
 [![NuGet Rask.Bootstrap](https://img.shields.io/nuget/v/Rask.Bootstrap.svg?label=Rask.Bootstrap)](https://www.nuget.org/packages/Rask.Bootstrap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -59,9 +60,12 @@ dotnet new rask-wasm --pwa     # → an installable, offline PWA, ready to deplo
 
 **[📖 Build mobile apps with Rask →](docs/pwa.md)**  ·  **[Try the installable demo ↗](https://pal-tamas.github.io/rask/)**
 
-<sub>Going further than a PWA? **`Rask.Native`** (preview) runs the *same* component code as a real
-**native iOS/Android app** — a WebView hybrid where your C# runs natively on the device, for App Store /
-Play Store distribution. **[Native mobile with Rask →](docs/native.md)**</sub>
+Going further than a PWA? **`Rask.Native`** *(preview)* ships the *same* component code as a real
+**native iOS/Android app** for App Store / Play Store distribution — a WebView hybrid where your C#
+runs natively on the device. Scaffold it with `dotnet new rask-native` and run on an emulator with
+`dotnet build -t:Run -f net10.0-android`.
+
+**[📱 Native mobile with Rask →](docs/native.md)**
 
 </div>
 
@@ -89,7 +93,8 @@ are the real tour — this README is just the front door.**
 ## 📦 Install
 
 > **Prerequisites:** the **.NET 10 SDK** (`dotnet --version` ≥ `10.0`); the `wasm-tools` workload
-> (`dotnet workload install wasm-tools`) for the WASM templates only. New to Rask? The
+> (`dotnet workload install wasm-tools`) for the WASM templates, or the `ios android` workloads
+> (`dotnet workload install ios android`) for the native template. New to Rask? The
 > **[getting started guide](docs/getting-started.md)** walks the whole path end to end.
 
 ### Scaffold a new project (recommended)
@@ -100,8 +105,9 @@ dotnet new install Rask.Templates
 dotnet new rask-server       -n MyApp    # ASP.NET live-server app
 dotnet new rask-wasm         -n MyApp    # standalone browser-WASM SPA
 dotnet new rask-wasm-hosted  -n MyApp    # browser-WASM client + ASP.NET host
+dotnet new rask-native       -n MyApp    # native iOS + Android app (WebView hybrid, preview)
 
-cd MyApp && dotnet run                    # that's it
+cd MyApp && dotnet run                    # that's it (native: dotnet build -t:Run -f net10.0-android)
 ```
 
 Add `--auth` for a cookie/JWT-wired starter, or `--pwa` (WASM) for an installable offline app.
@@ -115,6 +121,7 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Server`                      | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
 | `Rask.Wasm`                        | `net10.0-browser`                                                   | `WasmHostBuilder.CreateDefault()` + `host.RunAsync<TApp>()` |
 | `Rask.Wasm.Hosting`                | `net10.0` ASP.NET (with a `<ProjectReference>` to the WASM project) | `app.UseRask()`                                             |
+| `Rask.Native` *(preview)*          | `net10.0-ios;net10.0-android` app head                             | `NativeAppHost.CreateDefault()` + `host.RunLocalAsync<TApp>(webView)` |
 | `Rask.Validation.DataAnnotations`  | any host that hosts your forms                                      | drop `DataAnnotationsValidator()` inside a `Form<T>`        |
 | `Rask.Validation.FluentValidation` | any host that hosts your forms                                      | drop `FluentValidationValidator(new MyValidator())` inside  |
 | `Rask.Bootstrap`                   | any host with your components                                       | link `BootstrapStyles()` in `Head`, then use `Bs*` factories |
@@ -122,8 +129,8 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
 
-`Rask.Server` and `Rask.Wasm` pull in `Rask.Core` and the source generators transitively. Full setup, host trade-offs,
-and sub-path hosting are covered in **[getting started](docs/getting-started.md)** and the **[docs ↗](docs/)**.
+`Rask.Server`, `Rask.Wasm`, and `Rask.Native` pull in `Rask.Core` and the source generators transitively. Full setup,
+host trade-offs, and sub-path hosting are covered in **[getting started](docs/getting-started.md)** and the **[docs ↗](docs/)**.
 
 ## 🧪 Examples
 
@@ -149,7 +156,7 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **[Authentication](docs/authentication.md)** · **[Data access](docs/data-access.md)** · **[HTTP & files](docs/http-and-files.md)** · **[CQRS](docs/cqrs.md)** | Cookie/JWT on Server & WASM; EF Core + SQLite; a DI'd `HttpClient` + file upload/download; source-generated CQRS. |
 | **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** · **[AOT](docs/aot.md)** | 43 typed Web-API wrappers; installable, offline apps; opt-in full WASM AOT. |
+| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** · **[AOT](docs/aot.md)** | 43 typed Web-API wrappers; installable offline PWAs; native iOS/Android apps; opt-in full WASM AOT. |
 | **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; unit + E2E. |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
 | **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |
@@ -158,9 +165,10 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 ## 📋 Status
 
 Rask is pre-1.0. APIs may change between minor versions. It targets **.NET 10** (`net10.0` for ASP.NET hosts,
-`net10.0-browser` for WASM). Unit suites cover the core, generators, hosts, and validation packages, plus a Playwright
-E2E smoke suite; `Rask.Example.Wasm` publishes with zero IL trimming warnings. Production use at your own discretion —
-issues and PRs welcome.
+`net10.0-browser` for WASM, `net10.0-ios;net10.0-android` for native app heads). Unit suites cover the core,
+generators, hosts (Server, WASM, Native), and validation packages, plus a Playwright E2E smoke suite;
+`Rask.Example.Wasm` publishes with zero IL trimming warnings. The native host is preview-stage. Production use at your
+own discretion — issues and PRs welcome.
 
 ## 📄 License
 
