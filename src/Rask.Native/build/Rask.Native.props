@@ -1,0 +1,11 @@
+<Project>
+  <!-- Global usings every Rask app relies on, matching Rask.Wasm/Rask.Server: `Component` and the
+       generated element factories / routing helpers resolve without per-file usings. -->
+  <ItemGroup>
+    <Using Include="Rask.Core"/>
+    <!-- Auto-generated HTML tag factories live in Rask.Core.Components.Generated. -->
+    <Using Include="Rask.Core.Components.Generated" Static="true"/>
+    <!-- Routing helpers (Router/Outlet/Route<T>) come from the generator in Rask.Core.Routing.Generated. -->
+    <Using Include="Rask.Core.Routing.Generated" Static="true"/>
+  </ItemGroup>
+</Project>
