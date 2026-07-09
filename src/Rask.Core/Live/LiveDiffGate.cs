@@ -46,7 +46,7 @@ internal static class LiveDiffGate
     // (data-rask-root is spliced onto <body> only at payload-write time), so the
     // comparison is stable. A missing </head> in either string returns false (treat as
     // changed → full HTML), never an unsafe true.
-    internal static bool HeadUnchanged(string html, string baseline)
+    internal static bool HeadUnchanged(ReadOnlySpan<char> html, ReadOnlySpan<char> baseline)
     {
         const string headClose = "</head>";
         var a = html.IndexOf(headClose, StringComparison.Ordinal);
@@ -68,7 +68,7 @@ internal static class LiveDiffGate
             return false;
         }
 
-        return html.AsSpan(0, a).SequenceEqual(baseline.AsSpan(0, b));
+        return html.Slice(0, a).SequenceEqual(baseline.Slice(0, b));
     }
 
     // Slice the full <head ...>...</head> element out of the rendered document so the diff
@@ -76,7 +76,7 @@ internal static class LiveDiffGate
     // (no scope attr) and data-rask-root is spliced onto <body> only, so the slice is clean.
     // Returns null when there's no recognizable head (defensive — caller then omits the
     // field and the body diff still ships).
-    internal static string? ExtractHead(string html)
+    internal static string? ExtractHead(ReadOnlySpan<char> html)
     {
         var open = html.IndexOf("<head", StringComparison.Ordinal);
         if (open < 0)
@@ -92,6 +92,6 @@ internal static class LiveDiffGate
         }
 
         close += headClose.Length;
-        return close <= open ? null : html.Substring(open, close - open);
+        return close <= open ? null : html.Slice(open, close - open).ToString();
     }
 }

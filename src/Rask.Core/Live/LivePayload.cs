@@ -260,7 +260,7 @@ public static class LivePayload
         bool replace = false,
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
         string? headHtml = null,
-        string? newHtml = null)
+        ReadOnlySpan<char> newHtml = default)
     {
         // Pass 1: build the attribute-name symbol table. Intern when the name appears
         // 3+ times — break-even with the table overhead lands around there for typical
@@ -380,10 +380,10 @@ public static class LivePayload
                     {
                         writer.WriteStringValue(op.Value);
                     }
-                    else if (newHtml is not null && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
+                    else if (!newHtml.IsEmpty && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
                              && op.HtmlEnd <= newHtml.Length)
                     {
-                        writer.WriteStringValue(newHtml.AsSpan(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
+                        writer.WriteStringValue(newHtml.Slice(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
                     }
                     else
                     {

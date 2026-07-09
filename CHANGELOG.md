@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A live update no longer allocates the whole page as a string.** Every render materialised the full
+  document via `StringBuilder.ToString()` — the dominant managed allocation of a small update on a large
+  page — even when the shipped payload was one `UpdateText` op that never reads the HTML. The session now
+  renders into a reused, double-buffered `char[]` (`RenderedHtmlBuffers`) and threads
+  `ReadOnlySpan<char>` through the no-op-render dedup, the diff-vs-full head-compare, and the
+  `InsertSubtree` fragment slice; only the first-render / full-HTML-fallback path (which ships the whole
+  body anyway) still materialises a string. The wire payload is byte-identical. Measured on the 200-row
+  counter-update benchmark, the end-to-end serialize+diff+payload cycle drops from ~45.3 KB to ~1.1 KB
+  per update (−97%); combined with the lazy attribute-path change it is ~98% below the pre-optimisation
+  baseline.
 - **The live-diff codec no longer allocates a path array for every element it walks.** `DiffAttributes`
   received a freshly-built `int[]` element path on each call — one per element, every render — even
   though the overwhelmingly common case is an element whose attributes are unchanged, which emits no op

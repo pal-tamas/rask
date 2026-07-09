@@ -85,10 +85,10 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            var html = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            await BuildPayloadAsync(null, false).ConfigureAwait(false);
             if (await TryEmitFrameAsync(false).ConfigureAwait(false))
             {
-                _lastAppliedHtml = html;
+                _htmlBuffers.Commit();
             }
         }
         finally
@@ -113,7 +113,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         InHandlerScope = true;
         try
         {
-            var html = await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
+            await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
                 .ConfigureAwait(false);
 
             // Noop publish-render guard: an auto-publish triggered by a completed
@@ -124,8 +124,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             // previous frame's dispatch. Skip such frames entirely.
             if (publishOnly
                 && !_lastBuildHadJsInvokes
-                && _lastAppliedHtml is not null
-                && string.Equals(html, _lastAppliedHtml, StringComparison.Ordinal))
+                && _htmlBuffers.CurrentEqualsPrevious())
             {
                 return;
             }
@@ -135,7 +134,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             // didn't change visible output — no per-frame byte[].
             if (await TryEmitFrameAsync(false).ConfigureAwait(false))
             {
-                _lastAppliedHtml = html;
+                _htmlBuffers.Commit();
             }
         }
         finally
@@ -153,13 +152,13 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         InHandlerScope = true;
         try
         {
-            var html = await BuildPayloadAsync(null, false).ConfigureAwait(false);
+            await BuildPayloadAsync(null, false).ConfigureAwait(false);
             if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
             }
 
-            _lastAppliedHtml = html;
+            _htmlBuffers.Commit();
             // The bootstrap caller wants the initial frame bytes; ToArray once per page load.
             return _lastSentBuffer!.WrittenSpan.ToArray();
         }
@@ -229,7 +228,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                         historyReplace = replace;
                     }
 
-                    var html = await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
+                    await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace)
                         .ConfigureAwait(false);
                     // EmitFrame pushes the frame (zero-copy) unless it's byte-identical to the last
                     // sent one; force the send when a navigation URL must flow even if the rendered
@@ -239,7 +238,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                         return Array.Empty<byte>();
                     }
 
-                    _lastAppliedHtml = html;
+                    _htmlBuffers.Commit();
                     // Return the sent frame's bytes for the test seam; ToArray once per event.
                     return _lastSentBuffer!.WrittenSpan.ToArray();
                 }
@@ -292,15 +291,14 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 
             try
             {
-                var html =
-                    await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
+                await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
                 // Navigation always flows — force the send even when the rendered output is unchanged.
                 if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
                 {
                     return Array.Empty<byte>();
                 }
 
-                _lastAppliedHtml = html;
+                _htmlBuffers.Commit();
                 return _lastSentBuffer!.WrittenSpan.ToArray();
             }
             catch (Exception ex)
@@ -320,7 +318,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         }
     }
 
-    private async Task<string> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
+    private async Task BuildPayloadCoalescingRerendersAsync(string? historyUrl,
         bool replace, bool publishOnly = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
@@ -340,17 +338,18 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         // historyUrl here is a local captured before the call, not a fresh navigator
         // consumption — passing it twice still lands exactly one pushState on the client.
         // commitCache:false — every iteration diffs against the SAME (last-sent) baseline
-        // rather than promoting its own render. Only the LAST build is returned and sent, so
-        // committing each intermediate rotation would make the final build diff against an
-        // un-sent render — shipping a tiny stale diff (e.g. a head-only diff after a real page
-        // swap) that never updates the body. We commit the final render once, after the loop.
+        // rather than promoting its own render. Only the LAST build is sent, so committing each
+        // intermediate rotation would make the final build diff against an un-sent render —
+        // shipping a tiny stale diff (e.g. a head-only diff after a real page swap) that never
+        // updates the body. We commit the final render once, after the loop. Each rebuild
+        // overwrites _htmlBuffers.Current, so it holds the final render when the loop settles.
         _pendingRenderInScope = false;
-        var result = await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            result = await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+            await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
         }
 
         // Commit the final, actually-sent render as the new diff baseline exactly once.
@@ -369,8 +368,6 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 "that re-trigger StateHasChanged in OnRenderedAsync / dispose " +
                 "callbacks during this dispatch.");
         }
-
-        return result;
     }
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
@@ -378,7 +375,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
     // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
     // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
-    internal async Task<string> BuildPayloadAsync(string? historyUrl, bool replace,
+    internal async Task BuildPayloadAsync(string? historyUrl, bool replace,
         bool publishOnly = false, bool commitCache = true)
     {
         await Task.Yield();
@@ -429,8 +426,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
             commitCache, auth: null, sessionId: "wasm");
 
-        // The built frame lives in _writeBuffer; EmitFrame pushes it zero-copy. Return only the HTML
-        // (used for the publish-render noop guard and as the diff-cache baseline).
-        return html;
+        // The built frame lives in _writeBuffer; EmitFrame pushes it zero-copy. The rendered chars stay
+        // in _htmlBuffers.Current for the caller's noop-guard / diff-cache baseline (committed on send).
     }
 }
