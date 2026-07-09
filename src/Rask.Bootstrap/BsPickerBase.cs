@@ -88,24 +88,48 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     }
 
     // Writes a boxed value back to the model (bound) or notifies the parent (controlled). A boxed struct
-    // sets both a T and a T? property (PropertyInfo.SetValue converts); null clears a nullable T.
+    // sets both a T and a T? property (PropertyInfo.SetValue converts); null clears a nullable T. The value
+    // is coerced to the exact target type first, so a DateTime/DateTimeOffset composed as the wrong one can
+    // never reach PropertyInfo.SetValue or the (T) cast and throw "X cannot be converted to type Y".
     private protected async Task WriteBoxedAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, object? boxed)
     {
         if (acc is not null)
         {
-            acc.Setter(boxed);
+            var value = Coerce(acc.PropertyType, boxed);
+            acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
             // Fire AfterBind on every write, including a clear (boxed == null → default(T), which is null
             // for the nullable T that owns a clear button) — matches the standard bound Setter(null) path.
-            await ((IFormControl<T>)this).InvokeAfterBindAsync(boxed is null ? default! : (T)boxed)
+            await ((IFormControl<T>)this).InvokeAfterBindAsync(value is null ? default! : (T)value)
                 .ConfigureAwait(false);
         }
         else
         {
-            var typed = boxed is null ? default! : (T)boxed;
+            var value = Coerce(typeof(T), boxed);
+            var typed = value is null ? default! : (T)value;
             await ((IFormControl<T>)this).InvokeOnChangeAsync(typed).ConfigureAwait(false);
         }
+    }
+
+    // Coerces a composed date/time value to the exact type the write target expects, decided by the value's
+    // RUNTIME type (via IsInstanceOfType — never a typeof() comparison, which can mis-fire under some
+    // runtimes). The only legitimate mismatch is DateTime <-> DateTimeOffset; anything already assignable is
+    // returned untouched, so a matching value (with its preserved offset) is never disturbed.
+    private static object? Coerce(Type targetType, object? boxed)
+    {
+        if (boxed is null || targetType.IsInstanceOfType(boxed))
+        {
+            return boxed;
+        }
+
+        return boxed switch
+        {
+            DateTime dt => new DateTimeOffset(
+                DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), TimeZoneInfo.Local.GetUtcOffset(dt)),
+            DateTimeOffset dto => dto.DateTime,
+            _ => boxed,
+        };
     }
 
     // Assembles the .dropdown shell: an editable .form-control combobox INPUT (type the value; focus opens

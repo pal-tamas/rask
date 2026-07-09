@@ -123,12 +123,13 @@
   color: var(--bs-secondary-color);
 }
 .bs-time {
-  --bs-cal-cell: 2.25rem;
+  /* Fixed per-item height so the two columns line up and the popover height is stable (6 items visible). */
+  --bs-time-item-h: 2rem;
 }
 .bs-time-col {
-  max-height: calc(6 * var(--bs-cal-cell));
+  max-height: calc(6 * var(--bs-time-item-h));
   overflow-y: auto;
-  min-width: 3.25rem;
+  min-width: 3.5rem;
   /* A slim, unobtrusive scrollbar instead of the chunky OS default. */
   scrollbar-width: thin;
   scrollbar-color: var(--bs-border-color) transparent;
@@ -145,9 +146,14 @@
   font-weight: 600;
 }
 .bs-time-item {
-  text-align: center;
-  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--bs-time-item-h);
+  padding: 0 0.5rem;
   border-radius: var(--bs-border-radius);
+  /* Aligned, evenly-spaced digits so 00/01/…/23 don't jitter in width. */
+  font-variant-numeric: tabular-nums;
 }
 /* Match the calendar's selected cell: the brand primary (a runtime CSS var so it tracks the app's
    theme override), not Bootstrap's baked-hex .dropdown-item.active blue. Same specificity as

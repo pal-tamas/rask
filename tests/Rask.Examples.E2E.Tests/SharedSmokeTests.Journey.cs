@@ -313,6 +313,20 @@ public abstract partial class SharedSmokeTests
         // picker's × clear is unit-tested; the ×-clears-to-null click is E2E-covered on #bs-seats below.)
         await Page.Locator(".dropdown:has(#pick-date) .position-fixed").DispatchEventAsync("click");
 
+        // Date-time picker (#pick-datetime, bound to a DateTime): open the calendar and pick a day. The
+        // composed value must write back as a DateTime — regression guard for the "Object of type
+        // DateTimeOffset cannot be converted to type DateTime" write crash (BoxValue could box the wrong
+        // date/time type; WriteBoxedAsync now coerces to the property's real type). A crash surfaces as the
+        // Rask error boundary; the readout's third segment updating proves the write succeeded.
+        await Page.Locator("#pick-datetime").First.ClickAsync();
+        await Expect(Page.Locator("#pick-datetime-cal.bs-cal[role=\"grid\"]").First)
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator($"#pick-datetime-d-{ym}15").First.ClickAsync();
+        await Expect(Page.Locator("#pick-readout"))
+            .ToContainTextAsync(DateTime.Today.ToString("yyyy-MM") + "-15",
+                new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.Locator(".dropdown:has(#pick-datetime) .position-fixed").DispatchEventAsync("click");
+
         // Dropdown (Popper-less, controlled) opened inside the same overflow:hidden card — the menu is
         // re-anchored position:fixed by the same helper so it isn't clipped. Selecting an item closes the
         // menu (its handler sets Open=false) and updates the readout. AlignEnd is covered by the unit test.
