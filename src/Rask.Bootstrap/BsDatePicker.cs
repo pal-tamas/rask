@@ -37,8 +37,7 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
         var ctx = b.Context;
         var fid = b.Field;
 
-        var content = Span(Class: selected is null ? Txt.Muted : null)[
-            selected is { } s ? s.ToString("d", Culture) : Placeholder ?? Culture.DateTimeFormat.ShortDatePattern];
+        var formatted = selected is { } s ? s.ToString("d", Culture) : string.Empty;
 
         var boxAria = new Dictionary<string, string?>
         {
@@ -60,9 +59,9 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
                 day => PickAsync(acc, ctx, fid, day))
         ];
 
-        return RenderShell(b, controlId, gridId, content, boxAria,
-            () => Toggle(selected),
-            e => OnKeyAsync(acc, ctx, fid, selected, e),
+        return RenderShell(b, controlId, gridId, formatted, boxAria,
+            raw => ParseAsync(acc, ctx, fid, raw),
+            OnKeyAsync,
             selected is not null, popover,
             () => WriteBoxedAsync(acc, ctx, fid, null));
     }
@@ -81,71 +80,35 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
         _seeded = true;
     }
 
-    private void Toggle(DateOnly? selected)
+    // The box is an editable input; typing commits live, so keyboard here is just Escape/Enter to close.
+    private Task OnKeyAsync(KeyboardEventArgs e)
     {
-        if (!Open)
+        if (e.Key is "Escape" or "Enter")
         {
-            SeedCursor(selected, force: true);
+            Open = false;
+            Text = null;
         }
 
-        Open = !Open;
+        return Task.CompletedTask;
     }
 
-    private async Task OnKeyAsync(
-        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid,
-        DateOnly? selected, KeyboardEventArgs e)
+    // Live per-keystroke parse of the typed text in the current culture: a valid, in-range date commits and
+    // moves the calendar cursor; empty clears a nullable picker; anything else is left as-is (keep typing).
+    private Task ParseAsync(
+        ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, string raw)
     {
-        if (!Open)
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            if (e.Key is "Enter" or " " or "ArrowDown")
-            {
-                // Re-seed the cursor to the current value/today on open (mouse Toggle does the same), so a
-                // value changed elsewhere while closed isn't overwritten by a stale cursor on Enter.
-                SeedCursor(selected, force: true);
-                Open = true;
-            }
-
-            return;
+            return CanClear ? WriteBoxedAsync(acc, ctx, fid, null) : Task.CompletedTask;
         }
 
-        switch (e.Key)
+        if (DateOnly.TryParse(raw, Culture, out var d) && Selectable(d))
         {
-            case "Escape":
-                Open = false;
-                break;
-            case "ArrowLeft":
-                _cursor = Clamp(_cursor.AddDays(-1));
-                break;
-            case "ArrowRight":
-                _cursor = Clamp(_cursor.AddDays(1));
-                break;
-            case "ArrowUp":
-                _cursor = Clamp(_cursor.AddDays(-7));
-                break;
-            case "ArrowDown":
-                _cursor = Clamp(_cursor.AddDays(7));
-                break;
-            case "PageUp":
-                _cursor = Clamp(_cursor.AddMonths(e.Shift ? -12 : -1));
-                break;
-            case "PageDown":
-                _cursor = Clamp(_cursor.AddMonths(e.Shift ? 12 : 1));
-                break;
-            case "Home":
-                _cursor = Clamp(PickerParts.WeekStart(_cursor, Culture));
-                break;
-            case "End":
-                _cursor = Clamp(PickerParts.WeekEnd(_cursor, Culture));
-                break;
-            case "Enter":
-            case " ":
-                if (Selectable(_cursor))
-                {
-                    await PickAsync(acc, ctx, fid, _cursor).ConfigureAwait(false);
-                }
-
-                break;
+            _cursor = Clamp(d);
+            return WriteBoxedAsync(acc, ctx, fid, d);
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task PickAsync(
@@ -158,6 +121,7 @@ public sealed class BsDatePicker<T> : BsPickerBase<T>
 
         _cursor = day;
         Open = false;
+        Text = null;
         await WriteBoxedAsync(acc, ctx, fid, day).ConfigureAwait(false);
     }
 

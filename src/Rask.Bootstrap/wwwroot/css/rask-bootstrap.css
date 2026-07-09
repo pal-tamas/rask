@@ -25,6 +25,49 @@
    spill. No CSS override is needed — and forcing overflow:visible on a wide responsive table would have
    let it spill horizontally for no benefit now that the menu is fixed.) */
 
+/* BsSelect / BsMultiSelect nullable clear (×): a nullable custom select with a value shows an × over the
+   box, sitting just left of the .form-select caret. The box gets extra right padding so the value text
+   never runs under the ×. Mirrors the date/time pickers' clear affordance. */
+.bs-select-clearable {
+  padding-right: 3.5rem;
+}
+.bs-select-clear {
+  right: 2.25rem;
+  /* Above the open popover's full-screen backdrop (z-index 999) so it stays clickable while open. */
+  z-index: 1000;
+}
+/* The date/time pickers' clear (×) — same: keep it above the backdrop so an open picker can be cleared. */
+.bs-picker-clear {
+  z-index: 1000;
+}
+
+/* Floating labels for the custom div-based controls (BsSelect / BsMultiSelect / pickers). Bootstrap's own
+   floating keys off :placeholder-shown / :focus — which a <div> control can't have — and it floats a
+   .form-select label unconditionally, so we drive "float only when filled" from state classes instead: the
+   wrapper is .bs-floating and gains .bs-floating-filled when the control holds a value. Empty + unfocused →
+   the label sits centred as the placeholder; filled or focused-within → it shrinks up to the top-left. The
+   higher-specificity selectors (…> .form-select ~ label) override Bootstrap's own floating rules. */
+.form-floating.bs-floating > .form-select ~ label,
+.form-floating.bs-floating > .form-control ~ label {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: none;
+  opacity: 1;
+  color: var(--bs-secondary-color);
+  transition: transform 0.1s ease-in-out, opacity 0.1s ease-in-out;
+}
+.form-floating.bs-floating.bs-floating-filled > .form-select ~ label,
+.form-floating.bs-floating.bs-floating-filled > .form-control ~ label,
+.form-floating.bs-floating:focus-within > .form-select ~ label,
+.form-floating.bs-floating:focus-within > .form-control ~ label {
+  height: auto;
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  opacity: 0.65;
+}
+
 /* Date/time pickers (BsDatePicker/BsTimePicker/BsDateTimePicker). The popover is a plain
    .dropdown-menu we position with live-diff state (no Popper); these rules only style the calendar
    grid and time columns. All colours use Bootstrap CSS variables, so light/dark themes track
@@ -76,21 +119,53 @@
 }
 .bs-picker-caret {
   pointer-events: none;
-  font-size: 0.7rem;
+  /* Roughly matches the size of the native .form-select caret glyph. */
+  font-size: 0.9rem;
+  line-height: 1;
   color: var(--bs-secondary-color);
 }
 .bs-time {
-  --bs-cal-cell: 2.25rem;
+  /* Fixed per-item height so the two columns line up and the popover height is stable (6 items visible). */
+  --bs-time-item-h: 2rem;
 }
 .bs-time-col {
-  max-height: calc(6 * var(--bs-cal-cell));
+  max-height: calc(6 * var(--bs-time-item-h));
   overflow-y: auto;
-  min-width: 3rem;
+  min-width: 3.5rem;
+  /* A slim, unobtrusive scrollbar instead of the chunky OS default. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bs-border-color) transparent;
+}
+.bs-time-col::-webkit-scrollbar {
+  width: 0.4rem;
+}
+.bs-time-col::-webkit-scrollbar-thumb {
+  background: var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
 }
 .bs-time-sep {
   align-self: center;
   font-weight: 600;
 }
 .bs-time-item {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--bs-time-item-h);
+  padding: 0 0.5rem;
+  border-radius: var(--bs-border-radius);
+  /* Aligned, evenly-spaced digits so 00/01/…/23 don't jitter in width. */
+  font-variant-numeric: tabular-nums;
+}
+/* Match the calendar's selected cell: the brand primary (a runtime CSS var so it tracks the app's
+   theme override), not Bootstrap's baked-hex .dropdown-item.active blue. Same specificity as
+   .dropdown-item.active, so being layered after Bootstrap wins. */
+.bs-time-item.active,
+.bs-time-item.active:hover,
+.bs-time-item.active:focus {
+  background: var(--bs-primary);
+  color: #fff;
+}
+.bs-time-item:hover:not(.active) {
+  background: var(--bs-tertiary-bg);
 }

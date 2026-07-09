@@ -19,12 +19,21 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     // Placeholder shown in the trigger box when there is no value.
     public string? Placeholder { get; set; }
 
-    // Popover visibility — pure live-diff view state, toggled by the box click / keyboard, closed by the
-    // backdrop or Escape. The value itself lives in the bound model / controlled Value, never here.
+    // Popover visibility — pure live-diff view state, opened on focus, closed by the backdrop or Escape.
+    // The value itself lives in the bound model / controlled Value, never here.
     private protected bool Open;
 
+    // The text the user is currently typing into the box (null when not editing → the box shows the value's
+    // canonical formatted string). Holds partial/invalid input so a live-committed model can't revert it
+    // mid-keystroke; cleared on blur and on every popover pick so the display re-syncs to the value.
+    private protected string? Text;
+
     // A nullable T (DateOnly?/TimeOnly?/DateTime?) gets a clear affordance; a non-nullable one never does.
-    private protected static readonly bool CanClear = Nullable.GetUnderlyingType(typeof(T)) is not null;
+    // Computed fresh from typeof(T) on each read rather than cached in a `static readonly` field: under the
+    // Mono WASM AOT build a generic base's cached static initializer could resolve typeof(T) against the
+    // wrong instantiation (it surfaced as a DateTimeOffset boxed into a DateTime property — see Underlying),
+    // and a property re-resolves T in the correct runtime generic context every time.
+    private protected static bool CanClear => Nullable.GetUnderlyingType(typeof(T)) is not null;
 
     // A per-instance suffix so two id-less pickers (controlled mode, no Id, no bound property name) still
     // emit unique grid/cell ids — otherwise their aria-controls/aria-activedescendant would collide. Stable
@@ -36,8 +45,19 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     private protected string FallbackPrefix(string kind) =>
         $"{kind}{_instanceId.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
-    // The underlying (non-nullable) value type — DateOnly, TimeOnly, DateTime or DateTimeOffset.
-    private protected static readonly Type Underlying = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+    // The underlying (non-nullable) value type — DateOnly, TimeOnly, DateTime or DateTimeOffset. A property
+    // (not a `static readonly` field) so typeof(T) is resolved fresh: see the CanClear note — a cached
+    // static field mis-resolved under Mono WASM AOT and made BsDateTimePicker<DateTime> take the
+    // DateTimeOffset box branch, throwing "DateTimeOffset cannot be converted to DateTime" on write.
+    private protected static Type Underlying => Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+
+    // The non-nullable type actually targeted by a write: the bound property's real type (reflection —
+    // always correct) when bound, else typeof(T) for the controlled callback. Preferring the property type
+    // means the composed value is boxed to match the model even if a cached generic lookup were ever wrong.
+    private protected static Type TargetUnderlying(ExpressionAccessor.Accessor? acc) =>
+        acc is not null
+            ? Nullable.GetUnderlyingType(acc.PropertyType) ?? acc.PropertyType
+            : Underlying;
 
     // Display/parse culture. CurrentCulture drives month/weekday names and first-day-of-week; the bound
     // value still round-trips invariant ISO because we write the typed value, never a formatted string.
@@ -68,36 +88,61 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     }
 
     // Writes a boxed value back to the model (bound) or notifies the parent (controlled). A boxed struct
-    // sets both a T and a T? property (PropertyInfo.SetValue converts); null clears a nullable T.
+    // sets both a T and a T? property (PropertyInfo.SetValue converts); null clears a nullable T. The value
+    // is coerced to the exact target type first, so a DateTime/DateTimeOffset composed as the wrong one can
+    // never reach PropertyInfo.SetValue or the (T) cast and throw "X cannot be converted to type Y".
     private protected async Task WriteBoxedAsync(
         ExpressionAccessor.Accessor? acc, EditContext? ctx, FieldIdentifier fid, object? boxed)
     {
         if (acc is not null)
         {
-            acc.Setter(boxed);
+            var value = Coerce(acc.PropertyType, boxed);
+            acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid).ConfigureAwait(false);
             // Fire AfterBind on every write, including a clear (boxed == null → default(T), which is null
             // for the nullable T that owns a clear button) — matches the standard bound Setter(null) path.
-            await ((IFormControl<T>)this).InvokeAfterBindAsync(boxed is null ? default! : (T)boxed)
+            await ((IFormControl<T>)this).InvokeAfterBindAsync(value is null ? default! : (T)value)
                 .ConfigureAwait(false);
         }
         else
         {
-            var typed = boxed is null ? default! : (T)boxed;
+            var value = Coerce(typeof(T), boxed);
+            var typed = value is null ? default! : (T)value;
             await ((IFormControl<T>)this).InvokeOnChangeAsync(typed).ConfigureAwait(false);
         }
     }
 
-    // Assembles the .dropdown shell: the .form-control combobox trigger (label-linked, focusable, with a
-    // caret or a clear button), the popover (already built by the picker), and the full-screen backdrop.
-    // Wrapped by Field() so the label + help-text + .invalid-feedback come out identical to BsInput.
+    // Coerces a composed date/time value to the exact type the write target expects, decided by the value's
+    // RUNTIME type (via IsInstanceOfType — never a typeof() comparison, which can mis-fire under some
+    // runtimes). The only legitimate mismatch is DateTime <-> DateTimeOffset; anything already assignable is
+    // returned untouched, so a matching value (with its preserved offset) is never disturbed.
+    private static object? Coerce(Type targetType, object? boxed)
+    {
+        if (boxed is null || targetType.IsInstanceOfType(boxed))
+        {
+            return boxed;
+        }
+
+        return boxed switch
+        {
+            DateTime dt => new DateTimeOffset(
+                DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), TimeZoneInfo.Local.GetUtcOffset(dt)),
+            DateTimeOffset dto => dto.DateTime,
+            _ => boxed,
+        };
+    }
+
+    // Assembles the .dropdown shell: an editable .form-control combobox INPUT (type the value; focus opens
+    // the popover), a caret / clear button, the popover (built by the picker), the backdrop, and the
+    // label/help/invalid-feedback — built here (not via Field) so floating wraps just the box + label in a
+    // .form-floating.bs-floating (Field would wrap the whole .dropdown, which breaks Bootstrap's selector).
     private protected Component RenderShell(
         in Bound b,
         string? controlId,
         string gridId,
-        Component valueContent,
+        string formatted,
         IReadOnlyDictionary<string, string?> boxAria,
-        Callback onToggle,
+        CallbackAsync<string> onParse,
         CallbackAsync<KeyboardEventArgs> onKeyDown,
         bool hasValue,
         Component? popover,
@@ -105,28 +150,36 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
     {
         var disabled = Disabled == true;
         var showClear = CanClear && hasValue && !disabled;
+        var floating = Floating is true && Label is not null;
 
-        var box = Div(
-            Class: BsClass.Join("form-control", SizeClass("form-control"),
-                Display.Flex(), Flex.Align(BsAlign.Center),
-                b.Invalid ? "is-invalid" : null, disabled ? "disabled pe-none" : null, Class),
+        var box = Input<string>(
+            Type: InputType.Text,
+            Class: BsClass.Join("form-control", SizeClass("form-control"), b.Invalid ? "is-invalid" : null),
             Id: controlId,
+            Value: Text ?? formatted,
+            Placeholder: floating ? null : Placeholder,
+            Disabled: Disabled,
+            Autocomplete: "off",
             Data: BsPopover.Anchor,
             Role: "combobox",
-            TabIndex: disabled ? null : 0,
             Aria: boxAria,
-            OnClick: disabled ? null : onToggle,
-            OnKeyDownAsync: disabled ? null : onKeyDown)[
-            valueContent,
-            showClear
-                ? null
-                : Span(Class: BsClass.Join(Margin.StartAuto, "ps-2", "bs-picker-caret"), Aria: Hidden)["▾"]
-        ];
+            OnFocus: disabled ? null : () => Open = true,
+            OnClick: disabled ? null : () => Open = true,
+            OnBlur: disabled ? null : () => Text = null,
+            OnInputAsync: disabled ? null : raw => { Text = raw; return onParse(raw); },
+            OnKeyDownAsync: disabled ? null : onKeyDown);
+
+        var caret = showClear
+            ? null
+            : Span(
+                Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
+                    Position.TranslateMiddleY, Margin.End(3), "bs-picker-caret"),
+                Aria: Hidden)["▾"];
 
         var clear = showClear
             ? BsCloseButton(
                 Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
-                    Position.TranslateMiddleY, Margin.End(2)),
+                    Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear"),
                 AriaLabel: "Clear",
                 OnClickAsync: clearAsync)
             : null;
@@ -136,19 +189,54 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
                 Class: BsClass.Join(Position.Fixed, Position.Top0, Position.Start0,
                     Sizing.W(100), Sizing.H(100)),
                 Style: "z-index: 999;",
-                OnClick: () => Open = false)
+                OnClick: () => { Open = false; Text = null; })
             : null;
+
+        var labelNode = Label is null
+            ? null
+            : Rask.Core.Components.Generated.Label(For: controlId, Class: floating ? null : "form-label")[
+                Label,
+                Required is true ? Span(Class: "text-danger ms-1")["*"] : null];
+
+        var children = new List<Component?>();
+        if (labelNode is not null && !floating)
+        {
+            children.Add(labelNode);
+        }
+
+        // Floating wraps box + label (+ the absolutely-placed caret/×) in a position-relative .form-floating;
+        // the popover/backdrop stay direct children of the .dropdown. Non-floating: box + caret/× sit in the
+        // .dropdown (position-relative), so the caret/× anchor to the box (popover/backdrop are out of flow).
+        if (floating)
+        {
+            children.Add(Div(
+                Class: BsClass.Join("form-floating bs-floating", hasValue ? "bs-floating-filled" : null,
+                    Position.Relative))[box, labelNode, caret, clear]);
+        }
+        else
+        {
+            children.Add(box);
+            children.Add(caret);
+            children.Add(clear);
+        }
 
         // The popover is always in the DOM (like BsMultiSelect's menu); the picker toggles .show/.d-block
         // from Open, so a closed picker still renders the grid (hidden) and its markup is testable.
-        var control = Div(Class: BsClass.Join("dropdown", Position.Relative), Data: BsPopover.Wrapper)[
-            box,
-            clear,
-            popover,
-            backdrop
-        ];
+        children.Add(popover);
+        children.Add(backdrop);
 
-        return Field(controlId, b, control);
+        if (HelpText is not null)
+        {
+            children.Add(Div(Id: HelpTextId(controlId), Class: "form-text")[HelpText]);
+        }
+
+        if (b.Invalid)
+        {
+            children.Add(Div(Id: ErrorId(controlId, b), Class: "invalid-feedback d-block", Role: "alert")[
+                b.Messages[0]]);
+        }
+
+        return Div(Class: BsClass.Join("dropdown", Position.Relative, Class), Data: BsPopover.Wrapper)[children];
     }
 
     private protected static readonly IReadOnlyDictionary<string, string?> Hidden =

@@ -39,7 +39,7 @@ public class BsPickerTests
         Assert.Contains("role=\"combobox\"", html);
         Assert.Contains("aria-haspopup=\"grid\"", html);
         Assert.Contains("aria-controls=\"d-cal\"", html);
-        Assert.Contains("<span>7/7/2026</span>", html);
+        Assert.Contains("type=\"text\" value=\"7/7/2026\"", html);
         Assert.Contains("bs-picker-caret", html);
     }
 
@@ -100,7 +100,7 @@ public class BsPickerTests
     public void Date_NullableEmpty_ShowsPlaceholderAndNoClear()
     {
         var html = Html(Us, () => BsDatePicker<DateOnly?>(Value: null, Placeholder: "pick"));
-        Assert.Contains("<span class=\"text-body-secondary\">pick</span>", html);
+        Assert.Contains("value=\"\" placeholder=\"pick\"", html);
         Assert.DoesNotContain("btn-close", html);
     }
 
@@ -125,7 +125,7 @@ public class BsPickerTests
     public void Date_Disabled_IsNotFocusable()
     {
         var html = Html(Us, () => BsDatePicker<DateOnly>(Value: Jul7, Disabled: true));
-        Assert.Contains("disabled pe-none", html);
+        Assert.Contains("disabled autocomplete=\"off\"", html);
         Assert.DoesNotContain("tabindex=\"0\"", html);
     }
 
@@ -134,7 +134,7 @@ public class BsPickerTests
     {
         var model = new DayModel { Day = Jul7 };
         var html = Html(Us, () => BsDatePicker(() => model.Day));
-        Assert.Contains("<span>7/7/2026</span>", html);
+        Assert.Contains("value=\"7/7/2026\"", html);
         Assert.Contains("aria-controls=\"Day-cal\"", html); // controlId derives from the property name
         Assert.Contains("id=\"Day-d-20260707\"", html);
     }

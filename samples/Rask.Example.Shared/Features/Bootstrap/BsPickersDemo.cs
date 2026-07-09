@@ -2,8 +2,9 @@ namespace Rask.Example.Shared.Features;
 
 // The custom-popover date/time pickers, bound to a model. BsDatePicker/BsTimePicker/BsDateTimePicker
 // implement IFormControl<T>, so two-way binding is automatic — and the readout OUTSIDE the Form updates
-// on every pick with no StateHasChanged, because a bound write re-renders the expression's owner. The
-// calendar/clock popovers are pure live-diff view state (zero bootstrap.js); a nullable DateOnly? gets a
+// on every change with no StateHasChanged, because a bound write re-renders the expression's owner. Each
+// box is a hand-editable <input>: type a date/time (parsed live in the current culture) OR focus it to open
+// the calendar/clock popover (pure live-diff view state, zero bootstrap.js). A nullable DateOnly? gets a
 // clear (×) button.
 public sealed class BsPickersDemo : Component
 {
