@@ -48,6 +48,12 @@ public sealed class NativeShowcaseAppiumTests
         };
         options.AddAdditionalAppiumOption("appium:deviceName", AppiumEnv.IosDeviceName);
         options.AddAdditionalAppiumOption("appium:newCommandTimeout", 180);
+        // Explicit UDID targeting when the CI job resolved it: name-only selection is flaky on the ARM64
+        // macOS runners (same reason MAUI's XHarness pins --device UDID). Locally, unset → attach by name.
+        if (AppiumEnv.IosUdid is not null)
+        {
+            options.AddAdditionalAppiumOption("appium:udid", AppiumEnv.IosUdid);
+        }
 
         using var driver = new IOSDriver(new Uri(AppiumEnv.ServerUrl!), options, TimeSpan.FromMinutes(3));
         AssertShowcaseRendered(driver);
