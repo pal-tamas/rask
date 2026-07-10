@@ -3,12 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Server.Tests.Configuration;
 
-// Serialized with the other tests that read/write the process-global WS/grace-period statics.
-[Collection("SessionGracePeriod")]
+// No shared global state to serialize on any more — each test builds its own provider and reads the
+// per-host RaskServerLimits singleton, so this class runs in parallel with the rest of the suite.
 public class ConfigurableLimitsTests
 {
     [Fact]
-    public void RaskServerOptions_Defaults_MatchTheShippedStaticLimits()
+    public void RaskServerOptions_Defaults_MatchTheShippedDefaults()
     {
         var o = new RaskServerOptions();
 
@@ -20,51 +20,32 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AddRask_ConfigureServer_SeedsTheServerStaticLimits()
+    public void AddRask_ConfigureServer_SeedsThePerHostLimits()
     {
-        var saved = (
-            RaskEndpointExtensions.MaxInboundFrameBytes,
-            RaskEndpointExtensions.MaxPendingHandlers,
-            RaskEndpointExtensions.MaxInboundFramesPerSecond,
-            RaskEndpointExtensions.SessionGracePeriod,
-            RaskEndpointExtensions.UnconnectedSessionGracePeriod,
-            RaskEndpointExtensions.IdleSocketTimeout,
-            RaskEndpointExtensions.MaxPendingHandlerBytes,
-            RaskEndpointExtensions.HandlerTimeout);
-        try
+        // configureServer projects RaskServerOptions into the per-host RaskServerLimits singleton —
+        // no process-global statics, so this is fully isolated from every other test.
+        using var provider = new ServiceCollection().AddRask(configureServer: o =>
         {
-            new ServiceCollection().AddRask(configureServer: o =>
-            {
-                o.MaxInboundFrameBytes = 1234;
-                o.MaxPendingHandlers = 7;
-                o.MaxInboundFramesPerSecond = 42;
-                o.SessionGracePeriod = TimeSpan.FromSeconds(5);
-                o.UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(2);
-                o.IdleSocketTimeout = TimeSpan.FromSeconds(90);
-                o.MaxPendingHandlerBytes = 4096;
-                o.HandlerTimeout = TimeSpan.FromSeconds(7);
-            });
+            o.MaxInboundFrameBytes = 1234;
+            o.MaxPendingHandlers = 7;
+            o.MaxInboundFramesPerSecond = 42;
+            o.SessionGracePeriod = TimeSpan.FromSeconds(5);
+            o.UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(2);
+            o.IdleSocketTimeout = TimeSpan.FromSeconds(90);
+            o.MaxPendingHandlerBytes = 4096;
+            o.HandlerTimeout = TimeSpan.FromSeconds(7);
+        }).BuildServiceProvider();
 
-            Assert.Equal(1234, RaskEndpointExtensions.MaxInboundFrameBytes);
-            Assert.Equal(7, RaskEndpointExtensions.MaxPendingHandlers);
-            Assert.Equal(42, RaskEndpointExtensions.MaxInboundFramesPerSecond);
-            Assert.Equal(TimeSpan.FromSeconds(5), RaskEndpointExtensions.SessionGracePeriod);
-            Assert.Equal(TimeSpan.FromSeconds(2), RaskEndpointExtensions.UnconnectedSessionGracePeriod);
-            Assert.Equal(TimeSpan.FromSeconds(90), RaskEndpointExtensions.IdleSocketTimeout);
-            Assert.Equal(4096, RaskEndpointExtensions.MaxPendingHandlerBytes);
-            Assert.Equal(TimeSpan.FromSeconds(7), RaskEndpointExtensions.HandlerTimeout);
-        }
-        finally
-        {
-            (RaskEndpointExtensions.MaxInboundFrameBytes,
-                RaskEndpointExtensions.MaxPendingHandlers,
-                RaskEndpointExtensions.MaxInboundFramesPerSecond,
-                RaskEndpointExtensions.SessionGracePeriod,
-                RaskEndpointExtensions.UnconnectedSessionGracePeriod,
-                RaskEndpointExtensions.IdleSocketTimeout,
-                RaskEndpointExtensions.MaxPendingHandlerBytes,
-                RaskEndpointExtensions.HandlerTimeout) = saved;
-        }
+        var limits = provider.GetRequiredService<RaskServerLimits>();
+
+        Assert.Equal(1234, limits.MaxInboundFrameBytes);
+        Assert.Equal(7, limits.MaxPendingHandlers);
+        Assert.Equal(42, limits.MaxInboundFramesPerSecond);
+        Assert.Equal(TimeSpan.FromSeconds(5), limits.SessionGracePeriod);
+        Assert.Equal(TimeSpan.FromSeconds(2), limits.UnconnectedSessionGracePeriod);
+        Assert.Equal(TimeSpan.FromSeconds(90), limits.IdleSocketTimeout);
+        Assert.Equal(4096, limits.MaxPendingHandlerBytes);
+        Assert.Equal(TimeSpan.FromSeconds(7), limits.HandlerTimeout);
     }
 
     [Fact]
@@ -89,21 +70,20 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AddRask_NoConfigureServer_DoesNotResetStaticLimits()
+    public void AddRask_NoConfigureServer_RegistersDefaultLimits()
     {
-        var saved = RaskEndpointExtensions.MaxInboundFramesPerSecond;
-        try
-        {
-            // Set a sentinel, then a bare AddRask() must leave it untouched (it would catch a
-            // regression that reset the statics to defaults on the no-callback path).
-            RaskEndpointExtensions.MaxInboundFramesPerSecond = 777;
-            new ServiceCollection().AddRask();
-            Assert.Equal(777, RaskEndpointExtensions.MaxInboundFramesPerSecond);
-        }
-        finally
-        {
-            RaskEndpointExtensions.MaxInboundFramesPerSecond = saved;
-        }
+        // A bare AddRask() registers a RaskServerLimits carrying the framework defaults.
+        using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
+        var limits = provider.GetRequiredService<RaskServerLimits>();
+
+        Assert.Equal(8 * 1024 * 1024, limits.MaxInboundFrameBytes);
+        Assert.Equal(512, limits.MaxPendingHandlers);
+        Assert.Equal(1000, limits.MaxInboundFramesPerSecond);
+        Assert.Equal(TimeSpan.FromSeconds(30), limits.SessionGracePeriod);
+        Assert.Equal(TimeSpan.FromSeconds(10), limits.UnconnectedSessionGracePeriod);
+        Assert.Equal(TimeSpan.Zero, limits.IdleSocketTimeout);
+        Assert.Equal(TimeSpan.Zero, limits.HandlerTimeout);
+        Assert.Equal(0, limits.MaxPendingHandlerBytes);
     }
 
     [Fact]

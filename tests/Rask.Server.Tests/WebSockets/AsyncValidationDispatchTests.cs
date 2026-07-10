@@ -4,7 +4,7 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class AsyncValidationDispatchTests
 {
     // Asserts against the `html` payload field — force the legacy full-HTML wire
