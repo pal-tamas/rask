@@ -49,7 +49,7 @@ public sealed class NativeAppHost
         Services.AddSingleton<Navigator>();
         // Singleton = one queue for the app instance (the whole native app is a single session), so a
         // message queued before a NavigateTo survives it. Same model as WasmHostBuilder.
-        Services.AddSingleton<IFlash, Flash>();
+        Services.AddSingleton<IToaster, Toaster>();
 
         // The transport-agnostic browser-API surface (Rask.Core.Browser) — every wrapper is IJSRuntime-
         // backed and works through the WebView's JS engine. These are the default backings; a platform

@@ -94,8 +94,8 @@ public abstract partial class SharedSmokeTests
     // distinctive .rask-error-boundary class (DefaultErrorPage) — when an error escapes every user
     // boundary. Outside the deliberate /boom demos it must never appear. Match that class precisely:
     // a bare main:has-text("Something went wrong") false-positives on legitimate page content that
-    // merely contains the phrase — e.g. the Toast and Flash demos' CodeSample shows ToastDemo.cs /
-    // FlashDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
+    // merely contains the phrase — e.g. the BsToast element and Toaster demos' CodeSample shows
+    // ToastDemo.cs / ToasterDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
     protected async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
 
@@ -516,7 +516,7 @@ public abstract partial class SharedSmokeTests
 
         await SideAsync("Composition", "Composition", "main .markdown-body h1");
         Assert.True(await Page.Locator(".guide-demo .sample-card").CountAsync() >= 14,
-            "expected the Composition guide to embed the demos (incl. component-tiers, the folded events, flash + master-detail) as live demos");
+            "expected the Composition guide to embed the demos (incl. component-tiers, the folded events, toast + master-detail) as live demos");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the guide still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -577,13 +577,15 @@ public abstract partial class SharedSmokeTests
         await eSurface.Locator("div[tabindex='0']").ClickAsync();
         await Expect(eSurface).ToContainTextAsync("focused", contains);
 
-        // Flash: a producer raises an IFlash message; the headless FlashOutlet drains it (consumed-once)
-        // and renders a dismissible BsAlert — live-diff state, no client JS.
+        // Toast: a producer raises an IToaster message; the headless ToastOutlet drains it (consumed-once)
+        // and renders a dismissible BsAlert — live-diff state, no client JS. The demo's ToastOutlet sets
+        // AutoDismissAfter: 5s, so the toast clears itself with no click — driven entirely by a server/WASM
+        // -side timer over live-diff. (Manual × dismissal is covered by the ToastOutlet unit tests.)
         await Page.Locator(".guide-demo button:has-text('Success')").First.ClickAsync();
-        var flashAlert = Page.Locator(".alert:has-text('Your changes were saved.')");
-        await Expect(flashAlert).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await flashAlert.Locator(".btn-close").ClickAsync();
-        await Expect(flashAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        var toastAlert = Page.Locator(".alert:has-text('Your changes were saved.')");
+        await Expect(toastAlert).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Auto-dismiss: gone on its own within the 5s delay (+ slack for transport + render).
+        await Expect(toastAlert).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 12_000 });
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
@@ -648,8 +650,8 @@ public abstract partial class SharedSmokeTests
 
     protected async Task WalkAuthGuideAsync()
     {
-        // The Toast, Flash and User & auth example pages were folded into their guides: Toast →
-        // WalkBootstrapGuideAsync, Flash + events → TestCompositionGuideAsync. This walks the
+        // The BsToast element, Toast-messages and User & auth example pages were folded into their guides:
+        // BsToast → WalkBootstrapGuideAsync, Toast messages + events → TestCompositionGuideAsync. This walks the
         // Authentication guide's two gating demos (imperative UserGate + declarative Authorize).
         await SideAsync("Authentication", "Authentication", "main .markdown-body h1");
 

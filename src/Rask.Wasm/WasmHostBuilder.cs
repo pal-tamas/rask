@@ -33,9 +33,9 @@ public sealed class WasmHostBuilder
         Services.AddSingleton<IBrowserFileBackend, WasmFileBackend>();
         Services.AddSingleton<IDownloadSink, WasmDownloadSink>();
         Services.AddSingleton<Navigator>();
-        // Transient user messages (Rails-style flash). Singleton = one queue for the app instance (the
-        // whole WASM app is a single session), so a message queued before a NavigateTo survives it.
-        Services.AddSingleton<IFlash, Flash>();
+        // Transient user messages / toasts (Rails-style flash). Singleton = one queue for the app instance
+        // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
+        Services.AddSingleton<IToaster, Toaster>();
         Services.AddSingleton<IBrowserStorage, BrowserStorage>();
         Services.AddSingleton<IClipboard, Clipboard>();
         Services.AddSingleton<IGeolocation, Geolocation>();

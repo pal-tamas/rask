@@ -159,9 +159,9 @@ public static class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
-        // Transient user messages (Rails-style flash). Scoped = one queue per session, so a message
-        // queued before a client-side NavigateTo survives the navigation and shows once on arrival.
-        services.AddScoped<IFlash, Flash>();
+        // Transient user messages / toasts (Rails-style flash). Scoped = one queue per session, so a
+        // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
+        services.AddScoped<IToaster, Toaster>();
         services.AddScoped<IBrowserStorage, BrowserStorage>();
         services.AddScoped<IClipboard, Clipboard>();
         services.AddScoped<IGeolocation, Geolocation>();

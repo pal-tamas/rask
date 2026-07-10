@@ -19,8 +19,8 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
-        // APIs (docs/browser-apis.md); Events + Flash → Composition (docs/composition.md); Toast →
-        // Bootstrap (docs/bootstrap.md); User & auth → Authentication (docs/authentication.md); User
+        // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
+        // BsToast element → Bootstrap (docs/bootstrap.md); User & auth → Authentication (docs/authentication.md); User
         // components → Getting started (docs/getting-started.md); Live ticker → Lifecycle
         // (docs/lifecycle.md); Master-detail → Composition (docs/composition.md keyed lists). The Data
         // table stays a working [QueryParam] example at /table (unlisted) — its source is shown in
