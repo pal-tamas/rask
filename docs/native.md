@@ -225,15 +225,13 @@ sandbox, and real background execution — without giving up "the same component
    client + `RunLocalAsync` pipeline in Chromium (the WebView engine class Android ships) via a
    Playwright-backed `INativeWebView` (`PlaywrightNativeWebView`) whose route handler
    (`NativeOriginServer`) serves the shell + client + scoped `/_rask/a/*` assets + `global.css` +
-   Bootstrap — the E2E stand-in for a device head's scheme handler. `NativeExampleTests` runs a
-   focused native journey — boot + first render, the sidebar (collapsible groups + mobile offcanvas
-   drawer), a showcase render walk, scoped CSS/JS applied over the bridge, element-ref focus through
-   `IJSRuntime`, and WebView history (route→URL push, hardware Back/forward, the URL-routed Todos
-   dialog). It runs deliberately focused rather than the browser hosts' full 12-walk gauntlet: every
-   interaction is an async round-trip over the WebView bridge, so a long back-to-back sequence
-   accumulates timing flake without adding coverage — exhaustive per-feature behaviour is covered by
-   the Server/WASM shards (same shared showcase) + the native unit tests. It's a native shard in CI
-   alongside Server/WASM. **Two native-host bugs the E2E surfaced were fixed (see item 6).**
+   Bootstrap — the E2E stand-in for a device head's scheme handler. `NativeExampleTests` reuses the
+   **same shared showcase walks** the browser hosts run — rendering, in-SPA navigation, composition,
+   lifecycle, routing (URL push/back-forward), scoped CSS/JS interop (element-ref focus + sessionStorage),
+   elements, CQRS, forms + keyboard, styling + the URL-routed Todos dialog, the Browser-APIs co-mount,
+   Bootstrap components, guides, and the popstate in-session 404 (only the `HttpClient`-backed HTTP & files
+   walk is skipped — Playwright can't intercept a .NET-side fetch). It's a native shard in CI alongside
+   Server/WASM. **Three native-host bugs the E2E surfaced were fixed (see item 6).**
    *(Native + Server needs no separate suite: in that mode the WebView loads a remote Rask Server and
    speaks the ordinary Server (`rask.js`/WS) protocol — the native client isn't involved — so it's
    already covered by `ServerExampleTests`; its only native-specific surface, the real platform
@@ -247,7 +245,14 @@ sandbox, and real background execution — without giving up "the same component
    (guarded by `NativeJsInteropTests`). (b) The native client now drives its own WebView history —
    `applyHistory` pushes/replaces each route change and a `popstate` listener feeds Back/forward into the
    router — so `location`/URL tracks the route, hardware Back works, and URL-routed UI (the Todos dialog,
-   `Navigator.SetQuery`) works. *Remaining follow-up:* a value-returning `InvokeAsync<T>` awaited inside a
-   handler (e.g. a `sessionStorage.getItem` read) is still occasionally unreliable in the headless E2E
-   even though the native-core unit test passes — under investigation; the native journey proves the
-   fixes via the void-invoke (focus) + history paths.
+   `Navigator.SetQuery`) works. (c) A **concurrent-render race** (the intermittent flake that first looked
+   like "a value-returning read is unreliable", then like a full-HTML morph dropping content): native runs
+   async lifecycle/handler continuations on the thread pool (`HandlerSyncContext.Post` uses `Task.Run`), so
+   a mid-await render (`RenderInScopeCoreAsync`, or a second continuation's render) could run
+   **concurrently** with the dispatch's render — and two renders walking the component tree at once raced
+   `ComponentLifecycle.DisposeComponentTree`'s `PersistedChildren` enumeration (`Collection was modified`),
+   throwing mid-render into the root error boundary and wiping the page. `NativeLiveSession` now has a
+   `_renderLock` (as the Server host does; WASM is single-threaded so it needs none) that serializes every
+   render+emit. With it, native drives the **full** shared showcase journey reliably (the JS-interop
+   element-ref focus + sessionStorage round-trip, the URL-routed Todos dialog + Browser-APIs co-mount, the
+   popstate in-session 404).
