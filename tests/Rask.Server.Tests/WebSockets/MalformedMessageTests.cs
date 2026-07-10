@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.WebSockets;
 // loop, detached the socket and scheduled the session for removal — one buggy or adversarial
 // frame dropped the whole session. These tests assert each bad frame is dropped and the loop
 // keeps dispatching.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class MalformedMessageTests
 {
     // Assert against the full-HTML `html` field — force the legacy wire shape.

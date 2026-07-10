@@ -39,13 +39,17 @@ internal sealed class RaskTestHost : IDisposable
     public static RaskTestHost Create<TApp>(
         Action<IServiceCollection>? configureServices = null,
         Action<IApplicationBuilder>? configureMiddleware = null,
-        string pathBase = "")
+        string pathBase = "",
+        Action<RaskServerOptions>? configureServer = null)
         where TApp : Component
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
-        builder.Services.AddRask();
+        // Per-host WS / grace-period limits (RaskServerLimits) are seeded here, so each TestServer
+        // carries its own — tests set short grace periods / caps via configureServer instead of a
+        // process-global static, which lets these tests run in parallel.
+        builder.Services.AddRask(configureServer: configureServer);
         configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();

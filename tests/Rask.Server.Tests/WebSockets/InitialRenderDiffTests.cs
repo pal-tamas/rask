@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.WebSockets;
 //
 // In SessionGracePeriod so the static LiveOptions.DiffMode write serialises with the other
 // DiffMode-mutating WS test classes.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class InitialRenderDiffTests
 {
     // Auto is the framework default; a counter's text diff is far smaller than the body, so

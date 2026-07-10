@@ -16,7 +16,6 @@ namespace Rask.Server.Tests.WebSockets;
 // The fix makes Dispose/DisposeAsync acquire _renderLock around the walk, so disposal and render
 // are mutually exclusive. This test gates a render in flight and asserts disposal blocks until the
 // render releases the lock — deterministic where a raw stress loop would only catch it sometimes.
-[Collection("SessionGracePeriod")]
 public class SessionDisposeRaceTests
 {
     [Fact]

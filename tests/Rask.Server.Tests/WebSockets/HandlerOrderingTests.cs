@@ -21,7 +21,7 @@ namespace Rask.Server.Tests.WebSockets;
 // async handlers awaiting jsResult / dotNetInvoke don't deadlock the loop),
 // but the *start order* of dispatches now matches WS arrival order
 // deterministically.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class HandlerOrderingTests
 {
     // These tests assert against the `html` field in the payload — the legacy

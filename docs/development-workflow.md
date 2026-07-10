@@ -15,8 +15,16 @@ Every change passes this gate before a PR (the `rask-ship` skill):
    `EnforceCodeStyleInBuild`), so a plain build enforces it too. See [code-analysis.md](code-analysis.md).
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
    can't reach the path. **Every `samples/` change gets an E2E** journey update
-   (`tests/Rask.Examples.E2E.Tests`). Inner loop:
-   `dotnet test Rask.slnx --filter "FullyQualifiedName!~Rask.Examples.E2E"`.
+   (`tests/Rask.Examples.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
+   each run doesn't rebuild the whole solution (test execution itself is fast; the build dominates):
+   ```bash
+   dotnet build Rask.slnx -c Release
+   dotnet test Rask.slnx -c Release --no-build --filter "FullyQualifiedName!~Rask.Examples.E2E"
+   ```
+   Narrow further to one project (`dotnet test tests/Rask.Core.Tests --no-build`) or one class
+   (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
+   don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
+   `Rask.Wasm.Hosting.targets`).
 4. **Benchmarks** — any render/live-runtime hot-path change runs `benchmarks/Rask.Benchmarks`
    before/after and quotes the `Allocated` delta in the PR.
 5. **Docs & examples** — user-facing changes update a `samples/` app, the relevant `docs/*.md`,
@@ -39,7 +47,8 @@ Every change passes this gate before a PR (the `rask-ship` skill):
 
 ## CI
 
-- `ci.yml` — unit gate + sharded E2E matrix (one host per runner) on PRs/`main`.
+- `ci.yml` — unit gate + a shared `e2e-build` job whose output a sharded E2E matrix (one host per
+  runner) consumes with `--no-build`, so the solution builds once instead of once per shard.
 - `commitlint.yml` — Conventional Commits check on PRs.
 - `nightly.yml` — prerelease publish on `main`.
 - `release.yml` — tag-triggered stable publish.

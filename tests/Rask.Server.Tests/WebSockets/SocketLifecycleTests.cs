@@ -6,12 +6,12 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class SocketLifecycleTests
 {
-    // Asserts against the `html` payload field — force the legacy full-HTML wire
-    // shape. The SessionGracePeriod collection already disables parallelization
-    // for this class, so the static-field assignment is single-threaded here.
+    // Asserts against the `html` payload field — force the legacy full-HTML wire shape. The
+    // LiveDiffMode collection disables parallelization for this class, so this global-static
+    // assignment is single-threaded and can't race another class that sets a different DiffMode.
     public SocketLifecycleTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     [Fact]
@@ -27,97 +27,73 @@ public class SocketLifecycleTests
     [Fact]
     public async Task SocketDisconnect_SchedulesRemoval_SessionRemovedAfterShortenedGracePeriod()
     {
-        var prevGrace = RaskEndpointExtensions.SessionGracePeriod;
-        RaskEndpointExtensions.SessionGracePeriod = TimeSpan.FromMilliseconds(50);
-        try
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
+        var initial = await host.Http.GetAsync("/start");
+        var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            using var host = RaskTestHost.Create<TestApp>();
-            var initial = await host.Http.GetAsync("/start");
-            var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
-            var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-
-            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-            while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(20);
-            }
-
-            Assert.Equal(0, host.Store.Count);
+            await Task.Delay(20);
         }
-        finally
-        {
-            RaskEndpointExtensions.SessionGracePeriod = prevGrace;
-        }
+
+        Assert.Equal(0, host.Store.Count);
     }
 
     [Fact]
     public async Task Reconnect_BeforeGracePeriodDeadline_AttachesToExistingSession()
     {
-        var prev = RaskEndpointExtensions.SessionGracePeriod;
-        RaskEndpointExtensions.SessionGracePeriod = TimeSpan.FromSeconds(2);
-        try
-        {
-            using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(2));
+        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
-            var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+        var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
-            // Reconnect well inside the grace window.
-            using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
-            var rerender = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        // Reconnect well inside the grace window.
+        using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        var rerender = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            Assert.NotNull(rerender);
-            Assert.Contains("count=", rerender);
-            Assert.Equal(1, host.Store.Count);
-        }
-        finally
-        {
-            RaskEndpointExtensions.SessionGracePeriod = prev;
-        }
+        Assert.NotNull(rerender);
+        Assert.Contains("count=", rerender);
+        Assert.Equal(1, host.Store.Count);
     }
 
     [Fact]
     public async Task Reconnect_AfterGracePeriodExpires_HelloIsRejected()
     {
-        var prev = RaskEndpointExtensions.SessionGracePeriod;
-        RaskEndpointExtensions.SessionGracePeriod = TimeSpan.FromMilliseconds(50);
-        try
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
+        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+
+        var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
-
-            var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-            while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(20);
-            }
-
-            Assert.Equal(0, host.Store.Count);
-
-            using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
-            var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-
-            Assert.NotNull(reply);
-            Assert.Contains("\"status\":\"unknown\"", reply);
+            await Task.Delay(20);
         }
-        finally
-        {
-            RaskEndpointExtensions.SessionGracePeriod = prev;
-        }
+
+        Assert.Equal(0, host.Store.Count);
+
+        using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        Assert.NotNull(reply);
+        Assert.Contains("\"status\":\"unknown\"", reply);
     }
 
     [Fact]
@@ -148,36 +124,33 @@ public class SocketLifecycleTests
     [Fact]
     public async Task Close_WithCustomReason_RemovesSessionAfterGrace()
     {
-        var prev = RaskEndpointExtensions.SessionGracePeriod;
-        RaskEndpointExtensions.SessionGracePeriod = TimeSpan.FromMilliseconds(50);
-        try
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
+        var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "policy-violation-bye",
+            CancellationToken.None);
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            using var host = RaskTestHost.Create<TestApp>();
-            var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
-
-            var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-
-            await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "policy-violation-bye",
-                CancellationToken.None);
-
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-            while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
-            {
-                await Task.Delay(20);
-            }
-
-            Assert.Equal(0, host.Store.Count);
+            await Task.Delay(20);
         }
-        finally
-        {
-            RaskEndpointExtensions.SessionGracePeriod = prev;
-        }
+
+        Assert.Equal(0, host.Store.Count);
     }
 }
 
-[CollectionDefinition("SessionGracePeriod", DisableParallelization = true)]
-public class SessionGracePeriodCollectionDef
+// Serializes the test classes that force a non-default wire shape via the process-global
+// LiveOptions.DiffMode static in their constructor (Auto / Forced / DisabledFull). They set
+// conflicting values and assert on the resulting payload, so they must run one at a time and never
+// overlap each other. (The former per-host WS/grace-period limits are on RaskServerLimits now, so
+// that reason for serializing is gone — this is purely about the LiveOptions.DiffMode global.)
+[CollectionDefinition("LiveDiffMode", DisableParallelization = true)]
+public class LiveDiffModeCollectionDef
 {
 }

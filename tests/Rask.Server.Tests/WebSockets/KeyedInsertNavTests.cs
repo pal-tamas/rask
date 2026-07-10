@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.WebSockets;
 // the offsets were captured, shifting every byte position after the head — so without the
 // offset adjustment the inserted row's HTML was garbled (sliced mid-attribute). Keyed insert
 // is the only op that carries an HTML slice, which is why delete/move were unaffected.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class KeyedInsertNavTests
 {
     public KeyedInsertNavTests() => LiveOptions.DiffMode = LiveDiffMode.Forced;

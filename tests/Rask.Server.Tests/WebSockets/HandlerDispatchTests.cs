@@ -7,7 +7,7 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class HandlerDispatchTests
 {
     // Asserts against the `html` payload field — force the legacy full-HTML wire

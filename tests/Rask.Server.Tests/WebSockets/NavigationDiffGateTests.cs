@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.WebSockets;
 //
 // In SessionGracePeriod so the static LiveOptions.DiffMode write serialises with the other
 // DiffMode-mutating WS test classes.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class NavigationDiffGateTests
 {
     // Forced pins the diff path so the assertions don't depend on payload sizing; the
