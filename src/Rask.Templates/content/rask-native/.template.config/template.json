@@ -4,7 +4,7 @@
   "classifications": [ "Mobile", "Rask", "iOS", "Android", "Native" ],
   "identity": "Rask.Templates.Native",
   "name": "Rask Native Mobile App (iOS + Android)",
-  "description": "A native iOS/Android app that runs a Rask app in-process inside a platform WebView (WebView hybrid). The same component code as the other Rask hosts, packaged for the App Store / Play Store.",
+  "description": "A native iOS/Android app that hosts a Rask app inside a platform WebView (WebView hybrid). Native + Local runs the component code in-process on the device; Native + Server is a thin native shell over a remote Rask Server with native device capabilities bridged to the page.",
   "shortName": [ "rask-native" ],
   "tags": {
     "language": "C#",
@@ -14,5 +14,54 @@
   "preferNameDirectory": true,
   "defaultName": "RaskApp",
   "symbols": {
-  }
+    "host": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "local",
+          "description": "Native + Local — the Rask component code runs in-process on the device (offline, store-distributable)."
+        },
+        {
+          "choice": "server",
+          "description": "Native + Server — a thin native shell over a remote Rask Server; the head bridges native device capabilities (e.g. the OS share sheet) to the loaded page."
+        }
+      ],
+      "defaultValue": "local",
+      "description": "Which Rask.Native host mode to scaffold."
+    },
+    "IsServer": {
+      "type": "computed",
+      "value": "(host == \"server\")"
+    },
+    "IsLocal": {
+      "type": "computed",
+      "value": "(host == \"local\")"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(IsServer)",
+          "exclude": [
+            "App.cs",
+            "Counter.cs",
+            "HomePage.cs",
+            "Platforms/iOS/AppDelegate.cs",
+            "Platforms/iOS/RaskWkWebView.cs",
+            "Platforms/Android/MainActivity.cs",
+            "Platforms/Android/RaskAndroidWebView.cs"
+          ]
+        },
+        {
+          "condition": "(IsLocal)",
+          "exclude": [
+            "Platforms/iOS/ServerAppDelegate.cs",
+            "Platforms/Android/ServerActivity.cs"
+          ]
+        }
+      ]
+    }
+  ]
 }
