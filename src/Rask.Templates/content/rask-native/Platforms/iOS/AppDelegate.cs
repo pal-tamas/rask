@@ -1,6 +1,7 @@
 using Foundation;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Client.Browser;
+using Rask.Core.Browser;
 using Rask.Native;
 using UIKit;
 
@@ -29,10 +30,11 @@ public class AppDelegate : UIApplicationDelegate
     private async Task StartAsync(RaskWkWebView webView)
     {
         var host = NativeAppHost.CreateDefault();
-        // Native device backend: hand IShare to the iOS OS share sheet (UIActivityViewController), overriding
-        // Rask.Native's JS-backed default. Register any native backend on host.Services before RunLocalAsync
-        // — the last registration wins. See docs/native.md "Native device backends".
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));
+        // Native device backends: override Rask.Native's JS-backed defaults with the platform APIs. Register
+        // any native backend on host.Services before RunLocalAsync — the last registration wins. See
+        // docs/native.md "Native device backends".
+        host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));  // share sheet
+        host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation());                     // CoreLocation
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
         webView.LoadShell();

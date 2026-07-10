@@ -1,7 +1,9 @@
 using Android.App;
+using Android.Content.PM;
 using Android.OS;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Client.Browser;
+using Rask.Core.Browser;
 using Rask.Native;
 
 namespace Company.RaskNative;
@@ -17,6 +19,13 @@ public class MainActivity : Activity
     {
         base.OnCreate(savedInstanceState);
 
+        // NativeGeolocation (registered below) needs the runtime location grant — request it up front so a
+        // later GetCurrentPositionAsync finds it granted (declare ACCESS_FINE_LOCATION in AndroidManifest.xml).
+        if (CheckSelfPermission(Android.Manifest.Permission.AccessFineLocation) != Permission.Granted)
+        {
+            RequestPermissions([Android.Manifest.Permission.AccessFineLocation], 100);
+        }
+
         _webView = new RaskAndroidWebView(this);
         SetContentView(_webView.View);
 
@@ -28,10 +37,11 @@ public class MainActivity : Activity
     private async Task StartAsync(RaskAndroidWebView webView)
     {
         var host = NativeAppHost.CreateDefault();
-        // Native device backend: hand IShare to the Android OS share sheet (ACTION_SEND chooser), overriding
-        // Rask.Native's JS-backed default. Register any native backend on host.Services before RunLocalAsync
-        // — the last registration wins. See docs/native.md "Native device backends".
-        host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
+        // Native device backends: override Rask.Native's JS-backed defaults with the platform APIs. Register
+        // any native backend on host.Services before RunLocalAsync — the last registration wins. See
+        // docs/native.md "Native device backends".
+        host.Services.AddSingleton<IShare>(_ => new NativeShare(this));                  // OS share sheet
+        host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation(this));       // LocationManager
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
         webView.LoadShell();
