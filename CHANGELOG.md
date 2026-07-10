@@ -118,6 +118,10 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **De-flaked the native E2E copy-button step.** In the JS-interop guide journey the `CodeSample` "Copy"
+  click round-trips (handler → `InvokeVoidAsync` → scoped JS flashes "Copied!"); over the native WebView
+  bridge a single message can drop, so the shared journey occasionally never saw the flash. The (idempotent)
+  copy click is now retried up to three times before the assertion fails. Test-only; no framework change.
 - **Event callbacks on generic components now re-render the component (`BsMultiSelect` chip × works again).**
   A callback that captures `this` plus a local through a nested closure — e.g. `BsMultiSelect<T>`'s per-chip
   `() => ToggleAsync(item)` behind a `BsCloseButton` — is lowered by Roslyn to *generic* display classes when
