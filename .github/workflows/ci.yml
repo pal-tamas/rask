@@ -322,14 +322,17 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Build ${{ matrix.project }} (${{ matrix.tfm }})
-        # RaskNativeHeads=true makes Rask.Native build its platform heads; iOS: the .NET workload trails the
-        # runner's Xcode, so skip the exact-version gate.
-        run: >-
-          dotnet build ${{ matrix.project }}
-          -c Release -f ${{ matrix.tfm }}
-          -p:RaskNativeHeads=true
-          -p:ValidateXcodeVersion=false
+      - name: Build/compile ${{ matrix.project }} (${{ matrix.tfm }})
+        # RaskNativeHeads=true makes Rask.Native build its platform heads. Android does a full build.
+        # For iOS we COMPILE-ONLY (Roslyn): the full app's native link needs the exact Xcode/iOS SDK the
+        # Microsoft.iOS workload wants, which trails the GitHub runner's Xcode (MT0180). Compile-only still
+        # catches iOS head compile breaks; the full iOS build + on-device run is verified locally (docs/native.md).
+        run: |
+          if [[ "${{ matrix.tfm }}" == *-ios ]]; then
+            dotnet build ${{ matrix.project }} -c Release -f ${{ matrix.tfm }} -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -t:Compile
+          else
+            dotnet build ${{ matrix.project }} -c Release -f ${{ matrix.tfm }} -p:RaskNativeHeads=true
+          fi
 
   # On-device native E2E: Appium drives the REAL Native + Local app (samples/Rask.Example.Native) on an
   # Android emulator, switches into its WebView, and asserts the showcase rendered with its scoped CSS +
@@ -346,8 +349,10 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install Android workload
-        run: dotnet workload install android
+      - name: Install iOS + Android workloads
+        # Both are needed even though only the Android APK is built: -p:RaskNativeHeads=true makes the
+        # build graph evaluate Rask.Native's net10.0-ios TFM, which requires the ios workload be present.
+        run: dotnet workload install ios android
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
