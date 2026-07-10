@@ -79,9 +79,13 @@ jobs:
           fi
 
       - name: Build (no WASM bundle)
-        # -m:1 (serial) prevents the parallel ProjectReference copy race on Rask.Core.dll
-        # (MSB3026 copy-retry / MSB3030 not-found) rather than masking the warning.
-        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false -m:1
+        # -p:RaskWasm=false now genuinely skips the nested WASM publish: Rask.Wasm.Hosting.targets
+        # gates _RaskPublishWasmBundle on the effective $(RaskWasm) property (the XmlPeek probe
+        # alone can't be turned off from the outer build). With that publish gone there is no second
+        # writer of Rask.Core.dll, so the MSB3026/MSB3030 copy race can't occur and the build runs
+        # in parallel (dropping the old -m:1). This also stops the "fast" gate silently paying for a
+        # full WASM publish it believed -p:RaskWasm=false had disabled.
+        run: dotnet build Rask.slnx -c Release --no-restore -p:RaskWasm=false -p:WasmBuildNative=false
 
       - name: Unit & integration tests
         run: >-
@@ -130,10 +134,11 @@ jobs:
           dotnet restore benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj
 
       - name: Build benchmark projects
-        # -m:1 (serial) avoids the parallel ProjectReference copy race on Rask.Core.dll, matching `unit`.
+        # The benchmark projects reference no WASM host, so no nested WASM publish fires and there is
+        # no Rask.Core.dll copy race — they build in parallel (no -m:1).
         run: |
-          dotnet build benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj -c Release --no-restore -m:1
-          dotnet build benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj -c Release --no-restore -m:1
+          dotnet build benchmarks/Rask.Benchmarks/Rask.Benchmarks.csproj -c Release --no-restore
+          dotnet build benchmarks/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj -c Release --no-restore
 
       - name: Payload-bytes regression gate (standalone codec)
         run: >-
@@ -147,12 +152,64 @@ jobs:
         run: >-
           dotnet run -c Release --project benchmarks/Rask.Benchmarks.VsBlazor --no-build -- mem-footprint
 
-  # Browser journeys: exactly one comprehensive [Fact] journey per hosting project.
-  # Sharded one host per runner so all fixtures boot in parallel — wall-clock is the
-  # slowest single host's cold boot + its journey, not 4 serial batches on one runner.
-  # (Future optimization: a shared `build` job + artifact to avoid rebuilding the WASM
-  # bundles on each shard; kept simple/robust here in favor of independent shards.)
+  # Build the whole E2E graph ONCE and hand the output to every browser-journey shard, instead of
+  # each of the 10 shards rebuilding the entire solution (the E2E test project references every
+  # sample host, so a shard can't build a narrower graph). The shards then run `--no-build` off the
+  # downloaded output, so the expensive build — including the nested WASM publishes that touch
+  # emscripten — happens a single time.
+  # -m:1 stays on this one build: the RaskWasm bundle's nested `dotnet publish` still double-builds
+  # Rask.Core.dll (net10.0-browser) against the top-level WASM build, and serial is the correctness
+  # insurance against that copy race (MSB3026/MSB3030) for the single build that triggers it. (The
+  # `unit`/`benchmarks` jobs drop -m:1 because -p:RaskWasm=false now genuinely skips that publish.)
+  e2e-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Rask.slnx
+
+      - name: Build
+        run: dotnet build Rask.slnx -c Release --no-restore -m:1
+
+      - name: Package build output
+        # Tar every bin/ and obj/: the shards need the built test + sample assemblies, the published
+        # WASM wwwroot bundles the WASM fixtures serve, and the restore assets that `dotnet run
+        # --no-build` and the two publish-based fixtures require. Plain tar — upload-artifact
+        # compresses. -prune stops the walk from descending into a matched dir (no nested dup).
+        run: |
+          find . -type d \( -name bin -o -name obj \) -prune -print0 \
+            | tar --null --files-from=- -cf build-output.tar
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-build-output
+          path: build-output.tar
+          retention-days: 1
+
+  # Browser journeys: exactly one comprehensive [Fact] journey per hosting project. Sharded one host
+  # per runner so all fixtures boot in parallel. Each shard consumes the shared `e2e-build` output and
+  # runs --no-build (no rebuild) — trading a little wall-clock (build-then-fan-out) for ~9× fewer
+  # runner-minutes than every shard rebuilding the solution.
   e2e:
+    needs: e2e-build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,6 +235,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # `dotnet test --no-build` still evaluates the project graph, which imports the wasm-tools
+      # targets for the net10.0-browser project references; the two publish-based fixtures
+      # (Server/NativeServerSmoke) also `dotnet publish` at runtime. Keep the workload + NuGet cache.
       - name: Install wasm-tools workload
         run: dotnet workload install wasm-tools
 
@@ -195,14 +255,14 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Examples.E2E.Tests/Rask.Examples.E2E.Tests.csproj') }}
           restore-keys: playwright-${{ runner.os }}-
 
-      - name: Restore
-        run: dotnet restore Rask.slnx
+      - name: Download build output
+        uses: actions/download-artifact@v7
+        with:
+          name: e2e-build-output
 
-      - name: Build
-        # -m:1 (serial) eliminates the parallel copy race: the WASM AppBundle's nested
-        # `dotnet publish` no longer overlaps another project copying Rask.Core.dll
-        # (MSB3026 copy-retry / MSB3030 not-found). Fixes the cause, not the annotation.
-        run: dotnet build Rask.slnx -c Release --no-restore -m:1
+      - name: Extract build output
+        # Overlay the shared bin/ + obj/ onto the fresh checkout so --no-build sees the built graph.
+        run: tar -xf build-output.tar
 
       - name: E2E journey (${{ matrix.host }})
         # Namespace-anchored so the leading dot prevents substring collisions

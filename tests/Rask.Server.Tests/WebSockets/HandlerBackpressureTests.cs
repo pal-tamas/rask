@@ -3,22 +3,20 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-// Backpressure circuit-breaker (RaskEndpointExtensions.MaxPendingHandlers): a hung handler
+// Backpressure circuit-breaker (RaskServerOptions.MaxPendingHandlers): a hung handler
 // stalls the dispatch chain head, so queued dispatches — each retaining a cloned JsonElement —
 // accumulate. Once the queue exceeds the bound the receive loop must close the socket instead of
 // growing memory without limit.
-[Collection("SessionGracePeriod")]
 public class HandlerBackpressureTests
 {
     [Fact]
     public async Task QueueExceedsBound_WhileHandlerHung_ClosesSocket()
     {
-        var prevMax = RaskEndpointExtensions.MaxPendingHandlers;
-        RaskEndpointExtensions.MaxPendingHandlers = 4;
         HangingApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            using var host = RaskTestHost.Create<HangingApp>();
+            using var host = RaskTestHost.Create<HangingApp>(
+                configureServer: o => o.MaxPendingHandlers = 4);
             var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
             var sessionId = Markup.SessionId(initialHtml);
             var handlerId = Markup.FirstHandlerId(initialHtml);
@@ -57,38 +55,29 @@ public class HandlerBackpressureTests
         finally
         {
             HangingApp.Gate.TrySetResult(); // unblock the hung handler so teardown is clean
-            RaskEndpointExtensions.MaxPendingHandlers = prevMax;
         }
     }
 
     [Fact]
     public async Task UnderBound_NormalTraffic_StaysOpen()
     {
-        var prevMax = RaskEndpointExtensions.MaxPendingHandlers;
-        RaskEndpointExtensions.MaxPendingHandlers = 512;
-        try
-        {
-            using var host = RaskTestHost.Create<TestApp>();
-            var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
-            var sessionId = Markup.SessionId(initialHtml);
-            var handlerId = Markup.FirstHandlerId(initialHtml);
+        using var host = RaskTestHost.Create<TestApp>(
+            configureServer: o => o.MaxPendingHandlers = 512);
+        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var sessionId = Markup.SessionId(initialHtml);
+        var handlerId = Markup.FirstHandlerId(initialHtml);
 
-            using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
+        // These drain quickly (no hung handler), so pending never approaches the bound.
+        for (var i = 0; i < 10; i++)
+        {
+            await ws.SendJsonAsync(new { id = handlerId });
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-
-            // These drain quickly (no hung handler), so pending never approaches the bound.
-            for (var i = 0; i < 10; i++)
-            {
-                await ws.SendJsonAsync(new { id = handlerId });
-                _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            }
-
-            Assert.Equal(WebSocketState.Open, ws.State);
         }
-        finally
-        {
-            RaskEndpointExtensions.MaxPendingHandlers = prevMax;
-        }
+
+        Assert.Equal(WebSocketState.Open, ws.State);
     }
 }

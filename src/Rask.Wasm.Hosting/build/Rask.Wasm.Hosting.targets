@@ -72,9 +72,26 @@
   <Target Name="_RaskPublishWasmBundle"
           BeforeTargets="BeforeBuild"
           DependsOnTargets="_RaskComputeWasmBundleDir">
+    <PropertyGroup>
+      <!--
+        Whether to actually run the (expensive, emscripten-relinking) nested WASM publish.
+        The bundle-dir probe (_RaskWasmAppBundleDir) is an XmlPeek of the referenced csproj,
+        which always reads <RaskWasm>true</RaskWasm> — so it can't be turned off from the
+        outer build. Gate additionally on the effective $(RaskWasm) property so an outer
+        `-p:RaskWasm=false` genuinely skips the publish: the CI `unit`/`benchmarks` jobs
+        pass it because no unit test consumes the published browser bundle. Before this gate
+        those jobs silently paid for a full WASM native relink they believed they had disabled,
+        and needed -m:1 to dodge the Rask.Core.dll copy race against the top-level WASM build.
+        A blank $(RaskWasm) (the normal build/e2e case) still publishes.
+      -->
+      <_RaskDoWasmPublish Condition=" '$(_RaskWasmAppBundleDir)' != '' AND '$(RaskWasm)' != 'false' ">true</_RaskDoWasmPublish>
+    </PropertyGroup>
     <Message Importance="high"
              Text="Rask.Wasm.Hosting: publishing %(_RaskWasmRef.FullPath) ($(Configuration))"
-             Condition=" '$(_RaskWasmAppBundleDir)' != '' "/>
+             Condition=" '$(_RaskDoWasmPublish)' == 'true' "/>
+    <Message Importance="high"
+             Text="Rask.Wasm.Hosting: skipping WASM publish for %(_RaskWasmRef.FullPath) (RaskWasm=false)"
+             Condition=" '$(_RaskWasmAppBundleDir)' != '' AND '$(RaskWasm)' == 'false' "/>
     <!--
       -nodeReuse:false on the nested publish — without this, its MSBuild workers stick around
       with the default nodeReuse=true, reparent to init when the publish process exits, and
@@ -89,7 +106,7 @@
     -->
     <Exec Command="dotnet publish &quot;%(_RaskWasmRef.FullPath)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"
           ContinueOnError="WarnAndContinue"
-          Condition=" '$(_RaskWasmAppBundleDir)' != '' "/>
+          Condition=" '$(_RaskDoWasmPublish)' == 'true' "/>
   </Target>
 
   <Target Name="_RaskSetWasmBundleMetadata"

@@ -16,10 +16,9 @@ namespace Rask.Server;
 ///     <see cref="ArgumentOutOfRangeException" /> on an out-of-range one (a negative grace period, a
 ///     non-positive frame-size cap), so a misconfiguration fails fast at startup rather than at runtime.
 ///     <para>
-///         These are applied to process-global state read by the WebSocket receive loop, so in a
-///         multi-host process the last <c>configureServer</c> wins for every host (the framework's
-///         original constants were likewise process-wide). Per-app limits would need a per-connection
-///         options lookup; configure one set of limits per process.
+///         Each host carries its own limits: <c>AddRask</c> projects these values into a per-host
+///         <c>RaskServerLimits</c> singleton that the WebSocket endpoint resolves once per connection,
+///         so two hosts in one process (or parallel tests) do not share this state.
 ///     </para>
 /// </summary>
 public sealed class RaskServerOptions

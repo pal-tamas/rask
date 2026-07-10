@@ -3,7 +3,6 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Diagnostics;
 
-[Collection("SessionGracePeriod")]
 public class WsLoopMetricsTests
 {
     [Fact]

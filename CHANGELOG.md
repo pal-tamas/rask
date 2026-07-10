@@ -24,6 +24,22 @@ them until tagged releases begin.
   in a mobile-emulated WebView context, confirming the thin-native-shell scenario renders and reacts live
   over the WebSocket.
 
+### Changed
+- **Per-host server limits (no more process-global statics).** The WebSocket safety caps and session
+  grace periods (`RaskServerOptions`) are now projected into a per-host `RaskServerLimits` singleton
+  that the WS endpoint resolves once per connection, instead of eight mutable `static` fields shared
+  across every host in a process. Two hosts in one process each carry their own limits (the old code
+  had the last `configureServer` win for all of them), and the server test suite no longer serialises
+  around that shared state — cutting `Rask.Server.Tests` wall-clock substantially by letting its
+  integration tests run in parallel. No API change; behaviour is unchanged for a single-host process.
+- **Faster tests, locally and in CI.** (1) The `-p:RaskWasm=false` "fast" build now genuinely skips the
+  nested WASM publish — it was gated by an `XmlPeek` of the csproj rather than the property, so the
+  `unit`/`benchmarks` jobs silently ran a full WASM publish they believed disabled — which also lets
+  those builds run in parallel again (the `-m:1` Rask.Core.dll copy-race workaround is no longer needed
+  there). (2) CI now builds the E2E graph **once** in a shared `e2e-build` job and hands the output to
+  every browser-journey shard via artifact (`--no-build`), instead of each of the ten shards rebuilding
+  the whole solution. (3) The documented local inner loop is build-once / test-with-`--no-build`.
+
 ### Fixed
 - **`BsSelect`/date-time picker clear (×) no longer shows through another select's open dropdown.** The
   clear × carried a hard `z-index: 1000` (so an *open* control's × stays clickable above its own

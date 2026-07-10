@@ -52,57 +52,12 @@ public static class RaskEndpointExtensions
     internal const string ManifestPath = "/rask/manifest.webmanifest";
     internal const string ServiceWorkerPath = "/rask-sw.js";
 
-    // Hard cap on a single reassembled inbound WS frame. Client→server messages (hello / event
-    // dispatch / jsResult / navigate / dotNetInvoke args) are small, and file uploads use the HTTP
-    // endpoint — never the socket — so this is generous headroom. It bounds a per-socket memory DoS
-    // where a client streams an unbounded fragmented frame the server would otherwise buffer whole
-    // before JsonDocument.Parse. Seeded from RaskServerOptions.MaxInboundFrameBytes by AddRask; the
-    // static is the DI-free hot-path source of truth (tests also set it directly).
-    internal static int MaxInboundFrameBytes = 8 * 1024 * 1024;
-
+    // The WS receive-loop / session-lifecycle safety limits (frame size &amp; rate caps, pending-handler
+    // count &amp; bytes, handler + idle-socket timeouts, reconnect grace periods) live on a per-host
+    // RaskServerLimits singleton — resolved once per connection, read on the hot path via instance
+    // fields — instead of process-global statics. See RaskServerLimits / RaskServerOptions.
     private static FileSystemWatcher? _sourceWatcher;
     private static long _lastSourceChangeTicks;
-
-    internal static TimeSpan SessionGracePeriod = TimeSpan.FromSeconds(30);
-
-    // Grace for a session that was minted by the GET shell but has not yet received a WS
-    // `hello`. The runtime script connects within a second of page load, so a much shorter
-    // window than the 30s reconnect grace is enough — and it stops a flood of GETs that never
-    // open a socket (scanners, prefetchers, an unauthenticated DoS) from pinning a full DI
-    // scope + component tree for 30s each. A real `hello` cancels this removal (LiveSessionStore
-    // .Get) and any later disconnect re-arms the full SessionGracePeriod via DetachSocket.
-    internal static TimeSpan UnconnectedSessionGracePeriod = TimeSpan.FromSeconds(10);
-
-    // Maximum handler dispatches that may be queued (awaiting their turn in WS-arrival order)
-    // before the receive loop trips the backpressure circuit-breaker and closes the socket.
-    // Each queued dispatch holds a cloned JsonElement; without a bound, a client sending faster
-    // than handlers drain — or a single hung handler stalling the chain head — would grow the
-    // queue (and retained memory) without limit. 512 is far above any legitimate burst. 0 = off.
-    internal static int MaxPendingHandlers = 512;
-
-    // Maximum inbound WS messages per second on a single connection before the receive loop trips
-    // and closes the socket. MaxInboundFrameBytes bounds one frame's SIZE and MaxPendingHandlers
-    // bounds queued HANDLER dispatches, but neither bounds the rate of small NON-handler frames
-    // (jsResult / navigate / dotNetInvoke / malformed), each of which still costs a JSON parse — so
-    // a flood of them is a CPU DoS those caps miss. Counted over a sliding one-second window. A
-    // realistic interaction peak (rapid typing with per-keystroke handlers, a 60 Hz scroll handler)
-    // is well under 100/s, so 1000 is far above any legitimate burst. Mutable static so a test can
-    // lower it. Seeded from RaskServerOptions.MaxInboundFramesPerSecond by AddRask; operators can also
-    // tune ingress with a reverse-proxy rate limiter. 0 = off.
-    internal static int MaxInboundFramesPerSecond = 1000;
-
-    // Close a connected socket that sends no inbound frame for this long (the session survives for
-    // reconnect under SessionGracePeriod). Seeded from RaskServerOptions.IdleSocketTimeout. Zero = off.
-    internal static TimeSpan IdleSocketTimeout = TimeSpan.Zero;
-
-    // Cancel a handler dispatch's CancellationToken after this long, so a cooperative handler that
-    // observes it unwinds instead of pinning the render pipeline. Seeded from
-    // RaskServerOptions.HandlerTimeout. Zero = off.
-    internal static TimeSpan HandlerTimeout = TimeSpan.Zero;
-
-    // Aggregate-bytes companion to MaxPendingHandlers: bounds the queued cloned-payload memory, not just
-    // the queue count. Seeded from RaskServerOptions.MaxPendingHandlerBytes. 0 = off.
-    internal static long MaxPendingHandlerBytes;
 
     // A fixed, content-free payload — written as a literal rather than JsonSerializer.Serialize(anonymous)
     // so it needs no reflection-based serialization. Under NativeAOT (reflection JSON disabled) the
@@ -181,23 +136,19 @@ public static class RaskEndpointExtensions
             maxSessions = liveOptions.MaxSessions;
         }
 
-        // Seed the server-only WS / grace-period safety limits from RaskServerOptions. Defaults match
-        // the statics, so an absent callback is a no-op. The statics are the DI-free hot-path source of
-        // truth read by the WS receive loop; tests also set them directly.
+        // Seed the server-only WS / grace-period safety limits from RaskServerOptions into a per-host
+        // RaskServerLimits singleton. An absent callback registers the framework defaults (which match
+        // RaskServerOptions' defaults). The singleton — not a process-global static — is the hot-path
+        // source of truth: the WS endpoint resolves it once per connection so concurrent hosts each
+        // carry their own limits. Validate only when configured (defaults are in range).
+        var serverOptions = new RaskServerOptions();
         if (configureServer is not null)
         {
-            var serverOptions = new RaskServerOptions();
             configureServer(serverOptions);
             serverOptions.Validate();
-            MaxInboundFrameBytes = serverOptions.MaxInboundFrameBytes;
-            MaxPendingHandlers = serverOptions.MaxPendingHandlers;
-            MaxInboundFramesPerSecond = serverOptions.MaxInboundFramesPerSecond;
-            SessionGracePeriod = serverOptions.SessionGracePeriod;
-            UnconnectedSessionGracePeriod = serverOptions.UnconnectedSessionGracePeriod;
-            IdleSocketTimeout = serverOptions.IdleSocketTimeout;
-            HandlerTimeout = serverOptions.HandlerTimeout;
-            MaxPendingHandlerBytes = serverOptions.MaxPendingHandlerBytes;
         }
+
+        services.AddSingleton(RaskServerLimits.From(serverOptions));
 
         // Metrics singleton (Meter "Rask.Server"). TryAdd so a host can pre-register its own.
         services.TryAddSingleton<RaskMetrics>();
@@ -358,6 +309,7 @@ public static class RaskEndpointExtensions
         endpoints.MapGet(scopedPattern, (RequestDelegate)(async httpContext =>
         {
             var store = httpContext.RequestServices.GetRequiredService<LiveSessionStore>();
+            var limits = httpContext.RequestServices.GetRequiredService<RaskServerLimits>();
             var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
             var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
@@ -426,7 +378,7 @@ public static class RaskEndpointExtensions
             // that never sends `hello` is almost certainly a probe / abandoned load and should
             // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
             // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
-            store.ScheduleRemoval(session.Id, UnconnectedSessionGracePeriod);
+            store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
         }));
         return endpoints;
     }
@@ -497,6 +449,9 @@ public static class RaskEndpointExtensions
             {
                 var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
                 var lifetime = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>();
+                // Resolve the per-host safety limits once per connection (not per frame) — the receive
+                // loop reads them via instance fields on the hot path.
+                var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
                 if (!ctx.WebSockets.IsWebSocketRequest)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -527,7 +482,7 @@ public static class RaskEndpointExtensions
                     new WebSocketAcceptContext { DangerousEnableCompression = true });
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(
                     ctx.RequestAborted, lifetime.ApplicationStopping);
-                await RunSocketLoop(ws, store, wsUser, linked.Token, lifetime.ApplicationStopping);
+                await RunSocketLoop(ws, store, limits, wsUser, linked.Token, lifetime.ApplicationStopping);
             }));
 
         var script = LoadEmbeddedScript();
@@ -686,8 +641,8 @@ public static class RaskEndpointExtensions
         }
     }
 
-    private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, ClaimsPrincipal wsUser,
-        CancellationToken ct, CancellationToken stopping)
+    private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
+        ClaimsPrincipal wsUser, CancellationToken ct, CancellationToken stopping)
     {
         using var abortReg = stopping.Register(() =>
         {
@@ -699,7 +654,7 @@ public static class RaskEndpointExtensions
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
 
-        // Sliding one-second window for the inbound frame-rate cap (MaxInboundFramesPerSecond).
+        // Sliding one-second window for the inbound frame-rate cap (limits.MaxInboundFramesPerSecond).
         var rateWindowStartTick = Environment.TickCount64;
         var framesInWindow = 0;
 
@@ -707,7 +662,7 @@ public static class RaskEndpointExtensions
         // whole inbound message — first frame and every continuation fragment — and disarmed while the
         // message is dispatched, so a mid-fragment stall is reclaimed too and we don't allocate a CTS
         // per message. CancelAfter just reschedules the one internal timer.
-        using var idleCts = IdleSocketTimeout > TimeSpan.Zero
+        using var idleCts = limits.IdleSocketTimeout > TimeSpan.Zero
             ? CancellationTokenSource.CreateLinkedTokenSource(ct)
             : null;
 
@@ -722,7 +677,7 @@ public static class RaskEndpointExtensions
                 // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
                 // means the client went silent mid-stream — close the socket (the session survives for
                 // reconnect under the grace period).
-                idleCts?.CancelAfter(IdleSocketTimeout);
+                idleCts?.CancelAfter(limits.IdleSocketTimeout);
                 var receiveToken = idleCts?.Token ?? ct;
                 try
                 {
@@ -763,7 +718,7 @@ public static class RaskEndpointExtensions
 
                             // Abort a socket that streams a frame past the cap rather than buffering it
                             // whole — bounds per-socket memory against a fragmented-frame DoS.
-                            if (message.WrittenCount > MaxInboundFrameBytes)
+                            if (message.WrittenCount > limits.MaxInboundFrameBytes)
                             {
                                 metrics?.FrameRejected("size");
                                 try { ws.Abort(); }
@@ -793,7 +748,7 @@ public static class RaskEndpointExtensions
                 // a small-frame CPU DoS that the size cap and handler backpressure don't cover. The
                 // client reconnects (hello) against the intact session and resumes from current
                 // state, same as the handler-backlog breaker.
-                if (MaxInboundFramesPerSecond > 0)
+                if (limits.MaxInboundFramesPerSecond > 0)
                 {
                     var nowTick = Environment.TickCount64;
                     if (nowTick - rateWindowStartTick >= 1000)
@@ -802,7 +757,7 @@ public static class RaskEndpointExtensions
                         framesInWindow = 0;
                     }
 
-                    if (++framesInWindow > MaxInboundFramesPerSecond)
+                    if (++framesInWindow > limits.MaxInboundFramesPerSecond)
                     {
                         metrics?.FrameRejected("rate");
                         await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
@@ -949,8 +904,8 @@ public static class RaskEndpointExtensions
                 var payloadBytes = (long)payload.Length;
                 var pending = capturedSession.IncrementPendingHandlers();
                 var pendingBytes = capturedSession.AddPendingHandlerBytes(payloadBytes);
-                if ((MaxPendingHandlers > 0 && pending > MaxPendingHandlers)
-                    || (MaxPendingHandlerBytes > 0 && pendingBytes > MaxPendingHandlerBytes))
+                if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
+                    || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
                 {
                     capturedSession.DecrementPendingHandlers();
                     capturedSession.SubtractPendingHandlerBytes(payloadBytes);
@@ -969,6 +924,7 @@ public static class RaskEndpointExtensions
                     capturedRoot,
                     payloadBytes,
                     metrics,
+                    limits.HandlerTimeout,
                     ct);
             }
         }
@@ -979,7 +935,7 @@ public static class RaskEndpointExtensions
             if (session is not null)
             {
                 session.DetachSocket();
-                store.ScheduleRemoval(session.Id, SessionGracePeriod);
+                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
             }
 
             if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
@@ -1013,6 +969,7 @@ public static class RaskEndpointExtensions
         JsonElement root,
         long payloadBytes,
         RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
         CancellationToken ct)
     {
         try
@@ -1028,7 +985,7 @@ public static class RaskEndpointExtensions
                 // prevent this dispatch from running. The chain is for ordering only.
             }
 
-            await DispatchHandlerAsync(session, handlerId, root, metrics, ct).ConfigureAwait(false);
+            await DispatchHandlerAsync(session, handlerId, root, metrics, handlerTimeout, ct).ConfigureAwait(false);
 
             // Acknowledge the handler so the client's slow-link pending indicator can
             // resolve — crucially even when the render deduped and no frame was sent
@@ -1077,6 +1034,7 @@ public static class RaskEndpointExtensions
         string handlerId,
         JsonElement root,
         RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
         CancellationToken ct)
     {
         try
@@ -1094,14 +1052,14 @@ public static class RaskEndpointExtensions
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
 
-        // Handler timeout: cancel the dispatch's CancellationToken after HandlerTimeout (linked to
+        // Handler timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
         // the socket so a close cancels it too). A handler that threads CancellationToken into its
         // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
         // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.
-        using var handlerCts = HandlerTimeout > TimeSpan.Zero
+        using var handlerCts = handlerTimeout > TimeSpan.Zero
             ? CancellationTokenSource.CreateLinkedTokenSource(ct)
             : null;
-        handlerCts?.CancelAfter(HandlerTimeout);
+        handlerCts?.CancelAfter(handlerTimeout);
         var dispatchToken = handlerCts?.Token ?? default;
         try
         {
@@ -1177,7 +1135,7 @@ public static class RaskEndpointExtensions
                 activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");
                 RaskDiagnostics.Report(
                     RaskLogLevel.Warning, "Rask.Live",
-                    $"Rask Live handler '{handlerId}' cancelled after HandlerTimeout ({HandlerTimeout})");
+                    $"Rask Live handler '{handlerId}' cancelled after HandlerTimeout ({handlerTimeout})");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

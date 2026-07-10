@@ -6,18 +6,16 @@ namespace Rask.Server.Tests.WebSockets;
 
 // RaskServerOptions.HandlerTimeout: a cooperative handler that threads CancellationToken into its
 // async work is cancelled when the timeout elapses, so it unwinds instead of pinning the render lock.
-[Collection("SessionGracePeriod")]
 public class HandlerTimeoutTests
 {
     [Fact]
     public async Task CooperativeHandler_PastTimeout_IsCancelled_AndMetered_SessionSurvives()
     {
-        var prev = RaskEndpointExtensions.HandlerTimeout;
-        RaskEndpointExtensions.HandlerTimeout = TimeSpan.FromMilliseconds(300);
         CooperativeTimeoutApp.Cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            using var host = RaskTestHost.Create<CooperativeTimeoutApp>();
+            using var host = RaskTestHost.Create<CooperativeTimeoutApp>(
+                configureServer: o => o.HandlerTimeout = TimeSpan.FromMilliseconds(300));
             using var capture = MeterCapture.For(host.Store.Metrics!.Meter);
 
             var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
@@ -46,7 +44,6 @@ public class HandlerTimeoutTests
         }
         finally
         {
-            RaskEndpointExtensions.HandlerTimeout = prev;
             CooperativeTimeoutApp.Cancelled.TrySetResult(false);
         }
     }

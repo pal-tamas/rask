@@ -15,7 +15,7 @@ namespace Rask.Server.Tests.WebSockets;
 //  - The dispatch lock (session.Lock) is distinct from the render lock (_renderLock), and AttachSocket
 //    takes neither — so a handler parked under the dispatch lock across a disconnect can't block the
 //    reconnect, and once it clears the queued work drains through the reconnected socket.
-[Collection("SessionGracePeriod")]
+[Collection("LiveDiffMode")]
 public class HandlerExceptionIsolationTests
 {
     // Assert against the legacy full-HTML `html` field (framework default is now diff mode).
