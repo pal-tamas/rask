@@ -1,5 +1,7 @@
 using Android.App;
 using Android.OS;
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Client.Browser;
 using Rask.Native;
 
 namespace Company.RaskNative;
@@ -26,6 +28,10 @@ public class MainActivity : Activity
     private async Task StartAsync(RaskAndroidWebView webView)
     {
         var host = NativeAppHost.CreateDefault();
+        // Native device backend: hand IShare to the Android OS share sheet (ACTION_SEND chooser), overriding
+        // Rask.Native's JS-backed default. Register any native backend on host.Services before RunLocalAsync
+        // — the last registration wins. See docs/native.md "Native device backends".
+        host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
         webView.LoadShell();

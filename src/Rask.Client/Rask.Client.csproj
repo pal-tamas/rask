@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Rask.Client is the shared home for in-process CLIENT capabilities that BOTH the WASM and Native hosts
+    provide but the Server host cannot — device/browser APIs that need transient user activation or a live
+    document, which the Server's WebSocket round-trip loses. It sits between Rask.Core and the two in-process
+    hosts:
+      • Rask.Core.Browser — APIs every host (incl. Server) can serve over IJSRuntime.
+      • Rask.Client.Browser (here) — APIs shared by the WASM + Native hosts. Rask.Native cannot reference the
+        browser-targeted Rask.Wasm, so anything both in-process hosts share lives here (currently IShare).
+      • Rask.Wasm.Browser — the WASM-only APIs (Fullscreen, Serial, USB, …).
+
+    Like Rask.Core, this is IsPackable=false: its DLL is bundled into the Rask.Wasm and Rask.Native package
+    lib/ folders rather than published as its own package. Its only dependency (Microsoft.JSInterop) is already
+    surfaced at both host package boundaries.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ShareData (the shared payload) lives in Rask.Core.Browser — used by both the all-host declarative
+         ShareButton in Core and this imperative IShare. Core is IsPackable=false and already bundled into
+         the Wasm/Native host packages alongside Rask.Client. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.JSInterop"/>
+  </ItemGroup>
+
+</Project>

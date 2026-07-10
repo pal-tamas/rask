@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
 using Microsoft.JSInterop.Infrastructure;
+using Rask.Client.Browser;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
@@ -51,9 +52,11 @@ public sealed class NativeAppHost
         Services.AddSingleton<IFlash, Flash>();
 
         // The transport-agnostic browser-API surface (Rask.Core.Browser) — every wrapper is IJSRuntime-
-        // backed and works through the WebView's JS engine. The WASM-only wrappers (IShare, IFullscreen,
-        // device APIs) live in Rask.Wasm and are not referenced here; native C# backends for them are a
-        // follow-up (see docs/native.md).
+        // backed and works through the WebView's JS engine. These are the default backings; a platform
+        // head can replace any of them with a native C# backend by registering its own implementation on
+        // host.Services before RunLocalAsync (last registration wins) — see IShare below and docs/native.md.
+        // The remaining WASM-only wrappers (IFullscreen, device APIs) live in Rask.Wasm and are not
+        // referenced here.
         Services.AddSingleton<IBrowserStorage, BrowserStorage>();
         Services.AddSingleton<IClipboard, Clipboard>();
         Services.AddSingleton<IGeolocation, Geolocation>();
@@ -81,6 +84,10 @@ public sealed class NativeAppHost
         Services.AddSingleton<IPermissions, Permissions>();
         Services.AddSingleton<IVibration, Vibration>();
         Services.AddSingleton<IPageVisibility, PageVisibilityInfo>();
+        // Share: JS-backed default (navigator.share). On a real device a platform head registers a native
+        // backend (UIActivityViewController / Intent.ACTION_SEND) over this before RunLocalAsync — the
+        // native path needs no user activation and works where the WebView lacks navigator.share.
+        Services.AddSingleton<IShare, Share>();
         // Transport-agnostic PWA APIs (IJSRuntime-backed) — push subscribe, local notifications, app badge,
         // wake lock — work in the WebView too, like on Server.
         Services.AddSingleton<IWebPush, WebPush>();

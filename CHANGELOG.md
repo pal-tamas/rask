@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **OS share sheet — declarative (all hosts) + imperative + native backend.** Two ways to share, one
+  payload (`ShareData`, now in `Rask.Core.Browser`):
+  - **`Shareable`** (`Rask.Core`, **all hosts including Server**) is a headless component — you render the
+    trigger element, it hands you the `data-rask-share` attribute to spread onto it (via `Data`), and the
+    shared client (`rask-events.js`, spliced into all three dialects) fires `navigator.share` **inside the
+    click gesture** — no round-trip, so the transient user activation survives even on the Server WebSocket
+    transport. In the native shell it upgrades to a native backend.
+  - **`IShare`** (imperative, share from code) moves out of `Rask.Wasm.Browser` into a new **`Rask.Client`**
+    assembly — the home for in-process client APIs the WASM and Native hosts share but Server can't (a
+    mid-handler call has no live gesture). `Rask.Native` can't reference the browser-targeted `Rask.Wasm`,
+    so it lives in `Rask.Client`, bundled into both host packages like `Rask.Core`.
+  - On Native, the `rask-native` template heads add a **native `NativeShare`** backend (iOS
+    `UIActivityViewController`, Android `Intent.ACTION_SEND`) registered on `host.Services` before
+    `RunLocalAsync` (last-wins) — no activation needed, and it works even where the WebView lacks
+    `navigator.share`. This establishes the reusable *framework-default → native-head-override* pattern for
+    future native backends (geolocation, biometrics, push).
+
+  A `Shareable` demo (guide `browser-share`) is added to the showcase and works on every host.
+  **Breaking (pre-1.0):** `IShare` moves from namespace `Rask.Wasm.Browser` to `Rask.Client.Browser`;
+  `ShareData` moves from `Rask.Wasm.Browser` to `Rask.Core.Browser`.
 - **`Rask.Example.Native` showcase + headless native E2E.** The native host now sits under the same
   showcase + E2E net as Server and WASM. `samples/Rask.Example.Native` mounts the *same*
   `Rask.Example.Shared.App` onto a `NativeAppHost` (its `NativeExampleHost` composition root), and a new

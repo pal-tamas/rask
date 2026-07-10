@@ -11,14 +11,25 @@ transport seam, element refs — see [JS interop → Typed browser APIs](js-inte
 for the mobile/PWA angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in
 the **Browser APIs** section of the [showcase](https://pal-tamas.github.io/rask/).
 
-## Two homes, one rule
+## Three homes, one rule
 
-- **`Rask.Core.Browser`** — APIs that work on **both transports**. Registered by both hosts.
-- **`Rask.Wasm.Browser`** — APIs that **can't** work over the Server round-trip (they need *transient*
-  user activation, or the installed-PWA instance / live document). Registered only by the WASM host.
+- **`Rask.Core.Browser`** — APIs that work on **every host** (Server + WASM + Native). Registered by all three.
+- **`Rask.Client.Browser`** — APIs the **in-process** hosts (WASM + Native) can run but Server can't:
+  they need *transient* user activation, preserved only when the interop call runs inside the click's own
+  call stack, which the Server's WebSocket round-trip loses. `Rask.Native` can't reference the
+  browser-targeted `Rask.Wasm`, so anything both in-process hosts share lives here.
+- **`Rask.Wasm.Browser`** — browser-only APIs (the installed-PWA instance / live document / browser-only
+  device APIs). Registered only by the WASM host.
 
-> **The rule:** shared APIs live in `Rask.Core.Browser`; APIs that can't run on Server live in
-> `Rask.Wasm.Browser`. If you inject a WASM-only service on Server, it simply isn't registered.
+> **The rule:** shared-everywhere APIs live in `Rask.Core.Browser`; WASM+Native-shared ones in
+> `Rask.Client.Browser`; browser-only ones in `Rask.Wasm.Browser`. A host simply doesn't register a
+> service it can't provide.
+
+Sharing shows the split cleanly. The **declarative, headless** `Shareable` (Rask.Core) hands *your* markup
+a `data-rask-share` attribute and the shared client fires `navigator.share` *inside the click gesture* — no
+round-trip, so activation survives — so it works on **every** host, Server included. The **imperative**
+`IShare` (Rask.Client) lets you share from code (a lifecycle hook, after an `await`), which only the
+in-process hosts can do, so it lives one tier down.
 
 Inject through the **constructor** (not a settable property — that would become a required factory
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:
@@ -76,15 +87,40 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 | `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
 
+## Sharing — declarative (all hosts) vs imperative (in-process)
+
+**`Shareable`** (`Rask.Core`) is the all-host way to share, and it's **headless** — you render the trigger,
+it hands you the `data-rask-share` attribute to spread onto it:
+
+```csharp
+Shareable(new ShareData { Title = "Rask", Url = "https://…" },
+    share => Button(Type: "button", Class: "btn btn-primary", Data: share)["Share"])
+```
+
+The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
+user activation survives even on the Server transport. Because it's headless, the trigger can be any element
+with a `Data` prop (a link, an icon button, a `BsButton`), not just a `<button>`. In the native shell it
+upgrades to a native backend. Web Share is available on mobile Safari / Android Chrome / Edge (not desktop
+Firefox); an unsupported browser no-ops.
+
+**`IShare`** (`Rask.Client.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
+after an `await`). That needs the in-process transport to keep the activation, so it's registered only by
+the **WASM and Native** hosts (`Rask.Native` can't reference the browser-only `Rask.Wasm`, so it lives in
+`Rask.Client`). On Native a platform head can register a native `UIActivityViewController` /
+`Intent.ACTION_SEND` backend that needs no activation — see the [Native guide](native.md#native-device-backends).
+
+| API | Home | Hosts | Use |
+| --- | --- | --- | --- |
+| `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
+| `IShare` | `Rask.Client.Browser` | WASM + Native | Imperative share from code; native backend on Native |
+
 ## WASM-only APIs — `Rask.Wasm.Browser`
 
-Registered only by the WASM host. Each needs something the Server/WebSocket transport can't provide —
-*transient* user activation (preserved only when the interop call runs inside the click's call stack,
-which happens in-process on WASM), or the installed-PWA instance / live document.
+Registered only by the WASM host. Each needs something neither the Server transport nor a native WebView
+provides — the installed-PWA instance / live document, or a browser-only device API.
 
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
-| `IShare` | `navigator.share` | Hand a link/text to the OS share sheet | transient activation |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
 | `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | service worker + installed PWA |
 | `INotifications` | Notifications API | Show a local notification from the page | permission needs a live gesture |
@@ -283,6 +319,13 @@ The push pattern above, one element at a time.
 **`IBroadcastChannel`** — send messages between same-origin tabs (open this guide in a second tab to try it).
 
 <!-- demo:browser-broadcast-channel -->
+
+**`Shareable`** *(`Rask.Core` — all hosts)* — headless share: hand *your* element the `data-rask-share`
+attribute and its click opens the OS share sheet, on every host including Server (the shared client fires
+`navigator.share` in the click gesture, so the activation survives), upgrading to a native backend in the
+shell. For a code-driven share on the in-process hosts, inject **`IShare`** (`Rask.Client.Browser`) instead.
+
+<!-- demo:browser-share -->
 
 ## Notes
 

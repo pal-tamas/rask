@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <NoWarn>$(NoWarn);RASK014</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,20 +22,14 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
-    <Using Include="Rask.TestSupport"/>
-    <Using Include="Rask.Native.Tests.Infrastructure.NativeSessionHarness" Static="true"/>
+    <Using Include="Rask.Client.Browser"/>
+    <Using Include="Rask.Core.Browser"/>
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ShareData lives in Rask.Core.Browser; Rask.Client references Core privately, so name it directly. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <!-- Rask.Native references Rask.Client with PrivateAssets="all" (bundled, not flowed), so name it
-         directly to exercise IShare registration here. -->
     <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
-    <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>
