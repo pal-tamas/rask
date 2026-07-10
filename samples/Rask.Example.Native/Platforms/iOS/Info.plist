@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Rask App</string>
+	<string>Rask Showcase</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.raskapp</string>
+	<string>com.rask.example.showcase</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
@@ -24,17 +24,14 @@
 	     dict opts into full-screen with a blank system launch screen (no storyboard file needed). -->
 	<key>UILaunchScreen</key>
 	<dict/>
-	<!--#if (IsLocal) -->
-	<!-- Shown in the iOS location prompt for NativeGeolocation (the IGeolocation backend). -->
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Shows your current location in the app.</string>
-	<!--#endif -->
-
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Native + Local serves everything from the raskapp:// custom scheme and never loads plain http, so
+	     no App Transport Security exception is needed here. (The Native + Server sample, which loads a dev
+	     server over http, is the one that relaxes ATS.) -->
 </dict>
 </plist>

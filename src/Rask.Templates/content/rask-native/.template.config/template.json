@@ -49,10 +49,8 @@
             "Counter.cs",
             "HomePage.cs",
             "Platforms/iOS/AppDelegate.cs",
-            "Platforms/iOS/RaskWkWebView.cs",
             "Platforms/iOS/NativeGeolocation.cs",
             "Platforms/Android/MainActivity.cs",
-            "Platforms/Android/RaskAndroidWebView.cs",
             "Platforms/Android/NativeGeolocation.cs"
           ]
         },

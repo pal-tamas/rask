@@ -1,0 +1,145 @@
+using System.Text;
+using System.Text.Json;
+using Android.App;
+using Android.Content;
+using Android.Webkit;
+using Java.Interop;
+
+namespace Rask.Native;
+
+/// <summary>
+///     The Android <see cref="INativeWebView" /> — an <c>android.webkit.WebView</c> served from a real https
+///     origin (so <c>localStorage</c> / <c>crypto.subtle</c> / secure-context device APIs work). Its
+///     <c>ShouldInterceptRequest</c> serves the whole app origin through <see cref="NativeOriginAssets" />:
+///     the boot shell + client, scoped CSS/JS, and your bundled static files (via a reader, default
+///     <see cref="AndroidBundledAssets" />). Create it, <c>SetContentView(webView.View)</c>, wire the session
+///     (<c>RunLocalAsync</c>), then <see cref="LoadShell" />.
+/// </summary>
+public sealed class RaskAndroidWebView : INativeWebView
+{
+    /// <summary>The default app origin the shell + client + assets are served from.</summary>
+    public const string DefaultOrigin = "https://appassets.rask/";
+
+    private readonly string _origin;
+    private readonly Func<string, byte[]?> _readStaticFile;
+    private readonly WebView _webView;
+
+    /// <summary>The Android view to hand to <c>SetContentView</c>.</summary>
+    public Android.Views.View View => _webView;
+
+    /// <inheritdoc />
+    public Func<byte[], Task>? OnMessage { get; set; }
+
+    /// <param name="context">The hosting activity/context.</param>
+    /// <param name="origin">The app origin (default <see cref="DefaultOrigin" />).</param>
+    /// <param name="staticFileReader">
+    ///     Reads a bundled static file by its origin-relative key; defaults to <see cref="AndroidBundledAssets.Read" />
+    ///     (the app's Android assets). See <see cref="NativeOriginAssets.Resolve" />.
+    /// </param>
+    public RaskAndroidWebView(Context context, string origin = DefaultOrigin, Func<string, byte[]?>? staticFileReader = null)
+    {
+        _origin = origin;
+        _readStaticFile = staticFileReader ?? AndroidBundledAssets.Read;
+        _webView = new WebView(context);
+        var settings = _webView.Settings;
+        settings.JavaScriptEnabled = true;
+        settings.DomStorageEnabled = true;   // localStorage / sessionStorage
+        _webView.SetWebViewClient(new ShowcaseWebViewClient(_origin, _readStaticFile));
+        _webView.AddJavascriptInterface(new RaskJsBridge(this), "__raskBridge");
+    }
+
+    /// <summary>Load the boot shell once the session is wired (call from the Activity).</summary>
+    public void LoadShell() => _webView.LoadUrl(_origin + "index.native.html");
+
+    /// <inheritdoc />
+    public ValueTask ApplyRenderAsync(ReadOnlyMemory<byte> frameUtf8)
+    {
+        var json = Encoding.UTF8.GetString(frameUtf8.Span);
+        // Pass the frame JSON to the client as a JS string literal without the reflection-based
+        // JsonSerializer.Serialize<T> (IL2026-clean when the app is trimmed).
+        Eval("window.__raskNative.applyRender(\"" + JsonEncodedText.Encode(json) + "\")");
+        return default;
+    }
+
+    /// <inheritdoc />
+    public ValueTask EvaluateJavaScriptAsync(string javaScript)
+    {
+        Eval(javaScript);
+        return default;
+    }
+
+    internal void OnJsMessage(string message)
+    {
+        if (OnMessage is { } handler)
+        {
+            _ = handler(Encoding.UTF8.GetBytes(message));
+        }
+    }
+
+    // evaluateJavascript must run on the WebView's (UI) thread.
+    private void Eval(string javaScript) => _webView.Post(() => _webView.EvaluateJavascript(javaScript, null));
+}
+
+// The bridge object exposed to JS as window.__raskBridge — its dispatch(String) is the client's send() path.
+internal sealed class RaskJsBridge(RaskAndroidWebView owner) : Java.Lang.Object
+{
+    [JavascriptInterface]
+    [Export("dispatch")]
+    public void Dispatch(string message) => owner.OnJsMessage(message);
+}
+
+// Serves the app origin from NativeOriginAssets (shell/client + scoped assets + bundled static files);
+// under-origin misses return an empty 200 so the page never hangs, and off-origin requests fall through to
+// the real network.
+internal sealed class ShowcaseWebViewClient(string origin, Func<string, byte[]?> readStaticFile) : WebViewClient
+{
+    public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
+    {
+        var url = request?.Url?.ToString();
+        if (url is null || !url.StartsWith(origin, StringComparison.Ordinal))
+        {
+            return base.ShouldInterceptRequest(view, request);
+        }
+
+        var path = new Uri(url).AbsolutePath;
+        if (NativeOriginAssets.Resolve(path, readStaticFile) is { } asset)
+        {
+            return new WebResourceResponse(asset.ContentType, "UTF-8", new MemoryStream(asset.Body));
+        }
+
+        // Under-origin miss (favicon we don't ship, …) — empty 200 so nothing blocks the render.
+        return new WebResourceResponse("text/plain", "UTF-8", new MemoryStream([]));
+    }
+}
+
+/// <summary>
+///     The default Android bundled-asset reader for <see cref="NativeOriginAssets" /> — reads the app's
+///     Android assets (add your <c>wwwroot</c> as <c>AndroidAsset</c> at the asset root, and Bootstrap under
+///     <c>_content/Rask.Bootstrap/</c>) by origin-relative key, e.g. <c>global.css</c>, <c>data/posts-1.json</c>.
+/// </summary>
+public static class AndroidBundledAssets
+{
+    /// <summary>Reads a bundled asset by key, or <see langword="null" /> if it does not exist.</summary>
+    public static byte[]? Read(string relativePath)
+    {
+        var assets = Application.Context.Assets;
+        if (assets is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = assets.Open(relativePath);
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
+        }
+        catch (Java.IO.IOException)
+        {
+            // Not bundled (FileNotFoundException) or otherwise unreadable (e.g. the key names a directory) —
+            // treat as a miss so the interceptor serves its empty-200 fallback rather than throwing.
+            return null;
+        }
+    }
+}
