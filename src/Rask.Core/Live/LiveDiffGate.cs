@@ -18,6 +18,9 @@ internal static class LiveDiffGate
     // Positional structural ops can replace mid-list elements that the morph would have
     // preserved, which broke 83/430 e2e tests in an earlier iteration that ungated them
     // unconditionally — that's why we still route those through the full-HTML path.
+    // EditOpKind.MorphSubtree is NOT listed here: it's a trusted, path-scoped morph (the Raw-tainted
+    // fallback shrunk from a full-document morph to one parent's children), always safe to ship as a
+    // diff — a morph handles arbitrary node counts and preserves keyed / focus / IDL state.
     internal static bool DiffOpsAreClientSupported(List<EditOp> ops)
     {
         for (var i = 0; i < ops.Count; i++)

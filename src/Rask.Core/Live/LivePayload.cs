@@ -392,6 +392,26 @@ public static class LivePayload
 
                     writer.WriteNumberValue(op.Length);
                     break;
+                case EditOpKind.MorphSubtree:
+                    // [8, path, innerHtml] — the parent's new inner HTML. Prefer a verbatim Value
+                    // (directly-constructed ops, incl. the emptied-parent "" fragment); otherwise slice
+                    // it out of the render HTML by the op's deferred char range (the FrameDiffer hot
+                    // path), exactly like InsertSubtree but with no trailing domCount.
+                    if (op.Value is not null)
+                    {
+                        writer.WriteStringValue(op.Value);
+                    }
+                    else if (!newHtml.IsEmpty && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
+                             && op.HtmlEnd <= newHtml.Length)
+                    {
+                        writer.WriteStringValue(newHtml.Slice(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
+                    }
+                    else
+                    {
+                        writer.WriteStringValue(string.Empty);
+                    }
+
+                    break;
                 case EditOpKind.RemoveSubtree:
                 case EditOpKind.MoveSubtree:
                     writer.WriteNumberValue(op.Length);

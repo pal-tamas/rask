@@ -32,6 +32,7 @@
 //   5 RemoveSubtree    [k, path, domCount]
 //   6 MoveSubtree      [k, path, sourceSlot]
 //   7 PermutationBatch [k, parentPath, moves]
+//   8 MorphSubtree     [k, path, innerHtml]
 //
 // Names for SetAttribute/RemoveAttribute may arrive as either a string (inline) or
 // a number that indexes into the optional payload-level "names" array — the server
@@ -255,6 +256,24 @@ function applyDiff(ops, names) {
                     const pbRef = relevantChildSkipping(pbParent, pbDst, pbNode);
                     moveChildBefore(pbParent, pbNode, pbRef);
                 }
+                break;
+            }
+            case 8: { // MorphSubtree [k, path, innerHtml]
+                // The Raw-tainted fallback, scoped: reconcile the CHILDREN of the element at `path`
+                // against fresh inner HTML via the same morph() the full-document path uses — but
+                // localised to this one subtree the server could still address by a clean path. A Raw's
+                // markup expands into an unknown DOM-node count, so the server can't emit reliable
+                // positional child ops here; a morph reparses it correctly and preserves keyed / focus /
+                // IDL state on everything it doesn't need to touch (incl. the rest of the document).
+                const msEl = resolvePath(path);
+                if (!msEl) break;
+                // Shallow-clone the ACTUAL parent (not a generic <template>) so innerHTML parses in the
+                // element's own context — correct for <table>/<select>/<tr>/… children. The clone carries
+                // msEl's current attributes (already reconciled by any SetAttribute ops applied before
+                // this one), so morph sees them matching and only touches the children.
+                const model = msEl.cloneNode(false);
+                model.innerHTML = op[2] == null ? "" : op[2];
+                morph(msEl, model);
                 break;
             }
             default:

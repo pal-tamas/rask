@@ -122,9 +122,20 @@ them until tagged releases begin.
   form. The diff codec now trusts the safe subset: a **pure tail append/truncate at a nested,
   replace-free level**, where the client's positional apply is provably identical to the full-HTML morph
   (Rask serialises nested content without the whitespace/comment nodes that would shift the client's
-  `childNodes` slot). Mid-list replacements, top-level ops (where the WASM shell's comment nodes live),
-  and `Raw`-tainted levels still take the full-HTML path, so DOM identity is preserved exactly as before.
+  `childNodes` slot). Mid-list replacements and top-level ops (where the WASM shell's comment nodes live)
+  still take the full-HTML path, so DOM identity is preserved exactly as before.
   Measured effect: a form-validation-churn update drops from ~1.4 KB (full form) to ~110 B on the wire.
+- **`Raw`/CodeSample-heavy pages now ship a scoped subtree morph instead of re-rendering the whole
+  document.** When a `Raw` frame shares a sibling level with other nodes (the shape of every guide,
+  markdown, or syntax-highlighted-code page), its verbatim markup parses into an unknown DOM-node count,
+  so the following siblings' positional paths can't be trusted — the diff used to discard the whole render
+  and morph `document.documentElement`. It now emits one trusted `MorphSubtree` op at the Raw-owning
+  parent, carrying just that element's new inner HTML; the client reconciles only that subtree with the
+  same `morph()` engine (correctness identical to the old full-document morph, localised). Benefits all
+  three hosts — biggest win on **native**, where the frequent full-document morph on complex pages was the
+  expensive, historically flaky update path. Measured on a minimal guide shell: the wire payload drops
+  from a 1770 B full-document frame to a 661 B single-op diff (and the gap widens with the surrounding
+  shell, since the diff stays proportional to just the changed container).
 - **Leaf elements retain less memory: three cold reference fields moved off the base `Component`.** The
   error-boundary pointer, render handle, and lifetime-token source are only ever set on live-render
   roots and user components (which already allocate a lazy `LiveState`), yet every `Element` in a mounted
