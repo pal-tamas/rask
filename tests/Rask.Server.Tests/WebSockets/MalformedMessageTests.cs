@@ -12,11 +12,9 @@ namespace Rask.Server.Tests.WebSockets;
 // loop, detached the socket and scheduled the session for removal — one buggy or adversarial
 // frame dropped the whole session. These tests assert each bad frame is dropped and the loop
 // keeps dispatching.
-[Collection("LiveDiffMode")]
 public class MalformedMessageTests
 {
     // Assert against the full-HTML `html` field — force the legacy wire shape.
-    public MalformedMessageTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     public static TheoryData<string> BadFrames() =>
     [
@@ -34,7 +32,7 @@ public class MalformedMessageTests
     [MemberData(nameof(BadFrames))]
     public async Task BadFrame_IsDropped_SessionSurvivesAndKeepsDispatching(string badFrame)
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
@@ -63,7 +61,7 @@ public class MalformedMessageTests
     [InlineData("id")]   // handler id as a non-string is treated as absent
     public async Task WrongFieldType_IsIgnored_NoTeardown(string field)
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -83,7 +81,7 @@ public class MalformedMessageTests
     [Fact]
     public async Task ManyBadFramesInARow_DoNotDropTheSession()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);

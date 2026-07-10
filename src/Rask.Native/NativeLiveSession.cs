@@ -39,8 +39,8 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
-    public NativeLiveSession(Component view, IServiceProvider services, INativeWebView webView)
-        : base(view, services)
+    public NativeLiveSession(Component view, IServiceProvider services, INativeWebView webView, LiveDiffMode diffMode)
+        : base(view, services, diffMode)
     {
         _webView = webView;
 

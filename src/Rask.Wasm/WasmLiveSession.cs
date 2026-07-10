@@ -42,8 +42,8 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
-    public WasmLiveSession(Component view, IServiceProvider services)
-        : base(view, services)
+    public WasmLiveSession(Component view, IServiceProvider services, LiveDiffMode diffMode)
+        : base(view, services, diffMode)
     {
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         (services.GetService<WasmJSRuntime>())?.AttachHost(this);

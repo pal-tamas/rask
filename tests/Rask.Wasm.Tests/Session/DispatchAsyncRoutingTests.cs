@@ -16,7 +16,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_EmptyJson_ReturnsEmptyBytes()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
 
         var result = await session.DispatchAsync(Array.Empty<byte>());
 
@@ -26,7 +26,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_TypeNavigate_RoutesToNavigateBranch_AndUpdatesRouteState()
     {
-        var (session, services) = NewSession();
+        var (session, services) = NewSession(diffMode: DiffMode);
         var routeState = services.GetRequiredService<RouteState>();
         await session.InitialRenderAsync();
 
@@ -43,7 +43,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_NavigateEmptyPath_ReturnsEmpty()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
 
         var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":""}"""));
 
@@ -53,7 +53,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_NavigateReplaceTrue_EmitsHistoryReplace()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/x","replace":true}"""));
@@ -65,7 +65,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_NoHandlerIdAndNoType_ReturnsEmpty()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
 
         var result = await session.DispatchAsync(Utf8("""{"foo":"bar"}"""));
 
@@ -75,7 +75,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_UnknownHandlerId_ReturnsEmpty()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         var result = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
@@ -86,7 +86,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_KnownHandler_ReturnsPayloadWithUpdatedHtml()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
 
         var handlerId = Markup.FirstHandlerId(initial);
@@ -101,7 +101,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_NavigateWithEmptyQuery_NoQuestionMarkInHistoryUrl()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/x","query":""}"""));
@@ -113,7 +113,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_ConcurrentCalls_SerialisedByLock()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
         var handlerId = Markup.FirstHandlerId(initial);
 
@@ -136,7 +136,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     [Fact]
     public async Task Dispatch_HandlerThatThrows_ReturnsEmpty_AndSessionStaysUsable()
     {
-        var (session, _) = NewSession<ThrowingStubApp>();
+        var (session, _) = NewSession<ThrowingStubApp>(diffMode: DiffMode);
 
         var initial = await session.InitialRenderAsync();
         var handlerId = Markup.FirstHandlerId(initial);

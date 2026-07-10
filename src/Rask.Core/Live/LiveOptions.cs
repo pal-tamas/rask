@@ -98,17 +98,19 @@ public sealed class RaskLiveOptions
 }
 
 /// <summary>
-///     Static accessor for the active live options. Set by <c>AddRask()</c> /
-///     <c>UseRask&lt;TApp&gt;()</c> from the configured <see cref="RaskLiveOptions" />;
-///     the live-session runtime (server + WASM) reads from here on every render so
-///     the option flow stays trivially fast — no DI lookup in the hot path. Hosts
-///     that don't go through <c>AddRask()</c> (some standalone WASM bootstraps)
-///     can also write these properties directly.
+///     Static accessor for the process-wide live options that back the content-addressed asset
+///     registries. Set by <c>AddRask()</c> / <c>UseRask&lt;TApp&gt;()</c> from the configured
+///     <see cref="RaskLiveOptions" />. <see cref="PathBase" /> and <see cref="MinifyScopedAssets" />
+///     live here because the <see cref="ScopedAssets.ScopedAssetRegistry" /> and
+///     <c>HeadAssetRegistry</c> build one shared, content-hashed bundle per process — not per session.
+///     The per-render <c>DiffMode</c>, by contrast, is carried on each <c>LiveSession</c>
+///     (see <see cref="LiveSessionBase" />) so concurrent hosts and parallel tests don't race a
+///     shared mutable field. Hosts that don't go through <c>AddRask()</c> (some standalone WASM
+///     bootstraps) can also write these properties directly.
 /// </summary>
 public static class LiveOptions
 {
     private static string _pathBase = string.Empty;
-    public static LiveDiffMode DiffMode { get; set; } = LiveDiffMode.Auto;
 
     /// <summary>
     ///     Resolved scoped-CSS minification switch read by <see cref="ScopedAssets.ScopedAssetRegistry" />

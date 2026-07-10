@@ -102,22 +102,21 @@ public static class RaskEndpointExtensions
         Action<RaskLiveOptions>? configure = null,
         Action<RaskServerOptions>? configureServer = null)
     {
-        // Per-app live runtime options. The framework default for DiffMode is
-        // LiveDiffMode.Auto (set on the static LiveOptions.DiffMode at class init),
-        // so a fresh `AddRask()` ships the diff codec out of the box. Override:
+        // Per-app live runtime options. The framework default for DiffMode is LiveDiffMode.Auto, so a
+        // fresh `AddRask()` ships the diff codec out of the box. Override:
         //     services.AddRask(o => o.DiffMode = LiveDiffMode.DisabledFull);
         //
-        // Only write the static field when the caller provided a configure
-        // callback — otherwise we'd clobber a value the host (or a test) already
-        // set explicitly before AddRask was called. The static field starts at
-        // Auto via its initializer, so the "no configure, no prior write" path
-        // still lands on Auto without us re-writing it here.
+        // DiffMode is a per-host value carried on the LiveSessionStore (and handed to each LiveSession),
+        // NOT a process-global static — so two hosts in one process, and parallel tests, each render in
+        // their own mode instead of racing shared state. PathBase / MinifyScopedAssets stay on the
+        // static LiveOptions because they back the process-wide content-addressed asset registries.
         var maxSessions = 0;
+        var diffMode = LiveDiffMode.Auto;
         if (configure is not null)
         {
             var liveOptions = new RaskLiveOptions();
             configure(liveOptions);
-            LiveOptions.DiffMode = liveOptions.DiffMode;
+            diffMode = liveOptions.DiffMode;
             // PathBase normalization happens on assignment to RaskLiveOptions,
             // and a second normalize on the static accessor is a cheap no-op.
             // UseRask<TApp>(pathBase: ...) can still override this if the user
@@ -156,7 +155,7 @@ public static class RaskEndpointExtensions
             sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetService<IHostApplicationLifetime>(),
             sp.GetService<RaskMetrics>())
-        { MaxSessions = maxSessions });
+        { MaxSessions = maxSessions, DiffMode = diffMode });
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();

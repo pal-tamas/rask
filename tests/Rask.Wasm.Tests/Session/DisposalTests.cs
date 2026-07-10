@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Wasm.Files;
 using static Rask.Core.Components.Generated;
@@ -27,7 +28,7 @@ public class DisposalTests
         services.AddSingleton<IUserProvider>(provider);
         var sp = services.BuildServiceProvider();
 
-        var session = new WasmLiveSession(new MiniApp(), sp);
+        var session = new WasmLiveSession(new MiniApp(), sp, LiveDiffMode.Auto);
         Assert.Equal(1, provider.SubscriberCount); // session subscribed in the ctor
 
         session.Dispose();
