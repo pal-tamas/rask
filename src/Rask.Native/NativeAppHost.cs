@@ -33,6 +33,13 @@ namespace Rask.Native;
 /// </summary>
 public sealed class NativeAppHost
 {
+    // The wire-payload shape the in-process session renders with, snapshotted from RaskLiveOptions in
+    // CreateDefault and handed to the NativeLiveSession — a per-session value instead of the former
+    // process-global LiveOptions.DiffMode static. Native fans render continuations onto the thread pool,
+    // so a shared mutable static would be doubly wrong here; carrying it on the session also lets the
+    // native session tests run without serializing on the global.
+    private LiveDiffMode _diffMode = LiveDiffMode.Auto;
+
     private NativeAppHost()
     {
         Services = new ServiceCollection();
@@ -99,14 +106,15 @@ public sealed class NativeAppHost
     /// <summary>Creates a host, optionally overriding the diff mode (e.g. <c>o =&gt; o.DiffMode = LiveDiffMode.DisabledFull</c>).</summary>
     public static NativeAppHost CreateDefault(Action<RaskLiveOptions>? configureLive)
     {
+        var host = new NativeAppHost();
         if (configureLive is not null)
         {
             var opts = new RaskLiveOptions();
             configureLive(opts);
-            LiveOptions.DiffMode = opts.DiffMode;
+            host._diffMode = opts.DiffMode;
         }
 
-        return new NativeAppHost();
+        return host;
     }
 
     /// <summary>
@@ -160,7 +168,7 @@ public sealed class NativeAppHost
             }
         }
 
-        var session = new NativeLiveSession(root, provider, webView);
+        var session = new NativeLiveSession(root, provider, webView, _diffMode);
         var nativeApp = new NativeApp(session, provider);
 
         // The WebView drives everything through this single message channel: the initial-render handshake

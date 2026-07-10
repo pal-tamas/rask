@@ -32,6 +32,18 @@ them until tagged releases begin.
   had the last `configureServer` win for all of them), and the server test suite no longer serialises
   around that shared state — cutting `Rask.Server.Tests` wall-clock substantially by letting its
   integration tests run in parallel. No API change; behaviour is unchanged for a single-host process.
+- **Per-session diff mode (no more process-global `LiveOptions.DiffMode` static).** The wire-payload
+  shape (`LiveDiffMode`) is now snapshotted onto each `LiveSession` at construction — from the host's
+  `RaskLiveOptions` (Server carries it on the `LiveSessionStore`, WASM/Native on the host builder) — and
+  read from that instance field on the render hot path, instead of a mutable `static` every render read.
+  This matters most for the native host, which fans render continuations onto the thread pool: a shared
+  mutable static read mid-render was doubly wrong there. Two hosts in one process — and parallel tests —
+  now each render in their own mode; `Rask.Server.Tests`' nine diff-mode WebSocket classes drop their
+  `[Collection("LiveDiffMode")]` serialization and run in parallel, and the native/WASM session tests no
+  longer pin the global. The configuration surface is unchanged (`AddRask(o => o.DiffMode = …)` /
+  `WasmHostBuilder.CreateDefault` / `NativeAppHost.CreateDefault`); `PathBase` / `MinifyScopedAssets`
+  stay on `LiveOptions` (they back the process-wide content-addressed asset registries). Render
+  benchmarks unchanged — allocation-neutral (a branch-condition read moved from a static to a field).
 - **Faster tests, locally and in CI.** (1) The `-p:RaskWasm=false` "fast" build now genuinely skips the
   nested WASM publish — it was gated by an `XmlPeek` of the csproj rather than the property, so the
   `unit`/`benchmarks` jobs silently ran a full WASM publish they believed disabled — which also lets

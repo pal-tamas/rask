@@ -20,7 +20,7 @@ public class NativeJsInteropTests() : ResettingTestBase(LiveDiffMode.DisabledFul
     [Fact]
     public async Task Handler_awaiting_js_result_resumes_when_jsResult_posts()
     {
-        var (_, webView, initial) = await NewSessionAsync<NativeJsInteropApp>();
+        var (_, webView, initial) = await NewSessionAsync<NativeJsInteropApp>(diffMode: DiffMode);
         var handlerId = Markup.FirstHandlerId(initial);
 
         // The handler awaits js.InvokeAsync<string>, so this dispatch won't complete until we post the

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Native.Tests.Infrastructure;
 
@@ -13,16 +14,18 @@ namespace Rask.Native.Tests.Infrastructure;
 internal static class NativeSessionHarness
 {
     public static Task<(NativeApp app, FakeNativeWebView webView, byte[] initialFrame)> NewSessionAsync(
-        string initialPath = "/", Action<IServiceCollection>? configure = null) =>
-        NewSessionAsync<NativeStubApp>(initialPath, configure);
+        string initialPath = "/", Action<IServiceCollection>? configure = null,
+        LiveDiffMode diffMode = LiveDiffMode.Auto) =>
+        NewSessionAsync<NativeStubApp>(initialPath, configure, diffMode);
 
     public static async Task<(NativeApp app, FakeNativeWebView webView, byte[] initialFrame)> NewSessionAsync<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
-        string initialPath = "/", Action<IServiceCollection>? configure = null)
+        string initialPath = "/", Action<IServiceCollection>? configure = null,
+        LiveDiffMode diffMode = LiveDiffMode.Auto)
         where TApp : Component
     {
-        // CreateDefault() leaves LiveOptions.DiffMode at whatever ResettingTestBase pinned it to.
-        var host = NativeAppHost.CreateDefault();
+        // Per-session wire shape (was the process-global LiveOptions.DiffMode the tests pinned).
+        var host = NativeAppHost.CreateDefault(o => o.DiffMode = diffMode);
         configure?.Invoke(host.Services);
 
         var webView = new FakeNativeWebView();
@@ -35,6 +38,10 @@ internal static class NativeSessionHarness
     }
 }
 
-/// <summary>Serializes native session tests — they mutate process-global <c>LiveOptions.DiffMode</c>.</summary>
+/// <summary>
+///     Serializes native session tests — they reset the process-global
+///     <c>ScopedAssetRegistry</c> (via <c>ResettingTestBase</c>), which is shared process-wide.
+///     (DiffMode is per-session now, so that is no longer a reason to serialize.)
+/// </summary>
 [CollectionDefinition("NativeSession")]
 public sealed class NativeSessionCollection;

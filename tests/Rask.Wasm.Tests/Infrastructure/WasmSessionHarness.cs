@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask.Wasm.Tests.Infrastructure;
@@ -13,12 +14,14 @@ namespace Rask.Wasm.Tests.Infrastructure;
 /// </summary>
 internal static class WasmSessionHarness
 {
-    public static (WasmLiveSession session, IServiceProvider services) NewSession() =>
-        NewSession<StubApp>();
+    public static (WasmLiveSession session, IServiceProvider services) NewSession(
+        LiveDiffMode diffMode = LiveDiffMode.Auto) =>
+        NewSession<StubApp>(diffMode: diffMode);
 
     public static (WasmLiveSession session, IServiceProvider services) NewSession<TApp>(
         Func<IServiceProvider, TApp>? appFactory = null,
-        Action<IServiceCollection>? configure = null)
+        Action<IServiceCollection>? configure = null,
+        LiveDiffMode diffMode = LiveDiffMode.Auto)
         where TApp : Component
     {
         var services = new ServiceCollection();
@@ -27,7 +30,8 @@ internal static class WasmSessionHarness
         configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
         var app = appFactory is null ? ActivatorUtilities.CreateInstance<TApp>(provider) : appFactory(provider);
-        var session = new WasmLiveSession(app, provider);
+        // Per-session wire shape (was the process-global LiveOptions.DiffMode).
+        var session = new WasmLiveSession(app, provider, diffMode);
         JSInterop.Init(session);
         return (session, provider);
     }

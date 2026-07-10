@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Core.Live;
 
 namespace Rask.Server.Tests.Live;
 
@@ -20,7 +21,7 @@ public class LiveSessionDirectTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var disposable = new TrackingDisposable();
-        var session = new LiveSession("id", disposable, scope);
+        var session = new LiveSession("id", disposable, scope, LiveDiffMode.Auto);
 
         session.Dispose();
 
@@ -33,7 +34,7 @@ public class LiveSessionDirectTests
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var disposable = new TrackingAsyncDisposable();
-        var session = new LiveSession("id", disposable, scope);
+        var session = new LiveSession("id", disposable, scope, LiveDiffMode.Auto);
 
         await session.DisposeAsync();
 
@@ -47,7 +48,7 @@ public class LiveSessionDirectTests
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var view = new BasicComponent();
 
-        using var session = new LiveSession("id", view, scope);
+        using var session = new LiveSession("id", view, scope, LiveDiffMode.Auto);
 
         await view.StateHasChangedAsync();
     }
@@ -56,7 +57,7 @@ public class LiveSessionDirectTests
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        return new LiveSession(Guid.NewGuid().ToString("N"), view, scope);
+        return new LiveSession(Guid.NewGuid().ToString("N"), view, scope, LiveDiffMode.Auto);
     }
 
     private sealed class BasicComponent : Component

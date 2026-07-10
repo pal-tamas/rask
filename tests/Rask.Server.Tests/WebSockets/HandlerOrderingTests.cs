@@ -21,16 +21,13 @@ namespace Rask.Server.Tests.WebSockets;
 // async handlers awaiting jsResult / dotNetInvoke don't deadlock the loop),
 // but the *start order* of dispatches now matches WS arrival order
 // deterministically.
-[Collection("LiveDiffMode")]
 public class HandlerOrderingTests
 {
     // These tests assert against the `html` field in the payload — the legacy
-    // ship-full-HTML wire shape. The framework default since AddRask gained an
-    // options shape is LiveDiffMode.Auto, which ships diff payloads (`kind: "diff"`
-    // with ops). Force the legacy mode for this class so the parse-html assertions
-    // remain meaningful. SessionGracePeriod collection serialises with other tests
-    // that touch the static LiveOptions.DiffMode so the field assignment is safe.
-    public HandlerOrderingTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
+    // ship-full-HTML wire shape. The framework default is LiveDiffMode.Auto, which ships
+    // diff payloads (`kind: "diff"` with ops). Each test host is created with
+    // diffMode: DisabledFull (per-host on the LiveSessionStore, not a global) so the
+    // parse-html assertions remain meaningful and the class still runs in parallel.
 
     [Fact]
     public async Task TenHandlers_SentRapidly_DispatchInArrivalOrder()
@@ -43,7 +40,7 @@ public class HandlerOrderingTests
         // chaining is broken by injecting that contention here.
         using var stress = new ThreadPoolStress(8);
 
-        using var host = RaskTestHost.Create<OrderedDispatchApp>();
+        using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
@@ -96,7 +93,7 @@ public class HandlerOrderingTests
         // alternating in arrival order.
         using var stress = new ThreadPoolStress(8);
 
-        using var host = RaskTestHost.Create<OrderedDispatchApp>();
+        using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);

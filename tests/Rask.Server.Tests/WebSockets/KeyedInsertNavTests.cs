@@ -10,10 +10,8 @@ namespace Rask.Server.Tests.WebSockets;
 // the offsets were captured, shifting every byte position after the head — so without the
 // offset adjustment the inserted row's HTML was garbled (sliced mid-attribute). Keyed insert
 // is the only op that carries an HTML slice, which is why delete/move were unaffected.
-[Collection("LiveDiffMode")]
 public class KeyedInsertNavTests
 {
-    public KeyedInsertNavTests() => LiveOptions.DiffMode = LiveDiffMode.Forced;
 
     // The keyed list is seeded [10,20,30]; navigating inserts a row at the head, middle, or tail.
     // Every position rides the same post-head-splice HTML-slice path, so all three must ship the
@@ -25,7 +23,7 @@ public class KeyedInsertNavTests
     [InlineData("/add-tail", 40)]
     public async Task KeyedInsertDuringNavigation_ShipsCorrectRowHtml(string path, int key)
     {
-        await using var fixture = await ConnectedSession.Connect<KeyedNavApp>();
+        await using var fixture = await ConnectedSession.Connect<KeyedNavApp>(LiveDiffMode.Forced);
 
         // Seed the diff baseline (first interaction ships full HTML).
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/list", query = "" });

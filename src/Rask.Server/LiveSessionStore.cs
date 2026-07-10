@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Core;
+using Rask.Core.Live;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
@@ -61,6 +62,15 @@ public sealed class LiveSessionStore : IAsyncDisposable
     ///     resolved singleton.
     /// </summary>
     public int MaxSessions { get; set; }
+
+    /// <summary>
+    ///     The wire-payload shape (<see cref="LiveDiffMode" />) every session this store mints is
+    ///     built with. Seeded once from <see cref="Rask.Core.Live.RaskLiveOptions.DiffMode" /> at
+    ///     registration and handed to each <see cref="LiveSession" /> at construction — a per-host
+    ///     value, not a process-global static, so concurrent hosts and parallel tests each render in
+    ///     their own mode. Defaults to <see cref="LiveDiffMode.Auto" /> (diff codec on).
+    /// </summary>
+    public LiveDiffMode DiffMode { get; init; } = LiveDiffMode.Auto;
 
     /// <summary>
     ///     True when a new session would exceed <see cref="MaxSessions" />. A fast advisory
@@ -175,7 +185,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
             throw;
         }
 
-        var session = new LiveSession(sessionId, view, scope);
+        var session = new LiveSession(sessionId, view, scope, DiffMode);
         // Bind the per-scope LiveSessionAccessor so RaskJSRuntime (resolved from the same
         // scope) can find this session when components inject IJSRuntime.
         if (scope.ServiceProvider.GetService<LiveSessionAccessor>() is { } accessor)

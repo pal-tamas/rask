@@ -85,6 +85,6 @@ public class StateHasChangedTests
     {
         var sp = RenderHarness.EmptyServices();
         scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        return new LiveSession("test-session", new StubComponent(Span()), scope);
+        return new LiveSession("test-session", new StubComponent(Span()), scope, LiveDiffMode.Auto);
     }
 }

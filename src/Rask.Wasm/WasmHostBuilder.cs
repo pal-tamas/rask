@@ -89,6 +89,12 @@ public sealed class WasmHostBuilder
 
     private WebAppManifest? _manifest;
 
+    // The wire-payload shape this app renders with, snapshotted from RaskLiveOptions in CreateDefault
+    // and handed to the WasmLiveSession — a per-session value instead of the former process-global
+    // LiveOptions.DiffMode static. WASM is single-threaded so it never raced, but carrying it on the
+    // session keeps all three hosts on one uniform mechanism.
+    private LiveDiffMode _diffMode = LiveDiffMode.Auto;
+
     /// <summary>The DI container for the app. Register your services here before calling <see cref="RunAsync{TApp}" />.</summary>
     public IServiceCollection Services { get; }
 
@@ -135,11 +141,12 @@ public sealed class WasmHostBuilder
     /// </summary>
     public static WasmHostBuilder CreateDefault(Action<RaskLiveOptions>? configureLive)
     {
+        var builder = new WasmHostBuilder();
         if (configureLive is not null)
         {
             var opts = new RaskLiveOptions();
             configureLive(opts);
-            LiveOptions.DiffMode = opts.DiffMode;
+            builder._diffMode = opts.DiffMode;
             // Only propagate a non-empty user-supplied PathBase; an explicit
             // override should win over the auto-detect that RunAsync performs
             // later. An empty value here means "I didn't set one — auto-detect
@@ -149,11 +156,9 @@ public sealed class WasmHostBuilder
                 LiveOptions.PathBase = opts.PathBase;
             }
         }
-        // No configure → leave LiveOptions.DiffMode at whatever the framework default
-        // is (LiveDiffMode.Auto). Don't write to it here: a test or host that pre-set
-        // the field before calling CreateDefault() would otherwise be clobbered.
+        // No configure → the session renders in the framework default (LiveDiffMode.Auto).
 
-        return new WasmHostBuilder();
+        return builder;
     }
 
     /// <summary>
@@ -210,7 +215,7 @@ public sealed class WasmHostBuilder
             }
         }
 
-        var session = new WasmLiveSession(root, provider);
+        var session = new WasmLiveSession(root, provider, _diffMode);
         JSInterop.Init(session);
 
         // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);

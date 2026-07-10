@@ -10,20 +10,16 @@ namespace Rask.Server.Tests.WebSockets;
 // to the last sent document — diff+history instead of the full doc. Head-changing
 // navigations (a per-route <title>) still fall back to full HTML so the title/scoped-asset
 // delta reaches the client.
-//
-// In SessionGracePeriod so the static LiveOptions.DiffMode write serialises with the other
-// DiffMode-mutating WS test classes.
-[Collection("LiveDiffMode")]
 public class NavigationDiffGateTests
 {
     // Forced pins the diff path so the assertions don't depend on payload sizing; the
-    // head/structural gates are independent of size.
-    public NavigationDiffGateTests() => LiveOptions.DiffMode = LiveDiffMode.Forced;
+    // head/structural gates are independent of size. It's a per-host value (passed to
+    // ConnectedSession.Connect), so this class still runs in parallel with the others.
 
     [Fact]
     public async Task Navigate_SameHead_ShipsDiffWithHistory()
     {
-        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>(LiveDiffMode.Forced);
 
         // Navigate to /seed first so the asserted transition below is /seed -> /destination
         // (a same-<head> change). The GET render already seeded the diff baseline, so this
@@ -48,7 +44,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
     {
-        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
+        await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>(LiveDiffMode.Forced);
 
         // Navigate to /page first so the re-navigation below is a same-path query-only change.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" });
@@ -73,7 +69,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
     {
-        await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>();
+        await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>(LiveDiffMode.Forced);
 
         // Navigate to /seed first so the asserted transition below is /seed -> /destination.
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
@@ -99,7 +95,7 @@ public class NavigationDiffGateTests
     [Fact]
     public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
     {
-        await using var fixture = await ConnectedSession.Connect<RouteTitleStructuralNavApp>();
+        await using var fixture = await ConnectedSession.Connect<RouteTitleStructuralNavApp>(LiveDiffMode.Forced);
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
         _ = await DrainToLastFrame(fixture.Ws);
