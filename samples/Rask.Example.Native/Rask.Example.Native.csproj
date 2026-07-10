@@ -1,26 +1,87 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    The native showcase host. Unlike Rask.Example.Server (an ASP.NET web app) and Rask.Example.Wasm
-    (a browser-wasm exe), the native host runs the app IN-PROCESS behind an INativeWebView bridge — so
-    on a real device it lives inside the `rask-native` template's iOS/Android app heads. This project is
-    a plain net10.0 library holding the native composition root: it reuses the same
-    Rask.Example.Shared.App showcase every other host mounts, wired onto NativeAppHost with a
-    native-appropriate service set. The E2E suite drives it headlessly through a Playwright-backed
-    INativeWebView (Rask.Examples.E2E.Tests/NativeExampleTests), so native is covered by the same
-    showcase + E2E net as Server and WASM without a device or emulator in CI. See docs/native.md.
+    The runnable NATIVE + LOCAL showcase — the in-process native peer of Rask.Example.Wasm. It mounts the
+    SAME shared example (Rask.Example.Shared.App) inside a platform WebView, running the component code
+    IN-PROCESS on the device (offline, store-distributable). Its sibling Rask.Example.Native.Server is the
+    thin shell over a remote Rask.Example.Server (the native peer of Rask.Example.Server).
+
+    The WebView bridge (RaskAndroidWebView / RaskWkWebView), the native share backend (NativeShare), the
+    bundled-asset readers, and the origin request table (NativeOriginAssets / NativeAssetHttpHandler) ALL
+    ship in Rask.Native — this project is just the entry-point heads (MainActivity / AppDelegate / Main),
+    the manifests, and the bundled wwwroot. No head code is duplicated.
+
+    Multi-targets net10.0-ios;net10.0-android, so it needs the mobile workloads and is kept OUT of Rask.slnx
+    (the Ubuntu CI has neither). Building it must pass -p:RaskNativeHeads=true so Rask.Native builds its
+    platform heads. The on-device Appium E2E (tests/Rask.Native.Appium.Tests) drives this app. Run it:
+
+      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true
+      dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-ios -p:RaskNativeHeads=true
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Rask.Example.Native</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- We bundle the showcase static assets ourselves (AndroidAsset / BundleResource below); the Static
+         Web Assets pipeline is a web-host concern and has no role in a native app. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <ApplicationTitle>Rask Showcase</ApplicationTitle>
+    <!-- `native` is a Java reserved word, so it cannot be an Android package segment. -->
+    <ApplicationId>com.rask.example.showcase</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+  </PropertyGroup>
+
+  <!-- This is a showcase example, not a size-optimized shipping app. The full showcase leans on reflection
+       (forms binding, FluentValidation), which is not trim-clean, so disable each platform's linker: the
+       example then builds under the repo's warnings-as-errors without a trimming sweep that belongs to the
+       framework rather than an example. (Trim-clean publishing is proven by samples/Rask.Example.Wasm.) -->
+  <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <MtouchLink>None</MtouchLink>
+    <!-- The head uses the classic UIApplicationDelegate + UIWindow app lifecycle (as the rask-native
+         template does) — valid on the iOS 15+ we target. CA1422 flags UIWindow(CGRect) as soft-obsolete
+         on iOS 26+ (in favour of UIWindowScene); the classic path stays correct, so silence it here. -->
+    <NoWarn>$(NoWarn);CA1422</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
+    <AndroidLinkMode>None</AndroidLinkMode>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- -p:RaskNativeHeads=true (on the build command) makes Rask.Native build its net10.0-ios /
+         net10.0-android head assemblies (RaskAndroidWebView / RaskWkWebView / NativeShare) this app uses. -->
     <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
+    <!-- The shared example App + demo services (also flows Rask.Client / Rask.Core). -->
     <ProjectReference Include="..\Rask.Example.Shared\Rask.Example.Shared.csproj"/>
+  </ItemGroup>
+
+  <!-- Each platform head compiles only for its own TFM. -->
+  <ItemGroup Condition="!$(TargetFramework.Contains('-ios'))">
+    <Compile Remove="Platforms/iOS/**/*.cs"/>
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.Contains('-android'))">
+    <Compile Remove="Platforms/Android/**/*.cs"/>
+  </ItemGroup>
+
+  <!-- Bundle the showcase static assets into the app so the WebView interceptor + the in-process HttpClient
+       serve them offline: this project's wwwroot (global.css / img / data) at the asset root, and the
+       Rask.Bootstrap package assets under _content/Rask.Bootstrap/. -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <AndroidAsset Include="wwwroot\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <AndroidAsset Include="..\..\src\Rask.Bootstrap\wwwroot\**\*"
+                  Link="Assets\_content\Rask.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)"/>
+  </ItemGroup>
+  <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <BundleResource Include="wwwroot\**\*" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <BundleResource Include="..\..\src\Rask.Bootstrap\wwwroot\**\*"
+                    Link="wwwroot\_content\Rask.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
 
 </Project>

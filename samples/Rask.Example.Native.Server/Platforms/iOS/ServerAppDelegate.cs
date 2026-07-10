@@ -2,17 +2,18 @@ using Foundation;
 using Rask.Native;
 using UIKit;
 
-namespace Company.RaskNative;
+namespace Rask.Example.Native.Server;
 
-// Native + Server mode (iOS): a thin native shell over a REMOTE Rask Server. The WebView machinery — the
-// native capability bridge (so the remote page's Shareable / IShare reach the device's native backends),
-// the trusted-origin gating, and the off-origin-to-Safari diversion — lives in Rask.Native's
-// RaskServerViewController. This head just points it at your server and supplies the native share backend.
+// Native + Server (iOS): a thin native shell over a REMOTE Rask.Example.Server. The WebView machinery — the
+// capability bridge, the trusted-origin gating, and the off-origin-to-Safari diversion — lives in
+// Rask.Native's RaskServerViewController; this head just points it at the dev server and supplies the
+// native share backend.
 [Register("AppDelegate")]
 public class AppDelegate : UIApplicationDelegate
 {
-    // Your remote Rask Server (a real deployment is https).
-    private static readonly Uri ServerOrigin = new("https://app.example.com/");
+    // The iOS simulator reaches the host machine at localhost. Publish + run Rask.Example.Server first
+    // (a real deployment is https). See docs/native.md.
+    private static readonly Uri ServerOrigin = new("http://localhost:5080/");
 
     public override UIWindow? Window { get; set; }
 

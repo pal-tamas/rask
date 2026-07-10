@@ -188,10 +188,10 @@ jobs:
       - name: Build
         run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
-      - name: Publish Server sample (shared by the ServerExampleTests + NativeServerSmokeTests shards)
-        # Both server shards' fixtures boot the *published* Rask.Example.Server host. Publish it ONCE here,
-        # off the graph we just built, so neither shard repeats a from-scratch restore+compile+publish at
-        # fixture startup (that duplicated ~15 min was the whole reason those two shards dwarfed the rest).
+      - name: Publish Server sample (used by the ServerExampleTests shard)
+        # The server shard's fixture boots the *published* Rask.Example.Server host. Publish it ONCE here,
+        # off the graph we just built, so the shard doesn't repeat a from-scratch restore+compile+publish at
+        # fixture startup (that duplicated ~15 min was the whole reason that shard dwarfed the rest).
         # Default output → bin/Release/net10.0/publish, picked up verbatim by the tar below; the fixture
         # launches this prebuilt DLL when it's present and only publishes on demand as a local-dev fallback.
         run: dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --nologo
@@ -227,8 +227,6 @@ jobs:
           - ServerExampleTests
           - WasmExampleTests
           - StandaloneWasmExampleTests
-          - NativeExampleTests
-          - NativeServerSmokeTests
           - WasmSubPathExampleTests
           - AuthExampleTests
           - JwtServerAuthExampleTests
@@ -290,3 +288,106 @@ jobs:
           path: |
             **/TestResults/**
             **/bin/**/test-artifacts/**
+
+  # Compile gate for the runnable native showcase examples (samples/Rask.Example.Native [Native + Local]
+  # and samples/Rask.Example.Native.Server [Native + Server]). They multi-target net10.0-ios;net10.0-android,
+  # so they are kept OUT of Rask.slnx (the Ubuntu jobs have neither workload) and built here on macOS
+  # instead. We build every project × TFM — a green build proves the platform heads + the shared
+  # NativeOriginAssets wiring compile. On-device behaviour is verified by the `native-appium` job below.
+  native:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - samples/Rask.Example.Native/Rask.Example.Native.csproj
+          - samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj
+        tfm: [net10.0-android, net10.0-ios]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install iOS + Android workloads
+        run: dotnet workload install ios android
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build ${{ matrix.project }} (${{ matrix.tfm }})
+        # RaskNativeHeads=true makes Rask.Native build its platform heads; iOS: the .NET workload trails the
+        # runner's Xcode, so skip the exact-version gate.
+        run: >-
+          dotnet build ${{ matrix.project }}
+          -c Release -f ${{ matrix.tfm }}
+          -p:RaskNativeHeads=true
+          -p:ValidateXcodeVersion=false
+
+  # On-device native E2E: Appium drives the REAL Native + Local app (samples/Rask.Example.Native) on an
+  # Android emulator, switches into its WebView, and asserts the showcase rendered with its scoped CSS +
+  # Bootstrap (served through NativeOriginAssets) — the device-level replacement for the removed headless
+  # shim. The iOS variant (XCUITest + simulator) runs locally; see docs/native.md.
+  native-appium:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build the debug-signed showcase APK
+        # A Debug build is signed with the debug keystore (installable) and its WebView is inspectable, so
+        # Appium can attach to the WEBVIEW context. EmbedAssembliesIntoApk is required because a standalone
+        # `adb install` (what Appium does) launches without Fast Deployment's synced assemblies otherwise.
+        run: >-
+          dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
+          -c Debug -f net10.0-android -p:RaskNativeHeads=true -p:EmbedAssembliesIntoApk=true
+
+      - name: Install Appium + the UiAutomator2 driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+
+      - name: Run the Appium showcase E2E on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: arm64-v8a
+          profile: pixel_6
+          script: |
+            appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
+            for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
+            APK=$(find samples/Rask.Example.Native/bin/Debug/net10.0-android -name '*-Signed.apk' | head -1)
+            echo "Driving APK: $APK"
+            RASK_APPIUM_SERVER=http://127.0.0.1:4723 \
+            RASK_APPIUM_ANDROID_APP="$PWD/$APK" \
+              dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj \
+                --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
+
+      - name: Upload Appium log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: appium-log
+          path: appium.log

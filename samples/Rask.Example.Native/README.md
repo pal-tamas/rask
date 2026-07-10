@@ -1,37 +1,38 @@
-# Rask.Example.Native
+# Rask.Example.Native (Native + Local)
 
-The **native** showcase host — the mobile sibling of `Rask.Example.Server` (ASP.NET) and
-`Rask.Example.Wasm` (browser WASM). It mounts the **same** `Rask.Example.Shared.App` showcase every
-other host mounts, but onto a [`NativeAppHost`](../../src/Rask.Native) that runs the app **in-process**
-behind an `INativeWebView` bridge — the WebView-hybrid model (C# runs native, the view is a platform
-WebView). See [`docs/native.md`](../../docs/native.md).
+The **native, in-process** showcase — the mobile peer of `Rask.Example.Wasm`. It mounts the **same**
+`Rask.Example.Shared.App` every other host mounts, but onto a [`NativeAppHost`](../../src/Rask.Native)
+that runs the component code **in-process on the device** behind an `INativeWebView` bridge (the
+WebView-hybrid model: C# runs native, the view is a platform WebView). Its sibling
+[`Rask.Example.Native.Server`](../Rask.Example.Native.Server) is the thin shell over a remote
+`Rask.Example.Server`. See [`docs/native.md`](../../docs/native.md).
 
-Unlike the other samples this is a plain `net10.0` library, not a runnable web app: on a real device
-the app lives inside the `rask-native` template's iOS/Android app heads. This project is the shared
-**composition root** — `NativeExampleHost.Create()` registers the showcase services
-(`AddExampleServices`) and hands `Rask.Example.Shared.App` to `RunLocalAsync`, exactly as the template's
-`AppDelegate`/`MainActivity` do.
+The thin platform heads live under `Platforms/{iOS,Android}` — each boots a `NativeAppHost`, registers
+the showcase services (`AddExampleServices`), mounts `App` with `RunLocalAsync`, and serves the boot
+shell + client + scoped CSS/JS + Bootstrap + `global.css` + `data/*.json` from the app's **bundled
+assets** through `Rask.Native`'s [`NativeOriginAssets`](../../src/Rask.Native/NativeOriginAssets.cs)
+(and the in-process demo `HttpClient` through `NativeAssetHttpHandler`, so data-driven pages work
+offline). The `wwwroot/` here (global.css, `img/`, `data/`) is bundled into the app.
 
-## Running it on a device
+## Running it
 
-Scaffold the template and point its app code at this showcase (or just use the template's own pages):
+Multi-targets `net10.0-ios;net10.0-android`, so it needs the mobile workloads and sits **outside
+`Rask.slnx`**:
 
 ```bash
-dotnet new rask-native -o MyApp
 dotnet workload install ios android
-dotnet build MyApp -t:Run -f net10.0-android   # or -f net10.0-ios
+dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android   # emulator
+dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-ios       # simulator (macOS)
 ```
 
 ## How it's tested
 
-`NativeExampleTests` (in `tests/Rask.Examples.E2E.Tests`) drives this host **headlessly, with no
-emulator**: it runs the real `rask.native.js` client + `RunLocalAsync` pipeline in Chromium (the WebView
-engine class Android ships) through a Playwright-backed `INativeWebView`
-(`PlaywrightNativeWebView`), whose route handler (`NativeOriginServer`) serves the boot shell, the client,
-scoped `/_rask/a/*` assets, `global.css`, and Bootstrap — the E2E stand-in for a device head's scheme
-handler. It's a CI E2E shard alongside `ServerExampleTests` / `WasmExampleTests`, reusing the shared
-showcase journey.
-
-The `wwwroot/` here (global.css, `img/`, `data/`) mirrors the other hosts' static assets so the shared
-showcase renders identically; it's served to the WebView by the host's asset handler (the E2E route
-handler here, a scheme handler on device).
+`tests/Rask.Native.Appium.Tests` drives the **real app on a device**: [Appium](https://appium.io)
+installs this APK on an Android emulator, switches into its WebView, and asserts the showcase rendered
+with its scoped CSS + Bootstrap (served through `NativeOriginAssets`). CI runs it in the macOS
+`native-appium` job (which boots the emulator and starts an Appium server); the same test also drives the
+iOS simulator locally. A separate macOS `native` job compiles this example and its `.Server` sibling for
+both TFMs. To run the Android test locally: boot an emulator, `appium
+--allow-insecure=uiautomator2:chromedriver_autodownload &`, build the APK with
+`-p:EmbedAssembliesIntoApk=true`, then
+`RASK_APPIUM_SERVER=http://127.0.0.1:4723 RASK_APPIUM_ANDROID_APP=<apk> dotnet test tests/Rask.Native.Appium.Tests`.

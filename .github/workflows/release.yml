@@ -122,9 +122,46 @@ jobs:
             **/TestResults/**
             **/bin/**/test-artifacts/**
 
+  # Rask.Native ships its iOS/Android platform heads (RaskWkWebView / RaskAndroidWebView / NativeShare /
+  # the Native+Server controllers), so its package must be built + packed on macOS with the mobile
+  # workloads (-p:RaskNativeHeads=true multi-targets net10.0;net10.0-ios;net10.0-android). It's produced
+  # here and handed to the publish job as an artifact.
+  pack-native:
+    needs: [unit, e2e]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install iOS + Android workloads
+        run: dotnet workload install ios android
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Pack Rask.Native (with iOS/Android heads)
+        run: >-
+          dotnet pack src/Rask.Native/Rask.Native.csproj -c Release
+          -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -o ./artifacts
+
+      - name: Upload Rask.Native package
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-nupkgs
+          path: ./artifacts/Rask.Native.*.*nupkg
+
   # Pack & publish: gated on every test (unit + all e2e shards) being green.
   publish:
-    needs: [unit, e2e]
+    needs: [unit, e2e, pack-native]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -162,8 +199,13 @@ jobs:
       - name: Pack Rask.Wasm.Hosting
         run: dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release --no-build -o ./artifacts
 
-      - name: Pack Rask.Native
-        run: dotnet pack src/Rask.Native/Rask.Native.csproj -c Release --no-build -o ./artifacts
+      # Rask.Native is packed WITH its iOS/Android platform heads on macOS (the pack-native job) — this
+      # Ubuntu runner has no ios/android workloads. Pull that .nupkg/.snupkg into ./artifacts.
+      - name: Download Rask.Native package (macOS-built, with heads)
+        uses: actions/download-artifact@v5
+        with:
+          name: native-nupkgs
+          path: ./artifacts
 
       - name: Pack Rask.Validation.DataAnnotations
         run: dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release --no-build -o ./artifacts

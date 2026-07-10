@@ -18,6 +18,37 @@ them until tagged releases begin.
   `MainActivity` requests the runtime grant. **Verified on the Android emulator:** a mock GPS fix
   (`adb emu geo fix`) round-tripped through `IGeolocation` → `NativeGeolocation` → `LocationManager` and
   displayed the exact lat/long; both platform backends compile.
+- **`Rask.Native` now ships the platform WebView heads — zero head duplication.** The iOS/Android bridges
+  (`RaskWkWebView` / `RaskAndroidWebView`), the native share backends (`NativeShare`), the Native + Server
+  controllers (`RaskServerViewController` / `RaskServerWebView`), and the default bundled-asset readers
+  (`IosBundledAssets` / `AndroidBundledAssets`) all move **into `Rask.Native`** under `Platforms/{iOS,Android}`.
+  Both the runnable examples and the `rask-native` template are now just thin entry points that compose them —
+  no WebView/share/trust code is copied anywhere. `Rask.Native` gains a gated multi-target: it builds plain
+  `net10.0` by default (so CI, unit tests, and the Ubuntu solution build are unchanged with no mobile
+  workloads), and **`-p:RaskNativeHeads=true`** multi-targets `net10.0;net10.0-ios;net10.0-android` to produce
+  the head assemblies. The published package carries all three `lib/` TFMs, so it is now packed on **macOS**
+  (a dedicated `pack-native` release/nightly job) rather than Ubuntu. A shared, net10.0
+  `NativeCapabilities.IsTrustedOrigin(origin, url)` replaces the per-head trust check (now compares the full
+  origin — scheme + host + port — not just the host), and the iOS Server head diverts *every* off-origin web
+  navigation to Safari (not only tapped links).
+- **Runnable native showcase examples + framework asset serving.** Two new iOS/Android examples make native
+  a peer of the Server and WASM showcase samples, both mounting the *same* `Rask.Example.Shared.App`:
+  **`samples/Rask.Example.Native`** (Native + Local — in-process, the native peer of the WASM sample) and
+  **`samples/Rask.Example.Native.Server`** (Native + Server — a thin native shell over a remote
+  `Rask.Example.Server`, the native peer of the Server sample). They multi-target `net10.0-ios;net10.0-android`,
+  so they stay out of `Rask.slnx` (the Ubuntu CI can't build those TFMs) and are built by a dedicated **macOS
+  `native` CI job** across every project × TFM. On-device E2E moves to **Appium** (`tests/Rask.Native.Appium.Tests`,
+  macOS `native-appium` job) — it installs and drives the *real* app on an Android emulator, switches into the
+  WebView, and asserts the showcase rendered with its scoped CSS + Bootstrap. This **replaces the headless
+  Playwright-in-Chromium native shim** (`NativeExampleTests` / `NativeServerSmokeTests` / `PlaywrightNativeWebView`
+  / `NativeOriginServer`), which had masked a device-only bug now fixed: the boot shell loads at
+  `/index.native.html`, a path `NativeOriginAssets` now serves. To make the *full* showcase serveable on-device,
+  `Rask.Native` gains two public APIs —
+  **`NativeOriginAssets`** (the origin request table: boot shell + client, scoped `/_rask/a/*` CSS/JS from
+  `ScopedAssetRegistry`, and your `wwwroot`/Bootstrap/`data` via a caller-supplied bundled-asset reader) and
+  **`NativeAssetHttpHandler`** (serves the in-process demo `HttpClient` from the same table, so data-driven
+  pages work offline). A real native app now serves scoped CSS + Bootstrap with a one-line interceptor instead
+  of the boot-only two-file handler.
 - **Native + Server head — a remote Server app reaches device natives (the "superpower").** The
   `rask-native` template gains a **`--host server|local`** parameter. `--host server` scaffolds a thin native
   shell (`Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`) that points its WebView at a remote

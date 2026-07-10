@@ -164,8 +164,36 @@ jobs:
             **/TestResults/**
             **/bin/**/test-artifacts/**
 
-  publish-nightly:
+  # Rask.Native ships iOS/Android platform heads, so its prerelease package is built + packed on macOS
+  # with the mobile workloads (-p:RaskNativeHeads=true) and handed to publish-nightly as an artifact.
+  pack-native-nightly:
     needs: [unit, aot-publish, e2e]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # MinVer needs full history + tags
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install iOS + Android workloads
+        run: dotnet workload install ios android
+
+      - name: Pack Rask.Native (with iOS/Android heads)
+        run: >-
+          dotnet pack src/Rask.Native/Rask.Native.csproj -c Release
+          -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -o ./artifacts
+
+      - name: Upload Rask.Native package
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-nupkgs
+          path: ./artifacts/Rask.Native.*.*nupkg
+
+  publish-nightly:
+    needs: [unit, aot-publish, e2e, pack-native-nightly]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -183,17 +211,24 @@ jobs:
         run: dotnet restore Rask.slnx
 
       - name: Pack (prerelease)
+        # Rask.Native is packed on macOS (pack-native-nightly) because it ships iOS/Android heads this
+        # Ubuntu runner can't build.
         run: |
           dotnet pack src/Rask.Server/Rask.Server.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm/Rask.Wasm.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Wasm.Hosting/Rask.Wasm.Hosting.csproj -c Release -o ./artifacts
-          dotnet pack src/Rask.Native/Rask.Native.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.DataAnnotations/Rask.Validation.DataAnnotations.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Templates/Rask.Templates.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Bootstrap/Rask.Bootstrap.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.Cqrs/Rask.Cqrs.csproj -c Release -o ./artifacts
           dotnet pack src/Rask.WebPush/Rask.WebPush.csproj -c Release -o ./artifacts
+
+      - name: Download Rask.Native package (macOS-built, with heads)
+        uses: actions/download-artifact@v5
+        with:
+          name: native-nupkgs
+          path: ./artifacts
 
       - name: Push prerelease to nuget.org
         run: >-
