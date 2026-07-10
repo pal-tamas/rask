@@ -45,6 +45,43 @@ public class DelegateOwnerTests
         }
     }
 
+    // A GENERIC component with the exact BsMultiSelect<T> chip shape: a foreach over a collection building
+    // an async handler that calls an instance method, capturing several method-locals AND the loop item AND
+    // `this`. Because the component is generic, Roslyn lowers the nested display classes to GENERIC types
+    // (`<>c__DisplayClassN_M`1`) — including the outer one holding the captured `<>4__this`. Resolve must
+    // still walk into that generic display class to recover the defining component; excluding generic types
+    // from the closure-walk (the original bug) returned null here, so the wrapped callback never re-rendered
+    // the generic component after its own event fired (e.g. removing a BsMultiSelect chip did nothing until
+    // an unrelated re-render). A NON-generic version of this shape resolves fine — the generic-ness is the bug.
+    private sealed class GenericChipShape<T> : Component
+    {
+        public Task ToggleAsync(object a, object b, int c, T item, object d, bool add) => Task.CompletedTask;
+
+        public CallbackAsync ChipRemoveHandler(IEnumerable<T> items)
+        {
+            var acc = new object();
+            var ctx = new object();
+            var fid = 7;
+            var comparer = new object();
+            CallbackAsync? result = null;
+            foreach (var item in items)
+            {
+                var captured = item;
+                CallbackAsync h = () => ToggleAsync(acc, ctx, fid, captured, comparer, add: false);
+                result ??= h;
+            }
+
+            return result!;
+        }
+    }
+
+    [Fact]
+    public void Resolve_GenericComponentLoopClosure_ReturnsDefiningComponent()
+    {
+        var component = new GenericChipShape<string>();
+        Assert.Same(component, DelegateOwner.Resolve(component.ChipRemoveHandler(["a", "b"])));
+    }
+
     [Fact]
     public void Resolve_MethodGroup_ReturnsComponent()
     {
