@@ -40,6 +40,29 @@ public class BsMultiSelectTests
             BsMultiSelect<string>(Options: [], Value: new List<string>(), Placeholder: "Pick tags").ToHtml());
 
     [Fact]
+    public void MultiSelect_FloatingEmpty_WrapsInFormFloatingWithBlankBox()
+    {
+        // Float-only-when-filled: the empty box carries NO "Select…" placeholder span (the centred floating
+        // label is the placeholder) — otherwise the two texts overlap. Wrapper is .form-floating.bs-floating
+        // with no .bs-floating-filled. Guards the regression where the leftover placeholder overlapped the label.
+        var html = BsMultiSelect<string>(Options: [], Value: new List<string>(),
+            Label: "Interests", Floating: true).ToHtml();
+        Assert.Contains("<div class=\"form-floating bs-floating position-relative\">", html);
+        Assert.Contains("role=\"combobox\" tabindex=\"0\"></div><label>Interests</label>", html);
+        Assert.DoesNotContain("Select&#x2026;", html);
+        Assert.DoesNotContain("bs-floating-filled", html);
+    }
+
+    [Fact]
+    public void MultiSelect_FloatingWithChips_AddsFilledMarker()
+    {
+        var html = BsMultiSelect<string>(Options: ["a"], Value: new List<string> { "a" },
+            Label: "Interests", Floating: true).ToHtml();
+        Assert.Contains("<div class=\"form-floating bs-floating bs-floating-filled position-relative\">", html);
+        Assert.DoesNotContain("Select&#x2026;", html);
+    }
+
+    [Fact]
     public void MultiSelect_RequiresExactlyOneOfBindOrValue() =>
         // Neither Bind nor Value set → the mode guard throws when the control renders.
         Assert.Throws<InvalidOperationException>(() => BsMultiSelect<string>(Options: ["a"]).ToHtml());

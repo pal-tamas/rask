@@ -86,8 +86,11 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
         var filteredList = filtered as IReadOnlyList<TItem> ?? filtered.ToList();
 
         var hasChips = selected is not null && selected.Count > 0;
+        var floating = Floating is true && Label is not null;
 
         // The control box holds the selected chips (BsBadge + BsCloseButton), or a placeholder when empty.
+        // While floating + empty the box stays blank: the centred floating label acts as the placeholder
+        // (matching BsSelect and native .form-floating), so a leftover "Select…" span can't overlap it.
         var box = new List<Component>();
         if (hasChips)
         {
@@ -103,7 +106,7 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
                 i++;
             }
         }
-        else
+        else if (!floating)
         {
             box.Add(Span(Class: "text-secondary")[Placeholder ?? "Select…"]);
         }
@@ -156,7 +159,6 @@ public sealed class BsMultiSelect<TItem> : BsBlock, IFormControl<ICollection<TIt
             OnClick: disabled ? null : () => { _open = !_open; if (!_open) { _filter = null; } },
             OnKeyDown: disabled ? null : OnBoxKeyDown)[box];
 
-        var floating = Floating is true && Label is not null;
         var labelNode = Label is null
             ? null
             : Rask.Core.Components.Generated.Label(Class: floating ? null : "form-label")[Label];
