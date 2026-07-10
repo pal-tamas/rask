@@ -179,7 +179,7 @@ public abstract class BsPickerBase<T> : BsFormControl<T>
         var clear = showClear
             ? BsCloseButton(
                 Class: BsClass.Join(Position.Absolute, Position.End0, Position.Top50,
-                    Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear"),
+                    Position.TranslateMiddleY, Margin.End(2), "bs-picker-clear", Open ? "bs-clear-open" : null),
                 AriaLabel: "Clear",
                 OnClickAsync: clearAsync)
             : null;

@@ -78,6 +78,9 @@ public class BsSelectTests
         Assert.Contains(
             "<button class=\"btn-close position-absolute top-50 translate-middle-y bs-select-clear\" " +
             "aria-label=\"Clear\" type=\"button\"></button>", html);
+        // A *closed* select's × never carries the raised z-index (.bs-clear-open) — that hook is added only
+        // while open, so a stray × can't paint over another (open) select's dropdown menu.
+        Assert.DoesNotContain("bs-clear-open", html);
     }
 
     [Fact]
