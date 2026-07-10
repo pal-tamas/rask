@@ -410,6 +410,10 @@ jobs:
             appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
             for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
             dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
+            # The action's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
+            # "stop: Not implemented" quirk), which would stall the job past the passing test until the
+            # timeout. Hard-kill the emulator process here so that teardown finds it already gone.
+            pkill -9 -f qemu-system 2>/dev/null || true
 
       - name: Upload Appium log on failure
         if: failure()
