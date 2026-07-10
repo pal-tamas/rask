@@ -15,16 +15,14 @@ namespace Rask.Server.Tests.WebSockets;
 //  - The dispatch lock (session.Lock) is distinct from the render lock (_renderLock), and AttachSocket
 //    takes neither — so a handler parked under the dispatch lock across a disconnect can't block the
 //    reconnect, and once it clears the queued work drains through the reconnected socket.
-[Collection("LiveDiffMode")]
 public class HandlerExceptionIsolationTests
 {
     // Assert against the legacy full-HTML `html` field (framework default is now diff mode).
-    public HandlerExceptionIsolationTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     [Fact]
     public async Task FaultingHandler_TripsRootErrorBoundary_KeepsSocketOpen()
     {
-        using var host = RaskTestHost.Create<ThrowingHandlerApp>();
+        using var host = RaskTestHost.Create<ThrowingHandlerApp>(diffMode: LiveDiffMode.DisabledFull);
         var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(html);
         var boom = HandlerIdFor(html, "boom");
@@ -50,7 +48,7 @@ public class HandlerExceptionIsolationTests
         GatedCounterApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            using var host = RaskTestHost.Create<GatedCounterApp>();
+            using var host = RaskTestHost.Create<GatedCounterApp>(diffMode: LiveDiffMode.DisabledFull);
             var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
             var sessionId = Markup.SessionId(html);
             var hang = HandlerIdFor(html, "hang");

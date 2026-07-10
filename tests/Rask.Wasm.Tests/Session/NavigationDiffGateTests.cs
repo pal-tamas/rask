@@ -19,7 +19,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task Navigate_SameHead_ShipsDiffWithHistory()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/destination","query":""}"""));
@@ -37,7 +37,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task Navigate_WithQuery_ShipsDiffCarryingQueryInHistory()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         // Path changes (body diff) and the head is unchanged → diff path. The history URL
@@ -53,7 +53,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         // StubApp renders only the path, never the query — navigating to the same path
@@ -75,7 +75,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
     {
-        var (session, _) = NewSession<RouteTitleStubApp>();
+        var (session, _) = NewSession<RouteTitleStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         // RouteTitleStubApp changes the <title> AND an H1 text per route. The body delta is a
@@ -98,7 +98,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
     {
-        var (session, _) = NewSession<RouteTitleStructuralStubApp>();
+        var (session, _) = NewSession<RouteTitleStructuralStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
         // The body restructures per route (div ↔ unkeyed list) → untrusted positional
@@ -118,7 +118,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task ReactiveTitleChange_NoNavigation_ShipsDiffWithHeadAndNoHistory()
     {
-        var (session, _) = NewSession<ReactiveTitleStubApp>();
+        var (session, _) = NewSession<ReactiveTitleStubApp>(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
 
         // A handler bumps a counter that drives BOTH the <title> and an H1 — no navigation.

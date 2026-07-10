@@ -156,6 +156,13 @@ mis-targeted positional op.
 - **`Forced`** — always diff when one is computable, even when larger than the body;
   for tests/benchmarks.
 
+The chosen mode is snapshotted onto **each `LiveSession`** at construction (from the host's
+`RaskLiveOptions` — the Server carries it on the `LiveSessionStore`, WASM/Native on the host builder),
+and read from that instance field on the render hot path. It is **not** a process-global static, so two
+hosts in one process — and parallel tests — each render in their own mode instead of racing a shared
+field. (`PathBase` / `MinifyScopedAssets` remain on the static `LiveOptions` because they back the
+process-wide content-addressed asset registries, which build one shared bundle per process.)
+
 The actual decision lives in `LiveSession.RenderAndSendAsync` (server) and the
 equivalent WASM path. Sketch (`Rask.Server/LiveSession.cs`):
 

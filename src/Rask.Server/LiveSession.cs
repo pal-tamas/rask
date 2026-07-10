@@ -76,8 +76,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // thread-pool worker) run on different threads. Mirrors the detached-socket early-return.
     private volatile bool _disposed;
 
-    public LiveSession(string id, Component view, IServiceScope scope)
-        : base(view, scope.ServiceProvider)
+    public LiveSession(string id, Component view, IServiceScope scope, LiveDiffMode diffMode)
+        : base(view, scope.ServiceProvider, diffMode)
     {
         Id = id;
         Scope = scope;
@@ -244,7 +244,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     internal string RenderInitialRoot()
     {
         string html;
-        if (LiveOptions.DiffMode != LiveDiffMode.DisabledFull)
+        if (DiffMode != LiveDiffMode.DisabledFull)
         {
             _renderCache ??= new SessionRenderCache();
             var frameWriter = _renderCache.PrepareCurrentBuffer();

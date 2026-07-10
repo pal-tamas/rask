@@ -7,17 +7,15 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("LiveDiffMode")]
 public class HandlerDispatchTests
 {
     // Asserts against the `html` payload field — force the legacy full-HTML wire
     // shape (framework default is now LiveDiffMode.Auto).
-    public HandlerDispatchTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     [Fact]
     public async Task HandlerId_KnownHandler_InvokesAndSendsRender()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
@@ -39,7 +37,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task HandlerId_UnknownHandler_NoPayload()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
 
@@ -57,7 +55,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task Message_NoIdAndNoType_Ignored()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
 
@@ -78,7 +76,7 @@ public class HandlerDispatchTests
         // unguarded JsonDocument.Parse threw JsonException out of the receive loop, detaching
         // the socket and scheduling the session for removal — one bad (buggy or adversarial)
         // frame dropped the whole session. Now it is dropped and the loop keeps serving.
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
@@ -107,7 +105,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task Message_MissingType_ButHasOtherFields_Ignored()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -124,7 +122,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task ConcurrentHandlerInvocations_SerialisedByPerSessionLock()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
@@ -156,7 +154,7 @@ public class HandlerDispatchTests
     [Fact]
     public async Task HandlerThatThrows_TripsImplicitRootBoundary_AndDispatcherKeepsRunning()
     {
-        using var host = RaskTestHost.Create<ThrowingApp>();
+        using var host = RaskTestHost.Create<ThrowingApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
