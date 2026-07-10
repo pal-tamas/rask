@@ -59,7 +59,7 @@ Scaffold a native app from the template, then run it on an emulator/simulator:
 
 ```bash
 dotnet new install Rask.Templates
-dotnet new rask-native -n MyApp
+dotnet new rask-native -n MyApp              # --host local (default) | --host server
 cd MyApp
 
 dotnet workload install ios android          # the iOS/Android SDK workloads (one-time)
@@ -67,7 +67,13 @@ dotnet build -t:Run -f net10.0-android       # Android emulator
 dotnet build -t:Run -f net10.0-ios           # iOS simulator (macOS + Xcode)
 ```
 
-`dotnet new rask-native` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
+The **`--host`** parameter picks the mode (see [Two modes](#two-modes-local-and-server)):
+`--host local` (default) scaffolds the in-process app below; `--host server` scaffolds a thin shell over a
+remote Rask Server with the [native capability bridge](#native-device-apis-from-a-server-app-the-capability-bridge)
+(its heads are `Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`, and there are no `App.cs`
+components — the server renders them).
+
+`dotnet new rask-native --host local` scaffolds a project that multi-targets `net10.0-ios;net10.0-android`:
 
 ```
 MyApp.csproj                  # multi-targets net10.0-ios;net10.0-android; refs Rask.Native
@@ -146,24 +152,27 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
 
 In Server mode the C# runs on the server and the device is a WebView, so a mid-handler `IShare` call can't
 work — but a plain **`Shareable`** button still pops the **native** sheet, because the head injects the
-[capability bridge](#native-device-backends) into the page. The head does two things (`NativeCapabilities`
-gives you both):
+[capability bridge](#native-device-backends) into the page. Scaffold the Server-mode head with the
+`--host` parameter:
 
-```csharp
-// 1. Inject at document-start so the page sees window.__raskNative.capabilities + invoke() —
-//    ONLY for your trusted origin (never for external navigations; that would expose native to any page).
-webView.InjectAtDocumentStart(NativeCapabilities.BridgeScript, forOrigin: shell.ServerBaseUrl);
-
-// 2. Route the WebView's script messages to the shared dispatcher, handing it a native backend.
-var share = new NativeShare(/* presenter / activity */);
-webView.OnScriptMessage = bytes => NativeCapabilities.TryHandleAsync(bytes, share);
+```bash
+dotnet new rask-native -n MyApp --host server   # (--host local is the default)
 ```
 
+The generated head (`Platforms/Android/ServerActivity.cs`, `Platforms/iOS/ServerAppDelegate.cs`) points its
+WebView at your `ConnectToServer(...)` URL and wires the bridge with the two `NativeCapabilities` helpers:
+
+- **`NativeCapabilities.BridgeScript`** — injected at each navigation **only for your trusted origin**, so
+  the page sees `window.__raskNative.capabilities` + `invoke(name, data)`.
+- **`NativeCapabilities.TryHandleAsync(messageJson, share)`** — the WebView's script-message handler routes
+  every posted message here with a native `IShare` (the scaffold's `NativeShare`).
+
 Now the *same* `Shareable` component that renders on the server fires the device's native
-`UIActivityViewController` / `Intent.ACTION_SEND` when run in the shell — the "superpower". **Security:**
-inject `BridgeScript` only for your origin, and open off-origin links in the system browser
-(`WKNavigationDelegate` / `shouldOverrideUrlLoading`); the bridge is a fixed component envelope, not open
-native RPC.
+`UIActivityViewController` / `Intent.ACTION_SEND` when run in the shell — the "superpower". **Security:** the
+generated head injects `BridgeScript` only for your origin and opens off-origin links in the system browser
+(`WKNavigationDelegate.decidePolicyForNavigationAction` / `shouldOverrideUrlLoading`), so the WebView never
+leaves your origin and no other page can reach native; the bridge is a fixed component envelope, not open
+native RPC. (For a local `http://10.0.2.2:<port>` dev server, allow cleartext in `AndroidManifest.xml`.)
 
 ## The `INativeWebView` bridge
 
