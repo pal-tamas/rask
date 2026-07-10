@@ -71,6 +71,13 @@ var app = builder.Build();
 // brotli/gzip, and immutable caching. The SDK auto-loads the static-web-assets manifest in Development;
 // a published app carries the manifest plus the physical assets, so no extra wiring is needed there.
 // (The E2E runs this host *published* so the slow-network journey exercises that production serving.)
+//
+// Dev note: `_content/Rask.Bootstrap/*` serves correctly for **package** consumers and for a **published**
+// build, but a plain `dotnet run` of THIS in-repo showcase (which references Rask.Bootstrap by *project*)
+// 500s on those assets — MapStaticAssets serves the compressed (.gz) variant and the in-repo project-ref
+// build doesn't stage it (Rask.Bootstrap's package ships the SWA endpoints props, but its in-repo
+// hand-written build/Rask.Bootstrap.props Exists()-skips it). A local-run-only quirk, no user/CI impact:
+// `dotnet publish` (or run a package-based app) if you need the styled showcase locally.
 app.MapStaticAssets();
 app.UseRouting();
 
