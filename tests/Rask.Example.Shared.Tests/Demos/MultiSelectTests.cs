@@ -112,6 +112,28 @@ public sealed class MultiSelectTests
     }
 
     [Fact]
+    public async Task RemoveChip_RerendersControl_DropsBadge()
+    {
+        // Regression: clicking a chip's × is a BsCloseButton (a wrapper) callback, so re-rendering the
+        // BsMultiSelect<T> relies on AutoCallback marking it dirty. Because the control is GENERIC, that
+        // path used to resolve no owner (DelegateOwner skipped the generic display class holding `this`),
+        // so the control never re-rendered and the badge lingered until an unrelated render (reopening the
+        // dropdown). A cache-aware second render must now drop the removed chip on its own.
+        var (host, model) = MountBound();
+        model.Tags.Add("a");
+        model.Tags.Add("b");
+        var ids = ClickIds(host.RenderAsLiveRoot()); // [toggle, chip-remove-a, chip-remove-b, opt-a, opt-b, opt-c]
+
+        await host.TryInvokeHandlerAsync(ids[1], Empty()); // remove the "a" chip
+        Assert.Equal(["b"], model.Tags);
+
+        // The cache-aware re-render must reflect the removal without any extra interaction.
+        var html = host.RenderAsLiveRoot();
+        Assert.Equal(1, CountOccurrences(html, "badge"));     // only the surviving "b" chip
+        Assert.Equal(1, CountOccurrences(html, " checked")); // exactly one option still ticked
+    }
+
+    [Fact]
     public async Task SelectingTwice_TogglesOff()
     {
         var (host, model) = MountBound();
