@@ -41,6 +41,16 @@ them until tagged releases begin.
   the whole solution. (3) The documented local inner loop is build-once / test-with-`--no-build`.
 
 ### Fixed
+- **`BsMultiSelect` floating label no longer overlaps the placeholder.** In floating mode the empty control
+  still rendered its `Select…` placeholder span *inside* the box, and the floating CSS centres the label
+  in that same box — so the two texts collided. It now blanks the box when floating + empty (the centred
+  floating label serves as the placeholder), matching `BsSelect` and native `.form-floating`.
+- **Floated `.bs-floating` label now straddles the top border like a native floating input.** The custom
+  floating-label controls (`BsSelect`/`BsMultiSelect`/pickers) zero the label's top padding in the empty
+  state to flex-centre the placeholder, but never restored it when the label floated — so the shrunk label
+  translated up from a `0` baseline and hugged/crossed the top border. The filled/`:focus-within` rule now
+  restores the native `padding-top: 1rem`, so the floated label sits the same small gap below the border as
+  a normal Bootstrap floating input.
 - **`BsSelect`/date-time picker clear (×) no longer shows through another select's open dropdown.** The
   clear × carried a hard `z-index: 1000` (so an *open* control's × stays clickable above its own
   click-outside backdrop at 999). But Bootstrap's open `.dropdown-menu.show` is *also* `z-index: 1000`,
