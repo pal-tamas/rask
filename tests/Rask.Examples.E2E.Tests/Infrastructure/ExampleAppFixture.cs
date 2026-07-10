@@ -152,13 +152,24 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         }
     }
 
-    // Publishes the host once into a temp folder and returns a ProcessStartInfo that runs the published
-    // DLL *from that folder* — the working directory becomes the content root, so MapStaticAssets
-    // resolves the published wwwroot/_content assets. Running the DLL from anywhere else would point the
-    // content root at the wrong place and the asset endpoints would serve empty bodies.
+    // Returns a ProcessStartInfo that runs the *published* host. Prefers the folder CI published once in
+    // the `e2e-build` job; if that isn't present (local dev), publishes the host on demand into a temp
+    // folder first. Either way the DLL is launched from its publish folder — see RunPublishedDllStartInfo.
     private ProcessStartInfo PublishAndBuildStartInfo(string repoRoot, string projectPath)
     {
         var appName = Path.GetFileName(ProjectRelativePath.TrimEnd('/', '\\'));
+
+        // CI publishes each publish-based host once in the `e2e-build` job (default output folder), ships
+        // it in the shared build artifact, and every shard boots that prebuilt DLL — so the shards don't
+        // each repeat a from-scratch restore+compile+publish. Prefer it when present; multiple fixtures
+        // (e.g. Server + NativeServerSmoke) share the one folder and just launch it on their own ports.
+        var prebuiltDir = Path.Combine(projectPath, "bin", Configuration, "net10.0", "publish");
+        if (File.Exists(Path.Combine(prebuiltDir, $"{appName}.dll")))
+        {
+            return RunPublishedDllStartInfo(prebuiltDir, appName);
+        }
+
+        // Local-dev fallback: no CI prebuild present, so publish the host on demand into a temp folder.
         var publishDir = Path.Combine(Path.GetTempPath(), "rask-e2e-publish", $"{appName}-{Port}");
         Directory.CreateDirectory(publishDir);
 
@@ -184,15 +195,20 @@ public abstract class ExampleAppFixture : IAsyncLifetime
             }
         }
 
-        return new ProcessStartInfo("dotnet")
-        {
-            ArgumentList = { Path.Combine(publishDir, $"{appName}.dll"), "--urls", BaseUrl },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = publishDir
-        };
+        return RunPublishedDllStartInfo(publishDir, appName);
     }
+
+    // Runs the published host DLL *from its own folder* — the working directory becomes the content root,
+    // so MapStaticAssets resolves the published wwwroot/_content assets. Running it from anywhere else
+    // would point the content root at the wrong place and the asset endpoints would serve empty bodies.
+    private ProcessStartInfo RunPublishedDllStartInfo(string publishDir, string appName) => new("dotnet")
+    {
+        ArgumentList = { Path.Combine(publishDir, $"{appName}.dll"), "--urls", BaseUrl },
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        WorkingDirectory = publishDir
+    };
 
     // Plain `dotnet run --no-build` launch — serves a host the main test-suite build already built.
     // (For WASM hosts that build must pass -p:WasmBuildNative=false so the prebuilt .NET-WASM runtime
