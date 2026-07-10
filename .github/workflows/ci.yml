@@ -395,13 +395,16 @@ jobs:
 
       - name: Run the Appium showcase E2E on the emulator
         # The emulator-runner's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
-        # "stop: Not implemented" quirk) AFTER the test has already passed. So the job's verdict is decoupled
-        # from teardown: the test writes an "appium-passed" marker on success, this step is continue-on-error
-        # with its own timeout (so a hung teardown fails the STEP, not the job), and the next step passes or
-        # fails purely on the marker.
+        # "stop: Not implemented" quirk) AFTER the test has already passed — CONFIRMED unavoidable here: even
+        # hard-killing qemu + crashpad_handler below doesn't stop the action's teardown from hanging. So the
+        # job's verdict is decoupled from teardown: the test writes an "appium-passed" marker on success, this
+        # step is continue-on-error with its own timeout (so the hung teardown fails only the STEP, not the
+        # job), and the next step passes/fails purely on the marker. The timeout is the ceiling on wasted
+        # hang time: build+boot+test finishes in ~5 min, so 15 comfortably covers a cold boot while cutting
+        # the idle teardown tail (the previous 22 burned ~19 idle min after a green test).
         id: appium-e2e
         continue-on-error: true
-        timeout-minutes: 22
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
