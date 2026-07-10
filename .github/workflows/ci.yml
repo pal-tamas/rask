@@ -326,7 +326,8 @@ jobs:
         # RaskNativeHeads=true makes Rask.Native build its platform heads. Android does a full build.
         # For iOS we COMPILE-ONLY (Roslyn): the full app's native link needs the exact Xcode/iOS SDK the
         # Microsoft.iOS workload wants, which trails the GitHub runner's Xcode (MT0180). Compile-only still
-        # catches iOS head compile breaks; the full iOS build + on-device run is verified locally (docs/native.md).
+        # catches iOS head compile breaks; the full iOS build + on-device XCUITest run happens nightly in
+        # native-ios-e2e.yml (and locally; see docs/native.md).
         run: |
           if [[ "${{ matrix.tfm }}" == *-ios ]]; then
             dotnet build ${{ matrix.project }} -c Release -f ${{ matrix.tfm }} -p:RaskNativeHeads=true -p:ValidateXcodeVersion=false -t:Compile
@@ -339,7 +340,7 @@ jobs:
   # Bootstrap (served through NativeOriginAssets) — the device-level replacement for the removed headless
   # shim. Runs on Ubuntu + KVM (GitHub's reliable path for the Android emulator; the macOS runners time out
   # booting it). -p:RaskNativeHeads=android builds ONLY the Android head, so the APK builds on Linux with no
-  # iOS workload. The iOS variant (XCUITest + simulator) runs locally; see docs/native.md.
+  # iOS workload. The iOS variant (XCUITest + simulator on macOS) runs nightly in native-ios-e2e.yml.
   native-appium:
     runs-on: ubuntu-latest
     # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead.

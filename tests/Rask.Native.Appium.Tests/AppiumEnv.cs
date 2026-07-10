@@ -22,6 +22,14 @@ internal static class AppiumEnv
     /// <summary>The booted iOS simulator name, e.g. "iPhone 17 Pro".</summary>
     public static string IosDeviceName => Get("RASK_APPIUM_IOS_DEVICE") ?? "iPhone 15";
 
+    /// <summary>
+    ///     The booted iOS simulator's UDID. When present it is passed as <c>appium:udid</c> for EXPLICIT
+    ///     device targeting — on ARM64 macOS runners (every GitHub macOS runner) Appium/XCUITest device
+    ///     selection by name alone is unreliable, so the CI job resolves the UDID and pins it (the same
+    ///     reason .NET MAUI's XHarness passes an explicit <c>--device UDID</c>).
+    /// </summary>
+    public static string? IosUdid => Get("RASK_APPIUM_IOS_UDID");
+
     private static string? Get(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);

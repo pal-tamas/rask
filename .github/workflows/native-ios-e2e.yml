@@ -1,0 +1,104 @@
+name: native-ios-e2e
+
+# On-device iOS native E2E — the macOS counterpart of ci.yml's Ubuntu `native-appium` (Android). Appium
+# drives the REAL Native + Local showcase (samples/Rask.Example.Native) on an iOS Simulator via XCUITest,
+# switches into the WKWebView, and asserts the showcase rendered with its scoped CSS + Bootstrap (served
+# through NativeOriginAssets) — the device-level proof for iOS that native-appium gives for Android.
+#
+# It lives in its OWN workflow (nightly cron + manual dispatch), NOT per-PR and NOT in nightly.yml, because:
+#   * macOS runners cost ~10x Linux minutes and the full net10.0-ios build rides the Microsoft.iOS <-> Xcode
+#     SDK coupling (MT0180), too fragile to gate every PR on — MAUI/Appium likewise schedule device UI tests
+#     nightly rather than per-commit. Per-PR iOS coverage stays the compile-only `native` job in ci.yml.
+#   * Keeping it out of nightly.yml means a manual/branch dispatch can validate it WITHOUT triggering that
+#     workflow's package publish.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *" # nightly at 04:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-ios-e2e
+  cancel-in-progress: true
+
+jobs:
+  native-appium-ios:
+    # All GitHub macOS runners are Apple silicon (arm64) -> iossimulator-arm64 below.
+    runs-on: macos-15
+    timeout-minutes: 50
+    env:
+      RASK_APPIUM_SERVER: http://127.0.0.1:4723
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Pin the newest non-beta Xcode on the image so the Microsoft.iOS workload's native link finds a
+      # matching SDK (the MT0180 mismatch the compile-only `native` job dodges). Paired with
+      # ValidateXcodeVersion=false below, this is the closest CI gets to the local Xcode used to run iOS.
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install iOS + Android workloads
+        # Both: Rask.Native builds all its heads under -p:RaskNativeHeads=true, so restore needs both.
+        run: dotnet workload install ios android
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build the iOS-simulator showcase .app
+        # Full build (NOT -t:Compile) to produce a runnable simulator bundle. ValidateXcodeVersion=false
+        # tolerates the Microsoft.iOS <-> runner-Xcode drift; no code signing is needed for the simulator.
+        run: >-
+          dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
+          -c Release -f net10.0-ios
+          -p:RaskNativeHeads=true
+          -p:RuntimeIdentifier=iossimulator-arm64
+          -p:ValidateXcodeVersion=false
+
+      - name: Resolve the built .app path
+        # Publish the absolute .app path to the job env so it reaches `dotnet test` (AppiumEnv.IosApp).
+        run: |
+          APP=$(find "$PWD/samples/Rask.Example.Native/bin/Release/net10.0-ios/iossimulator-arm64" -maxdepth 2 -name '*.app' | head -1)
+          test -n "$APP" || { echo "No .app produced by the iOS-simulator build"; exit 1; }
+          echo "Resolved .app: $APP"
+          echo "RASK_APPIUM_IOS_APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Boot the iOS Simulator
+        id: sim
+        uses: futureware-tech/simulator-action@v5
+        with:
+          model: iPhone 15
+
+      - name: Pin the booted simulator (UDID + name)
+        # Explicit UDID targeting: name-only Appium device selection is unreliable on ARM64 macOS runners
+        # (the reason MAUI's XHarness passes --device UDID). simulator-action exposes the booted UDID.
+        run: |
+          echo "RASK_APPIUM_IOS_UDID=${{ steps.sim.outputs.udid }}" >> "$GITHUB_ENV"
+          echo "RASK_APPIUM_IOS_DEVICE=iPhone 15" >> "$GITHUB_ENV"
+
+      - name: Start Appium (XCUITest) and run the iOS E2E
+        run: |
+          npm install -g appium
+          appium driver install xcuitest
+          appium server --port 4723 --log appium.log &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
+          dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Ios" --logger "console;verbosity=normal"
+
+      - name: Upload Appium log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: appium-ios-log
+          path: appium.log

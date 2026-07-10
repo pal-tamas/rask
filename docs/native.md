@@ -348,8 +348,11 @@ sandbox, and real background execution — without giving up "the same component
    over `Rask.Example.Server`). They serve the full showcase's assets on-device through the framework's
    [`NativeOriginAssets`](#serving-a-full-apps-assets). E2E is **Appium** (`tests/Rask.Native.Appium.Tests`):
    it installs and drives the *real* app on an Android emulator / iOS simulator, switches into the WebView,
-   and asserts the showcase rendered with its scoped CSS + Bootstrap — run in the macOS `native-appium`
-   CI job (a `native` job additionally compiles both examples for both TFMs). Appium replaced an earlier
+   and asserts the showcase rendered with its scoped CSS + Bootstrap. **Android** runs per-PR in the Ubuntu
+   `native-appium` CI job (KVM emulator); **iOS** (XCUITest on a macOS simulator) runs nightly + on-demand
+   in `native-ios-e2e.yml` — kept off the per-PR path because macOS minutes and the Microsoft.iOS↔Xcode SDK
+   coupling make it too costly/fragile to gate every PR, the same nightly cadence MAUI uses for device UI
+   tests. A per-PR `native` job additionally compiles both examples for both TFMs. Appium replaced an earlier
    headless Playwright-in-Chromium shim, and immediately surfaced a device-only bug the shim had masked
    (the boot shell loads at `/index.native.html`, a path `NativeOriginAssets` now serves).
    *(Native + Server needs no separate suite: in that mode the WebView loads a remote Rask Server and
