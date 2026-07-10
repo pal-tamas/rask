@@ -51,6 +51,12 @@ them until tagged releases begin.
   there). (2) CI now builds the E2E graph **once** in a shared `e2e-build` job and hands the output to
   every browser-journey shard via artifact (`--no-build`), instead of each of the ten shards rebuilding
   the whole solution. (3) The documented local inner loop is build-once / test-with-`--no-build`.
+  (4) The two server E2E shards (`ServerExampleTests`, `NativeServerSmokeTests`) each `dotnet publish`-ed
+  the *same* `Rask.Example.Server` host from scratch at fixture startup — a duplicated restore+compile+
+  publish that made them ~15 min while every other shard was 1–3.5 min. The `e2e-build` job now publishes
+  that host **once** (`--no-build`, off the graph it just built) into the shared artifact, and the fixture
+  boots that prebuilt DLL when present (falling back to an on-demand publish for local dev), cutting both
+  shards to browser-journey time.
 
 ### Fixed
 - **`BsMultiSelect` floating label no longer overlaps the placeholder.** In floating mode the empty control

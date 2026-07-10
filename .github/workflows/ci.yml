@@ -188,11 +188,19 @@ jobs:
       - name: Build
         run: dotnet build Rask.slnx -c Release --no-restore -m:1
 
+      - name: Publish Server sample (shared by the ServerExampleTests + NativeServerSmokeTests shards)
+        # Both server shards' fixtures boot the *published* Rask.Example.Server host. Publish it ONCE here,
+        # off the graph we just built, so neither shard repeats a from-scratch restore+compile+publish at
+        # fixture startup (that duplicated ~15 min was the whole reason those two shards dwarfed the rest).
+        # Default output → bin/Release/net10.0/publish, picked up verbatim by the tar below; the fixture
+        # launches this prebuilt DLL when it's present and only publishes on demand as a local-dev fallback.
+        run: dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --nologo
+
       - name: Package build output
         # Tar every bin/ and obj/: the shards need the built test + sample assemblies, the published
-        # WASM wwwroot bundles the WASM fixtures serve, and the restore assets that `dotnet run
-        # --no-build` and the two publish-based fixtures require. Plain tar — upload-artifact
-        # compresses. -prune stops the walk from descending into a matched dir (no nested dup).
+        # WASM wwwroot bundles the WASM fixtures serve, the published Server host the two server shards
+        # boot, and the restore assets that `dotnet run --no-build` and the publish-based fixtures require.
+        # Plain tar — upload-artifact compresses. -prune stops the walk from descending into a matched dir.
         run: |
           find . -type d \( -name bin -o -name obj \) -prune -print0 \
             | tar --null --files-from=- -cf build-output.tar
