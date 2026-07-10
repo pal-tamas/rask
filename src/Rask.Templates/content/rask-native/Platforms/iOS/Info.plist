@@ -21,6 +21,12 @@
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<!--#if (IsLocal) -->
+	<!-- Shown in the iOS location prompt for NativeGeolocation (the IGeolocation backend). -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Shows your current location in the app.</string>
+	<!--#endif -->
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
