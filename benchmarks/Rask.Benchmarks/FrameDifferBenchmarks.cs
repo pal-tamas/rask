@@ -41,6 +41,22 @@ public class FrameDifferBenchmarks
 
     private RenderFrame[] _before = null!;
 
+    // Raw-tainted guide-page shape: a "sample" container mixing a Raw block (highlighted code) with a
+    // sibling status node whose text changes. Pre-fix this forced a full-document morph on EVERY such
+    // update (the flaky, expensive path on guide/CodeSample pages); now the differ ships one scoped
+    // MorphSubtree op. Measures the diff-time cost of that path (walk + rollback + single op emit).
+    private const string HighlightedCode =
+        "<span class=\"k\">public</span> <span class=\"k\">class</span> <span class=\"t\">Counter</span>" +
+        " : <span class=\"t\">Component</span> { <span class=\"k\">public</span> <span class=\"k\">int</span>" +
+        " <span class=\"p\">Count</span> { <span class=\"k\">get</span>; <span class=\"k\">set</span>; }" +
+        " <span class=\"k\">public</span> <span class=\"k\">override</span> <span class=\"t\">Component</span>" +
+        " <span class=\"m\">Render</span>() =&gt; <span class=\"m\">Div</span>()[<span class=\"m\">Span</span>()" +
+        "[<span class=\"p\">Count</span>.<span class=\"m\">ToString</span>()]]; }";
+
+    private RenderFrame[] _beforeGuide = null!;
+    private RenderFrame[] _afterGuide = null!;
+    private string _afterGuideHtml = "";
+
     // Insert scenario: a sparse list (even keys only) grows into the full list, so every odd
     // key is an InsertSubtree carrying its freshly-sliced HTML fragment. _fullHtml is the diff's
     // newHtml source, so each insert op runs FrameDiffer.SliceHtml (one Substring per inserted row).
@@ -117,6 +133,10 @@ public class FrameDifferBenchmarks
         }
 
         (_afterAppendDel, _afterAppendDelHtml) = FramesAndHtmlOf(BuildKeyedList(kept.ToArray(), -1));
+
+        // Raw-tainted guide page: only the status text changes; the Raw code block is unchanged.
+        _beforeGuide = FramesOf(BuildGuidePage(1));
+        (_afterGuide, _afterGuideHtml) = FramesAndHtmlOf(BuildGuidePage(2));
     }
 
     [Benchmark(Baseline = true)]
@@ -192,6 +212,26 @@ public class FrameDifferBenchmarks
         FrameDiffer.Diff(_beforeSparse, _afterFull, _ops, _scratch, out _, _fullHtml);
         return _ops.Count;
     }
+
+    [Benchmark]
+    public int RawGuidePage_ReusedScratch()
+    {
+        // The status node changed at a Raw-tainted level → the differ rolls back the positional ops and
+        // emits ONE scoped MorphSubtree at the sample container. Pre-fix this whole render was discarded
+        // and the full document shipped; now it's a single trusted diff op.
+        _ops.Clear();
+        FrameDiffer.Diff(_beforeGuide, _afterGuide, _ops, _scratch, out _, _afterGuideHtml);
+        return _ops.Count;
+    }
+
+    // A guide-page section: a "sample" container mixing a Raw code block with a sibling status node.
+    private static Component BuildGuidePage(int status) =>
+        C.Div(Class: "guide")[
+            C.Div(Class: "sample", Id: "sample")[
+                C.Raw(HighlightedCode),
+                C.Div(Class: "status", Id: "demo-status")[$"count: {status}"]
+            ]
+        ];
 
     private static Component BuildKeyedList(int[] order, int textRow)
     {

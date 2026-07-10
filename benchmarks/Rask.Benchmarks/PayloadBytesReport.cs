@@ -49,7 +49,14 @@ internal static class PayloadBytesReport
             // InsertSubtree op with the new row's HTML fragment as op.Value.
             Report("AppendRowToList100", writer,
                 BuildKeyedListTree(MakeKeyedOrder(100)),
-                BuildKeyedListTree(MakeKeyedOrder(101)))
+                BuildKeyedListTree(MakeKeyedOrder(101))),
+            // Raw-tainted guide page: a sample container mixes a Raw code block with a sibling status
+            // node whose text changes. Pre-fix this shipped the WHOLE document (full-HTML morph); now it
+            // ships one scoped MorphSubtree carrying just the sample container's inner HTML — the diff
+            // drops from full-page to one subtree.
+            Report("RawGuidePage", writer,
+                BuildGuideDocument(1),
+                BuildGuideDocument(2))
         };
 
         return check ? CheckAgainstBaseline(rows) : 0;
@@ -150,22 +157,23 @@ internal static class PayloadBytesReport
         Component after)
     {
         // Full-HTML payload size — what the server ships TODAY for every state change.
-        var html = after.RenderAsLiveRoot();
+        var fullHtml = after.RenderAsLiveRoot();
         writer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8WithRoot(writer, html, "session-bench", null, false);
+        LivePayload.BuildPayloadUtf8WithRoot(writer, fullHtml, "session-bench", null, false);
         var fullBytes = writer.WrittenCount;
 
-        // Diff payload size — what the server WILL ship once the diff codec wires in.
-        // Build the previous-render frame stream + current-render frame stream, diff them,
-        // serialize as the diff wire format. Pass `html` so InsertSubtree ops carry
-        // their HTML fragment (key for keyed-list / structural-change scenarios).
-        var beforeFrames = CaptureFrames(before);
-        var afterFrames = CaptureFrames(after);
+        // Diff payload size — build the previous- and current-render frame streams, diff them, and
+        // serialize as the diff wire format. The frames' HtmlStart/HtmlEnd offsets index into the SAME
+        // serialized string (afterHtml) they were captured against, so that string — not the injected
+        // RenderAsLiveRoot output — is the slice source for InsertSubtree / MorphSubtree fragments,
+        // mirroring how the live session pairs its frames with its render HTML.
+        var (beforeFrames, _) = CaptureFrames(before);
+        var (afterFrames, afterHtml) = CaptureFrames(after);
         var ops = new List<EditOp>();
-        FrameDiffer.Diff(beforeFrames, afterFrames, ops, html);
+        FrameDiffer.Diff(beforeFrames, afterFrames, ops, afterHtml);
 
         writer.ResetWrittenCount();
-        LivePayload.BuildPayloadUtf8Diff(writer, ops);
+        LivePayload.BuildPayloadUtf8Diff(writer, ops, newHtml: afterHtml);
         var diffBytes = writer.WrittenCount;
 
         Console.WriteLine(string.Format(
@@ -176,7 +184,7 @@ internal static class PayloadBytesReport
         return new Row(name, fullBytes, diffBytes, ops.Count);
     }
 
-    private static RenderFrame[] CaptureFrames(Component tree)
+    private static (RenderFrame[] Frames, string Html) CaptureFrames(Component tree)
     {
         var sb = new StringBuilder();
         var fw = new FrameWriter();
@@ -185,7 +193,7 @@ internal static class PayloadBytesReport
             HtmlSerializer.Serialize(tree, sb);
         }
 
-        return fw.WrittenSpan.ToArray();
+        return (fw.WrittenSpan.ToArray(), sb.ToString());
     }
 
     private static int[] SwapKeyed(int[] order, int a, int b)
@@ -248,6 +256,44 @@ internal static class PayloadBytesReport
         return [
             C.Doctype(),
             C.Html()[C.Body()[C.Div(Class: "list")[rows]]]
+        ];
+    }
+
+    // A guide/CodeSample page: a nav + sidebar shell plus a "sample" container that mixes a Raw code
+    // block with a sibling status node. Only the status text changes between renders — a Raw-tainted
+    // level, so the diff ships one scoped MorphSubtree carrying the sample container's inner HTML
+    // (the code + status), never the whole document.
+    private static Component BuildGuideDocument(int status)
+    {
+        const string highlightedCode =
+            "<span class=\"k\">public</span> <span class=\"k\">class</span> <span class=\"t\">Counter</span>" +
+            " : <span class=\"t\">Component</span> { <span class=\"k\">public</span> <span class=\"k\">int</span>" +
+            " <span class=\"p\">Count</span> { <span class=\"k\">get</span>; <span class=\"k\">set</span>; }" +
+            " <span class=\"k\">public</span> <span class=\"k\">override</span> <span class=\"t\">Component</span>" +
+            " <span class=\"m\">Render</span>() =&gt; <span class=\"m\">Div</span>()[<span class=\"m\">Span</span>()" +
+            "[<span class=\"p\">Count</span>.<span class=\"m\">ToString</span>()]]; }";
+
+        var nav = new List<Component>(12);
+        for (var i = 0; i < 12; i++)
+        {
+            nav.Add(C.A($"/guides/{i}", Class: "nav-link", Key: i)[$"Guide {i}"]);
+        }
+
+        return [
+            C.Doctype(),
+            C.Html()[
+                C.Body()[
+                    C.Nav(Class: "sidebar")[nav],
+                    C.Main(Class: "content")[
+                        C.H1()["Counter guide"],
+                        C.P()["A counter component highlighted below, with a live status line."],
+                        C.Div(Class: "sample", Id: "sample")[
+                            C.Raw(highlightedCode),
+                            C.Div(Class: "status", Id: "demo-status")[$"count: {status}"]
+                        ]
+                    ]
+                ]
+            ]
         ];
     }
 

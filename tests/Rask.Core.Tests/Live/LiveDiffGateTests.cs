@@ -139,4 +139,19 @@ public class LiveDiffGateTests
 
         Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops));
     }
+
+    [Fact]
+    public void DiffOpsAreClientSupported_MorphSubtree_ReturnsTrue()
+    {
+        // MorphSubtree is the Raw-tainted fallback shrunk to one parent's children — a trusted, scoped
+        // morph that always ships as a diff (never routes to the full-HTML path), even mixed with the
+        // untrusted-structural gate cases around it.
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported([Op(EditOpKind.MorphSubtree, false)]));
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(
+        [
+            Op(EditOpKind.SetAttribute),
+            Op(EditOpKind.MorphSubtree, true),
+            Op(EditOpKind.UpdateText)
+        ]));
+    }
 }
