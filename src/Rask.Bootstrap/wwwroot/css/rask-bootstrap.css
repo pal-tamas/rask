@@ -67,9 +67,13 @@
 .form-floating.bs-floating:focus-within > .form-control ~ label {
   /* Drop the empty-state flex centering and pin the scale origin to the top-left corner so the
      shrunk label straddles the top border exactly like a native .form-floating label (a centred
-     origin scaled it inwards from the middle → it landed too low/misaligned). */
+     origin scaled it inwards from the middle → it landed too low/misaligned). Restore the native
+     1rem top padding the empty-state rule zeroed: without it the -0.5rem float measures from a 0
+     baseline and lands ABOVE the top border (hugging/crossing it); with it the label sits ~0.35rem
+     below the border, the same gap as a native floating input. */
   display: block;
   height: auto;
+  padding-top: 1rem;
   transform-origin: 0 0;
   transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
   opacity: 0.65;
