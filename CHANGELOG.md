@@ -149,6 +149,13 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
+  with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
+  'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when
+  `RuntimeFeature.IsDynamicCodeSupported` — but iOS reports that `false` even on the simulator/interpreter, so
+  the plain `object[]` invoke-args couldn't be serialized. Switched the guard to
+  `JsonSerializer.IsReflectionEnabledByDefault` (the exact predicate `DefaultJsonTypeInfoResolver` needs, and
+  still trim-substituted to `false` under a full-AOT publish). Verified on the iPhone 17 Pro simulator.
 - **Native iOS app ran letterboxed (not full screen).** The `rask-native` template (and the native
   examples) shipped a `Platforms/iOS/Info.plist` that was never actually wired into the iOS build — .NET
   iOS finds the app manifest via a `None` item whose filename/`Link` is `Info.plist`, which the multi-target

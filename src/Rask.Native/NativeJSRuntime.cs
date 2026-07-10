@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -29,11 +28,16 @@ internal sealed class NativeJSRuntime : RaskJSRuntimeBase
     public NativeJSRuntime()
     {
         // Root the framework's own browser-API return types (e.g. GeolocationPosition) with their
-        // source-generated, trim-safe metadata, then add the reflection resolver only when the runtime
-        // can generate code — same model as WasmJSRuntime. Under a full-AOT iOS publish the reflection
-        // branch is trimmed away and a user calling InvokeAsync<TCustom> must supply a JsonSerializerContext.
+        // source-generated, trim-safe metadata, then add the reflection resolver whenever reflection-based
+        // JSON is enabled — which also handles the IJSRuntime call args (a plain object[] that can't be
+        // source-generated). The guard is JsonSerializer.IsReflectionEnabledByDefault, NOT
+        // RuntimeFeature.IsDynamicCodeSupported: iOS reports IsDynamicCodeSupported == false even on the
+        // simulator / interpreter (breaking every invoke-with-args), whereas IsReflectionEnabledByDefault
+        // is the exact predicate DefaultJsonTypeInfoResolver needs and is trim-substituted to false under a
+        // full-AOT publish (so the branch is removed and a user calling InvokeAsync<TCustom> then supplies a
+        // JsonSerializerContext).
         JsonSerializerOptions.TypeInfoResolverChain.Add(RaskBrowserJsonContext.Default);
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (JsonSerializer.IsReflectionEnabledByDefault)
         {
             JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
         }
