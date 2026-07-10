@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Native geolocation backend.** The `rask-native` template's `--host local` heads add a
+  `NativeGeolocation : IGeolocation` (iOS **CoreLocation** `CLLocationManager`, Android **`LocationManager`**),
+  registered on `host.Services` before `RunLocalAsync` to override Rask's JS-backed `navigator.geolocation`
+  default — the same *framework-default → native-head-override* pattern as the share sheet, now proven for a
+  request/**response** (+ subscription: `WatchAsync`) capability. So `await geolocation.GetCurrentPositionAsync()`
+  returns a native fix with the real OS permission prompt and `CLLocationManager` / `LocationManager` accuracy.
+  The template adds `ACCESS_FINE_LOCATION` / `NSLocationWhenInUseUsageDescription` (Local-mode only) and
+  `MainActivity` requests the runtime grant. **Verified on the Android emulator:** a mock GPS fix
+  (`adb emu geo fix`) round-tripped through `IGeolocation` → `NativeGeolocation` → `LocationManager` and
+  displayed the exact lat/long; both platform backends compile.
 - **Native + Server head — a remote Server app reaches device natives (the "superpower").** The
   `rask-native` template gains a **`--host server|local`** parameter. `--host server` scaffolds a thin native
   shell (`Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`) that points its WebView at a remote
