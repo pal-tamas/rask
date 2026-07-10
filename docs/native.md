@@ -140,7 +140,30 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
   `RootErrorBoundary`, seeds the route, and wires the WebView. The first render fires when the WebView's
   client posts its `ready` message, so it's safe to call before the WebView finishes loading.
 - **Server** makes the device a native, store-distributable shell over a server-driven app — the same
-  `Rask.Server` app, now installable with native device APIs available to the page.
+  `Rask.Server` app, now installable with native device APIs available to the page (see below).
+
+### Native device APIs from a Server app (the capability bridge)
+
+In Server mode the C# runs on the server and the device is a WebView, so a mid-handler `IShare` call can't
+work — but a plain **`Shareable`** button still pops the **native** sheet, because the head injects the
+[capability bridge](#native-device-backends) into the page. The head does two things (`NativeCapabilities`
+gives you both):
+
+```csharp
+// 1. Inject at document-start so the page sees window.__raskNative.capabilities + invoke() —
+//    ONLY for your trusted origin (never for external navigations; that would expose native to any page).
+webView.InjectAtDocumentStart(NativeCapabilities.BridgeScript, forOrigin: shell.ServerBaseUrl);
+
+// 2. Route the WebView's script messages to the shared dispatcher, handing it a native backend.
+var share = new NativeShare(/* presenter / activity */);
+webView.OnScriptMessage = bytes => NativeCapabilities.TryHandleAsync(bytes, share);
+```
+
+Now the *same* `Shareable` component that renders on the server fires the device's native
+`UIActivityViewController` / `Intent.ACTION_SEND` when run in the shell — the "superpower". **Security:**
+inject `BridgeScript` only for your origin, and open off-origin links in the system browser
+(`WKNavigationDelegate` / `shouldOverrideUrlLoading`); the bridge is a fixed component envelope, not open
+native RPC.
 
 ## The `INativeWebView` bridge
 
@@ -226,10 +249,12 @@ interface, implement it in the head against the platform API and register it bef
 
 The **imperative** `IShare` calls this directly. The **declarative** `Shareable` reaches it through the
 **capability bridge**: the native client advertises `window.__raskNative.capabilities` and an `invoke(name,
-data)` that posts a `{ type: "capability" }` message; `NativeAppHost` routes it to the registered service
-(`invoke("share", …)` → `IShare.ShareAsync`). So a plain `Shareable` button pops the native sheet on device
-with no host-specific code. This same bridge is what will let a **Native + Server** app reach device natives
-(the head injects `__raskNative` into the remote page) — a tracked follow-up.
+data)` that posts a `{ type: "capability" }` message; `NativeAppHost` routes it (via
+`NativeCapabilities.TryHandleAsync`) to the registered service (`invoke("share", …)` → `IShare.ShareAsync`).
+So a plain `Shareable` button pops the native sheet on device with no host-specific code. The **same**
+`NativeCapabilities` toolkit (`BridgeScript` + `TryHandleAsync`) lets a **Native + Server** head inject the
+bridge into a remote page, so a plain Server app reaches device natives too — see
+[Native device APIs from a Server app](#native-device-apis-from-a-server-app-the-capability-bridge).
 
 The **same recipe** is how the remaining backends (native geolocation, biometrics, push) will land — a
 framework-registered default, overridden by a native head implementation.

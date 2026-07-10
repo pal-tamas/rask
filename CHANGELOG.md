@@ -25,10 +25,12 @@ them until tagged releases begin.
     `navigator.share`. This establishes the reusable *framework-default → native-head-override* pattern for
     future native backends (geolocation, biometrics, push).
   - A **native capability bridge** (`window.__raskNative.capabilities` + `invoke(name, data)` →
-    `NativeAppHost` routes `{ type: "capability" }` to the registered service) lets the declarative
-    `Shareable` reach the native backend on device — `Shareable`'s click hits `IShare.ShareAsync` (the head's
-    `NativeShare`), not the WebView's `navigator.share`, with no host-specific code. Same bridge will carry a
-    Native + Server app to device natives (follow-up).
+    `{ type: "capability" }` message → the shared `NativeCapabilities.TryHandleAsync` dispatcher) lets the
+    declarative `Shareable` reach the native backend on device — its click hits `IShare.ShareAsync` (the
+    head's `NativeShare`), not the WebView's `navigator.share`, with no host-specific code. The same
+    `NativeCapabilities` toolkit (`BridgeScript` + `TryHandleAsync`) lets a **Native + Server** head inject
+    the bridge into a remote page, so a plain **Server** app reaches device natives too. Covered by
+    `NativeCapabilitiesTests` + `NativeCapabilityBridgeTests`.
 
   A `Shareable` demo (guide `browser-share`) is added to the showcase and works on every host.
   **Breaking (pre-1.0):** `IShare` moves from namespace `Rask.Wasm.Browser` to `Rask.Client.Browser`;
