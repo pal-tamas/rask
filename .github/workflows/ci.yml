@@ -342,6 +342,8 @@ jobs:
   # iOS workload. The iOS variant (XCUITest + simulator) runs locally; see docs/native.md.
   native-appium:
     runs-on: ubuntu-latest
+    # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
@@ -385,16 +387,18 @@ jobs:
           target: google_apis
           disable-animations: true
           script: |
+            set -e
             npm install -g appium
             appium driver install uiautomator2
             appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
             for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
             APK=$(find samples/Rask.Example.Native/bin/Debug/net10.0-android/android-x64 -name '*-Signed.apk' | head -1)
             echo "Driving APK: $APK"
-            RASK_APPIUM_SERVER=http://127.0.0.1:4723 \
-            RASK_APPIUM_ANDROID_APP="$PWD/$APK" \
-              dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj \
-                --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
+            # NOTE: exports on their own lines — a multi-line `VAR=x \`-continuation before dotnet test does
+            # not survive here, so the env vars never reached the test (it silently skipped).
+            export RASK_APPIUM_SERVER=http://127.0.0.1:4723
+            export RASK_APPIUM_ANDROID_APP="$PWD/$APK"
+            dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
 
       - name: Upload Appium log on failure
         if: failure()
