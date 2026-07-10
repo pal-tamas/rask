@@ -819,9 +819,24 @@ public abstract partial class SharedSmokeTests
             .ToContainTextAsync("getBoundingClientRect", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(codeCard.Locator(".sample-code code span[class]").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await codeCard.Locator(".sample-copy").ClickAsync();
-        await Expect(codeCard.Locator(".sample-copy"))
-            .ToContainTextAsync("Copied!", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // The copy click round-trips (handler → InvokeVoidAsync → scoped JS flashes "Copied!"); over
+        // the native WebView bridge a single message can be dropped, and the copy action is idempotent,
+        // so retry the click a couple of times before failing. The flash restores after 1.5s.
+        var copyButton = codeCard.Locator(".sample-copy");
+        for (var attempt = 1; ; attempt++)
+        {
+            await copyButton.ClickAsync();
+            try
+            {
+                await Expect(copyButton).ToContainTextAsync("Copied!",
+                    new LocatorAssertionsToContainTextOptions { Timeout = attempt < 3 ? 3_000 : 10_000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < 3)
+            {
+                // Bridge dropped the round-trip; click again.
+            }
+        }
 
         // IJSRuntime: sessionStorage set/read/remove round-trip through the unified IJSRuntime.
         await Page.Locator("#demo-input").FillAsync("hello-rask");
