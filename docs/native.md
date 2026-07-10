@@ -191,10 +191,11 @@ point that handler at `INativeWebView.OnMessage`, and implement `ApplyRenderAsyn
 The 27 `IJSRuntime`-backed browser wrappers in `Rask.Core.Browser` (`IGeolocation`, `IClipboard`,
 `IVibration`, storage, notifications, badge, wake lock, …) work **through the WebView's JS engine** with
 no extra code — `NativeAppHost` registers them and `NativeJSRuntime` dispatches them over the bridge.
-Sharing has two entrypoints: the all-host, headless **`Shareable`** (`Rask.Core`) attaches
-`data-rask-share` to your element and fires `navigator.share` in the WebView from the click gesture, and the
-imperative **`IShare`** (`Rask.Client.Browser`) shares from code — with a **native** backend a head can
-register (below). Further
+Sharing has two entrypoints, both reaching the **native** sheet on device. The all-host, headless
+**`Shareable`** (`Rask.Core`) attaches `data-rask-share` to your element; on the Native host its click is
+routed through the **capability bridge** (`window.__raskNative.invoke`) to the registered `IShare` — so it
+hits the head's native backend, not the WebView's `navigator.share`. The imperative **`IShare`**
+(`Rask.Client.Browser`) shares from code — with the same **native** backend a head registers (below). Further
 **native C# backends** (P/Invoke to CoreLocation / Android APIs, biometrics, native push via APNs/FCM)
 behind the *same* interfaces — plus new native-only capabilities — are a follow-up (see [Roadmap](#roadmap)).
 
@@ -222,6 +223,13 @@ host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
 `Intent.ACTION_SEND` chooser on Android — no transient user activation needed, and it works even where the
 WebView doesn't expose `navigator.share`. **The recipe generalises:** to add a native backend for any device
 interface, implement it in the head against the platform API and register it before `RunLocalAsync`.
+
+The **imperative** `IShare` calls this directly. The **declarative** `Shareable` reaches it through the
+**capability bridge**: the native client advertises `window.__raskNative.capabilities` and an `invoke(name,
+data)` that posts a `{ type: "capability" }` message; `NativeAppHost` routes it to the registered service
+(`invoke("share", …)` → `IShare.ShareAsync`). So a plain `Shareable` button pops the native sheet on device
+with no host-specific code. This same bridge is what will let a **Native + Server** app reach device natives
+(the head injects `__raskNative` into the remote page) — a tracked follow-up.
 
 The **same recipe** is how the remaining backends (native geolocation, biometrics, push) will land — a
 framework-registered default, overridden by a native head implementation.

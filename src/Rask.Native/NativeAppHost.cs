@@ -247,6 +247,12 @@ public sealed class NativeAppHost
             case "dotNetInvoke":
                 HandleDotNetInvoke(app, root);
                 return;
+            case "capability":
+                // A client capability invoke (window.__raskNative.invoke). Routes a native device capability
+                // (currently "share") to the registered service, so a declarative Shareable / a native-shell
+                // page reaches the native backend the head registered — see docs/native.md.
+                await HandleCapabilityAsync(app, root).ConfigureAwait(false);
+                return;
             default:
                 await app.Session.DispatchAsync(json).ConfigureAwait(false);
                 return;
@@ -347,6 +353,51 @@ public sealed class NativeAppHost
         {
             RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Native",
                 $"Rask native dotNetInvoke '{assemblyName}.{methodIdentifier}' threw", ex);
+        }
+    }
+
+    // Client capability invoke: { type:"capability", component:"share", data:"<data-rask-share json>" }.
+    // Routes to the registered device service so the native backend (the head's NativeShare) runs. Unknown
+    // components no-op (forward-compatible: a newer client can request a capability an older host lacks).
+    private static async Task HandleCapabilityAsync(NativeApp app, JsonElement root)
+    {
+        var component = root.TryGetProperty("component", out var cEl) && cEl.ValueKind == JsonValueKind.String
+            ? cEl.GetString()
+            : null;
+        var dataJson = root.TryGetProperty("data", out var dEl) && dEl.ValueKind == JsonValueKind.String
+            ? dEl.GetString()
+            : null;
+
+        if (component != "share" || string.IsNullOrEmpty(dataJson))
+        {
+            return;
+        }
+
+        ShareData? data;
+        try
+        {
+            data = JsonSerializer.Deserialize(dataJson, RaskBrowserJsonContext.Default.ShareData);
+        }
+        catch (JsonException ex)
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
+                "[Rask.Native] discarded a malformed share capability payload", ex);
+            return;
+        }
+
+        if (data is null || app.Services.GetService<IShare>() is not { } share)
+        {
+            return;
+        }
+
+        try
+        {
+            await share.ShareAsync(data).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Native",
+                "[Rask.Native] share capability invoke threw", ex);
         }
     }
 }

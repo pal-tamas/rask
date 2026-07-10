@@ -2782,8 +2782,15 @@ function endDotNetInvoke(resultJson) {
     else pending.reject(new Error(msg.error || "DotNet invocation failed"));
 }
 
-// The host reaches these through EvaluateJavaScript.
-window.__raskNative = { applyRender, beginInvokeJS, endDotNetInvoke };
+// The host reaches applyRender/beginInvokeJS/endDotNetInvoke through EvaluateJavaScript. capabilities +
+// invoke() are the native device-capability bridge the shared client uses (e.g. Shareable): invoke() posts
+// a capability message the host routes to the registered service (IShare) — see NativeAppHost. On the Native
+// host, sharing is always available, so it's advertised here; invoke() needs no user activation.
+window.__raskNative = {
+    applyRender, beginInvokeJS, endDotNetInvoke,
+    capabilities: ["share"],
+    invoke: function (component, data) { send({ type: "capability", component: component, data: data }); }
+};
 
 // Signal readiness so the host fires its first render only now (see NativeAppHost.RouteMessageAsync).
 root = document.querySelector("[data-rask-root]") || document.body;

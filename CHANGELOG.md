@@ -24,6 +24,11 @@ them until tagged releases begin.
     `RunLocalAsync` (last-wins) — no activation needed, and it works even where the WebView lacks
     `navigator.share`. This establishes the reusable *framework-default → native-head-override* pattern for
     future native backends (geolocation, biometrics, push).
+  - A **native capability bridge** (`window.__raskNative.capabilities` + `invoke(name, data)` →
+    `NativeAppHost` routes `{ type: "capability" }` to the registered service) lets the declarative
+    `Shareable` reach the native backend on device — `Shareable`'s click hits `IShare.ShareAsync` (the head's
+    `NativeShare`), not the WebView's `navigator.share`, with no host-specific code. Same bridge will carry a
+    Native + Server app to device natives (follow-up).
 
   A `Shareable` demo (guide `browser-share`) is added to the showcase and works on every host.
   **Breaking (pre-1.0):** `IShare` moves from namespace `Rask.Wasm.Browser` to `Rask.Client.Browser`;
