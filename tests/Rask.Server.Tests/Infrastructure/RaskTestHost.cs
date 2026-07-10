@@ -40,16 +40,18 @@ internal sealed class RaskTestHost : IDisposable
         Action<IServiceCollection>? configureServices = null,
         Action<IApplicationBuilder>? configureMiddleware = null,
         string pathBase = "",
-        Action<RaskServerOptions>? configureServer = null)
+        Action<RaskServerOptions>? configureServer = null,
+        LiveDiffMode diffMode = LiveDiffMode.Auto)
         where TApp : Component
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
-        // Per-host WS / grace-period limits (RaskServerLimits) are seeded here, so each TestServer
-        // carries its own — tests set short grace periods / caps via configureServer instead of a
-        // process-global static, which lets these tests run in parallel.
-        builder.Services.AddRask(configureServer: configureServer);
+        // Per-host WS / grace-period limits (RaskServerLimits) AND the wire-payload shape (DiffMode,
+        // carried on the LiveSessionStore) are seeded here, so each TestServer carries its own — tests
+        // that assert on a specific diff/full payload pass diffMode instead of writing a process-global
+        // static, which lets them run in parallel.
+        builder.Services.AddRask(configure: live => live.DiffMode = diffMode, configureServer: configureServer);
         configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();

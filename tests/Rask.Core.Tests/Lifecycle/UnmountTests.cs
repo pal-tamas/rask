@@ -75,7 +75,7 @@ public class UnmountTests
         var childDisposeCount = 0;
         var child = new CountingDisposable(() => childDisposeCount++);
         var host = new ClearChildrenOnUnmountHost(child);
-        var session = new LiveSession("test", host, scope);
+        var session = new LiveSession("test", host, scope, LiveDiffMode.Auto);
 
         host.IncludeChild = true;
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
@@ -136,7 +136,7 @@ public class UnmountTests
         var leaf = new OrderingUnmount(order, "leaf");
         var middle = new OrderingMiddle(order, "middle", leaf);
         var root = new SwitchableHost(middle);
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
 
         root.IncludeChild = true;
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
@@ -153,7 +153,7 @@ public class UnmountTests
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var leaf = new LifecycleTrackingComponent();
         var root = new SwitchableHost(leaf);
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
 
         root.IncludeChild = true;
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
@@ -230,7 +230,7 @@ public class UnmountTests
         };
         var sibling = new LifecycleTrackingComponent();
         var root = new TwoChildHost(throwing, sibling) { IncludeChildren = true };
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
 
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 

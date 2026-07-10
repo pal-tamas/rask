@@ -9,15 +9,11 @@ namespace Rask.Server.Tests.WebSockets;
 // holds instead of re-shipping the whole document. Previously the frame cache was seeded
 // only by the first full-HTML interactive send, so the first state change after page load
 // always shipped the body in full.
-//
-// In SessionGracePeriod so the static LiveOptions.DiffMode write serialises with the other
-// DiffMode-mutating WS test classes.
-[Collection("LiveDiffMode")]
 public class InitialRenderDiffTests
 {
-    // Auto is the framework default; a counter's text diff is far smaller than the body, so
-    // it takes the diff path under the choose-smaller heuristic.
-    public InitialRenderDiffTests() => LiveOptions.DiffMode = LiveDiffMode.Auto;
+    // Auto is the framework default (the test host is created without a diffMode override); a
+    // counter's text diff is far smaller than the body, so it takes the diff path under the
+    // choose-smaller heuristic.
 
     [Fact]
     public async Task FirstInteraction_TextOnlyChange_ShipsDiffNotFullHtml()

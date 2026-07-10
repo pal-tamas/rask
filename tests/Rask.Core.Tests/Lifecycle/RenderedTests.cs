@@ -14,7 +14,7 @@ public class RenderedTests
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var root = new ChildHostingRoot(new LifecycleTrackingComponent());
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
 
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
@@ -30,7 +30,7 @@ public class RenderedTests
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var root = new LifecycleTrackingComponent();
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
 
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);

@@ -17,7 +17,7 @@ public class DisposeErrorTests
         var faulty = new FaultingDisposable();
         var ok = new RecordingDisposable();
         var root = new TwoChildHost(faulty, ok) { Include = true };
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 
         using var stderr = new StringWriter();
@@ -39,7 +39,7 @@ public class DisposeErrorTests
         var faulty = new FaultingAsyncDisposable();
         var ok = new RecordingDisposable();
         var root = new TwoChildHost(faulty, ok) { Include = true };
-        var session = new LiveSession("test", root, scope);
+        var session = new LiveSession("test", root, scope, LiveDiffMode.Auto);
         session.View.RenderAsLiveRoot(scope.ServiceProvider);
 
         using var stderr = new StringWriter();

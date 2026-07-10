@@ -111,7 +111,8 @@ public class ComponentHotReloadTests
         public int RenderRequests;
         public bool Throw;
 
-        public TestLiveSession(Component view, IServiceProvider services) : base(view, services)
+        public TestLiveSession(Component view, IServiceProvider services)
+            : base(view, services, LiveDiffMode.Auto)
         {
         }
 

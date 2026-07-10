@@ -18,7 +18,7 @@ public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
     [Fact]
     public async Task ClickCounter_ThreeIncrements_ProducesDiffsWithCorrectUpdateText()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
 
         // Initial render is full HTML (first render of the session, no prior to diff).

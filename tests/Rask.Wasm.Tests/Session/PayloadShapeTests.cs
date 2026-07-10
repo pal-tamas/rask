@@ -12,7 +12,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     [Fact]
     public async Task InitialRender_AlwaysIncludesDataRaskRootEqualsWasm()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
 
         var payload = await session.InitialRenderAsync();
 
@@ -24,7 +24,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     [Fact]
     public async Task InitialRender_NoCssRegistered_DoesNotIncludeCssText()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
 
         var payload = await session.InitialRenderAsync();
 
@@ -35,7 +35,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     [Fact]
     public async Task InitialRender_FollowedByHandlerDispatch_DoesNotResendCssText_WhenHashUnchanged()
     {
-        var (session, _) = NewSession();
+        var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
         var handlerId = Markup.FirstHandlerId(initial);
 

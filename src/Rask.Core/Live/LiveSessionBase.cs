@@ -22,8 +22,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // swaps it with _writeBuffer after each send, so neither the baseline nor the emit copies a byte[].
     protected ArrayBufferWriter<byte>? _lastSentBuffer;
 
-    // Diff-codec state, lazily allocated only when LiveOptions.DiffMode opts in — the default
-    // (DisabledFull) path pays nothing for these.
+    // Diff-codec state, lazily allocated only when DiffMode opts in — the DisabledFull path pays
+    // nothing for these.
     protected List<EditOp>? _diffOps;
     protected SessionRenderCache? _renderCache;
 
@@ -38,10 +38,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
     protected bool _pendingRenderInScope;
 
-    protected LiveSessionBase(Component view, IServiceProvider services)
+    // The wire-payload shape for THIS session, snapshotted from the host's RaskLiveOptions at
+    // construction and read on the render hot path (RenderTreeToHtml / WritePayload) instead of the
+    // former process-global LiveOptions.DiffMode static. Per-session so two hosts in one process — and
+    // parallel tests — each render in their own mode instead of racing a shared mutable static. Mirrors
+    // the per-host RaskServerLimits pattern.
+    protected LiveDiffMode DiffMode { get; }
+
+    protected LiveSessionBase(Component view, IServiceProvider services, LiveDiffMode diffMode)
     {
         View = view;
         Services = services;
+        DiffMode = diffMode;
         view.RenderHandle = this;
         // RootErrorBoundary wraps the user's App; forward the handle to the inner so its
         // StateHasChanged() reaches the session even before the first GetOrCreate would attach it.
@@ -188,7 +196,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     {
         frameWriter = null;
         FrameSinkScope.Popper popper = default;
-        if (LiveOptions.DiffMode != LiveDiffMode.DisabledFull)
+        if (DiffMode != LiveDiffMode.DisabledFull)
         {
             _renderCache ??= new SessionRenderCache();
             frameWriter = _renderCache.PrepareCurrentBuffer();
@@ -256,7 +264,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
                 // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
                 // under Forced. Only the pathological case (nearly every node changed on a tiny page,
                 // so op-list framing exceeds the body) falls back to full HTML on size.
-                if (LiveOptions.DiffMode == LiveDiffMode.Forced || _writeBuffer.WrittenCount < html.Length)
+                if (DiffMode == LiveDiffMode.Forced || _writeBuffer.WrittenCount < html.Length)
                 {
                     usedDiff = true;
                 }

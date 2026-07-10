@@ -4,13 +4,11 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("LiveDiffMode")]
 public class AsyncValidationDispatchTests
 {
     // Asserts against the `html` payload field — force the legacy full-HTML wire
     // shape (framework default is LiveDiffMode.Auto). SessionGracePeriod collection
     // serialises with the other DiffMode-touching test classes.
-    public AsyncValidationDispatchTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     // Mirrors the failing E2E test Validation_AsyncDemo_ShowsCheckingThenTakenMessage:
     // OnInput "admin" then OnChange (blur). The async validator delays 20ms and then adds
@@ -19,7 +17,7 @@ public class AsyncValidationDispatchTests
     [Fact]
     public async Task AsyncValidator_PostHandlerFrame_ShowsMessage_AndNoIndicator()
     {
-        using var host = RaskTestHost.Create<AsyncValidationApp>();
+        using var host = RaskTestHost.Create<AsyncValidationApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);

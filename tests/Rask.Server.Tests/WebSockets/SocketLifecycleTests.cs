@@ -6,18 +6,16 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-[Collection("LiveDiffMode")]
 public class SocketLifecycleTests
 {
     // Asserts against the `html` payload field — force the legacy full-HTML wire shape. The
     // LiveDiffMode collection disables parallelization for this class, so this global-static
     // assignment is single-threaded and can't race another class that sets a different DiffMode.
-    public SocketLifecycleTests() => LiveOptions.DiffMode = LiveDiffMode.DisabledFull;
 
     [Fact]
     public async Task NonWebSocketGet_To_RaskWs_Returns400()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
 
         var response = await host.Http.GetAsync("/rask/ws");
 
@@ -27,7 +25,7 @@ public class SocketLifecycleTests
     [Fact]
     public async Task SocketDisconnect_SchedulesRemoval_SessionRemovedAfterShortenedGracePeriod()
     {
-        using var host = RaskTestHost.Create<TestApp>(
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
         var initial = await host.Http.GetAsync("/start");
         var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
@@ -49,7 +47,7 @@ public class SocketLifecycleTests
     [Fact]
     public async Task Reconnect_BeforeGracePeriodDeadline_AttachesToExistingSession()
     {
-        using var host = RaskTestHost.Create<TestApp>(
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(2));
         var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
@@ -71,7 +69,7 @@ public class SocketLifecycleTests
     [Fact]
     public async Task Reconnect_AfterGracePeriodExpires_HelloIsRejected()
     {
-        using var host = RaskTestHost.Create<TestApp>(
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
         var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
@@ -99,7 +97,7 @@ public class SocketLifecycleTests
     [Fact]
     public async Task Reconnect_WhileExistingSocketAttached_NewSocketBecomesAuthoritative()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = Markup.SessionId(initialHtml);
@@ -124,7 +122,7 @@ public class SocketLifecycleTests
     [Fact]
     public async Task Close_WithCustomReason_RemovesSessionAfterGrace()
     {
-        using var host = RaskTestHost.Create<TestApp>(
+        using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
         var sessionId = Markup.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
 
@@ -143,14 +141,4 @@ public class SocketLifecycleTests
 
         Assert.Equal(0, host.Store.Count);
     }
-}
-
-// Serializes the test classes that force a non-default wire shape via the process-global
-// LiveOptions.DiffMode static in their constructor (Auto / Forced / DisabledFull). They set
-// conflicting values and assert on the resulting payload, so they must run one at a time and never
-// overlap each other. (The former per-host WS/grace-period limits are on RaskServerLimits now, so
-// that reason for serializing is gone — this is purely about the LiveOptions.DiffMode global.)
-[CollectionDefinition("LiveDiffMode", DisableParallelization = true)]
-public class LiveDiffModeCollectionDef
-{
 }

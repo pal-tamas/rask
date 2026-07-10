@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Server.Tests.Infrastructure;
 
@@ -40,9 +41,10 @@ internal sealed class ConnectedSession : IAsyncDisposable
         Host.Dispose();
     }
 
-    public static async Task<ConnectedSession> Connect<TApp>() where TApp : Component
+    public static async Task<ConnectedSession> Connect<TApp>(LiveDiffMode diffMode = LiveDiffMode.Auto)
+        where TApp : Component
     {
-        var host = RaskTestHost.Create<TApp>();
+        var host = RaskTestHost.Create<TApp>(diffMode: diffMode);
         var initial = await host.Http.GetAsync("/start");
         var sessionId = Markup.SessionId(await initial.Content.ReadAsStringAsync());
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);

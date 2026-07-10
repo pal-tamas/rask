@@ -11,20 +11,25 @@ using Rask.Server.Diagnostics;
 // lives in this app assembly, not Rask.Example.Shared, so register it with EmbeddedSource.
 EmbeddedSource.RegisterAssembly(System.Reflection.Assembly.GetExecutingAssembly());
 
-// The framework default since AddRask gained an options shape is
-// LiveDiffMode.Auto, so `services.AddRask()` already ships the diff codec out of
-// the box. The RASK_DIFF_MODE env var lets the Playwright suite (and curious
-// developers) flip modes without recompiling — useful for diff-vs-morph A/B
-// debugging.
-if (Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
-    && Enum.TryParse<LiveDiffMode>(diffModeName, true, out var diffMode))
-{
-    LiveOptions.DiffMode = diffMode;
-}
+// The framework default is LiveDiffMode.Auto, so `services.AddRask()` already ships the diff codec
+// out of the box. The RASK_DIFF_MODE env var lets the Playwright suite (and curious developers) flip
+// modes without recompiling — useful for diff-vs-morph A/B debugging. DiffMode is per-host now (it
+// rides the LiveSessionStore), so it is passed through AddRask rather than a process-global static.
+LiveDiffMode? envDiffMode =
+    Environment.GetEnvironmentVariable("RASK_DIFF_MODE") is { } diffModeName
+    && Enum.TryParse<LiveDiffMode>(diffModeName, true, out var parsed)
+        ? parsed
+        : null;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRask();
+builder.Services.AddRask(configure: o =>
+{
+    if (envDiffMode is { } mode)
+    {
+        o.DiffMode = mode;
+    }
+});
 // Opt into PWA on the Server host: serves the manifest + service worker, emits the manifest link and
 // auto-registers the SW into the server-rendered <head>, so this showcase is an installable PWA. It is
 // installable + push-capable but NOT an offline app (offline navigations show wwwroot/offline.html) —
