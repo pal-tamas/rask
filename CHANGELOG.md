@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Native + Server head — a remote Server app reaches device natives (the "superpower").** The
+  `rask-native` template gains a **`--host server|local`** parameter. `--host server` scaffolds a thin native
+  shell (`Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`) that points its WebView at a remote
+  Rask Server (`NativeAppHost.ConnectToServer`) and injects the **capability bridge** — origin-gated
+  `NativeCapabilities.BridgeScript` at each navigation + the WebView's script-message handler routed to
+  `NativeCapabilities.TryHandleAsync` with a native `NativeShare`. So the *same* server-rendered `Shareable`
+  pops the device's native `UIActivityViewController` / `Intent.ACTION_SEND`. The bridge stays scoped to the
+  trusted origin (off-origin links open in the system browser). **Verified on the Android emulator:** a
+  server-rendered `Shareable`, loaded live from a remote host, fired the native chooser from `ServerActivity`;
+  both platform heads compile. `--host local` (default) is the existing in-process app.
 - **OS share sheet — declarative (all hosts) + imperative + native backend.** Two ways to share, one
   payload (`ShareData`, now in `Rask.Core.Browser`):
   - **`Shareable`** (`Rask.Core`, **all hosts including Server**) is a headless component — you render the
