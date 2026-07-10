@@ -120,8 +120,13 @@ internal static class DelegateOwner
 
     // Roslyn names capturing closures `<>c__DisplayClassN_M`; the shared non-capturing lambda cache is
     // `<>c`. Both begin with "<>c", which is enough to gate recursion to compiler-generated closures.
+    // Generic display classes are INCLUDED: a closure inside a generic component (e.g. BsMultiSelect<T>'s
+    // per-chip `() => ToggleAsync(item)`) is lowered to a generic display class (`<>c__DisplayClassN_M`1`),
+    // and its outer display class — the one holding the captured `<>4__this` — is generic too. Excluding
+    // generic types here stopped the walk before reaching that `<>4__this`, so Resolve returned null, the
+    // callback went unwrapped, and the generic component never re-rendered after its own event fired.
     private static bool IsDisplayClass(Type type) =>
-        type is { IsClass: true, IsGenericType: false } && type.Name.StartsWith("<>c", StringComparison.Ordinal);
+        type.IsClass && type.Name.StartsWith("<>c", StringComparison.Ordinal);
 
     private const int MaxClosureDepth = 4;
 

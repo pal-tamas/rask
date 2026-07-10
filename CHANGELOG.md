@@ -96,6 +96,14 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Event callbacks on generic components now re-render the component (`BsMultiSelect` chip × works again).**
+  A callback that captures `this` plus a local through a nested closure — e.g. `BsMultiSelect<T>`'s per-chip
+  `() => ToggleAsync(item)` behind a `BsCloseButton` — is lowered by Roslyn to *generic* display classes when
+  the owning component is generic. `DelegateOwner`'s closure-walk excluded generic types, so it never reached
+  the captured `<>4__this`, resolved no owner, and `AutoCallback` left the callback unwrapped: clicking a
+  chip's × removed the item from the model but the badge lingered on screen until an unrelated re-render
+  (e.g. reopening the dropdown). The walk now recurses into generic display classes, so any generic
+  component re-renders after its own nested-closure event fires. No API change.
 - **`BsMultiSelect` floating label no longer overlaps the placeholder.** In floating mode the empty control
   still rendered its `Select…` placeholder span *inside* the box, and the floating CSS centres the label
   in that same box — so the two texts collided. It now blanks the box when floating + empty (the centred

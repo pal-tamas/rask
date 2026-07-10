@@ -1017,8 +1017,23 @@ public abstract partial class SharedSmokeTests
         var multi = Page.Locator("#ms-interests");
         await multi.Locator(".form-select").ClickAsync(); // open the dropdown
         await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
-        await Expect(multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" }))
-            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var aiChip = multi.Locator(".badge").Filter(new LocatorFilterOptions { HasText = "AI" });
+        await Expect(aiChip).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Removing a chip via its × must drop the badge on its own — no reopening the dropdown. The × is a
+        // BsCloseButton (a wrapper) callback, so the GENERIC BsMultiSelect<T> re-renders only if AutoCallback
+        // resolves it as the owner; a regression there left the badge onscreen until an unrelated render.
+        // Close the dropdown first (its full-viewport backdrop otherwise intercepts the ×, and a closed
+        // dropdown is the exact scenario the bug was reported in — the badge lingered until reopening).
+        await multi.Locator(".position-fixed").DispatchEventAsync("click");
+        await Expect(Page.Locator("#ms-interests .dropdown-menu.show")).ToBeHiddenAsync(
+            new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await aiChip.Locator(".btn-close").ClickAsync();
+        await Expect(aiChip).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        // Re-open and re-select so the open-menu / Escape / backdrop steps below still exercise a filled control.
+        await multi.Locator(".form-select").ClickAsync();
+        await multi.Locator(".dropdown-item").Filter(new LocatorFilterOptions { HasText = "AI" }).ClickAsync();
+        await Expect(aiChip).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // The menu stays open across selections; Escape from the focusable box closes it (no bootstrap.js).
         // (Type-to-filter is opt-in via a Filter predicate and shares BsSelect's dropdown search field, which
