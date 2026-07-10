@@ -49,6 +49,14 @@ them until tagged releases begin.
   **`NativeAssetHttpHandler`** (serves the in-process demo `HttpClient` from the same table, so data-driven
   pages work offline). A real native app now serves scoped CSS + Bootstrap with a one-line interceptor instead
   of the boot-only two-file handler.
+- **On-device iOS E2E (nightly).** A new `native-ios-e2e.yml` workflow (nightly cron + manual
+  `workflow_dispatch`) drives the *real* Native + Local showcase on an **iOS Simulator via Appium/XCUITest**
+  on macOS — the iOS counterpart of the Ubuntu `native-appium` (Android) job, asserting the same on-device
+  render (WebView + scoped CSS + Bootstrap through `NativeOriginAssets`). It is deliberately **off the per-PR
+  path** (macOS minutes + the Microsoft.iOS↔Xcode SDK coupling are too costly/fragile to gate every PR — the
+  nightly cadence MAUI uses for device UI tests); per-PR iOS stays the compile-only `native` job. The iOS
+  Appium test now pins the booted simulator by **UDID** (`RASK_APPIUM_IOS_UDID`) — name-only device selection
+  is unreliable on the ARM64 macOS runners, the reason MAUI's XHarness passes an explicit `--device UDID`.
 - **Native + Server head — a remote Server app reaches device natives (the "superpower").** The
   `rask-native` template gains a **`--host server|local`** parameter. `--host server` scaffolds a thin native
   shell (`Platforms/{Android/ServerActivity,iOS/ServerAppDelegate}.cs`) that points its WebView at a remote
