@@ -348,44 +348,47 @@ one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that a
 
 ---
 
-## Flash messages
+## Toast messages
 
-`IFlash` is Rask's take on Rails' `flash` — transient, consumed-once user messages that survive a
-client-side navigation. Inject it and queue a message; a single `FlashOutlet` shows it once.
+`IToaster` is Rask's take on Rails' `flash` — transient, consumed-once user messages that survive a
+client-side navigation. Inject it and queue a message; a single `ToastOutlet` shows it once.
 
 ```csharp
-public sealed class SavePage(IFlash flash, Navigator nav) : Component
+public sealed class SavePage(IToaster toast, Navigator nav) : Component
 {
     private void Save()
     {
         // ... persist ...
-        flash.Success("Your changes were saved.");   // Info / Warning / Error / Add(level, …) too
+        toast.Success("Your changes were saved.");   // Info / Warning / Error / Add(level, …) too
         nav.NavigateTo(Routes.ListPage());            // the message survives the navigation
     }
     // ...
 }
 ```
 
-Why it survives the navigation: `IFlash` is registered **scoped** per session (a Server WebSocket
+Why it survives the navigation: `IToaster` is registered **scoped** per session (a Server WebSocket
 session or a WASM app instance), and a client-side `NavigateTo` does not recreate the session — so a
 message queued before navigating is still in the queue when the destination mounts.
 
-Show them by mounting **one** outlet in your app layout. The headless `FlashOutlet` ships no markup —
+Show them by mounting **one** outlet in your app layout. The headless `ToastOutlet` ships no markup —
 you own it through `Template`, which receives the messages plus a `dismiss(id)` callback:
 
 ```csharp
-FlashOutlet(Template: (messages, dismiss) =>
+ToastOutlet(Template: (messages, dismiss) =>
     Div()[messages.Select(m => (Component)Div(Class: "alert", Key: m.Id.ToString())[
         m.Message,
         Button(OnClick: () => dismiss(m.Id))["×"]])])
 ```
 
-`FlashOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IFlash.Changed` fires,
-so each message is delivered to exactly one outlet and never reappears on a later render. `Rask.Bootstrap`
-ships a ready-made `BsFlash` — a fixed toast-container of `BsToast`s; mount a single `BsFlash()` in your
-layout instead of writing a `Template`. Queue one, show once:
+`ToastOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IToaster.Changed` fires,
+so each message is delivered to exactly one outlet and never reappears on a later render. Set
+`AutoDismissAfter` to have each message clear itself after a delay — a one-shot timer per message that
+runs the same dismiss path, so any `Template` auto-dismisses even when its element has no timer of its own.
+`Rask.Bootstrap` ships a ready-made `BsToaster` — a fixed toast-container of `BsToast`s that auto-hide after
+5 s by default (set `AutoHideMs: null` to keep them sticky); mount a single `BsToaster()` in your layout
+instead of writing a `Template`. Queue one, show once (this demo auto-dismisses after 5 s):
 
-<!-- demo:flash -->
+<!-- demo:toaster -->
 
 ## Drag and drop
 

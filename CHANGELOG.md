@@ -28,6 +28,11 @@ them until tagged releases begin.
   trusted origin (off-origin links open in the system browser). **Verified on the Android emulator:** a
   server-rendered `Shareable`, loaded live from a remote host, fired the native chooser from `ServerActivity`;
   both platform heads compile. `--host local` (default) is the existing in-process app.
+- **Toasts auto-dismiss.** `ToastOutlet` gains an opt-in `AutoDismissAfter` (`TimeSpan?`) — a one-shot
+  timer per shown message that runs the same dismiss path, so any `Template` clears itself after the delay
+  even when its element has no timer of its own (disposed on dismiss and on unmount). `Rask.Bootstrap`'s
+  `BsToaster` now defaults `AutoHideMs` to 5000 ms (set `null`/`<= 0` to keep toasts sticky), and the
+  showcase toast demo auto-dismisses after 5 s.
 - **OS share sheet — declarative (all hosts) + imperative + native backend.** Two ways to share, one
   payload (`ShareData`, now in `Rask.Core.Browser`):
   - **`Shareable`** (`Rask.Core`, **all hosts including Server**) is a headless component — you render the
@@ -72,6 +77,13 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Renamed the flash-message API to "toast" (BREAKING, pre-1.0).** The transient consumed-once
+  messaging types are renamed to match the visual metaphor Rask already renders (`BsToast`): `IFlash` →
+  `IToaster`, `Flash` → `Toaster`, `FlashMessage` → `ToastMessage`, `FlashLevel` → `ToastLevel`,
+  `FlashOutlet` → `ToastOutlet`, and `Rask.Bootstrap`'s `BsFlash` → `BsToaster`. The namespace
+  (`Rask.Core.Messaging`), the enum members, and the message API (`Info`/`Success`/`Warning`/`Error`/
+  `Add`/`Consume`/`Changed`) are unchanged — this is a pure rename with no behaviour change. Migrate by
+  replacing the type names; the single-toast Bootstrap element `BsToast` is unaffected.
 - **Per-host server limits (no more process-global statics).** The WebSocket safety caps and session
   grace periods (`RaskServerOptions`) are now projected into a per-host `RaskServerLimits` singleton
   that the WS endpoint resolves once per connection, instead of eight mutable `static` fields shared
