@@ -11,8 +11,10 @@ unchanged.
 > `WKWebView` and Android `WebView` app heads), and the native client runtime **ship and run
 > end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
 > bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
-> pre-1.0: APIs may shift, and **native device *backends*** (native geolocation/push/biometrics behind
-> the browser-API interfaces) are the main remaining follow-up. The native client now shares the
+> pre-1.0: APIs may shift. **Native device *backends*** have started landing — the OS **share sheet**
+> (`IShare`) now has a native `UIActivityViewController` / `Intent.ACTION_SEND` head backend (see
+> [Native device backends](#native-device-backends)) — with native geolocation/push/biometrics still to
+> come. The native client now shares the
 > transport-neutral DOM behaviour — rAF input/scroll coalescing, keyboard + drag events, and
 > scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)); only the
 > scoped-JS invoke gate and file uploads remain host-specific.
@@ -24,6 +26,7 @@ unchanged.
 - [The `INativeWebView` bridge](#the-inativewebview-bridge)
 - [Wiring a platform head](#wiring-a-platform-head)
 - [Device capabilities](#device-capabilities)
+- [Native device backends](#native-device-backends)
 - [Honest framing](#honest-framing)
 - [Roadmap](#roadmap)
 
@@ -137,7 +140,30 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
   `RootErrorBoundary`, seeds the route, and wires the WebView. The first render fires when the WebView's
   client posts its `ready` message, so it's safe to call before the WebView finishes loading.
 - **Server** makes the device a native, store-distributable shell over a server-driven app — the same
-  `Rask.Server` app, now installable with native device APIs available to the page.
+  `Rask.Server` app, now installable with native device APIs available to the page (see below).
+
+### Native device APIs from a Server app (the capability bridge)
+
+In Server mode the C# runs on the server and the device is a WebView, so a mid-handler `IShare` call can't
+work — but a plain **`Shareable`** button still pops the **native** sheet, because the head injects the
+[capability bridge](#native-device-backends) into the page. The head does two things (`NativeCapabilities`
+gives you both):
+
+```csharp
+// 1. Inject at document-start so the page sees window.__raskNative.capabilities + invoke() —
+//    ONLY for your trusted origin (never for external navigations; that would expose native to any page).
+webView.InjectAtDocumentStart(NativeCapabilities.BridgeScript, forOrigin: shell.ServerBaseUrl);
+
+// 2. Route the WebView's script messages to the shared dispatcher, handing it a native backend.
+var share = new NativeShare(/* presenter / activity */);
+webView.OnScriptMessage = bytes => NativeCapabilities.TryHandleAsync(bytes, share);
+```
+
+Now the *same* `Shareable` component that renders on the server fires the device's native
+`UIActivityViewController` / `Intent.ACTION_SEND` when run in the shell — the "superpower". **Security:**
+inject `BridgeScript` only for your origin, and open off-origin links in the system browser
+(`WKNavigationDelegate` / `shouldOverrideUrlLoading`); the bridge is a fixed component envelope, not open
+native RPC.
 
 ## The `INativeWebView` bridge
 
@@ -188,9 +214,50 @@ point that handler at `INativeWebView.OnMessage`, and implement `ApplyRenderAsyn
 The 27 `IJSRuntime`-backed browser wrappers in `Rask.Core.Browser` (`IGeolocation`, `IClipboard`,
 `IVibration`, storage, notifications, badge, wake lock, …) work **through the WebView's JS engine** with
 no extra code — `NativeAppHost` registers them and `NativeJSRuntime` dispatches them over the bridge.
-**Native C# backends** (P/Invoke to CoreLocation / Android APIs, native share sheet, biometrics, and
-native push via APNs/FCM) behind the *same* interfaces — plus new native-only capabilities — are a
-follow-up (see [Roadmap](#roadmap)).
+Sharing has two entrypoints, both reaching the **native** sheet on device. The all-host, headless
+**`Shareable`** (`Rask.Core`) attaches `data-rask-share` to your element; on the Native host its click is
+routed through the **capability bridge** (`window.__raskNative.invoke`) to the registered `IShare` — so it
+hits the head's native backend, not the WebView's `navigator.share`. The imperative **`IShare`**
+(`Rask.Client.Browser`) shares from code — with the same **native** backend a head registers (below). Further
+**native C# backends** (P/Invoke to CoreLocation / Android APIs, biometrics, native push via APNs/FCM)
+behind the *same* interfaces — plus new native-only capabilities — are a follow-up (see [Roadmap](#roadmap)).
+
+## Native device backends
+
+`Rask.Native` stays workload-free (plain `net10.0`), so it can't contain iOS/Android P/Invoke. A **native
+backend** is therefore a small piece of code in the **platform head** (which carries the workload) that
+implements a device interface and registers it on `host.Services` **before `RunLocalAsync`**. DI is
+last-registration-wins, so the head's implementation overrides the default the framework registered.
+
+The shipped example is the OS **share sheet**. `IShare` / `ShareData` live in `Rask.Client.Browser` (the
+home for in-process client APIs the WASM and Native hosts share; `Rask.Native` can't reference the
+browser-targeted `Rask.Wasm`). The default backing is the Web Share API over the WebView; the
+`rask-native` template's heads replace it with a native one:
+
+```csharp
+// Platforms/iOS/AppDelegate.cs — before RunLocalAsync
+host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));
+
+// Platforms/Android/MainActivity.cs — before RunLocalAsync
+host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
+```
+
+`NativeShare` (also in the template heads) implements `IShare` with `UIActivityViewController` on iOS and an
+`Intent.ACTION_SEND` chooser on Android — no transient user activation needed, and it works even where the
+WebView doesn't expose `navigator.share`. **The recipe generalises:** to add a native backend for any device
+interface, implement it in the head against the platform API and register it before `RunLocalAsync`.
+
+The **imperative** `IShare` calls this directly. The **declarative** `Shareable` reaches it through the
+**capability bridge**: the native client advertises `window.__raskNative.capabilities` and an `invoke(name,
+data)` that posts a `{ type: "capability" }` message; `NativeAppHost` routes it (via
+`NativeCapabilities.TryHandleAsync`) to the registered service (`invoke("share", …)` → `IShare.ShareAsync`).
+So a plain `Shareable` button pops the native sheet on device with no host-specific code. The **same**
+`NativeCapabilities` toolkit (`BridgeScript` + `TryHandleAsync`) lets a **Native + Server** head inject the
+bridge into a remote page, so a plain Server app reaches device natives too — see
+[Native device APIs from a Server app](#native-device-apis-from-a-server-app-the-capability-bridge).
+
+The **same recipe** is how the remaining backends (native geolocation, biometrics, push) will land — a
+framework-registered default, overridden by a native head implementation.
 
 ## Honest framing
 
@@ -239,8 +306,12 @@ sandbox, and real background execution — without giving up "the same component
    speaks the ordinary Server (`rask.js`/WS) protocol — the native client isn't involved — so it's
    already covered by `ServerExampleTests`; its only native-specific surface, the real platform
    WebView, is a device-only concern.)*
-5. **Native device backends** — CoreLocation/Android geolocation, native share, biometrics, native push,
-   behind the existing `Rask.Core.Browser` interfaces + new native-only ones.
+5. **Native device backends** — *first one shipped.* The OS **share sheet** (`IShare`, in
+   `Rask.Client.Browser`) now has a native head backend (iOS `UIActivityViewController`, Android
+   `Intent.ACTION_SEND`), overriding the JS-backed default via a head registration before `RunLocalAsync`
+   (see [Native device backends](#native-device-backends)). This establishes the reusable
+   framework-default-→-native-head-override pattern; CoreLocation/Android geolocation, biometrics, and
+   native push (APNs/FCM) follow behind the same seam.
 6. **In-process interop + history** — ✅ *fixed (surfaced by item 4's E2E).* (a) An out-of-render
    `IJSRuntime` invoke that carries arguments was embedding `argsJson` as a raw JS literal instead of a
    string, so the client's `JSON.parse(argsJson)` choked — every handler-issued invoke *with args*

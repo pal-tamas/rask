@@ -43,6 +43,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
+         Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
+    <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
     <!-- Rask.Core's package dependencies must be surfaced at THIS package boundary: Core is bundled with
@@ -79,6 +82,9 @@
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll" PackagePath="lib/net10.0/"/>
       <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml" PackagePath="lib/net10.0/"/>
+      <!-- Rask.Client.dll/.xml bundled next to Rask.Core.dll (same PrivateAssets="all" reasoning). -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.dll" PackagePath="lib/net10.0/"/>
+      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml" PackagePath="lib/net10.0/"/>
     </ItemGroup>
   </Target>
 

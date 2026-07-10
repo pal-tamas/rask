@@ -198,9 +198,10 @@ public static class RaskEndpointExtensions
         services.AddScoped<IWakeLock, WakeLock>();
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
         // activation, a live document/handle, or the installed-PWA instance, all of which the WebSocket
-        // round-trip loses. They stay WASM-only (see WasmHostBuilder): IShare, IFullscreen, IInstallPrompt,
-        // IEyeDropper, IPictureInPicture, IMediaDevices, IScreenOrientation, IIdleDetector, ISerial, IUsb,
-        // IHid, IBluetooth.
+        // round-trip loses. They are provided only by the in-process hosts — IShare lives in Rask.Client
+        // (shared by the WASM and Native hosts; a Native head can swap in a native backend), and the WASM-only
+        // set (see WasmHostBuilder) is IFullscreen, IInstallPrompt, IEyeDropper, IPictureInPicture,
+        // IMediaDevices, IScreenOrientation, IIdleDetector, ISerial, IUsb, IHid, IBluetooth.
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
         services.AddSingleton<IAuthTicketStore, AuthTicketStore>();

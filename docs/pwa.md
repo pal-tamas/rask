@@ -280,8 +280,11 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
 > rather than a dead cached page. There is **no background sync**, and the **install-prompt replay**
-> (`IInstallPrompt`) and the activation-bound device APIs (`IShare`, `IFullscreen`, `IMediaDevices`, …)
-> stay WASM-only. The honest framing: *installable + push + native-feel, not an offline app.*
+> (`IInstallPrompt`) and the activation-bound imperative device APIs (`IShare`, `IFullscreen`,
+> `IMediaDevices`, …) are not registered on Server. The honest framing: *installable + push + native-feel,
+> not an offline app.* (Sharing still works on Server via the headless `Shareable` in `Rask.Core`,
+> which fires `navigator.share` in the click gesture; the imperative `IShare` lives in `Rask.Client`, WASM +
+> Native only.)
 
 ---
 
@@ -289,12 +292,14 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**. The Serv
 
 Typed wrappers for the browser APIs that make a web app feel native. Everything in `Rask.Core.Browser`
 works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush`,
-`INotifications`, `IBadge`, and `IWakeLock`. The `*(WASM)*` ones live in `Rask.Wasm.Browser` because
-they need a live user gesture or the installed-app instance the Server round-trip can't carry.
+`INotifications`, `IBadge`, `IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The imperative
+`*(WASM + Native)*` ones (`IShare`) live in `Rask.Client.Browser` and run on the in-process WASM and Native
+hosts; the `*(WASM)*` ones live in `Rask.Wasm.Browser`. Both need a live user gesture or the installed-app instance the Server round-trip
+can't carry, so neither is registered on Server.
 
 | Capability | Service | Use |
 | --- | --- | --- |
-| **Share sheet** | `IShare` *(WASM)* | Hand a link/text to the OS share UI |
+| **Share sheet** | `Shareable` *(all)* / `IShare` *(WASM + Native)* | Headless declarative share works everywhere; imperative `IShare` for code-driven shares (native backend on Native) |
 | **Vibration** | `IVibration` | Haptic feedback (`VibrateAsync(200)`) |
 | **Geolocation** | `IGeolocation` | Current position (`GetCurrentPositionAsync`) + live tracking (`WatchAsync`) |
 | **Clipboard** | `IClipboard` | Copy/paste |
