@@ -344,6 +344,11 @@ jobs:
     runs-on: ubuntu-latest
     # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead.
     timeout-minutes: 35
+    # The emulator-runner runs each `script` line in a SEPARATE `sh -c`, so shell vars/exports don't
+    # persist across lines. Pass the test's env at the job/step level (process env) instead, so it reaches
+    # `dotnet test` — otherwise the test silently SKIPS (Skip.IfNot) and the job is a false pass.
+    env:
+      RASK_APPIUM_SERVER: http://127.0.0.1:4723
     steps:
       - uses: actions/checkout@v7
         with:
@@ -379,6 +384,15 @@ jobs:
           -c Debug -f net10.0-android -p:RaskNativeHeads=android
           -p:RuntimeIdentifier=android-x64 -p:EmbedAssembliesIntoApk=true
 
+      - name: Resolve the built APK path for the test
+        # Publish the absolute APK path to the job env so it survives into the emulator-runner's script
+        # (which can't build up shell vars across its line-per-shell execution).
+        run: |
+          APK=$(find "$PWD/samples/Rask.Example.Native/bin/Debug/net10.0-android/android-x64" -name '*-Signed.apk' | head -1)
+          test -n "$APK" || { echo "No -Signed.apk found"; exit 1; }
+          echo "Resolved APK: $APK"
+          echo "RASK_APPIUM_ANDROID_APP=$APK" >> "$GITHUB_ENV"
+
       - name: Run the Appium showcase E2E on the emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -386,19 +400,20 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
+          # Each line runs in its own shell — keep independent commands only. RASK_APPIUM_SERVER (job env) and
+          # RASK_APPIUM_ANDROID_APP ($GITHUB_ENV from the previous step) reach `dotnet test` via the process
+          # environment, so no shell vars need to cross lines here.
           script: |
-            set -e
+            test -n "$RASK_APPIUM_ANDROID_APP" || { echo "RASK_APPIUM_ANDROID_APP not in env — test would skip"; exit 1; }
             npm install -g appium
             appium driver install uiautomator2
             appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
             for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
-            APK=$(find samples/Rask.Example.Native/bin/Debug/net10.0-android/android-x64 -name '*-Signed.apk' | head -1)
-            echo "Driving APK: $APK"
-            # NOTE: exports on their own lines — a multi-line `VAR=x \`-continuation before dotnet test does
-            # not survive here, so the env vars never reached the test (it silently skipped).
-            export RASK_APPIUM_SERVER=http://127.0.0.1:4723
-            export RASK_APPIUM_ANDROID_APP="$PWD/$APK"
             dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
+            # The action's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
+            # "stop: Not implemented" quirk), which would stall the job past the passing test until the
+            # timeout. Hard-kill the emulator process here so that teardown finds it already gone.
+            pkill -9 -f qemu-system 2>/dev/null || true
 
       - name: Upload Appium log on failure
         if: failure()
