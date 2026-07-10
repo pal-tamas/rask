@@ -19,6 +19,18 @@ namespace Rask.Native;
 internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
+
+    // Serializes the actual render+emit. Native runs async lifecycle/handler continuations on the thread
+    // pool (HandlerSyncContext.Post uses Task.Run), so a mid-await render (RenderInScopeCoreAsync, or a
+    // second continuation's render) can fire concurrently with the dispatch's render — and two renders
+    // walking the component tree at once race ComponentLifecycle.DisposeComponentTree's PersistedChildren
+    // enumeration ("Collection was modified; enumeration operation may not execute"), which trips the root
+    // error boundary. Server has the same _renderLock; WASM is single-threaded so it needs none. It's held
+    // only around one build+emit (never across a handler/await), so the legitimate re-entrant case —
+    // InvokeWithRenderingAsync rendering inline inside a handler, then the dispatch's own render afterwards
+    // — stays sequential (each acquires a free lock). Lock order is always _lock (if any) then _renderLock;
+    // RenderInScopeCoreAsync takes only _renderLock, so there's no inversion.
+    private readonly SemaphoreSlim _renderLock = new(1, 1);
     private readonly INativeWebView _webView;
     private readonly IUserProvider? _userProvider;
 
@@ -51,6 +63,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
         ComponentLifecycle.DisposeComponentTree(View);
         _lock.Dispose();
+        _renderLock.Dispose();
     }
 
     // Host transport for LiveSessionBase.TryEmitFrameAsync: hand the built frame to the platform WebView,
@@ -69,6 +82,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         // `await Task.Yield()` can't Post its continuation back through it and re-enter this method.
         var prevCtx = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(null);
+        await _renderLock.WaitAsync().ConfigureAwait(false);
         try
         {
             await BuildPayloadAsync(null, false).ConfigureAwait(false);
@@ -79,6 +93,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
         finally
         {
+            _renderLock.Release();
             SynchronizationContext.SetSynchronizationContext(prevCtx);
         }
     }
@@ -93,6 +108,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
+        await _renderLock.WaitAsync().ConfigureAwait(false);
         try
         {
             await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly).ConfigureAwait(false);
@@ -112,6 +128,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
         finally
         {
+            _renderLock.Release();
             InHandlerScope = false;
             _lock.Release();
         }
@@ -127,6 +144,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     {
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
+        await _renderLock.WaitAsync().ConfigureAwait(false);
         try
         {
             await BuildPayloadAsync(null, false).ConfigureAwait(false);
@@ -140,6 +158,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         }
         finally
         {
+            _renderLock.Release();
             InHandlerScope = false;
             _lock.Release();
         }
@@ -201,14 +220,25 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                         historyReplace = replace;
                     }
 
-                    await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
-                    if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+                    // Acquire _renderLock only around the render (not the handler above): an in-handler
+                    // InvokeWithRenderingAsync renders inline under _renderLock first, so holding it across
+                    // the handler would deadlock.
+                    await _renderLock.WaitAsync().ConfigureAwait(false);
+                    try
                     {
-                        return Array.Empty<byte>();
-                    }
+                        await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                        if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+                        {
+                            return Array.Empty<byte>();
+                        }
 
-                    _htmlBuffers.Commit();
-                    return _lastSentBuffer!.WrittenSpan.ToArray();
+                        _htmlBuffers.Commit();
+                        return _lastSentBuffer!.WrittenSpan.ToArray();
+                    }
+                    finally
+                    {
+                        _renderLock.Release();
+                    }
                 }
             }
             catch (Exception ex)
@@ -254,6 +284,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             routeState.Path = navPath;
             routeState.Query = QueryString.Parse(navQueryString);
 
+            await _renderLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
@@ -270,6 +301,10 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 RaskDiagnostics.Report(
                     RaskLogLevel.Error, "Rask.Native", $"Rask native navigate '{navPath}' threw", ex);
                 return Array.Empty<byte>();
+            }
+            finally
+            {
+                _renderLock.Release();
             }
         }
         finally

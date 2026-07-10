@@ -18,13 +18,22 @@ them until tagged releases begin.
   handler). `NativeExampleTests` runs a focused native journey — boot + render, the sidebar (collapsible
   groups + mobile drawer), a showcase render walk, scoped CSS/JS applied over the bridge, element-ref
   focus through `IJSRuntime`, and WebView history (route→URL push, Back/forward, the URL-routed Todos
-  dialog) — deliberately focused rather than the browser hosts' full gauntlet, since each interaction is
-  an async bridge round-trip. A separate `NativeServerSmokeTests` shard covers the **Native + Server**
+  dialog); it reuses the **same shared showcase walks** the browser hosts run (only the `HttpClient`-backed
+  HTTP & files walk is skipped). A separate `NativeServerSmokeTests` shard covers the **Native + Server**
   mode (`NativeAppHost.ConnectToServer`): it asserts the shell-URL contract and loads the Server showcase
   in a mobile-emulated WebView context, confirming the thin-native-shell scenario renders and reacts live
   over the WebSocket.
 
 ### Fixed
+- **Native concurrent-render race (`Collection was modified` under the root error boundary).** The native
+  host runs async lifecycle/handler continuations on the thread pool (`HandlerSyncContext.Post` uses
+  `Task.Run`), so a mid-await render (`RenderInScopeCoreAsync`, or a second continuation's render) could run
+  concurrently with the dispatch's render — and two renders walking the component tree at once raced
+  `ComponentLifecycle.DisposeComponentTree`'s `PersistedChildren` enumeration, throwing
+  `InvalidOperationException` mid-render and tripping the root error boundary (which intermittently wiped a
+  complex page after an interaction). `NativeLiveSession` now serializes every render+emit behind a
+  `_renderLock`, matching the Server host (WASM is single-threaded, so it needs none). With the race gone,
+  the native E2E now runs the full shared showcase journey reliably instead of a focused subset.
 - **Native `IJSRuntime` invokes with arguments, and native WebView history.** Both were bugs the new
   native E2E surfaced. (1) An out-of-render `IJSRuntime` invoke (one issued from an event handler that
   awaits its result) embedded `argsJson` into the bridge call as a raw JS literal instead of a string, so
