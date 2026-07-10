@@ -20,7 +20,7 @@ public sealed class HomePage(Navigator nav) : Component
 
         ("Components", "bi-boxes", "User components", "Sealed classes with generated factories.", "/guides/getting-started"),
         ("Components", "bi-bell", "Toast", "Show, stack, dismiss & auto-hide — no JS.", "/guides/bootstrap"),
-        ("Components", "bi-megaphone", "Flash messages", "Rails-style transient messages via IFlash.", "/guides/composition"),
+        ("Components", "bi-megaphone", "Toast messages", "Rails-style transient messages via IToaster.", "/guides/composition"),
         ("Components", "bi-mouse", "Events", "The full DOM event surface, typed.", "/guides/composition"),
         ("Components", "bi-table", "Data table", "Sortable, paginated, URL-driven table.", "/guides/routing"),
         ("Components", "bi-list-nested", "Master-detail", "Collapsible rows with a nested datagrid.", "/guides/composition"),

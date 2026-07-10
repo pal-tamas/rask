@@ -339,14 +339,15 @@ public static class DemoRegistry
                 ["EventsFormDemo.cs"],
                 Notes: "OnSubmit receives a FormData object collected from all named form fields.",
                 Result: EventsFormDemo()),
-            // Flash → composition.md ("Flash messages").
-            ["flash"] = () => CodeSample(
-                ["FlashDemo.cs"],
+            // Toast → composition.md ("Toast messages").
+            ["toaster"] = () => CodeSample(
+                ["ToasterDemo.cs"],
                 Notes:
-                "FlashDemo injects IFlash and calls flash.Success(...) / .Error(...) on click. The headless "
-                + "FlashOutlet — subscribed to IFlash.Changed — drains the queue (consumed-once) and renders a "
-                + "dismissible BsAlert stack; the × calls the Template's dismiss(id). No StateHasChanged, no JS.",
-                Result: FlashDemo()),
+                "ToasterDemo injects IToaster and calls toast.Success(...) / .Error(...) on click. The headless "
+                + "ToastOutlet — subscribed to IToaster.Changed — drains the queue (consumed-once) and renders a "
+                + "dismissible BsAlert stack; AutoDismissAfter clears each message after 5s, or the × dismisses "
+                + "it early via the Template's dismiss(id). No StateHasChanged, no JS.",
+                Result: ToasterDemo()),
             // Toast → bootstrap.md (the Rask.Bootstrap BsToast component).
             ["bootstrap-toast"] = () => CodeSample(
                 ["ToastDemo.cs"],

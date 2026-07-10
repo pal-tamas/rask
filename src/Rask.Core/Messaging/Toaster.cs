@@ -1,31 +1,31 @@
 namespace Rask.Core.Messaging;
 
 /// <summary>
-///     Default <see cref="IFlash" /> — a thread-safe FIFO queue. Registered scoped per session, so its
+///     Default <see cref="IToaster" /> — a thread-safe FIFO queue. Registered scoped per session, so its
 ///     lifetime spans the session (surviving client-side navigations). Auto-hide timers in a UI layer can
 ///     add/drain from thread-pool threads, so every access is guarded (the same discipline the toast
 ///     demos use).
 /// </summary>
-public sealed class Flash : IFlash
+public sealed class Toaster : IToaster
 {
     private readonly object _gate = new();
-    private readonly List<FlashMessage> _queue = [];
+    private readonly List<ToastMessage> _queue = [];
     private int _nextId;
 
     public event Action? Changed;
 
-    public void Add(FlashLevel level, string message, string? title = null)
+    public void Add(ToastLevel level, string message, string? title = null)
     {
         ArgumentNullException.ThrowIfNull(message);
         lock (_gate)
         {
-            _queue.Add(new FlashMessage(_nextId++, level, message, title));
+            _queue.Add(new ToastMessage(_nextId++, level, message, title));
         }
 
         Changed?.Invoke();
     }
 
-    public IReadOnlyList<FlashMessage> Consume()
+    public IReadOnlyList<ToastMessage> Consume()
     {
         lock (_gate)
         {
