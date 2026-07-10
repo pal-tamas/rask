@@ -154,7 +154,8 @@ public abstract class BsSelectBase<TValue, TItem> : BsFormControl<TValue>
 
         var clear = showClear
             ? BsCloseButton(
-                Class: BsClass.Join(Position.Absolute, Position.Top50, Position.TranslateMiddleY, "bs-select-clear"),
+                Class: BsClass.Join(Position.Absolute, Position.Top50, Position.TranslateMiddleY,
+                    "bs-select-clear", _open ? "bs-clear-open" : null),
                 AriaLabel: "Clear",
                 OnClickAsync: () => WriteAsync(b, default!))
             : null;

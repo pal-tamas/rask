@@ -441,6 +441,33 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#sel-readout")).ToContainTextAsync("Tier: Team",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
+        // Stacking regression: the clear × must not paint over ANOTHER select's open dropdown menu. Both a ×
+        // and an open .dropdown-menu.show default to z-index 1000, so with the × always raised the later-in-DOM
+        // × won the tie and showed through. Fix: the × gets its raised z-index (needed to clear its OWN
+        // click-outside backdrop at 999) ONLY while its own control is open, via .bs-clear-open — so a *closed*
+        // select's × drops to z-index:auto and sits behind any open menu. Assert the computed z-index in both
+        // states on the clearable Seats select (giving it a value surfaces the ×).
+        var galSeats = Page.Locator("#sel-seats");
+        await galSeats.ScrollIntoViewIfNeededAsync();
+        await galSeats.ClickAsync();
+        await Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show .dropdown-item")
+            .Filter(new LocatorFilterOptions { HasText = "2 seats" }).First.ClickAsync();
+        var galSeatsClear = Page.Locator(".dropdown:has(#sel-seats) .bs-select-clear");
+        await Expect(galSeatsClear).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Closed: no raised-z-index hook, so the × computes to z-index:auto (paints behind any open menu).
+        Assert.DoesNotContain("bs-clear-open", await galSeatsClear.GetAttributeAsync("class") ?? "");
+        Assert.Equal("auto", await galSeatsClear.EvaluateAsync<string>("x => getComputedStyle(x).zIndex"));
+        // Re-open this select: its OWN × must rise to z-index 1000 to stay clickable above its backdrop (999).
+        await galSeats.ClickAsync();
+        await Expect(Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show"))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        Assert.Contains("bs-clear-open", await galSeatsClear.GetAttributeAsync("class") ?? "");
+        Assert.Equal("1000", await galSeatsClear.EvaluateAsync<string>("x => getComputedStyle(x).zIndex"));
+        // Close via the backdrop so it doesn't intercept the next click.
+        await Page.Locator(".dropdown:has(#sel-seats) .position-fixed").DispatchEventAsync("click");
+        await Expect(Page.Locator(".dropdown:has(#sel-seats) .dropdown-menu.show"))
+            .ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
         // BsMultiSelect variant gallery — ticking two options in the basic control shows them as chips and
         // the gallery readout lists them.
         var msBasic = Page.Locator("#ms-basic");

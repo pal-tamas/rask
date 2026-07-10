@@ -105,8 +105,13 @@ public class BsPickerTests
     }
 
     [Fact]
-    public void Date_NullableWithValue_ShowsClearButton() =>
-        Assert.Contains("btn-close", Html(Us, () => BsDatePicker<DateOnly?>(Value: Jul7)));
+    public void Date_NullableWithValue_ShowsClearButton()
+    {
+        var html = Html(Us, () => BsDatePicker<DateOnly?>(Value: Jul7));
+        Assert.Contains("btn-close", html);
+        // Closed picker's × has no raised z-index (.bs-clear-open) — see the BsSelect equivalent.
+        Assert.DoesNotContain("bs-clear-open", html);
+    }
 
     [Fact]
     public void Date_NonFloating_WrapsBoxAndCaretInPositionRelative()
