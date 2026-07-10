@@ -175,9 +175,16 @@ handler's interop call runs synchronously in that gesture's call stack, so it qu
 the click is forwarded over the WebSocket and the interop call runs a round-trip later, after the
 transient activation has expired. The practical effect:
 
-- **`IShare`** (Web Share) needs transient activation, so it is **WASM-only** and lives in
-  `Rask.Wasm.Browser` (registered by the WASM host, not `Rask.Core`). On Server `navigator.share`
-  would reject with "Must be handling a user gesture," so it isn't offered there.
+- **Sharing** splits by *when* you fire it. The headless declarative **`Shareable`** (`Rask.Core`) attaches
+  `data-rask-share` to your element and the shared client fires `navigator.share` **inside the click's own
+  call stack**, so the activation is still live — it therefore works on **every** host, Server included. The
+  imperative **`IShare`** (`Rask.Client.Browser`) lets you
+  share from *code* (a lifecycle hook, after an `await`), which needs the in-process transport to keep the
+  activation — so it's registered only by the **WASM and Native** hosts (on Server `navigator.share` would
+  reject with "Must be handling a user gesture"). `Rask.Native` can't reference the browser-targeted
+  `Rask.Wasm`, so the WASM+Native-shared `IShare` lives in `Rask.Client`; on Native a platform head can
+  register a native backend (`UIActivityViewController` / `Intent.ACTION_SEND`) that needs no activation —
+  see the [Native guide](native.md#native-device-backends).
 - **`IBadge`** (app icon badge), **`IWakeLock`** (keep the screen awake), **`IScreenOrientation`**
   (read/lock orientation), **`IFullscreen`** (present an element/page fullscreen — like `IShare`,
   `requestFullscreen` needs transient activation), and **`IInstallPrompt`** (capture/replay the deferred

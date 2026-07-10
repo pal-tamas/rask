@@ -2386,6 +2386,31 @@ function raskSendKey(e, attr, type) {
 document.addEventListener("keydown", function (e) { raskSendKey(e, "data-rask-on-keydown", "keydown"); });
 document.addEventListener("keyup", function (e) { raskSendKey(e, "data-rask-on-keyup", "keyup"); });
 
+// ----- Share (client-only) ---------------------------------------------------
+// ShareButton emits data-rask-share="{json}". The share MUST run inside the click's own call stack so the
+// browser's transient user activation is still live — a server round-trip would lose it, which is exactly
+// why this is handled on the client and not dispatched to C#. In a native shell we upgrade to the injected
+// native bridge (window.__raskNative, no activation needed); otherwise we fall back to navigator.share.
+// Unsupported browsers (e.g. desktop Firefox) simply no-op.
+document.addEventListener("click", function (e) {
+    var t = (e.target && e.target.closest) ? e.target.closest("[data-rask-share]") : null;
+    if (!t || !inRoot(t)) { return; }
+    var raw = t.getAttribute("data-rask-share");
+    if (!raw) { return; }
+    var nativeCaps = window.__raskNative;
+    if (nativeCaps && nativeCaps.capabilities && nativeCaps.capabilities.indexOf &&
+        nativeCaps.capabilities.indexOf("share") !== -1 && typeof nativeCaps.invoke === "function") {
+        nativeCaps.invoke("share", raw);
+        return;
+    }
+    if (navigator.share) {
+        var data;
+        try { data = JSON.parse(raw); } catch (err) { return; }
+        // Fire in the gesture; swallow rejections (user cancel / unsupported payload).
+        try { var p = navigator.share(data); if (p && p["catch"]) { p["catch"](function () {}); } } catch (err) {}
+    }
+});
+
 
 // ----- Native transport primitives ------------------------------------------------------------
 
@@ -2757,8 +2782,15 @@ function endDotNetInvoke(resultJson) {
     else pending.reject(new Error(msg.error || "DotNet invocation failed"));
 }
 
-// The host reaches these through EvaluateJavaScript.
-window.__raskNative = { applyRender, beginInvokeJS, endDotNetInvoke };
+// The host reaches applyRender/beginInvokeJS/endDotNetInvoke through EvaluateJavaScript. capabilities +
+// invoke() are the native device-capability bridge the shared client uses (e.g. Shareable): invoke() posts
+// a capability message the host routes to the registered service (IShare) — see NativeAppHost. On the Native
+// host, sharing is always available, so it's advertised here; invoke() needs no user activation.
+window.__raskNative = {
+    applyRender, beginInvokeJS, endDotNetInvoke,
+    capabilities: ["share"],
+    invoke: function (component, data) { send({ type: "capability", component: component, data: data }); }
+};
 
 // Signal readiness so the host fires its first render only now (see NativeAppHost.RouteMessageAsync).
 root = document.querySelector("[data-rask-root]") || document.body;

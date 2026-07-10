@@ -29,8 +29,13 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
 
 ## Device APIs
 - Inject the typed `Rask.Core.Browser` wrappers (`IGeolocation`, `IClipboard`, `IVibration`,
-  `IBrowserStorage`, `INotifications`, `IBadge`, `IWakeLock`, …) — they work through the WebView's JS
-  engine. Native C# backends for these are a framework work-in-progress.
+  `IBrowserStorage`, `INotifications`, `IBadge`, `IWakeLock`, …) — they work through the WebView's JS engine.
+- Sharing: use the headless `Shareable` (`Rask.Core`) to attach share behaviour to your own element, or
+  inject `IShare` (`Rask.Client.Browser`) to share from code. Both hit the OS share sheet.
+- **Native backends** override a JS default with real platform code. The head registers one on
+  `host.Services` **before `RunLocalAsync`** (last-wins). The template ships `NativeShare` for `IShare`
+  (iOS `UIActivityViewController`, Android `Intent.ACTION_SEND`) under `Platforms/`; register your own the
+  same way. Further native backends (geolocation, biometrics, push) are a framework work-in-progress.
 
 ## Build & run (needs the iOS/Android SDK workloads)
 ```bash

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.JSInterop;
+using Rask.Client.Browser;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;

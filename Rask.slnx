@@ -19,6 +19,7 @@
     </Folder>
     <Folder Name="/src/">
         <Project Path="src/Rask.Bootstrap/Rask.Bootstrap.csproj"/>
+        <Project Path="src/Rask.Client/Rask.Client.csproj"/>
         <Project Path="src/Rask.Core/Rask.Core.csproj"/>
         <Project Path="src/Rask.Cqrs/Rask.Cqrs.csproj"/>
         <Project Path="src/Rask.Cqrs.Generators/Rask.Cqrs.Generators.csproj"/>
@@ -37,6 +38,7 @@
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/Rask.Bootstrap.Tests/Rask.Bootstrap.Tests.csproj"/>
+        <Project Path="tests/Rask.Client.Tests/Rask.Client.Tests.csproj"/>
         <Project Path="tests/Rask.Core.Tests/Rask.Core.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Tests/Rask.Cqrs.Tests.csproj"/>
         <Project Path="tests/Rask.Cqrs.Generators.Tests/Rask.Cqrs.Generators.Tests.csproj"/>

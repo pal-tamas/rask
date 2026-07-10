@@ -46,8 +46,10 @@ NativeServerShell shell = NativeAppHost.ConnectToServer(new Uri("https://app.exa
 
 ## Notes
 
-- **Preview / pre-1.0** — the host + template + iOS/Android heads run end-to-end; APIs may still shift,
-  and native device *backends* (native geolocation/push/biometrics) are a follow-up.
+- **Preview / pre-1.0** — the host + template + iOS/Android heads run end-to-end; APIs may still shift.
+  **Native device *backends*** have started landing: the OS share sheet (`IShare`) has a native
+  `UIActivityViewController` / `Intent.ACTION_SEND` head backend (registered before `RunLocalAsync`,
+  overriding the JS default); native geolocation/push/biometrics follow behind the same seam.
 - **WebView hybrid, not a native-control renderer** — C# runs native, the view is a WebView (same
   architecture as MAUI Blazor Hybrid / Capacitor). What it buys over a PWA: App Store / Play Store
   distribution, native device APIs, and real background execution.
