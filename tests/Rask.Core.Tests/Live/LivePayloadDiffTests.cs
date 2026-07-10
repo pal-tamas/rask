@@ -55,6 +55,46 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
+    public void BuildPayloadUtf8Diff_MorphSubtree_SerializesInnerHtmlFromRange()
+    {
+        // MorphSubtree: [8, path, innerHtml]. The fragment is sliced from the render HTML by the op's
+        // deferred char range (like InsertSubtree, minus the trailing domCount).
+        const string html = "<section><a></a><b></b><span>y</span></section>";
+        var start = html.IndexOf("<a>", StringComparison.Ordinal);
+        var end = html.IndexOf("</section>", StringComparison.Ordinal);
+        var ops = new List<EditOp>
+        {
+            new(EditOpKind.MorphSubtree, new[] { 0 }, null, null, trusted: true, htmlStart: start, htmlEnd: end)
+        };
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops, newHtml: html);
+
+        using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(output.WrittenSpan));
+        var op = doc.RootElement.GetProperty("ops").EnumerateArray().Single();
+        Assert.Equal((int)EditOpKind.MorphSubtree, op[0].GetInt32());
+        Assert.Equal(new[] { 0 }, op[1].EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        Assert.Equal("<a></a><b></b><span>y</span>", op[2].GetString());
+        Assert.Equal(3, op.GetArrayLength()); // [k, path, innerHtml] — no trailing slot
+    }
+
+    [Fact]
+    public void BuildPayloadUtf8Diff_MorphSubtree_VerbatimEmptyValue_ClearsChildren()
+    {
+        // An emptied Raw-tainted parent ships a verbatim "" fragment (Value set, no char range) so the
+        // client morphs its children to nothing.
+        var ops = new List<EditOp> { new(EditOpKind.MorphSubtree, new[] { 0 }, null, string.Empty, trusted: true) };
+
+        var output = new ArrayBufferWriter<byte>(256);
+        LivePayload.BuildPayloadUtf8Diff(output, ops);
+
+        using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(output.WrittenSpan));
+        var op = doc.RootElement.GetProperty("ops").EnumerateArray().Single();
+        Assert.Equal((int)EditOpKind.MorphSubtree, op[0].GetInt32());
+        Assert.Equal(string.Empty, op[2].GetString());
+    }
+
+    [Fact]
     public void BuildPayloadUtf8Diff_WithJsInvokes_EmitsJsInvokesArray()
     {
         // Fire-and-forget IJSRuntime invokes ride the diff payload the same way they

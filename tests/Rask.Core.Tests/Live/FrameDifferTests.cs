@@ -170,11 +170,12 @@ public class FrameDifferTests
     }
 
     [Fact]
-    public void Diff_RawWithChangingSibling_ForcesFullHtmlMorph()
+    public void Diff_RawWithChangingSibling_EmitsScopedMorphSubtree_NotFullHtml()
     {
         // A Raw's markup parses into an unknown number of DOM nodes, so a sibling after it can't be
-        // patched positionally (the domSlot index assumes Raw == 1 node). Changing such a sibling
-        // must route to the full-HTML morph — NOT ship a mis-targeted, ungated UpdateText.
+        // patched positionally (the domSlot index assumes Raw == 1 node). Instead of bailing the whole
+        // document to a full-HTML morph, the differ ships ONE trusted MorphSubtree at the Raw-owning
+        // parent, carrying its new inner HTML — the client morphs just that subtree.
         var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
         var (after, afterHtml) = FramesAndHtml(Div()[Raw("<a></a><b></b>"), Span()["y"]]);
 
@@ -182,7 +183,80 @@ public class FrameDifferTests
         var scratch = new FrameDiffer.DiffScratch();
         FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
 
+        Assert.False(scratch.ForceFullHtml);
+        var morph = Assert.Single(ops);
+        Assert.Equal(EditOpKind.MorphSubtree, morph.Kind);
+        Assert.True(morph.Trusted);
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(ops));
+        // Targets the Raw-owning parent (the div at slot 0), NOT a mis-targeted child slot.
+        Assert.Equal(new[] { 0 }, morph.Path);
+        // Carries the parent's new inner HTML as a deferred char range (sliced into the wire at write
+        // time) — verified against both the range and a full BuildPayloadUtf8Diff round-trip.
+        Assert.Null(morph.Value);
+        Assert.True(morph.HtmlStart >= 0 && morph.HtmlEnd > morph.HtmlStart);
+        Assert.Equal("<a></a><b></b><span>y</span>",
+            afterHtml.Substring(morph.HtmlStart, morph.HtmlEnd - morph.HtmlStart));
+        Assert.Equal("<a></a><b></b><span>y</span>", WireMorphHtml(ops, afterHtml));
+    }
+
+    [Fact]
+    public void Diff_RawWithChangingSibling_WithoutNewHtml_ForcesFullHtml()
+    {
+        // The scoped morph needs the render HTML to slice the fragment. One-shot / test callers that
+        // inspect ops without a wire build pass no newHtml — the differ then keeps the full-HTML
+        // fallback (ForceFullHtml) exactly as before, rather than emitting a fragment-less morph.
+        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+        var after = Frames(Div()[Raw("<a></a><b></b>"), Span()["y"]]);
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _);
+
         Assert.True(scratch.ForceFullHtml);
+        Assert.Empty(ops);
+    }
+
+    [Fact]
+    public void Diff_RawTaintedLevel_NestedUnderElement_MorphsAtInnerParent()
+    {
+        // The taint is one level deep: the inner div mixes a Raw with a <span>. The morph must target
+        // the INNER div (the Raw-owning parent), not the outer div — the outer level is untainted, so
+        // its positional path stays reliable and only the tainted subtree is re-morphed.
+        var before = Frames(Div()[Div()[Raw("<a></a><b></b>"), Span()["x"]]]);
+        var (after, afterHtml) = FramesAndHtml(Div()[Div()[Raw("<a></a><b></b>"), Span()["y"]]]);
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
+
+        Assert.False(scratch.ForceFullHtml);
+        var morph = Assert.Single(ops);
+        Assert.Equal(EditOpKind.MorphSubtree, morph.Kind);
+        Assert.True(morph.Trusted);
+        // outer div(0) -> inner div(0)
+        Assert.Equal(new[] { 0, 0 }, morph.Path);
+        Assert.Equal("<a></a><b></b><span>y</span>", WireMorphHtml(ops, afterHtml));
+    }
+
+    [Fact]
+    public void Diff_RawTaintedParent_Emptied_EmitsMorphSubtreeWithEmptyFragment()
+    {
+        // The Raw-tainted parent lost all its children (Raw + span removed). A verbatim empty-string
+        // fragment morphs its children to nothing — still a scoped diff op, no full-document fallback.
+        var before = Frames(Div()[Raw("<a></a><b></b>"), Span()["x"]]);
+        var (after, afterHtml) = FramesAndHtml(Div());
+
+        var ops = new List<EditOp>();
+        var scratch = new FrameDiffer.DiffScratch();
+        FrameDiffer.Diff(before, after, ops, scratch, out _, afterHtml);
+
+        Assert.False(scratch.ForceFullHtml);
+        var morph = Assert.Single(ops);
+        Assert.Equal(EditOpKind.MorphSubtree, morph.Kind);
+        Assert.True(morph.Trusted);
+        Assert.Equal(new[] { 0 }, morph.Path);
+        Assert.Equal(string.Empty, morph.Value);
+        Assert.Equal(string.Empty, WireMorphHtml(ops, afterHtml));
     }
 
     [Fact]
@@ -479,6 +553,24 @@ public class FrameDifferTests
         foreach (var op in doc.RootElement.GetProperty("ops").EnumerateArray())
         {
             if (op[0].GetInt32() == (int)EditOpKind.InsertSubtree)
+            {
+                return op[2].ValueKind == System.Text.Json.JsonValueKind.Null ? null : op[2].GetString();
+            }
+        }
+
+        return null;
+    }
+
+    // Build the diff payload as the live session does and pull the first MorphSubtree op's html field
+    // ([8, path, innerHtml]) back out of the wire JSON — what the client's `case 8` actually receives.
+    private static string? WireMorphHtml(IReadOnlyList<EditOp> ops, string newHtml)
+    {
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        LivePayload.BuildPayloadUtf8Diff(buffer, ops, newHtml: newHtml);
+        using var doc = System.Text.Json.JsonDocument.Parse(buffer.WrittenMemory);
+        foreach (var op in doc.RootElement.GetProperty("ops").EnumerateArray())
+        {
+            if (op[0].GetInt32() == (int)EditOpKind.MorphSubtree)
             {
                 return op[2].ValueKind == System.Text.Json.JsonValueKind.Null ? null : op[2].GetString();
             }

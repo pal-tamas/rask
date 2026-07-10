@@ -32,7 +32,10 @@ unchanged.
 ## How it fits
 
 Rask has three client "dialects" that all speak one frame contract — a minimal diff (or full-HTML morph)
-the client applies to the DOM:
+the client applies to the DOM. Even `Raw`/CodeSample-heavy pages (guides, markdown, highlighted code)
+stay on the diff path: a changed sibling of a `Raw` block ships a scoped `MorphSubtree` op that re-morphs
+only that one container's children, rather than falling back to a full-document morph — the same fix
+benefits all three hosts but matters most here, where the full-document re-render was the costliest path.
 
 | Host | Transport | Where the app runs |
 | --- | --- | --- |

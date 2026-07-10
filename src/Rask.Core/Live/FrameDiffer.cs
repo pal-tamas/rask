@@ -70,7 +70,24 @@ public enum EditOpKind : byte
     ///     reorder. Like <see cref="MoveSubtree" /> it only ever comes from the keyed path and
     ///     preserves DOM identity.
     /// </summary>
-    PermutationBatch = 7
+    PermutationBatch = 7,
+
+    /// <summary>
+    ///     Reconcile the CHILDREN of the element at <see cref="EditOp.Path" /> against a fresh HTML
+    ///     fragment (that element's new inner HTML) via the client's <c>morph()</c> engine. Emitted
+    ///     when a sibling level mixes a <see cref="RenderFrameKind.Raw" /> frame with other siblings
+    ///     and changed: a Raw's verbatim markup parses into an unknown number of DOM nodes, so the
+    ///     positional <c>childNodes[slot]</c> paths of the following siblings can't be trusted — but
+    ///     the Raw-owning PARENT is still addressable by a clean path (every ancestor level is
+    ///     untainted by construction, else the morph would have been emitted higher up). So instead of
+    ///     bailing the whole render to a full-document morph, we localise it to this one parent. The
+    ///     fragment travels as the <see cref="EditOp.HtmlStart" />/<see cref="EditOp.HtmlEnd" /> char
+    ///     range into the render HTML (sliced at wire-write time, like
+    ///     <see cref="InsertSubtree" />), or as a verbatim <see cref="EditOp.Value" /> string. Always
+    ///     <see cref="EditOp.Trusted" /> — a morph handles arbitrary node counts and preserves keyed /
+    ///     focus / IDL state — so it ships as a diff rather than routing to the full-HTML fallback.
+    /// </summary>
+    MorphSubtree = 8
 }
 
 /// <summary>
@@ -432,8 +449,76 @@ public static class FrameDiffer
 
         if (rawTaintedLevel && output.Count != opCountAtEntry)
         {
-            scratch.ForceFullHtml = true;
+            // The positional ops just emitted for this Raw-tainted level (and everything its subtree
+            // produced) can't be trusted — a Raw parses into an unknown DOM-node count, drifting every
+            // following sibling's childNodes[slot]. Roll them all back and ship ONE scoped morph at the
+            // Raw-owning parent instead: the parent is addressable by a clean path (every ancestor level
+            // is untainted, else the morph would already have been emitted higher up), and one morph of
+            // its children subsumes every op below — including any deeper MorphSubtree and the earlier
+            // pre-Raw siblings, which are also this parent's children. Correctness is identical to the
+            // old full-document morph, just localised to the tainted subtree.
+            output.RemoveRange(opCountAtEntry, output.Count - opCountAtEntry);
+
+            var (innerStart, innerEnd) = ChildrenHtmlRange(newFrames, newStart, newEnd, newHtml);
+            if (path.Count >= 1 && !newHtml.IsEmpty && innerStart >= 0)
+            {
+                // path is the parent element's DOM path; the client morphs its children against the
+                // sliced inner-HTML fragment. Trusted so DiffOpsAreClientSupported ships it as a diff.
+                output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, null,
+                    trusted: true, htmlStart: innerStart, htmlEnd: innerEnd));
+                scratch.ForceFullHtml = false;
+            }
+            else if (path.Count >= 1 && !newHtml.IsEmpty && newStart >= newEnd)
+            {
+                // The Raw-tainted parent legitimately emptied (its Raw + siblings were all removed).
+                // A verbatim empty-string fragment morphs its children to nothing — no full-doc fallback.
+                output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, string.Empty,
+                    trusted: true));
+                scratch.ForceFullHtml = false;
+            }
+            else
+            {
+                // Degenerate: taint at the document root (path empty — no addressable parent) or no
+                // render HTML supplied (one-shot / test callers that inspect ops without a wire build).
+                // Keep the full-HTML fallback, exactly as before.
+                scratch.ForceFullHtml = true;
+            }
         }
+    }
+
+    // Char range of a parent's inner HTML: from the first DOM-relevant child's HtmlStart to the last
+    // top-level child's HtmlEnd. Rask serialises children contiguously (no inter-node whitespace/comment
+    // nodes), so that span IS the parent's inner HTML. Returns (-1, -1) when there are no children (the
+    // parent legitimately emptied — the caller ships an empty fragment that clears the children) or the
+    // offsets are degenerate / out of range. Mirrors InsertHtmlRange's defensive bounds.
+    private static (int Start, int End) ChildrenHtmlRange(
+        ReadOnlySpan<RenderFrame> frames, int start, int end, ReadOnlySpan<char> newHtml)
+    {
+        var first = -1;
+        var lastEnd = -1;
+        var i = start;
+        while (i < end)
+        {
+            ref readonly var f = ref frames[i];
+            if (f.Kind != RenderFrameKind.Attribute)
+            {
+                if (first < 0)
+                {
+                    first = f.HtmlStart;
+                }
+
+                lastEnd = f.HtmlEnd;
+            }
+
+            i += f.SubtreeLength;
+        }
+
+        if (first < 0 || lastEnd <= first || newHtml.IsEmpty || (uint)lastEnd > (uint)newHtml.Length)
+        {
+            return (-1, -1);
+        }
+
+        return (first, lastEnd);
     }
 
     // True when this sibling level contains a Raw frame alongside at least one other DOM-relevant
