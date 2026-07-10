@@ -28,6 +28,14 @@
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
+  <!-- Wire Platforms/iOS/Info.plist as THE app manifest (a None item whose Link filename is "Info.plist"
+       is how .NET iOS finds it). Its UILaunchScreen makes the app render full-screen at the device's native
+       resolution — without a launch screen iOS runs it letterboxed (black bars + everything scaled up). -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <None Remove="Platforms/iOS/Info.plist"/>
+    <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
+  </ItemGroup>
+
   <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>

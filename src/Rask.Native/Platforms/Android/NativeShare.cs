@@ -3,17 +3,18 @@ using Android.Content;
 using Rask.Client.Browser;
 using Rask.Core.Browser;
 
-namespace Company.RaskNative;
+namespace Rask.Native;
 
-// Native Android backend for IShare — hands ShareData to the system share sheet (an ACTION_SEND chooser),
-// overriding Rask.Native's JS-backed default (navigator.share). Registered in MainActivity before
-// RunLocalAsync (last registration wins). The native path needs no transient user activation and works
-// even though android.webkit.WebView doesn't implement navigator.share.
-//
-// This is the template for any native device backend: implement a Rask.Core.Browser interface with the
-// platform API and register it on host.Services before RunLocalAsync.
+/// <summary>
+///     Native Android backend for <see cref="IShare" /> — hands <see cref="ShareData" /> to the system share
+///     sheet (an <c>ACTION_SEND</c> chooser), overriding the JS-backed default (<c>navigator.share</c>).
+///     Register it on <c>host.Services</c> before <c>RunLocalAsync</c> (Native + Local) or hand it to
+///     <see cref="NativeCapabilities.TryHandleAsync" /> (Native + Server). The native path needs no transient
+///     user activation and works even though <c>android.webkit.WebView</c> has no <c>navigator.share</c>.
+/// </summary>
 public sealed class NativeShare(Activity activity) : IShare
 {
+    /// <inheritdoc />
     public ValueTask ShareAsync(ShareData data)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -37,7 +38,7 @@ public sealed class NativeShare(Activity activity) : IShare
         return default;
     }
 
-    // The native share sheet can always present when there is something to share.
+    /// <inheritdoc />
     public ValueTask<bool> CanShareAsync(ShareData? data = null) =>
         ValueTask.FromResult(data is null || HasContent(data));
 

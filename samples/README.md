@@ -15,6 +15,23 @@ feature tour; the **auth** samples are focused, production-shaped login flows.
 The same `Rask.Example.Shared` components run unchanged under both the Server and WASM
 transports — that is the point of the pairing.
 
+### Native (iOS + Android)
+
+The showcase also runs **natively** on a device, inside a platform WebView. Two examples mirror the
+Server/WASM pairing, both mounting the same `Rask.Example.Shared.App`:
+
+| Project | What it is | Run |
+|---------|------------|-----|
+| [`Rask.Example.Native`](Rask.Example.Native) | **Native + Local** — the showcase runs in-process on the device (the native peer of the WASM sample). | `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android` |
+| [`Rask.Example.Native.Server`](Rask.Example.Native.Server) | **Native + Server** — a thin native shell over a running `Rask.Example.Server` (the native peer of the Server sample). | `dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-android` |
+
+Both multi-target `net10.0-ios;net10.0-android` (use `-f net10.0-ios` on macOS), so they need the mobile
+workloads (`dotnet workload install ios android`) and sit **outside `Rask.slnx`** — the Ubuntu CI can't
+build those TFMs. A macOS `native` CI job compiles them, and on-device E2E runs via **Appium**
+([`tests/Rask.Native.Appium.Tests`](../tests/Rask.Native.Appium.Tests)) in the macOS `native-appium` job.
+The reusable asset-serving infrastructure ships in `Rask.Native` (`NativeOriginAssets` +
+`NativeAssetHttpHandler`). See the [native guide](../docs/native.md).
+
 ## Authentication
 
 Each pairs a login flow with a protected `/members` page. See the

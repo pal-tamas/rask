@@ -93,6 +93,23 @@ public static class NativeCapabilities
         return true;
     }
 
+    /// <summary>
+    ///     Whether <paramref name="url" /> is on the same <b>origin</b> (scheme + host + port) as
+    ///     <paramref name="origin" /> — the trust check a Native + Server head uses to decide whether to
+    ///     inject <see cref="BridgeScript" /> / keep the WebView on the page. Compares the full origin, not
+    ///     just the host, so a same-host page on another port or an http downgrade is NOT trusted.
+    /// </summary>
+    public static bool IsTrustedOrigin(Uri origin, string? url)
+    {
+        ArgumentNullException.ThrowIfNull(origin);
+
+        return url is not null
+            && Uri.TryCreate(url, UriKind.Absolute, out var u)
+            && string.Equals(u.Scheme, origin.Scheme, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(u.Host, origin.Host, StringComparison.OrdinalIgnoreCase)
+            && u.Port == origin.Port;
+    }
+
     private static async Task DispatchShareAsync(string dataJson, IShare share)
     {
         ShareData? data;

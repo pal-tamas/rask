@@ -88,6 +88,16 @@ The shared components (`App.cs` and your pages) are ordinary Rask components —
 any other host. Only the two `Platforms/…` heads are platform-specific; each boots a `NativeAppHost`,
 calls `RunLocalAsync<App>(webView)`, and provides the WebView bridge.
 
+> **Run the in-repo showcase.** Two examples make native a peer of the Server and WASM showcase samples,
+> both mounting the *same* `Rask.Example.Shared.App`: `samples/Rask.Example.Native` (Native + Local,
+> in-process — the peer of the WASM sample) and `samples/Rask.Example.Native.Server` (Native + Server, a
+> thin shell over a running `Rask.Example.Server` — the peer of the Server sample). They multi-target
+> `net10.0-ios;net10.0-android` (so they sit outside `Rask.slnx`). Build/run either directly — the
+> `-p:RaskNativeHeads=true` makes `Rask.Native` build its platform heads from source:
+> `dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj -t:Run -f net10.0-android -p:RaskNativeHeads=true`
+> (or `-f net10.0-ios`). The Local one shows how [a full app's assets](#serving-a-full-apps-assets) are
+> served on-device. (Template users don't need the flag — the published package already carries the heads.)
+
 Two ordering rules the generated heads already follow — keep them if you edit a head:
 
 - **Register app services on `host.Services` *before* `RunLocalAsync`.** `RunLocalAsync` builds the DI
@@ -177,8 +187,10 @@ native RPC. (For a local `http://10.0.2.2:<port>` dev server, allow cleartext in
 
 ## The `INativeWebView` bridge
 
-The one thing `Rask.Native` does *not* contain is the platform WebView. The app head implements this
-contract over the concrete control:
+`Rask.Native` **ships the platform WebView heads** — `RaskWkWebView` (iOS, `WKWebView`) and
+`RaskAndroidWebView` (Android, `android.webkit.WebView`) — under `Platforms/{iOS,Android}`, built when the
+package is packed with the mobile workloads. Your app head just news one up, so you almost never implement
+the bridge yourself. Both are the platform-specific implementation of one contract:
 
 ```csharp
 public interface INativeWebView
@@ -192,32 +204,49 @@ public interface INativeWebView
 `ApplyRenderAsync` hands a frame (UTF-8 JSON) to the WebView's `window.__raskNative.applyRender`.
 `OnMessage` is invoked by the platform whenever the page posts back (a component event, a `navigate`, a
 `ready` handshake, an IJSRuntime `jsResult`). Both sides speak the same wire format the WASM host uses over
-its `Dispatch` boundary. **Implementations must marshal `ApplyRenderAsync`/`EvaluateJavaScriptAsync` onto
-the platform UI thread** (WebView JS evaluation is UI-thread-affine); the render pipeline runs off it.
+its `Dispatch` boundary. Implement it yourself only for a custom WebView; the shipped heads already do — each
+serves a **real origin** (a `WKUrlSchemeHandler` on iOS, `WebViewClient.ShouldInterceptRequest` on Android)
+so secure-context device APIs (`localStorage`, `crypto.subtle`) work, and marshals `ApplyRenderAsync`/
+`EvaluateJavaScriptAsync` onto the UI thread.
 
 ## Wiring a platform head
 
-The app head (a `net10.0-ios` / `net10.0-android` project) serves the boot shell + client and bridges the
-WebView. Serve the assets from a **real origin** so secure-context device APIs (`localStorage`,
-`crypto.subtle`) work — a `WKURLSchemeHandler` (`app://…`) on iOS, a `WebViewAssetLoader`
-(`https://appassets.androidplatform.net/…`) on Android — not `LoadHtmlString`/`loadData` (opaque origin).
-The two assets come from the library:
+The app head (a `net10.0-ios` / `net10.0-android` project) is just an entry point that composes the shipped
+pieces — the WebView bridge, the [native share backend](#native-device-backends), and (Local mode) the host:
 
 ```csharp
-string shell = NativeClientAssets.IndexHtml;   // the boot shell (loads rask.native.js)
-string client = NativeClientAssets.ClientJs;    // the spliced native client runtime
+// Android MainActivity / iOS AppDelegate (Native + Local):
+var webView = new RaskAndroidWebView(this);          // or new RaskWkWebView() on iOS
+var host = NativeAppHost.CreateDefault();
+host.Services.AddSingleton<IShare>(_ => new NativeShare(this));   // native share sheet (shipped)
+var app = await host.RunLocalAsync<App>(webView);
+webView.LoadShell();
 ```
 
-Inject `window.__raskSend` at document start (it forwards a JSON string to your script-message handler),
-point that handler at `INativeWebView.OnMessage`, and implement `ApplyRenderAsync` by evaluating
-`window.__raskNative.applyRender(<json>)`. Sketch:
+The heads serve the boot shell + client + your bundled assets through
+[`NativeOriginAssets`](#serving-a-full-apps-assets) (below), so there is nothing else to wire. See
+`samples/Rask.Example.Native` for a complete head, and the `rask-native` template for a fresh one.
 
-- **iOS (`WKWebView`)** — a `WKUserScript` (atDocumentStart) defines `window.__raskSend = s =>
-  window.webkit.messageHandlers.rask.postMessage(s)`; a `WKScriptMessageHandler` forwards to `OnMessage`;
-  `ApplyRenderAsync` calls `EvaluateJavaScript`.
-- **Android (`WebView`)** — `addJavascriptInterface` exposes a `@JavascriptInterface dispatch(String)`
-  that forwards to `OnMessage`; an injected `window.__raskSend` calls it; `ApplyRenderAsync` calls
-  `evaluateJavascript` on the UI thread.
+## Serving a full app's assets
+
+The boot shell + client are only two files; a real app also loads **scoped CSS/JS** (`/_rask/a/{hash}.{ext}`),
+your `wwwroot` static files, Bootstrap (`/_content/Rask.Bootstrap/*`) and fetches `data/*.json`. `Rask.Native`
+ships the request table so your scheme handler is a one-liner — **`NativeOriginAssets.Resolve`**:
+
+```csharp
+// In your WebViewClient.ShouldInterceptRequest / WKUrlSchemeHandler:
+var path = new Uri(url).AbsolutePath;
+if (NativeOriginAssets.Resolve(path, ReadBundledAsset) is { } asset)
+    return Respond(asset.Body, asset.ContentType);   // shell/client + scoped assets + your static files
+return EmptyOk();                                     // under-origin miss → don't hang the page
+```
+
+It resolves the shell/client (`NativeClientAssets`) and scoped assets (`ScopedAssetRegistry`) itself, and
+delegates everything else to your `Func<string, byte[]?>` reader — typically the app's **bundled assets**
+(Android `AssetManager.Open`, iOS a path under `NSBundle.MainBundle`), so it all works **offline**. For the
+in-process demo `HttpClient` (so data-driven pages resolve `data/*.json` off the network too), register it
+over **`NativeAssetHttpHandler`** with the same reader and `BaseAddress` = your app origin. See
+`samples/Rask.Example.Native` for a complete working head.
 
 ## Device capabilities
 
@@ -313,20 +342,16 @@ sandbox, and real background execution — without giving up "the same component
    scripts with a 30s backstop, Server skips them with a 5s timeout; reconciling changes error-boundary
    timing and needs its own pass) and file input/download (WASM JSExport pull vs Server `fetch` upload
    vs a not-yet-built native file bridge).
-4. **Showcase sample + E2E** — ✅ *done (Native + Local).* `samples/Rask.Example.Native` mounts the
-   **same** `Rask.Example.Shared.App` showcase the Server and WASM hosts mount, onto a `NativeAppHost`
-   (see its `NativeExampleHost`). It's covered by the same Playwright E2E net **headlessly, with no
-   emulator**: `NativeExampleTests` (in `Rask.Examples.E2E.Tests`) drives the *real* `rask.native.js`
-   client + `RunLocalAsync` pipeline in Chromium (the WebView engine class Android ships) via a
-   Playwright-backed `INativeWebView` (`PlaywrightNativeWebView`) whose route handler
-   (`NativeOriginServer`) serves the shell + client + scoped `/_rask/a/*` assets + `global.css` +
-   Bootstrap — the E2E stand-in for a device head's scheme handler. `NativeExampleTests` reuses the
-   **same shared showcase walks** the browser hosts run — rendering, in-SPA navigation, composition,
-   lifecycle, routing (URL push/back-forward), scoped CSS/JS interop (element-ref focus + sessionStorage),
-   elements, CQRS, forms + keyboard, styling + the URL-routed Todos dialog, the Browser-APIs co-mount,
-   Bootstrap components, guides, and the popstate in-session 404 (only the `HttpClient`-backed HTTP & files
-   walk is skipped — Playwright can't intercept a .NET-side fetch). It's a native shard in CI alongside
-   Server/WASM. **Three native-host bugs the E2E surfaced were fixed (see item 6).**
+4. **Showcase examples + on-device E2E** — ✅ *done.* Two runnable examples mirror the Server/WASM
+   pairing, both mounting the **same** `Rask.Example.Shared.App`: `samples/Rask.Example.Native`
+   (Native + Local, in-process) and `samples/Rask.Example.Native.Server` (Native + Server, a thin shell
+   over `Rask.Example.Server`). They serve the full showcase's assets on-device through the framework's
+   [`NativeOriginAssets`](#serving-a-full-apps-assets). E2E is **Appium** (`tests/Rask.Native.Appium.Tests`):
+   it installs and drives the *real* app on an Android emulator / iOS simulator, switches into the WebView,
+   and asserts the showcase rendered with its scoped CSS + Bootstrap — run in the macOS `native-appium`
+   CI job (a `native` job additionally compiles both examples for both TFMs). Appium replaced an earlier
+   headless Playwright-in-Chromium shim, and immediately surfaced a device-only bug the shim had masked
+   (the boot shell loads at `/index.native.html`, a path `NativeOriginAssets` now serves).
    *(Native + Server needs no separate suite: in that mode the WebView loads a remote Rask Server and
    speaks the ordinary Server (`rask.js`/WS) protocol — the native client isn't involved — so it's
    already covered by `ServerExampleTests`; its only native-specific surface, the real platform

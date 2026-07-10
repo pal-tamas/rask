@@ -1,20 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Rask.Native is the TRANSPORT-AGNOSTIC half of the native-mobile host: it boots a Rask App
-    in-process on a device (Native+Local) or points a native WebView at a remote Rask Server
-    (Native+Server), and drives the UI through the SAME render → diff → payload pipeline the
-    Server and WASM hosts use (LiveSessionBase in Rask.Core). The one thing it does NOT contain
-    is the platform WebView itself — that (WKWebView on iOS, android.webkit.WebView on Android)
-    lives behind the INativeWebView bridge and is implemented in the app head (the rask-native
-    template / Rask.Example.Native), which multi-targets net10.0-ios;net10.0-android.
+    Rask.Native is the native-mobile host: it boots a Rask App in-process on a device (Native+Local) or
+    points a native WebView at a remote Rask Server (Native+Server), driving the UI through the SAME
+    render → diff → payload pipeline the Server and WASM hosts use (LiveSessionBase in Rask.Core).
 
-    Keeping this library on plain net10.0 means it builds and unit-tests in CI with no iOS/Android
-    SDK workloads installed — the platform heads that DO need those workloads are gated separately.
-    Mirrors how Rask.Wasm (browser transport) and Rask.Wasm.Hosting (static host) split concerns.
+    It ALSO ships the platform WebView heads under Platforms/{iOS,Android} — the INativeWebView bridges
+    (RaskWkWebView / RaskAndroidWebView), the native share backends (NativeShare), and the Native+Server
+    controllers (RaskServerViewController / RaskServerWebView) — so an app head (the rask-native template /
+    samples/Rask.Example.Native) is just an entry point that composes them, with ZERO duplicated head code.
+
+    THE HEADS ARE GATED behind $(RaskNativeHeads): by default this builds plain net10.0, so it (and the
+    unit tests) build in CI with no iOS/Android SDK workloads and the Ubuntu solution build is unaffected.
+    Building the app heads or PACKING for release must pass -p:RaskNativeHeads=true (on macOS, with the
+    ios/android workloads) so the net10.0-ios / net10.0-android head assemblies are produced and packed —
+    otherwise the published package is net10.0-only and the template's heads won't resolve.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="'$(RaskNativeHeads)' != 'true'">net10.0</TargetFramework>
+    <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'true'">net10.0;net10.0-ios;net10.0-android</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Native</RootNamespace>
@@ -37,8 +41,13 @@
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
        overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
   <ItemGroup>
+    <!-- Ship this project's own NUGET.md as the package readme instead of the shared root one. Remove both
+         the root readme (added by Directory.Build.props) and any default None match on the local file, then
+         include the local file explicitly at the package root — robust under multi-targeting, where the
+         earlier <None Update> stopped matching. -->
     <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
-    <None Update="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+    <None Remove="NUGET.md" />
+    <None Include="$(MSBuildThisFileDirectory)NUGET.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,6 +73,21 @@
     <InternalsVisibleTo Include="Rask.Native.Tests"/>
   </ItemGroup>
 
+  <!-- Platform heads compile only for their own TFM; the base net10.0 build excludes both. -->
+  <ItemGroup Condition="!$(TargetFramework.Contains('-ios'))">
+    <Compile Remove="Platforms/iOS/**/*.cs"/>
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.Contains('-android'))">
+    <Compile Remove="Platforms/Android/**/*.cs"/>
+  </ItemGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
   <!--
     Deliver Rask.Core + the Rask source generators to consumers of this package, exactly like Rask.Wasm
     and Rask.Server: the generator/analyzer/code-fixes are packed to analyzers/dotnet/cs/ (so a consuming
@@ -75,16 +99,18 @@
   <Import Project="..\RaskAnalyzerPack.targets"/>
 
   <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_RaskAddCoreToLib</TargetsForTfmSpecificContentInPackage>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_RaskAddCoreToLib</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
+  <!-- Bundle Rask.Core/Rask.Client into EACH TFM's lib folder alongside Rask.Native.dll. BuildOutputInPackage
+       lets the pack pipeline place them in the correct per-TFM folder (incl. the platform-versioned
+       lib/net10.0-iosXX.0 / lib/net10.0-androidXX.0), exactly like the main assembly. -->
   <Target Name="_RaskAddCoreToLib">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.dll" PackagePath="lib/net10.0/"/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Core.xml" PackagePath="lib/net10.0/"/>
-      <!-- Rask.Client.dll/.xml bundled next to Rask.Core.dll (same PrivateAssets="all" reasoning). -->
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.dll" PackagePath="lib/net10.0/"/>
-      <TfmSpecificPackageFile Include="$(OutputPath)Rask.Client.xml" PackagePath="lib/net10.0/"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Core.dll"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Core.xml"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Client.dll"/>
+      <BuildOutputInPackage Include="$(OutputPath)Rask.Client.xml"/>
     </ItemGroup>
   </Target>
 

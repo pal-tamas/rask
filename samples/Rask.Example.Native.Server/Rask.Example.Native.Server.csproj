@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The runnable NATIVE + SERVER showcase — the native peer of Rask.Example.Server. A thin native shell that
+    loads a REMOTE Rask.Example.Server in a platform WebView; the C# app runs on the server, this app just
+    hosts the WebView and bridges the OS share sheet to the loaded page (the "server superpower") via
+    Rask.Native's NativeCapabilities. There is no in-process session and no bundled assets — the server
+    renders and serves everything. Its sibling Rask.Example.Native (Native + Local) runs the code in-process.
+
+    Multi-targets net10.0-ios;net10.0-android, so it needs the mobile workloads and is kept OUT of Rask.slnx.
+    Publish + run Rask.Example.Server (bound 0.0.0.0:5080) first, then:
+
+      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-android
+      dotnet build samples/Rask.Example.Native.Server/Rask.Example.Native.Server.csproj -t:Run -f net10.0-ios
+
+    The Android emulator reaches the host at 10.0.2.2; the iOS simulator at localhost (set in the heads).
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Rask.Example.Native.Server</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+    <ApplicationTitle>Rask Showcase (Server)</ApplicationTitle>
+    <!-- `native` is a Java reserved word, so it cannot be an Android package segment. -->
+    <ApplicationId>com.rask.example.showcase.server</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+  </PropertyGroup>
+
+  <!-- Disable each platform's linker (a showcase example, not a size-optimized shipping app) — Rask.Native's
+       transitive reflection paths are not trim-clean, so a trimmed build would fail warnings-as-errors. -->
+  <PropertyGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <MtouchLink>None</MtouchLink>
+    <!-- Classic UIApplicationDelegate + UIWindow lifecycle — CA1422 soft-obsoletes UIWindow(CGRect) on
+         iOS 26+; the path stays correct on the iOS 15+ we target. -->
+    <NoWarn>$(NoWarn);CA1422</NoWarn>
+  </PropertyGroup>
+
+  <!-- Wire Platforms/iOS/Info.plist as THE app manifest (its launch screen prevents a letterboxed app). -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <None Remove="Platforms/iOS/Info.plist"/>
+    <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
+  </ItemGroup>
+
+  <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
+    <AndroidLinkMode>None</AndroidLinkMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- -p:RaskNativeHeads=true (on the build command) makes Rask.Native build its net10.0-ios /
+         net10.0-android head assemblies (RaskServerWebView / RaskServerViewController / NativeShare). -->
+    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
+    <!-- IShare (Rask.Client.Browser) + ShareData (Rask.Core.Browser) for the native share backend the
+         capability bridge routes to. Rask.Native/Rask.Client reference Rask.Core with PrivateAssets="all"
+         (it's bundled into their packages), so it does not flow transitively — reference it directly. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+  </ItemGroup>
+
+  <!-- Each platform head compiles only for its own TFM. -->
+  <ItemGroup Condition="!$(TargetFramework.Contains('-ios'))">
+    <Compile Remove="Platforms/iOS/**/*.cs"/>
+  </ItemGroup>
+  <ItemGroup Condition="!$(TargetFramework.Contains('-android'))">
+    <Compile Remove="Platforms/Android/**/*.cs"/>
+  </ItemGroup>
+
+</Project>

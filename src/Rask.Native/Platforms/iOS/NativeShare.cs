@@ -5,17 +5,19 @@ using Rask.Client.Browser;
 using Rask.Core.Browser;
 using UIKit;
 
-namespace Company.RaskNative;
+namespace Rask.Native;
 
-// Native iOS backend for IShare — hands ShareData to the system share sheet (UIActivityViewController),
-// overriding Rask.Native's JS-backed default (navigator.share). Registered in AppDelegate before
-// RunLocalAsync (last registration wins). The native path needs no transient user activation, so it works
-// from any handler and even where WKWebView doesn't expose navigator.share.
-//
-// This is the template for any native device backend: implement a Rask.Core.Browser interface with the
-// platform API and register it on host.Services before RunLocalAsync.
+/// <summary>
+///     Native iOS backend for <see cref="IShare" /> — hands <see cref="ShareData" /> to the system share
+///     sheet (<c>UIActivityViewController</c>), overriding the JS-backed default (<c>navigator.share</c>).
+///     Register it on <c>host.Services</c> before <c>RunLocalAsync</c> (Native + Local) or hand it to
+///     <see cref="NativeCapabilities.TryHandleAsync" /> (Native + Server). Works from any handler and even
+///     where <c>WKWebView</c> doesn't expose <c>navigator.share</c>.
+/// </summary>
+/// <param name="presenter">Supplies the view controller to present the sheet from.</param>
 public sealed class NativeShare(Func<UIViewController?> presenter) : IShare
 {
+    /// <inheritdoc />
     public ValueTask ShareAsync(ShareData data)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -58,7 +60,7 @@ public sealed class NativeShare(Func<UIViewController?> presenter) : IShare
         return default;
     }
 
-    // The native share sheet can always present when there is something to share.
+    /// <inheritdoc />
     public ValueTask<bool> CanShareAsync(ShareData? data = null) =>
         ValueTask.FromResult(data is null || HasContent(data));
 
