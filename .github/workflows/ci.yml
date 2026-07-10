@@ -394,6 +394,17 @@ jobs:
           echo "RASK_APPIUM_ANDROID_APP=$APK" >> "$GITHUB_ENV"
 
       - name: Run the Appium showcase E2E on the emulator
+        # The emulator-runner's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
+        # "stop: Not implemented" quirk) AFTER the test has already passed — CONFIRMED unavoidable here: even
+        # hard-killing qemu + crashpad_handler below doesn't stop the action's teardown from hanging. So the
+        # job's verdict is decoupled from teardown: the test writes an "appium-passed" marker on success, this
+        # step is continue-on-error with its own timeout (so the hung teardown fails only the STEP, not the
+        # job), and the next step passes/fails purely on the marker. The timeout is the ceiling on wasted
+        # hang time: build+boot+test finishes in ~5 min, so 15 comfortably covers a cold boot while cutting
+        # the idle teardown tail (the previous 22 burned ~19 idle min after a green test).
+        id: appium-e2e
+        continue-on-error: true
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -409,11 +420,21 @@ jobs:
             appium driver install uiautomator2
             appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
             for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
-            dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
-            # The action's own teardown (adb emu kill) hangs on recent emulator images (the gRPC
-            # "stop: Not implemented" quirk), which would stall the job past the passing test until the
-            # timeout. Hard-kill the emulator process here so that teardown finds it already gone.
-            pkill -9 -f qemu-system 2>/dev/null || true
+            dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal" && touch "$GITHUB_WORKSPACE/appium-passed"
+            # Best-effort fast teardown so the action's hang-prone adb-emu-kill finds the emulator already gone.
+            # Kill by EXACT process name via killall — NOT `pkill -f qemu-system`, whose own `sh -c pkill …
+            # qemu-system` command line matches the pattern, so it kills its own shell (exit code null) and
+            # leaves the emulator alive. killall matches argv[0], never itself. crashpad_handler is the
+            # emulator's crash reporter; leaving it alive is what keeps the action hanging per upstream
+            # issues #385/#381, so kill it too.
+            killall -9 qemu-system-x86_64 crashpad_handler 2>/dev/null || true
+
+      - name: Assert the on-device Appium E2E passed
+        # The single source of truth for this job: the marker the test writes only when it passes. Immune to
+        # the emulator-runner teardown hang (which merely fails the continue-on-error step above).
+        run: |
+          test -f appium-passed || { echo "On-device Appium E2E did not pass (the test failed, or the emulator step timed out before the test ran)."; exit 1; }
+          echo "On-device Appium E2E passed."
 
       - name: Upload Appium log on failure
         if: failure()
