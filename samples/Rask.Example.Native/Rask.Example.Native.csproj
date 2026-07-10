@@ -20,6 +20,9 @@
   -->
   <PropertyGroup>
     <TargetFrameworks>net10.0-ios;net10.0-android</TargetFrameworks>
+    <!-- -p:RaskNativeHeads=android drops the iOS TFM so the app builds on Linux (no iOS workload), which
+         the Ubuntu+KVM native-appium CI job needs. Matches the same switch on Rask.Native. -->
+    <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'android'">net10.0-android</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

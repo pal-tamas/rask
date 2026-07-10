@@ -17,8 +17,12 @@
     otherwise the published package is net10.0-only and the template's heads won't resolve.
   -->
   <PropertyGroup>
-    <TargetFramework Condition="'$(RaskNativeHeads)' != 'true'">net10.0</TargetFramework>
+    <!-- RaskNativeHeads: unset = plain net10.0 (CI/unit); `true` = all heads (macOS, needs ios+android
+         workloads); `android` = just the Android head (so an Ubuntu/KVM job can build the APK without the
+         iOS workload, which Linux can't install). -->
+    <TargetFramework Condition="'$(RaskNativeHeads)' != 'true' AND '$(RaskNativeHeads)' != 'android'">net10.0</TargetFramework>
     <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'true'">net10.0;net10.0-ios;net10.0-android</TargetFrameworks>
+    <TargetFrameworks Condition="'$(RaskNativeHeads)' == 'android'">net10.0;net10.0-android</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Native</RootNamespace>

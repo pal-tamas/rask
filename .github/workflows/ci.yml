@@ -337,22 +337,30 @@ jobs:
   # On-device native E2E: Appium drives the REAL Native + Local app (samples/Rask.Example.Native) on an
   # Android emulator, switches into its WebView, and asserts the showcase rendered with its scoped CSS +
   # Bootstrap (served through NativeOriginAssets) — the device-level replacement for the removed headless
-  # shim. The iOS variant (XCUITest + simulator) runs locally; see docs/native.md.
+  # shim. Runs on Ubuntu + KVM (GitHub's reliable path for the Android emulator; the macOS runners time out
+  # booting it). -p:RaskNativeHeads=android builds ONLY the Android head, so the APK builds on Linux with no
+  # iOS workload. The iOS variant (XCUITest + simulator) runs locally; see docs/native.md.
   native-appium:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      - name: Enable KVM (hardware acceleration for the emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
-      - name: Install iOS + Android workloads
-        # Both are needed even though only the Android APK is built: -p:RaskNativeHeads=true makes the
-        # build graph evaluate Rask.Native's net10.0-ios TFM, which requires the ios workload be present.
-        run: dotnet workload install ios android
+      - name: Install Android workload
+        run: dotnet workload install android
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -361,34 +369,36 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Build the debug-signed showcase APK
-        # A Debug build is signed with the debug keystore (installable) and its WebView is inspectable, so
-        # Appium can attach to the WEBVIEW context. EmbedAssembliesIntoApk is required because a standalone
-        # `adb install` (what Appium does) launches without Fast Deployment's synced assemblies otherwise.
+      - name: Build the debug-signed x86_64 showcase APK
+        # Debug is signed with the debug keystore (installable) and its WebView is inspectable, so Appium can
+        # attach to the WEBVIEW context. android-x64 matches the Ubuntu x86_64 emulator; EmbedAssembliesIntoApk
+        # is required because a standalone `adb install` (what Appium does) otherwise launches without Fast
+        # Deployment's synced assemblies. RaskNativeHeads=android builds only Rask.Native's Android head.
         run: >-
           dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
-          -c Debug -f net10.0-android -p:RaskNativeHeads=true -p:EmbedAssembliesIntoApk=true
-
-      - name: Install Appium + the UiAutomator2 driver
-        run: |
-          npm install -g appium
-          appium driver install uiautomator2
+          -c Debug -f net10.0-android -p:RaskNativeHeads=android
+          -p:RuntimeIdentifier=android-x64 -p:EmbedAssembliesIntoApk=true
 
       - name: Run the Appium showcase E2E on the emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          arch: arm64-v8a
-          profile: pixel_6
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
           script: |
+            set -e
+            npm install -g appium
+            appium driver install uiautomator2
             appium --allow-insecure=uiautomator2:chromedriver_autodownload --log appium.log &
             for i in $(seq 1 30); do curl -sf http://127.0.0.1:4723/status && break || sleep 2; done
-            APK=$(find samples/Rask.Example.Native/bin/Debug/net10.0-android -name '*-Signed.apk' | head -1)
+            APK=$(find samples/Rask.Example.Native/bin/Debug/net10.0-android/android-x64 -name '*-Signed.apk' | head -1)
             echo "Driving APK: $APK"
-            RASK_APPIUM_SERVER=http://127.0.0.1:4723 \
-            RASK_APPIUM_ANDROID_APP="$PWD/$APK" \
-              dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj \
-                --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
+            # NOTE: exports on their own lines — a multi-line `VAR=x \`-continuation before dotnet test does
+            # not survive here, so the env vars never reached the test (it silently skipped).
+            export RASK_APPIUM_SERVER=http://127.0.0.1:4723
+            export RASK_APPIUM_ANDROID_APP="$PWD/$APK"
+            dotnet test tests/Rask.Native.Appium.Tests/Rask.Native.Appium.Tests.csproj --filter "FullyQualifiedName~Android" --logger "console;verbosity=normal"
 
       - name: Upload Appium log on failure
         if: failure()
