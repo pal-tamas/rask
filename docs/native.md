@@ -12,9 +12,10 @@ unchanged.
 > end-to-end on both platforms** — a scaffolded app boots, renders the component tree over the native
 > bridge, routes, and updates live (see [Roadmap](#roadmap) for the verification detail). It's still
 > pre-1.0: APIs may shift. **Native device *backends*** have started landing — the OS **share sheet**
-> (`IShare`) now has a native `UIActivityViewController` / `Intent.ACTION_SEND` head backend (see
-> [Native device backends](#native-device-backends)) — with native geolocation/push/biometrics still to
-> come. The native client now shares the
+> (`IShare` → `UIActivityViewController` / `Intent.ACTION_SEND`) and **native geolocation** (`IGeolocation` →
+> `CLLocationManager` / `LocationManager`) both have native head backends (see
+> [Native device backends](#native-device-backends)) — with biometrics/push still to come. The native client
+> now shares the
 > transport-neutral DOM behaviour — rAF input/scroll coalescing, keyboard + drag events, and
 > scoped-CSS FOUC gating — with the Server and WASM clients (see [Roadmap](#roadmap)); only the
 > scoped-JS invoke gate and file uploads remain host-specific.
@@ -227,9 +228,10 @@ Sharing has two entrypoints, both reaching the **native** sheet on device. The a
 **`Shareable`** (`Rask.Core`) attaches `data-rask-share` to your element; on the Native host its click is
 routed through the **capability bridge** (`window.__raskNative.invoke`) to the registered `IShare` — so it
 hits the head's native backend, not the WebView's `navigator.share`. The imperative **`IShare`**
-(`Rask.Client.Browser`) shares from code — with the same **native** backend a head registers (below). Further
-**native C# backends** (P/Invoke to CoreLocation / Android APIs, biometrics, native push via APNs/FCM)
-behind the *same* interfaces — plus new native-only capabilities — are a follow-up (see [Roadmap](#roadmap)).
+(`Rask.Client.Browser`) shares from code — with the same **native** backend a head registers (below).
+**Geolocation** likewise has a native backend: `IGeolocation` → `CLLocationManager` / `LocationManager` in
+the head. Further **native C# backends** (biometrics, native push via APNs/FCM) behind the *same* interfaces
+— plus new native-only capabilities — are a follow-up (see [Roadmap](#roadmap)).
 
 ## Native device backends
 
@@ -265,8 +267,22 @@ So a plain `Shareable` button pops the native sheet on device with no host-speci
 bridge into a remote page, so a plain Server app reaches device natives too — see
 [Native device APIs from a Server app](#native-device-apis-from-a-server-app-the-capability-bridge).
 
-The **same recipe** is how the remaining backends (native geolocation, biometrics, push) will land — a
-framework-registered default, overridden by a native head implementation.
+The **second shipped backend is native geolocation** — and it shows the recipe holds for a
+request/**response** (plus subscription) capability, not just fire-and-forget. `NativeGeolocation` (in the
+`--host local` template heads) implements `Rask.Core.Browser.IGeolocation` with **CoreLocation**
+(`CLLocationManager`) on iOS and the platform **`LocationManager`** on Android, registered the same way:
+
+```csharp
+host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation(/* activity, iOS: none */));
+```
+
+So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real permission prompt +
+`CLLocationManager` / `LocationManager` accuracy) instead of the WebView's `navigator.geolocation`, and
+`WatchAsync` streams updates. It needs the platform location permission — the template adds
+`ACCESS_FINE_LOCATION` / `NSLocationWhenInUseUsageDescription` and `MainActivity` requests the runtime grant.
+
+The **same recipe** carries the remaining backends (biometrics, native push) — a framework-registered
+default, overridden by a native head implementation.
 
 ## Honest framing
 
@@ -315,12 +331,13 @@ sandbox, and real background execution — without giving up "the same component
    speaks the ordinary Server (`rask.js`/WS) protocol — the native client isn't involved — so it's
    already covered by `ServerExampleTests`; its only native-specific surface, the real platform
    WebView, is a device-only concern.)*
-5. **Native device backends** — *first one shipped.* The OS **share sheet** (`IShare`, in
-   `Rask.Client.Browser`) now has a native head backend (iOS `UIActivityViewController`, Android
-   `Intent.ACTION_SEND`), overriding the JS-backed default via a head registration before `RunLocalAsync`
-   (see [Native device backends](#native-device-backends)). This establishes the reusable
-   framework-default-→-native-head-override pattern; CoreLocation/Android geolocation, biometrics, and
-   native push (APNs/FCM) follow behind the same seam.
+5. **Native device backends** — *two shipped.* The OS **share sheet** (`IShare`, iOS
+   `UIActivityViewController` / Android `Intent.ACTION_SEND`) and **native geolocation** (`IGeolocation`, iOS
+   `CLLocationManager` / Android `LocationManager`) both have native head backends that override the
+   JS-backed default via a head registration before `RunLocalAsync` (see
+   [Native device backends](#native-device-backends)) — the second proving the pattern holds for a
+   request/response + subscription capability, not just fire-and-forget. This establishes the reusable
+   framework-default-→-native-head-override seam; biometrics and native push (APNs/FCM) follow behind it.
 6. **In-process interop + history** — ✅ *fixed (surfaced by item 4's E2E).* (a) An out-of-render
    `IJSRuntime` invoke that carries arguments was embedding `argsJson` as a raw JS literal instead of a
    string, so the client's `JSON.parse(argsJson)` choked — every handler-issued invoke *with args*
