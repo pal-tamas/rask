@@ -19,8 +19,11 @@
 		<integer>1</integer>
 		<integer>2</integer>
 	</array>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
+	<!-- A launch screen is REQUIRED for iOS to render at the device's native resolution; without one the
+	     app runs letterboxed at a legacy size (black bars + everything scaled up). An empty UILaunchScreen
+	     dict opts into full-screen with a blank system launch screen (no storyboard file needed). -->
+	<key>UILaunchScreen</key>
+	<dict/>
 	<!--#if (IsLocal) -->
 	<!-- Shown in the iOS location prompt for NativeGeolocation (the IGeolocation backend). -->
 	<key>NSLocationWhenInUseUsageDescription</key>

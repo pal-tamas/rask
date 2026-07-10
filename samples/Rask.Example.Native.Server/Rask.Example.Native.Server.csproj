@@ -40,6 +40,12 @@
     <NoWarn>$(NoWarn);CA1422</NoWarn>
   </PropertyGroup>
 
+  <!-- Wire Platforms/iOS/Info.plist as THE app manifest (its launch screen prevents a letterboxed app). -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <None Remove="Platforms/iOS/Info.plist"/>
+    <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
+  </ItemGroup>
+
   <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>

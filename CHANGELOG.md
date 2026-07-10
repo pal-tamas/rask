@@ -149,6 +149,13 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Native iOS app ran letterboxed (not full screen).** The `rask-native` template (and the native
+  examples) shipped a `Platforms/iOS/Info.plist` that was never actually wired into the iOS build — .NET
+  iOS finds the app manifest via a `None` item whose filename/`Link` is `Info.plist`, which the multi-target
+  glob didn't provide, so the build emitted a default plist with **no launch screen**. Without a launch
+  screen iOS renders the app at a legacy resolution (black bars + everything scaled up). Fixed by wiring the
+  plist (`<None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>`) and giving it a `UILaunchScreen`, so
+  the app now fills the device screen at native resolution. Verified full-screen on the iPhone 17 Pro simulator.
 - **De-flaked the native E2E copy-button step.** In the JS-interop guide journey the `CodeSample` "Copy"
   click round-trips (handler → `InvokeVoidAsync` → scoped JS flashes "Copied!"); over the native WebView
   bridge a single message can drop, so the shared journey occasionally never saw the flash. The (idempotent)

@@ -48,6 +48,14 @@
     <NoWarn>$(NoWarn);CA1422</NoWarn>
   </PropertyGroup>
 
+  <!-- Wire Platforms/iOS/Info.plist as THE app manifest (a None item with Link filename "Info.plist" is
+       how .NET iOS's DetectAppManifest finds it). Without this the build generates a default plist with no
+       launch screen, so the app runs letterboxed (not full screen). -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+    <None Remove="Platforms/iOS/Info.plist"/>
+    <None Include="Platforms/iOS/Info.plist" Link="Info.plist"/>
+  </ItemGroup>
+
   <PropertyGroup Condition="$(TargetFramework.Contains('-android'))">
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <AndroidManifest>Platforms/Android/AndroidManifest.xml</AndroidManifest>
