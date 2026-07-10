@@ -25,6 +25,13 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Fixed
+- **`BsSelect`/date-time picker clear (×) no longer shows through another select's open dropdown.** The
+  clear × carried a hard `z-index: 1000` (so an *open* control's × stays clickable above its own
+  click-outside backdrop at 999). But Bootstrap's open `.dropdown-menu.show` is *also* `z-index: 1000`,
+  and nothing isolates each control's stacking context — so a *closed* select whose × came later in the
+  DOM painted over another select's open menu. The raised z-index now lives on a `.bs-clear-open`
+  modifier applied to the × only while its own control is open; a closed control's × drops to
+  `z-index: auto` and sits behind any open menu.
 - **Native concurrent-render race (`Collection was modified` under the root error boundary).** The native
   host runs async lifecycle/handler continuations on the thread pool (`HandlerSyncContext.Post` uses
   `Task.Run`), so a mid-await render (`RenderInScopeCoreAsync`, or a second continuation's render) could run

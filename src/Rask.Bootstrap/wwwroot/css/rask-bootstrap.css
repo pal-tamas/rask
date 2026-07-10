@@ -33,11 +33,13 @@
 }
 .bs-select-clear {
   right: 2.25rem;
-  /* Above the open popover's full-screen backdrop (z-index 999) so it stays clickable while open. */
-  z-index: 1000;
 }
-/* The date/time pickers' clear (×) — same: keep it above the backdrop so an open picker can be cleared. */
-.bs-picker-clear {
+/* The × only needs to beat its OWN open-menu backdrop (z-index 999), and only while its control is
+   open — so the raised z-index lives on .bs-clear-open, applied to the × just for the open state.
+   A *closed* select's × stays at z-index:auto and therefore paints *behind* another (open) select's
+   dropdown menu; otherwise both would sit at z-index 1000 and DOM order would let the stray × win.
+   (.bs-picker-clear positions itself via the end-0/me-2 utilities, so it needs no rule of its own.) */
+.bs-clear-open {
   z-index: 1000;
 }
 
