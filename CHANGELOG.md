@@ -264,6 +264,12 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Foreign-`<head>` preservation hardening.** Follow-up to the head-injection preservation added above:
+  the head `MutationObserver` now installs eagerly when the client bundle loads (so a library that injects
+  into `<head>` before the first head morph is still caught, not only after it), re-arms if the live
+  `<head>` element is ever replaced rather than morphed in place, and `applyDiff` flushes pending foreign
+  injections before its end-of-frame discard so a library node injected during the same task as a diff
+  isn't dropped instead of preserved.
 - **Native Appium E2E asserted a stale native tab layout.** The on-device `NativeShowcaseAppiumTests`
   still expected a three-tab `Home`/`Guides`/`Todos` bar (with `Guides → /guides`), but the guides-first
   pivot dropped the Welcome/Home page and made `Guides` the site root (`/`), so `NativeShowcaseApp` now
