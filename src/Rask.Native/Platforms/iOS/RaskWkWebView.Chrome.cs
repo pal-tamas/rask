@@ -1,0 +1,223 @@
+using System.Text;
+using System.Text.Json;
+using CoreFoundation;
+using CoreGraphics;
+using Foundation;
+using UIKit;
+using WebKit;
+
+namespace Rask.Native;
+
+// The iOS INativeChrome backend: projects a NativeChromeDescriptor to a real UINavigationBar (top) and a
+// UITabBar / UIToolbar (bottom), with the WKWebView pinned between them and both bars occupying the safe-area
+// guides. Assign ChromeView (not View) to the view controller and register this instance as INativeChrome.
+// When no chrome is applied the bars stay hidden and the WebView fills the container, so it degrades to the
+// plain full-screen WebView.
+public sealed partial class RaskWkWebView
+{
+    private RaskChromeContainerView? _chromeView;
+
+    /// <summary>
+    ///     The container view to assign to a view controller's <c>View</c> when using native header/footer
+    ///     chrome — it hosts a <c>UINavigationBar</c>, this <see cref="View" />, and a <c>UITabBar</c>/
+    ///     <c>UIToolbar</c>. Assign this instead of <see cref="View" /> and register the same instance as
+    ///     <see cref="INativeChrome" />.
+    /// </summary>
+    public UIView ChromeView => _chromeView ??= new RaskChromeContainerView(View);
+
+    /// <inheritdoc />
+    public Func<byte[], Task>? OnChromeEvent { get; set; }
+
+    /// <inheritdoc />
+    public ValueTask ApplyChromeAsync(ReadOnlyMemory<byte> chromeDescriptorUtf8)
+    {
+        var descriptor = JsonSerializer.Deserialize(
+            chromeDescriptorUtf8.Span, NativeChromeJsonContext.Default.NativeChromeDescriptor);
+        var container = _chromeView ??= new RaskChromeContainerView(View);
+        // UIKit is main-thread only; the push happens on the render thread.
+        DispatchQueue.MainQueue.DispatchAsync(() => container.Apply(descriptor, RaiseChromeEvent));
+        return default;
+    }
+
+    private void RaiseChromeEvent(string json) => OnChromeEvent?.Invoke(Encoding.UTF8.GetBytes(json));
+}
+
+// A frame-laid-out container: navbar below the top safe-area inset, the WebView in the middle, and a tab bar /
+// toolbar above the bottom safe-area inset. Frame math (not Auto Layout) keeps the show/hide of each bar a
+// simple per-layout computation.
+internal sealed class RaskChromeContainerView : UIView
+{
+    private const float HeaderHeight = 44f;
+    private const float TabBarHeight = 49f;
+    private const float ToolbarHeight = 44f;
+
+    private readonly WKWebView _webView;
+    private readonly UINavigationBar _navBar;
+    private readonly UITabBar _tabBar;
+    private readonly UIToolbar _toolbar;
+
+    private bool _headerVisible;
+    private bool _footerVisible;
+    private bool _footerIsToolbar;
+    private Action<string>? _raise;
+    private IReadOnlyList<NativeTabDescriptor>? _tabs;
+    private UITabBarItem[] _tabItems = [];
+
+    public RaskChromeContainerView(WKWebView webView)
+    {
+        _webView = webView;
+        _navBar = new UINavigationBar { Hidden = true };
+        _tabBar = new UITabBar { Hidden = true };
+        _toolbar = new UIToolbar { Hidden = true };
+        BackgroundColor = UIColor.SystemBackground;
+        // Subscribe once (ItemSelected is an event); the handler reads the current tabs each tap.
+        _tabBar.ItemSelected += (_, e) =>
+        {
+            var idx = Array.IndexOf(_tabItems, e.Item);
+            if (_tabs is not null && idx >= 0 && idx < _tabs.Count)
+            {
+                _raise?.Invoke($$"""{"type":"navigate","path":"{{Escape(_tabs[idx].Path)}}"}""");
+            }
+        };
+        AddSubview(_webView);
+        AddSubview(_navBar);
+        AddSubview(_tabBar);
+        AddSubview(_toolbar);
+    }
+
+    public override void LayoutSubviews()
+    {
+        base.LayoutSubviews();
+        var safe = SafeAreaInsets;
+        var width = Bounds.Width;
+        nfloat top = safe.Top;
+        nfloat headerH = _headerVisible ? HeaderHeight : 0;
+        nfloat footerH = _footerVisible ? (_footerIsToolbar ? ToolbarHeight : TabBarHeight) : 0;
+
+        _navBar.Frame = new CGRect(0, top, width, headerH);
+        _navBar.Hidden = !_headerVisible;
+
+        var footerY = Bounds.Height - safe.Bottom - footerH;
+        _tabBar.Frame = new CGRect(0, footerY, width, footerH);
+        _toolbar.Frame = new CGRect(0, footerY, width, footerH);
+        _tabBar.Hidden = !(_footerVisible && !_footerIsToolbar);
+        _toolbar.Hidden = !(_footerVisible && _footerIsToolbar);
+
+        var webTop = top + headerH;
+        _webView.Frame = new CGRect(0, webTop, width, footerY - webTop);
+    }
+
+    public void Apply(NativeChromeDescriptor? descriptor, Action<string> raise)
+    {
+        _raise = raise;
+        ApplyHeader(descriptor?.Header);
+        ApplyFooter(descriptor?.Footer);
+        SetNeedsLayout();
+    }
+
+    private void ApplyHeader(NativeHeaderDescriptor? header)
+    {
+        if (header is null)
+        {
+            _headerVisible = false;
+            _navBar.Items = [];
+            return;
+        }
+
+        _headerVisible = true;
+        var item = new UINavigationItem(header.Title ?? string.Empty);
+        if (header.Leading is { } leading)
+        {
+            item.LeftBarButtonItem = BuildBarButton(leading);
+        }
+
+        if (header.Trailing is { Count: > 0 } trailing)
+        {
+            var right = new UIBarButtonItem[trailing.Count];
+            // UIKit lays trailing items right-to-left; keep the author's order left-to-right.
+            for (var i = 0; i < trailing.Count; i++)
+            {
+                right[i] = BuildBarButton(trailing[trailing.Count - 1 - i]);
+            }
+
+            item.RightBarButtonItems = right;
+        }
+
+        _navBar.Items = [item];
+    }
+
+    private void ApplyFooter(NativeFooterDescriptor? footer)
+    {
+        if (footer is null)
+        {
+            _footerVisible = false;
+            _tabBar.Items = [];
+            _toolbar.Items = [];
+            return;
+        }
+
+        _footerVisible = true;
+        _footerIsToolbar = string.Equals(footer.Kind, "toolbar", StringComparison.Ordinal);
+
+        if (_footerIsToolbar)
+        {
+            _tabs = null;
+            _tabItems = [];
+            var items = footer.Items ?? [];
+            var buttons = new UIBarButtonItem[items.Count];
+            for (var i = 0; i < items.Count; i++)
+            {
+                buttons[i] = BuildBarButton(items[i]);
+            }
+
+            _toolbar.Items = buttons;
+            return;
+        }
+
+        var tabs = footer.Tabs ?? [];
+        _tabs = tabs;
+        _tabItems = new UITabBarItem[tabs.Count];
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            _tabItems[i] = new UITabBarItem(tabs[i].Title, ImageFor(tabs[i].IosIcon), i);
+        }
+
+        _tabBar.Items = _tabItems;
+        if (tabs.Count > 0)
+        {
+            _tabBar.SelectedItem = _tabItems[Math.Clamp(footer.Selected, 0, tabs.Count - 1)];
+        }
+    }
+
+    private UIBarButtonItem BuildBarButton(NativeBarItemDescriptor item)
+    {
+        if (string.Equals(item.Kind, "back", StringComparison.Ordinal))
+        {
+            // A plain back chevron — a navigation host provides the actual pop; emit nothing extra here.
+            return new UIBarButtonItem(UIBarButtonSystemItem.Cancel);
+        }
+
+        var button = new UIBarButtonItem { Style = UIBarButtonItemStyle.Plain };
+        if (ImageFor(item.IosIcon) is { } image)
+        {
+            button.Image = image;
+        }
+        else
+        {
+            button.Title = item.Title ?? string.Empty;
+        }
+
+        var id = item.Id;
+        if (id is not null)
+        {
+            button.Clicked += (_, _) => _raise?.Invoke($$"""{"type":"nativeTap","id":"{{Escape(id)}}"}""");
+        }
+
+        return button;
+    }
+
+    private static UIImage? ImageFor(string? sfSymbol) =>
+        string.IsNullOrEmpty(sfSymbol) ? null : UIImage.GetSystemImage(sfSymbol);
+
+    private static string Escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+}

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK031)
+# Rask diagnostics (RASK001–RASK032)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -44,6 +44,7 @@ packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — n
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic or no public constructor) |
 | [RASK030](#rask030) | Hidden | Prefer named arguments on a factory call with 3+ positional args |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
+| [RASK032](#rask032) | Error | Native component nested in the HTML tree |
 
 ---
 
@@ -444,3 +445,32 @@ so upgrading Rask never hard-breaks a build that compiled before.
 
 **Fix:** give one page a distinct route, or merge the two. Reported on every colliding page after the
 first (ordered by fully-qualified name), naming the page it collides with.
+
+## RASK032
+**Native component nested in the HTML tree** · Error
+
+A native chrome component — a `Rask.Native.Components.NativeComponent` subclass such as `NativeHeaderBar`,
+`NativeTabBar`, `NativeToolbar`, or `NativeBarButton` — describes a real platform bar for the `Rask.Native`
+mobile host, not HTML. Bars are composed at the native page's **layout level**, as siblings of a
+`NativeWebView` (which hosts the HTML). Nested inside the HTML — as an element child, or inside
+`NativeWebView`'s content — a bar would serialize to nothing, so the mistake is caught at compile time. The
+analyzer flags a native component passed to any element-children indexer.
+
+```csharp
+// ✗ RASK032 — native chrome as an element child
+protected override Component? Render() => Div()[NativeHeaderBar(Title: "Home")];
+
+// ✗ RASK032 — native chrome inside the NativeWebView's HTML content
+protected override Component? Render() => NativeWebView()[NativeHeaderBar(Title: "Home")];
+
+// ✓ correct — bars are siblings of NativeWebView at the layout level
+protected override Component? Render() =>
+[
+    NativeHeaderBar(Title: "Home"),
+    NativeWebView()[Doctype(), Html("en")[Head(), Body()[Router()]]],
+    NativeTabBar(Tabs: [...], Selected: 0)
+];
+```
+
+**Fix:** move the native component out of the HTML — compose it at the layout level, as a sibling of
+`NativeWebView`. Native chrome renders only under the native host and is inert on Server/WASM.

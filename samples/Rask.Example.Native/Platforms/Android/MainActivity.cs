@@ -27,7 +27,9 @@ public class MainActivity : Activity
         WebView.SetWebContentsDebuggingEnabled(true);
 
         var webView = new RaskAndroidWebView(this);
-        SetContentView(webView.View);
+        // Use ChromeView (the container with the native header/footer bars) instead of the bare WebView, so the
+        // NativeShowcaseApp's NativeHeader/NativeFooter project onto real top/bottom bars.
+        SetContentView(webView.ChromeView);
 
         // Wire the in-process session BEFORE loading the shell so it's ready for the client's `ready`
         // handshake and can push the first frame.
@@ -46,6 +48,9 @@ public class MainActivity : Activity
         // native backends on host.Services BEFORE RunLocalAsync — the last registration wins.
         host.Services.AddSingleton<IShare>(_ => new NativeShare(this));
 
+        // Native header/footer chrome: the same RaskAndroidWebView instance is the INativeChrome backend.
+        host.Services.AddSingleton<INativeChrome>(webView);
+
         // Serve the demo HttpClient's data/*.json fetches from the app's bundled assets (offline). This
         // AddSingleton overrides the plain-network HttpClient AddExampleServices registered.
         host.Services.AddSingleton(_ =>
@@ -54,7 +59,7 @@ public class MainActivity : Activity
                 BaseAddress = new Uri(RaskAndroidWebView.DefaultOrigin)
             });
 
-        _app = await host.RunLocalAsync<App>(webView);
+        _app = await host.RunLocalAsync<NativeShowcaseApp>(webView);
         webView.LoadShell();
     }
 

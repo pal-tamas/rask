@@ -352,6 +352,36 @@ public abstract class Component
     internal Component? HeadInternal => Head;
     internal void MarkReadsAmbientStateInternal() => _readsAmbientState = true;
 
+    /// <summary>
+    ///     Where this component is being presented — a web page (<see cref="RenderShell.Web" />) or a native
+    ///     app shell (<see cref="RenderShell.Native" />). Constant for the session, so branching a
+    ///     <see cref="Render" /> on it (e.g. hide a web navbar when native bars take over) is render-cache safe.
+    ///     Independent of <see cref="HostEngine" /> and <see cref="HostPlatform" />. See also <see cref="IsNative" />.
+    ///     <para>Named <c>HostShell</c> (not <c>Shell</c>) to avoid colliding with component members named <c>Shell</c>.</para>
+    /// </summary>
+    protected RenderShell HostShell => LiveRenderContext.CurrentSync?.Shell ?? RenderShell.Web;
+
+    /// <summary>How this component is rendered/transported — see <see cref="RenderEngine" />. See <see cref="IsServer" /> / <see cref="IsWasm" />.</summary>
+    protected RenderEngine HostEngine => LiveRenderContext.CurrentSync?.Engine ?? RenderEngine.Server;
+
+    /// <summary>Which device OS the app runs on — see <see cref="RenderPlatform" />. <see cref="RenderPlatform.None" /> on web. See <see cref="IsIOS" /> / <see cref="IsAndroid" />.</summary>
+    protected RenderPlatform HostPlatform => LiveRenderContext.CurrentSync?.Platform ?? RenderPlatform.None;
+
+    /// <summary><c>true</c> when hosted in a native app shell (<see cref="RenderShell.Native" />).</summary>
+    protected bool IsNative => HostShell == RenderShell.Native;
+
+    /// <summary><c>true</c> when rendered server-side over a live connection (<see cref="RenderEngine.Server" />).</summary>
+    protected bool IsServer => HostEngine == RenderEngine.Server;
+
+    /// <summary><c>true</c> when rendered in the browser WebAssembly runtime (<see cref="RenderEngine.Wasm" />).</summary>
+    protected bool IsWasm => HostEngine == RenderEngine.Wasm;
+
+    /// <summary><c>true</c> when running on iOS (<see cref="RenderPlatform.IOS" />).</summary>
+    protected bool IsIOS => HostPlatform == RenderPlatform.IOS;
+
+    /// <summary><c>true</c> when running on Android (<see cref="RenderPlatform.Android" />).</summary>
+    protected bool IsAndroid => HostPlatform == RenderPlatform.Android;
+
     internal void WriteAttributesInternal(StringBuilder sb) => WriteAttributes(sb);
     internal IEnumerable<Component?> RenderChildrenInternal() => RenderChildren();
     internal IDisposable? EnterChildrenScopeInternal() => EnterChildrenScope();

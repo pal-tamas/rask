@@ -45,6 +45,33 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // the per-host RaskServerLimits pattern.
     protected LiveDiffMode DiffMode { get; }
 
+    // Host-awareness axes surfaced to components (Component.HostShell/HostEngine/HostPlatform → LiveRenderContext →
+    // these). The IRenderHandle members forward to protected virtuals so the per-host sessions override with
+    // plain virtual dispatch. The base defaults describe the default web+server host; WasmLiveSession sets
+    // Wasm, NativeLiveSession sets Native/InProcess + the device platform. Constant for the session lifetime.
+    RenderShell IRenderHandle.Shell => ShellCore;
+    RenderEngine IRenderHandle.Engine => EngineCore;
+    RenderPlatform IRenderHandle.Platform => PlatformCore;
+
+    protected virtual RenderShell ShellCore => RenderShell.Web;
+    protected virtual RenderEngine EngineCore => RenderEngine.Server;
+    protected virtual RenderPlatform PlatformCore => RenderPlatform.None;
+
+    // Native-chrome collection seam — forwarded from IRenderHandle to protected virtuals so the native host
+    // overrides them with plain virtual dispatch. Base is a no-op (non-native hosts collect nothing). The
+    // component arrives as a plain Component; the native session picks out the native bars (Rask.Core has no
+    // Rask.Native type reference).
+    bool IRenderHandle.CollectsNativeChrome => CollectsNativeChromeCore;
+    void IRenderHandle.ReportNativeComponent(Component component) => ReportNativeComponentCore(component);
+
+    protected virtual bool CollectsNativeChromeCore => false;
+    protected virtual void ReportNativeComponentCore(Component component) { }
+
+    // Called at the very start of each render walk (before the tree is serialized). Hosts override to reset
+    // per-render collected state (the native host clears its last-collected header/footer so a removed bar
+    // drops out). Base is a no-op.
+    protected virtual void OnBeforeRenderWalk() { }
+
     protected LiveSessionBase(Component view, IServiceProvider services, LiveDiffMode diffMode)
     {
         View = view;
@@ -194,6 +221,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     /// </summary>
     protected ReadOnlyMemory<char> RenderTreeToHtml(bool publishOnly, out FrameWriter? frameWriter)
     {
+        OnBeforeRenderWalk();
         frameWriter = null;
         FrameSinkScope.Popper popper = default;
         if (DiffMode != LiveDiffMode.DisabledFull)

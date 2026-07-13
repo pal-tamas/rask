@@ -315,6 +315,15 @@ internal static class HtmlSerializer
                     liveCtx.HeadAssets.Add(head);
                 }
 
+                // Native header/footer collection — only when the host opts in (the native host with an
+                // INativeChrome backend). Reading the overrides here, mid-walk, keeps the native factories
+                // DI-correct (ambient context) and picks the deepest override (last non-null wins). Pure no-op
+                // on Server/WASM: CollectsNativeChrome is false, so the overrides are never even read.
+                if (liveCtx is not null && liveCtx.CollectsNativeChrome)
+                {
+                    liveCtx.CollectNativeChrome(component);
+                }
+
                 // User components are transparent in the frame stream — their rendered
                 // body's elements/text emit at the surrounding DOM level. That keeps the
                 // diff codec's path computation a simple count over DOM-structural frames

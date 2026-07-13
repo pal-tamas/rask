@@ -18,4 +18,18 @@ public interface IRenderHandle
     Task RequestPublishRenderAsync() => RequestRenderAsync();
 
     internal Task RenderInScopeAsync() => Task.CompletedTask;
+
+    // Host-awareness axes surfaced to components during render (via LiveRenderContext → Component.HostShell/…).
+    // Defaulted here so the interface stays non-breaking; concrete sessions override with their own facts.
+    internal RenderShell Shell => RenderShell.Web;
+    internal RenderEngine Engine => RenderEngine.Server;
+    internal RenderPlatform Platform => RenderPlatform.None;
+
+    // Native-chrome collection: only the native host (with an INativeChrome backend registered) opts in, so the
+    // serializer hands each user component it walks to the session, which picks out the native bars composed in
+    // the tree (Rask.Core stays free of any Rask.Native type — the component arrives as a plain Component and the
+    // native session classifies it). Reporting mid-walk keeps the bars' factories DI-correct and callback-owner
+    // wired. Last bar of a kind in the pre-order walk wins. No-op everywhere else.
+    internal bool CollectsNativeChrome => false;
+    internal void ReportNativeComponent(Component component) { }
 }
