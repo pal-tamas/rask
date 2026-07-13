@@ -29,6 +29,25 @@ them until tagged releases begin.
   always runs interpreted. The compile pipeline (`PlaygroundCompiler`) is unit-tested on the desktop
   runtime, and a Playwright journey compiles the starter and drives its counter end-to-end. See
   [docs/playground.md](docs/playground.md).
+- **A mounted page now costs ~30% *less* retained memory than Blazor — the one axis Blazor led is
+  overtaken.** A pure-element, handler-free user component (the bulk of a real page — rows, cards,
+  layout, text) no longer retains its rendered `Element` object graph between renders. On first render
+  it snapshots its subtree as a compact `LeanFrame` span on its `LiveState` and **releases the element
+  tree**; a clean re-render replays the span (`HtmlSerializer.ReplayLeanFrames` reconstructs
+  byte-identical HTML and re-writes the frame stream in one pass) instead of re-walking a
+  heap-object-per-element tree. The retained snapshot uses a slimmed 24-byte frame (the held copy drops
+  the per-render HTML offsets and the diff-only component ref, which replay regenerates) rather than the
+  full ~40-byte render frame, and the array is reused across re-renders — so per-update allocation is
+  unchanged (a stateful page still allocates ~840 B/update, **50× less than Blazor**). Safety is
+  conservative: a subtree is cached only when it has no nested user component (one could go dirty
+  independently — replaying the parent would skip it), no event handlers (handler ids are positional),
+  no page-level `Key`, no `Head` contribution, and isn't reading ambient state — otherwise it keeps the
+  element-walk path, unchanged. The diff codec is untouched (component subtrees stay transparent in the
+  flat frame stream; the span is tracked as a plain index range). Measured on the retained-footprint
+  report against a real Blazor `ComponentBase`: the 200-row page drops from ~223 KB to **158,606 B/tree
+  vs Blazor 223,888 B (Rask 29% less)** and the 100-row keyed list to **42,168 B vs Blazor 60,107 B
+  (30% less)** — so Rask now beats Blazor on *every* measured axis (wire bytes, per-update allocation,
+  and retained heap). Wire output and diff payloads are byte-identical.
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell` Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
@@ -211,6 +230,13 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Playground editor lost its syntax colouring after the first Run.** Monaco injects its theme colours as
+  a `<style class="monaco-colors">` in `<head>`; the live-diff morph reconciles `<head>` on every re-render
+  and removes any child not marked `data-rask-managed`, so the first re-render (e.g. after clicking Run)
+  stripped it and every token fell back to the inherited body colour — a faint, uncoloured editor. The
+  playground now stamps Monaco's head-injected `<style>`/`<link>` nodes as `data-rask-managed` (the same
+  marker the framework uses for its own scoped-asset head tags) and keeps a `MutationObserver` on `<head>`
+  so any it adds later stays protected. An E2E assertion guards it.
 - **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
   with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
   'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when
