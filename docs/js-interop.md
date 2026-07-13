@@ -302,6 +302,15 @@ the bundle, so it paints the instant it mounts — no per-component fetch, no FO
 
 <!-- demo:asset-lazy-mount -->
 
+### Third-party libraries that inject into `<head>`
+
+Some JS libraries add their own `<style>`/`<link>`/`<script>` to `<head>` at runtime — a code editor's
+theme colours, a charting library, a syntax highlighter. Rask **preserves these automatically**: the
+live-diff reconciler tracks the head nodes it renders itself and leaves any others in place, so a library
+that injects into `<head>` keeps working across re-renders with no extra wiring. If you ever need to opt a
+node out of reconciliation explicitly (e.g. one you add yourself and manage entirely from JS), give it the
+`data-rask-managed` attribute and the morph will never touch it.
+
 ---
 
 See also: [Composition](composition.md) for component-to-component communication, and the

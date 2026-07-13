@@ -189,6 +189,16 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Head reconciliation preserves foreign (third-party-injected) head nodes.** Libraries routinely inject
+  `<style>`/`<link>`/`<script>` into `<head>` at runtime — Monaco's theme colours, Chart.js, syntax
+  highlighters, analytics. Previously the live-diff morph trimmed any such node on the next re-render (it
+  wasn't in the .NET-rendered head), so e.g. a mounted code editor lost all its styling on the first state
+  change. The client morph now tags the head nodes it owns (inline, as each rendered node is placed) and
+  leaves any it doesn't (nodes injected since the last render) in place — the same effect `data-rask-managed`
+  gives, but automatic, so a third-party library that injects into `<head>` "just works". The first head
+  reconciliation (boot-shell hydration) is unchanged, and `data-rask-key` nodes (the framework's own keyed
+  head links, incl. the scoped-CSS FOUC preload clone) always reconcile by key rather than duplicate. This
+  let the playground drop its bespoke Monaco head-guard.
 - **Showcase restructure: a "Mobile & devices" guide group, a Welcome-free root, and a Bootstrapped
   Todos app.** The on-site `GuideCatalog` now groups **Browser APIs**, **Mobile & PWA**, and the
   newly-surfaced **Native (iOS/Android)** guide (`docs/native.md`, previously embedded but never listed)

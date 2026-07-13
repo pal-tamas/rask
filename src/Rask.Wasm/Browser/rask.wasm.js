@@ -2469,6 +2469,26 @@ function raskShouldSuppressChecked(el, incoming) {
     return false;
 }
 
+// Third-party head preservation. Libraries commonly inject <style>/<link>/<script> into <head> at
+// runtime (Monaco's theme colours, Chart.js, syntax highlighters, analytics). Those nodes aren't in the
+// .NET-rendered head, so a naive reconcile would trim them on the next render — the framework already
+// exposes data-rask-managed to opt a node out, but foreign libraries can't be expected to tag what they
+// inject. Instead the morph tags every head node it PRODUCES (a __raskHead property set inline as each
+// rendered node is placed) and, on later head morphs, skips any head element it never produced — leaving
+// the foreign node in place exactly like a data-rask-managed one.
+//
+// Two invariants make this safe:
+//   * The `raskHeadReconciled` gate keeps the FIRST head morph byte-identical to before, so boot-shell
+//     hydration (importmap/base/preload/scoped placeholders) reconciles exactly as it used to.
+//   * data-rask-key nodes are NEVER treated as foreign, so the framework's own keyed head nodes — most
+//     importantly the scoped-CSS FOUC preload clone (rask-scoped.js), whose __raskHead expando does not
+//     survive cloneNode — still reconcile by key instead of duplicating.
+//
+// Because ownership is marked inline on exactly the nodes derived from the render tree (not by a post-hoc
+// sweep of all children), a sibling that a rendered inline <script> injects mid-morph is left unmarked and
+// therefore preserved, rather than adopted-as-owned and trimmed on the following render.
+let raskHeadReconciled = false;
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
         _raskReplaceChild(from.parentNode, to, from);
@@ -2524,9 +2544,22 @@ function morph(from, to) {
     // the Server overlay (reconnect spinner sibling of <html>) and the WASM
     // scoped-css / scoped-js bundle tags (head children that don't appear in
     // the .NET-rendered HTML payload).
+    // Foreign-head preservation (see the note above raskHeadReconciled): once the head has been
+    // reconciled at least once, pull out any head element the morph never produced (a third-party lib
+    // injected it since the last render) so it's left in place, exactly like a data-rask-managed node.
+    // data-rask-key nodes are NOT foreign — they're framework keyed nodes (e.g. the scoped-CSS FOUC
+    // clone) that must reconcile by key rather than duplicate.
+    const isHead = from.nodeName === "HEAD";
+    const skipForeign = isHead && raskHeadReconciled;
+    // Tag a node the morph produces as Rask-owned (head only) so later morphs don't mistake it for a
+    // foreign injection. Applied inline to exactly the nodes derived from the render tree.
+    const own = isHead ? (n) => { n.__raskHead = true; return n; } : (n) => n;
     const fc = [], tc = [];
     for (let n = from.firstChild; n; n = n.nextSibling) {
         if (n.nodeType === 1 && n.hasAttribute("data-rask-managed")) continue;
+        if (skipForeign && n.nodeType === 1 && n.__raskHead !== true && !n.hasAttribute("data-rask-key")) {
+            continue;
+        }
         fc.push(n);
     }
     for (let m = to.firstChild; m; m = m.nextSibling) tc.push(m);
@@ -2565,9 +2598,9 @@ function morph(from, to) {
                 src = unkeyedFrom[unkeyedCursor++] || null;
             }
             if (src === null) {
-                _raskInsertBefore(from, reviveScript(dst), anchor);
+                _raskInsertBefore(from, own(reviveScript(dst)), anchor);
             } else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) {
-                _raskInsertBefore(from, reviveScript(dst), anchor);
+                _raskInsertBefore(from, own(reviveScript(dst)), anchor);
                 // If the from-node we're about to remove IS the anchor, advance the anchor past it
                 // first — otherwise the next insert/move would pass a reference node no longer in
                 // `from` and insertBefore throws "reference node is not a child". This happens when a
@@ -2580,6 +2613,7 @@ function morph(from, to) {
                 if (src !== anchor) _raskMoveBefore(from, src, anchor);
                 else anchor = anchor.nextSibling;
                 morph(src, dst);
+                own(src);
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
@@ -2591,17 +2625,19 @@ function morph(from, to) {
             const leftover = unkeyedFrom[unkeyedCursor++];
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
+        if (isHead) raskHeadReconciled = true;
         return;
     }
 
     const max = Math.max(fc.length, tc.length);
     for (let k = 0; k < max; k++) {
         const src = fc[k], dst = tc[k];
-        if (!src) _raskAppendChild(from, reviveScript(dst));
+        if (!src) _raskAppendChild(from, own(reviveScript(dst)));
         else if (!dst) _raskRemoveChild(from, src);
-        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
-        else morph(src, dst);
+        else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, own(reviveScript(dst)), src);
+        else { morph(src, dst); own(src); }
     }
+    if (isHead) raskHeadReconciled = true;
 }
 
 

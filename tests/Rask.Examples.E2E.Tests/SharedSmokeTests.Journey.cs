@@ -74,6 +74,8 @@ public abstract partial class SharedSmokeTests
         // The SPA sentinel must have survived the entire in-SPA walk.
         Assert.Equal("alive", await Page.EvaluateAsync<string?>("() => window.__raskSentinel"));
 
+        await AssertNoDuplicateScopedHeadLinksAsync();
+
         await RunUnusualActivityAsync(opts);
     }
 
@@ -100,6 +102,29 @@ public abstract partial class SharedSmokeTests
     // ToastDemo.cs / ToasterDemo.cs source whose "Danger"/"Error" message is literally "Something went wrong.".
     protected async Task AssertNoGlobalCrashAsync() =>
         Assert.Equal(0, await Page.Locator(".rask-error-boundary").CountAsync());
+
+    // After walking every page, each scoped component's keyed stylesheet (<link data-rask-key>) must
+    // appear in <head> exactly once. On hosts that deliver scoped CSS per component via a full reply
+    // (Server), the FOUC preload (rask-scoped.js clones the incoming keyed <link> before the morph)
+    // must reconcile against the clone by key rather than duplicate it — a regression here silently
+    // leaks one <link> per scoped component ever mounted and re-applies unmounted pages' CSS. On the
+    // bundled-CSS hosts (WASM) there is a single keyed link, so this is trivially satisfied.
+    protected async Task AssertNoDuplicateScopedHeadLinksAsync()
+    {
+        var duplicateKeys = await Page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const counts = {};
+                for (const l of document.querySelectorAll('head link[rel="stylesheet"][data-rask-key]')) {
+                    const k = l.getAttribute('data-rask-key');
+                    counts[k] = (counts[k] || 0) + 1;
+                }
+                return Object.keys(counts).filter(k => counts[k] > 1);
+            }
+            """);
+        Assert.True(duplicateKeys.Length == 0,
+            $"Duplicate scoped stylesheet <link>s in <head> (leaked): {string.Join(", ", duplicateKeys)}");
+    }
 
     // The redesigned sidebar: collapsible groups (only the active route's group open by default), a
     // search filter, and — below md — a hamburger-driven offcanvas drawer. Exercised once per host.
