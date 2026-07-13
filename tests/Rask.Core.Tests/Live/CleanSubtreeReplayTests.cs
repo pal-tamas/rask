@@ -100,6 +100,40 @@ public class CleanSubtreeReplayTests
     }
 
     [Fact]
+    public void CacheableThenNonCacheable_InvalidatesStaleSnapshot()
+    {
+        // Regression: an async page renders a pure-element "loading" state first (cacheable, element
+        // graph released), then re-renders into a component-bearing "loaded" state (not cacheable). The
+        // stale "loading" snapshot must be dropped, or a later CLEAN root re-render would replay it and
+        // revert the DOM back to the spinner. (This is the HttpFetchDemo E2E failure, reduced.)
+        var loaded = false;
+        var inner = new StubComponent(() => Span(Class: "inner")["loaded"]);
+        var page = new StubComponent(() => loaded
+            ? Div(Class: "box")[inner] // nested user component → not cacheable
+            : Div(Class: "box")[Span(Class: "spin")["loading"]]); // pure elements → cacheable
+        var cache = new SessionRenderCache();
+        var ops = new List<EditOp>();
+
+        var first = Render(cache, page, ops);
+        Assert.Contains("loading", first);
+        Assert.True(page.IsCleanSubtreeCachedForTest);
+
+        // Transition to the component-bearing state.
+        loaded = true;
+        page.MarkDirtyForFrame();
+        var second = Render(cache, page, ops);
+        Assert.Contains("loaded", second);
+        Assert.DoesNotContain("loading", second);
+        Assert.False(page.IsCleanSubtreeCachedForTest, "the stale loading snapshot must be invalidated");
+
+        // A later clean re-render must keep showing "loaded", NOT replay the stale "loading" snapshot.
+        var third = Render(cache, page, ops);
+        Assert.Contains("loaded", third);
+        Assert.DoesNotContain("loading", third);
+        Assert.Empty(ops); // nothing changed between render 2 and 3
+    }
+
+    [Fact]
     public void HandlerBearingComponent_IsNotCached()
     {
         // A LiveRenderContext is needed for event handlers to register + emit their data-rask-on-*

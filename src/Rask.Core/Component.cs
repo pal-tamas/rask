@@ -883,35 +883,33 @@ public abstract class Component
     internal void TryCacheCleanSubtree(
         FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome)
     {
+        var count = frames.Count - frameStart;
         if (hadNested
             || Key is not null
             || Children is not null
             || BypassRenderCache
             || _readsAmbientState
             || HeadInternal is not null
-            || collectsNativeChrome)
+            || collectsNativeChrome
+            || count <= 0
+            || SpanHasHandler(frames.WrittenSpan.Slice(frameStart, count)))
         {
-            return;
-        }
+            // This component just walked (first render or a dirty re-render) into something we won't
+            // cache — a nested component, a handler, nothing, etc. Any PRIOR snapshot (e.g. this
+            // component cached a pure-element "loading" state, then re-rendered into a component-bearing
+            // "loaded" state) is now stale, so drop it: otherwise a later clean re-render would replay the
+            // outdated subtree and revert the DOM. The element path (CachedRenderResult, set by
+            // RenderForLive this walk) stays intact.
+            if (_live is not null)
+            {
+                _live.CachedFrames = null;
+                _live.CachedFrameCount = 0;
+            }
 
-        var count = frames.Count - frameStart;
-        if (count <= 0)
-        {
-            // Rendered nothing (or nothing new appended) — no subtree to cache; leave the element path.
             return;
         }
 
         var span = frames.WrittenSpan.Slice(frameStart, count);
-        for (var i = 0; i < span.Length; i++)
-        {
-            ref readonly var f = ref span[i];
-            if (f.Kind == RenderFrameKind.Attribute
-                && f.Name is { } n
-                && n.StartsWith("data-rask-on-", StringComparison.Ordinal))
-            {
-                return;
-            }
-        }
 
         // Reuse the existing snapshot array when it still fits, so a component that re-renders every
         // frame (e.g. a stateful counter page) re-captures with ZERO allocation — only a fresh or grown
@@ -941,6 +939,25 @@ public abstract class Component
         Live.CachedFrameCount = count;
         // Drop the Element object graph: a clean re-render now replays the frame span above.
         Live.CachedRenderResult = null;
+    }
+
+    // A subtree carries an event handler when any attribute frame is a data-rask-on-* hook. Handler ids
+    // are reissued positionally each render, so a replayed span's baked-in id could collide with a
+    // sibling's — such a subtree keeps the element-walk path rather than being frame-cached.
+    private static bool SpanHasHandler(ReadOnlySpan<RenderFrame> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            ref readonly var f = ref span[i];
+            if (f.Kind == RenderFrameKind.Attribute
+                && f.Name is { } n
+                && n.StartsWith("data-rask-on-", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     internal T GetOrCreateChild<T>(
