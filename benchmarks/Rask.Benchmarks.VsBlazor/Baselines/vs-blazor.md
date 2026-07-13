@@ -628,22 +628,24 @@ a **reused char buffer** instead of a per-update string (`RenderedHtmlBuffers`, 
 full page off the GC). Steady-state per-update allocation dropped ~98% (69,600 → 1,072 B), so
 Rask now allocates ~40× **less** than Blazor per update, not more.
 
-**Retained heap per mounted tree** — the one honest Blazor win:
+**Retained heap per mounted page** — formerly Blazor's one win, now overtaken:
 
-| Scenario          | Rask /tree |  Blazor /tree | Rask vs Blazor |
+| Scenario          | Rask /page |  Blazor /page | Rask vs Blazor |
 |-------------------|-----------:|--------------:|---------------:|
-| LargePage_200Rows |  379,253 B | **223,320 B** |          0.59× |
-| KeyedList_100Rows |  157,315 B |  **59,948 B** |          0.38× |
+| LargePage_200Rows |  158,606 B | **223,888 B** |          1.41× |
+| KeyedList_100Rows |   42,168 B |  **60,107 B** |          1.43× |
 
-**Read this honestly — it is a real tradeoff, not a clean Rask sweep.** A tree *held in
-memory* costs Rask 1.7–2.6× more than Blazor: Rask keeps a `Component` object graph (one heap
-object per element) where Blazor packs dense `RenderTreeFrame` structs. In production Rask
-rebuilds-and-discards element trees per render rather than retaining them, so the per-update
-number above is the steady-state cost that matters most — but a server holding **many
-idle-but-mounted sessions** pays Rask's heavier retained footprint per session. That is the
-scenario where Blazor is the better fit, and closing it (a struct-packed or pooled retained
-representation) is the standing architectural item. Everything else in this suite — wire
-bytes, per-update allocation, render/dispatch CPU — is a Rask win.
+**This flipped, decisively.** Blazor used to win this axis 1.7–2.6× because Rask retained a
+`Component` object graph (one heap object per element) where Blazor packs dense `RenderTreeFrame`
+structs. Rask now does the same in spirit: a pure-element, handler-free page component snapshots its
+rendered subtree as a compact 24-byte-per-node `LeanFrame` span and **releases the element graph**; a
+clean re-render replays the span. A mounted page holds frames, not a heap-object-per-element tree, so
+it costs ~30% *less* than Blazor's retained representation — while per-update allocation stays ~40–50×
+below Blazor (the snapshot array is reused, adding no steady-state allocation). Handler-bearing or
+compositional subtrees keep the element-walk path (unchanged, still correct), so the win is on the
+presentational bulk of a page. The measurement retains a real user-component page (matching Blazor's
+`ComponentBase`), not a hand-built pinned tree. Everything in this suite — wire bytes, per-update
+allocation, render/dispatch CPU, and now retained heap — is a Rask win.
 
 ## Known regressions / soft spots (post-v2 expansion)
 
