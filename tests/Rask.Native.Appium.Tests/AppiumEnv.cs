@@ -20,7 +20,7 @@ internal static class AppiumEnv
     public static string? IosApp => Get("RASK_APPIUM_IOS_APP");
 
     /// <summary>The booted iOS simulator name, e.g. "iPhone 17 Pro".</summary>
-    public static string IosDeviceName => Get("RASK_APPIUM_IOS_DEVICE") ?? "iPhone 15";
+    public static string IosDeviceName => Get("RASK_APPIUM_IOS_DEVICE") ?? "iPhone 17";
 
     /// <summary>
     ///     The booted iOS simulator's UDID. When present it is passed as <c>appium:udid</c> for EXPLICIT

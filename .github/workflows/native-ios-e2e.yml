@@ -25,8 +25,12 @@ concurrency:
 
 jobs:
   native-appium-ios:
-    # All GitHub macOS runners are Apple silicon (arm64) -> iossimulator-arm64 below.
-    runs-on: macos-15
+    # All GitHub macOS runners are Apple silicon (arm64) -> iossimulator-arm64 below. macos-26 (not
+    # macos-15) because the Microsoft.iOS workload auto-tracks the newest SDK: `dotnet workload install
+    # ios` pulls Microsoft.iOS 26.5, which hard-requires the iOS 26.5 SDK (Xcode 26.5, MT0180). The
+    # macos-15 image caps at Xcode 26.3, so that link can never be satisfied there; macos-26 ships Xcode
+    # 26.5 (default) + 26.6, matching the workload (and the Xcode 26.6 used locally to run iOS).
+    runs-on: macos-26
     timeout-minutes: 50
     env:
       RASK_APPIUM_SERVER: http://127.0.0.1:4723
@@ -58,11 +62,15 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Build the iOS-simulator showcase .app
-        # Full build (NOT -t:Compile) to produce a runnable simulator bundle. ValidateXcodeVersion=false
-        # tolerates the Microsoft.iOS <-> runner-Xcode drift; no code signing is needed for the simulator.
+        # Debug (NOT Release), full build (NOT -t:Compile) to produce a runnable simulator bundle. Debug is
+        # right for a functional Appium E2E: the simulator runs under the Mono interpreter, so this skips
+        # both the ILLink trimmer and AOT — cutting a ~35-min Release build to a couple of minutes and
+        # sidestepping the Microsoft.iOS <-> Xcode SDK coupling (MT0180) that only the trimmer trips. This
+        # mirrors the local `-t:Run` inner loop. ValidateXcodeVersion=false tolerates any residual Xcode
+        # drift; simulator apps need no code signing. (Release/AOT trim-cleanliness is proven by Rask.Example.Wasm.)
         run: >-
           dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
-          -c Release -f net10.0-ios
+          -c Debug -f net10.0-ios
           -p:RaskNativeHeads=true
           -p:RuntimeIdentifier=iossimulator-arm64
           -p:ValidateXcodeVersion=false
@@ -70,7 +78,7 @@ jobs:
       - name: Resolve the built .app path
         # Publish the absolute .app path to the job env so it reaches `dotnet test` (AppiumEnv.IosApp).
         run: |
-          APP=$(find "$PWD/samples/Rask.Example.Native/bin/Release/net10.0-ios/iossimulator-arm64" -maxdepth 2 -name '*.app' | head -1)
+          APP=$(find "$PWD/samples/Rask.Example.Native/bin/Debug/net10.0-ios/iossimulator-arm64" -maxdepth 2 -name '*.app' | head -1)
           test -n "$APP" || { echo "No .app produced by the iOS-simulator build"; exit 1; }
           echo "Resolved .app: $APP"
           echo "RASK_APPIUM_IOS_APP=$APP" >> "$GITHUB_ENV"
@@ -79,14 +87,17 @@ jobs:
         id: sim
         uses: futureware-tech/simulator-action@v5
         with:
-          model: iPhone 15
+          # macos-26 (Xcode 26.x) pre-creates only the current generation of simulator devices for its
+          # iOS 26.x runtime — the iPhone 17 family. "iPhone 15" no longer has an available device
+          # instance here, so simulator-action's name match returns "No devices found".
+          model: iPhone 17
 
       - name: Pin the booted simulator (UDID + name)
         # Explicit UDID targeting: name-only Appium device selection is unreliable on ARM64 macOS runners
         # (the reason MAUI's XHarness passes --device UDID). simulator-action exposes the booted UDID.
         run: |
           echo "RASK_APPIUM_IOS_UDID=${{ steps.sim.outputs.udid }}" >> "$GITHUB_ENV"
-          echo "RASK_APPIUM_IOS_DEVICE=iPhone 15" >> "$GITHUB_ENV"
+          echo "RASK_APPIUM_IOS_DEVICE=iPhone 17" >> "$GITHUB_ENV"
 
       - name: Start Appium (XCUITest) and run the iOS E2E
         run: |
