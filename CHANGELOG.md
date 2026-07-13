@@ -261,6 +261,11 @@ them until tagged releases begin.
   `<head>` element is ever replaced rather than morphed in place, and `applyDiff` flushes pending foreign
   injections before its end-of-frame discard so a library node injected during the same task as a diff
   isn't dropped instead of preserved.
+- **Native Appium E2E asserted a stale native tab layout.** The on-device `NativeShowcaseAppiumTests`
+  still expected a three-tab `Home`/`Guides`/`Todos` bar (with `Guides → /guides`), but the guides-first
+  pivot dropped the Welcome/Home page and made `Guides` the site root (`/`), so `NativeShowcaseApp` now
+  ships two tabs (`Guides → /`, `Todos → /todos`). The test failed at `WaitForNativeElement("Home")`. It
+  now asserts the current two-tab bar and its round-trip (`Guides "/" → Todos "/todos" → Guides "/"`).
 - **Sign-in landing page rendered stale (pre-sign-in) identity data.** After `IAuthSignIn.SignInAsync(principal, returnUrl)`,
   the server applied the `returnUrl` navigation immediately in the handler-dispatch tail — mounting the
   destination page **before** the reconnect re-seeded `SessionUserProvider`, so its `OnMount`/`OnMountAsync`
