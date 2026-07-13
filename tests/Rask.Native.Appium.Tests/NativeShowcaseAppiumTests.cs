@@ -44,9 +44,11 @@ public sealed class NativeShowcaseAppiumTests
         {
             PlatformName = "iOS",
             AutomationName = "XCUITest",
-            App = AppiumEnv.IosApp
+            App = AppiumEnv.IosApp,
+            // deviceName is a reserved capability on AppiumOptions — setting it via
+            // AddAdditionalAppiumOption("appium:deviceName", ...) throws; assign the property instead.
+            DeviceName = AppiumEnv.IosDeviceName
         };
-        options.AddAdditionalAppiumOption("appium:deviceName", AppiumEnv.IosDeviceName);
         options.AddAdditionalAppiumOption("appium:newCommandTimeout", 180);
         // Explicit UDID targeting when the CI job resolved it: name-only selection is flaky on the ARM64
         // macOS runners (same reason MAUI's XHarness pins --device UDID). Locally, unset → attach by name.
