@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Marketing landing site, built in Rask (`samples/Rask.Example.Site`).** The GitHub Pages front door
+  at `https://pal-tamas.github.io/rask/` is now a standalone Rask WASM app that renders the whole page —
+  hero, an animated packet-race `<canvas>`, a Blazor-vs-Rask benchmark chart, host/feature grids, and
+  install tabs — dogfooding the framework it sells. The live counter and install tabs are genuine
+  stateful Rask components (click → diff → re-render); the hero canvas, scroll reveals and theme toggle
+  live in a sibling scoped `App.js`; the design system is a global stylesheet. The live feature showcase
+  moved to `/demo/` and the playground stays at `/playground/`; the Pages workflow publishes all three as
+  Rask WASM apps and the "live demo" links across README/NUGET/docs now point at `/demo/`. Covered by a
+  new `SiteExampleTests` Playwright journey (renders in Rask, counter increments, tabs switch).
 - **RASK033 — prefer the generated route URL over a hardcoded path for internal navigation.** A new
   analyzer (Warning) flags a string literal passed to internal navigation — `Navigator.NavigateTo("…")`
   or any `RouteUrl` slot (`NavLink`/`BsNavItem`/`NativeTab` `Href:`/`To:`, via the `string → RouteUrl`

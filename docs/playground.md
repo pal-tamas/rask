@@ -5,7 +5,7 @@ your browser and see it render live, with the framework's own diagnostics as inl
 sent to a server: the C# is compiled entirely in WebAssembly.
 
 The playground is the `samples/Rask.Example.Playground` app, published to GitHub Pages next to the
-[feature showcase](https://pal-tamas.github.io/rask/) (the showcase's navbar links to it).
+[feature showcase](https://pal-tamas.github.io/rask/demo/) (the showcase's navbar links to it).
 
 ## How it works
 

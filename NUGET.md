@@ -74,7 +74,7 @@ the page). It's a craft project built in the open, deep on Roslyn source generat
   [Configuration](https://github.com/pal-tamas/rask/blob/main/docs/configuration.md) ·
   [Observability](https://github.com/pal-tamas/rask/blob/main/docs/observability.md) ·
   [Accessibility](https://github.com/pal-tamas/rask/blob/main/docs/accessibility.md)
-- 🚀 **[Live demo](https://pal-tamas.github.io/rask/)**
+- 🚀 **[Live demo](https://pal-tamas.github.io/rask/demo/)**
 - 💻 **[Source & README](https://github.com/pal-tamas/rask)**
 - 🤖 **[AI assistant guide](https://github.com/pal-tamas/rask/blob/main/llms.txt)**
 

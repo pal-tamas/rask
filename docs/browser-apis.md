@@ -9,7 +9,7 @@ app runs on the **Server** (WebSocket) or **WASM** (`JSImport`/`JSExport`) trans
 This page is the **map of the whole surface**. For the deeper "why" — user activation, the
 transport seam, element refs — see [JS interop → Typed browser APIs](js-interop.md#typed-browser-apis);
 for the mobile/PWA angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in
-the **Browser APIs** section of the [showcase](https://pal-tamas.github.io/rask/).
+the **Browser APIs** section of the [showcase](https://pal-tamas.github.io/rask/demo/).
 
 ## Three homes, one rule
 
