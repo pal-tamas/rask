@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Live in-browser playground.** A new `samples/Rask.Example.Playground` WASM sub-app, published to GitHub
+  Pages at `/playground/` next to the showcase (linked from the showcase navbar), where you write Rask
+  component C# and see it compile & render **live in the browser** — no server. Because Rask components are
+  plain C# (no Razor step), the pipeline is just `run the Rask ComponentFactoryGenerator → Roslyn
+  CSharpCompilation → Emit → Assembly.Load → render`, all on the Mono WebAssembly runtime; the emitted
+  component is mounted as a child of the playground's own tree, so its event handlers, state and live
+  diffing run through the shared live session. Rask's analyzers (RASK001–032) run as a display pass and
+  surface as inline Monaco squiggles. The app ships untrimmed with `WasmEnableWebcil=false` so Roslyn can
+  read the shipped `_framework/*.dll` back as metadata references (downloaded once and cached); user code
+  always runs interpreted. The compile pipeline (`PlaygroundCompiler`) is unit-tested on the desktop
+  runtime, and a Playwright journey compiles the starter and drives its counter end-to-end. See
+  [docs/playground.md](docs/playground.md).
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
   (`Web`/`Native`), `HostEngine` (`Server`/`Wasm`/`InProcess`), `HostPlatform` (`None`/`IOS`/`Android`) — plus

@@ -1,0 +1,60 @@
+/* Global cascade for the playground shell + the compiled-preview subtree. Scoped {Component}.css styles
+   never reach the preview (it's user-authored HTML with no scope id), so the classes the starter snippet
+   uses — .card, .btn — are styled here. */
+
+:root {
+    --pg-accent: #7c3aed;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+}
+
+body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1f2430;
+    background: #faf9fe;
+}
+
+/* Preview conveniences so a freshly compiled component looks intentional out of the box. */
+.card {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.5rem 1.75rem;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(17, 12, 46, 0.08), 0 8px 24px rgba(17, 12, 46, 0.06);
+}
+
+.card h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.card p {
+    margin: 0;
+    color: #4b5563;
+}
+
+.btn {
+    align-self: flex-start;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--pg-accent);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.btn:hover {
+    background: #6d28d9;
+}

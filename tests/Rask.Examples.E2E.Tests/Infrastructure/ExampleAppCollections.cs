@@ -36,6 +36,13 @@ public sealed class SubPathWasmExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class PlaygroundExampleCollection
+    : ICollectionFixture<PlaygroundAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "PlaygroundExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class AuthExampleCollection
     : ICollectionFixture<AuthExampleAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
