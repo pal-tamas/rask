@@ -6,11 +6,17 @@ using OpenQA.Selenium.Appium.iOS;
 namespace Rask.Native.Appium.Tests;
 
 // On-device E2E for the Native + Local showcase (samples/Rask.Example.Native): Appium installs and launches
-// the REAL app on an Android emulator / iOS simulator, switches into the WebView, and asserts the full
-// asset pipeline rendered — the boot shell + client + scoped CSS/JS + Bootstrap all served through
-// Rask.Native's NativeOriginAssets. This is the device-level replacement for the old headless shim.
+// the REAL app on an Android emulator / iOS simulator, then asserts two things. (1) In the WebView context:
+// the full asset pipeline rendered — the boot shell + client + scoped CSS/JS + Bootstrap all served through
+// Rask.Native's NativeOriginAssets. (2) In the NATIVE context: NativeShowcaseApp's NativeHeaderBar/NativeTabBar
+// projected to REAL platform bars (iOS UINavigationBar/UITabBar, Android top/bottom bars), and tapping a
+// native tab drives the WebView's route over the bridge. This is the device-level replacement for the old
+// headless shim.
 public sealed class NativeShowcaseAppiumTests
 {
+    // Appium's synthetic context for the app's native view tree (vs. the WEBVIEW_*/CHROMIUM contexts).
+    private const string NativeContext = "NATIVE_APP";
+
     [SkippableFact]
     public void Android_showcase_renders_and_serves_scoped_assets()
     {
@@ -32,7 +38,8 @@ public sealed class NativeShowcaseAppiumTests
         options.AddAdditionalAppiumOption("appium:chromedriverAutodownload", true);
 
         using var driver = new AndroidDriver(new Uri(AppiumEnv.ServerUrl!), options, TimeSpan.FromMinutes(3));
-        AssertShowcaseRendered(driver);
+        var webContext = AssertShowcaseRendered(driver);
+        AssertNativeChromeAndNavigation(driver, webContext);
     }
 
     [SkippableFact]
@@ -64,12 +71,14 @@ public sealed class NativeShowcaseAppiumTests
         // The client's HTTP command timeout must outlast that cold WDA build too, or POST /session times
         // out (180s was too short) before the session is even created.
         using var driver = new IOSDriver(new Uri(AppiumEnv.ServerUrl!), options, TimeSpan.FromMinutes(8));
-        AssertShowcaseRendered(driver);
+        var webContext = AssertShowcaseRendered(driver);
+        AssertNativeChromeAndNavigation(driver, webContext);
     }
 
     // Switch into the app's WebView and assert the showcase rendered with its assets — the same evidence
-    // the headless suite used to check, now against a real on-device WebView.
-    private static void AssertShowcaseRendered(AppiumDriver driver)
+    // the headless suite used to check, now against a real on-device WebView. Returns the WebView context
+    // name so the native-chrome flow can hop back into it to read the route.
+    private static string AssertShowcaseRendered(AppiumDriver driver)
     {
         var webContext = WaitForWebViewContext(driver);
         driver.Context = webContext;
@@ -104,6 +113,87 @@ public sealed class NativeShowcaseAppiumTests
         Assert.Contains("Rask", bodyText, StringComparison.OrdinalIgnoreCase);
         // Scoped CSS + Bootstrap were served through NativeOriginAssets → stylesheets are present.
         Assert.True(sheets > 0, "Scoped/Bootstrap stylesheets should have loaded via NativeOriginAssets." + diag);
+        return webContext;
+    }
+
+    // Assert NativeShowcaseApp's native chrome projected to REAL platform bars, then prove a native tab tap
+    // navigates the WebView. The bars live in the NATIVE context (not the WebView); the route it drives is
+    // read back in the WebView context (native history keeps document.location in sync — Rask.Native's
+    // applyHistory). Runs on both platforms — the a11y ids the projection sets resolve via AccessibilityId
+    // (iOS accessibilityIdentifier / Android content-desc).
+    private static void AssertNativeChromeAndNavigation(AppiumDriver driver, string webContext)
+    {
+        driver.Context = NativeContext;
+
+        // The native header + the three native tabs render (NativeHeaderBar + NativeTabBar → real bars).
+        WaitForNativeElement(driver, "rask-native-header");
+        WaitForNativeElement(driver, "Home");
+        WaitForNativeElement(driver, "Guides");
+        WaitForNativeElement(driver, "Todos");
+
+        // A native tab tap raises a `navigate` event over the bridge → NativeLiveSession → router → re-render;
+        // native history moves the URL, so the WebView's pathname follows. Verify the full round trip and
+        // that re-selecting tabs works (Home → Guides → Todos → Home).
+        TapNativeTabAndAssertRoute(driver, webContext, "Guides", "/guides");
+        TapNativeTabAndAssertRoute(driver, webContext, "Todos", "/todos");
+        TapNativeTabAndAssertRoute(driver, webContext, "Home", "/");
+    }
+
+    private static void TapNativeTabAndAssertRoute(
+        AppiumDriver driver, string webContext, string tab, string expectedPath)
+    {
+        driver.Context = NativeContext;
+        WaitForNativeElement(driver, tab).Click();
+
+        driver.Context = webContext;
+        var pathname = string.Empty;
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            pathname = ExecuteScript(driver, "return document.location ? document.location.pathname : ''");
+            if (string.Equals(pathname, expectedPath, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+        }
+
+        // Assert (not just fail) so the message shows the route the tap actually produced.
+        Assert.Equal(expectedPath, pathname);
+    }
+
+    // Poll for a native element, addressing it by the a11y id the projection sets (AccessibilityId maps to
+    // accessibilityIdentifier on iOS / content-desc on Android), and fall back to its visible name/text so a
+    // platform that doesn't surface the identifier on a bar item still resolves it.
+    private static AppiumElement WaitForNativeElement(AppiumDriver driver, string idOrText)
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            if (TryFindNativeElement(driver, idOrText) is { } element)
+            {
+                return element;
+            }
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+        }
+
+        throw new InvalidOperationException(
+            $"The native element '{idOrText}' never appeared in the NATIVE context. The native chrome " +
+            "(NativeHeaderBar/NativeTabBar) should project to real platform bars via INativeChrome.");
+    }
+
+    private static AppiumElement? TryFindNativeElement(AppiumDriver driver, string idOrText)
+    {
+        var byId = driver.FindElements(MobileBy.AccessibilityId(idOrText));
+        if (byId.Count > 0)
+        {
+            return byId.First();
+        }
+
+        var byText = driver is IOSDriver
+            ? driver.FindElements(MobileBy.IosNSPredicate($"name == '{idOrText}' OR label == '{idOrText}'"))
+            : driver.FindElements(MobileBy.AndroidUIAutomator($"new UiSelector().text(\"{idOrText}\")"));
+        return byText.Count > 0 ? byText.First() : null;
     }
 
     private static string WaitForWebViewContext(AppiumDriver driver)

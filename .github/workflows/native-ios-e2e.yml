@@ -31,7 +31,10 @@ jobs:
     # macos-15 image caps at Xcode 26.3, so that link can never be satisfied there; macos-26 ships Xcode
     # 26.5 (default) + 26.6, matching the workload (and the Xcode 26.6 used locally to run iOS).
     runs-on: macos-26
-    timeout-minutes: 50
+    # A green run is ~19 min including the cold WebDriverAgent build; 35 stays well clear of that while
+    # failing a wedged WDA/simulator ~15 min sooner than the old 50 (a stuck run once dragged to ~40 min).
+    # The in-test wdaLaunchTimeout/wdaConnectionTimeout (360s) still cover the legitimate cold build.
+    timeout-minutes: 35
     env:
       RASK_APPIUM_SERVER: http://127.0.0.1:4723
     steps:
