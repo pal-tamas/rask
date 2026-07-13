@@ -85,6 +85,14 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
     public bool SuppressEventsUntilReconnect { get; set; }
 
+    // A sign-in/out returnUrl parked by the handler-dispatch auth handoff and applied on the NEXT hello,
+    // AFTER SessionUserProvider is re-seeded with the redeemed principal. Deferring the route change means
+    // the destination page mounts fresh under the new identity (its OnMountAsync sees the new principal),
+    // instead of mounting now under the pre-SignIn snapshot and never remounting on the reconnect
+    // (children reconcile by (Type, position), not Key, so a same-position page instance is reused and
+    // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
+    public string? PendingAuthNavigation { get; set; }
+
     public string Id { get; }
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
