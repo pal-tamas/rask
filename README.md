@@ -15,7 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
-# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/)** &nbsp;·&nbsp; 📖 **[Read the docs ↗](docs/)** &nbsp;·&nbsp; 🧪 **[Browse the examples ↗](samples/)**
+# ▶ **[Try the live demo ↗](https://pal-tamas.github.io/rask/)** &nbsp;·&nbsp; 🛝 **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** &nbsp;·&nbsp; 📖 **[Read the docs ↗](docs/)** &nbsp;·&nbsp; 🧪 **[Browse the examples ↗](samples/)**
 
 </div>
 
@@ -139,6 +139,9 @@ host trade-offs, and sub-path hosting are covered in **[getting started](docs/ge
 
 - **[Live demo ↗](https://pal-tamas.github.io/rask/)** — `Rask.Example.Wasm` is published to GitHub Pages on every push
   to `main`; click through a full multi-page Rask app in the browser before cloning anything.
+- **[Playground ↗](https://pal-tamas.github.io/rask/playground/)** — write Rask component C# in the browser and see it
+  compile & render live (Roslyn runs in WebAssembly, no server), with the framework's diagnostics inline. See
+  [docs/playground.md](docs/playground.md).
 - **[`samples/`](samples/)** — runnable showcase apps that exercise every feature end-to-end: the shared feature pages
   (`samples/Rask.Example.Shared/Features/`), EF Core + SQLite data access, and one auth sample per cell of the
   `{Cookie, JWT} × {Server, WASM}` matrix. Run one with, e.g.,

@@ -17,6 +17,18 @@ them until tagged releases begin.
   `[Route]` and the string is a silent dead link that still compiles, whereas `Routes.<Page>()` is a
   compile error — so the analyzer keeps type-safe navigation honest. Documented in `docs/diagnostics.md`;
   the sample apps' internal-nav call sites were converted to `Routes.*()`.
+- **Live in-browser playground.** A new `samples/Rask.Example.Playground` WASM sub-app, published to GitHub
+  Pages at `/playground/` next to the showcase (linked from the showcase navbar), where you write Rask
+  component C# and see it compile & render **live in the browser** — no server. Because Rask components are
+  plain C# (no Razor step), the pipeline is just `run the Rask ComponentFactoryGenerator → Roslyn
+  CSharpCompilation → Emit → Assembly.Load → render`, all on the Mono WebAssembly runtime; the emitted
+  component is mounted as a child of the playground's own tree, so its event handlers, state and live
+  diffing run through the shared live session. Rask's analyzers (RASK001–032) run as a display pass and
+  surface as inline Monaco squiggles. The app ships untrimmed with `WasmEnableWebcil=false` so Roslyn can
+  read the shipped `_framework/*.dll` back as metadata references (downloaded once and cached); user code
+  always runs interpreted. The compile pipeline (`PlaygroundCompiler`) is unit-tested on the desktop
+  runtime, and a Playwright journey compiles the starter and drives its counter end-to-end. See
+  [docs/playground.md](docs/playground.md).
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell` Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
@@ -321,6 +333,20 @@ them until tagged releases begin.
   (~9% on the 100-row keyed-list footprint benchmark), narrowing the one axis where Blazor's dense frame
   structs still lead. No behavioural change — the fields are read through the same members, now backed by
   `LiveState`.
+- **Every node in a mounted tree sheds another ~24 bytes: packed per-node flags + a leaner key slot.**
+  Two more slices off the same retained-heap axis. (1) The per-node booleans — the reads-ambient-state
+  latch on `Component` and `Draggable` on `Element` — now live in a single packed `_flags` byte instead
+  of a `bool` plus a padded `Nullable<bool>` field, reclaiming the alignment padding each cost. (2) The
+  key slot dropped its two value→string cache fields (`_cachedKeyValue`/`_cachedKeyString`, 16 B on
+  *every* node): the cache only ever hit for a keyed component reused in place, but a keyed list rebuilds
+  its element instances each render, so it was cold-missing there anyway — a bad trade against a rare
+  `ToString` on reused nodes when this is a footprint path. `Key` stays inline and `KeyString` recomputes;
+  non-keyed nodes (the majority) still short-circuit to `null` and allocate nothing. No behavioural change,
+  no per-render allocation added. Measured before/after on one machine via the `mem-footprint` report,
+  retained heap per mounted tree drops a further **~13%** on the 200-row page and **~9%** on the 100-row
+  keyed list, and per-update allocation is unchanged-to-slightly-better; the pinned `Baselines/vs-blazor.md`
+  absolute figures will be refreshed by the dedicated run. Both rows still trail Blazor's dense frame
+  structs — closing that gap is the next, architectural step.
 - **A live update no longer allocates the whole page as a string.** Every render materialised the full
   document via `StringBuilder.ToString()` — the dominant managed allocation of a small update on a large
   page — even when the shipped payload was one `UpdateText` op that never reads the HTML. The session now
