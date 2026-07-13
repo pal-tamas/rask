@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK033 — prefer the generated route URL over a hardcoded path for internal navigation.** A new
+  analyzer (Warning) flags a string literal passed to internal navigation — `Navigator.NavigateTo("…")`
+  or any `RouteUrl` slot (`NavLink`/`BsNavItem`/`NativeTab` `Href:`/`To:`, via the `string → RouteUrl`
+  implicit conversion) — **only** when the path maps to a page's generated parameterless `Routes.<Page>()`
+  factory. External URLs (`RouteUrl.External`, `https://…`), parameterised routes (`/users/42`), and
+  secondary `[Route]` templates with no formatter (`/todos/new`) are left alone. Rename or remove the
+  `[Route]` and the string is a silent dead link that still compiles, whereas `Routes.<Page>()` is a
+  compile error — so the analyzer keeps type-safe navigation honest. Documented in `docs/diagnostics.md`;
+  the sample apps' internal-nav call sites were converted to `Routes.*()`.
 - **Live in-browser playground.** A new `samples/Rask.Example.Playground` WASM sub-app, published to GitHub
   Pages at `/playground/` next to the showcase (linked from the showcase navbar), where you write Rask
   component C# and see it compile & render **live in the browser** — no server. Because Rask components are
@@ -40,6 +49,7 @@ them until tagged releases begin.
   (30% less)** — so Rask now beats Blazor on *every* measured axis (wire bytes, per-update allocation,
   and retained heap). Wire output and diff payloads are byte-identical.
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
+  render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell` Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
   (`Web`/`Native`), `HostEngine` (`Server`/`Wasm`/`InProcess`), `HostPlatform` (`None`/`IOS`/`Android`) — plus
   the `IsNative`/`IsServer`/`IsWasm`/`IsIOS`/`IsAndroid` conveniences, so one page can render a web `BsNavbar`

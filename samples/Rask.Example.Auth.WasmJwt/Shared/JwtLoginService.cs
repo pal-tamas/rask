@@ -32,7 +32,7 @@ public sealed class JwtLoginService(HttpClient http, TokenStore tokens, IUserPro
     public async Task LogoutAsync()
     {
         // Navigate first (still in the handler scope), then clear the token + principal.
-        nav.NavigateTo("/login");
+        nav.NavigateTo(Features.Routes.LoginPage());
         await tokens.ClearAsync();
         await users.RefreshAsync();
     }
