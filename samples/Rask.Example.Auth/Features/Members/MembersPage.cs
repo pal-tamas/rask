@@ -19,7 +19,7 @@ public sealed class MembersPage : Component
                 Authorize(
                     Authorizing: P("members-authorizing", "text-secondary mb-0")["Signing you in…"],
                     NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink("/login")["sign in"], "."],
+                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."],
                     Authorized: user => [
                         H1("members-greeting", "h3 mb-3")[$"Welcome, {user.Identity?.Name}"],
                         MemberContent()])

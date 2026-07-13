@@ -30,7 +30,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         await http.PostAsync("auth/logout", null);
         // Navigate first (while still in the click-handler scope), then clear the principal — refreshing
         // first would close the Authorize gate and unmount this component before the navigation runs.
-        nav.NavigateTo("/login");
+        nav.NavigateTo(Features.Routes.LoginPage());
         await users.RefreshAsync();
     }
 }
