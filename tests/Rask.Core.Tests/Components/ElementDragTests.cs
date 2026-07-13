@@ -16,6 +16,23 @@ public class ElementDragTests
     }
 
     [Fact]
+    public void Draggable_Getter_RoundTripsTriState()
+    {
+        // Draggable is backed by two flag bits (present + value) rather than a Nullable<bool> field;
+        // the getter must still distinguish unset / false / true faithfully.
+        Assert.Null(Div().Draggable);
+        Assert.False(Div(Draggable: false).Draggable);
+        Assert.True(Div(Draggable: true).Draggable);
+
+        // Re-setting flips the value without leaking the previous state.
+        var d = Div(Draggable: true);
+        d.Draggable = false;
+        Assert.False(d.Draggable);
+        d.Draggable = null;
+        Assert.Null(d.Draggable);
+    }
+
+    [Fact]
     public void DragHandlers_OutsideLiveContext_NotEmitted() =>
         // No LiveRenderContext (plain ToHtml): handlers can't register, so only the
         // static draggable attribute survives.

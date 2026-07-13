@@ -56,7 +56,20 @@ public abstract partial class Element : Component
     // draggable="true" (nullable so it stays an optional factory param — Blazor-parity with the other
     // HTML attrs). The drag *handlers* (OnDragStart/Over/Drop/End plus drag/dragenter/dragleave) live on
     // the unified GlobalEventHandlers surface in ElementEvents.cs, like every other event.
-    public bool? Draggable { get; set; }
+    // Backed by two bits of the base Component flags byte (present + value) instead of a dedicated
+    // Nullable<bool> field, so a drag-less element carries no extra slot — see Component._flags.
+    private const byte FlagDraggablePresent = 1 << 1;
+    private const byte FlagDraggableValue = 1 << 2;
+
+    public bool? Draggable
+    {
+        get => GetFlag(FlagDraggablePresent) ? GetFlag(FlagDraggableValue) : null;
+        set
+        {
+            SetFlag(FlagDraggablePresent, value.HasValue);
+            SetFlag(FlagDraggableValue, value.GetValueOrDefault());
+        }
+    }
 
     // Subclasses transform the `class` attribute value without re-implementing the universal
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
