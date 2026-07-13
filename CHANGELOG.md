@@ -504,6 +504,12 @@ them until tagged releases begin.
   **Bootstrap navigation & overlays** (navbar/nav, tabs, modal, toast, dropdown), and **Bootstrap forms &
   inputs** (inputs, selects, multiselect, date/time pickers) — three entries under the Bootstrap sidebar
   group (`docs/bootstrap.md`, `docs/bootstrap-navigation.md`, `docs/bootstrap-forms.md`).
+- **The Bootstrap guide is now one small page per component group.** `docs/bootstrap.md` becomes a thin
+  hub (setup + color modes + a component map + versioning), and each group gets its own focused page:
+  buttons & badges, cards/lists/tables, alerts/spinners/progress, icons, navbar & nav, modals/offcanvas/
+  dropdowns, tabs/accordion/collapse, toasts, form controls, selects & multiselect, date/time pickers,
+  and utility classes — all under the Bootstrap sidebar group. The live demos are unchanged (they move
+  with their prose; demo resolution is keyed by demo-id, not page).
 - **Open combobox dropdown fixes.** An open `BsSelect`/`BsMultiSelect` menu no longer **stretches to the
   viewport width** — a `.w-100` menu carries `width:100% !important`, which beat the popover helper's inline
   width pin once the menu went `position:fixed`, so `100%` resolved against the viewport; the pin is now
