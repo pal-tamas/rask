@@ -302,6 +302,27 @@ the bundle, so it paints the instant it mounts — no per-component fetch, no FO
 
 <!-- demo:asset-lazy-mount -->
 
+## Third-party libraries that inject into `<head>`
+
+Rask treats `<head>` as **authoritative**: on every re-render the live-diff reconciler morphs the live
+head back to what your components rendered, which keeps `<title>`/`<meta>`/scoped-CSS links correct. A
+`<style>`/`<link>`/`<script>` that a **JS library injects into `<head>` at runtime** (a code editor's
+theme colours, a charting library, a syntax highlighter, an analytics tag) isn't part of that render —
+so **Rask preserves it for you automatically**. The reconciler watches `<head>` and tags anything a
+library injects with `data-rask-managed` (the same marker it uses for its own scoped-asset tags), so it
+survives every re-render with **no code on your side**. The [playground](playground.md) relies on this to
+keep Monaco's editor theme across each Run.
+
+The mechanism only preserves nodes injected *after* an initial render (the common case — libraries set up
+once your component has mounted). If you need to keep something present at first paint, or want to be
+explicit, mark it yourself — the reconciler never touches a head child carrying `data-rask-managed`:
+
+```js
+// You rarely need this — runtime-injected head nodes are preserved automatically. Use it only to opt a
+// node out explicitly (e.g. one present before the app's first render).
+styleEl.setAttribute("data-rask-managed", "");
+```
+
 ---
 
 See also: [Composition](composition.md) for component-to-component communication, and the
