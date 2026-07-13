@@ -34,7 +34,12 @@ them until tagged releases begin.
   route. The `samples/Rask.Example.Native` showcase composes a native title bar + tab bar around the shared
   shell (dropping its web `BsNavbar` under `IsNative`). The `rask-native` template (`--host local`) scaffolds it
   too: the heads host `webView.ChromeView` + register `INativeChrome`, and the default `App` composes a native
-  title bar + Home/Counter tab bar around a `NativeWebView`.
+  title bar + Home/Counter tab bar around a `NativeWebView`. Each projected bar view carries a stable
+  **accessibility identifier** (the tab/button title, or `rask-native-header`) — addressable by screen readers
+  and UI tests — and the **Appium on-device E2E now drives the native bars**: it asserts the native header + tab
+  bar rendered as real platform views and that tapping a native tab navigates the WebView's route (the round
+  trip through the bridge into the router). The `native-appium` (24 min) and nightly `native-appium-ios`
+  (35 min) CI job timeouts were trimmed to match observed run durations.
 - **Native geolocation backend.** The `rask-native` template's `--host local` heads add a
   `NativeGeolocation : IGeolocation` (iOS **CoreLocation** `CLLocationManager`, Android **`LocationManager`**),
   registered on `host.Services` before `RunLocalAsync` to override Rask's JS-backed `navigator.geolocation`

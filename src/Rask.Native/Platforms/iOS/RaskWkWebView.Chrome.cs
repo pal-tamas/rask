@@ -66,7 +66,8 @@ internal sealed class RaskChromeContainerView : UIView
     public RaskChromeContainerView(WKWebView webView)
     {
         _webView = webView;
-        _navBar = new UINavigationBar { Hidden = true };
+        // A stable, localization-independent handle for screen readers and the Appium on-device E2E.
+        _navBar = new UINavigationBar { Hidden = true, AccessibilityIdentifier = "rask-native-header" };
         _tabBar = new UITabBar { Hidden = true };
         _toolbar = new UIToolbar { Hidden = true };
         BackgroundColor = UIColor.SystemBackground;
@@ -179,7 +180,11 @@ internal sealed class RaskChromeContainerView : UIView
         _tabItems = new UITabBarItem[tabs.Count];
         for (var i = 0; i < tabs.Count; i++)
         {
-            _tabItems[i] = new UITabBarItem(tabs[i].Title, ImageFor(tabs[i].IosIcon), i);
+            _tabItems[i] = new UITabBarItem(tabs[i].Title, ImageFor(tabs[i].IosIcon), i)
+            {
+                // Address each tab by its title (screen readers + the Appium E2E), independent of the icon.
+                AccessibilityIdentifier = tabs[i].Title,
+            };
         }
 
         _tabBar.Items = _tabItems;
@@ -194,10 +199,11 @@ internal sealed class RaskChromeContainerView : UIView
         if (string.Equals(item.Kind, "back", StringComparison.Ordinal))
         {
             // A plain back chevron — a navigation host provides the actual pop; emit nothing extra here.
-            return new UIBarButtonItem(UIBarButtonSystemItem.Cancel);
+            return new UIBarButtonItem(UIBarButtonSystemItem.Cancel) { AccessibilityIdentifier = "rask-native-back" };
         }
 
-        var button = new UIBarButtonItem { Style = UIBarButtonItemStyle.Plain };
+        // Address the button by its tap id (falling back to its title) for screen readers + the E2E.
+        var button = new UIBarButtonItem { Style = UIBarButtonItemStyle.Plain, AccessibilityIdentifier = item.Id ?? item.Title };
         if (ImageFor(item.IosIcon) is { } image)
         {
             button.Image = image;

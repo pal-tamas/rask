@@ -78,7 +78,13 @@ public sealed partial class RaskAndroidWebView
             _topBar.AddView(BuildBarButton(leading));
         }
 
-        var title = new TextView(_context) { Text = header.Title ?? string.Empty, TextSize = 18f };
+        var title = new TextView(_context)
+        {
+            Text = header.Title ?? string.Empty,
+            TextSize = 18f,
+            // Stable content-desc so screen readers + the Appium E2E can address the native header.
+            ContentDescription = "rask-native-header",
+        };
         title.SetPadding(Dp(12), Dp(12), Dp(12), Dp(12));
         _topBar.AddView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, weight: 1f));
 
@@ -121,7 +127,8 @@ public sealed partial class RaskAndroidWebView
         for (var i = 0; i < tabs.Count; i++)
         {
             var tab = tabs[i];
-            var button = new Button(_context) { Text = tab.Title };
+            // Address each tab by its title (content-desc) for screen readers + the Appium E2E.
+            var button = new Button(_context) { Text = tab.Title, ContentDescription = tab.Title };
             var path = tab.Path;
             button.Click += (_, _) => Raise($$"""{"type":"navigate","path":"{{Escape(path)}}"}""");
             _bottomBar.AddView(button, EqualWeight());
@@ -130,9 +137,12 @@ public sealed partial class RaskAndroidWebView
 
     private Android.Views.View BuildBarButton(NativeBarItemDescriptor item)
     {
+        var isBack = string.Equals(item.Kind, "back", StringComparison.Ordinal);
         var button = new Button(_context)
         {
-            Text = string.Equals(item.Kind, "back", StringComparison.Ordinal) ? "‹" : item.Title ?? "•",
+            Text = isBack ? "‹" : item.Title ?? "•",
+            // Address the button by its tap id (back → a stable token) for screen readers + the E2E.
+            ContentDescription = isBack ? "rask-native-back" : item.Id ?? item.Title,
         };
 
         var id = item.Id;

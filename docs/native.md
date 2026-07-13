@@ -344,7 +344,9 @@ protected override Component? Render() =>
   curated member (`NativeIcon.Home`) or an escape hatch (`NativeIcon.Custom(sfSymbol, drawable)` /
   `NativeIcon.SfSymbol(...)` / `NativeIcon.Drawable(...)`). Routes are type-safe too (`Features.Routes.*`).
 - **Bar buttons** run their `OnClick` on the render thread and re-render, like any Rask callback. **Tabs**
-  navigate to their route; the page recomputes `Selected` from the current route on the next render.
+  navigate to their route; the page recomputes `Selected` from the current route on the next render. Each
+  projected bar view carries a stable **accessibility identifier** (the tab/button title, or
+  `rask-native-header`), so screen readers — and UI tests like the Appium on-device E2E — can address it.
 - **Bars render no HTML** — they are collected during the render walk (so their factories are DI-correct and
   callbacks wire to their owner); the last bar of a kind wins. Only the settled build's chrome is pushed, and
   an unchanged bar never re-pushes (no flicker on a counter tick).
@@ -389,8 +391,11 @@ sandbox, and real background execution — without giving up "the same component
    (Native + Local, in-process) and `samples/Rask.Example.Native.Server` (Native + Server, a thin shell
    over `Rask.Example.Server`). They serve the full showcase's assets on-device through the framework's
    [`NativeOriginAssets`](#serving-a-full-apps-assets). E2E is **Appium** (`tests/Rask.Native.Appium.Tests`):
-   it installs and drives the *real* app on an Android emulator / iOS simulator, switches into the WebView,
-   and asserts the showcase rendered with its scoped CSS + Bootstrap. **Android** runs per-PR in the Ubuntu
+   it installs and drives the *real* app on an Android emulator / iOS simulator. In the **WebView** context it
+   asserts the showcase rendered with its scoped CSS + Bootstrap; in the **native** context it asserts the
+   [native header/tab bar](#native-header--footer) projected to real platform bars and that **tapping a native
+   tab navigates the WebView** (the round trip through the bridge into the router, read back from
+   `document.location`). **Android** runs per-PR in the Ubuntu
    `native-appium` CI job (KVM emulator); **iOS** (XCUITest on a macOS simulator) runs nightly + on-demand
    in `native-ios-e2e.yml` — kept off the per-PR path because macOS minutes and the Microsoft.iOS↔Xcode SDK
    coupling make it too costly/fragile to gate every PR, the same nightly cadence MAUI uses for device UI
