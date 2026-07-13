@@ -189,6 +189,12 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **README refresh — a Rask-vs-Blazor scorecard, a wire-bytes chart, and a stale-number fix.** The `Why
+  Rask` section now leads with an at-a-glance performance scorecard (wire bytes, allocation/update,
+  retained heap, render hot path — sourced from the CI-enforced baselines) and a Mermaid bar chart of how
+  many × fewer bytes than Blazor each scenario ships. Corrected the stale "up to 66×" wire-bytes claim to
+  the current suite maximum, **56×** (Remove-100-rows, 37 B vs 2,080 B), and folded the package and
+  documentation tables into collapsible `<details>` so the page scans faster.
 - **Showcase restructure: a "Mobile & devices" guide group, a Welcome-free root, and a Bootstrapped
   Todos app.** The on-site `GuideCatalog` now groups **Browser APIs**, **Mobile & PWA**, and the
   newly-surfaced **Native (iOS/Android)** guide (`docs/native.md`, previously embedded but never listed)

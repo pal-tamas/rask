@@ -82,11 +82,29 @@ is plain, refactor-safe, IDE-native C#, and the *same* component runs server-ren
 client-side on WebAssembly. One codebase; pick the host per project.
 
 It also treats the network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter
-tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. In a 26-scenario head-to-head, Rask ships **fewer bytes on
-the wire than Blazor on every one** (typically 2–5×, up to 66×) and, since the diff path stopped materialising the page
-per update, allocates **~40× less per update** too. It even holds a **~30% leaner *retained* tree per mounted page** —
-a pure-element page component keeps a compact frame snapshot instead of an object-per-element graph — so Rask now leads
-on every measured axis. The full byte-for-byte numbers are in the
+tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. Rask ships **fewer bytes on the wire than Blazor on *every*
+scenario** in the head-to-head suite (typically 2–5×, up to **56×**), allocates **~40× less per update**, and — because
+a pure-element page keeps a compact frame snapshot instead of an object-per-element graph — even holds a **~30% leaner
+*retained* tree per mounted page**, the one axis Blazor used to lead. **Rask now leads on every measured axis.**
+
+| Per-render axis | Rask | Blazor | Rask advantage |
+|---|---:|---:|---|
+| **Bytes on the wire** — counter tick on a 24 KB page | **41 B** | 186 B | **4.5× fewer** |
+| **Allocated / update** | **1,072 B** | 42,972 B | **~40× less** |
+| **Retained heap / mounted page** — 200 rows | **158 KB** | 224 KB | **~30% leaner** |
+| **Render hot path** — counter | **598 ns** | 1,052 ns | **1.76× faster** |
+
+<sub>CI-enforced [Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md) — Apple M4, .NET 10. Every wire scenario is a Rask win; the widest gap is removing 100 rows (**37 B vs 2,080 B = 56×**).</sub>
+
+```mermaid
+xychart-beta
+    title "Bytes on the wire — how many × fewer than Blazor (taller is better)"
+    x-axis ["Counter / 24 KB page", "Deep-tree tick", "Deep mutation ×200", "Remove 100 rows"]
+    y-axis "× fewer than Blazor" 0 --> 60
+    bar [4.5, 12.6, 14.8, 56.2]
+```
+
+The full byte-for-byte table — including where and why each scenario lands — is in the
 **[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/)
@@ -118,6 +136,9 @@ Add `--auth` for a cookie/JWT-wired starter, or `--pwa` (WASM) for an installabl
 
 Pick one host package per project, then add opt-in packages as needed:
 
+<details>
+<summary><strong>Package → project type → entry-point API</strong> (click to expand)</summary>
+
 | Package                            | Project type                                                        | Entry-point API                                             |
 |------------------------------------|---------------------------------------------------------------------|-------------------------------------------------------------|
 | `Rask.Server`                      | `net10.0` ASP.NET                                                   | `services.AddRask()` + `app.UseRask<TApp>()`                |
@@ -130,6 +151,8 @@ Pick one host package per project, then add opt-in packages as needed:
 | `Rask.WebPush`                     | any backend (Server app or a WASM PWA's ASP.NET host)              | `services.AddRaskWebPush(...)` + inject `IWebPushSender`     |
 | `Rask.Cqrs`                        | any .NET app (standalone; Server, WASM, or non-Rask)               | `services.AddRaskCqrs()` + inject `IDispatcher`             |
 | `Rask.Testing`                     | your `*.Tests` project (references your app)                       | `RaskTest.Render(new MyComponent())` → assert on `.Html`    |
+
+</details>
 
 `Rask.Server`, `Rask.Wasm`, and `Rask.Native` pull in `Rask.Core` and the source generators transitively. Full setup,
 host trade-offs, and sub-path hosting are covered in **[getting started](docs/getting-started.md)** and the **[docs ↗](docs/)**.
@@ -152,6 +175,9 @@ host trade-offs, and sub-path hosting are covered in **[getting started](docs/ge
 
 Everything lives in **[`docs/`](docs/)** — start here, then dive into the topic you need:
 
+<details open>
+<summary><strong>The full guide map</strong></summary>
+
 | Guide | What it covers |
 |-------|----------------|
 | **[Getting started](docs/getting-started.md)** | Scaffold, first component, interactivity, routing — the end-to-end path. |
@@ -166,6 +192,8 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
 | **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |
 | **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** | How the runtime works under the hood. |
+
+</details>
 
 ## 📋 Status
 
