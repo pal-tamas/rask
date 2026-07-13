@@ -196,6 +196,13 @@ jobs:
         # launches this prebuilt DLL when it's present and only publishes on demand as a local-dev fallback.
         run: dotnet publish samples/Rask.Example.Server -c Release --no-build --no-restore --nologo
 
+      - name: Publish Playground sample (served by the PlaygroundExampleTests shard)
+        # The playground shard's fixture serves the *published* untrimmed WASM bundle (Roslyn compiles Rask
+        # C# in the browser, so it can't be trimmed). WasmBuildNative=false uses the prebuilt .NET-WASM
+        # runtime (skips the flaky emscripten relink), matching the other WASM fixtures. Published into the
+        # default output, packaged by the tar step below and served by the shard's static host.
+        run: dotnet publish samples/Rask.Example.Playground -c Release --no-restore -p:WasmBuildNative=false --nologo
+
       - name: Package build output
         # Tar every bin/ and obj/: the shards need the built test + sample assemblies, the published
         # WASM wwwroot bundles the WASM fixtures serve, the published Server host the two server shards
@@ -228,6 +235,7 @@ jobs:
           - WasmExampleTests
           - StandaloneWasmExampleTests
           - WasmSubPathExampleTests
+          - PlaygroundExampleTests
           - AuthExampleTests
           - JwtServerAuthExampleTests
           - WasmCookieAuthExampleTests
