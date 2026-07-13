@@ -1179,30 +1179,27 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        // Dialog opens centered over a dim backdrop; clicking the backdrop cancels (back to /todos).
-        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+        // BsModal opens centered over a .modal-backdrop; clicking the modal area outside the dialog cancels.
+        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
-        await Expect(Page.Locator(".todo-backdrop")).ToBeVisibleAsync(
+        await Expect(Page.Locator(".modal-backdrop")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
-        // The dialog auto-focuses on open (OnRenderedAsync → ElementRef.FocusAsync), so the
-        // keyboard primitive works with no prior click. This is deterministic on both hosts: the
-        // focus helper retries on the next frame, so a focus issued during a render (before the
-        // DOM patch on WASM) still lands once the <dialog> gains its `open` attribute.
-        await Expect(Page.Locator("dialog[open]")).ToBeFocusedAsync(
+        // BsModal's focus trap moves focus into the dialog on open (the .modal itself carries tabindex=-1),
+        // so the keyboard primitive works with no prior click.
+        await Expect(Page.Locator(".modal.show")).ToBeFocusedAsync(
             new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
-        // Escape closes the focused dialog: OnKeyDown on the <dialog> routes Escape to cancel.
+        // Escape closes the modal: the runtime focus trap routes Escape to the dismiss target (OnClose → cancel).
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        // Reopen, then dismiss via a backdrop click.
+        // Reopen, then dismiss via the Cancel button (BsModal's backdrop/close-button dismiss mechanics are
+        // covered by the Bootstrap modal demo E2E; here we just need a reliable route-driven close).
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
-        await Expect(Page.Locator("dialog[open]")).ToBeVisibleAsync(
+        await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
-        // Click a corner — the backdrop's centre is covered by the centered dialog.
-        await Page.Locator(".todo-backdrop").ClickAsync(
-            new LocatorClickOptions { Position = new Position { X = 8, Y = 8 } });
+        await Page.Locator(".modal button:has-text('Cancel')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         // Reopen for the rest of the flow.
