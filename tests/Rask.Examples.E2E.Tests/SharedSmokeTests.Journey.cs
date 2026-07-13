@@ -44,8 +44,10 @@ public abstract partial class SharedSmokeTests
         // Boot the shell once. NavigateToAsync("/") is a real GET on the SPA-fallback hosts and the
         // /index.html shell load on StandaloneWasm; from here the walk stays in-SPA via the sidebar.
         await NavigateToAsync("/");
-        await Expect(Page.Locator("h1.display-5"))
-            .ToContainTextAsync("The Rask framework",
+        // Guides-first: "/" is the guides index now (the Welcome landing page is gone); its PageHeader
+        // renders an <h1 class="h2">Guides</h1>.
+        await Expect(Page.Locator("main h1.h2"))
+            .ToContainTextAsync("Guides",
                 new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
 
         // Plant a sentinel on window — every in-SPA nav below must preserve it (proves no full
@@ -1209,7 +1211,7 @@ public abstract partial class SharedSmokeTests
             new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
         // Empty submit → [Required].
         await Page.Locator("button:has-text('Add')").ClickAsync();
-        await Expect(Page.Locator(".text-danger.small")).ToContainTextAsync("Title is required",
+        await Expect(Page.Locator(".invalid-feedback")).ToContainTextAsync("Title is required",
             new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
         await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
         await Page.Locator("button:has-text('Add')").ClickAsync();
@@ -1314,11 +1316,11 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
-        // "Back to welcome" is an in-session nav to "/" — returns us to a known page so the journey
+        // "Back to guides" is an in-session nav to "/" — returns us to a known page so the journey
         // can continue, and proves recovery from the not-found state.
-        await Page.Locator("main button:has-text(\"Back to welcome\")").ClickAsync();
-        await Expect(Page.Locator("h1.display-5")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("main button:has-text(\"Back to guides\")").ClickAsync();
+        await Expect(Page.Locator("main h1.h2")).ToHaveTextAsync("Guides",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
     }
 
     // ---- unusual user activity -----------------------------------------------------------------
@@ -1402,8 +1404,8 @@ public abstract partial class SharedSmokeTests
             // WasmAppHost serves only /index.html; a reload there must always boot the runtime.
             await Page.GotoAsync("/index.html");
             await Page.ReloadAsync();
-            await Expect(Page.Locator("h1.display-5"))
-                .ToContainTextAsync("The Rask framework",
+            await Expect(Page.Locator("main h1.h2"))
+                .ToContainTextAsync("Guides",
                     new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
         }
 
@@ -1496,7 +1498,7 @@ public abstract partial class SharedSmokeTests
 
         // Memory: a stress loop of in-SPA navigations must not balloon the JS heap.
         var baseline = await SampleJsHeapAsync();
-        var labels = new[] { "Composition", "Getting started", "JavaScript interop", "Routing", "Welcome" };
+        var labels = new[] { "Composition", "Getting started", "JavaScript interop", "Routing", "Browser APIs" };
         for (var i = 0; i < 6; i++)
         {
             foreach (var label in labels)
@@ -1544,7 +1546,7 @@ public abstract partial class SharedSmokeTests
         // the click-interceptor + fragment path. The Routing guide is a long page and its last section
         // (#not-found-and-auth-gating, an AutoIdentifiers heading anchor) sits well below the fold, so
         // reaching it must move the scroll.
-        await SideAsync("Welcome", "The Rask framework", "h1.display-5");
+        await SideAsync("All guides", "Guides");
         await Page.EvaluateAsync(@"() => {
             const a = document.createElement('a');
             a.id = '__rask_anchor_probe';

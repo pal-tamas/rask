@@ -148,6 +148,13 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Showcase restructure: a "Mobile & devices" guide group, a Welcome-free root, and a Bootstrapped
+  Todos app.** The on-site `GuideCatalog` now groups **Browser APIs**, **Mobile & PWA**, and the
+  newly-surfaced **Native (iOS/Android)** guide (`docs/native.md`, previously embedded but never listed)
+  under one **Mobile & devices** section. The redundant Welcome landing page is gone — the guides index
+  is served at `/`, the brand/404/native-tab links point there, and the sample `Todos` screen is migrated
+  off raw `Ul`/`Li`/`Input` + Bootstrap class strings onto `Rask.Bootstrap` primitives
+  (`BsListGroup`/`BsListGroupItem`/`BsCheck`/`BsInput`). Sample + docs only; no framework API change.
 - **Renamed the flash-message API to "toast" (BREAKING, pre-1.0).** The transient consumed-once
   messaging types are renamed to match the visual metaphor Rask already renders (`BsToast`): `IFlash` →
   `IToaster`, `Flash` → `Toaster`, `FlashMessage` → `ToastMessage`, `FlashLevel` → `ToastLevel`,

@@ -15,7 +15,6 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
         // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.HomePage(), "Welcome", "bi-house", "Start", null),
         (Features.Routes.TodosPage(), "Todos", "bi-check2-square", "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
@@ -64,7 +63,7 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
                 OnClick: () => _drawerOpen = !_drawerOpen)[
                 BsIcon(Name: _drawerOpen ? BsIconName.XLg : BsIconName.List)
             ],
-            NavLink(Href: Features.Routes.HomePage(), ActiveClass: "",
+            NavLink(Href: Features.Routes.GuidesIndexPage(), ActiveClass: "",
                 Class: Bs.Join("navbar-brand", Font.Semibold, Display.InlineFlex(), Flex.Align(BsAlign.Center),
                     Flex.Gap(2)))[
                 RaskLogo.Mark(24, "brandBolt"),

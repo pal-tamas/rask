@@ -5,9 +5,9 @@ using Rask.Example.Shared.Features;
 namespace Rask.Example.Shared;
 
 // The guides index rendered as grouped cards (one card per GuideCatalog entry, grouped by category in
-// GroupOrder). Shared by the landing page (HomePage) and the Guides index (GuidesIndexPage) so the two
-// stay identical — the guides-first showcase leads with these on "/". Built with component factories, so
-// call it from inside a render (a LiveRenderContext is required).
+// GroupOrder). Rendered by the Guides index (GuidesIndexPage), which is the site root "/" — the
+// guides-first showcase leads with these cards. Built with component factories, so call it from inside a
+// render (a LiveRenderContext is required).
 public static class GuideCards
 {
     public static IEnumerable<Component> Render()

@@ -36,11 +36,14 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
     // so typing in the dialog input won't clobber what the user just typed.
     protected override void OnPropsChanged() => _form.Title = EditingItem?.Title ?? "";
 
+    // The list route has a generated type-safe URL (Routes.TodosPage() → "/todos"); the /new and
+    // /{id}/edit dialog routes are secondary [Route] templates on this same page, which the generator
+    // doesn't emit a formatter for, so those two stay as string paths.
     private void OpenAdd() => nav.NavigateTo("/todos/new");
 
     private void OpenEdit(TodoItem item) => nav.NavigateTo($"/todos/{item.Id}/edit");
 
-    private void Cancel() => nav.NavigateTo("/todos");
+    private void Cancel() => nav.NavigateTo(Routes.TodosPage());
 
     private void Save(TodoForm m)
     {
@@ -54,7 +57,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
             item.Title = title;
         }
 
-        nav.NavigateTo("/todos");
+        nav.NavigateTo(Routes.TodosPage());
     }
 
     private void Delete(TodoItem item) => _todos.Remove(item);
@@ -74,12 +77,9 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
             ],
             _todos.Count == 0
                 ? Div(Class: "text-muted small")["No todos yet — click \"New todo\" to add one."]
-                : Ul(Class: "list-group")[
-                    _todos.Select(item => Li(Key: item.Id, Class: "list-group-item d-flex align-items-center gap-2")[
-                        Input(
-                            () => item.Completed,
-                            Id: $"todo-done-{item.Id}",
-                            Class: "form-check-input mt-0"),
+                : BsListGroup()[
+                    _todos.Select(item => BsListGroupItem(Key: item.Id, Class: "d-flex align-items-center gap-2")[
+                        BsCheck(() => item.Completed, Id: $"todo-done-{item.Id}", Class: "mb-0"),
                         Span(Class: item.Completed ? "todo-title completed" : "todo-title")[item.Title],
                         BsButton(Color: BsColor.Secondary, Outline: true, Size: BsSize.Sm, OnClick: () => OpenEdit(item))[
                             BsIcon(Name: BsIconName.Pencil)
@@ -134,9 +134,6 @@ public sealed class TodoFormDialog : Component
     public Callback<TodoForm> OnSave { get; set; }
 #pragma warning restore CS8618
 
-    private static Component FieldError(IReadOnlyList<string> msgs) =>
-        [.. msgs.Select((m, i) => Div(Key: i, Class: "text-danger small mt-1")[m])];
-
     // Move focus into the dialog the moment it opens (false → true), so Escape closes it without a
     // prior click and a keyboard user lands inside the form. OnRenderedAsync runs after the DOM is
     // patched, so the ref resolves to the live element.
@@ -169,11 +166,9 @@ public sealed class TodoFormDialog : Component
                 H5(Class: "mb-3")[IsAdding ? "Add todo" : "Edit todo"],
                 Form(Model, OnSave, Class: "vstack gap-3")[
                     DataAnnotationsValidator(),
-                    Div()[
-                        Label("todo-title", Class: "form-label small mb-1")["Title"],
-                        Input(() => Model.Title, Id: "todo-title", Class: "form-control"),
-                        ValidationMessage(() => Model.Title, FieldError)
-                    ],
+                    // BsInput renders its own <label> + input + Bootstrap .invalid-feedback from the
+                    // EditContext, so the raw Label/Input/ValidationMessage trio collapses to one call.
+                    BsInput(() => Model.Title, Id: "todo-title", Label: "Title"),
                     Div(Class: "d-flex justify-content-end gap-2")[
                         BsButton(Color: BsColor.Secondary, Outline: true, OnClick: OnCancel)["Cancel"],
                         BsButton(Type: "submit", Color: BsColor.Primary)[
