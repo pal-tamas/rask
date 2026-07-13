@@ -62,11 +62,15 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Build the iOS-simulator showcase .app
-        # Full build (NOT -t:Compile) to produce a runnable simulator bundle. ValidateXcodeVersion=false
-        # tolerates the Microsoft.iOS <-> runner-Xcode drift; no code signing is needed for the simulator.
+        # Debug (NOT Release), full build (NOT -t:Compile) to produce a runnable simulator bundle. Debug is
+        # right for a functional Appium E2E: the simulator runs under the Mono interpreter, so this skips
+        # both the ILLink trimmer and AOT — cutting a ~35-min Release build to a couple of minutes and
+        # sidestepping the Microsoft.iOS <-> Xcode SDK coupling (MT0180) that only the trimmer trips. This
+        # mirrors the local `-t:Run` inner loop. ValidateXcodeVersion=false tolerates any residual Xcode
+        # drift; simulator apps need no code signing. (Release/AOT trim-cleanliness is proven by Rask.Example.Wasm.)
         run: >-
           dotnet build samples/Rask.Example.Native/Rask.Example.Native.csproj
-          -c Release -f net10.0-ios
+          -c Debug -f net10.0-ios
           -p:RaskNativeHeads=true
           -p:RuntimeIdentifier=iossimulator-arm64
           -p:ValidateXcodeVersion=false
@@ -74,7 +78,7 @@ jobs:
       - name: Resolve the built .app path
         # Publish the absolute .app path to the job env so it reaches `dotnet test` (AppiumEnv.IosApp).
         run: |
-          APP=$(find "$PWD/samples/Rask.Example.Native/bin/Release/net10.0-ios/iossimulator-arm64" -maxdepth 2 -name '*.app' | head -1)
+          APP=$(find "$PWD/samples/Rask.Example.Native/bin/Debug/net10.0-ios/iossimulator-arm64" -maxdepth 2 -name '*.app' | head -1)
           test -n "$APP" || { echo "No .app produced by the iOS-simulator build"; exit 1; }
           echo "Resolved .app: $APP"
           echo "RASK_APPIUM_IOS_APP=$APP" >> "$GITHUB_ENV"
