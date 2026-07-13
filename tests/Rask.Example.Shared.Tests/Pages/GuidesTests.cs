@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using Rask.Example.Shared;
 using Rask.Example.Shared.Features;
 using Rask.Example.Shared.Tests.Infrastructure;
@@ -92,10 +93,13 @@ public sealed class GuidesTests
         var html = new GuidesIndexPage().ToHtml();
         foreach (var group in GuideCatalog.GroupOrder)
         {
-            Assert.Contains($">{group}<", html);
+            // Group headings are Text-encoded (e.g. "Mobile & devices" → "Mobile &amp; devices").
+            Assert.Contains($">{HtmlEncoder.Default.Encode(group)}<", html);
         }
 
         Assert.Contains("Getting started", html);
         Assert.Contains("href=\"/guides/routing\"", html);
+        // The Native guide (docs/native.md) is surfaced under the Mobile & devices group.
+        Assert.Contains("href=\"/guides/native\"", html);
     }
 }

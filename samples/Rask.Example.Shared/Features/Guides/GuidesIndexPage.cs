@@ -3,9 +3,10 @@ using Rask.Core.Routing;
 
 namespace Rask.Example.Shared.Features;
 
-// The Guides landing page: the repo's user guides (docs/*.md) rendered on-site, grouped as cards.
-// Each card links to /guides/{slug}, where GuidePage renders the markdown with Markdig.
-[Route("guides")]
+// The site root: the repo's user guides (docs/*.md) rendered on-site, grouped as cards. Guides-first, so
+// this is served at "/" (the old Welcome landing page is gone). Each card links to /guides/{slug}, where
+// GuidePage renders the markdown with Markdig.
+[Route("")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed class GuidesIndexPage : Component
 {

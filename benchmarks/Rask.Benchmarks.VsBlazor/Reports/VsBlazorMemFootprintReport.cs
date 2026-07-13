@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Components;
 using Rask.Benchmarks.VsBlazor.Components;
 using Rask.Benchmarks.VsBlazor.Infrastructure;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Benchmarks.VsBlazor.Reports;
 
@@ -118,7 +120,9 @@ internal static class VsBlazorMemFootprintReport
 
     private static void ReportFootprintLargePage()
     {
-        var raskPerTree = MeasureRaskFootprint(() => LargePageWithCounter.BuildRask(0));
+#pragma warning disable RASK014 // benchmark-internal component, constructed directly
+        var raskPerTree = MeasureRaskFootprint(() => new RaskLargePage());
+#pragma warning restore RASK014
         var blazorPerTree = MeasureBlazorFootprint(renderer => () =>
             renderer.RenderAsRootAndMeasure<LargePageWithCounter.BlazorLargePageWithCounter>(
                 CounterParams(0)));
@@ -134,7 +138,9 @@ internal static class VsBlazorMemFootprintReport
             order[i] = i;
         }
 
-        var raskPerTree = MeasureRaskFootprint(() => KeyedList.BuildRask(order));
+#pragma warning disable RASK014 // benchmark-internal component, constructed directly
+        var raskPerTree = MeasureRaskFootprint(() => new RaskKeyedListPage());
+#pragma warning restore RASK014
         var blazorPerTree = MeasureBlazorFootprint(renderer => () =>
             renderer.RenderAsRootAndMeasure<KeyedList.BlazorKeyedList>(
                 ParameterView.FromDictionary(new Dictionary<string, object?>
@@ -145,22 +151,43 @@ internal static class VsBlazorMemFootprintReport
         EmitFootprintRow("KeyedList_100Rows", raskPerTree, blazorPerTree);
     }
 
-    // Build + RenderAsLiveRoot M Rask trees, retaining each so the live heap holds the
-    // whole component graph + its LiveState.
-    private static long MeasureRaskFootprint(Func<Component> buildRoot)
+    // Retained-representation-per-page, the production shape and apples-to-apples with the Blazor
+    // side (a ComponentBase whose retained cost is its RenderTreeFrame[]). Each page is a user
+    // component (what a real Rask page is) rendered once WITH a frame sink active, so Phase B's
+    // clean-subtree cache kicks in: the page snapshots its rendered subtree as a compact RenderFrame
+    // span on its LiveState and RELEASES the Element object graph. We retain only the page components
+    // (holding those frame spans) — the throwaway sink/StringBuilder are dropped before measuring, the
+    // same way the old measurement retained only the element graph, so the delta is a like-for-like
+    // "what does a mounted page cost" comparison, now frames instead of a heap-object-per-element tree.
+    private static long MeasureRaskFootprint(Func<Component> buildBody)
     {
         var roots = new List<Component>(Roots);
         var before = StableHeap();
-        for (var i = 0; i < Roots; i++)
-        {
-            var root = buildRoot();
-            _ = root.RenderAsLiveRoot();
-            roots.Add(root);
-        }
-
+        // Render in a separate frame so the transient sink + StringBuilder fall out of scope and are
+        // reclaimed by StableHeap()'s forced GC before we measure — only the retained page components
+        // (each now holding a compact frame span in place of its Element graph) count toward the delta.
+        RenderFootprintPagesInto(roots, buildBody);
         var after = StableHeap();
         GC.KeepAlive(roots);
         return (after - before) / Roots;
+    }
+
+    private static void RenderFootprintPagesInto(List<Component> roots, Func<Component> newPage)
+    {
+        var sink = new FrameWriter();
+        var sb = new StringBuilder();
+        for (var i = 0; i < Roots; i++)
+        {
+            var page = newPage();
+            sink.Reset();
+            sb.Clear();
+            using (FrameSinkScope.Push(sink))
+            {
+                HtmlSerializer.Serialize(page, sb);
+            }
+
+            roots.Add(page);
+        }
     }
 
     // Render M Blazor roots into ONE renderer, retaining them via the renderer's root-component

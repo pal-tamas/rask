@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK033 — prefer the generated route URL over a hardcoded path for internal navigation.** A new
+  analyzer (Warning) flags a string literal passed to internal navigation — `Navigator.NavigateTo("…")`
+  or any `RouteUrl` slot (`NavLink`/`BsNavItem`/`NativeTab` `Href:`/`To:`, via the `string → RouteUrl`
+  implicit conversion) — **only** when the path maps to a page's generated parameterless `Routes.<Page>()`
+  factory. External URLs (`RouteUrl.External`, `https://…`), parameterised routes (`/users/42`), and
+  secondary `[Route]` templates with no formatter (`/todos/new`) are left alone. Rename or remove the
+  `[Route]` and the string is a silent dead link that still compiles, whereas `Routes.<Page>()` is a
+  compile error — so the analyzer keeps type-safe navigation honest. Documented in `docs/diagnostics.md`;
+  the sample apps' internal-nav call sites were converted to `Routes.*()`.
 - **Live in-browser playground.** A new `samples/Rask.Example.Playground` WASM sub-app, published to GitHub
   Pages at `/playground/` next to the showcase (linked from the showcase navbar), where you write Rask
   component C# and see it compile & render **live in the browser** — no server. Because Rask components are
@@ -20,7 +29,27 @@ them until tagged releases begin.
   always runs interpreted. The compile pipeline (`PlaygroundCompiler`) is unit-tested on the desktop
   runtime, and a Playwright journey compiles the starter and drives its counter end-to-end. See
   [docs/playground.md](docs/playground.md).
+- **A mounted page now costs ~30% *less* retained memory than Blazor — the one axis Blazor led is
+  overtaken.** A pure-element, handler-free user component (the bulk of a real page — rows, cards,
+  layout, text) no longer retains its rendered `Element` object graph between renders. On first render
+  it snapshots its subtree as a compact `LeanFrame` span on its `LiveState` and **releases the element
+  tree**; a clean re-render replays the span (`HtmlSerializer.ReplayLeanFrames` reconstructs
+  byte-identical HTML and re-writes the frame stream in one pass) instead of re-walking a
+  heap-object-per-element tree. The retained snapshot uses a slimmed 24-byte frame (the held copy drops
+  the per-render HTML offsets and the diff-only component ref, which replay regenerates) rather than the
+  full ~40-byte render frame, and the array is reused across re-renders — so per-update allocation is
+  unchanged (a stateful page still allocates ~840 B/update, **50× less than Blazor**). Safety is
+  conservative: a subtree is cached only when it has no nested user component (one could go dirty
+  independently — replaying the parent would skip it), no event handlers (handler ids are positional),
+  no page-level `Key`, no `Head` contribution, and isn't reading ambient state — otherwise it keeps the
+  element-walk path, unchanged. The diff codec is untouched (component subtrees stay transparent in the
+  flat frame stream; the span is tracked as a plain index range). Measured on the retained-footprint
+  report against a real Blazor `ComponentBase`: the 200-row page drops from ~223 KB to **158,606 B/tree
+  vs Blazor 223,888 B (Rask 29% less)** and the 100-row keyed list to **42,168 B vs Blazor 60,107 B
+  (30% less)** — so Rask now beats Blazor on *every* measured axis (wire bytes, per-update allocation,
+  and retained heap). Wire output and diff payloads are byte-identical.
 - **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
+  render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell` Any component can now branch its
   render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
   (`Web`/`Native`), `HostEngine` (`Server`/`Wasm`/`InProcess`), `HostPlatform` (`None`/`IOS`/`Android`) — plus
   the `IsNative`/`IsServer`/`IsWasm`/`IsIOS`/`IsAndroid` conveniences, so one page can render a web `BsNavbar`
@@ -160,6 +189,15 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Showcase restructure: a "Mobile & devices" guide group, a Welcome-free root, and a Bootstrapped
+  Todos app.** The on-site `GuideCatalog` now groups **Browser APIs**, **Mobile & PWA**, and the
+  newly-surfaced **Native (iOS/Android)** guide (`docs/native.md`, previously embedded but never listed)
+  under one **Mobile & devices** section. The redundant Welcome landing page is gone — the guides index
+  is served at `/`, the brand/404/native-tab links point there, and the sample `Todos` screen is migrated
+  fully onto `Rask.Bootstrap`: primitives (`BsListGroup`/`BsListGroupItem`/`BsCheck`/`BsInput`/`BsModal` for
+  the add/edit dialog — dropping the hand-rolled `<dialog>` + focus/Escape plumbing) and typed utility
+  helpers (`Bs.Join(Display.Flex(), Flex.Justify(…), …)`) in place of raw Bootstrap class strings. Sample +
+  docs only; no framework API change.
 - **Renamed the flash-message API to "toast" (BREAKING, pre-1.0).** The transient consumed-once
   messaging types are renamed to match the visual metaphor Rask already renders (`BsToast`): `IFlash` →
   `IToaster`, `Flash` → `Toaster`, `FlashMessage` → `ToastMessage`, `FlashLevel` → `ToastLevel`,
@@ -201,6 +239,29 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **A submit button inside a click-handler element didn't submit the form on WASM.** On the WASM client
+  (`rask.wasm.js`), a `<button type="submit">` nested in an element carrying a `data-rask-on-click` handler
+  — e.g. `BsModal`'s `.modal-dialog` click-shield — had its native form submission cancelled by the
+  ancestor's `preventDefault`, so a `Form<T>` inside a `BsModal` never submitted (and never validated). The
+  server client (`rask.js`) already carved this out; the fix ports the same submit/reset-button guard to the
+  WASM client so the two dialects match. Surfaced by the Bootstrapped Todos add/edit dialog.
+- **A bound wrapper form control used outside a `Form` didn't re-render sibling derived UI.** A two-way
+  bound `Bs*` control (`BsCheck`/`BsInput`/`BsSelect`/pickers/groups) rendered outside a `Form<T>` re-rendered
+  only itself, so a sibling whose class/text derived from the same model property went stale on change — most
+  visibly a `BsCheck(() => item.Done)` in a list next to a `Span` styled from `item.Done`. A raw inline core
+  `Input` never had the bug (its handler owner is the authoring page). The binding-owner resolution
+  (`IFormControl<T>.RegisterValidator`) now falls back to the control's **creating component** when the bind
+  expression's root isn't itself a component (e.g. a loop local `() => item.Field`), recorded weakly at
+  create time (`BindingConsumerRegistry`, keyed by the control — no per-render-node field added). One core
+  change fixes every wrapper control and any custom `IFormControl<T>`, in and out of a `Form`, with no
+  `StateHasChanged`/`AfterBind` on the user surface.
+- **Playground editor lost its syntax colouring after the first Run.** Monaco injects its theme colours as
+  a `<style class="monaco-colors">` in `<head>`; the live-diff morph reconciles `<head>` on every re-render
+  and removes any child not marked `data-rask-managed`, so the first re-render (e.g. after clicking Run)
+  stripped it and every token fell back to the inherited body colour — a faint, uncoloured editor. The
+  playground now stamps Monaco's head-injected `<style>`/`<link>` nodes as `data-rask-managed` (the same
+  marker the framework uses for its own scoped-asset head tags) and keeps a `MutationObserver` on `<head>`
+  so any it adds later stays protected. An E2E assertion guards it.
 - **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
   with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
   'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when

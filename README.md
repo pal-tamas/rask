@@ -84,9 +84,10 @@ client-side on WebAssembly. One codebase; pick the host per project.
 It also treats the network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter
 tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. In a 26-scenario head-to-head, Rask ships **fewer bytes on
 the wire than Blazor on every one** (typically 2–5×, up to 66×) and, since the diff path stopped materialising the page
-per update, allocates **~40× less per update** too. The honest tradeoff — Blazor keeps a leaner *retained* tree per
-mounted session — and the full byte-for-byte numbers are in the
-**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)** (which calls out where Blazor wins).
+per update, allocates **~40× less per update** too. It even holds a **~30% leaner *retained* tree per mounted page** —
+a pure-element page component keeps a compact frame snapshot instead of an object-per-element graph — so Rask now leads
+on every measured axis. The full byte-for-byte numbers are in the
+**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/)
 are the real tour — this README is just the front door.**
@@ -160,8 +161,8 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **[Authentication](docs/authentication.md)** · **[Data access](docs/data-access.md)** · **[HTTP & files](docs/http-and-files.md)** · **[CQRS](docs/cqrs.md)** | Cookie/JWT on Server & WASM; EF Core + SQLite; a DI'd `HttpClient` + file upload/download; source-generated CQRS. |
 | **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** · **[AOT](docs/aot.md)** | 43 typed Web-API wrappers; installable offline PWAs; native iOS/Android apps; opt-in full WASM AOT. |
-| **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; unit + E2E. |
+| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 43 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
+| **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; opt-in full WASM AOT; unit + E2E. |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
 | **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |
 | **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** | How the runtime works under the hood. |

@@ -22,7 +22,7 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
     // reached by clicking the sidebar directly); the entry documents what the standalone host reaches.
     private static readonly Dictionary<string, string> SidebarLabels = new()
     {
-        ["/"] = "Welcome",
+        ["/"] = "All guides",
     };
 
     private readonly StandaloneWasmAppFixture _app;
@@ -48,8 +48,8 @@ public sealed class StandaloneWasmExampleTests : SharedSmokeTests
         if (!_shellLoaded)
         {
             await Page.GotoAsync("/index.html");
-            await Expect(Page.Locator("h1.display-5"))
-                .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 60_000 });
+            await Expect(Page.Locator("main h1.h2"))
+                .ToContainTextAsync("Guides", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
             _shellLoaded = true;
         }
 
