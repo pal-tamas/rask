@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Rask WASM marker: gates build/Rask.Wasm.targets (wwwroot staging + scoped-asset bake). -->
+    <RaskWasm>true</RaskWasm>
+    <!-- Fingerprint framework assets + fill the index.html import map / preload placeholders at publish
+         (cache-safe static-host redeploys), exactly like the showcase. -->
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+
+    <!-- The playground compiles user C# in the browser with Roslyn, which reads the shipped
+         _framework/*.wasm assemblies as metadata references. Trimming would strip members Roslyn needs to
+         see, so this app is deliberately UNTRIMMED — the one place in the repo that opts out. This also
+         keeps Roslyn's reflection-heavy code off the trim/AOT analysers, so those stay disabled here (the
+         showcase remains trim-full + zero-IL; this isolation is exactly why the playground is a separate
+         sub-app). ICU is still dropped: Roslyn and the playground format nothing culture-sensitive. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <InvariantGlobalization Condition=" '$(WasmBuildNative)' != 'false' ">true</InvariantGlobalization>
+    <!-- Ship managed assemblies as plain PE, not WebCIL. The in-browser compiler downloads the shipped
+         _framework assemblies and hands them to Roslyn as MetadataReferences, and Roslyn can only read a
+         PE/COFF image — it cannot parse the WebCIL wrapper the WASM SDK emits by default. -->
+    <WasmEnableWebcil>false</WasmEnableWebcil>
+
+    <!-- Full WASM AOT is pointless here: user code is Assembly.Load-ed at runtime and always runs
+         interpreted regardless, and AOT-compiling Roslyn would balloon publish time for no user benefit.
+         Guarded off the fast no-native build (-p:WasmBuildNative=false, the CI unit gate): the SDK forbids
+         RunAOTCompilation=false when WasmBuildNative is already false, so only set it otherwise. -->
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- Rask.Wasm references Rask.Core with PrivateAssets="all" (kept out of its nuspec), so it doesn't
+         flow transitively — reference it directly, as any Rask app that doesn't go through the showcase
+         shared library would. Microsoft.JSInterop likewise, for IJSRuntime in the editor interop. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <!-- Rask.Wasm also references Rask.Client with PrivateAssets="all" and needs it at runtime, so an app
+         referencing the host by ProjectReference (rather than the NuGet package) must pull it in directly. -->
+    <ProjectReference Include="..\..\src\Rask.Client\Rask.Client.csproj"/>
+    <PackageReference Include="Microsoft.JSInterop"/>
+    <!-- Roslyn, shipped to the browser (a normal reference, so Microsoft.CodeAnalysis.* land in
+         _framework and load at runtime). This is the ~15-20 MB the sub-app isolation exists to contain. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    <!-- Rask.Generators referenced BOTH ways: as an Analyzer so this app's own build gets the factories,
+         AND as a normal assembly (ReferenceOutputAssembly=true) so Rask.Generators.dll ships and the
+         in-browser compile can `new ComponentFactoryGenerator()` + run the analyzers for live RASK hints. -->
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="true"/>
+  </ItemGroup>
+
+</Project>

@@ -69,6 +69,25 @@ jobs:
       - name: Copy index.html to 404.html for SPA fallback
         run: cp "${{ steps.bundle.outputs.dir }}/index.html" "${{ steps.bundle.outputs.dir }}/404.html"
 
+      # The live playground is a separate WASM sub-app: it compiles Rask C# in the browser with Roslyn, so
+      # it ships untrimmed (Roslyn needs full assembly metadata as references) and is deliberately kept out
+      # of the size-tuned showcase bundle. Publish it under /<repo>/playground/ and fold its wwwroot into
+      # the same Pages artifact next to the showcase; the showcase navbar links out to it.
+      - name: Publish Rask.Example.Playground
+        run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/playground -o playground-publish
+
+      - name: Fold the playground into the Pages bundle
+        run: |
+          PLAYGROUND=playground-publish/wwwroot
+          if [ ! -d "$PLAYGROUND" ]; then
+            echo "Could not locate the published playground wwwroot at $PLAYGROUND" >&2
+            find playground-publish -maxdepth 3 -type d
+            exit 1
+          fi
+          cp -r "$PLAYGROUND" "${{ steps.bundle.outputs.dir }}/playground"
+          echo "--- playground/index.html <base> ---"
+          grep -i "<base" "${{ steps.bundle.outputs.dir }}/playground/index.html" || true
+
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
