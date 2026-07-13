@@ -842,6 +842,124 @@ public abstract class Component
         return Live.CachedRenderResult;
     }
 
+    // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
+    // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
+    // its HTML and frames directly from that span instead of re-walking (and retaining) an Element
+    // object graph. Returns true when it replayed; false when the component is dirty or was never
+    // cached, in which case the caller walks it normally (re-rendering, and possibly re-caching).
+    //
+    // The clean test mirrors RenderForLive's short-circuit: no prop/state change, no cache bypass, and
+    // no ambient-state read. A dirty component falls through so its fresh Render() runs; if it stays
+    // eligible afterwards it re-caches, otherwise it reverts to the element path transparently.
+    internal bool TryReplayCleanSubtree(StringBuilder sb, FrameWriter frames)
+    {
+        var cached = _live?.CachedFrames;
+        if (cached is null
+            || Live.PropsDirty || Live.StateDirty
+            || BypassRenderCache || _readsAmbientState)
+        {
+            return false;
+        }
+
+        // Re-emit the HTML and re-write the full frame stream (with fresh offsets) into the active
+        // writer in one pass — the replayed frames are identical to a fresh walk's, so the diff sees
+        // no change, and no Element object graph is touched.
+        HtmlSerializer.ReplayLeanFrames(cached.AsSpan(0, Live.CachedFrameCount), sb, frames);
+        return true;
+    }
+
+    // Phase B clean-subtree frame capture. Called right after a user component's subtree was walked
+    // and serialized into <paramref name="frames" /> (starting at <paramref name="frameStart" />). When
+    // the subtree is safe to replay from frames alone, snapshot its frame span and RELEASE the cached
+    // Element subtree (CachedRenderResult) so the object graph is collectible — the retained cost drops
+    // from the full element tree to a compact frame array. Safety requires:
+    //   * no nested user component (a nested component could go dirty independently; replaying the
+    //     parent's frames would skip its re-render and show stale content — <paramref name="hadNested" />),
+    //   * no event handlers (Rask reissues handler ids positionally each render, so a baked-in id in a
+    //     replayed span could collide with a sibling's — deferred to a stable-id follow-up),
+    //   * no Key (reconciliation identity can change without a re-render), no indexer Children, no Head
+    //     contribution (would be dropped on replay), not collecting native chrome, and cache-eligible
+    //     (no bypass / ambient-state read) — everything that would make a frame replay diverge from a walk.
+    internal void TryCacheCleanSubtree(
+        FrameWriter frames, int frameStart, bool hadNested, bool collectsNativeChrome)
+    {
+        var count = frames.Count - frameStart;
+        if (hadNested
+            || Key is not null
+            || Children is not null
+            || BypassRenderCache
+            || _readsAmbientState
+            || HeadInternal is not null
+            || collectsNativeChrome
+            || count <= 0
+            || SpanHasHandler(frames.WrittenSpan.Slice(frameStart, count)))
+        {
+            // This component just walked (first render or a dirty re-render) into something we won't
+            // cache — a nested component, a handler, nothing, etc. Any PRIOR snapshot (e.g. this
+            // component cached a pure-element "loading" state, then re-rendered into a component-bearing
+            // "loaded" state) is now stale, so drop it: otherwise a later clean re-render would replay the
+            // outdated subtree and revert the DOM. The element path (CachedRenderResult, set by
+            // RenderForLive this walk) stays intact.
+            if (_live is not null)
+            {
+                _live.CachedFrames = null;
+                _live.CachedFrameCount = 0;
+            }
+
+            return;
+        }
+
+        var span = frames.WrittenSpan.Slice(frameStart, count);
+
+        // Reuse the existing snapshot array when it still fits, so a component that re-renders every
+        // frame (e.g. a stateful counter page) re-captures with ZERO allocation — only a fresh or grown
+        // subtree allocates. Without this the per-update allocation win regresses by the snapshot size.
+        var snapshot = _live!.CachedFrames;
+        if (snapshot is null || snapshot.Length < count)
+        {
+            snapshot = new LeanFrame[count];
+        }
+
+        // Copy the lean fields; the held snapshot drops the per-render HTML offsets and diff-only
+        // component ref (replay regenerates offsets), so it retains ~24 B/node instead of ~40.
+        for (var i = 0; i < count; i++)
+        {
+            ref readonly var f = ref span[i];
+            snapshot[i] = new LeanFrame
+            {
+                Kind = f.Kind,
+                Name = f.Name,
+                Value = f.Value,
+                SubtreeLength = f.SubtreeLength,
+                SelfClosing = f.SelfClosing
+            };
+        }
+
+        Live.CachedFrames = snapshot;
+        Live.CachedFrameCount = count;
+        // Drop the Element object graph: a clean re-render now replays the frame span above.
+        Live.CachedRenderResult = null;
+    }
+
+    // A subtree carries an event handler when any attribute frame is a data-rask-on-* hook. Handler ids
+    // are reissued positionally each render, so a replayed span's baked-in id could collide with a
+    // sibling's — such a subtree keeps the element-walk path rather than being frame-cached.
+    private static bool SpanHasHandler(ReadOnlySpan<RenderFrame> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            ref readonly var f = ref span[i];
+            if (f.Kind == RenderFrameKind.Attribute
+                && f.Name is { } n
+                && n.StartsWith("data-rask-on-", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal T GetOrCreateChild<T>(
         Func<IServiceProvider, T> factory,
         IServiceProvider? services,
@@ -957,6 +1075,12 @@ public abstract class Component
     // root to re-execute Render() this frame" semantics — the same behavior
     // RenderAsLiveRootCore applies to its own root.
     internal void MarkDirtyForFrame() => Live.StateDirty = true;
+
+    // Test hooks for the Phase B clean-subtree frame cache: whether this component's rendered
+    // subtree was cached as frames, and whether it still retains its Element object graph. A cached
+    // component has the first true and the second false (the graph was released).
+    internal bool IsCleanSubtreeCachedForTest => _live?.CachedFrames is not null;
+    internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
 
     public Task StateHasChangedAsync()
     {
@@ -1718,6 +1842,16 @@ public abstract class Component
         public IRenderHandle? RenderHandle;
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
+
+        // Phase B clean-subtree frame cache. When a user component's rendered subtree is pure
+        // elements/text (no nested user components, no event handlers), we retain its RenderFrame
+        // span here and RELEASE CachedRenderResult, so the (large) Element object graph is collectible
+        // — a clean re-render replays these frames (+ EmitFromFrames) instead of re-walking elements.
+        // CachedFrames.Length may exceed CachedFrameCount (the array is a reused snapshot). It holds
+        // LeanFrames (~24 B) rather than full RenderFrames (~40 B) — a held snapshot never needs the
+        // per-render HTML offsets or the diff-only component ref, which replay regenerates.
+        public LeanFrame[]? CachedFrames;
+        public int CachedFrameCount;
         public int ChildPositions;
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
