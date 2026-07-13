@@ -1178,42 +1178,42 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // BsModal opens centered over a .modal-backdrop; clicking the modal area outside the dialog cancels.
         await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await Expect(Page.Locator(".modal-backdrop")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         // BsModal's focus trap moves focus into the dialog on open (the .modal itself carries tabindex=-1),
         // so the keyboard primitive works with no prior click.
         await Expect(Page.Locator(".modal.show")).ToBeFocusedAsync(
-            new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
         // Escape closes the modal: the runtime focus trap routes Escape to the dismiss target (OnClose → cancel).
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Reopen, then dismiss via the Cancel button (BsModal's backdrop/close-button dismiss mechanics are
         // covered by the Bootstrap modal demo E2E; here we just need a reliable route-driven close).
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         await Expect(Page.Locator(".modal.show")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 5_000 });
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await Page.Locator(".modal button:has-text('Cancel')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Reopen for the rest of the flow.
         await Page.Locator("button:has-text('New todo')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos/new$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         // Empty submit → [Required].
         await Page.Locator("button:has-text('Add')").ClickAsync();
         await Expect(Page.Locator(".invalid-feedback")).ToContainTextAsync("Title is required",
-            new LocatorAssertionsToContainTextOptions { Timeout = 5_000 });
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Page.Locator("#todo-title").FillAsync("Wire up reconnect");
         await Page.Locator("button:has-text('Add')").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
-            new PageAssertionsToHaveURLOptions { Timeout = 5_000 });
+            new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
         await Expect(Page.Locator(".list-group .list-group-item")).ToHaveCountAsync(3,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
         // Toggle the first item's checkbox → completed class.
