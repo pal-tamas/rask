@@ -15,7 +15,7 @@ namespace Rask.Native;
 ///     <see cref="AndroidBundledAssets" />). Create it, <c>SetContentView(webView.View)</c>, wire the session
 ///     (<c>RunLocalAsync</c>), then <see cref="LoadShell" />.
 /// </summary>
-public sealed class RaskAndroidWebView : INativeWebView
+public sealed partial class RaskAndroidWebView : INativeWebView, INativeChrome
 {
     /// <summary>The default app origin the shell + client + assets are served from.</summary>
     public const string DefaultOrigin = "https://appassets.rask/";
@@ -23,6 +23,7 @@ public sealed class RaskAndroidWebView : INativeWebView
     private readonly string _origin;
     private readonly Func<string, byte[]?> _readStaticFile;
     private readonly WebView _webView;
+    private readonly Context _context;
 
     /// <summary>The Android view to hand to <c>SetContentView</c>.</summary>
     public Android.Views.View View => _webView;
@@ -40,6 +41,7 @@ public sealed class RaskAndroidWebView : INativeWebView
     {
         _origin = origin;
         _readStaticFile = staticFileReader ?? AndroidBundledAssets.Read;
+        _context = context;
         _webView = new WebView(context);
         var settings = _webView.Settings;
         settings.JavaScriptEnabled = true;

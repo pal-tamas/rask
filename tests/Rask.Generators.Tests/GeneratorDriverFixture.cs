@@ -89,6 +89,10 @@ internal static class GeneratorDriverFixture
         // transitive framework reference, giving UseAuthentication / WebApplication as well).
         var raskServer = Assembly.Load("Rask.Server");
         refs.Add(MetadataReference.CreateFromFile(raskServer.Location));
+
+        // Rask.Native so the RASK032 analyzer test can reference the real native chrome components.
+        var raskNative = Assembly.Load("Rask.Native");
+        refs.Add(MetadataReference.CreateFromFile(raskNative.Location));
         return refs.ToImmutableArray();
     }
 

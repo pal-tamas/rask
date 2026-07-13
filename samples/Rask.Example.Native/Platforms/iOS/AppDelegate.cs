@@ -27,7 +27,9 @@ public class AppDelegate : UIApplicationDelegate
             webView.View.Inspectable = true;
         }
 
-        Window.RootViewController = new UIViewController { View = webView.View };
+        // Use ChromeView (the container with the native header/footer bars) instead of the bare WebView, so
+        // the NativeShowcaseApp's NativeHeader/NativeFooter project onto real UINavigationBar/UITabBar.
+        Window.RootViewController = new UIViewController { View = webView.ChromeView };
         Window.MakeKeyAndVisible();
 
         // Wire the in-process session BEFORE loading the shell so it's ready for the client's `ready`
@@ -48,6 +50,10 @@ public class AppDelegate : UIApplicationDelegate
         // native backends on host.Services BEFORE RunLocalAsync — the last registration wins.
         host.Services.AddSingleton<IShare>(_ => new NativeShare(() => Window?.RootViewController));
 
+        // Native header/footer chrome: the same RaskWkWebView instance is the INativeChrome backend, so the
+        // NativeShowcaseApp's NativeHeader/NativeFooter drive its UINavigationBar/UITabBar.
+        host.Services.AddSingleton<INativeChrome>(webView);
+
         // Serve the demo HttpClient's data/*.json fetches from the app's bundled assets (offline). This
         // AddSingleton overrides the plain-network HttpClient AddExampleServices registered.
         host.Services.AddSingleton(_ =>
@@ -56,7 +62,7 @@ public class AppDelegate : UIApplicationDelegate
                 BaseAddress = new Uri(RaskWkWebView.DefaultOrigin)
             });
 
-        _app = await host.RunLocalAsync<App>(webView);
+        _app = await host.RunLocalAsync<NativeShowcaseApp>(webView);
         webView.LoadShell();
     }
 

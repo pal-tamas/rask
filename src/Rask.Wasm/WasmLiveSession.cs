@@ -55,6 +55,9 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         }
     }
 
+    // Browser WebAssembly runtime — in-process in the browser page (shell stays Web, platform None).
+    protected override RenderEngine EngineCore => RenderEngine.Wasm;
+
     public void Dispose()
     {
         // Unsubscribe first so a late Changed can't fire OnUserChanged on the now-disposed _lock.

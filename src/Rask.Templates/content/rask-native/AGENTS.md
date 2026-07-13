@@ -19,7 +19,8 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
 - **Shared components** (`App.cs`, `HomePage.cs`, `Counter.cs`) compile for both `net10.0-ios` and
   `net10.0-android`. Keep platform-specific types OUT of them. `App.cs` pads `Body` by
   `env(safe-area-inset-*)` (paired with the `viewport-fit=cover` viewport meta) so content clears the
-  notch / status bar / home indicator — keep both together if you edit the shell.
+  notch / status bar / home indicator — keep both together if you edit the shell. `App.cs` also declares the
+  native header/footer bars (see "Native header & footer bars" below).
 - **Platform heads** live under `Platforms/iOS/` and `Platforms/Android/`. Each boots a
   `NativeAppHost`, calls `host.RunLocalAsync<App>(webView)`, and provides the `INativeWebView`
   implementation for its WebView (`WKWebView` on iOS, `android.webkit.WebView` on Android). Register app
@@ -38,6 +39,24 @@ https://github.com/pal-tamas/rask/tree/main/docs — native specifics: docs/nati
   (iOS `CLLocationManager`, Android `LocationManager`) under `Platforms/`; register your own the same way.
   Geolocation needs the location permission (already in `AndroidManifest.xml` / `Info.plist`; `MainActivity`
   requests the runtime grant). Further native backends (biometrics, push) are a framework work-in-progress.
+
+## Native header & footer bars
+- A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
+  `NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page shell
+  (`Doctype`/`Html`/`Head`/`Body`). `App.cs` shows the shape. The bars are ordinary factory-built components —
+  compose them in `Render()`, they are not magic base-class slots.
+- The native host projects the bars to **real platform bars** — a `UINavigationBar` + `UITabBar` on iOS, a top
+  bar + bottom tab bar on Android — and serializes the `NativeWebView`'s HTML into the WebView between them.
+  Build bars from `NativeBarButton` / `NativeTab` / `NativeBackButton` and type-safe `NativeIcon`s.
+- **Opt-in wiring (already done in the heads):** host `webView.ChromeView` (not `webView.View`) and register
+  the WebView head as `INativeChrome` on `host.Services` before `RunLocalAsync`. With no `INativeChrome`
+  registered the bars are inert (they render nothing; the WebView fills the screen) — fully backward compatible.
+- Tabs navigate their type-safe `To:` route; bar buttons run their `OnClick`. Put a native chrome component
+  **inside** the HTML (an element child, or inside `NativeWebView`'s content) and you get **RASK032** — bars
+  belong at the layout level, as siblings of `NativeWebView`.
+- Sharing an app across web + native? Branch with `IsNative` / `IsServer` / `IsWasm` / `IsIOS` / `IsAndroid`
+  (or `HostShell` / `HostEngine` / `HostPlatform`): compose the native tree under `IsNative`, return the plain
+  shell otherwise.
 
 ## Build & run (needs the iOS/Android SDK workloads)
 ```bash
