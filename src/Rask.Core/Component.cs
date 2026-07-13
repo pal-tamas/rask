@@ -861,13 +861,10 @@ public abstract class Component
             return false;
         }
 
-        var span = cached.AsSpan(0, Live.CachedFrameCount);
-        // Frames are in document order, so the first is the subtree's opening DOM frame (never an
-        // attribute) and carries the fragment's start offset. Rebase every offset to where this
-        // replay lands in the current render's HTML so the diff codec's ranges stay correct.
-        var htmlDelta = sb.Length - span[0].HtmlStart;
-        HtmlSerializer.EmitFromFrames(span, sb);
-        frames.CopyFrom(span, htmlDelta);
+        // Re-emit the HTML and re-write the full frame stream (with fresh offsets) into the active
+        // writer in one pass — the replayed frames are identical to a fresh walk's, so the diff sees
+        // no change, and no Element object graph is touched.
+        HtmlSerializer.ReplayLeanFrames(cached.AsSpan(0, Live.CachedFrameCount), sb, frames);
         return true;
     }
 
@@ -922,10 +919,24 @@ public abstract class Component
         var snapshot = _live!.CachedFrames;
         if (snapshot is null || snapshot.Length < count)
         {
-            snapshot = new RenderFrame[count];
+            snapshot = new LeanFrame[count];
         }
 
-        span.CopyTo(snapshot);
+        // Copy the lean fields; the held snapshot drops the per-render HTML offsets and diff-only
+        // component ref (replay regenerates offsets), so it retains ~24 B/node instead of ~40.
+        for (var i = 0; i < count; i++)
+        {
+            ref readonly var f = ref span[i];
+            snapshot[i] = new LeanFrame
+            {
+                Kind = f.Kind,
+                Name = f.Name,
+                Value = f.Value,
+                SubtreeLength = f.SubtreeLength,
+                SelfClosing = f.SelfClosing
+            };
+        }
+
         Live.CachedFrames = snapshot;
         Live.CachedFrameCount = count;
         // Drop the Element object graph: a clean re-render now replays the frame span above.
@@ -1819,8 +1830,10 @@ public abstract class Component
         // elements/text (no nested user components, no event handlers), we retain its RenderFrame
         // span here and RELEASE CachedRenderResult, so the (large) Element object graph is collectible
         // — a clean re-render replays these frames (+ EmitFromFrames) instead of re-walking elements.
-        // CachedFrames.Length may exceed CachedFrameCount (the array is a snapshot sized to the span).
-        public RenderFrame[]? CachedFrames;
+        // CachedFrames.Length may exceed CachedFrameCount (the array is a reused snapshot). It holds
+        // LeanFrames (~24 B) rather than full RenderFrames (~40 B) — a held snapshot never needs the
+        // per-render HTML offsets or the diff-only component ref, which replay regenerates.
+        public LeanFrame[]? CachedFrames;
         public int CachedFrameCount;
         public int ChildPositions;
         public Dictionary<(Type, int), Component>? Children;

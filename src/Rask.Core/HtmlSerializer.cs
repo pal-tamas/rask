@@ -69,55 +69,67 @@ internal static class HtmlSerializer
     }
 
     /// <summary>
-    ///     Reconstruct the HTML for a subtree directly from its captured
-    ///     <see cref="RenderFrame" /> span, byte-for-byte identical to what
-    ///     <see cref="Serialize(Component, StringBuilder)" /> produced when it emitted those
-    ///     frames. This is the clean-subtree replay path (Phase B): a component whose render
-    ///     did not change re-emits from its retained frame span instead of re-walking (and thus
-    ///     retaining) its Element object graph.
+    ///     Replay a clean component's retained <see cref="LeanFrame" /> subtree (Phase B): re-emit its
+    ///     HTML byte-for-byte identical to the original <see cref="Serialize(Component, StringBuilder)" />
+    ///     walk AND re-write the full <see cref="RenderFrame" /> stream (with fresh HTML offsets) into
+    ///     <paramref name="writer" />, in a single pass — so a component that did not change re-emits from
+    ///     a compact frame span instead of re-walking (and thus retaining) its Element object graph.
     ///     <para>
-    ///         The span must be a well-formed subtree: it starts at a DOM-structural frame
-    ///         (Element / Text / Raw / Doctype) and each Element frame's
-    ///         <see cref="RenderFrame.SubtreeLength" /> stays within the span. Attribute frames
-    ///         are the leading children of their Element (as <c>WriteAttributes</c> runs before
-    ///         children), so they are consumed by the Element case, never at top level. The span
-    ///         must NOT contain the shell tags (<c>head</c>/<c>body</c>) whose sentinel / runtime
-    ///         script are appended without frames — those live only in the always-dirty root and
-    ///         are never replayed from frames.
+    ///         The span must be a well-formed subtree: it starts at a DOM-structural frame (Element /
+    ///         Text / Raw / Doctype) and each Element frame's <see cref="LeanFrame.SubtreeLength" /> stays
+    ///         within the span. Attribute frames are the leading children of their Element (as
+    ///         <c>WriteAttributes</c> runs before children), consumed by the Element case, never at top
+    ///         level. The span must NOT contain the shell tags (<c>head</c>/<c>body</c>) whose sentinel /
+    ///         runtime script are appended without frames — those live only in the always-dirty root and
+    ///         are never cached.
     ///     </para>
     /// </summary>
-    internal static void EmitFromFrames(ReadOnlySpan<RenderFrame> frames, StringBuilder sb)
+    internal static void ReplayLeanFrames(ReadOnlySpan<LeanFrame> frames, StringBuilder sb, FrameWriter writer)
     {
         var i = 0;
         while (i < frames.Length)
         {
-            i = EmitFrame(frames, i, sb);
+            i = ReplayFrame(frames, i, sb, writer);
         }
     }
 
-    private static int EmitFrame(ReadOnlySpan<RenderFrame> frames, int i, StringBuilder sb)
+    private static int ReplayFrame(ReadOnlySpan<LeanFrame> frames, int i, StringBuilder sb, FrameWriter writer)
     {
         ref readonly var f = ref frames[i];
         switch (f.Kind)
         {
             case RenderFrameKind.Text:
-                // Text frames store the raw (un-encoded) value; re-encode on emit exactly as
-                // Serialize did. Adjacent text was coalesced into one frame at capture, and HTML
-                // encoding is per-char so the coalesced encode is byte-identical to the piecewise one.
+            {
+                // Text frames store the raw (un-encoded) value; re-encode on emit exactly as Serialize
+                // did. Adjacent text was coalesced into one frame at capture, and HTML encoding is
+                // per-char so the coalesced encode is byte-identical to the piecewise one.
+                var start = sb.Length;
                 AppendEncoded(sb, f.Name ?? string.Empty);
+                writer.Text(f.Name, start, sb.Length);
                 return i + 1;
+            }
 
             case RenderFrameKind.Raw:
+            {
+                var start = sb.Length;
                 sb.Append(f.Name);
+                writer.Raw(f.Name, start, sb.Length);
                 return i + 1;
+            }
 
             case RenderFrameKind.Doctype:
+            {
+                var start = sb.Length;
                 sb.Append("<!DOCTYPE html>");
+                writer.Doctype(start, sb.Length);
                 return i + 1;
+            }
 
             case RenderFrameKind.Element:
             {
                 var end = i + f.SubtreeLength;
+                var start = sb.Length;
+                var frameIdx = writer.OpenElement(f.Name!, f.Value, f.SelfClosing, start);
                 sb.Append('<').Append(f.Name);
 
                 // Leading Attribute frames = this element's attributes, in emit order.
@@ -133,11 +145,12 @@ internal static class HtmlSerializer
                         sb.Append('"');
                     }
 
+                    writer.Attribute(a.Name!, a.Value);
                     j++;
                 }
 
-                // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after
-                // the real attributes and before '>' / ' />'), not an Attribute frame.
+                // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after the
+                // real attributes and before '>' / ' />'), not an Attribute frame.
                 if (f.Value is not null)
                 {
                     sb.Append(" data-").Append(f.Value);
@@ -146,22 +159,24 @@ internal static class HtmlSerializer
                 if (f.SelfClosing)
                 {
                     sb.Append(" />");
+                    writer.CloseElement(frameIdx, sb.Length);
                     return end;
                 }
 
                 sb.Append('>');
                 while (j < end)
                 {
-                    j = EmitFrame(frames, j, sb);
+                    j = ReplayFrame(frames, j, sb, writer);
                 }
 
                 sb.Append("</").Append(f.Name).Append('>');
+                writer.CloseElement(frameIdx, sb.Length);
                 return end;
             }
 
             default:
-                // Attribute at top level (shouldn't happen for a well-formed subtree) or a
-                // Component marker (never emitted into the stream). Skip defensively.
+                // Attribute at top level (shouldn't happen for a well-formed subtree) or a Component
+                // marker (never emitted into the stream). Skip defensively.
                 return i + 1;
         }
     }
