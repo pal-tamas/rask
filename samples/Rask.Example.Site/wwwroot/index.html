@@ -1,0 +1,88 @@
+<!--
+  Rask.Example.Site — the marketing landing page, built as a Rask WASM app and served at the
+  GitHub Pages root. This shell is intentionally minimal: the App component is the source of
+  truth for the real <head> and <body>; the runtime imports main.js, boots dotnet, and morphs
+  the App's rendered HTML onto document.documentElement on first paint.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <!-- <base href> is rewritten to /<repo>/ by the framework's _RaskRewriteBaseHref target when
+         published with -p:RaskPathBase=/<repo>; keeps main.js and _framework/* resolving under the
+         Pages sub-path. -->
+    <base href="/"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Rask</title>
+    <!-- Asset-fingerprinting placeholders filled by Microsoft.NET.Sdk.WebAssembly at publish
+         (<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>). -->
+    <link rel="preload" id="webassembly"/>
+    <script type="importmap"></script>
+    <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%237c3aed'/%3E%3Cpath d='M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z' fill='%23fff'/%3E%3C/svg%3E"
+          rel="icon" type="image/svg+xml"/>
+    <style id="rask-scoped"></style>
+    <style>
+        /* Dark boot screen so there's no white flash before the (dark-first) app paints. */
+        .rask-boot {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+            color: #c4b5fd;
+            background: #0b0b12;
+        }
+
+        .rask-boot svg {
+            width: 60px;
+            height: 60px;
+            animation: rask-pulse 1.4s ease-in-out infinite;
+        }
+
+        .rask-boot .rask-spin {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid rgba(139, 92, 246, 0.25);
+            border-top-color: #8b5cf6;
+            animation: rask-spin 0.8s linear infinite;
+        }
+
+        .rask-boot__label {
+            font-size: 0.8125rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        @keyframes rask-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes rask-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body data-rask-root>
+<div class="rask-boot">
+    <svg aria-label="Rask" role="img" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="rask-boot-bolt" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#8b5cf6"/>
+                <stop offset="1" stop-color="#7c3aed"/>
+            </linearGradient>
+        </defs>
+        <rect width="128" height="128" rx="28" fill="url(#rask-boot-bolt)"/>
+        <path d="M74 24 L38 66 L58 66 L53 104 L92 58 L70 58 Z" fill="#fff"/>
+    </svg>
+    <div class="rask-spin"></div>
+    <div class="rask-boot__label">Loading Rask…</div>
+</div>
+<script src="main.js" type="module"></script>
+</body>
+</html>

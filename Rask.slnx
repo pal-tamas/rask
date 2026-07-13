@@ -17,6 +17,7 @@
              `native` CI job, and the on-device Appium E2E (tests/Rask.Native.Appium.Tests) drives them. -->
         <Project Path="samples/Rask.Example.Server/Rask.Example.Server.csproj"/>
         <Project Path="samples/Rask.Example.Shared/Rask.Example.Shared.csproj"/>
+        <Project Path="samples/Rask.Example.Site/Rask.Example.Site.csproj"/>
         <Project Path="samples/Rask.Example.Wasm.Host/Rask.Example.Wasm.Host.csproj"/>
         <Project Path="samples/Rask.Example.Wasm/Rask.Example.Wasm.csproj"/>
     </Folder>

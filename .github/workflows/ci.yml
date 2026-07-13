@@ -203,6 +203,13 @@ jobs:
         # default output, packaged by the tar step below and served by the shard's static host.
         run: dotnet publish samples/Rask.Example.Playground -c Release --no-restore -p:WasmBuildNative=false --nologo
 
+      - name: Publish landing site sample (served by the SiteExampleTests shard)
+        # The marketing landing page is a standalone Rask WASM app (no host project), so it isn't
+        # published by any nested Hosting publish — publish it explicitly here. WasmBuildNative=false
+        # uses the prebuilt .NET-WASM runtime (skips the flaky emscripten relink), matching the other
+        # WASM fixtures; the tar step below packages its bin/ for the shard's static host.
+        run: dotnet publish samples/Rask.Example.Site -c Release --no-restore -p:WasmBuildNative=false --nologo
+
       - name: Package build output
         # Tar every bin/ and obj/: the shards need the built test + sample assemblies, the published
         # WASM wwwroot bundles the WASM fixtures serve, the published Server host the two server shards
@@ -234,6 +241,7 @@ jobs:
           - ServerExampleTests
           - WasmExampleTests
           - StandaloneWasmExampleTests
+          - SiteExampleTests
           - WasmSubPathExampleTests
           - PlaygroundExampleTests
           - AuthExampleTests
