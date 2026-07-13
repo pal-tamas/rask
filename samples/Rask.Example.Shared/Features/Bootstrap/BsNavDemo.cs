@@ -19,8 +19,8 @@ public sealed class BsNavDemo : Component
             // A vertical pills nav — the sidebar pattern. Href makes each item a SPA-routed NavLink that
             // auto-highlights when its route is active (ActiveMatch: Prefix keeps a whole section lit).
             BsNav(Vertical: true, Pills: true)[
-                BsNavItem(Href: Features.Routes.HomePage())[
-                    BsIcon(Name: BsIconName.House, Class: "me-2"), "Home"],
+                BsNavItem(Href: Features.Routes.GuidesIndexPage())[
+                    BsIcon(Name: BsIconName.House, Class: "me-2"), "Guides"],
                 BsNavItem(Href: Features.Routes.GuidePage("bootstrap"))[
                     BsIcon(Name: BsIconName.Bootstrap, Class: "me-2"), "Bootstrap guide"],
                 BsNavItem(Href: Features.Routes.GuidePage("composition"))[

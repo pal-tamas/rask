@@ -161,8 +161,8 @@ Everything lives in **[`docs/`](docs/)** — start here, then dive into the topi
 | **[Routing](docs/routing.md)** · **[Forms & validation](docs/forms.md)** · **[Building form controls](docs/building-form-controls.md)** | URLs, route params, the form pipeline, custom `IFormControl<T>` inputs. |
 | **[Authentication](docs/authentication.md)** · **[Data access](docs/data-access.md)** · **[HTTP & files](docs/http-and-files.md)** · **[CQRS](docs/cqrs.md)** | Cookie/JWT on Server & WASM; EF Core + SQLite; a DI'd `HttpClient` + file upload/download; source-generated CQRS. |
 | **[Bootstrap](docs/bootstrap.md)** | Typed Bootstrap 5.3 components, zero-JS interactivity, typed utility classes. |
-| **[Browser APIs](docs/browser-apis.md)** · **[PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** · **[AOT](docs/aot.md)** | 43 typed Web-API wrappers; installable offline PWAs; native iOS/Android apps; opt-in full WASM AOT. |
-| **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; unit + E2E. |
+| **[Browser APIs](docs/browser-apis.md)** · **[Mobile & PWA](docs/pwa.md)** · **[Native mobile](docs/native.md)** | The mobile & devices track: 43 typed Web-API wrappers, installable offline PWAs, and native iOS/Android apps. |
+| **[JS interop](docs/js-interop.md)** · **[Accessibility](docs/accessibility.md)** · **[AOT](docs/aot.md)** · **[Testing](docs/testing.md)** | Scoped JS + element refs; a11y; opt-in full WASM AOT; unit + E2E. |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** | How the day-to-day differs, side by side. |
 | **[Diagnostics](docs/diagnostics.md)** | Every RASK build error/warning and its fix. |
 | **[Live rendering & the diff codec](docs/architecture/live-rendering.md)** | How the runtime works under the hood. |

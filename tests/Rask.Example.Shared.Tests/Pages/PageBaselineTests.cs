@@ -10,7 +10,7 @@ namespace Rask.Example.Shared.Tests.Pages;
 public sealed class PageBaselineTests
 {
     [Theory]
-    [InlineData(typeof(HomePage), "/", "Welcome")]
+    [InlineData(typeof(GuidesIndexPage), "/", "Guides")]
     [InlineData(typeof(TablePage), "/table", "Data table")]
     [InlineData(typeof(TodosPage), "/todos", "Todos")]
     public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
@@ -27,7 +27,7 @@ public sealed class PageBaselineTests
     }
 
     [Theory]
-    [InlineData(typeof(HomePage))]
+    [InlineData(typeof(GuidesIndexPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TablePage))]
     [InlineData(typeof(TodosPage))]

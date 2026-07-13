@@ -23,8 +23,8 @@ public sealed class NativeShowcaseApp : App
         NativeTabBar(
             Tabs:
             [
-                NativeTab(Title: "Home", Icon: NativeIcon.Home, To: AppRoutes.HomePage()),
-                NativeTab(Title: "Guides", Icon: NativeIcon.List, To: AppRoutes.GuidesIndexPage()),
+                // Guides is the site root ("/") now that the Welcome landing page is gone.
+                NativeTab(Title: "Guides", Icon: NativeIcon.Home, To: AppRoutes.GuidesIndexPage()),
                 NativeTab(Title: "Todos", Icon: NativeIcon.Custom("checklist", "ic_todo"), To: AppRoutes.TodosPage()),
             ])
         // Selected is omitted — the framework highlights the tab matching the current route.
