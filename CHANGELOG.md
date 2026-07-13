@@ -8,6 +8,33 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Host-awareness on `Component` + a composed native-chrome family.** Any component can now branch its
+  render on where it runs via three orthogonal, render-cache-safe accessors — `HostShell`
+  (`Web`/`Native`), `HostEngine` (`Server`/`Wasm`/`InProcess`), `HostPlatform` (`None`/`IOS`/`Android`) — plus
+  the `IsNative`/`IsServer`/`IsWasm`/`IsIOS`/`IsAndroid` conveniences, so one page can render a web `BsNavbar`
+  on Server/WASM and compose native bars under the native shell without a separate layout. The axes are
+  independent (Native + Server on iOS is all three at once). Alongside it, a new **native-chrome family** in
+  `Rask.Native`: an abstract `NativeComponent : Component` base and concrete components
+  (`NativeHeaderBar`, `NativeTabBar`, `NativeToolbar`, `NativeBarButton`, `NativeTab`, `NativeBackButton`,
+  and `NativeWebView`) with type-safe icons (`NativeIcon` — curated cross-platform SF-Symbol/drawable pairs
+  plus `Custom`/`SfSymbol`/`Drawable` escape hatches). They are ordinary factory-built components composed in
+  `Render()`, not base-class slots. The factory generator gained a `[assembly: RaskFactoryNamespace]` marker +
+  a referenced-assembly scan so a consumer referencing `Rask.Native` gets the native factories via a global
+  using automatically. New diagnostic **RASK032** errors when a native chrome component is nested inside the
+  HTML tree (it belongs at the layout level, as a sibling of `NativeWebView`).
+- **Native header & footer bars.** A native page is a small composed tree — the native bars
+  (`NativeHeaderBar` / `NativeTabBar` / `NativeToolbar`) as siblings of a **`NativeWebView`** that hosts the
+  ordinary page shell (`Doctype`/`Html`/`Head`/`Body`). On the `Rask.Native` mobile host the bars project to
+  real platform chrome — a `UINavigationBar` + `UITabBar`/`UIToolbar` on iOS, a top bar + bottom tab/tool bar
+  on Android — and the `NativeWebView`'s HTML is serialized into the WebView between them. Opt in by registering
+  the platform WebView head as an `INativeChrome` backend (like `IShare`) and assigning `webView.ChromeView`;
+  with none registered the bars are inert (they render nothing — backward compatible). Bars are collected during
+  the render walk (so their factories are DI-correct and callbacks wire to their owner), the last bar of a kind
+  wins, and an unchanged bar never re-pushes. Bar-button taps run their `OnClick`; tabs navigate their type-safe
+  route. The `samples/Rask.Example.Native` showcase composes a native title bar + tab bar around the shared
+  shell (dropping its web `BsNavbar` under `IsNative`). The `rask-native` template (`--host local`) scaffolds it
+  too: the heads host `webView.ChromeView` + register `INativeChrome`, and the default `App` composes a native
+  title bar + Home/Counter tab bar around a `NativeWebView`.
 - **Native geolocation backend.** The `rask-native` template's `--host local` heads add a
   `NativeGeolocation : IGeolocation` (iOS **CoreLocation** `CLLocationManager`, Android **`LocationManager`**),
   registered on `host.Services` before `RunLocalAsync` to override Rask's JS-backed `navigator.geolocation`

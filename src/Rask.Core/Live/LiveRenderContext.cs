@@ -54,11 +54,17 @@ public sealed class LiveRenderContext : IDisposable
         HeadAssets = headAssets;
         MountedTypes = mountedTypes;
         _handle = root.RenderHandle;
+        // Snapshot once (a session-lifetime constant) so the per-component check in HtmlSerializer is a field
+        // read, not a virtual interface call — keeps the render hot path allocation- and dispatch-free on the
+        // non-native hosts, which never collect chrome.
+        _collectsNativeChrome = _handle?.CollectsNativeChrome ?? false;
         _previous = _current.Value;
         _previousSync = _syncCurrent;
         _current.Value = this;
         _syncCurrent = this;
     }
+
+    private readonly bool _collectsNativeChrome;
 
     internal bool IsActive { get; private set; } = true;
 
@@ -83,6 +89,20 @@ public sealed class LiveRenderContext : IDisposable
     internal static void ResetSyncForTests() => _syncCurrent = null;
 
     internal RouteRenderState? Route { get; set; }
+
+    // Host-awareness axes forwarded from the owning session (the render handle), surfaced to components
+    // via Component.HostShell/HostEngine/HostPlatform. Constant for the session → safe to read from Render() without
+    // the render-cache ambient-state opt-out.
+    internal RenderShell Shell => _handle?.Shell ?? RenderShell.Web;
+    internal RenderEngine Engine => _handle?.Engine ?? RenderEngine.Server;
+    internal RenderPlatform Platform => _handle?.Platform ?? RenderPlatform.None;
+
+    // Native-chrome collection, gated by the session so non-native hosts pay nothing. Called by HtmlSerializer
+    // for each user component during the pre-order walk; hands it to the session, which picks out the native bars
+    // composed in the tree (Rask.Core references no Rask.Native type) and keeps the last (deepest) of each kind.
+    internal bool CollectsNativeChrome => _collectsNativeChrome;
+
+    internal void CollectNativeChrome(Component component) => _handle?.ReportNativeComponent(component);
 
     public IServiceProvider? Services { get; }
 

@@ -313,13 +313,55 @@ So `await geolocation.GetCurrentPositionAsync()` returns a native fix (real perm
 The **same recipe** carries the remaining backends (biometrics, native push) — a framework-registered
 default, overridden by a native head implementation.
 
+## Native header & footer
+
+A native page is a small **composed tree**: the native bars (`NativeHeaderBar` / `NativeTabBar` /
+`NativeToolbar`) as siblings of a **`NativeWebView`**, which hosts the ordinary page shell
+(`Doctype`/`Html`/`Head`/`Body`). The native host projects the bars to a **real `UINavigationBar` +
+`UITabBar`/`UIToolbar`** on iOS, and a top bar + bottom tab/tool bar on Android, and serializes the
+`NativeWebView`'s HTML into the WebView between them. The bars are ordinary factory-built components — you
+compose them in `Render()`, they work like any other component:
+
+```csharp
+protected override Component? Render() =>
+[
+    NativeHeaderBar(Title: "Dashboard", Trailing: [NativeBarButton(Icon: NativeIcon.Add, OnClick: OnAdd)]),
+    NativeWebView()[
+        Doctype(),
+        Html("en")[Head(), Body()[Router()]]
+    ],
+    NativeTabBar(Tabs: [
+        NativeTab(Title: "Home", Icon: NativeIcon.Home, To: Features.Routes.HomePage()),
+        NativeTab(Title: "Me",   Icon: NativeIcon.Person, To: Features.Routes.MePage()),
+    ], Selected: 0)
+];
+```
+
+- **`NativeWebView` hosts the HTML** — its children are the normal page shell; only native bars may sit outside
+  it. A bar nested inside the HTML (an element child, or inside `NativeWebView`'s content) is a **RASK032**
+  compile error — bars belong at the layout level, as siblings of `NativeWebView`.
+- **Type-safe icons** — `NativeIcon` pairs an iOS SF Symbol with an Android drawable/Material name; use a
+  curated member (`NativeIcon.Home`) or an escape hatch (`NativeIcon.Custom(sfSymbol, drawable)` /
+  `NativeIcon.SfSymbol(...)` / `NativeIcon.Drawable(...)`). Routes are type-safe too (`Features.Routes.*`).
+- **Bar buttons** run their `OnClick` on the render thread and re-render, like any Rask callback. **Tabs**
+  navigate to their route; the page recomputes `Selected` from the current route on the next render.
+- **Bars render no HTML** — they are collected during the render walk (so their factories are DI-correct and
+  callbacks wire to their owner); the last bar of a kind wins. Only the settled build's chrome is pushed, and
+  an unchanged bar never re-pushes (no flicker on a counter tick).
+- **Opt-in + inert elsewhere** — register an `INativeChrome` backend on `host.Services` before `RunLocalAsync`
+  (the platform WebView heads implement it; assign `webView.ChromeView` instead of `webView.View`), exactly
+  like `IShare`. With no backend registered the bars render nothing. Sharing an app across web + native? Branch
+  with `IsNative`: compose the native tree under the native shell and return the plain shell on Server/WASM.
+  This is a **bounded native-widget surface** (a header + footer), not a general native-control renderer.
+
 ## Honest framing
 
 This is a **WebView hybrid** (the same architecture as .NET MAUI Blazor Hybrid, Ionic/Capacitor): C# runs
-natively, the view is a WebView. It is **not** a native-control renderer — Rask components render HTML, and
-that HTML renders in a WebView. A true native-control renderer (mapping the component tree to UIKit/Android
-views) would require a parallel non-HTML component library and is out of scope. What the hybrid buys over
-the [PWA story](pwa.md): App Store / Play Store distribution, native device APIs beyond the browser
+natively, the view is a WebView. It is **not** a general native-control renderer — Rask components render HTML,
+and that HTML renders in a WebView. The one exception is the bounded **native header & footer** surface above
+(real platform bars around the WebView); a *full* native-control renderer (mapping the whole component tree to
+UIKit/Android views) would require a parallel non-HTML component library and is out of scope. What the hybrid
+buys over the [PWA story](pwa.md): App Store / Play Store distribution, native device APIs beyond the browser
 sandbox, and real background execution — without giving up "the same component runs everywhere".
 
 ## Roadmap

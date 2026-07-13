@@ -15,7 +15,7 @@ namespace Rask.Native;
 ///     <see cref="IosBundledAssets" />). Assign <see cref="View" /> to a view controller, wire the session
 ///     (<c>RunLocalAsync</c>), then <see cref="LoadShell" />.
 /// </summary>
-public sealed class RaskWkWebView : NSObject, INativeWebView, IWKScriptMessageHandler
+public sealed partial class RaskWkWebView : NSObject, INativeWebView, IWKScriptMessageHandler, INativeChrome
 {
     /// <summary>The default custom scheme + app origin the shell + client + assets are served from.</summary>
     public const string DefaultScheme = "raskapp";

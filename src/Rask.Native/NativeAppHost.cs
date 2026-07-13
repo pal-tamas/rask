@@ -160,7 +160,13 @@ public sealed class NativeAppHost
         var provider = Services.BuildServiceProvider();
 
         var app = ActivatorUtilities.CreateInstance<TApp>(provider);
+        // Host-bootstrap construction of the framework's root boundary, identical to Rask.Server /
+        // Rask.Wasm — there is no LiveRenderContext yet, so the generated factory (which needs one) can't be
+        // used here. RASK014 only fires because Rask.Native now runs the analyzer over its own sources to emit
+        // the Native* chrome factories; the Server/Wasm hosts do the same `new` but don't run the analyzer.
+#pragma warning disable RASK014 // intentional framework host-bootstrap construction
         var root = new RootErrorBoundary(app);
+#pragma warning restore RASK014
 
         var routeState = provider.GetRequiredService<RouteState>();
         SeedRoute(routeState, initialPath);
@@ -182,6 +188,14 @@ public sealed class NativeAppHost
         // (ready), IJSRuntime results (jsResult), JS-initiated [JSInvokable] (dotNetInvoke), and component
         // events (everything else → the session). Mirrors how the WASM host multiplexes its JSExports.
         webView.OnMessage = json => RouteMessageAsync(nativeApp, json);
+
+        // If a native-chrome backend is registered, route its bar interactions through the SAME dispatcher —
+        // a button tap ({type:"nativeTap"}) and a tab tap ({type:"navigate"}) re-enter the router exactly like
+        // WebView events, so there is no separate native-input path.
+        if (provider.GetService<INativeChrome>() is { } chrome)
+        {
+            chrome.OnChromeEvent = json => RouteMessageAsync(nativeApp, json);
+        }
 
         return nativeApp;
     }
@@ -257,6 +271,11 @@ public sealed class NativeAppHost
                     await NativeCapabilities.TryHandleAsync(json, capabilityShare).ConfigureAwait(false);
                 }
 
+                return;
+            case "nativeTap":
+                // A native bar-button tap — invoke its OnClick and re-render (tabs arrive as "navigate" and
+                // flow through DispatchAsync's default path below).
+                await app.Session.DispatchNativeTapAsync(json).ConfigureAwait(false);
                 return;
             default:
                 await app.Session.DispatchAsync(json).ConfigureAwait(false);

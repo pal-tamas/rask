@@ -27,6 +27,14 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Native</RootNamespace>
     <IsPackable>true</IsPackable>
+
+    <!-- Rask.Native now runs the factory generator over its OWN sources (to emit the Native* chrome
+         factories). That also activates the scoped-CSS/JS pairing: opt out, because this assembly ships only
+         framework runtime scripts (Assets/rask.native.js, Resources/**) and native components that render no
+         HTML — it has no per-component scoped .css/.js to pair, so the auto-include would only mis-flag the
+         runtime script (RASK017). -->
+    <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>
+    <RaskScopedJsAutoInclude>false</RaskScopedJsAutoInclude>
     <!--
       Not AOT-analyzed here (like Rask.Server): this host uses DotNetDispatcher for JS↔.NET interop,
       the same as the Server host. iOS requires full AOT, but that is validated at the app-head publish
@@ -56,6 +64,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <!-- Run the Rask factory generator over THIS assembly too (not just pack it for consumers), so the
+         concrete Native* chrome components get their Generated.{Name}(...) factories emitted into
+         Rask.Native.dll's Rask.Native.Components.Generated. The [assembly: RaskFactoryNamespace] marker in
+         NativeFactoryNamespace.cs then tells a consuming app's own generator to surface that namespace via a
+         global using. Analyzer is netstandard2.0/TFM-agnostic, so it applies to the base + head TFMs alike. -->
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
     <!-- Rask.Client: the WASM+Native-shared in-process client APIs (IShare). Bundled into lib/ below like
          Rask.Core (PrivateAssets="all" keeps it out of the nuspec dependency list). -->
     <ProjectReference Include="..\Rask.Client\Rask.Client.csproj" PrivateAssets="all"/>

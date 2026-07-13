@@ -56,7 +56,9 @@ public sealed class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntr
 
     protected override Component? Render() =>
     [
-        BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true,
+        // Under the native mobile shell the real UINavigationBar/MaterialToolbar takes over, so drop the web
+        // navbar there. IsNative is false on Server/WASM, so the web showcase is unchanged.
+        IsNative ? null : BsNavbar(Color: BsColor.Dark, Theme: BsTheme.Dark, Sticky: true,
             Class: Bs.Join(Border.Bottom, Shadow.Sm, "app-navbar"))[
             Button(Type: "button", Class: Bs.Join("hamburger-btn", Display.None(Bp.Md)),
                 OnClick: () => _drawerOpen = !_drawerOpen)[

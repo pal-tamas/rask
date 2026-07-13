@@ -27,7 +27,11 @@ public class MainActivity : Activity
         }
 
         _webView = new RaskAndroidWebView(this);
-        SetContentView(_webView.View);
+        // Host ChromeView (the container that lays the native header/footer bars around the WebView) rather
+        // than the bare WebView, so the App's composed NativeHeaderBar/NativeTabBar become real top/bottom bars.
+        // The INativeChrome backend is registered below; without it the bars render nothing (the WebView fills
+        // the screen), so a native app that navigates via the tab bar should keep that registration.
+        SetContentView(_webView.ChromeView);
 
         // Wire the in-process session before loading the shell so it's ready for the client's `ready`
         // handshake. Native + Local mode.
@@ -42,6 +46,7 @@ public class MainActivity : Activity
         // docs/native.md "Native device backends".
         host.Services.AddSingleton<IShare>(_ => new NativeShare(this));                  // OS share sheet
         host.Services.AddSingleton<IGeolocation>(_ => new NativeGeolocation(this));       // LocationManager
+        host.Services.AddSingleton<INativeChrome>(webView);                              // native header/footer bars
         // host.Services.AddSingleton<IMyService, MyService>();   // register app services here
         _app = await host.RunLocalAsync<App>(webView);
         webView.LoadShell();

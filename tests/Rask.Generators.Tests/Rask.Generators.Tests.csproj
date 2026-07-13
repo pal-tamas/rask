@@ -29,6 +29,10 @@
     <!-- Rask.Server (and, transitively, the ASP.NET Core shared framework) so AuthBeforeRaskAnalyzer
          tests can resolve the real UseRask / UseAuthentication symbols in their test compilations. -->
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- Rask.Native so the NativeChromeInHtmlAnalyzer (RASK032) test can reference the real native chrome
+         components (NativeHeaderBar, NativeTabBar, …); the spine's internal ctors preclude defining a
+         NativeComponent subclass in the test source. -->
+    <ProjectReference Include="..\..\src\Rask.Native\Rask.Native.csproj"/>
   </ItemGroup>
 
 </Project>

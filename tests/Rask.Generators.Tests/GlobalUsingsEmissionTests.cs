@@ -140,11 +140,52 @@ public class GlobalUsingsEmissionTests
         Assert.Contains("global using static global::Demo.Generated;", output);
     }
 
+    [Fact]
+    public void ReferencedAssemblyWithFactoryMarker_EmitsFactoryGlobalUsing()
+    {
+        // BuildReferences() includes Rask.Native, which carries
+        // [assembly: RaskFactoryNamespace("Rask.Native.Components")] — so a consumer that references it
+        // gets the satellite factory namespace globally, alongside the core pair.
+        var src = """
+                  namespace Demo;
+                  public class NotAComponent { }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains("global using static global::Rask.Native.Components.Generated;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Generated;", output);
+    }
+
+    [Fact]
+    public void NoMarkerAssemblyReferenced_NoDanglingFactoryGlobalUsing()
+    {
+        // A consumer that does NOT reference a marker-bearing assembly (Rask.Native filtered out) must not
+        // get a dangling `using static Rask.Native.Components.Generated;` — the core pair still emits.
+        var src = """
+                  namespace Demo;
+                  public class NotAComponent { }
+                  """;
+
+        var refsWithoutNative = GeneratorDriverFixture.BuildReferences()
+            .Where(r => r.Display is null || !r.Display.Contains("Rask.Native", StringComparison.Ordinal))
+            .ToImmutableArray();
+
+        var output = Run(src, null, refsWithoutNative);
+
+        Assert.DoesNotContain("global using static global::Rask.Native.Components.Generated;", output);
+        Assert.Contains("global using static global::Rask.Core.Components.Generated;", output);
+    }
+
     private static string Run(string source) => Run(source, null);
 
-    private static string Run(string source, Dictionary<string, string>? buildProps)
+    private static string Run(string source, Dictionary<string, string>? buildProps) =>
+        Run(source, buildProps, GeneratorDriverFixture.BuildReferences());
+
+    private static string Run(string source, Dictionary<string, string>? buildProps,
+        ImmutableArray<MetadataReference> references)
     {
-        var generated = RunRaw(source, buildProps);
+        var generated = RunRaw(source, buildProps, references);
         var match = generated.FirstOrDefault(s =>
             s.HintName.Contains("RaskGlobalUsings.g.cs", StringComparison.Ordinal));
         if (match.SourceText is null)
@@ -157,10 +198,13 @@ public class GlobalUsingsEmissionTests
         return match.SourceText.ToString();
     }
 
-    private static ImmutableArray<GeneratedSourceResult> RunRaw(string source, Dictionary<string, string>? buildProps)
+    private static ImmutableArray<GeneratedSourceResult> RunRaw(string source, Dictionary<string, string>? buildProps) =>
+        RunRaw(source, buildProps, GeneratorDriverFixture.BuildReferences());
+
+    private static ImmutableArray<GeneratedSourceResult> RunRaw(string source, Dictionary<string, string>? buildProps,
+        ImmutableArray<MetadataReference> references)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
-        var references = GeneratorDriverFixture.BuildReferences();
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },

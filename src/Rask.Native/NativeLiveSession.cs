@@ -7,6 +7,7 @@ using Rask.Core.Authorization;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Native.Components;
 
 namespace Rask.Native;
 
@@ -39,10 +40,21 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
+    // Native header/footer chrome. Optional (null ⇒ feature off ⇒ fully backward compatible). _pendingHeader/
+    // _pendingFooter are collected fresh each render walk (last bar of a kind in the tree wins); _lastPushedChrome
+    // is the byte baseline for the noop guard (unchanged bars never re-push → no flicker on a counter tick);
+    // _chromeTapHandlers maps a bar-button tap id to its OnClick, rebuilt every render so taps hit the latest.
+    private readonly INativeChrome? _chrome;
+    private NativeHeaderBar? _pendingHeader;
+    private NativeComponent? _pendingFooter; // a NativeTabBar or NativeToolbar
+    private byte[]? _lastPushedChrome;
+    private Dictionary<string, Action> _chromeTapHandlers = new(StringComparer.Ordinal);
+
     public NativeLiveSession(Component view, IServiceProvider services, INativeWebView webView, LiveDiffMode diffMode)
         : base(view, services, diffMode)
     {
         _webView = webView;
+        _chrome = services.GetService<INativeChrome>();
 
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         services.GetService<NativeJSRuntime>()?.AttachHost(this, webView);
@@ -64,6 +76,291 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
         ComponentLifecycle.DisposeComponentTree(View);
         _lock.Dispose();
         _renderLock.Dispose();
+    }
+
+    // Native+Local: the app renders in-process inside the native app shell. Platform is read from the
+    // runtime — the plain net10.0 build resolves both checks to false → None; the -ios/-android heads
+    // resolve their OS. (Native+Server, where a native client drives a remote server, is a separate mode
+    // whose shell/platform would arrive via a connection handshake — a tracked follow-up.)
+    protected override RenderShell ShellCore => RenderShell.Native;
+    protected override RenderEngine EngineCore => RenderEngine.InProcess;
+    protected override RenderPlatform PlatformCore =>
+        OperatingSystem.IsIOS() ? RenderPlatform.IOS
+        : OperatingSystem.IsAndroid() ? RenderPlatform.Android
+        : RenderPlatform.None;
+
+    // ---- Native header/footer chrome ------------------------------------------------------------------------
+
+    // Opt into the serializer's render-walk collection only when a backend is registered (else pure no-op).
+    protected override bool CollectsNativeChromeCore => _chrome is not null;
+
+    // The serializer hands us every user component it walks; pick out the native bars composed in the tree —
+    // a NativeHeaderBar becomes the header, a NativeTabBar/NativeToolbar the footer. Last of each kind wins
+    // (the deepest layout in the walk). NativeWebView and bar items pass through here and are ignored.
+    protected override void ReportNativeComponentCore(Component component)
+    {
+        switch (component)
+        {
+            case NativeHeaderBar header:
+                _pendingHeader = header;
+                break;
+            case NativeTabBar or NativeToolbar:
+                _pendingFooter = (NativeComponent)component;
+                break;
+        }
+    }
+
+    // Clear the last-collected chrome before each render walk so a removed bar drops out — the walk then
+    // re-reports whatever the current tree composes (last of each kind wins).
+    protected override void OnBeforeRenderWalk()
+    {
+        if (_chrome is null)
+        {
+            return;
+        }
+
+        _pendingHeader = null;
+        _pendingFooter = null;
+    }
+
+    // Build the descriptor from the just-collected header/footer, refresh the tap-handler map, and push to the
+    // native bars only when the bytes changed. Called under _renderLock right after a committed frame (same
+    // UI-thread + memory-validity contract as SendFrameAsync). No-op when no INativeChrome is registered.
+    private async Task PushChromeIfChangedAsync()
+    {
+        if (_chrome is null)
+        {
+            return;
+        }
+
+        var currentPath = Services.GetRequiredService<RouteState>().Path;
+        var handlers = new Dictionary<string, Action>(StringComparer.Ordinal);
+        var descriptor = new NativeChromeDescriptor
+        {
+            Header = BuildHeaderDescriptor(_pendingHeader, handlers),
+            Footer = BuildFooterDescriptor(_pendingFooter, handlers, currentPath),
+        };
+        // Refresh the tap-handler map every render — the OnClick delegates capture fresh state even when the
+        // serialized descriptor is byte-identical, so a tap must always reach the latest closure.
+        _chromeTapHandlers = handlers;
+
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            descriptor, NativeChromeJsonContext.Default.NativeChromeDescriptor);
+        if (_lastPushedChrome is not null && bytes.AsSpan().SequenceEqual(_lastPushedChrome))
+        {
+            return; // unchanged bars — no re-push, no flicker on a counter tick.
+        }
+
+        _lastPushedChrome = bytes;
+        await _chrome.ApplyChromeAsync(bytes).ConfigureAwait(false);
+    }
+
+    private static NativeHeaderDescriptor? BuildHeaderDescriptor(
+        NativeHeaderBar? bar, Dictionary<string, Action> handlers)
+    {
+        if (bar is null)
+        {
+            return null;
+        }
+
+        var dto = new NativeHeaderDescriptor { Title = bar.Title };
+        if (bar.Leading is { } leading)
+        {
+            dto.Leading = BuildItemDescriptor(leading, "h.leading", handlers);
+        }
+
+        if (bar.Trailing is { Count: > 0 } trailing)
+        {
+            dto.Trailing = new List<NativeBarItemDescriptor>(trailing.Count);
+            for (var i = 0; i < trailing.Count; i++)
+            {
+                dto.Trailing.Add(BuildItemDescriptor(trailing[i], "h.trailing." + i, handlers));
+            }
+        }
+
+        return dto;
+    }
+
+    private static NativeFooterDescriptor? BuildFooterDescriptor(
+        NativeComponent? footer, Dictionary<string, Action> handlers, string currentPath)
+    {
+        switch (footer)
+        {
+            case NativeTabBar tabBar:
+                // Derive the active tab from the current route unless the page pinned Selected explicitly, so
+                // the highlighted tab tracks navigation (a tap, hardware Back, or a deep link) automatically —
+                // the caller never re-derives it by hand.
+                var selected = tabBar.Selected ?? DeriveSelectedTab(tabBar.Tabs, currentPath);
+                var tabFooter = new NativeFooterDescriptor { Kind = "tabbar", Selected = selected };
+                if (tabBar.Tabs is { Count: > 0 } tabs)
+                {
+                    tabFooter.Tabs = new List<NativeTabDescriptor>(tabs.Count);
+                    foreach (var tab in tabs)
+                    {
+                        tabFooter.Tabs.Add(new NativeTabDescriptor
+                        {
+                            Title = tab.Title,
+                            IosIcon = tab.Icon.IosSymbol,
+                            AndroidIcon = tab.Icon.AndroidResource,
+                            Path = tab.To.ToString(),
+                        });
+                    }
+                }
+
+                return tabFooter;
+
+            case NativeToolbar toolbar:
+                var toolFooter = new NativeFooterDescriptor { Kind = "toolbar" };
+                if (toolbar.Items is { Count: > 0 } items)
+                {
+                    toolFooter.Items = new List<NativeBarItemDescriptor>(items.Count);
+                    for (var i = 0; i < items.Count; i++)
+                    {
+                        toolFooter.Items.Add(BuildItemDescriptor(items[i], "f.item." + i, handlers));
+                    }
+                }
+
+                return toolFooter;
+
+            default:
+                return null;
+        }
+    }
+
+    private static NativeBarItemDescriptor BuildItemDescriptor(
+        NativeBarItem item, string id, Dictionary<string, Action> handlers)
+    {
+        switch (item)
+        {
+            case NativeBackButton:
+                // The head wires a back item to the platform's own back affordance — no server round-trip.
+                return new NativeBarItemDescriptor { Kind = "back" };
+
+            case NativeBarButton button:
+                string? tapId = null;
+                if (button.OnClick is { } onClick)
+                {
+                    handlers[id] = onClick;
+                    tapId = id;
+                }
+
+                return new NativeBarItemDescriptor
+                {
+                    Kind = "button",
+                    Id = tapId,
+                    IosIcon = button.Icon.IosSymbol,
+                    AndroidIcon = button.Icon.AndroidResource,
+                    Title = button.Title,
+                };
+
+            default:
+                return new NativeBarItemDescriptor { Kind = "button" };
+        }
+    }
+
+    // The index of the tab whose route matches the current path (0 when none match), so the native tab bar
+    // highlights the active page without the caller re-deriving Selected on every navigation.
+    private static int DeriveSelectedTab(IReadOnlyList<NativeTab>? tabs, string currentPath)
+    {
+        if (tabs is null)
+        {
+            return 0;
+        }
+
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            if (string.Equals(tabs[i].To.Path, currentPath, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    ///     Handle a bar-button tap (<c>{"type":"nativeTap","id":"…"}</c>): look up the button's <c>OnClick</c>,
+    ///     invoke it (its factory wrapper re-renders the owner), then render + emit + push exactly like
+    ///     <see cref="DispatchAsync" />. Returns the sent frame bytes (the test seam). A tab tap arrives as a
+    ///     <c>navigate</c> message and flows through <see cref="HandleNavigateAsync" /> instead.
+    /// </summary>
+    public async Task<byte[]> DispatchNativeTapAsync(byte[] json)
+    {
+        if (json is null || json.Length == 0)
+        {
+            return Array.Empty<byte>();
+        }
+
+        using var doc = JsonDocument.Parse(json.AsMemory());
+        var root = doc.RootElement;
+        var id = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+            ? idEl.GetString()
+            : null;
+        if (id is null)
+        {
+            return Array.Empty<byte>();
+        }
+
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            // Resolve the handler under the lock so a concurrent render's _chromeTapHandlers swap can't race the
+            // lookup (read a stale closure or miss the id).
+            if (!_chromeTapHandlers.TryGetValue(id, out var handler))
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Run the tap inside a Navigator handler scope, exactly like a WebView handler event
+            // (DispatchAsync) — a bar button that calls Navigator.NavigateTo must work, and its history push
+            // must reach the client.
+            var navigator = Services.GetRequiredService<Navigator>();
+            using (navigator.EnterHandler())
+            {
+                try
+                {
+                    handler();
+                }
+                catch (Exception ex)
+                {
+                    RaskDiagnostics.Report(
+                        RaskLogLevel.Error, "Rask.Native", $"Rask native bar tap '{id}' threw", ex);
+                    return Array.Empty<byte>();
+                }
+
+                string? historyUrl = null;
+                var historyReplace = false;
+                if (navigator.TryConsumeHistory(out var url, out var replace))
+                {
+                    historyUrl = url;
+                    historyReplace = replace;
+                }
+
+                await _renderLock.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+                    if (!await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+                    {
+                        return Array.Empty<byte>();
+                    }
+
+                    _htmlBuffers.Commit();
+                    await PushChromeIfChangedAsync().ConfigureAwait(false);
+                    return _lastSentBuffer!.WrittenSpan.ToArray();
+                }
+                finally
+                {
+                    _renderLock.Release();
+                }
+            }
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+        }
     }
 
     // Host transport for LiveSessionBase.TryEmitFrameAsync: hand the built frame to the platform WebView,
@@ -90,6 +387,8 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             {
                 _htmlBuffers.Commit();
             }
+
+            await PushChromeIfChangedAsync().ConfigureAwait(false);
         }
         finally
         {
@@ -115,9 +414,11 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
 
             // Noop publish-render guard: an auto-publish from a completed OnRenderedAsync that didn't
             // mutate tracked state produces identical HTML; morphing it would strip DOM state JS applied
-            // between frames. Skip such frames unless they carry queued IJSRuntime calls.
+            // between frames. Skip such frames unless they carry queued IJSRuntime calls — but still push the
+            // chrome, since native bars render no HTML and their change never shows in the HTML noop check.
             if (publishOnly && !_lastBuildHadJsInvokes && _htmlBuffers.CurrentEqualsPrevious())
             {
+                await PushChromeIfChangedAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -125,6 +426,8 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             {
                 _htmlBuffers.Commit();
             }
+
+            await PushChromeIfChangedAsync().ConfigureAwait(false);
         }
         finally
         {
@@ -154,6 +457,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
             }
 
             _htmlBuffers.Commit();
+            await PushChromeIfChangedAsync().ConfigureAwait(false);
             return _lastSentBuffer!.WrittenSpan.ToArray();
         }
         finally
@@ -233,6 +537,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                         }
 
                         _htmlBuffers.Commit();
+                        await PushChromeIfChangedAsync().ConfigureAwait(false);
                         return _lastSentBuffer!.WrittenSpan.ToArray();
                     }
                     finally
@@ -294,6 +599,7 @@ internal sealed class NativeLiveSession : LiveSessionBase, IDisposable
                 }
 
                 _htmlBuffers.Commit();
+                await PushChromeIfChangedAsync().ConfigureAwait(false);
                 return _lastSentBuffer!.WrittenSpan.ToArray();
             }
             catch (Exception ex)

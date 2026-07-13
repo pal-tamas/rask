@@ -2,7 +2,10 @@ using Rask.Core.Live;
 
 namespace Rask.Example.Shared;
 
-public sealed class App : Component
+// Not sealed so the native sample can subclass it (NativeShowcaseApp) to compose native bars around this
+// shell (wrapped in a NativeWebView) — the shared project can't reference Rask.Native, so the native chrome
+// lives in the native head.
+public class App : Component
 {
     // ALL <head> contents come through here. <head> is a framework-managed slot —
     // passing children to Head() is a RASK019 compile error. The framework collects
