@@ -24,7 +24,7 @@ public sealed class App : Component
             Body(Class: "bg-body-tertiary")[
                 Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
                     Div(Class: "container")[
-                        NavLink("/", Class: "navbar-brand fw-bold")[
+                        NavLink(global::Rask.Example.EfCore.Features.Catalog.ListProducts.Routes.ListProductsPage(), Class: "navbar-brand fw-bold")[
                             I(Class: "bi bi-database me-2"), "Rask · EF Core catalog"
                         ],
                         A("https://github.com/pal-tamas/rask", "_blank",

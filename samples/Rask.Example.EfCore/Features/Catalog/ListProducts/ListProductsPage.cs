@@ -47,7 +47,7 @@ public sealed class ListProductsPage(IDbContextFactory<CatalogDbContext> dbConte
                 H1(Class: "h3 mb-1")["Products"],
                 P(Class: "text-secondary mb-0")["EF Core + SQLite CRUD, organised as vertical slices."]
             ],
-            NavLink("/products/new", Class: "btn btn-primary")[
+            NavLink(global::Rask.Example.EfCore.Features.Catalog.CreateProduct.Routes.CreateProductPage(), Class: "btn btn-primary")[
                 I(Class: "bi bi-plus-lg me-1"), "New product"
             ]
         ],

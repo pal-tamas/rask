@@ -40,7 +40,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
 
     private void OpenEdit(TodoItem item) => nav.NavigateTo($"/todos/{item.Id}/edit");
 
-    private void Cancel() => nav.NavigateTo("/todos");
+    private void Cancel() => nav.NavigateTo(Routes.TodosPage());
 
     private void Save(TodoForm m)
     {
@@ -54,7 +54,7 @@ public sealed class TodosPage(Navigator nav, RouteState route) : Component
             item.Title = title;
         }
 
-        nav.NavigateTo("/todos");
+        nav.NavigateTo(Routes.TodosPage());
     }
 
     private void Delete(TodoItem item) => _todos.Remove(item);
