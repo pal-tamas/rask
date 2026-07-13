@@ -1,0 +1,213 @@
+/* Scoped styles for PlaygroundView — a compact IDE-style two-pane layout. The framework stamps a scope
+   id onto this component's elements, so these selectors don't leak into the compiled preview subtree. */
+
+.pg {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+}
+
+.pg-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: var(--pg-bar, #1e1e2e);
+    color: #f5f5ff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pg-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.pg-bolt {
+    color: #c4b5fd;
+}
+
+.pg-title {
+    letter-spacing: 0.01em;
+}
+
+.pg-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pg-phase {
+    font-size: 0.8125rem;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+.pg-run {
+    border: 0;
+    border-radius: 6px;
+    padding: 0.45rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #fff;
+    background: #7c3aed;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.pg-run:hover {
+    background: #6d28d9;
+}
+
+.pg-run.is-busy,
+.pg-run[disabled] {
+    background: #4c1d95;
+    cursor: default;
+}
+
+.pg-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+    min-height: 0;
+}
+
+@media (max-width: 800px) {
+    .pg-split {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+    }
+}
+
+.pg-editor {
+    min-height: 0;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    background: #1e1e1e;
+}
+
+/* Monaco mounts into here and fills it (automaticLayout). */
+.pg-code-host {
+    width: 100%;
+    height: 100%;
+}
+
+/* Textarea fallback when Monaco can't load. */
+.pg-fallback {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    resize: none;
+    border: 0;
+    padding: 1rem 1.1rem;
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    tab-size: 4;
+    color: #e6e6f0;
+    background: #181825;
+    outline: none;
+}
+
+.pg-output {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #faf9fe;
+}
+
+.pg-preview-head {
+    padding: 0.5rem 1rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.pg-preview {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 1.25rem;
+}
+
+.pg-preview-empty {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.pg-preview-error {
+    color: #b91c1c;
+}
+
+.pg-preview-error pre {
+    white-space: pre-wrap;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+}
+
+.pg-retry {
+    border: 1px solid #b91c1c;
+    background: #fff;
+    color: #b91c1c;
+    border-radius: 6px;
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+}
+
+.pg-diagnostics {
+    max-height: 40%;
+    overflow: auto;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+}
+
+.pg-diag {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.3rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    align-items: baseline;
+}
+
+.pg-diag-error {
+    background: #fef2f2;
+}
+
+.pg-diag-warn {
+    background: #fffbeb;
+}
+
+.pg-diag-info {
+    background: #eff6ff;
+}
+
+.pg-diag-id {
+    font-weight: 600;
+    color: #4b5563;
+    flex: 0 0 auto;
+}
+
+.pg-diag-error .pg-diag-id {
+    color: #b91c1c;
+}
+
+.pg-diag-warn .pg-diag-id {
+    color: #b45309;
+}
+
+.pg-diag-loc {
+    color: #9ca3af;
+    flex: 0 0 auto;
+}
+
+.pg-diag-msg {
+    color: #374151;
+}

@@ -1,0 +1,68 @@
+<!--
+  Rask Playground page shell. Minimal SPA entry: the runtime imports main.js, dotnet boots, and the
+  PlaygroundApp's rendered HTML morphs onto document.documentElement. GH Pages deploys rewrite <base href>
+  to /Rask/playground/ in CI (via /p:RaskPathBase).
+-->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <base href="/"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Rask Playground</title>
+    <link rel="preload" id="webassembly"/>
+    <script type="importmap"></script>
+    <link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='22 6 80 108'%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%23512BD4'/%3E%3C/linearGradient%3E%3Cpath d='M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z' fill='url(%23b)'/%3E%3C/svg%3E" rel="icon"
+          type="image/svg+xml"/>
+    <style id="rask-scoped"></style>
+    <style>
+        html, body { height: 100%; margin: 0; }
+        .rask-boot {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: #c4b5fd;
+            background: #181825;
+        }
+        .rask-boot svg { width: 60px; height: 60px; animation: rask-pulse 1.4s ease-in-out infinite; }
+        .rask-boot .rask-spin {
+            width: 24px; height: 24px; border-radius: 50%;
+            border: 3px solid rgba(196, 181, 253, 0.25);
+            border-top-color: #7C3AED; animation: rask-spin 0.8s linear infinite;
+        }
+        .rask-boot__progress { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .rask-boot__bar {
+            width: 180px; height: 4px; border-radius: 999px;
+            background: rgba(196, 181, 253, 0.2); overflow: hidden;
+        }
+        .rask-boot__fill { height: 100%; width: 0; border-radius: inherit; background: #7C3AED; transition: width 0.2s ease; }
+        .rask-boot__label { font-size: 0.8125rem; opacity: 0.72; font-variant-numeric: tabular-nums; }
+        @keyframes rask-spin { to { transform: rotate(360deg); } }
+        @keyframes rask-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    </style>
+</head>
+<body data-rask-root>
+<div class="rask-boot">
+    <svg aria-label="Rask" role="img" viewBox="22 6 80 108" xmlns="http://www.w3.org/2000/svg">
+        <linearGradient id="rask-boot-bolt" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#7C3AED"/>
+            <stop offset="1" stop-color="#512BD4"/>
+        </linearGradient>
+        <path d="M72 14 L30 64 L54 64 L48 106 L94 54 L68 54 Z" fill="url(#rask-boot-bolt)"/>
+    </svg>
+    <div class="rask-spin"></div>
+    <div class="rask-boot__progress" hidden>
+        <div class="rask-boot__bar">
+            <div class="rask-boot__fill"></div>
+        </div>
+        <div class="rask-boot__label">Loading…</div>
+    </div>
+</div>
+<script src="main.js" type="module"></script>
+</body>
+</html>
