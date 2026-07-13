@@ -84,9 +84,10 @@ client-side on WebAssembly. One codebase; pick the host per project.
 It also treats the network as the real bottleneck: after first paint, a state change ships a minimal diff — a counter
 tick on a 24 KB page goes out as **~41 bytes**, not 24 KB. In a 26-scenario head-to-head, Rask ships **fewer bytes on
 the wire than Blazor on every one** (typically 2–5×, up to 66×) and, since the diff path stopped materialising the page
-per update, allocates **~40× less per update** too. The honest tradeoff — Blazor keeps a leaner *retained* tree per
-mounted session — and the full byte-for-byte numbers are in the
-**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)** (which calls out where Blazor wins).
+per update, allocates **~40× less per update** too. It even holds a **~30% leaner *retained* tree per mounted page** —
+a pure-element page component keeps a compact frame snapshot instead of an object-per-element graph — so Rask now leads
+on every measured axis. The full byte-for-byte numbers are in the
+**[Rask vs Blazor baselines ↗](benchmarks/Rask.Benchmarks.VsBlazor/Baselines/vs-blazor.md)**.
 
 *Rask* is the Norwegian/Danish/Swedish word for **fast**. **The [docs ↗](docs/) and the [live demo ↗](https://pal-tamas.github.io/rask/)
 are the real tour — this README is just the front door.**
