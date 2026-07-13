@@ -139,6 +139,55 @@ function raskShouldSuppressChecked(el, incoming) {
     return false;
 }
 
+// Third-party <head> preservation. Libraries routinely inject <style>/<link>/<script> into <head> at
+// runtime (a code editor's theme colours, a charting lib, a syntax highlighter, analytics). Those nodes
+// aren't in the .NET-rendered head, so the reconciler below would trim them on the next head morph. Rather
+// than change the reconciliation (its invariants — keyed FOUC clones, boot-shell hydration, self-healing —
+// are load-bearing), we watch <head> and tag anything a library injects with data-rask-managed, which the
+// reconciler ALREADY skips (see the fc-building loop). The framework's own head mutations happen during an
+// apply (a head morph, or an applyDiff InsertSubtree of a Head-declared script/link); those are discarded
+// from the observer queue so they're never mistaken for foreign. data-rask-key nodes (the framework's keyed
+// head links, incl. the scoped-CSS FOUC preload clone) are never tagged — they must reconcile by key.
+let _raskHeadObserver = null;
+
+function _raskEnsureHeadObserver() {
+    if (_raskHeadObserver || typeof MutationObserver === "undefined"
+        || typeof document === "undefined" || !document.head) {
+        return;
+    }
+    // The callback receives the pending records as its argument — do NOT call takeRecords() here (it would
+    // return empty, since delivery already drained them). takeRecords() is only for the synchronous flush
+    // at a head morph, where the records are still pending.
+    _raskHeadObserver = new MutationObserver((records) => _raskTagHeadRecords(records));
+    _raskHeadObserver.observe(document.head, { childList: true });
+}
+
+// Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with
+// data-rask-managed so the reconciler's skip preserves them. Never tags data-rask-key nodes (the
+// framework's own keyed head links, e.g. the scoped-CSS FOUC clone, which must reconcile by key).
+function _raskTagHeadRecords(records) {
+    for (const r of records) {
+        for (const n of r.addedNodes) {
+            if (n.nodeType === 1 && !n.hasAttribute("data-rask-key") && !n.hasAttribute("data-rask-managed")) {
+                n.setAttribute("data-rask-managed", "");
+            }
+        }
+    }
+}
+
+// Synchronous flush at the start of a head morph: tag foreign nodes injected since the last drain that the
+// async observer callback hasn't processed yet, so this morph preserves them.
+function _raskTagForeignHeadNodes() {
+    if (_raskHeadObserver) _raskTagHeadRecords(_raskHeadObserver.takeRecords());
+}
+
+// Drop the head mutations the framework itself just made (during a morph or applyDiff) so the async
+// observer never tags framework-inserted head nodes as foreign. Called at the end of every head morph and
+// at the end of applyDiff (rask-dom.js).
+function _raskDiscardFrameworkHeadMutations() {
+    if (_raskHeadObserver) _raskHeadObserver.takeRecords();
+}
+
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
         _raskReplaceChild(from.parentNode, to, from);
@@ -187,6 +236,14 @@ function morph(from, to) {
             const checked = to.hasAttribute("checked");
             if (!raskShouldSuppressChecked(from, checked) && from.checked !== checked) from.checked = checked;
         }
+    }
+    // Reconciling the live <head>: before pairing children, tag anything a third-party library injected
+    // (see the note above _raskHeadObserver) as data-rask-managed so the skip below preserves it. The
+    // observer is installed lazily on the first head morph — library injections happen after boot.
+    const isDocHead = typeof document !== "undefined" && from === document.head;
+    if (isDocHead) {
+        _raskEnsureHeadObserver();
+        _raskTagForeignHeadNodes();
     }
     // Skip JS-owned elements (marked data-rask-managed) — they're not part of
     // the .NET render tree, so pairing them against the incoming children would
@@ -261,6 +318,7 @@ function morph(from, to) {
             const leftover = unkeyedFrom[unkeyedCursor++];
             if (leftover.parentNode === from) _raskRemoveChild(from, leftover);
         }
+        if (isDocHead) _raskDiscardFrameworkHeadMutations();
         return;
     }
 
@@ -272,4 +330,5 @@ function morph(from, to) {
         else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
         else morph(src, dst);
     }
+    if (isDocHead) _raskDiscardFrameworkHeadMutations();
 }

@@ -198,6 +198,16 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Third-party `<head>` injections are preserved automatically.** Rask treats `<head>` as authoritative
+  (the live-diff reconciler morphs it back to the rendered head every update), which used to trim a
+  `<style>`/`<link>`/`<script>` a JS library injects at runtime — a code editor's theme, a chart lib, a
+  syntax highlighter, an analytics tag — on the next re-render. The client now watches `<head>` and tags
+  whatever a library injects with `data-rask-managed` (the marker the reconciler already skips), so it
+  survives with no app code. The **reconciliation itself is unchanged**: framework head mutations (a head
+  morph, or an `applyDiff` InsertSubtree of a Head-declared script/link) are discarded from the observer's
+  queue so they still reconcile normally, and `data-rask-key` nodes (the framework's keyed head links,
+  incl. the scoped-CSS FOUC preload clone) are never tagged so they keep reconciling by key. The playground
+  drops its bespoke Monaco head-guard as a result. See [docs/js-interop.md](docs/js-interop.md).
 - **README refresh — a Rask-vs-Blazor scorecard, a wire-bytes chart, and a stale-number fix.** The `Why
   Rask` section now leads with an at-a-glance performance scorecard (wire bytes, allocation/update,
   retained heap, render hot path — sourced from the CI-enforced baselines) and a Mermaid bar chart of how

@@ -284,6 +284,10 @@ function applyDiff(ops, names) {
                 return;
         }
     }
+    // A diff can insert Head-declared <script>/<link> into <head> (keyed InsertSubtree). Discard those
+    // framework mutations from the head observer's queue so they aren't tagged as foreign injections
+    // (see _raskHeadObserver in rask-morph.js).
+    _raskDiscardFrameworkHeadMutations();
 }
 
 // ----- Frame jsInvokes dispatch ------------------------------------------

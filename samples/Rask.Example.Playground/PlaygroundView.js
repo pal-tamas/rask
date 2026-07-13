@@ -46,46 +46,13 @@ function loadMonaco() {
     return loadPromise;
 }
 
-// Monaco injects its theme colours as a <style class="monaco-colors"> (and its CSS as a <link>) into
-// <head>. Rask's live-diff morph reconciles <head> on every re-render and removes any child that isn't
-// marked data-rask-managed — the same marker the framework uses for its own scoped-asset head tags — so
-// without this the editor loses all colour the first time the app re-renders (e.g. after Run). Stamp
-// Monaco's head nodes as managed, and keep watching <head> so any it adds later is protected too.
-let headGuardInstalled = false;
-
-function isMonacoHeadNode(n) {
-    if (!n || n.nodeType !== 1) return false;
-    const cls = typeof n.className === "string" ? n.className : "";
-    if (cls.indexOf("monaco") !== -1) return true;
-    if (n.tagName === "STYLE" && n.textContent && n.textContent.indexOf(".mtk") !== -1) return true;
-    if (n.tagName === "LINK" && n.href && n.href.indexOf("/monaco/") !== -1) return true;
-    return false;
-}
-
-function markManaged(n) {
-    if (isMonacoHeadNode(n) && !n.hasAttribute("data-rask-managed")) {
-        n.setAttribute("data-rask-managed", "");
-    }
-}
-
-function protectMonacoHeadNodes() {
-    // Idempotent sweep of anything already in <head>.
-    document.head.querySelectorAll("style, link").forEach(markManaged);
-    // Install the ongoing guard exactly once.
-    if (headGuardInstalled) return;
-    headGuardInstalled = true;
-    new MutationObserver((records) => {
-        for (const r of records) for (const n of r.addedNodes) markManaged(n);
-    }).observe(document.head, { childList: true });
-}
-
 export async function mountEditor(host, code) {
     if (!host || editor || host.__fallback) return;
     try {
         const monaco = await loadMonaco();
-        // Start protecting head nodes before create so the color <style> Monaco injects during create is
-        // caught by the observer and marked managed from the outset.
-        protectMonacoHeadNodes();
+        // Monaco injects its theme colours as a <style> into <head>. Rask preserves foreign head nodes
+        // automatically (its live-diff reconciler tags what a library injects), so the editor keeps its
+        // colours across re-renders (e.g. after Run) with no extra guarding here.
         editor = monaco.editor.create(host, {
             value: code,
             language: "csharp",
@@ -98,8 +65,6 @@ export async function mountEditor(host, code) {
             renderLineHighlight: "line",
             fixedOverflowWidgets: true
         });
-        // Re-sweep after create in case any node landed synchronously before the observer registered.
-        protectMonacoHeadNodes();
     } catch {
         // Monaco unavailable — degrade to a textarea so the playground still compiles and runs code.
         const ta = document.createElement("textarea");
