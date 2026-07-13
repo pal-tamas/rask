@@ -1197,6 +1197,11 @@ function applyDiff(ops, names) {
         return raw;
     }
 
+    // Symmetric with the discard below: tag any foreign head node injected before this diff (still pending,
+    // not yet delivered to the async observer) so the end-of-diff discard only drops the framework's own
+    // head insertions, never a coincidentally-pending library injection.
+    _raskTagForeignHeadNodes();
+
     for (const op of ops) {
         const k = op[0];
         const path = op[1] || [];
@@ -1957,17 +1962,24 @@ function raskShouldSuppressChecked(el, incoming) {
 // from the observer queue so they're never mistaken for foreign. data-rask-key nodes (the framework's keyed
 // head links, incl. the scoped-CSS FOUC preload clone) are never tagged — they must reconcile by key.
 let _raskHeadObserver = null;
+let _raskObservedHead = null;
 
 function _raskEnsureHeadObserver() {
-    if (_raskHeadObserver || typeof MutationObserver === "undefined"
-        || typeof document === "undefined" || !document.head) {
+    if (typeof MutationObserver === "undefined" || typeof document === "undefined" || !document.head) {
         return;
     }
+    // Already watching the live <head> — nothing to do.
+    if (_raskHeadObserver && _raskObservedHead === document.head) {
+        return;
+    }
+    // First install, or the <head> element was replaced (not morphed in place) — (re)arm on the live head.
+    if (_raskHeadObserver) _raskHeadObserver.disconnect();
+    _raskObservedHead = document.head;
     // The callback receives the pending records as its argument — do NOT call takeRecords() here (it would
     // return empty, since delivery already drained them). takeRecords() is only for the synchronous flush
-    // at a head morph, where the records are still pending.
+    // at a head morph / applyDiff, where the records are still pending.
     _raskHeadObserver = new MutationObserver((records) => _raskTagHeadRecords(records));
-    _raskHeadObserver.observe(document.head, { childList: true });
+    _raskHeadObserver.observe(_raskObservedHead, { childList: true });
 }
 
 // Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with
@@ -1995,6 +2007,12 @@ function _raskTagForeignHeadNodes() {
 function _raskDiscardFrameworkHeadMutations() {
     if (_raskHeadObserver) _raskHeadObserver.takeRecords();
 }
+
+// Install eagerly when the client bundle loads, so a library that injects into <head> before the first
+// head morph is still observed (the lazy install inside morph() is the fallback for when document.head
+// isn't ready at load time). The observer only tags nodes ADDED after it arms — the boot-shell head is
+// left alone.
+_raskEnsureHeadObserver();
 
 function morph(from, to) {
     if (from.nodeType !== to.nodeType || from.nodeName !== to.nodeName) {
