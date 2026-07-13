@@ -343,8 +343,10 @@ jobs:
   # iOS workload. The iOS variant (XCUITest + simulator on macOS) runs nightly in native-ios-e2e.yml.
   native-appium:
     runs-on: ubuntu-latest
-    # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead.
-    timeout-minutes: 35
+    # A hung emulator teardown can otherwise stall the job for the 6h default; fail fast instead. Recent
+    # successful runs land at ~17 min (build + boot + Appium test), so 24 leaves headroom while cutting the
+    # wasted wall-clock when the emulator or its teardown wedges.
+    timeout-minutes: 24
     # The emulator-runner runs each `script` line in a SEPARATE `sh -c`, so shell vars/exports don't
     # persist across lines. Pass the test's env at the job/step level (process env) instead, so it reaches
     # `dotnet test` — otherwise the test silently SKIPS (Skip.IfNot) and the job is a false pass.
