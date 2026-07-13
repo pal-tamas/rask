@@ -25,8 +25,12 @@ concurrency:
 
 jobs:
   native-appium-ios:
-    # All GitHub macOS runners are Apple silicon (arm64) -> iossimulator-arm64 below.
-    runs-on: macos-15
+    # All GitHub macOS runners are Apple silicon (arm64) -> iossimulator-arm64 below. macos-26 (not
+    # macos-15) because the Microsoft.iOS workload auto-tracks the newest SDK: `dotnet workload install
+    # ios` pulls Microsoft.iOS 26.5, which hard-requires the iOS 26.5 SDK (Xcode 26.5, MT0180). The
+    # macos-15 image caps at Xcode 26.3, so that link can never be satisfied there; macos-26 ships Xcode
+    # 26.5 (default) + 26.6, matching the workload (and the Xcode 26.6 used locally to run iOS).
+    runs-on: macos-26
     timeout-minutes: 50
     env:
       RASK_APPIUM_SERVER: http://127.0.0.1:4723
