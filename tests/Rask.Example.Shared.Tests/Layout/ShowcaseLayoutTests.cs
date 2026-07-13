@@ -35,12 +35,14 @@ public sealed class ShowcaseLayoutTests
         var html = new Shared.App()
             .RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 
-        // Each group renders a collapsible toggle whose label is the group name.
-        Assert.Contains(">Start<", html);
-        Assert.Contains(">Components<", html);
+        // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
+        // guide category groups lead (Overview + Core + Bootstrap + …); the surviving Examples group is Apps.
+        Assert.Contains(">Overview<", html);
+        Assert.Contains(">Core<", html);
+        Assert.Contains(">Apps<", html);
         // The top-level sections are present, guides-first: Guides leads, then the demoted Examples. The
         // Bootstrap examples now live in the Bootstrap guide (folded into docs/bootstrap.md), so there is
-        // no longer a separate Bootstrap section — but its guide sidebar link still renders below.
+        // no longer a separate Bootstrap section — but its guide sidebar group still renders below.
         Assert.Contains(">Guides<", html);
         Assert.Contains(">Examples<", html);
         Assert.Contains(">Bootstrap<", html);
@@ -149,8 +151,9 @@ public sealed class ShowcaseLayoutTests
         var services = TestServices.Default(routeState: routeState);
 
         var htmlAtRoot = app.RenderAsLiveRoot(services);
-        // The "Welcome" link to "/" is the active one when the path is "/".
-        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-house",
+        // The "All guides" link to "/" (the site root now the Welcome page is gone) is the active one
+        // when the path is "/" — it carries the bi-book icon.
+        Assert.Matches("side-nav-link active[^>]*>[^<]*<i class=\"bi bi-book",
             CollapseWhitespace(htmlAtRoot));
 
         routeState.Path = "/todos";

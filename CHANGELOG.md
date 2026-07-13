@@ -189,6 +189,15 @@ them until tagged releases begin.
   over the WebSocket.
 
 ### Changed
+- **Showcase restructure: a "Mobile & devices" guide group, a Welcome-free root, and a Bootstrapped
+  Todos app.** The on-site `GuideCatalog` now groups **Browser APIs**, **Mobile & PWA**, and the
+  newly-surfaced **Native (iOS/Android)** guide (`docs/native.md`, previously embedded but never listed)
+  under one **Mobile & devices** section. The redundant Welcome landing page is gone — the guides index
+  is served at `/`, the brand/404/native-tab links point there, and the sample `Todos` screen is migrated
+  fully onto `Rask.Bootstrap`: primitives (`BsListGroup`/`BsListGroupItem`/`BsCheck`/`BsInput`/`BsModal` for
+  the add/edit dialog — dropping the hand-rolled `<dialog>` + focus/Escape plumbing) and typed utility
+  helpers (`Bs.Join(Display.Flex(), Flex.Justify(…), …)`) in place of raw Bootstrap class strings. Sample +
+  docs only; no framework API change.
 - **Renamed the flash-message API to "toast" (BREAKING, pre-1.0).** The transient consumed-once
   messaging types are renamed to match the visual metaphor Rask already renders (`BsToast`): `IFlash` →
   `IToaster`, `Flash` → `Toaster`, `FlashMessage` → `ToastMessage`, `FlashLevel` → `ToastLevel`,
@@ -230,6 +239,22 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **A submit button inside a click-handler element didn't submit the form on WASM.** On the WASM client
+  (`rask.wasm.js`), a `<button type="submit">` nested in an element carrying a `data-rask-on-click` handler
+  — e.g. `BsModal`'s `.modal-dialog` click-shield — had its native form submission cancelled by the
+  ancestor's `preventDefault`, so a `Form<T>` inside a `BsModal` never submitted (and never validated). The
+  server client (`rask.js`) already carved this out; the fix ports the same submit/reset-button guard to the
+  WASM client so the two dialects match. Surfaced by the Bootstrapped Todos add/edit dialog.
+- **A bound wrapper form control used outside a `Form` didn't re-render sibling derived UI.** A two-way
+  bound `Bs*` control (`BsCheck`/`BsInput`/`BsSelect`/pickers/groups) rendered outside a `Form<T>` re-rendered
+  only itself, so a sibling whose class/text derived from the same model property went stale on change — most
+  visibly a `BsCheck(() => item.Done)` in a list next to a `Span` styled from `item.Done`. A raw inline core
+  `Input` never had the bug (its handler owner is the authoring page). The binding-owner resolution
+  (`IFormControl<T>.RegisterValidator`) now falls back to the control's **creating component** when the bind
+  expression's root isn't itself a component (e.g. a loop local `() => item.Field`), recorded weakly at
+  create time (`BindingConsumerRegistry`, keyed by the control — no per-render-node field added). One core
+  change fixes every wrapper control and any custom `IFormControl<T>`, in and out of a `Form`, with no
+  `StateHasChanged`/`AfterBind` on the user surface.
 - **Playground editor lost its syntax colouring after the first Run.** Monaco injects its theme colours as
   a `<style class="monaco-colors">` in `<head>`; the live-diff morph reconciles `<head>` on every re-render
   and removes any child not marked `data-rask-managed`, so the first re-render (e.g. after clicking Run)

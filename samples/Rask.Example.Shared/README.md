@@ -20,5 +20,6 @@ dotnet run --project samples/Rask.Example.Wasm.Host   # browser-WASM
 | `Demos/`  | Reusable demo components used by the pages (e.g. `ContextDemos`, `CallbackDemos`, `ElementRefDemo`). |
 | `Layout/` | `ShowcaseLayout` — the shell, sidebar nav, and the route table that drives both.                     |
 
-`Pages/HomePage.cs` is the feature index; its card list mirrors the nav in
-`Layout/ShowcaseLayout.cs`.
+The site is guides-first: `Features/Guides/GuidesIndexPage.cs` is the root (`/`), rendering the
+`GuideCatalog` (the `docs/*.md` guides) as grouped cards. The sidebar in `Shared/ShowcaseLayout.cs`
+leads with those guides, then the demoted interactive Examples.

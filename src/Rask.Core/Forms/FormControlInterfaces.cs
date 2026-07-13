@@ -18,7 +18,12 @@ namespace Rask.Core.Forms;
 // The framework's own component-style controls (samples MultiSelect/CheckboxGroup/RadioGroup) are
 // the worked examples. In Render, collapse the typed validators for EditContext registration:
 //   ctx?.RegisterFieldValidator(fid, (Delegate?)Validate ?? ValidateAsync, () => acc.Getter());
-public interface IFormControl<T>
+// Non-generic marker every IFormControl<T> carries, so the render machinery can recognise a form
+// control without knowing its value type T (Component.GetOrCreateChild records the control's creating
+// parent through it — see BindingConsumerRegistry). No members: it is purely a type tag.
+public interface IFormControl;
+
+public interface IFormControl<T> : IFormControl
 {
     // Bound mode — two-way binds an lvalue of type T and drives the ambient EditContext.
     Expression<Func<T>>? Bind { get; set; }
@@ -47,8 +52,14 @@ public interface IFormControl<T>
 
         context.RegisterFieldValidator(accessor.Field, Validator, () => accessor.Getter());
         // Record the binding's authoring component so a two-way write re-renders it (and any derived UI it
-        // owns outside the control/Form) automatically — no StateHasChanged on the consumer surface.
-        context.TrackBindingOwner(accessor.Field, accessor.Owner as Component);
+        // owns outside the control/Form) automatically — no StateHasChanged on the consumer surface. Prefer
+        // the bind expression's root component (`() => _model.Field`); when the bind closed over a loop
+        // local (`() => item.Field`, root is a closure, not a component) fall back to the control's creating
+        // parent — the component whose Render() authored this control, which is exactly where the derived UI
+        // lives. Without the fallback a wrapper control (BsCheck/BsInput/…) would re-render only itself and a
+        // sibling deriving from the same model property would go stale.
+        context.TrackBindingOwner(accessor.Field,
+            accessor.Owner as Component ?? BindingConsumerRegistry.Resolve(this));
     }
 
     // Runs the post-bind hooks with the freshly-bound value.
