@@ -29,6 +29,13 @@ public sealed class StandaloneWasmExampleCollection
 }
 
 [CollectionDefinition(Name)]
+public sealed class SiteExampleCollection
+    : ICollectionFixture<SiteWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
+{
+    public const string Name = "SiteExample";
+}
+
+[CollectionDefinition(Name)]
 public sealed class SubPathWasmExampleCollection
     : ICollectionFixture<SubPathWasmAppFixture>, ICollectionFixture<PlaywrightFixture>
 {
