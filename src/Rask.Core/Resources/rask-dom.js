@@ -137,6 +137,11 @@ function applyDiff(ops, names) {
         return raw;
     }
 
+    // Symmetric with the discard below: tag any foreign head node injected before this diff (still pending,
+    // not yet delivered to the async observer) so the end-of-diff discard only drops the framework's own
+    // head insertions, never a coincidentally-pending library injection.
+    _raskTagForeignHeadNodes();
+
     for (const op of ops) {
         const k = op[0];
         const path = op[1] || [];

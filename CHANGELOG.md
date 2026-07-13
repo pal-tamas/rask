@@ -255,6 +255,12 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Foreign-`<head>` preservation hardening.** Follow-up to the head-injection preservation added above:
+  the head `MutationObserver` now installs eagerly when the client bundle loads (so a library that injects
+  into `<head>` before the first head morph is still caught, not only after it), re-arms if the live
+  `<head>` element is ever replaced rather than morphed in place, and `applyDiff` flushes pending foreign
+  injections before its end-of-frame discard so a library node injected during the same task as a diff
+  isn't dropped instead of preserved.
 - **Sign-in landing page rendered stale (pre-sign-in) identity data.** After `IAuthSignIn.SignInAsync(principal, returnUrl)`,
   the server applied the `returnUrl` navigation immediately in the handler-dispatch tail — mounting the
   destination page **before** the reconnect re-seeded `SessionUserProvider`, so its `OnMount`/`OnMountAsync`
