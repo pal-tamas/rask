@@ -125,18 +125,17 @@ public sealed class NativeShowcaseAppiumTests
     {
         driver.Context = NativeContext;
 
-        // The native header + the three native tabs render (NativeHeaderBar + NativeTabBar → real bars).
+        // The native header + the two native tabs render (NativeHeaderBar + NativeTabBar → real bars).
+        // Guides is the site root ("/") now that the Welcome landing page is gone, so it doubles as Home.
         WaitForNativeElement(driver, "rask-native-header");
-        WaitForNativeElement(driver, "Home");
         WaitForNativeElement(driver, "Guides");
         WaitForNativeElement(driver, "Todos");
 
         // A native tab tap raises a `navigate` event over the bridge → NativeLiveSession → router → re-render;
         // native history moves the URL, so the WebView's pathname follows. Verify the full round trip and
-        // that re-selecting tabs works (Home → Guides → Todos → Home).
-        TapNativeTabAndAssertRoute(driver, webContext, "Guides", "/guides");
+        // that re-selecting tabs works (Guides "/" → Todos "/todos" → back to Guides "/").
         TapNativeTabAndAssertRoute(driver, webContext, "Todos", "/todos");
-        TapNativeTabAndAssertRoute(driver, webContext, "Home", "/");
+        TapNativeTabAndAssertRoute(driver, webContext, "Guides", "/");
     }
 
     private static void TapNativeTabAndAssertRoute(
