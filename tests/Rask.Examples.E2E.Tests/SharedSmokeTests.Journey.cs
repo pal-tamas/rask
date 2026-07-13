@@ -285,7 +285,10 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#demo-dropdown .dropdown-toggle").First.ClickAsync();
         var ddMenu = Page.Locator("#demo-dropdown .dropdown-menu.show").First;
         await Expect(ddMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.Equal("fixed", await ddMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        // Retry the position read: on the slower WASM transport the data-rask-popover re-anchor can land a
+        // beat after the menu paints, and this page is freshly navigated (not a long pre-hydrated one).
+        await Expect(ddMenu).ToHaveCSSAsync("position", "fixed",
+            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
         await Expect(ddMenu).ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await ddMenu.Locator("button").Filter(new LocatorFilterOptions { HasText = "Archive" }).First.ClickAsync();
@@ -317,7 +320,8 @@ public abstract partial class SharedSmokeTests
         await plan.ClickAsync();
         var planMenu = Page.Locator("#bs-plan-list.dropdown-menu.show");
         await Expect(planMenu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        Assert.Equal("fixed", await planMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(planMenu).ToHaveCSSAsync("position", "fixed",
+            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
         // Type in the dropdown's search field — only the option whose label contains "Te" (Team) survives.
         await Page.Locator("#bs-plan-search").FillAsync("Te");
         await Expect(planMenu.Locator(".dropdown-item")).ToHaveCountAsync(1,
@@ -451,7 +455,8 @@ public abstract partial class SharedSmokeTests
         // with position:fixed. Under the old position:absolute the card would clip it. Assert the menu is
         // fixed and within the viewport — the regression guard for the overflow-clipping bug.
         var pickMenu = Page.Locator(".dropdown-menu.show:has(#pick-date-cal)").First;
-        Assert.Equal("fixed", await pickMenu.EvaluateAsync<string>("el => getComputedStyle(el).position"));
+        await Expect(pickMenu).ToHaveCSSAsync("position", "fixed",
+            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
         await Expect(pickMenu).ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
