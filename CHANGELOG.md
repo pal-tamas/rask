@@ -210,6 +210,12 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **A submit button inside a click-handler element didn't submit the form on WASM.** On the WASM client
+  (`rask.wasm.js`), a `<button type="submit">` nested in an element carrying a `data-rask-on-click` handler
+  — e.g. `BsModal`'s `.modal-dialog` click-shield — had its native form submission cancelled by the
+  ancestor's `preventDefault`, so a `Form<T>` inside a `BsModal` never submitted (and never validated). The
+  server client (`rask.js`) already carved this out; the fix ports the same submit/reset-button guard to the
+  WASM client so the two dialects match. Surfaced by the Bootstrapped Todos add/edit dialog.
 - **A bound wrapper form control used outside a `Form` didn't re-render sibling derived UI.** A two-way
   bound `Bs*` control (`BsCheck`/`BsInput`/`BsSelect`/pickers/groups) rendered outside a `Form<T>` re-rendered
   only itself, so a sibling whose class/text derived from the same model property went stale on change — most
