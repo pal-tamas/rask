@@ -25,6 +25,19 @@ public class KeyTests
     public void Key_Null_EmitsNothing() => Assert.Equal("<div></div>", Div().ToHtml());
 
     [Fact]
+    public void Key_ValueKey_ReEmitsStablyAcrossRenders()
+    {
+        // KeyString dropped its value→string cache (a footprint win); a boxed value key must still
+        // stringify correctly on every render, not just the first.
+        var li = Li(Key: 42);
+        Assert.Equal("<li data-rask-key=\"42\"></li>", li.ToHtml());
+        Assert.Equal("<li data-rask-key=\"42\"></li>", li.ToHtml());
+
+        // Reading Key back returns the original boxed value unchanged.
+        Assert.Equal(42, li.Key);
+    }
+
+    [Fact]
     public void Key_AfterUserData_NoDuplicate()
     {
         // data-rask-key follows other data-* entries; a literal Data["rask-key"] is dropped

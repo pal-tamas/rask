@@ -38,6 +38,16 @@ public abstract class Component
         ("<!DOCTYPE html>", "Doctype()"), ("<html", "Html(...)"), ("<head", "Head()"), ("<body", "Body()")
     };
 
+    // Per-node boolean state packed into one byte so it costs a single field slot instead of one
+    // (padded) slot per bool across the Component/Element pair. Bit 0 lives on the base; Element
+    // claims bits 1-2 (see Element.Draggable). GetFlag/SetFlag are private protected so a derived
+    // Element in this assembly can share the byte. Reserve new bits here to keep the allocation
+    // documented in one place.
+    //   bit 0 — reads-ambient-state (below)
+    //   bit 1 — Element: Draggable present
+    //   bit 2 — Element: Draggable value
+    private byte _flags;
+
     // Set the first time this component reads untracked ambient state during Render: a context value
     // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
     // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —
@@ -45,7 +55,14 @@ public abstract class Component
     // This is why form controls that read validation state need no manual BypassRenderCache override.
     // Latched on: once a reader, always a reader (its Render path can read different
     // context/edit-context state across renders).
-    private bool _readsAmbientState;
+    private const byte FlagReadsAmbientState = 1 << 0;
+
+    private bool _readsAmbientState => (_flags & FlagReadsAmbientState) != 0;
+
+    private protected bool GetFlag(byte mask) => (_flags & mask) != 0;
+
+    private protected void SetFlag(byte mask, bool value) =>
+        _flags = value ? (byte)(_flags | mask) : (byte)(_flags & ~mask);
 
     // All live-render-only state — handlers, child reconciliation, root alive sets, the error
     // boundary + render handle + lifetime token, edit-context pool, the dirty/lifecycle flags — is
@@ -117,39 +134,22 @@ public abstract class Component
     // FrameWriter.AdjustOffsetsFrom and KeyedInsertNavTests).
     public object? Key { get; set; }
 
-    private object? _cachedKeyValue;
-    private string? _cachedKeyString;
-
     // Stringified Key for emit (data-rask-key) and key-forwarding, computed per render on every
-    // keyed node. A string key needs no allocation (ToString() returns itself); for boxed value
-    // keys (the common int/Guid keyed-list case) the factory re-boxes the same value each render,
-    // so we cache by value-equality and reuse the prior string instead of re-allocating it.
-    internal string? KeyString
+    // keyed node. A string key needs no allocation (ToString() returns itself); a value key
+    // (int/Guid) allocates a small string per render.
+    //
+    // We deliberately do NOT cache the value→string mapping: the cache only ever hit for a keyed
+    // instance that is REUSED across renders, but a keyed list rebuilds its element instances every
+    // render, so the cache was cold-missing there anyway. Keeping it cost two reference fields
+    // (16 B) on EVERY node in a mounted tree — a bad trade against a rare ToString on reused nodes,
+    // and this is a footprint-focused path. Non-keyed nodes (the majority) hit the null short-circuit
+    // and allocate nothing.
+    internal string? KeyString => Key switch
     {
-        get
-        {
-            var k = Key;
-            if (k is null)
-            {
-                return null;
-            }
-
-            if (k is string s)
-            {
-                return s;
-            }
-
-            if (_cachedKeyValue is not null && _cachedKeyValue.Equals(k))
-            {
-                return _cachedKeyString;
-            }
-
-            var str = k.ToString();
-            _cachedKeyValue = k;
-            _cachedKeyString = str;
-            return str;
-        }
-    }
+        null => null,
+        string s => s,
+        var k => k.ToString(),
+    };
 
     // Primary children indexer. `Div()[Span(...), "hi"]` is the call shape: literal lists of
     // components/strings (each implicitly a Component via the converters above). Overload
@@ -350,7 +350,7 @@ public abstract class Component
     protected virtual Component? Head => null;
 
     internal Component? HeadInternal => Head;
-    internal void MarkReadsAmbientStateInternal() => _readsAmbientState = true;
+    internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
 
     /// <summary>
     ///     Where this component is being presented — a web page (<see cref="RenderShell.Web" />) or a native
