@@ -14,7 +14,7 @@ public sealed class HomePage : Component
                 P(Class: "card-text text-secondary")[
                     "A browser-WASM SPA that signs in against its host's ", Code()["/api/login"],
                     " (HttpOnly cookie) and hydrates the user from ", Code()["/api/me"], "."],
-                NavLink("/members", Id: "go-members", Class: "btn btn-primary")[
+                NavLink(Routes.MembersPage(), Id: "go-members", Class: "btn btn-primary")[
                     "Go to the members area →"]
             ]
         ];

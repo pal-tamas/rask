@@ -14,7 +14,7 @@ public sealed class MembersPage : Component
                 Authorize(
                     Authorizing: P("members-authorizing", "text-secondary mb-0")["Loading…"],
                     NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink("/login")["sign in"], "."])[MemberContent()]
+                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."])[MemberContent()]
             ]
         ];
 }

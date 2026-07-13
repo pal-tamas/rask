@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK032)
+# Rask diagnostics (RASK001–RASK033)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -45,6 +45,7 @@ packed alongside the analyzers in the `Rask.Server` / `Rask.Wasm` packages — n
 | [RASK030](#rask030) | Hidden | Prefer named arguments on a factory call with 3+ positional args |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | [RASK032](#rask032) | Error | Native component nested in the HTML tree |
+| [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 
 ---
 
@@ -474,3 +475,36 @@ protected override Component? Render() =>
 
 **Fix:** move the native component out of the HTML — compose it at the layout level, as a sibling of
 `NativeWebView`. Native chrome renders only under the native host and is inert on Server/WASM.
+
+## RASK033
+**Hardcoded path for internal navigation instead of the generated route URL** · Warning
+
+Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for every page's **primary** `[Route]`
+(see [Routing → type-safe URLs](routing.md)). Using the raw path string for internal navigation bypasses
+that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
+whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
+passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink(Href: …)`,
+`BsNavItem(Href: …)`, `NativeTab(To: …)`, via the `string → RouteUrl` implicit conversion) — **only** when
+the path maps to a generated parameterless factory.
+
+It deliberately leaves alone:
+- **External URLs** — `https://…`, or anything wrapped in `RouteUrl.External("…")`.
+- **Parameterised routes** — `/users/42` needs `Routes.UserPage("42")`, which can't be reconstructed from a
+  bare literal.
+- **Secondary `[Route]` templates** — the factory formats a page's *first* template only, so a literal like
+  `/todos/new` on a page whose primary route is `todos` has no `Routes.*()` equivalent and is not flagged.
+
+```csharp
+[Route("todos")] public sealed class TodosPage : Component { /* … */ }
+
+nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
+NavLink(Href: "/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
+
+nav.NavigateTo(Routes.TodosPage());  // ✓ type-safe; a renamed route is a compile error
+nav.NavigateTo("/todos/new");        // ✓ secondary template — no factory, left alone
+A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
+```
+
+**Fix:** call the generated `Routes.<Page>()` (with arguments for any route/query params). For a genuinely
+dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#pragma warning disable RASK033`
+/ `.editorconfig` (`dotnet_diagnostic.RASK033.severity = none`).

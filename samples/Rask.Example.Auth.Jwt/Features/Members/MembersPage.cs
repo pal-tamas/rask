@@ -16,7 +16,7 @@ public sealed class MembersPage : Component
             Div(Class: "card-body")[
                 Authorize(
                     NotAuthorized: P("members-anon", "mb-0")[
-                        "Please ", NavLink("/login")["sign in"], "."])[MemberContent()]
+                        "Please ", NavLink(Routes.LoginPage())["sign in"], "."])[MemberContent()]
             ]
         ];
 }
@@ -38,6 +38,6 @@ public sealed class MemberContent(ProtectedSessionStorage store, SessionUserProv
     {
         await store.DeleteAsync("rask.jwt");
         users.Clear();
-        nav.NavigateTo("/login");
+        nav.NavigateTo(Routes.LoginPage());
     }
 }

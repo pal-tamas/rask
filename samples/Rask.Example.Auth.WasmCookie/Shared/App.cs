@@ -27,7 +27,7 @@ public sealed class App : Component
             Body(Class: "bg-body-tertiary")[
                 Nav(Class: "navbar navbar-dark bg-dark border-bottom shadow-sm")[
                     Div(Class: "container")[
-                        NavLink("/", Class: "navbar-brand fw-bold")["Rask · cookie + WASM auth"],
+                        NavLink(Features.Routes.HomePage(), Class: "navbar-brand fw-bold")["Rask · cookie + WASM auth"],
                         A("https://github.com/pal-tamas/rask", "_blank",
                             Class: "btn btn-outline-light btn-sm")[I(Class: "bi bi-github me-1"), "GitHub"]
                     ]
