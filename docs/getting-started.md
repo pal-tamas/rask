@@ -11,7 +11,7 @@ Rask-specific ideas, not the language.
 
 > **Coming from Blazor?** Skim [migrating from Blazor](migration-from-blazor.md) for the concept
 > mapping (`@page` → `[Route]`, `[Parameter]` → a property, `EventCallback` → a plain delegate). **Just
-> want to look first?** Click through the [live demo](https://pal-tamas.github.io/rask/) — a full
+> want to look first?** Click through the [live demo](https://pal-tamas.github.io/rask/demo/) — a full
 > multi-page Rask app, no install needed.
 
 ## Before you start

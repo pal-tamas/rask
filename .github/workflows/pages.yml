@@ -36,57 +36,57 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Publish Rask.Example.Wasm
-        # Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills the
-        # index.html import map (with integrity) at publish — so GitHub Pages redeploys stay
-        # subresource-integrity-safe. /p:RaskPathBase=/<repo> drives the framework's
-        # _RaskRewriteBaseHref target to rewrite <base href> to /<repo>/ in the published
-        # wwwroot/index.html; every other asset URL + the import map is document-relative, so
-        # the corrected base href resolves them all under the GH-Pages sub-path.
-        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
+      # The Pages site is three Rask WASM apps: the marketing landing page (Rask.Example.Site) at the
+      # root /<repo>/, the live feature showcase (Rask.Example.Wasm) at /<repo>/demo/, and the live
+      # playground at /<repo>/playground/. Each is published with /p:RaskPathBase so the framework's
+      # _RaskRewriteBaseHref target rewrites its <base href> to the sub-path; every other asset URL +
+      # the SRI-pinned import map stays document-relative, so the corrected base resolves them all
+      # under the sub-path. (Microsoft.NET.Sdk.WebAssembly fingerprints the framework assets and fills
+      # the import map with integrity at publish, keeping static-host redeploys SRI-safe.)
+      - name: Publish the landing site (Rask.Example.Site → /)
+        run: dotnet publish samples/Rask.Example.Site -c Release /p:RaskPathBase=/${{ github.event.repository.name }}
 
-      # Expected, harmless: with DevTools open the Pages site logs a 404 for
-      # _framework/dotnet.runtime.js.map. The Release publish strips all .map files, but the
-      # fingerprinted dotnet.runtime.*.js keeps its trailing `//# sourceMappingURL=` comment, so
-      # the browser fetches a map that isn't shipped. It never loads on a normal page view and
-      # doesn't affect the app. We can't strip the comment post-publish: the runtime JS is
-      # SRI-pinned in the index.html import map (see #63), so changing its bytes breaks the
-      # integrity check and the runtime fails to load. Shipping the 270 KB map just to silence a
-      # DevTools-only 404 isn't worth it on a size-tuned bundle (we already drop ICU).
-      - name: Resolve bundle directory
-        id: bundle
-        run: |
-          BUNDLE=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
-          if [ ! -d "$BUNDLE" ]; then
-            echo "Could not locate the published wwwroot at $BUNDLE" >&2
-            find samples/Rask.Example.Wasm/bin -maxdepth 5 -type d
-            exit 1
-          fi
-          echo "--- index.html (head) ---"
-          head -n 20 "$BUNDLE/index.html"
-          echo "dir=$BUNDLE" >> "$GITHUB_OUTPUT"
+      - name: Publish the live demo (Rask.Example.Wasm → /demo/)
+        run: dotnet publish samples/Rask.Example.Wasm -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/demo
 
-      - name: Copy index.html to 404.html for SPA fallback
-        run: cp "${{ steps.bundle.outputs.dir }}/index.html" "${{ steps.bundle.outputs.dir }}/404.html"
-
-      # The live playground is a separate WASM sub-app: it compiles Rask C# in the browser with Roslyn, so
-      # it ships untrimmed (Roslyn needs full assembly metadata as references) and is deliberately kept out
-      # of the size-tuned showcase bundle. Publish it under /<repo>/playground/ and fold its wwwroot into
-      # the same Pages artifact next to the showcase; the showcase navbar links out to it.
-      - name: Publish Rask.Example.Playground
+      # The playground is untrimmed (Roslyn needs full assembly metadata as references), so it is kept
+      # out of the size-tuned demo bundle and published to its own output dir.
+      - name: Publish the playground (→ /playground/)
         run: dotnet publish samples/Rask.Example.Playground -c Release /p:RaskPathBase=/${{ github.event.repository.name }}/playground -o playground-publish
 
-      - name: Fold the playground into the Pages bundle
+      # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
+      # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its
+      # trailing `//# sourceMappingURL=` comment, so the browser fetches a map that isn't shipped. It
+      # never loads on a normal page view and doesn't affect the app. We can't strip the comment
+      # post-publish: the runtime JS is SRI-pinned in the import map (see #63), so changing its bytes
+      # breaks the integrity check. Shipping the 270 KB map to silence a DevTools-only 404 isn't worth
+      # it on a size-tuned bundle (we already drop ICU).
+      - name: Assemble the Pages bundle (landing at root, demo + playground nested)
+        id: bundle
         run: |
+          LANDING=samples/Rask.Example.Site/bin/Release/net10.0-browser/publish/wwwroot
+          DEMO=samples/Rask.Example.Wasm/bin/Release/net10.0-browser/publish/wwwroot
           PLAYGROUND=playground-publish/wwwroot
-          if [ ! -d "$PLAYGROUND" ]; then
-            echo "Could not locate the published playground wwwroot at $PLAYGROUND" >&2
-            find playground-publish -maxdepth 3 -type d
-            exit 1
-          fi
-          cp -r "$PLAYGROUND" "${{ steps.bundle.outputs.dir }}/playground"
-          echo "--- playground/index.html <base> ---"
-          grep -i "<base" "${{ steps.bundle.outputs.dir }}/playground/index.html" || true
+          for d in "$LANDING" "$DEMO" "$PLAYGROUND"; do
+            if [ ! -d "$d" ]; then
+              echo "Could not locate published wwwroot: $d" >&2
+              find . -maxdepth 6 -type d -name wwwroot
+              exit 1
+            fi
+          done
+          SITE="$RUNNER_TEMP/site"
+          mkdir -p "$SITE"
+          cp -r "$LANDING"/. "$SITE"/                 # marketing landing app at the root
+          cp -r "$DEMO" "$SITE/demo"
+          cp -r "$PLAYGROUND" "$SITE/playground"
+          # GitHub Pages serves /404.html for any unknown path; boot the demo SPA (its <base href> is
+          # /<repo>/demo/, so it client-routes correctly) as the deep-link fallback — the landing page
+          # itself is a single route, so it needs none.
+          cp "$SITE/demo/index.html" "$SITE/404.html"
+          echo "--- landing <base> ---";      grep -i "<base"   "$SITE/index.html" || true
+          echo "--- demo <base> ---";         grep -i "<base"   "$SITE/demo/index.html" || true
+          echo "--- playground <base> ---";   grep -i "<base"   "$SITE/playground/index.html" || true
+          echo "dir=$SITE" >> "$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v6
 
