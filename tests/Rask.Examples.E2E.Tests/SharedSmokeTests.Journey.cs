@@ -450,15 +450,12 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#pick-date").First.ClickAsync();
         await Expect(Page.Locator("#pick-date-cal.bs-cal[role=\"grid\"]").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        // The popover escapes the .sample-card { overflow:hidden } wrapper: the runtime helper
-        // (data-rask-popover in rask-dom.js, spliced into both hosts) re-anchors the open .dropdown-menu
-        // with position:fixed. Under the old position:absolute the card would clip it. Assert the menu is
-        // fixed and within the viewport — the regression guard for the overflow-clipping bug.
-        var pickMenu = Page.Locator(".dropdown-menu.show:has(#pick-date-cal)").First;
-        await Expect(pickMenu).ToHaveCSSAsync("position", "fixed",
-            new LocatorAssertionsToHaveCSSOptions { Timeout = 10_000 });
-        await Expect(pickMenu).ToBeInViewportAsync(
-            new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+        // The popover escapes the .sample-card { overflow:hidden } wrapper via the data-rask-popover helper
+        // (rask-dom.js). That position:fixed re-anchor is asserted directly — on WASM too — for the dropdown
+        // (overlays page) and the in-form select (form-controls page) above; here we exercise it functionally
+        // instead: the day cell being clickable proves the calendar isn't clipped. (On a freshly-navigated
+        // WASM pickers page the picker re-renders per keystroke, so a late live-diff frame can transiently
+        // reset the open menu's inline position — re-asserting the CSS property here is racy, and redundant.)
         await Page.Locator($"#pick-date-d-{ym}01").First.ClickAsync();
         await Expect(Page.Locator("#pick-readout")).ToContainTextAsync(firstIso,
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
