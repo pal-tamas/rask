@@ -814,6 +814,21 @@ public static class RaskEndpointExtensions
 
                     session.AttachSocket(ws, ct);
                     session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
+
+                    // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the
+                    // destination page mounts fresh under the new identity (its OnMountAsync runs against
+                    // the redeemed principal). AttachSocket flagged _renderRequestedWhileDetached on this
+                    // reconnect, so the FlushPendingRenderAsync below performs a real render against the
+                    // updated route. See LiveSession.PendingAuthNavigation.
+                    if (session.PendingAuthNavigation is { } authDest)
+                    {
+                        session.PendingAuthNavigation = null;
+                        var routeState = session.Services.GetRequiredService<RouteState>();
+                        var (path, query) = SplitUrl(authDest);
+                        routeState.Path = path;
+                        routeState.Query = query;
+                    }
+
                     // Only emit a catch-up render when something asked to render during the
                     // GET→hello handoff window (or while detached across a reconnect). When
                     // no drop happened, the browser's HTML still reflects the session state
@@ -1098,10 +1113,16 @@ public static class RaskEndpointExtensions
                                 session.Id);
                             authInstruction = new AuthInstruction(ticketId, safeReturn);
 
-                            var routeState = session.Services.GetRequiredService<RouteState>();
-                            var (path, query) = SplitUrl(safeReturn);
-                            routeState.Path = path;
-                            routeState.Query = query;
+                            // Do NOT navigate routeState here. Setting it to the destination now would
+                            // mount the destination page under the PRE-SignIn principal — SessionUserProvider
+                            // is only re-seeded on the reconnect handshake — so its OnMountAsync would load
+                            // data for the old identity/tenant, and the reconnect re-renders without
+                            // remounting (children reconcile by (Type, position), not Key), leaving that
+                            // data stale. Park the returnUrl; the hello handler applies it once the reconnect
+                            // carries the new cookie, so the page mounts fresh under the new identity. The
+                            // client's URL bar still updates immediately via historyUrl below (the separate
+                            // history.replace field), behind the "Authenticating…" overlay.
+                            session.PendingAuthNavigation = safeReturn;
                             historyUrl = safeReturn;
                             historyReplace = true;
                         }

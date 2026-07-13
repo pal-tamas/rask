@@ -201,6 +201,16 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Sign-in landing page rendered stale (pre-sign-in) identity data.** After `IAuthSignIn.SignInAsync(principal, returnUrl)`,
+  the server applied the `returnUrl` navigation immediately in the handler-dispatch tail — mounting the
+  destination page **before** the reconnect re-seeded `SessionUserProvider`, so its `OnMount`/`OnMountAsync`
+  ran under the *old* principal. Because children reconcile by `(Type, position)` and not `Key`, the
+  post-reconnect render reused that instance without remounting, leaving any identity/tenant-scoped data it
+  loaded at mount permanently stale (e.g. a multi-tenant admin who switches tenant saw the previous tenant's
+  data on the landing page). The `returnUrl` navigation is now **deferred** until the reconnect `hello`
+  applies it, right after the redeemed principal is set, so the destination mounts fresh under the new
+  identity. The client URL update is unchanged (it rides the separate `history.replace` field). Applies to
+  both sign-in and sign-out.
 - **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
   with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
   'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when

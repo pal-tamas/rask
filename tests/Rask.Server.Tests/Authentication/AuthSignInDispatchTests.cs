@@ -96,8 +96,8 @@ public class AuthSignInDispatchTests
         // full-HTML (`kind:"html"`) or a diff (`kind:"diff"` with the new text in an
         // UpdateText op's value) depending on choose-smaller heuristics — both correct.
         // Check on the raw JSON so the assertion stays robust across codec decisions.
-        // (`path=/dashboard` was set pre-disconnect and didn't change across the
-        // reconnect's diff, so it would only appear in a full-HTML payload; the
+        // (The returnUrl navigation to `/dashboard` is applied on THIS reconnect, after the
+        // principal is re-seeded, so both `user=alice` and `path=/dashboard` flip here; the
         // identity is the load-bearing assertion for this test.)
         Assert.Contains("user=alice", afterReconnect!);
     }
