@@ -220,6 +220,13 @@ them until tagged releases begin.
   shards to browser-journey time.
 
 ### Fixed
+- **Playground editor lost its syntax colouring after the first Run.** Monaco injects its theme colours as
+  a `<style class="monaco-colors">` in `<head>`; the live-diff morph reconciles `<head>` on every re-render
+  and removes any child not marked `data-rask-managed`, so the first re-render (e.g. after clicking Run)
+  stripped it and every token fell back to the inherited body colour — a faint, uncoloured editor. The
+  playground now stamps Monaco's head-injected `<style>`/`<link>` nodes as `data-rask-managed` (the same
+  marker the framework uses for its own scoped-asset head tags) and keeps a `MutationObserver` on `<head>`
+  so any it adds later stays protected. An E2E assertion guards it.
 - **Native `IJSRuntime` calls threw `NotSupportedException` on iOS.** Any component invoking a browser API
   with arguments (e.g. the guide-chrome scroll-spy) failed on iOS with *"JsonTypeInfo metadata for type
   'System.Object[]' was not provided"*. `NativeJSRuntime` added the reflection-based JSON resolver only when

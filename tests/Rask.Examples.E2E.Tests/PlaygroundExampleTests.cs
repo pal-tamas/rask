@@ -47,6 +47,14 @@ public sealed class PlaygroundExampleTests
             await page.ClickAsync(".pg-preview .card .btn");
             await Expect(page.Locator(".pg-preview .card p"))
                 .ToContainTextAsync("1 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+            // Regression guard: Monaco injects its theme colours as a <style> in <head>; the live-diff
+            // morph on each re-render (Run + this click) must preserve it (it's marked data-rask-managed),
+            // or the editor loses all syntax colouring and renders faint. Assert it survived.
+            var monacoHeadStyles = await page.EvaluateAsync<int>(
+                "() => document.querySelectorAll('head style.monaco-colors, head style[class*=\"monaco\"]').length");
+            Assert.True(monacoHeadStyles > 0,
+                "Monaco's head-injected theme <style> was stripped on re-render — the editor would render uncoloured.");
         }
         finally
         {
